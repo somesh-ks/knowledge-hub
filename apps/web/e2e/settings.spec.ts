@@ -30,7 +30,7 @@ test.describe("settings page", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     const today = page.getByRole("navigation", { name: "Primary" }).getByRole("link", {
-      name: "Today",
+      name: "Latest",
       exact: true,
     });
     await expect(today).not.toHaveAttribute("aria-current", /.*/);

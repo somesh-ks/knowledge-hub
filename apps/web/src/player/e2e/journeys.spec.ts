@@ -34,7 +34,7 @@ test("a listening journey across pages: A on Today, B from the Library, back to 
   await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
   // Back to A, on Today.
   await player.finger.press(
-    page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Today" }),
+    page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Latest" }),
   );
   await expect(page).toHaveURL(/\/$/);
   // A offers the time left from where it stopped, not a fresh start.

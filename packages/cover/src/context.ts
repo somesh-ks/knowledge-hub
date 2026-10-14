@@ -2,9 +2,9 @@ import { isoWeek, MONTH_NAMES, rangeLabel } from "./calendar.js";
 import { layoutLockup, MARGIN_UNITS } from "./lockup.js";
 import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
-import { dress, schemeFor } from "./season.js";
+import { type Dress, dress, isMonthly, schemeFor } from "./season.js";
 import { pad } from "./svg.js";
-import type { CoverKind, CoverMeta, CoverSpec, Ctx, Rect, Variant } from "./types.js";
+import type { CoverKind, CoverMeta, CoverSpec, Ctx, Palette, Rect, Variant } from "./types.js";
 
 export { MONTH_NAMES };
 
@@ -36,15 +36,13 @@ export function variantOf(kind: CoverKind, monthly = false): Variant {
   return "regular";
 }
 
-/** Builds the template context for a square canvas of `size`. */
-export function buildContext(
+/** The palette a cover is drawn in, and on a monthly cover its season's dress (type, matte). */
+function coverDress(
   spec: CoverSpec,
   meta: CoverMeta,
-  size: number,
-  lockupMode: "standard" | "own",
-  monthly = false,
-): BuiltContext {
-  const { year, month, day } = parseDate(meta.date);
+  monthly: boolean,
+): { pal: Palette; variant: Variant; season: Dress | undefined } {
+  const { year, month } = parseDate(meta.date);
   const variant = variantOf(meta.kind, monthly);
   const base = getPalette(spec.palette);
   const season = monthly
@@ -55,6 +53,34 @@ export function buildContext(
       )
     : undefined;
   const pal = season ? season.palette : variant === "episode" ? invertPalette(base) : base;
+  return { pal, variant, season };
+}
+
+/**
+ * The colours a cover is drawn in, largest area first, for light the page casts around it. A monthly
+ * cover takes its season's dress and an older episode is inverted, so `spec.palette` alone is not
+ * what the cover shows.
+ */
+export function coverColors(
+  spec: CoverSpec,
+  meta: CoverMeta,
+): { ground: string; accent: string; shade: string } {
+  const { pal, season } = coverDress(spec, meta, isMonthly(meta.date));
+  return season?.matte
+    ? { ground: season.matte, accent: pal.ground, shade: pal.accent }
+    : { ground: pal.ground, accent: pal.accent, shade: pal.shade };
+}
+
+/** Builds the template context for a square canvas of `size`. */
+export function buildContext(
+  spec: CoverSpec,
+  meta: CoverMeta,
+  size: number,
+  lockupMode: "standard" | "own",
+  monthly = false,
+): BuiltContext {
+  const { month, day } = parseDate(meta.date);
+  const { pal, variant, season } = coverDress(spec, meta, monthly);
   const weekly = variant === "weekly" && monthly;
   const numeral = weekly ? `W${isoWeek(meta.date)}` : String(day);
   const u = size / 1024;

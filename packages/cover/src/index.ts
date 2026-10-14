@@ -3,6 +3,7 @@
  * date, so the same digest always yields the same bytes. See docs/plan/build-plan.md section 8.11.
  */
 
+export { coverColors } from "./context.js";
 export { getPalette, PALETTE_IDS, paletteAccent } from "./palettes.js";
 export { pickCover } from "./pick.js";
 export { renderCoverPng, renderCoverSvg, renderSocialPng, renderSocialSvg } from "./render.js";

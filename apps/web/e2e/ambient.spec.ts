@@ -147,7 +147,7 @@ test.describe("ambient light", () => {
     for (let i = 0; i < 3; i += 1) {
       await nav("Library");
       await expect(page.locator(".ambient")).toHaveCount(0);
-      await nav("Today");
+      await nav("Latest");
       await expect(page.locator(".ambient")).toHaveCount(1);
       await expect(page.locator("canvas.ambient-canvas")).toHaveCount(1);
     }

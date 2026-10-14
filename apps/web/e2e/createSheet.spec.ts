@@ -157,7 +157,7 @@ test.describe("Create as the primary action", () => {
     await expect(status).toContainText(/Episode queued|Writing your episode/);
 
     // A client-side navigation keeps it, and a reload picks the run up again.
-    await page.locator(".app-nav-item", { hasText: "Today" }).click();
+    await page.locator(".app-nav-item", { hasText: "Latest" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await page.reload();

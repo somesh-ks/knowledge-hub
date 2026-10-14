@@ -21,7 +21,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
 {/* The briefing header (hero.css): the cover and the More menu, the date with its facts under it,
      then Play. */}
 <header class="hero">
-  <AmbientLight palette={entry.digest.cover.palette} />
+  <AmbientLight cover={entry.digest} />
   <Cover
     digestId={entry.id}
     size="hero"

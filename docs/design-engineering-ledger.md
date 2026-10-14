@@ -155,6 +155,7 @@ Ask, then what was built, then the decision. Values are as built.
   - The theme change crossfades with a view transition, and `theme-color` metas follow.
 - **Ambient light.** The ask was "clever integration of shaders but mild" (2026-10-08, D48).
   - A CSS field of the cover's colours, with a 128px WebGL canvas faded over it.
+  - The colours are the ones the art is drawn in: "make sure the blur/shader in the podcast details page header matches the color of the albumart" (2026-10-14). The light had read the cover's palette id, while monthly covers (D110) are dressed from their season and older episodes are inverted. `coverColors` (`packages/cover/src/context.ts`) now gives the renderer and the light one answer, and a test checks that its colours appear in the drawn SVG.
   - 30 fps, off-screen paused; off for reduced motion, data saver and software renderers.
   - Software renderers are found by name, because `failIfMajorPerformanceCaveat` lets headless SwiftShader through: `WEBGL_debug_renderer_info` against `/swiftshader|llvmpipe|softpipe|software|basic render/i` (`ambientLight.ts:114`).
   - Light mode was "coloured but still faint", so the tint was remapped (0.6 light, 0.32 dark) rather than dropped (D77). The contrast proof loops every palette in both themes; the worst text is 4.78:1.
@@ -249,6 +250,7 @@ The navigation bar, the player bar, the floating button, the run indicator and t
   - The hairline above it removed.
   - The player bar takes the same `surface-container` fill, with no line between, so the two read as one block in both themes.
 - **Current tab.**
+  - The destinations are Latest, Library and Settings. Today was renamed Latest (2026-10-14); code ids, comments and older entries in this file still say `today`.
   - The current icon is filled and the others outlined, swapped by `aria-current`; the current label takes the full ink (`shell.css:325-370`).
   - Pressing the current tab scrolls to the top, like a native tab bar (D52), and instantly from a keyboard.
   - A press scales only the glyph, never the label.

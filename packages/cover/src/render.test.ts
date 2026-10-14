@@ -1,6 +1,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { describe, expect, it } from "vitest";
 import { hexToRgb } from "./color.js";
+import { coverColors } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { renderCoverPng, renderCoverSvg, renderSocialPng } from "./render.js";
@@ -135,5 +136,21 @@ describe("monthly style", () => {
 
   it("leaves every scheme a legal colour dress for every kind", () => {
     expect(() => assertSchemes()).not.toThrow();
+  });
+});
+
+describe("cover colours", () => {
+  // The page's light around a cover read the palette id, while monthly covers are dressed from their
+  // season and older episodes are inverted, so the glow took colours the art never showed.
+  it.each([
+    ["a monthly daily", { date: "2026-10-14", kind: "regular", id: "2026-10-14" }],
+    ["a monthly weekly", { date: "2026-10-18", kind: "weekly", id: "2026-10-18-weekly" }],
+    ["a monthly episode on its plate", { date: "2026-10-14", kind: "episode", id: "e-1" }],
+    ["an older episode, inverted", { date: "2026-09-06", kind: "episode", id: "e-0" }],
+  ] as const)("names colours %s actually draws", (_label, meta: CoverMeta) => {
+    const svg = renderCoverSvg(SPEC, meta).toLowerCase();
+    const { ground, accent } = coverColors(SPEC, meta);
+    expect(svg).toContain(ground.toLowerCase());
+    expect(svg).toContain(accent.toLowerCase());
   });
 });

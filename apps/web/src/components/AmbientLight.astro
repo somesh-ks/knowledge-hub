@@ -1,14 +1,21 @@
 ---
-import { getPalette } from "@dispatch/cover";
+import { coverColors } from "@dispatch/cover";
+import type { CoverSource } from "../lib/covers";
 import { tintColors } from "../scripts/ambientTint";
 import "../styles/ambient.css";
 
 interface Props {
-  /** The cover's palette id. */
-  palette: string;
+  /** The cover the light spills from, as the cover route draws it. */
+  cover: CoverSource;
 }
 
-const { ground, accent, shade } = getPalette(Astro.props.palette);
+const { cover } = Astro.props;
+// The colours the art is drawn in: a monthly cover's season, not its palette id.
+const { ground, accent, shade } = coverColors(cover.cover, {
+  id: cover.id,
+  date: cover.date,
+  kind: cover.kind,
+});
 // The cover's hues at the lightness each theme can carry; ambient.css picks the set.
 const light = tintColors(ground, accent, shade, "light");
 const dark = tintColors(ground, accent, shade, "dark");

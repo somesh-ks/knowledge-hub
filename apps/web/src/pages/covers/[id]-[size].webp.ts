@@ -5,6 +5,7 @@ import {
   type CoverSize,
   type CoverSource,
   coverWebp,
+  episodeCover,
   rendererFingerprint,
 } from "../../lib/covers";
 import { findRepoRoot } from "../../lib/repoRoot";
@@ -21,12 +22,7 @@ export const getStaticPaths = (async () => {
   // A briefing and an episode are drawn the same way. An episode is dated by when it was written.
   const covers: CoverSource[] = [
     ...entries.map((entry) => entry.digest),
-    ...episodes.map((entry) => ({
-      id: entry.id,
-      date: entry.episode.date,
-      kind: "on-demand" as const,
-      cover: entry.cover,
-    })),
+    ...episodes.map(episodeCover),
   ];
   return covers.flatMap((digest) =>
     COVER_SIZES.map((size) => ({

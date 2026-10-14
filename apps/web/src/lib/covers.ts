@@ -8,6 +8,15 @@ import sharp from "sharp";
 /** What a cover is drawn from. A briefing and a podcast episode both have these. */
 export type CoverSource = Pick<Digest, "id" | "date" | "kind" | "cover">;
 
+/** An episode is drawn as an on-demand briefing, dated by when it was written. */
+export function episodeCover(entry: {
+  id: string;
+  episode: { date: string };
+  cover: Digest["cover"];
+}): CoverSource {
+  return { id: entry.id, date: entry.episode.date, kind: "on-demand", cover: entry.cover };
+}
+
 export type CoverSize = 512 | 1024;
 export const COVER_SIZES: readonly CoverSize[] = [512, 1024];
 
