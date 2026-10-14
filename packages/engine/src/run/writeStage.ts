@@ -19,11 +19,19 @@ import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.
 import type { ExtractedText } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
+import type { Taste } from "../profile/tasteNote.js";
+import {
+  tasteHeadlines,
+  type VotePreferences,
+  votePreferences,
+  voteReportLine,
+} from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
-import { withSourceAdjustment } from "../score/sourceAdjust.js";
+import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
@@ -64,6 +72,8 @@ interface PassContext {
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
   /** Topics the scheduled daily briefing leaves out. */
   skipTopics: readonly string[];
+  /** Regenerate: the topics chosen for this run alone. Every other topic is left out of every pass. */
+  onlyTopics: ReadonlySet<string> | null;
   /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
   /** Topics the weekly pass leaves out, from the schedule in every mode. */
   weeklySkipTopics: readonly string[];
@@ -72,6 +82,9 @@ interface PassContext {
   weeklyLengthMinutes: number;
   /** 30-day per-source counters, for the small score adjustment from each source's pass rate. */
   sourceStats: SourceStatsFile;
+  /** The owner's votes as source and domain preferences, and the headlines the writer is told of. */
+  votePrefs: VotePreferences;
+  taste: Taste;
   /** The general news topics that are switched on, for the pass level of their feeds' counters. */
   generalTopics: ReturnType<typeof activeGeneralFrom>;
   /** The schedule and run mode, which say what general topics each pass publishes. */
@@ -92,6 +105,7 @@ export async function writeStage(
   deps: RunDeps,
   plan: Plan,
   feedback?: string,
+  chosenTopics?: readonly string[],
 ): Promise<StageReport> {
   const runtime = await deps.runtime();
   const linter = createLinter(await loadVoice(deps.root));
@@ -100,6 +114,9 @@ export async function writeStage(
     loadSources(deps.root),
   ]);
   const topics = await loadTopics(deps.root, preferences);
+  const profile = await createFileProfileStore(deps.root).read(OWNER_ID);
+  const votePrefs = votePreferences(profile.votes, deps.now());
+  const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
   const schedule = plan.mode === "scheduled" ? fullSchedule : null;
   const context: PassContext = {
@@ -110,10 +127,13 @@ export async function writeStage(
     sourceNames: sourceNameMap(sources),
     customTopics: activeFitTopics(topics),
     skipTopics: schedule?.skip_topics ?? [],
+    onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
     lengthMinutes: schedule?.length_minutes ?? null,
     weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
     sourceStats: await readSourceStats(deps.root),
+    votePrefs,
+    taste,
     generalTopics: activeGeneralFrom(topics),
     schedule: fullSchedule,
     mode: plan.mode,
@@ -128,7 +148,13 @@ export async function writeStage(
     for (const id of kept) claimed.add(id);
     passes.push(report);
   }
-  return { stage: "write", ok: true, dry_run: plan.dry_run, passes };
+  return {
+    stage: "write",
+    ok: true,
+    dry_run: plan.dry_run,
+    passes,
+    votes: voteReportLine(profile.votes, votePrefs, taste),
+  };
 }
 
 interface PassResult {
@@ -162,10 +188,12 @@ async function writePass(
     sourceNames,
     customTopics,
     skipTopics,
+    onlyTopics,
     weeklySkipTopics,
     lengthMinutes,
     weeklyLengthMinutes,
     sourceStats,
+    votePrefs,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const pool = await loadPool(file("pool.json"));
@@ -188,7 +216,10 @@ async function writePass(
       continue;
     }
     scored.push(
-      withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
+      withVoteWeight(
+        withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
+        votePrefs,
+      ),
     );
   }
 
@@ -199,7 +230,9 @@ async function writePass(
       poolPath: file("general.json"),
       judgedPath: file("general-judged.json"),
       topics: context.generalTopics,
-      publish: generalIdsFor(context.schedule, pass.kind, context.mode),
+      publish: onlyTopics
+        ? context.generalTopics.map((topic) => topic.id).filter((id) => onlyTopics.has(id))
+        : generalIdsFor(context.schedule, pass.kind, context.mode),
       inPool: new Set(byId.keys()),
       seen: (await readSeen(deps.root)).items,
       now: deps.now(),
@@ -228,6 +261,8 @@ async function writePass(
     // pass its own; an episode made on request covers everything it was asked for.
     skipTopics:
       pass.kind === "regular" ? skipTopics : pass.kind === "weekly" ? weeklySkipTopics : [],
+    // Regenerate with chosen topics: a candidate stays only when its category is one of them.
+    ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
 
@@ -348,7 +383,11 @@ async function writePass(
     });
   }
 
-  const writeResult = await runtime.writer.write([...materials.values()], context.feedback);
+  const writeResult = await runtime.writer.write(
+    [...materials.values()],
+    context.feedback,
+    context.taste,
+  );
   for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
   const voice = await enforceVoice({
     written: writeResult.written,

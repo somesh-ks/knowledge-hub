@@ -78,13 +78,15 @@
   background: var(--color-accent);
 }
 
-.card-progress[hidden] {
+.card-progress[hidden],
+/* A finished recording says Played in its facts line; the bar would repeat it. */
+.card-link:has([data-played]) .card-progress {
   display: none;
 }
 
 /* Under the bar the art darkens toward its foot, so the bar reads on a pale cover as on a dark one.
    Only a card that holds a bar gets it. */
-.card-link:has(> .card-progress:not([hidden])) .cover::before {
+.card-link:has(> .card-progress:not([hidden])):not(:has([data-played])) .cover::before {
   content: "";
   position: absolute;
   inset: auto 0 0;
@@ -381,7 +383,7 @@
 .sort-field > select {
   height: var(--size-touch);
   margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
-  padding-inline: var(--space-3) calc(var(--space-8) - var(--space-1));
+  padding-inline: var(--space-3) calc(var(--space-3) + var(--space-4) + var(--field-chevron-gap));
   border: 0;
   border-radius: inherit;
   background: none;

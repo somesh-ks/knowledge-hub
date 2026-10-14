@@ -13,8 +13,8 @@ const { model, provider } = await loadWriterView();
 
 <BaseLayout title="AI Model" view="settings" skipLabel="Skip to the model settings">
   <main id="main" tabindex="-1">
-    {/* The writer: a vendor, then a model from that vendor's list. scripts/podcastPage.ts runs the
-         combobox and records a change; autosave.ts sends it a moment later. */}
+    {/* The writer: a vendor, then a model from that vendor's list. scripts/podcastPage.ts fills the
+         model select and records a change; autosave.ts sends it a moment later. */}
     <div class="manage" data-manage="podcast">
       <SettingsHead title="AI Model" />
       <noscript>
@@ -38,32 +38,16 @@ const { model, provider } = await loadWriterView();
               </div>
               <div class="settings-row">
                 <div class="settings-text">
-                  <label class="settings-label" for="model-input">AI Model</label>
+                  <label class="settings-label" for="model-select">AI Model</label>
                 </div>
-                <div class="daily-selects daily-selects-one daily-combo" data-combo>
-                  <span class="manage-select">
-                    <input
-                      class="manage-input"
-                      id="model-input"
-                      type="text"
-                      role="combobox"
-                      aria-expanded="false"
-                      aria-controls="model-listbox"
-                      aria-autocomplete="list"
-                      autocomplete="off"
-                      autocapitalize="off"
-                      spellcheck="false"
-                      value={writerLabel(model, provider)}
-                    />
-                    <button class="daily-combo-toggle" type="button" tabindex="-1" aria-label="Show all models" data-toggle>
-                      <Icon name="chevronDown" />
-                    </button>
-                  </span>
-                  <div class="daily-listbox" id="model-listbox" role="listbox" aria-label="Models" data-list hidden></div>
-                </div>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="model-select" name="model" autocomplete="off">
+                    <option value={model ?? ""} selected>{writerLabel(model, provider)}</option>
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
               </div>
             </div>
-            <p class="sr-only" aria-live="polite" data-count></p>
           </div>
         </div>
       </fieldset>

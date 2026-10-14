@@ -27,6 +27,7 @@ describe("ALLOWLISTS", () => {
         "config/preferences.json",
         "config/schedule.json",
         "config/writer.json",
+        "config/profiles/*.json",
         "state/source-candidates.json",
       ],
     });

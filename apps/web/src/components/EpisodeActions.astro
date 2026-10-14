@@ -1,5 +1,9 @@
 ---
 import { PASSPHRASE_REQUIRED } from "../lib/access";
+import { briefingChips } from "../lib/briefingChips";
+import { topicOptions } from "../lib/createForm";
+import { loadManage } from "../lib/manage";
+import { isChipOn, type RegenChip } from "../lib/regenTopics";
 import Icon from "./Icon.astro";
 import "../styles/episode-actions.css";
 
@@ -8,14 +12,23 @@ interface Props {
   id: string;
   /** A briefing regenerates in the Generate sheet, so only its Delete confirm is here. */
   noun?: "episode" | "briefing";
+  /** The topic ids the episode or briefing was made with: the chips start ticked from these. */
+  selected?: readonly string[];
 }
 
-const { noun = "episode" } = Astro.props;
+const { noun = "episode", selected = [] } = Astro.props;
+// The chips Regenerate offers: the New episode form's list for an episode, the schedule's for a
+// briefing, whose dialog (sheets/GenerateSheet.tsx) reads them from the JSON below.
+const { sections, topics: manageTopics, sources } = await loadManage();
+const chips: RegenChip[] =
+  noun === "episode"
+    ? topicOptions(sections, manageTopics).map(({ value, label, ids }) => ({ value, label, ids }))
+    : briefingChips(manageTopics, sources);
 const MAX_FEEDBACK_CHARS = 500;
 
 // Every sentence the script can show is here, in the markup, not in the script.
 const COPY = {
-  empty: "Describe what should change.",
+  topics: "Pick at least one topic.",
   left: "characters left",
   ...(PASSPHRASE_REQUIRED
     ? {
@@ -52,12 +65,31 @@ const COPY = {
           <div class="create-sheet-body">
             <form class="regen-form" data-regen-form novalidate>
               <p class="create-hint regen-lede">
-                This replaces the episode and keeps its topics, length and format.
+                This replaces the episode and keeps its length and format.
               </p>
+              <section class="create-group" aria-labelledby="regen-topics-label">
+                {/* A field label, as Comments is: not a second title under the panel's own. */}
+                <div class="sheet-field-label regen-label" id="regen-topics-label">Topics</div>
+                <fieldset class="filter-chips" aria-labelledby="regen-topics-label">
+                  {chips.map((chip) => (
+                    <label class="filter-chip">
+                      <input
+                        type="checkbox"
+                        name="topic"
+                        value={chip.value}
+                        data-ids={chip.ids.join(" ")}
+                        checked={isChipOn(chip, selected)}
+                      />
+                      <Icon name="check" class="filter-chip-check" />
+                      <span>{chip.label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              </section>
               <section class="create-group">
                 {/* A form label, not a second title under the panel's own. */}
                 <label class="sheet-field-label regen-label" for="regen-feedback">
-                  What should change?
+                  Comments (optional)
                 </label>
                 <textarea
                   class="sheet-input regen-feedback"
@@ -134,4 +166,14 @@ const COPY = {
       )}
     </template>
   ))
+}
+
+{
+  noun === "briefing" && (
+    <script
+      type="application/json"
+      id="regenerate-topics"
+      set:html={JSON.stringify({ chips, selected }).replace(/</g, "\\u003c")}
+    />
+  )
 }

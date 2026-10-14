@@ -49,6 +49,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** One to MAX_TOPICS distinct section ids, or null. */
+function parseTopicIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > MAX_TOPICS) return null;
+  const chosen: string[] = [];
+  for (const topic of value) {
+    if (typeof topic !== "string" || !SECTION_ID.test(topic) || chosen.includes(topic)) return null;
+    chosen.push(topic);
+  }
+  return chosen;
+}
+
 /**
  * The episode request in a body, checked field by field and rebuilt from the checked fields, so
  * nothing else the caller sent reaches the workflow. Null when any field is missing or not allowed.
@@ -110,7 +121,7 @@ const EPISODE_ID = /^ep-\d{8}-\d{4}$/;
 /** What the workflow's one input carries for an action on an episode that already exists. */
 export type EpisodeAction =
   | { action: "delete"; id: string }
-  | { action: "regenerate"; id: string; feedback: string };
+  | { action: "regenerate"; id: string; feedback?: string; topic_ids?: string[] };
 
 export type ParsedPodcastBody =
   | { passphrase: string; request: PodcastRequest }
@@ -146,8 +157,26 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
   if (typeof id !== "string" || !EPISODE_ID.test(id)) return null;
   if (action === "delete") return { passphrase, action, id };
   if (action === "regenerate") {
-    const feedback = cleanFeedback(parsed.feedback);
-    return feedback === null ? null : { passphrase, action, id, feedback };
+    // Both are optional: blank comments mean none, and no topics keep the episode's own.
+    const blank =
+      parsed.feedback === undefined ||
+      parsed.feedback === null ||
+      (typeof parsed.feedback === "string" && parsed.feedback.trim() === "");
+    const feedback = blank ? undefined : cleanFeedback(parsed.feedback);
+    if (feedback === null) return null;
+    let topicIds: string[] | undefined;
+    if (parsed.topic_ids !== undefined) {
+      const checked = parseTopicIds(parsed.topic_ids);
+      if (checked === null) return null;
+      topicIds = checked;
+    }
+    return {
+      passphrase,
+      action,
+      id,
+      ...(feedback ? { feedback } : {}),
+      ...(topicIds ? { topic_ids: topicIds } : {}),
+    };
   }
   return null;
 }

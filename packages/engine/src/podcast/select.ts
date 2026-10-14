@@ -2,6 +2,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { type Digest, parseDigestFile, stockholmDate } from "@dispatch/core";
 import type { Logger } from "../context.js";
+import { createFileProfileStore, isBlockedUrl, OWNER_ID } from "../profile/profile.js";
+import { voteMultiplier, votePreferences } from "../profile/votes.js";
 import { topicLabel } from "./episode.js";
 import type { PodcastPlan } from "./plan.js";
 import { PodcastError, type PodcastStory } from "./types.js";
@@ -99,10 +101,22 @@ export async function selectStories(
   const matched: PodcastStory[] = [];
   // Topics that at least one story in the window belongs to; Top picks alone never fill a topic.
   const covered = new Set<string>();
+  // A story from a domain the owner blocked after the digest was written stays out of the episode.
+  const profile = await createFileProfileStore(root).read(OWNER_ID);
+  const blocked = profile.blocked_domains;
+  // Digest items carry the outlet's name, not its id, so the owner's votes weigh by domain here.
+  const votePrefs = votePreferences(profile.votes, now);
+  const weight = (item: { score: number; url: string }): number =>
+    item.score * voteMultiplier(votePrefs, "", item.url);
+  let blockedCount = 0;
   for (const digest of digests) {
-    const items = [...digest.items].sort((a, b) => b.score - a.score);
+    const items = [...digest.items].sort((a, b) => weight(b) - weight(a));
     for (const item of items) {
       if (!matchesRequest(item, topics)) continue;
+      if (isBlockedUrl(item.url, blocked)) {
+        blockedCount += 1;
+        continue;
+      }
       for (const id of [item.section, item.category]) if (topics.has(id)) covered.add(id);
       const key = urlKey(item.url);
       if (seen.has(key)) continue;
@@ -118,6 +132,8 @@ export async function selectStories(
       });
     }
   }
+  if (blockedCount > 0)
+    log?.info("Dropped stories from blocked domains", { blocked: blockedCount });
   // Never fall back to the window's top picks alone: the listener asked for these topics.
   const emptyTopics = request.topic_ids.filter((id) => !covered.has(id));
   if (emptyTopics.length === request.topic_ids.length) {

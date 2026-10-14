@@ -1,0 +1,67 @@
+/*
+ * The Blocked outlets page (pages/settings/blocked-outlets.astro): a field that blocks an outlet and
+ * the list of those blocked. The field, its error and the rows are manage.css and settings.css; the
+ * Block button is the Add button of the Topics page (topics.css, .topic-add-source) in the same
+ * compact outline. Tokens only.
+ */
+
+.blocked-add {
+  padding-block-start: var(--space-6);
+}
+
+.blocked-add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.blocked-add-row > .manage-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.blocked-add-row > .btn-secondary {
+  flex: none;
+  width: auto;
+  min-height: var(--field-height);
+  padding-inline: var(--space-3);
+  font-size: var(--font-size-label);
+  border: var(--stroke-hairline) solid var(--color-border-control);
+  background: transparent;
+  color: var(--color-on-surface);
+}
+
+.blocked-list {
+  padding-block-start: var(--space-4);
+}
+
+.blocked-list > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A row that is the domain at the start and its remove control flush with the gutter at the end. */
+.blocked-row .settings-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.blocked-row .icon-btn {
+  flex: none;
+  margin-inline-end: calc(var(--space-3) * -1);
+}
+
+/* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list. */
+.blocked-row:is([data-removing], [data-gone]) {
+  display: none;
+}
+
+/* No row left: the list and its count give way to the empty state. */
+.blocked:not(:has(.blocked-row:not([data-removing], [data-gone]))) .blocked-list {
+  display: none;
+}
+
+.blocked:has(.blocked-row:not([data-removing], [data-gone])) .blocked-empty {
+  display: none;
+}

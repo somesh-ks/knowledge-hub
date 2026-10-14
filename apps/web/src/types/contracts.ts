@@ -1,4 +1,4 @@
-import type { DigestKind } from "@dispatch/core";
+import type { ConfigOp as CoreConfigOp, DigestKind } from "@dispatch/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -18,6 +18,8 @@ export interface PlayerItem {
   url?: string | null;
   /** The story as the host says it, for the transcript of a briefing. Episodes carry a script instead. */
   text?: string;
+  /** Words the host says ahead of the story in its narration (a section bridge, a link) that `text` leaves out. */
+  lead_words?: number;
   /** Start and end inside the MP3, or null while the digest has no audio. */
   start_ms: number | null;
   end_ms: number | null;
@@ -35,6 +37,8 @@ export interface PlayerTurn {
   item_id?: string | null;
   /** A name for the turn in the transcript, in place of a speaker's: a briefing's story headline. */
   title?: string;
+  /** Words the host says at the start of this turn's segment that `text` leaves out; none for an episode's turn. */
+  lead_words?: number;
   /** Start and end inside the narration, or null before it has been laid out. */
   start_ms: number | null;
   end_ms: number | null;
@@ -87,6 +91,8 @@ export interface GenerateRequest {
   passphrase: string;
   /** Regenerate: what to improve, up to 500 characters, passed to the writer. */
   feedback?: string;
+  /** Regenerate: the topic ids for this run only; absent keeps the briefing's own. */
+  topics?: string[];
   /** Regenerate a briefing that exists: its digest id. The new digest replaces it. */
   replace?: string;
   /** Delete a briefing: with `id`, no feedback and no run of the writer. */
@@ -370,7 +376,12 @@ export type ConfigOp =
       provider: "nebius" | "anthropic";
       /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
       model: string | null;
-    };
+    }
+  /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
+  | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;
+
+/** One vote on a story, as profile.vote carries it (VoteInput in core). */
+export type ProfileVote = Extract<CoreConfigOp, { op: "profile.vote" }>["votes"][number];
 
 export interface ConfigRequest {
   passphrase: string;
@@ -435,7 +446,13 @@ export interface PodcastCreateRequest {
 /** POST /api/podcast with an action: delete an episode, or write it again with feedback. */
 export type PodcastActionRequest =
   | { passphrase: string; action: "delete"; id: string }
-  | { passphrase: string; action: "regenerate"; id: string; feedback: string };
+  | {
+      passphrase: string;
+      action: "regenerate";
+      id: string;
+      feedback?: string;
+      topic_ids?: string[];
+    };
 
 /** POST /api/podcast responses. */
 export type PodcastCreateResponse =

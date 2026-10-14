@@ -76,6 +76,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
 
   if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
 
+  dialog.addEventListener("change", () => say());
+
   if (feedback && count) {
     const max = Number(feedback.dataset.max);
     feedback.addEventListener("input", () => {
@@ -102,16 +104,28 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     // On a briefing page the root names a digest and the request goes to /api/generate.
     const briefing = root.dataset.briefing;
     const id = briefing ?? root.dataset.episode ?? "";
-    let body: Record<string, string>;
+    let body: Record<string, unknown>;
     if (kind === "regenerate") {
-      const text = feedback?.value.trim() ?? "";
-      if (!text) {
-        feedback?.setAttribute("aria-invalid", "true");
-        say(copy("empty"));
-        feedback?.focus();
+      // The ticked chips are this regeneration's topics and nothing else: the saved schedule,
+      // weights and Create defaults are not touched. They are sent only when they differ from the
+      // topics the original was made with. Comments are optional.
+      const chips = [...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
+      const ticked = chips.filter((chip) => chip.checked);
+      if (chips.length > 0 && ticked.length === 0) {
+        say(copy("topics"));
+        chips[0]?.focus();
         return;
       }
-      body = { passphrase, action: "regenerate", id, feedback: text };
+      const changed = chips.some((chip) => chip.checked !== chip.defaultChecked);
+      const topics = [...new Set(ticked.flatMap((chip) => (chip.dataset.ids ?? "").split(" ")))];
+      const text = feedback?.value.trim() ?? "";
+      body = {
+        passphrase,
+        action: "regenerate",
+        id,
+        ...(text ? { feedback: text } : {}),
+        ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
+      };
     } else {
       body = { passphrase, action: "delete", id };
     }

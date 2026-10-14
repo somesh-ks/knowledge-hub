@@ -116,20 +116,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  border-radius: 0;
   background: var(--sheet-bg);
   box-shadow: var(--sheet-shadow);
-}
-
-/* The grabber: on a phone a sheet can be dragged down to close it. */
-.sheet-panel::before {
-  content: "";
-  display: block;
-  width: var(--player-handle-width);
-  height: var(--player-handle-height);
-  margin: 0 auto var(--space-1);
-  border-radius: var(--radius-round);
-  background: var(--player-handle-color);
 }
 
 /* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
@@ -151,11 +140,11 @@
   .sheet-panel {
     max-height: var(--sheet-max-height);
     padding: var(--sheet-padding);
+    /* A centred dialog is not a bottom sheet: it keeps its corners. */
     border-radius: var(--sheet-radius);
   }
 
-  .sheet-popup::after,
-  .sheet-panel::before {
+  .sheet-popup::after {
     display: none;
   }
 }
@@ -209,6 +198,14 @@
   margin-block-start: var(--space-4);
 }
 
+/* A group of choices is a field like any other: no frame of the browser's own. */
+fieldset.sheet-field {
+  min-width: 0;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+}
+
 .sheet-field-label {
   padding-inline: var(--space-2);
   font-size: var(--font-size-label);
@@ -226,6 +223,11 @@
   /* 16px or larger, so iOS never zooms. The token is the body size, 1rem. */
   font-size: var(--font-size-body);
   transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+/* A multi-line field has the same room above and below as at its sides. */
+textarea.sheet-input {
+  padding-block: var(--field-padding);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -792,10 +794,6 @@ html[data-mini="visible"] .toast {
   .sheet-panel,
   .toast {
     border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .sheet-panel::before {
-    background: GrayText;
   }
 
   .run-step::before {

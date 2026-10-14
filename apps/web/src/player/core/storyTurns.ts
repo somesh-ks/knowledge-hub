@@ -15,6 +15,7 @@ export function storyTurns(items: readonly PlayerItem[]): PlayerTurn[] {
             speaker: "a" as const,
             text: item.text,
             title: item.headline,
+            ...(item.lead_words ? { lead_words: item.lead_words } : {}),
             item_id: item.id,
             start_ms: item.start_ms,
             end_ms: item.end_ms,

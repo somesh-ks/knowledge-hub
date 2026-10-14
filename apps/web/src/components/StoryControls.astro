@@ -1,0 +1,92 @@
+---
+import { sourceIdOf } from "../lib/sourceIds";
+import { HEADLINE_MAX } from "../lib/storyVotes";
+import Icon from "./Icon.astro";
+import "../styles/story-controls.css";
+
+interface Props {
+  id: string;
+  url: string;
+  headline: string;
+  /** The story's topic: a built-in category or a custom topic id. */
+  topic: string;
+  /** The outlet's name as the digest carries it. */
+  source: string;
+  /** The outlet as the reader knows it, for "Stop hearing from ...". */
+  outlet: string | null;
+  /** Whether the address is one the site links to; only then can its outlet be stopped. */
+  canBlock: boolean;
+}
+
+const { id, url, headline, topic, source, outlet, canBlock } = Astro.props;
+const sourceId = await sourceIdOf(source);
+const menuId = `story-menu-${id}`;
+---
+
+{/* Like, dislike and a small More menu, at the end of a story's action line. Whether a vote is
+     pressed is a fact about this device (scripts/storyVotesEntry.ts reads it as the page loads);
+     nothing on the site lists or counts votes. The menu is the header More menu's pattern
+     (HeroMenu.astro, scripts/heroMenu.ts). Everything waits for script: without it the controls do
+     nothing, and a story reads as it always did. */}
+<div
+  class="story-controls"
+  data-story-controls
+  data-story-id={id}
+  data-url={url}
+  data-headline={headline.slice(0, HEADLINE_MAX)}
+  data-topic={topic}
+  data-source-id={sourceId}
+  data-outlet={outlet ?? undefined}
+>
+  <button
+    class="icon-btn story-vote press"
+    type="button"
+    aria-pressed="false"
+    aria-label={`Like: ${headline}`}
+    data-vote="up"
+  >
+    <Icon name="thumbsUp" />
+    <Icon name="thumbsUpFill" />
+  </button>
+  <button
+    class="icon-btn story-vote press"
+    type="button"
+    aria-pressed="false"
+    aria-label={`Dislike: ${headline}`}
+    data-vote="down"
+  >
+    <Icon name="thumbsDown" />
+    <Icon name="thumbsDownFill" />
+  </button>
+  {
+    canBlock && outlet && (
+      <div class="story-menu" style={`--story-anchor: --sm-${id}`}>
+        <button
+          class="icon-btn story-more press"
+          type="button"
+          aria-label={`Story options: ${headline}`}
+          aria-haspopup="menu"
+          popovertarget={menuId}
+          data-hero-more
+        >
+          <Icon name="moreVert" />
+        </button>
+        <div
+          class="hero-menu-list story-menu-list"
+          id={menuId}
+          popover
+          role="menu"
+          aria-label={`Story options: ${headline}`}
+        >
+          <button class="hero-menu-item" type="button" role="menuitem" data-block>
+            Stop hearing from {outlet}
+          </button>
+        </div>
+      </div>
+    )
+  }
+</div>
+
+<script>
+  import "../scripts/storyVotesEntry";
+</script>

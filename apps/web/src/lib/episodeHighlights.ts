@@ -20,6 +20,8 @@ export interface Highlight {
   host: string | null;
   /** The attribution under the text: the publisher, or the host for an aggregator. */
   publisher: string | null;
+  /** The outlet's name as the episode file carries it. */
+  source: string;
 }
 
 /** An aggregator's name ("Exa discovery") says nothing about where a story is from. */
@@ -115,6 +117,7 @@ export function episodeHighlights(
         url: source.url,
         host,
         publisher: host ? publisherOf(source.source, host) : null,
+        source: source.source,
       };
     });
 }

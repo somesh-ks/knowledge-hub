@@ -10,20 +10,25 @@ import HeroMenu from "./HeroMenu.astro";
 import Icon from "./Icon.astro";
 import PlayCta from "./PlayCta.astro";
 import PlayerData from "./PlayerData.astro";
+import StoryControls from "./StoryControls.astro";
 import "../styles/episode.css";
 
 interface Props {
   entry: EpisodeEntry;
   /** Briefing summaries by item id: a story an episode shares with a briefing is summed up so. */
   summaries?: ReadonlyMap<string, string>;
+  /** Briefing topics by item id: the topic a vote on a story the episode shares with a briefing names. */
+  topics?: ReadonlyMap<string, string>;
 }
 
-const { entry, summaries } = Astro.props;
+const { entry, summaries, topics } = Astro.props;
 const { episode } = entry;
 const length = episodeLength(episode);
 // "7 October": the long date without its weekday.
 const day = longDate(episode.date).split(" ").slice(1).join(" ");
 const highlights = episodeHighlights(episode, summaries);
+// A story only the episode covers takes the episode's first topic.
+const fallbackTopic = episode.request.topic_ids[0] ?? "general";
 ---
 
 <main
@@ -51,7 +56,7 @@ const highlights = episodeHighlights(episode, summaries);
     <PlayCta digestId={entry.id} mode="preparing" length={length} noun="episode" />
   </header>
 
-  <EpisodeActions id={entry.id} />
+  <EpisodeActions id={entry.id} selected={episode.request.topic_ids} />
 
   {/* The script is read in the player. The page is for the news itself: each story the episode
        covers, what was said about it, and the way to the source. */}
@@ -79,19 +84,30 @@ const highlights = episodeHighlights(episode, summaries);
                 )}
               </h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
-              {highlight.host && (
-                <a
-                  class="source-link story-source episode-highlight-link"
-                  href={highlight.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  tabindex="-1"
-                  aria-hidden="true"
-                >
-                  <span>{highlight.publisher}</span>
-                  <Icon name="openInNew" />
-                </a>
-              )}
+              <div class="story-actions episode-highlight-actions">
+                {highlight.host && (
+                  <a
+                    class="source-link story-source episode-highlight-link"
+                    href={highlight.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    tabindex="-1"
+                    aria-hidden="true"
+                  >
+                    <span>{highlight.publisher}</span>
+                    <Icon name="openInNew" />
+                  </a>
+                )}
+                <StoryControls
+                  id={highlight.itemId}
+                  url={highlight.url}
+                  headline={highlight.headline}
+                  topic={topics?.get(highlight.itemId) ?? fallbackTopic}
+                  source={highlight.source}
+                  outlet={highlight.publisher}
+                  canBlock={highlight.host !== null}
+                />
+              </div>
             </li>
           ))}
         </ul>

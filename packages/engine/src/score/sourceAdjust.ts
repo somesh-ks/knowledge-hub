@@ -1,4 +1,5 @@
 import { MIN_JUDGED, type SourceStatsFile } from "@dispatch/core";
+import { type VotePreferences, voteMultiplier } from "../profile/votes.js";
 import { passRate } from "../state/sourceStats.js";
 import { clamp01, round4 } from "./numbers.js";
 import type { ScoredItem } from "./types.js";
@@ -45,4 +46,14 @@ export function withSourceAdjustment(
     score: round4(clamp01(scored.score + source)),
     breakdown: { ...scored.breakdown, source },
   };
+}
+
+/**
+ * The score scaled by the owner's votes on the item's source and domain (profile/votes.ts), at
+ * most 15 percent either way and nothing until a source or domain has three votes.
+ */
+export function withVoteWeight(scored: ScoredItem, prefs: VotePreferences): ScoredItem {
+  const multiplier = voteMultiplier(prefs, scored.item.source_id, scored.item.url);
+  if (multiplier === 1) return scored;
+  return { ...scored, score: round4(clamp01(scored.score * multiplier)) };
 }

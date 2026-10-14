@@ -29,6 +29,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       stage: { type: "string" },
       run: { type: "string" },
       feedback: { type: "string" },
+      topics: { type: "string" },
       replace: { type: "string" },
       delete: { type: "string" },
       help: { type: "boolean", short: "h" },
@@ -50,6 +51,14 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   if (feedback && !feedback.success) {
     throw new Error("--feedback must be 1 to 500 characters");
   }
+  // Blank means the run's own topics (the workflow passes an empty input).
+  const topics = values.topics
+    ?.split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (topics?.some((id) => !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(id))) {
+    throw new Error("--topics takes comma-separated topic ids such as ai,design");
+  }
   for (const id of [values.replace, values.delete]) {
     if (id !== undefined && !DigestId.safeParse(id).success) {
       throw new Error(`--replace and --delete take a digest id such as 2026-10-11, not "${id}"`);
@@ -68,6 +77,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       replace: values.replace,
       delete: values.delete,
       feedback: feedback?.success ? feedback.data : undefined,
+      topics: topics && topics.length > 0 ? topics : undefined,
     },
   };
 }

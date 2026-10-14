@@ -1,17 +1,15 @@
 /**
  * The editor of the podcast settings pages, loaded by podcastEntry.ts. Each page is static HTML with
  * the saved values written in: a profile page (Daily, Weekly, Custom) or the Model page. This loads
- * the voices and the live Nebius model list, runs the model combobox, and records what the controls
+ * the voices and the live Nebius model list, runs the model select, and records what the controls
  * add up to: one schedule.set (every field that changed) or one writer.set (provider and model).
  * autosave.ts sends them a moment later through managePageSave.ts, the step the Topics page uses.
  *
  * The option logic is pure and lives in lib/combobox.ts. Anthropic's two models are static and
  * never ask for the live list.
  */
-import type { ModelOption } from "../lib/combobox";
 import { isModelId } from "../lib/modelId";
 import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
-import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { hasSaved } from "../lib/savedKey";
 import { heldWriter } from "../lib/savedOverlay";
 import type { Provider } from "../lib/settingsSummary";
@@ -89,17 +87,6 @@ export function writeCachedCatalog(
   } catch {
     // storage unavailable
   }
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 /**
@@ -204,7 +191,7 @@ export async function mount(root: HTMLElement): Promise<void> {
 }
 
 /**
- * The Model page: the vendor select and the model combobox. Returns what the controls stand for as
+ * The Model page: the vendor select and the model select. Returns what the controls stand for as
  * a pending writer edit, or null while they hold the saved choice.
  */
 async function mountModel(
@@ -213,24 +200,11 @@ async function mountModel(
   update: (save?: boolean) => void,
   saved: readonly ConfigOp[],
 ): Promise<() => Pending | null> {
-  const lib = await import("../lib/combobox");
-  const {
-    CLAUDE_OPTIONS,
-    GROUP_NAMES,
-    countText,
-    noMatchText,
-    filterOptions,
-    labelFor,
-    moveIndex,
-    nebiusOptions,
-  } = lib;
+  const { CLAUDE_OPTIONS, claudeOptions, nebiusOptions } = await import("../lib/combobox");
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
     root.querySelector(selector) as T;
   const vendor = one<HTMLSelectElement>("#daily-vendor");
-  const input = one<HTMLInputElement>("#model-input");
-  const listbox = one("[data-list]");
-  const toggle = one<HTMLButtonElement>("[data-toggle]");
-  const count = one("[data-count]");
+  const select = one<HTMLSelectElement>("#model-select");
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
 
@@ -253,11 +227,8 @@ async function mountModel(
 
   /** The live Nebius list: initialized from cache if available, null when it failed. */
   let nebius: ModelEntry[] | null | undefined = readCachedCatalog() ?? undefined;
-  let options: ModelOption[] = [];
-  let shown: ModelOption[] = [];
   let selected: string | null =
     pendingChoice && pendingChoice.provider === provider() ? pendingChoice.model : savedModel;
-  let active = -1;
 
   const pending = (): Pending | null => {
     const now = JSON.stringify([provider(), selected]);
@@ -265,120 +236,37 @@ async function mountModel(
     return { op: modelOp(selected, provider()), el: group, now };
   };
 
-  const isOpen = (): boolean => !listbox.hidden;
-
-  const close = (): void => {
-    listbox.hidden = true;
-    active = -1;
-    input.setAttribute("aria-expanded", "false");
-    input.removeAttribute("aria-activedescendant");
-    // A half-typed query is not a choice: the field goes back to the chosen model's name.
-    input.value = labelFor(options, selected);
-    input.removeAttribute("placeholder");
-  };
-
-  const highlight = (index: number): void => {
-    active = index;
-    listbox.querySelectorAll<HTMLElement>("[role=option]").forEach((item, at) => {
-      item.toggleAttribute("data-active", at === index);
-    });
-    const item = listbox.querySelectorAll<HTMLElement>("[role=option]")[index];
-    if (item) {
-      input.setAttribute("aria-activedescendant", item.id);
-      item.scrollIntoView({ block: "nearest" });
-    } else input.removeAttribute("aria-activedescendant");
-  };
-
   /**
-   * Draws the options matching `query`: the top models and the rest each in a group under a quiet
-   * heading. The group carries the heading's words as its name, and the heading itself is hidden
-   * from screen readers so it is not read twice. `keyboard` marks a list opened or filtered from
-   * the keyboard: only then does its current row show the ring, as in a select's list.
+   * Draws the options for the vendor on screen. The chosen model is always one of them, even when
+   * neither the top models nor the live list have it, so an id saved earlier is shown and kept.
    */
-  const open = (query: string, keyboard: boolean): void => {
-    shown = filterOptions(options, query);
-    listbox.replaceChildren();
-    let into = listbox;
-    let last = "";
-    shown.forEach((option, index) => {
-      if (option.group !== last) {
-        last = option.group;
-        into = listbox;
-        if (option.group !== "") {
-          const name = GROUP_NAMES[option.group];
-          into = element("div", "daily-group");
-          into.setAttribute("role", "group");
-          into.setAttribute("aria-label", name);
-          const head = element("div", "daily-head", name);
-          head.setAttribute("aria-hidden", "true");
-          into.append(head);
-          listbox.append(into);
-        }
-      }
-      const item = element("div", "daily-option");
-      item.id = `model-option-${index}`;
-      item.setAttribute("role", "option");
-      item.setAttribute("aria-selected", String(option.id === (selected ?? "")));
-      item.dataset.index = String(index);
-      item.append(element("span", "daily-option-name", option.label));
-      if (option.hint) item.append(element("span", "daily-option-hint", option.hint));
-      into.append(item);
-    });
-    if (shown.length === 0) listbox.append(element("div", "daily-empty", noMatchText(query)));
-    listbox.hidden = false;
-    listbox.toggleAttribute("data-keyboard", keyboard);
-    // Opens below the field, and above it when the room under it is short and the room over it is
-    // not. Room ends where the bottom bar, the player or the Create button floats over the page, and
-    // under the sticky top chrome.
-    const field = input.getBoundingClientRect();
-    const covers = [...document.querySelectorAll<HTMLElement>(FLOATING)].map((node) =>
-      node.getBoundingClientRect(),
-    );
-    const top = Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
-    const below = roomFloor(field, covers, window.innerHeight) - field.bottom - 16;
-    const above = field.top - (Number.isFinite(top) ? top : 16);
-    const wants = Math.min(listbox.scrollHeight, 352);
-    const flip = below < wants && above > below;
-    listbox.toggleAttribute("data-above", flip);
-    listbox.style.setProperty("--list-room", `${Math.max(flip ? above : below, 176)}px`);
-    input.setAttribute("aria-expanded", "true");
-    // Without the live list only the top models are offered, which the list says to a screen reader.
-    count.textContent =
-      provider() === "nebius" && nebius === null
-        ? `${countText(shown.length)}. Only the top models are listed right now.`
-        : countText(shown.length);
-    // Typing highlights the first match; opening with the chevron starts on the chosen model.
-    const start = query.trim() === "" ? shown.findIndex((o) => o.id === (selected ?? "")) : 0;
-    highlight(start);
-  };
-
-  /**
-   * Opens the whole list from a press on the field or its chevron, as a select would. The chosen
-   * model's name waits in the field as its placeholder, so typing filters at once without first
-   * deleting it, and closing without a choice puts it back.
-   */
-  const browse = (): void => {
-    input.placeholder = labelFor(options, selected);
-    input.value = "";
-    open("", false);
-  };
-
-  const choose = (option: ModelOption): void => {
-    selected = option.id === "" ? null : option.id;
-    close();
-    update();
-  };
-
-  /** The options for the vendor on screen. */
   const refresh = (): void => {
-    options =
+    const options =
       provider() === "anthropic"
-        ? [...CLAUDE_OPTIONS]
-        : nebiusOptions(nebius ?? null, savedFor("nebius"));
-    if (!isOpen()) input.value = labelFor(options, selected);
+        ? claudeOptions(selected)
+        : nebiusOptions(nebius ?? null, selected);
+    const groups: Record<string, HTMLElement> = {};
+    select.replaceChildren();
+    for (const option of options) {
+      const item = document.createElement("option");
+      item.value = option.id;
+      item.textContent =
+        option.hint === "Not in the live list"
+          ? `${option.label} (not in the live list)`
+          : option.label;
+      let into: HTMLElement = select;
+      if (option.group !== "") {
+        into = groups[option.group] ??= (() => {
+          const optgroup = document.createElement("optgroup");
+          optgroup.label = option.group === "top" ? "Top models" : "All models";
+          select.append(optgroup);
+          return optgroup;
+        })();
+      }
+      into.append(item);
+    }
+    select.value = selected ?? "";
   };
-  const savedFor = (which: Provider): string | null =>
-    which === savedProvider ? savedModel : null;
 
   const load = async (): Promise<void> => {
     let entries: ModelEntry[] | null = null;
@@ -406,67 +294,9 @@ async function mountModel(
     update();
   });
 
-  input.addEventListener("input", () => open(input.value, true));
-  // A press opens the list; reached with Tab, the field selects its text so typing replaces it.
-  let pressed = false;
-  input.addEventListener("pointerdown", () => {
-    pressed = true;
-    input.dataset.pointer = "";
-  });
-  input.addEventListener("focus", () => {
-    if (!pressed) input.select();
-    pressed = false;
-  });
-  input.addEventListener("click", () => {
-    if (!isOpen()) browse();
-  });
-  input.addEventListener("keydown", (event) => {
-    const { key } = event;
-    // From the keyboard, the field shows its ring again (podcast.css).
-    delete input.dataset.pointer;
-    if (key === "ArrowDown" || key === "ArrowUp") {
-      event.preventDefault();
-      if (!isOpen()) open("", true);
-      else {
-        listbox.toggleAttribute("data-keyboard", true);
-        highlight(moveIndex(active, shown.length, key));
-      }
-    } else if (isOpen() && (key === "Home" || key === "End") && event.ctrlKey) {
-      event.preventDefault();
-      listbox.toggleAttribute("data-keyboard", true);
-      highlight(moveIndex(active, shown.length, key));
-    } else if (key === "Enter" && isOpen()) {
-      event.preventDefault();
-      const option = shown[active];
-      if (option) choose(option);
-    } else if (key === "Escape" && isOpen()) {
-      event.preventDefault();
-      close();
-    }
-  });
-  input.addEventListener("focusout", (event) => {
-    if (!(event.relatedTarget instanceof Node && listbox.contains(event.relatedTarget))) close();
-  });
-  // Pressing an option must not blur the field first, or the list would close under the pointer.
-  listbox.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    input.dataset.pointer = "";
-  });
-  // The pointer takes over from the keyboard: the hover tint shows the row, the ring goes.
-  listbox.addEventListener("pointermove", () => listbox.removeAttribute("data-keyboard"));
-  listbox.addEventListener("click", (event) => {
-    const item = (event.target as Element).closest<HTMLElement>("[role=option]");
-    const option = item ? shown[Number(item.dataset.index)] : undefined;
-    if (option) choose(option);
-  });
-  toggle.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    input.dataset.pointer = "";
-  });
-  toggle.addEventListener("click", () => {
-    input.focus();
-    if (isOpen()) close();
-    else browse();
+  select.addEventListener("change", () => {
+    selected = select.value === "" ? null : select.value;
+    update();
   });
 
   group.dataset.was = JSON.stringify(

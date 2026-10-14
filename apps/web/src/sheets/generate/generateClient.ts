@@ -86,6 +86,7 @@ export async function startGenerate(
   passphrase: string,
   deps: ClientDeps,
   feedback = "",
+  topics?: readonly string[],
 ): Promise<StartResult> {
   const trimmed = passphrase.trim();
   if (!trimmed) return { kind: "rejected", reason: "empty", message: MESSAGES.empty };
@@ -101,6 +102,7 @@ export async function startGenerate(
   const request: GenerateRequest = {
     passphrase: trimmed,
     ...(note ? { feedback: note } : {}),
+    ...(topics && replace ? { topics: [...topics] } : {}),
     ...(replace ? { replace } : {}),
   };
   let response: Response;

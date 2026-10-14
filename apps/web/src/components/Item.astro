@@ -6,6 +6,7 @@ import { sourceHost } from "../lib/sourceLabel";
 import { idleStoryChip } from "../player/core/readerMath";
 import Icon from "./Icon.astro";
 import PlayChip from "./PlayChip.astro";
+import StoryControls from "./StoryControls.astro";
 
 interface Props {
   item: DigestItem;
@@ -74,5 +75,14 @@ const publisher = publisherOf(item.source, host);
         </a>
       )
     }
+    <StoryControls
+      id={item.id}
+      url={item.url}
+      headline={item.headline}
+      topic={item.category}
+      source={item.source}
+      outlet={publisher}
+      canBlock={host !== null}
+    />
   </div>
 </article>

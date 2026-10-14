@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  CLAUDE_OPTIONS,
-  countText,
-  filterOptions,
-  labelFor,
-  moveIndex,
-  nebiusOptions,
-} from "./combobox";
+import { CLAUDE_OPTIONS, claudeOptions, nebiusOptions } from "./combobox";
 import { NEBIUS_TOP } from "./modelId";
 import { shortlist } from "./modelRank";
 
@@ -130,47 +123,12 @@ describe("the top models", () => {
   });
 });
 
-describe("filterOptions", () => {
-  const options = nebiusOptions(LIVE, null);
-  it("keeps everything for an empty query", () => {
-    expect(filterOptions(options, "  ")).toHaveLength(options.length);
-  });
-  it("matches name or id, ignoring case", () => {
-    expect(filterOptions(options, "OSS").map((o) => o.id)).toEqual(["openai/gpt-oss-120b"]);
-    expect(filterOptions(options, "kimi k3").map((o) => o.id)).toEqual(["moonshotai/Kimi-K3"]);
-    expect(filterOptions(options, "zai-org").map((o) => o.id)).toEqual(["zai-org/GLM-5.3"]);
-    expect(filterOptions(options, "zzz")).toEqual([]);
-  });
-});
-
-describe("moveIndex", () => {
-  it("wraps the arrows and jumps with Home and End", () => {
-    expect(moveIndex(-1, 3, "ArrowDown")).toBe(0);
-    expect(moveIndex(2, 3, "ArrowDown")).toBe(0);
-    expect(moveIndex(1, 3, "ArrowDown")).toBe(2);
-    expect(moveIndex(-1, 3, "ArrowUp")).toBe(2);
-    expect(moveIndex(0, 3, "ArrowUp")).toBe(2);
-    expect(moveIndex(2, 3, "ArrowUp")).toBe(1);
-    expect(moveIndex(1, 3, "Home")).toBe(0);
-    expect(moveIndex(0, 3, "End")).toBe(2);
-  });
-  it("has no highlight in an empty list and ignores other keys", () => {
-    expect(moveIndex(0, 0, "ArrowDown")).toBe(-1);
-    expect(moveIndex(1, 3, "a")).toBe(1);
-  });
-});
-
-describe("labelFor and countText", () => {
-  it("labels a chosen model", () => {
-    expect(labelFor(CLAUDE_OPTIONS, "claude-haiku-5-5")).toBe("Claude Haiku 5.5");
-    expect(labelFor(nebiusOptions(LIVE, null), null)).toBe("Default");
-    expect(labelFor(nebiusOptions(LIVE, null), "moonshotai/Kimi-K3")).toBe("Kimi K3");
-    expect(labelFor([], "a/b")).toBe("b");
-    expect(labelFor([], "zai-org/GLM-5.3")).toBe("GLM-5.3");
-  });
-  it("words the count", () => {
-    expect(countText(0)).toBe("No models match");
-    expect(countText(1)).toBe("1 model");
-    expect(countText(4)).toBe("4 models");
+describe("claudeOptions", () => {
+  it("keeps a chosen model that is not a Claude model, so a saved id is not changed on save", () => {
+    expect(claudeOptions("claude-haiku-5-5")).toEqual([...CLAUDE_OPTIONS]);
+    expect(claudeOptions("some/Old-Model").map((o) => o.id)).toEqual([
+      ...CLAUDE_OPTIONS.map((o) => o.id),
+      "some/Old-Model",
+    ]);
   });
 });

@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-14 | [The owner's list, built in parallel](2026-10-14-owner-list-in-parallel.md) | 18 ideas ordered, challenged and built by parallel workers: the wide bar, sheets, Model dropdown, the transcript's pause, a profile with blocked domains and votes, Regenerate with topics (D106 to D109); what the lead's review changed |
 | 2026-10-13 | [Regenerate and delete a briefing](2026-10-13-briefing-regenerate-and-delete.md) | Replace in place and delete for every briefing (D104) |
 | 2026-10-13 | [Star ratings and Regenerate](2026-10-13-star-ratings-and-regenerate.md) | Scores out of 5 as a star rating, folded source lists, delete confirm, Regenerate with feedback, 150 KB budget (D103); the missing Daily traced to `CRON_SECRET` |
 | 2026-10-13 | [Owner feedback and why development is slow](2026-10-13-owner-feedback-and-why-development-is-slow.md) | General topics on Daily and Weekly, a topic summary card, no chevron, bigger titles and more room, a steady New episode panel (D102); a 79 s parallel gate, the site type-checked, worker budgets, and what was measured about the slowness |

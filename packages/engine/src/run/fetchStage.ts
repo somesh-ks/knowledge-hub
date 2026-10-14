@@ -4,6 +4,12 @@ import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
 import type { SourceResult } from "../fetch/types.js";
+import {
+  createFileProfileStore,
+  dropBlocked,
+  isBlockedSource,
+  OWNER_ID,
+} from "../profile/profile.js";
 import { loadSources } from "../sources/registry.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
 import { readSeen, readSourceHealth, readSourceStats, writeSourceHealth } from "../state/store.js";
@@ -29,12 +35,16 @@ interface SamplePlan {
 /** The read plan of the run's scoring sample (D70), or null when it cannot be made. */
 async function planSample(deps: RunDeps, now: Date): Promise<SamplePlan | null> {
   try {
-    const [registry, stats, health] = await Promise.all([
+    const [registry, stats, health, profile] = await Promise.all([
       loadSources(deps.root),
       readSourceStats(deps.root),
       readSourceHealth(deps.root),
+      createFileProfileStore(deps.root).read(OWNER_ID),
     ]);
-    const sources = overlayHealth(registry, health).sources;
+    // A blocked outlet is not read for the sample either.
+    const sources = overlayHealth(registry, health).sources.filter(
+      (source) => !isBlockedSource(source, profile.blocked_domains),
+    );
     return { readPlan: planReads({ sources, stats, today: stockholmDate(now), now }), stats };
   } catch (error) {
     deps.log.warn("The scoring sample could not be planned; scores wait for the next run", {
@@ -70,7 +80,12 @@ async function buildSample(
       stats,
       leftovers: gathered.leftovers,
       reads: readPlan.reads,
-      read: items,
+      read: new Map(
+        [...items].map(([id, list]) => [
+          id,
+          dropBlocked(list, gathered.blockedDomains, (item) => item.url).kept,
+        ]),
+      ),
       known: (id) => pooled.has(id) || answered(id),
     });
     // A refill that failed tries again next run; a weekly check counts as done either way, and its
@@ -212,6 +227,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       },
       failed_sources: failed.map((result) => result.source_id),
       fetched: gathered.pool.report.fetched,
+      blocked: gathered.blocked,
       after_dedupe: gathered.pool.report.dedupe.output,
       kept: gathered.pool.items.length,
       ...(gathered.general ? { general_stories: gathered.general.report.stories } : {}),
