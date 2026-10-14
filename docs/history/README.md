@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-14 | [Quiet settings and a shorter form](2026-10-14-quiet-settings-and-a-shorter-form.md) | The bottom stack held by its bottom edge, Sonnet 5.5 the default writer (D113), the General audience retired (D114), settings that save without a toast (D115), the edit source panel, two ways to get a code review |
 | 2026-10-14 | [The first-load cuts](2026-10-14-first-load-cuts.md) | Modulepreload hints, idle loading instead of first-press loading, the player's motion after first paint, a 109 KB budget (D112); monthly covers and the square-top player recorded (D110, D111); the full browser suites green again |
 | 2026-10-14 | [The owner's list, built in parallel](2026-10-14-owner-list-in-parallel.md) | 18 ideas ordered, challenged and built by parallel workers: the wide bar, sheets, Model dropdown, the transcript's pause, a profile with blocked domains and votes, Regenerate with topics (D106 to D109); what the lead's review changed |
 | 2026-10-13 | [Regenerate and delete a briefing](2026-10-13-briefing-regenerate-and-delete.md) | Replace in place and delete for every briefing (D104) |
