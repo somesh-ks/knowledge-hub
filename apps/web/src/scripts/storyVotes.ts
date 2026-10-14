@@ -8,6 +8,7 @@
  * "Stop hearing from this outlet" follows the settings' removal pattern: a toast with Undo, and the
  * `profile.block` request after UNDO_MS. Leaving the page sends it at once.
  */
+import type { ConfigOp } from "@dispatch/core";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import {
   dueIn,
@@ -17,6 +18,7 @@ import {
   pendingOps,
   press,
   pressedOf,
+  type BlockOp,
   type StoryRef,
   VOTES_KEY,
   type VoteState,
@@ -51,7 +53,7 @@ function save(state: VoteState): void {
 }
 
 /** True when the request went through. `keepalive` lets it finish as the page goes. */
-async function post(op: object): Promise<boolean> {
+async function post(op: ConfigOp): Promise<boolean> {
   let passphrase: string | null = OPEN_PASSPHRASE;
   if (PASSPHRASE_REQUIRED) {
     try {
@@ -143,7 +145,7 @@ function toast(detail: object): void {
 
 async function sendBlock(host: string, outlet: string, message: string): Promise<void> {
   blocks.delete(host);
-  const done = await post({ op: "profile.block", domain: host });
+  const done = await post({ op: "profile.block", domain: host } satisfies BlockOp);
   if (done) toast({ dismiss: message });
   else toast({ message: `Could not stop ${outlet} yet. Try again.`, kind: "error" });
 }

@@ -7,6 +7,8 @@
  * in one `profile.vote` op: when the page is hidden or left, or SEND_AFTER_MS after the first vote
  * not yet sent. Only a story's final state is sent.
  */
+import type { ConfigOp } from "@dispatch/core";
+
 export const VOTES_KEY = "dispatch:story-votes";
 /** How long the first unsent vote may wait before the batch goes. */
 export const SEND_AFTER_MS = 10 * 60 * 1000;
@@ -17,7 +19,10 @@ export const HEADLINE_MAX = 200;
 /** Sent votes remembered so a story shows its mark again; the oldest beyond this are forgotten. */
 const KEEP_SENT = 400;
 
-export type VoteValue = "up" | "down" | "clear";
+/** The ops as packages/core/src/configOps.ts defines them. */
+export type VoteOp = Extract<ConfigOp, { op: "profile.vote" }>;
+export type BlockOp = Extract<ConfigOp, { op: "profile.block" }>;
+export type VoteValue = VoteOp["votes"][number]["value"];
 
 /** What the server needs to know about a story to learn from a vote. */
 export interface StoryRef {
@@ -39,11 +44,6 @@ export interface VoteState {
   /** When the oldest vote not yet sent was given, in ms; null while every vote is sent. */
   waiting_since: number | null;
   votes: Record<string, StoredVote>;
-}
-
-export interface VoteOp {
-  op: "profile.vote";
-  votes: Array<StoryRef & { value: VoteValue; at: string }>;
 }
 
 export const emptyVotes = (): VoteState => ({ waiting_since: null, votes: {} });
