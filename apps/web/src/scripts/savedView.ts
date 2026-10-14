@@ -7,6 +7,7 @@
  * A control takes the saved value as its starting point, so the editors read it as unchanged and
  * never send it again. The page says once, under its title, that what it shows is saved and not live.
  */
+import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
 import { SAVED_KEY } from "../lib/savedKey";
 import {
@@ -285,8 +286,25 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
   }
   shown = addTopics(root, saved.topics, saved.feeds) || shown;
   shown = recount(root, ops) || shown;
+  shown = recountBlocked(root, ops) || shown;
   if (shown) markSaved(root);
   return shown;
+}
+
+/** On the list: the Blocked outlets row counts the outlets blocked once the saved edits land. */
+function recountBlocked(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
+  const hint = root.querySelector<HTMLElement>("[data-blocked-hint]");
+  if (!hint) return false;
+  let built: string[] = [];
+  try {
+    built = JSON.parse(hint.dataset.blocked ?? "[]");
+  } catch {
+    return false;
+  }
+  const text = outletsSummary(savedBlocked(built, ops).length);
+  if (hint.textContent?.trim() === text) return false;
+  hint.textContent = text;
+  return true;
 }
 
 /**

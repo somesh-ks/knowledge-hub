@@ -1,4 +1,4 @@
-import type { DigestKind } from "@dispatch/core";
+import type { ConfigOp as CoreConfigOp, DigestKind } from "@dispatch/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -376,7 +376,12 @@ export type ConfigOp =
       provider: "nebius" | "anthropic";
       /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
       model: string | null;
-    };
+    }
+  /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
+  | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;
+
+/** One vote on a story, as profile.vote carries it (VoteInput in core). */
+export type ProfileVote = Extract<CoreConfigOp, { op: "profile.vote" }>["votes"][number];
 
 export interface ConfigRequest {
   passphrase: string;

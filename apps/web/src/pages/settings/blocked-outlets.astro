@@ -1,0 +1,113 @@
+---
+import EmptyArt from "../../components/EmptyArt.astro";
+import Icon from "../../components/Icon.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { outletsSummary } from "../../lib/blockedOutlets";
+import { loadBlockedDomains } from "../../lib/blockedProfile";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/blocked.css";
+
+// The blocklist as of the build; blockedPage.ts lays the edits saved since over it (savedBlocked).
+const domains = await loadBlockedDomains();
+---
+
+<BaseLayout title="Blocked outlets" view="settings" skipLabel="Skip to blocked outlets">
+  <main id="main" tabindex="-1">
+    {/* One field to block an outlet and the list of those blocked, each with a remove control.
+         blockedPage.ts records a change; autosave.ts sends an addition a moment later and a removal
+         after five seconds with Undo in the toast. */}
+    <div class="manage blocked" data-blocked data-domains={JSON.stringify(domains)}>
+      <SettingsHead
+        title="Blocked outlets"
+        up={{ href: "/settings/topics", label: "Topics and sources" }}
+        note="A blocked outlet is left out of every briefing and episode from the next one made, including stories found by search. Blocking a domain blocks its subdomains."
+      />
+      <noscript>
+        <p class="manage-note">Changing blocked outlets needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Blocked outlets</legend>
+        <form class="blocked-add manage-field" novalidate data-add data-needs-js>
+          <label for="blocked-input">Block an outlet</label>
+          <div class="blocked-add-row">
+            <input
+              class="manage-input"
+              id="blocked-input"
+              name="domain"
+              type="text"
+              inputmode="url"
+              maxlength="2048"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="example.com"
+              aria-describedby="blocked-error"
+              data-input
+            />
+            <button class="btn-secondary" type="submit">
+              <Icon name="plus" />
+              <span>Block</span>
+            </button>
+          </div>
+          <p class="manage-error" id="blocked-error" role="alert" data-error hidden>
+            <Icon name="alert" /><span></span>
+          </p>
+        </form>
+
+        <section class="blocked-list" aria-labelledby="blocked-head">
+          <h2 class="section-head" id="blocked-head" data-count>{outletsSummary(domains.length)}</h2>
+          <ul class="rows" role="list" data-list aria-labelledby="blocked-head">
+            {
+              domains.map((domain) => (
+                <li class="blocked-row" data-domain={domain}>
+                  <div class="settings-row">
+                    <span class="settings-label">{domain}</span>
+                    <button
+                      class="icon-btn"
+                      type="button"
+                      aria-label={`Unblock ${domain}`}
+                      data-remove
+                      data-needs-js
+                    >
+                      <Icon name="close" />
+                    </button>
+                  </div>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+
+        <template data-row>
+          <li class="blocked-row">
+            <div class="settings-row">
+              <span class="settings-label"></span>
+              <button class="icon-btn" type="button" data-remove>
+                <Icon name="close" />
+              </button>
+            </div>
+          </li>
+        </template>
+
+        {/* Shown by blocked.css while the list has no row. */}
+        <div class="blocked-empty empty" data-compact>
+          <EmptyArt art="library" size="compact" />
+          <p class="empty-title">No blocked outlets</p>
+          <p class="empty-body">Type a domain above, or paste the address of any page on the outlet.</p>
+        </div>
+      </fieldset>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installBlockedPage } from "../../scripts/blockedPage";
+
+  installBlockedPage();
+</script>

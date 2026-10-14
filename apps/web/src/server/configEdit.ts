@@ -1,4 +1,5 @@
 import {
+  ConfigOp as CoreConfigOp,
   DEFAULT_SCHEDULE,
   isAnthropicModel,
   isSupportedTimeZone,
@@ -8,6 +9,7 @@ import {
   ScheduleFile,
   scheduleZone,
 } from "@dispatch/core";
+import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
@@ -392,6 +394,17 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       if (typeof value.model !== "string" || !MODEL_ID_PATTERN.test(value.model)) return null;
       if (value.model.startsWith("claude-")) return null;
       return { op: "writer.set", provider: "nebius", model: value.model };
+    }
+    case "profile.block":
+    case "profile.unblock": {
+      // Any address of the outlet is accepted and stored as its domain; what is not a host is refused.
+      const domain = typeof value.domain === "string" ? blockedDomainOf(value.domain) : null;
+      return domain === null ? null : { op: value.op, domain };
+    }
+    case "profile.vote": {
+      // The vote shape is core's (VoteInput), the same schema the engine applies the op with.
+      const parsed = CoreConfigOp.safeParse(value);
+      return parsed.success && parsed.data.op === "profile.vote" ? parsed.data : null;
     }
     default:
       return null;
