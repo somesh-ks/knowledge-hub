@@ -1,4 +1,5 @@
 import {
+  ConfigOp as CoreConfigOp,
   DEFAULT_SCHEDULE,
   isAnthropicModel,
   isSupportedTimeZone,
@@ -9,7 +10,7 @@ import {
   scheduleZone,
 } from "@dispatch/core";
 import { blockedDomainOf } from "../lib/blockedOutlets";
-import type { ConfigOp, ConfigResponse, PodcastRequest, ProfileVote } from "../types/contracts";
+import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { readServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
 import {
@@ -144,40 +145,6 @@ function topicIds(value: unknown): string[] | null {
     result.push(topic);
   }
   return result;
-}
-
-const MAX_VOTES = 50;
-const MAX_HEADLINE = 200;
-const MAX_VOTE_FIELD = 200;
-const VOTE_VALUES = ["up", "down", "clear"] as const;
-
-/**
- * profile.vote mirrors the op of that name in packages/core/src/configOps.ts, which is not in core
- * on the branch this was written against: when it lands, keep the two in step. Each vote is rebuilt
- * from validated parts; the address must be a web address and the time an ISO time.
- */
-function parseVote(value: unknown): ProfileVote | null {
-  if (!isRecord(value)) return null;
-  const url = webUrl(value.url);
-  const storyId = text(value.story_id, MAX_VOTE_FIELD);
-  const headline = text(value.headline, MAX_HEADLINE);
-  const topic = text(value.topic, MAX_VOTE_FIELD);
-  const sourceId = text(value.source_id, MAX_VOTE_FIELD);
-  const at = text(value.at, 40);
-  const verdict = VOTE_VALUES.find((entry) => entry === value.value);
-  if (
-    url === null ||
-    storyId === null ||
-    headline === null ||
-    topic === null ||
-    sourceId === null ||
-    at === null ||
-    verdict === undefined ||
-    !Number.isFinite(Date.parse(at))
-  ) {
-    return null;
-  }
-  return { story_id: storyId, url, headline, topic, source_id: sourceId, value: verdict, at };
 }
 
 const NEW_FORMATS = ["readout", "discussion"] as const;
@@ -435,13 +402,9 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       return domain === null ? null : { op: value.op, domain };
     }
     case "profile.vote": {
-      if (!Array.isArray(value.votes) || value.votes.length < 1 || value.votes.length > MAX_VOTES) {
-        return null;
-      }
-      const votes = value.votes.map(parseVote);
-      return votes.every((vote): vote is ProfileVote => vote !== null)
-        ? { op: "profile.vote", votes }
-        : null;
+      // The vote shape is core's (VoteInput), the same schema the engine applies the op with.
+      const parsed = CoreConfigOp.safeParse(value);
+      return parsed.success && parsed.data.op === "profile.vote" ? parsed.data : null;
     }
     default:
       return null;
