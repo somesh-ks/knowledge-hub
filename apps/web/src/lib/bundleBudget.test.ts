@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   allowedScriptHashes,
   entryScripts,
+  FIRST_LOAD_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
   gzipBytes,
   inlineScriptHashes,
+  overBudget,
   parseScripts,
   staticImports,
   unallowedInlineScripts,
@@ -198,5 +200,19 @@ describe("module preload hints", () => {
     expect(unhintedModules(hinted, read)).toEqual([]);
     expect(parseScripts(hinted)).toEqual(parseScripts(html));
     expect(unallowedInlineScripts(hinted)).toEqual([]);
+  });
+});
+
+describe("the first-load budget", () => {
+  // The line sits a few KB over the heaviest page (D112), so a page that grows past it must fail
+  // the build, here and on Vercel, rather than pass with a ceiling nobody reads.
+  it("fails a page one byte past the line and passes one on it", () => {
+    const pages = [
+      { name: "/on/index.html", totalGzip: FIRST_LOAD_BUDGET_BYTES },
+      { name: "/past/index.html", totalGzip: FIRST_LOAD_BUDGET_BYTES + 1 },
+    ];
+    const problems = overBudget(pages);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/^\/past\/index\.html: /);
   });
 });
