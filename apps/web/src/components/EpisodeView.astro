@@ -51,7 +51,7 @@ const highlights = episodeHighlights(episode, summaries);
     <PlayCta digestId={entry.id} mode="preparing" length={length} noun="episode" />
   </header>
 
-  <EpisodeActions id={entry.id} />
+  <EpisodeActions id={entry.id} selected={episode.request.topic_ids} />
 
   {/* The script is read in the player. The page is for the news itself: each story the episode
        covers, what was said about it, and the way to the source. */}

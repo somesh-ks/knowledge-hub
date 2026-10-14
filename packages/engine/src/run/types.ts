@@ -32,6 +32,8 @@ export interface RunOptions {
   stage: StageName | undefined;
   /** Write stage: what the owner asked to improve (Regenerate); reaches the writer prompt as untrusted text. */
   feedback: string | undefined;
+  /** Write stage: the topic ids this one run covers (Regenerate); every other topic is left out. */
+  topics: string[] | undefined;
   /** Commit stage only: adopt this run directory (agent mode) instead of the gate's plan. */
   run: string | undefined;
   /** Gate: make this digest again (same id, kind and window start) and, once published, replace it. */
@@ -48,6 +50,7 @@ export const DEFAULT_RUN_OPTIONS: RunOptions = {
   noPush: false,
   stage: undefined,
   feedback: undefined,
+  topics: undefined,
   run: undefined,
   replace: undefined,
   delete: undefined,

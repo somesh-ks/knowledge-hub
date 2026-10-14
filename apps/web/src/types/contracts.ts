@@ -91,6 +91,8 @@ export interface GenerateRequest {
   passphrase: string;
   /** Regenerate: what to improve, up to 500 characters, passed to the writer. */
   feedback?: string;
+  /** Regenerate: the topic ids for this run only; absent keeps the briefing's own. */
+  topics?: string[];
   /** Regenerate a briefing that exists: its digest id. The new digest replaces it. */
   replace?: string;
   /** Delete a briefing: with `id`, no feedback and no run of the writer. */
@@ -439,7 +441,13 @@ export interface PodcastCreateRequest {
 /** POST /api/podcast with an action: delete an episode, or write it again with feedback. */
 export type PodcastActionRequest =
   | { passphrase: string; action: "delete"; id: string }
-  | { passphrase: string; action: "regenerate"; id: string; feedback: string };
+  | {
+      passphrase: string;
+      action: "regenerate";
+      id: string;
+      feedback?: string;
+      topic_ids?: string[];
+    };
 
 /** POST /api/podcast responses. */
 export type PodcastCreateResponse =

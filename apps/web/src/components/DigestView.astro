@@ -1,4 +1,5 @@
 ---
+import { digestSections } from "@dispatch/core";
 import type { DigestEntry } from "../lib/digests";
 import { buildHero, buildSections } from "../lib/digestView";
 import Briefing from "./Briefing.astro";
@@ -30,7 +31,11 @@ const hasAudio = entry.audioMode === "ready";
   data-latest={isLatest ? "true" : "false"}
 >
   <DigestHero entry={entry} hero={hero} />
-  <EpisodeActions id={entry.id} noun="briefing" />
+  <EpisodeActions
+    id={entry.id}
+    noun="briefing"
+    selected={digestSections(entry.digest).map((section) => section.id)}
+  />
   <Briefing sections={sections} hasAudio={hasAudio} />
   <EarlierList entries={earlier} />
   {/* The end of what the page shows. Once it is on screen the reader is at the end, and

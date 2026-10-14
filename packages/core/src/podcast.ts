@@ -107,7 +107,9 @@ export const PodcastCommand = z.preprocess(
     z.strictObject({
       action: z.literal("regenerate"),
       id: EpisodeId,
-      feedback: PodcastFeedback,
+      feedback: PodcastFeedback.optional(),
+      /** The topics for this regeneration only; absent keeps the episode's own. */
+      topic_ids: z.array(z.string().min(1).max(64)).min(1).max(PODCAST_MAX_TOPICS).optional(),
     }),
   ]),
 );

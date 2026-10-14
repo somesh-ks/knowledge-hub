@@ -213,7 +213,21 @@ describe("parsePodcastBody for an episode action", () => {
     expect(parsePodcastBody(regen({ feedback: "x".repeat(501) }))).toBeNull();
   });
 
-  it("rejects a bad id, an unknown action and empty or missing feedback", () => {
+  it("takes comments and topics as optional and drops blank comments", () => {
+    expect(parsePodcastBody(regen({ feedback: "  \n ", topic_ids: ["ai", "design"] }))).toEqual({
+      passphrase: PASSPHRASE,
+      action: "regenerate",
+      id: EPISODE_ID,
+      topic_ids: ["ai", "design"],
+    });
+    expect(parsePodcastBody(regen({ feedback: undefined }))).toEqual({
+      passphrase: PASSPHRASE,
+      action: "regenerate",
+      id: EPISODE_ID,
+    });
+  });
+
+  it("rejects a bad id, an unknown action, bad comments and bad topics", () => {
     for (const bad of [
       del({ id: "ep-2026100-0900" }),
       del({ id: "../ep-20261007-0900" }),
@@ -221,10 +235,10 @@ describe("parsePodcastBody for an episode action", () => {
       del({ id: 7 }),
       del({ id: undefined }),
       del({ action: "wipe" }),
-      regen({ feedback: "" }),
-      regen({ feedback: "  \n " }),
-      regen({ feedback: undefined }),
       regen({ feedback: 4 }),
+      regen({ topic_ids: [] }),
+      regen({ topic_ids: ["ai", "ai"] }),
+      regen({ topic_ids: ["Bad Id"] }),
     ]) {
       expect(parsePodcastBody(bad), bad).toBeNull();
     }
@@ -271,13 +285,21 @@ describe("handlePodcast for an episode action", () => {
     expect(github.requests).toHaveLength(0);
   });
 
-  it("answers 400 for a malformed id, empty feedback and feedback over the limit", async () => {
+  it("dispatches the chosen topics with the regenerate request", async () => {
     const { deps, github } = setup();
-    for (const bad of [
-      del({ id: "nope" }),
-      regen({ feedback: "" }),
-      regen({ feedback: "x".repeat(501) }),
-    ]) {
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 57 } });
+    await handlePodcast(input(regen({ feedback: undefined, topic_ids: ["ai", "design"] })), deps);
+    expect(dispatchOf(github)?.body).toMatchObject({
+      inputs: {
+        request: `{"action":"regenerate","id":"${EPISODE_ID}","topic_ids":["ai","design"]}`,
+      },
+    });
+  });
+
+  it("answers 400 for a malformed id and feedback over the limit", async () => {
+    const { deps, github } = setup();
+    for (const bad of [del({ id: "nope" }), regen({ feedback: "x".repeat(501) })]) {
       expect((await handlePodcast(input(bad), deps)).status).toBe(400);
     }
     expect(github.requests).toHaveLength(0);

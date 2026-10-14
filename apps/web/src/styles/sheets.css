@@ -198,6 +198,14 @@
   margin-block-start: var(--space-4);
 }
 
+/* A group of choices is a field like any other: no frame of the browser's own. */
+fieldset.sheet-field {
+  min-width: 0;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+}
+
 .sheet-field-label {
   padding-inline: var(--space-2);
   font-size: var(--font-size-label);

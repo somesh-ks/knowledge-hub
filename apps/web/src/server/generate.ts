@@ -75,6 +75,27 @@ export function parseFeedback(bodyText: string): string | null | undefined {
   return cleanFeedback(raw) ?? undefined;
 }
 
+/** A topic id, as a section id or a topic's own id. */
+const TOPIC_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+
+/**
+ * The topics chosen for this one regeneration: absent means the run's own, otherwise one to 50
+ * distinct ids. Anything else is invalid (undefined), so a request is refused before it costs a run.
+ */
+export function parseTopics(bodyText: string): string[] | null | undefined {
+  const raw = (JSON.parse(bodyText) as { topics?: unknown }).topics;
+  if (raw === undefined || raw === null) return null;
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > 50) return undefined;
+  const chosen: string[] = [];
+  for (const topic of raw) {
+    if (typeof topic !== "string" || !TOPIC_ID.test(topic) || chosen.includes(topic)) {
+      return undefined;
+    }
+    chosen.push(topic);
+  }
+  return chosen;
+}
+
 /** A digest id: a date, then `-weekly` or a same-day number (core's DigestId). */
 const DIGEST_ID = /^\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?$/;
 
@@ -116,6 +137,8 @@ export async function handleGenerate(
   // parsePassphrase has already proven the body is a JSON object.
   const feedback = parseFeedback(input.bodyText);
   if (feedback === undefined) return invalid;
+  const topics = parseTopics(input.bodyText);
+  if (topics === undefined) return invalid;
   const target = parseTarget(input.bodyText);
   if (target === undefined) return invalid;
   const id = target === null ? null : "delete" in target ? target.delete : target.replace;
@@ -157,6 +180,7 @@ export async function handleGenerate(
         : {
             mode: "on-demand",
             ...(feedback ? { feedback } : {}),
+            ...(topics && id ? { topics: topics.join(",") } : {}),
             ...(id ? { replace: id } : {}),
           },
     );

@@ -55,7 +55,7 @@ describe("PodcastCommand", () => {
     ["an unknown action", { action: "rename", id: OLD_ID }],
     ["empty feedback", { action: "regenerate", id: OLD_ID, feedback: "  \n " }],
     ["feedback over 500", { action: "regenerate", id: OLD_ID, feedback: "x".repeat(501) }],
-    ["no feedback", { action: "regenerate", id: OLD_ID }],
+    ["an empty topic list", { action: "regenerate", id: OLD_ID, topic_ids: [] }],
     ["an extra field", { action: "delete", id: OLD_ID, force: true }],
   ])("rejects %s", (_name, value) => {
     expect(PodcastCommand.safeParse(value).success).toBe(false);
@@ -184,6 +184,20 @@ describe("dispatch podcast delete and regenerate", () => {
     expect(episode.feedback).toBe("Less jargon, more on the planner");
     expect(episode.request).toEqual(REQUEST);
     expect(git(root, "status", "--porcelain")).toBe("");
+  });
+
+  it("regenerate with chosen topics and no comments writes the new episode for those topics only", async () => {
+    const { code, writer } = await run([
+      ...act({ action: "regenerate", id: OLD_ID, topic_ids: ["ai"] }),
+      "--no-push",
+    ]);
+    expect(code).toBe(0);
+    expect(writer.calls[0]?.input.feedback).toBeUndefined();
+    expect(writer.calls[0]?.input.request.topic_ids).toEqual(["ai"]);
+    expect(existsSync(join(root, OLD_PATH))).toBe(false);
+    const episode = parseEpisodeFile(await readFile(join(root, NEW_PATH), "utf8"));
+    expect(episode.replaces).toBe(OLD_ID);
+    expect(episode.request).toEqual({ ...REQUEST, topic_ids: ["ai"] });
   });
 
   it("a failed regenerate leaves the old file and commits nothing", async () => {

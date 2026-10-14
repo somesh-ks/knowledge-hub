@@ -172,8 +172,13 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       // A regeneration reuses the stored request of the old episode and adds the listener feedback.
       const replaced =
         command.action === "regenerate" ? await readEpisode(ctx.root, command.id) : null;
-      const request = command.action === "create" ? command.request : replaced?.episode.request;
-      if (!request) throw new PodcastError("The request names no episode to replace.");
+      const stored = command.action === "create" ? command.request : replaced?.episode.request;
+      if (!stored) throw new PodcastError("The request names no episode to replace.");
+      // Topics chosen in the dialog apply to this regeneration only: the new episode stores them.
+      const request =
+        command.action === "regenerate" && command.topic_ids
+          ? { ...stored, topic_ids: command.topic_ids }
+          : stored;
       const feedback = command.action === "regenerate" ? command.feedback : undefined;
       // A new episode's script is copied to Blob as it is written, so it can be heard before the
       // commit is deployed. Best effort: without the token or the run id there is just no live copy.
@@ -205,7 +210,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         ...(deps.http ? { http: deps.http } : {}),
         log: ctx.log,
         dryRun,
-        ...(replaced && feedback ? { replaces: replaced.episode.id, feedback } : {}),
+        ...(replaced ? { replaces: replaced.episode.id } : {}),
+        ...(feedback ? { feedback } : {}),
       });
       const { episode, relPath } = result;
       if (dryRun) {

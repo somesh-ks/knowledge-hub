@@ -69,6 +69,8 @@ export interface SelectInput {
    * one of them is dropped before anything is picked, so it reaches Top picks neither.
    */
   skipTopics?: readonly string[];
+  /** Regenerate: keep only these categories, on top of skipTopics. Absent keeps every category. */
+  onlyTopics?: readonly string[];
 }
 
 export interface SelectResult {
@@ -313,7 +315,10 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const scored of input.scored) {
     const verdict = eligibility(scored, threshold);
     if (verdict.eligible) {
-      if (input.skipTopics?.includes(verdict.candidate.category)) {
+      if (
+        input.skipTopics?.includes(verdict.candidate.category) ||
+        (input.onlyTopics && !input.onlyTopics.includes(verdict.candidate.category))
+      ) {
         dropped.push({ id: scored.item.id, reason: "skipped_topic", score: scored.score });
       } else {
         candidates.push(verdict.candidate);

@@ -138,6 +138,31 @@ describe("handleGenerate", () => {
     expect(dispatch?.body).toMatchObject({ ref: "main", inputs: { mode: "on-demand" } });
   });
 
+  it("sends the topics chosen for a briefing's Regenerate to run.yml, comma separated, and refuses bad ones", async () => {
+    const { deps, github } = setup({ digestIds: () => ["2026-10-07-weekly"] });
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 3 } });
+    const send = (topics: unknown) =>
+      handleGenerate(
+        input(
+          JSON.stringify({
+            passphrase: "correct horse battery staple",
+            replace: "2026-10-07-weekly",
+            topics,
+          }),
+        ),
+        deps,
+      );
+    expect((await send(["ai", "design_engineering_craft"])).status).toBe(202);
+    const dispatched = github.requests.find((request) => request.method === "POST");
+    expect(dispatched?.body).toMatchObject({
+      inputs: { replace: "2026-10-07-weekly", topics: "ai,design_engineering_craft" },
+    });
+    for (const bad of [[], ["ai", "ai"], ["Bad Id"], "ai"]) {
+      expect((await send(bad)).status).toBe(400);
+    }
+  });
+
   it("passes cleaned Regenerate feedback to run.yml and refuses a note over 500 characters", async () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
