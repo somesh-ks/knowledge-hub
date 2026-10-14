@@ -121,6 +121,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | active; amends D44, D103, D104 |
 | D110 | Covers dated 2026-10 or later take one colour scheme per month, set layouts for Daily and Weekly and a round plate for On demand, with contrast enforced in code | active |
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
+| D112 | Every page modulepreloads what it loads at start; code a press needs loads at idle, never on the press; the player's motion loads after first paint; the first-load budget is 109 KB | active; amends D53, D103 |
 
 ---
 
@@ -1237,3 +1238,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: the open player page draws no drag handle, and its top corners (and the phone dock's) are square at every point of its travel, not only at rest. The whole top of the page is still the drag area, and the art keeps the room the handle and its margins took (`padding-block-start: var(--space-8)` on `.player-drag`). The desktop side panel and the centred dialog keep their corners.
 - Why: D106 took the grabber and corners off the Generate and Narrate drawers and left the player page with both; the owner asked for the same sharp top on the player.
 - Rejected: corners that round while the page travels and square at rest (D32's look until #106): the owner wanted one edge throughout.
+
+## D112: First load: preload hints, idle loading, a lazy player motion, a 109 KB budget
+
+- Date: 2026-10-14 (the owner's first-load plan; #111, #112, #113, #115)
+- Decision:
+  - Every page names each module it loads at start in a `<link rel="modulepreload">` at the end of its head, added after the build by `dispatch-module-preload` (`astro.config.mjs`, `withModulePreloads` in `bundleBudget.ts`). `checkBundle` fails a page that loads a module at start without one. Links only: no inline script, every page script stays a file.
+  - Code a press needs is fetched at idle (`scripts/idle.ts`), never on the press itself: the Topics editor, the vote sender, the episode actions, the Create sheet, the click cues, the player's late glyphs. A page editor whose page has a pre-ready state can load at idle instead of at start (Blocked outlets).
+  - The player's eager glyph registry holds what the bar draws at first paint; `Icon` draws the rest from the full registry.
+  - The player surface's motion (`playerSheetMotion.ts`) loads at idle with the open page's controls. `playerSheet` is a facade: closed at rest, as the island's markup draws it, and a call made before the motion loads waits and runs in order.
+  - The first-load budget is 109 KB, about 3 KB over the heaviest page (Topics, 105.7 KB).
+- Why: the bar answered 2.5 to 3 s after the largest paint on a slow phone because the island's graph was fetched one round trip at a time; hints brought it 1.1 to 1.5 s forward with LCP unchanged. A first press that waits on a download breaks D47's instant moves. A ceiling 44 KB above the code (D103) let a page grow by a third before anything failed.
+- Cost: about 15 to 20 KB more script fetched at idle, by the warmed chunks' sizes (not counted by the budget, not measured as a transfer). A press on the bar before idle waits for the motion chunk, as it already waited for the open page's controls. A feature that adds first-load code now has 3 KB of room.
+- Rejected: no island eager at first load (about 73 KB off every page; parked by the owner for its risk to the early Play tap, D82); loading page code on first input (a press would wait on a download); moving only `detentGain` out of scrubberMath (0 KB: the module moved to another eager chunk).

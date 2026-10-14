@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-14 | [The first-load cuts](2026-10-14-first-load-cuts.md) | Modulepreload hints, idle loading instead of first-press loading, the player's motion after first paint, a 109 KB budget (D112); monthly covers and the square-top player recorded (D110, D111); the full browser suites green again |
 | 2026-10-14 | [The owner's list, built in parallel](2026-10-14-owner-list-in-parallel.md) | 18 ideas ordered, challenged and built by parallel workers: the wide bar, sheets, Model dropdown, the transcript's pause, a profile with blocked domains and votes, Regenerate with topics (D106 to D109); what the lead's review changed |
 | 2026-10-13 | [Regenerate and delete a briefing](2026-10-13-briefing-regenerate-and-delete.md) | Replace in place and delete for every briefing (D104) |
 | 2026-10-13 | [Star ratings and Regenerate](2026-10-13-star-ratings-and-regenerate.md) | Scores out of 5 as a star rating, folded source lists, delete confirm, Regenerate with feedback, 150 KB budget (D103); the missing Daily traced to `CRON_SECRET` |
