@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import "../styles/player.css";
 import { startPlayerRuntime } from "./core/playerRuntime";
+import { loadPlayerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerSurface from "./PlayerSurface";
 import { loadPageContent } from "./pageContentLoader";
@@ -24,8 +25,16 @@ export default function PlayerRoot() {
   const coverSrc = usePlayerState().track?.digest.cover.src1024;
 
   useEffect(() => startPlayerRuntime(), []);
-  // Ready before it is wanted. A failure here is retried at the first touch on the bar.
-  useEffect(() => whenIdle(() => void loadPageContent()), []);
+  // Ready before it is wanted: the open page's controls and the surface's motion. A failure here
+  // is retried at the first touch on the bar.
+  useEffect(
+    () =>
+      whenIdle(() => {
+        void loadPageContent();
+        void loadPlayerSheet().catch(() => undefined);
+      }),
+    [],
+  );
   useEffect(() => {
     if (!coverSrc) return;
     // Decode the large cover ahead of time, so the flight never starts on an empty box.
