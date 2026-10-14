@@ -119,6 +119,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | active; amends D44, D103, D104 |
+| D110 | Covers dated 2026-10 or later take one colour scheme per month, set layouts for Daily and Weekly and a round plate for On demand, with contrast enforced in code | active |
+| D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 
 ---
 
@@ -1217,3 +1219,21 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: the Regenerate dialog of an episode and of a briefing has the app's topic chips, prefilled with what the original was made with (at least one stays chosen), over a Comments field. The choice applies to that regeneration only. An episode sends `topic_ids` through `podcast.yml`; a briefing sends `topics` only when it differs from the original's, as a `run.yml` input passed to `dispatch run --stage write --topics`. A briefing's choice filters at the write stage, so it can drop a topic but cannot add one the run did not fetch.
 - Why: the owner's list asked for a weight slider in the dialog; asked whether it should override one run or save, the owner chose topics and comments instead.
 - Rejected: weight sliders in the dialog (a one-run weight needs a run-level override; a saved one silently changes every later briefing).
+
+## D110: Monthly covers
+
+- Date: 2026-10-14 (#109)
+- Decision:
+  - A cover dated 2026-10 or later (`MONTHLY_FROM` in `packages/cover/src/season.ts`; `isMonthly` is the one place that decides) is drawn from its calendar month's colour scheme: a small set of colours taken from the existing palettes, inside one hue family or an analogous or split-complementary set. The seed picks which scheme colour takes the ground, the figure and the type, so covers vary inside a month and a past cover keeps its colours.
+  - Each kind has a set layout. Daily: a flat template (no outlined numerals or ring line art), about a third on a light ground. Weekly: the matted plate with a deep ground, its ISO week number (`W42`) and its Monday to Sunday range. On demand (a briefing on request and an episode): a round plate on a matte.
+  - Harmony is enforced in code, not by review: a draw is legal only when type meets 4.5:1 on its ground and the figure 3:1 (`TYPE_CONTRAST`, `FORM_CONTRAST`; a plate 1.6:1 on its matte, the derived tints apart from both), and `assertSchemes` fails a scheme that leaves a kind with no legal draw.
+  - Covers dated before 2026-10 keep production's mixed palettes, so nothing already published changes.
+- Why: any cover a month makes should look intended beside the others (`season.ts`): one scheme a month and a layout per kind let a shelf read by month and kind, and a contrast rule in code keeps a random draw from producing an illegible cover.
+- Rejected: the redesign of 2026-10-14 (three new layered layouts, Strata, Orbits and Facets, with a theme per month, on the unmerged branch `worktree-agent-aeb65c83279c743fc`), rejected by the owner. Its contact sheets showed Orbits busy, Facets weak and on-demand titles unreadable at 48px.
+
+## D111: The open player has no handle and a square top
+
+- Date: 2026-10-14 (owner; #106)
+- Decision: the open player page draws no drag handle, and its top corners (and the phone dock's) are square at every point of its travel, not only at rest. The whole top of the page is still the drag area, and the art keeps the room the handle and its margins took (`padding-block-start: var(--space-8)` on `.player-drag`). The desktop side panel and the centred dialog keep their corners.
+- Why: D106 took the grabber and corners off the Generate and Narrate drawers and left the player page with both; the owner asked for the same sharp top on the player.
+- Rejected: corners that round while the page travels and square at rest (D32's look until #106): the owner wanted one edge throughout.
