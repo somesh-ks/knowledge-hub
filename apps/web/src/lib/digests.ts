@@ -1,5 +1,6 @@
 import { type AudioTimeline, type Digest, type DigestItem, digestSections } from "@dispatch/core";
 import { paletteAccent } from "@dispatch/cover";
+import { leadInWords } from "@dispatch/engine/audio";
 import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contracts";
 import type { DigestSource } from "./digestFiles";
 import { longDate } from "./format";
@@ -55,7 +56,20 @@ export function compareNewestFirst(a: Digest, b: Digest): number {
   return a.id < b.id ? 1 : -1;
 }
 
-function playerItems(items: DigestItem[], timeline: AudioTimeline | null): PlayerItem[] {
+/** The host's words ahead of each story; none when the digest cannot be narrated as a whole. */
+function leadIn(digest: Digest): Map<string, number> {
+  try {
+    return leadInWords(digest);
+  } catch {
+    return new Map();
+  }
+}
+
+function playerItems(
+  items: DigestItem[],
+  timeline: AudioTimeline | null,
+  lead: ReadonlyMap<string, number>,
+): PlayerItem[] {
   const timed = new Map(timeline?.items.map((entry) => [entry.id, entry]));
   return items.map((item) => ({
     id: item.id,
@@ -64,6 +78,7 @@ function playerItems(items: DigestItem[], timeline: AudioTimeline | null): Playe
     source: item.source,
     url: isWebUrl(item.url) ? item.url : null,
     text: storyText(item),
+    ...(lead.has(item.id) ? { lead_words: lead.get(item.id) } : {}),
     start_ms: timed.get(item.id)?.start_ms ?? null,
     end_ms: timed.get(item.id)?.end_ms ?? null,
   }));
@@ -100,7 +115,7 @@ function toEntry(
         ? { url: resolve(digest.audio.url), duration_ms: digest.audio.duration_ms }
         : null,
     timeline: audioMode === "ready" ? (timeline?.timeline ?? null) : null,
-    items: playerItems(items, audioMode === "ready" ? timeline : null),
+    items: playerItems(items, audioMode === "ready" ? timeline : null, leadIn(digest)),
     sections: playerSections(digest, audioMode === "ready" ? timeline : null),
     cover: {
       src512: `/covers/${digest.id}-512.webp`,

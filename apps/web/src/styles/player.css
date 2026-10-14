@@ -759,7 +759,7 @@
 }
 
 .dock-text {
-  gap: calc(var(--space-1) / 2);
+  gap: var(--space-1);
 }
 
 /* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
@@ -914,7 +914,6 @@
 .dock-volume {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
 }
 
 .dock-volume-level {
@@ -1160,8 +1159,8 @@
   }
 }
 
-/* From 64rem the bar follows YouTube Music's: the transport and the clock on the left, what is
-   playing in the middle, the volume on the right. */
+/* From 64rem: what is playing on the left, the transport and the clock in the middle, the volume on
+   the right. */
 @media (min-width: 64rem) {
   :root {
     --player-dock-row: 4.5rem;
@@ -1179,17 +1178,17 @@
   }
 
   .dock-transport {
-    grid-column: 1;
-    justify-self: start;
+    grid-column: 2;
+    justify-self: center;
   }
 
-  /* The group is as wide as its words, centred in the bar, with the text left-aligned beside the
+  /* The group is as wide as its words, at the bar's start, with the text left-aligned beside the
      cover. The whole bar still opens the player through the button's stretched target. */
   .dock-open {
-    grid-column: 2;
+    grid-column: 1;
     grid-template-columns: var(--mini-player-cover-size) minmax(0, max-content);
-    justify-content: center;
-    justify-self: center;
+    justify-content: start;
+    justify-self: start;
     width: auto;
     max-width: 100%;
   }
@@ -1255,11 +1254,46 @@
   }
 }
 
+@media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
+  .dock-volume:hover .dock-volume-level {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 64rem) and (
+    prefers-reduced-motion: no-preference
+  ) {
+  .dock-volume {
+    --volume-linger: 400ms;
+  }
+
+  /* Out: wait the linger first. In: at once. */
+  .dock-volume-level {
+    transition: opacity var(--duration-hover) var(--ease-hover) var(--volume-linger);
+  }
+
+  .dock-volume:is(:hover, :has(:focus-visible, .dock-volume-level:active)) .dock-volume-level {
+    transition-delay: 0s;
+  }
+}
+
 @media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   .dock-tools {
     display: flex;
     grid-column: 3;
     justify-self: end;
+  }
+
+  /* The level shows beside the button while the pointer is over the control or focus is inside it
+     by keyboard, and while it is dragged. Its room is always reserved, so nothing around it moves,
+     and the hidden slider stays focusable and under the pointer: no gap to cross. It hides 400 ms
+     after the pointer leaves. */
+  .dock-volume-level {
+    opacity: 0;
+  }
+
+  .dock-volume:has(:focus-visible, .dock-volume-level:active) .dock-volume-level {
+    opacity: 1;
   }
 
   /* The one timeline is the bar's: a 16px strip along its edge, a target for a mouse, with the

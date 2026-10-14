@@ -17,6 +17,13 @@ import type { PoolFile } from "../fetch/pool.js";
 import { loadQueries } from "../fetch/queries.js";
 import type { SourceResult } from "../fetch/types.js";
 import { prefilter } from "../prefilter/prefilter.js";
+import {
+  createFileProfileStore,
+  dropBlocked,
+  isBlockedSource,
+  OWNER_ID,
+} from "../profile/profile.js";
+import { sourceLean, votePreferences } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { overlayHealth } from "../state/sourceHealth.js";
@@ -56,6 +63,10 @@ export interface GatherResult {
    * scoring sample may judge for the score alone (D70).
    */
   leftovers: Item[];
+  /** Items the owner's blocklist dropped before dedupe. */
+  blocked: number;
+  /** The blocklist this pass followed, for the scoring sample to follow too. */
+  blockedDomains: readonly string[];
 }
 
 /**
@@ -78,6 +89,11 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   ]);
   // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
   const sources = overlayHealth(configured, health);
+  // The owner's blocklist applies to every path: a blocked source is not fetched, and what the
+  // others return (open search, listings, feeds) is cut before dedupe, judging or extraction.
+  const profile = await createFileProfileStore(root).read(OWNER_ID);
+  const blockedDomains = profile.blocked_domains;
+  const votePrefs = votePreferences(profile.votes, input.now);
 
   // The regular pass reads every general topic (their feeds are scored); the weekly pass only
   // those its podcast plays, so a weekly that skips them all reads no general feed.
@@ -92,6 +108,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const generalSourceIds = new Set<string>();
   const probed = new Set((input.probeGeneral ?? []).map((source) => source.id));
   const runnable = sources.sources
+    .filter((source) => !isBlockedSource(source, blockedDomains))
     // General feeds are read in regular passes only, whatever their tier. A switched-off one due
     // its check runs as if on, for this pass's general stories only.
     .map((source) =>
@@ -115,13 +132,13 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     const listed = selectSources(runnable, mode).filter(
       (source) => source.type === "firecrawl" && !guard.has(source.feed_url ?? source.url),
     );
-    const plan = planFirecrawlListing(listed, guard.listingRoom);
+    const plan = planFirecrawlListing(listed, guard.listingRoom, (id) => sourceLean(votePrefs, id));
     for (const id of plan.skipped)
       skip.set(id, guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
     guard.recordSkipped(plan.skipped);
   }
 
-  const { items: fetchedItems, results } = await fetchAll(
+  const { items: fetchedRaw, results } = await fetchAll(
     runnable,
     input.window,
     {
@@ -136,6 +153,11 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
       ...(setup.fetchers ? { fetchers: setup.fetchers } : {}),
       ...(setup.sleep ? { sleep: setup.sleep } : {}),
     },
+  );
+  const { kept: fetchedItems, dropped: blocked } = dropBlocked(
+    fetchedRaw,
+    blockedDomains,
+    (item) => item.url,
   );
   const items = fetchedItems.filter((item) => !generalSourceIds.has(item.source_id));
   const general =
@@ -162,5 +184,5 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     report: { fetched: items.length, dedupe: deduped.report, prefilter: filtered.report },
     items: filtered.items,
   };
-  return { pool, results, sources, general, leftovers };
+  return { pool, results, sources, general, leftovers, blocked, blockedDomains };
 }

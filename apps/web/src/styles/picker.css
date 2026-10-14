@@ -48,7 +48,7 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
   text-align: end;
@@ -70,7 +70,8 @@
 .create-select > .picker-trigger {
   inline-size: 100%;
   min-block-size: var(--field-height);
-  padding-inline: var(--field-padding) var(--space-12);
+  padding-inline: var(--field-padding)
+    calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   border-radius: var(--row-radius);
   background: var(--color-surface-container);
 }

@@ -25,6 +25,7 @@ export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
     "config/preferences.json",
     "config/schedule.json",
     "config/writer.json",
+    "config/profiles/*.json",
     "state/source-candidates.json",
   ],
 };

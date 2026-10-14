@@ -1,5 +1,5 @@
 import type { Digest } from "@dispatch/core";
-import { buildSpokenText, type SpokenText } from "./spokenText.js";
+import { buildSpokenText, itemBlock, type SpokenText } from "./spokenText.js";
 
 /**
  * The narration cut into stretches that can each be synthesized and played on their own, so the
@@ -64,6 +64,24 @@ export function segmentSpokenText(spoken: SpokenText): SpokenSegment[] {
   const last = ranges.at(-1);
   if (last) add(OUTRO_KEY, null, last.end, text.length);
   return segments;
+}
+
+/**
+ * How many words the host says in a story's segment before the story's own block: the section
+ * announcement and the link between stories. Counted as word marks count them (white-space
+ * pieces), by story id; a story that starts its segment is absent.
+ */
+export function leadInWords(digest: Digest): Map<string, number> {
+  const lead = new Map<string, number>();
+  const items = new Map(digest.items.map((item) => [item.id, item]));
+  for (const segment of spokenSegments(digest)) {
+    const item = segment.itemId === null ? undefined : items.get(segment.itemId);
+    if (!item) continue;
+    const before = segment.text.slice(0, segment.text.length - itemBlock(item).length);
+    const count = before.match(/\S+/g)?.length ?? 0;
+    if (count > 0) lead.set(item.id, count);
+  }
+  return lead;
 }
 
 /** The segments of a digest's narration: the intro, one per story, and an outro if there is one. */
