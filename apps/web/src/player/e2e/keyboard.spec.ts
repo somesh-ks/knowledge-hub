@@ -63,13 +63,15 @@ test.describe("keyboard operation of the player", () => {
     await player.dockSettled();
     const seek = player.dock.getByRole("slider", { name: "Seek" });
     if (!hasTouch && (await seek.isVisible())) {
-      // A wide window with a mouse: the bar's seek takes Space as the page's scrubber does, and
-      // Previous follows it in Tab order.
+      // A wide window with a mouse: the bar's seek takes Space as the page's scrubber does, then
+      // Tab follows the bar from the left: what is playing, then Previous (D106).
       await seek.focus();
       await page.keyboard.press("Space");
       await state("paused");
       await page.keyboard.press("Space");
       await state("playing");
+      await page.keyboard.press("Tab");
+      await expect(player.openButton).toBeFocused();
       await page.keyboard.press("Tab");
       await expect(player.dock.getByRole("button", { name: "Previous story" })).toBeFocused();
     } else {

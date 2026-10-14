@@ -28,7 +28,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
   }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 12; step += 1) {
+    for (let step = 0; step < 15; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }
@@ -42,10 +42,14 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "a: Settings",
       "button: More actions",
       "button: Play the briefing, 1 min",
-      // A story is its headline link, then its play chip; the publisher beside the chip is only
-      // attribution, out of the tab order and hidden from screen readers.
+      // A story is its headline link, then its play chip, then its like, dislike and options; the
+      // publisher beside the chip is only attribution, out of the tab order and hidden from screen
+      // readers.
       "a: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity (opens in a new tab)",
       "button: Play from here, 0:03: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
+      "button: Like: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
+      "button: Dislike: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
+      "button: Story options: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
       "a: A dither shader that stays sharp at any pixel density (opens in a new tab)",
       "button: Play from here, 0:03: A dither shader that stays sharp at any pixel density",
     ]);

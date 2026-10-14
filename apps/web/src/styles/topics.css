@@ -250,6 +250,7 @@
 /* Outline, not tonal: the page's own surface inside a control-weight border, as wide as its words,
    and a size down from a block button so it sits level with the section heading (D103). */
 .topic-add-source {
+  position: relative;
   flex: none;
   width: auto;
   min-height: calc(var(--size-touch) - var(--space-2));
@@ -258,6 +259,14 @@
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
   color: var(--color-on-surface);
+}
+
+/* The button is a size down; its target is still 44px. */
+.topic-add-source::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc(var(--space-2) / -2 - var(--stroke-hairline));
 }
 
 @media (hover: hover) and (pointer: fine) {
