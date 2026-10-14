@@ -120,6 +120,8 @@ export interface StageReport {
   ok: true;
   dry_run: boolean;
   passes: PassReport[];
+  /** Write stage: what the owner's votes changed (votes read, sources nudged, headlines passed). */
+  votes?: string;
   /** Paid requests of the run so far, by service. */
   spend?: SpendTotals;
 }

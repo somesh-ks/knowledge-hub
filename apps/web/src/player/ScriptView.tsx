@@ -10,7 +10,7 @@ import {
   FOLLOW_PAUSE_MS,
   markedWordStarts,
   splitWords,
-  spokenWordIndex,
+  spokenPosition,
   turnEndMs,
 } from "./core/scriptMath";
 import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
@@ -47,8 +47,6 @@ export default function ScriptView({
   usePlayerSecond();
   const [, setTurnMoved] = useState(0);
   const spokenTurn = useRef(-1);
-  const current =
-    state.hasStarted && !state.error ? currentTurnIndex(turns, getPlayerStore().getTime()) : -1;
   // After a failure nothing is being read: no turn is current and no word is lit.
   const failed = state.error !== null;
   const rootRef = useRef<HTMLElement>(null);
@@ -91,20 +89,27 @@ export default function ScriptView({
     () =>
       turns.map((turn, index) => {
         const list = splitWords(turn.text);
-        const estimate = estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index));
+        const lead = turn.lead_words ?? 0;
+        const estimate = estimateWordStarts(list, turn.start_ms, turnEndMs(turns, index), lead);
         return {
           list,
-          starts: markedWordStarts(list.length, marks[turn.key], turn.start_ms, estimate),
+          starts: markedWordStarts(list.length, marks[turn.key], turn.start_ms, estimate, lead),
         };
       }),
     [turns, marks],
   );
+  const wordStarts = useMemo(() => words.map((entry) => entry.starts), [words]);
+  const time = getPlayerStore().getTime();
+  // The turn whose words are being said; the host's unseen lead-in to the next one does not move it.
+  const current = state.hasStarted && !failed ? spokenPosition(turns, wordStarts, time).turn : -1;
+  // The segment being played, whose marks are wanted even while its lead-in is spoken.
+  const playing = state.hasStarted && !failed ? currentTurnIndex(turns, time) : -1;
 
   // The turn being spoken and the next: their marks, once each, on demand. A miss keeps the estimate.
   useEffect(() => {
-    if (current < 0 || !digestId) return;
+    if (playing < 0 || !digestId) return;
     let live = true;
-    for (const turn of turns.slice(current, current + 2)) {
+    for (const turn of turns.slice(playing, playing + 2)) {
       if (turn.start_ms === null) continue;
       void import("./core/wordMarks")
         .then(({ loadWordMarks }) => loadWordMarks(digestId, turn.key))
@@ -117,21 +122,21 @@ export default function ScriptView({
     return () => {
       live = false;
     };
-  }, [current, digestId, turns]);
+  }, [playing, digestId, turns]);
 
   // The spoken word, at frame rate, without a render: one attribute moves from word to word.
   useEffect(() => {
     let lit: Element | null = null;
     const light = (seconds: number): void => {
       // After a failure no word is lit: the effect runs again when `failed` changes, and clears it.
-      const turn =
-        getPlayerStore().getState().hasStarted && !failed ? currentTurnIndex(turns, seconds) : -1;
+      const { turn, word } =
+        getPlayerStore().getState().hasStarted && !failed
+          ? spokenPosition(turns, wordStarts, seconds)
+          : { turn: -1, word: -1 };
       if (turn !== spokenTurn.current) {
         spokenTurn.current = turn;
         setTurnMoved((count) => count + 1);
       }
-      const starts = turn >= 0 ? words[turn]?.starts : null;
-      const word = starts ? spokenWordIndex(starts, seconds) : -1;
       const next =
         word >= 0
           ? (rootRef.current?.querySelector(`[data-turn="${turn}"] [data-word="${word}"]`) ?? null)
@@ -148,7 +153,7 @@ export default function ScriptView({
       off();
       lit?.removeAttribute("data-spoken");
     };
-  }, [turns, words, failed]);
+  }, [turns, wordStarts, failed]);
 
   // Whether the turn being spoken is on screen: the pill that leads back to it is for when it is not.
   useEffect(() => {

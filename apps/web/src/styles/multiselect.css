@@ -24,7 +24,8 @@
   align-items: center;
   inline-size: 100%;
   block-size: var(--field-height);
-  padding-inline: var(--field-padding) var(--space-12);
+  padding-inline: var(--field-padding)
+    calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   background: none;
@@ -101,7 +102,7 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--space-1));
+  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
   border-color: transparent;
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);

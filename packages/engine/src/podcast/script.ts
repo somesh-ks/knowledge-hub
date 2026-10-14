@@ -1,6 +1,7 @@
 import type { PodcastRequest } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { BudgetExceededError, describeError } from "../llm/errors.js";
+import type { Taste } from "../profile/tasteNote.js";
 import { checkTurns } from "./check.js";
 import { charCount, fitToBudget, mergeNeighbours } from "./fit.js";
 import { ScriptReply } from "./nebiusScriptWriter.js";
@@ -33,6 +34,8 @@ export interface ScriptDeps {
   budget_chars: number;
   /** The listener's changes to a previous version; reaches the writer as delimited text. */
   feedback?: string | undefined;
+  /** What the listener liked and disliked recently; reaches the writer as delimited data. */
+  taste?: Taste | undefined;
   log?: Logger;
   /** The clock for the time limit; tests replace it. */
   now?: () => number;
@@ -87,6 +90,7 @@ async function requestOpening(deps: ScriptDeps): Promise<ScriptTurn[] | null> {
       stories: deps.stories,
       budget_chars: deps.budget_chars,
       ...(deps.feedback ? { feedback: deps.feedback } : {}),
+      ...(deps.taste ? { taste: deps.taste } : {}),
       deadline_at: (deps.now ?? Date.now)() + SCRIPT_TIME_LIMIT_MS,
     });
     const turns = validateOpening(raw, deps.request, deps.stories);
@@ -277,6 +281,7 @@ async function requestTurns(
           stories: deps.stories,
           budget_chars: deps.budget_chars,
           ...(deps.feedback ? { feedback: deps.feedback } : {}),
+          ...(deps.taste ? { taste: deps.taste } : {}),
           ...(opening ? { opening } : {}),
           deadline_at: deadline,
         },

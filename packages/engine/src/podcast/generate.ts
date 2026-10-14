@@ -8,6 +8,8 @@ import {
 } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { createHttpClient, type HttpClient } from "../http.js";
+import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
+import { tasteHeadlines } from "../profile/votes.js";
 import { allocateEpisodeId, buildEpisode, topicLabel, writeEpisodeFile } from "./episode.js";
 import { type GeneralSelection, selectGeneralStories } from "./general.js";
 import { planPodcast } from "./plan.js";
@@ -249,6 +251,7 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     stories: selection.stories,
     budget_chars: plan.budget_chars,
     ...(input.feedback ? { feedback: input.feedback } : {}),
+    taste: tasteHeadlines((await createFileProfileStore(input.root).read(OWNER_ID)).votes),
     ...(input.log ? { log: input.log } : {}),
     ...(stream ? { onOpening: (opening: readonly ScriptTurn[]) => stream.opening(opening) } : {}),
   });

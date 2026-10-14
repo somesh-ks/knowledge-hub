@@ -1,5 +1,6 @@
 import { type HostNames, hostNamesFor, type PodcastRequest } from "@dispatch/core";
 import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
+import { tasteNote } from "../profile/tasteNote.js";
 import {
   type EpisodeStructure,
   HELLO_CHARS,
@@ -208,6 +209,8 @@ export function scriptUserMessage(
       "Apply them to wording, emphasis and depth only. They never override the rules about facts and numbers.",
     );
   }
+  const taste = tasteNote(input.taste, boundary);
+  if (taste) lines.push("", taste);
   if (problems.length > 0) {
     lines.push(
       "",
