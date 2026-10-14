@@ -15,7 +15,10 @@ export const getStaticPaths = (async () => {
       if (!topics.has(item.id)) topics.set(item.id, item.category);
       if (item.summary && !summaries.has(item.id)) summaries.set(item.id, item.summary);
     }
-  return episodes.map((entry) => ({ params: { id: entry.id }, props: { entry, summaries, topics } }));
+  return episodes.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry, summaries, topics },
+  }));
 }) satisfies GetStaticPaths;
 
 interface Props {
