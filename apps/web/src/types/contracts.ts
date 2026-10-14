@@ -18,6 +18,8 @@ export interface PlayerItem {
   url?: string | null;
   /** The story as the host says it, for the transcript of a briefing. Episodes carry a script instead. */
   text?: string;
+  /** Words the host says ahead of the story in its narration (a section bridge, a link) that `text` leaves out. */
+  lead_words?: number;
   /** Start and end inside the MP3, or null while the digest has no audio. */
   start_ms: number | null;
   end_ms: number | null;
@@ -35,6 +37,8 @@ export interface PlayerTurn {
   item_id?: string | null;
   /** A name for the turn in the transcript, in place of a speaker's: a briefing's story headline. */
   title?: string;
+  /** Words the host says at the start of this turn's segment that `text` leaves out; none for an episode's turn. */
+  lead_words?: number;
   /** Start and end inside the narration, or null before it has been laid out. */
   start_ms: number | null;
   end_ms: number | null;

@@ -15,6 +15,12 @@ import { loadQueries, QUERIES_PATH } from "../fetch/queries.js";
 import { commitAndPush } from "../git/commit.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient, type HttpClient } from "../http.js";
+import {
+  createFileProfileStore,
+  OWNER_ID,
+  profilePath,
+  serializeProfile,
+} from "../profile/profile.js";
 import { loadSchedule, serializeSchedule } from "../schedule/store.js";
 import { loadSources, loadUserSources, serializeUserSources } from "../sources/registry.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
@@ -42,7 +48,9 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"source.remove","id":"..."}
   {"op":"weights.set","weights":{"topic_id":0.8}}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
-  {"op":"writer.set","provider":"nebius","model":null}`;
+  {"op":"writer.set","provider":"nebius","model":null}
+  {"op":"profile.block","domain":"example.com"}
+  {"op":"profile.unblock","domain":"example.com"}`;
 
 export interface ConfigDeps {
   /** Network client for source.add. Tests pass a fake. */
@@ -73,16 +81,28 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
 
 async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
-  const [topics, schedule, writer, sourcesUser, registry, queries, candidates] = await Promise.all([
-    loadTopics(root, preferences),
-    loadSchedule(root),
-    loadWriterForEdit(root),
-    loadUserSources(root),
-    loadSources(root),
-    loadQueries(root),
-    readSourceCandidates(root),
-  ]);
-  return { topics, preferences, schedule, writer, sourcesUser, registry, queries, candidates };
+  const [topics, schedule, writer, sourcesUser, registry, queries, candidates, profile] =
+    await Promise.all([
+      loadTopics(root, preferences),
+      loadSchedule(root),
+      loadWriterForEdit(root),
+      loadUserSources(root),
+      loadSources(root),
+      loadQueries(root),
+      readSourceCandidates(root),
+      createFileProfileStore(root).read(OWNER_ID),
+    ]);
+  return {
+    topics,
+    preferences,
+    schedule,
+    writer,
+    sourcesUser,
+    registry,
+    queries,
+    candidates,
+    profile,
+  };
 }
 
 /** What each file would contain, in the form it is committed in. */
@@ -93,6 +113,7 @@ function renderBundle(bundle: ConfigBundle): Record<string, string> {
     [CONFIG_FILES.schedule]: serializeSchedule(bundle.schedule),
     [CONFIG_FILES.writer]: serializeWriter(bundle.writer),
     [CONFIG_FILES.sourcesUser]: serializeUserSources(SourcesUserFile.parse(bundle.sourcesUser)),
+    [profilePath(bundle.profile.user_id)]: serializeProfile(bundle.profile),
     [QUERIES_PATH]: serializeQueries(bundle.queries),
     [STATE_FILES.sourceCandidates]: stableStringify(bundle.candidates),
   };

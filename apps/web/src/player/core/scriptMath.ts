@@ -26,6 +26,9 @@ export function splitWords(text: string): string[] {
   return text.split(/\s+/).filter((word) => word !== "");
 }
 
+/** An unseen lead-in word counts as this many characters, bridges being short words. */
+const LEAD_WORD_WEIGHT = 5;
+
 /**
  * When each word starts, in ms, estimated by spreading the turn's span over its words in
  * proportion to their length (one extra character for the pause after each). It stands in until
@@ -36,12 +39,15 @@ export function estimateWordStarts(
   words: readonly string[],
   startMs: number | null,
   endMs: number | null,
+  leadWords = 0,
 ): number[] | null {
   if (startMs === null || endMs === null || endMs <= startMs || words.length === 0) return null;
   const weights = words.map((word) => word.length + 1);
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  // The unseen lead-in takes its share of the span first, at the length of a short word.
+  const lead = leadWords * LEAD_WORD_WEIGHT;
+  const total = lead + weights.reduce((sum, weight) => sum + weight, 0);
   const starts: number[] = [];
-  let before = 0;
+  let before = lead;
   for (const weight of weights) {
     starts.push(startMs + ((endMs - startMs) * before) / total);
     before += weight;
@@ -61,12 +67,22 @@ export function markedWordStarts(
   marks: readonly SegmentWordMark[] | undefined,
   startMs: number | null,
   estimate: readonly number[] | null,
+  lead = 0,
 ): number[] | null {
   const real: Array<number | undefined> = new Array(count).fill(undefined);
+  // `lead` words open a briefing's segment (a section bridge, a link) that the page does not show,
+  // so the mark of the story's word n is the mark of the segment's word n + lead.
+  let leadEnd = 0;
   let found = false;
   for (const mark of marks ?? []) {
-    if (startMs === null || mark.word >= count || real[mark.word] !== undefined) continue;
-    real[mark.word] = startMs + mark.start_ms;
+    const word = mark.word - lead;
+    if (startMs === null) continue;
+    if (word < 0) {
+      leadEnd = Math.max(leadEnd, mark.end_ms);
+      continue;
+    }
+    if (word >= count || real[word] !== undefined) continue;
+    real[word] = startMs + mark.start_ms;
     found = true;
   }
   if (!found || startMs === null) return estimate ? [...estimate] : null;
@@ -84,7 +100,7 @@ export function markedWordStarts(
     next = real[index] ?? next;
     nextMark[index] = next;
   }
-  let previous = startMs;
+  let previous = startMs + leadEnd;
   return real.map((start, index) => {
     if (start !== undefined) {
       previous = start;
@@ -120,6 +136,33 @@ export const WORD_LEAD_MS = 90;
 /** The word to light at the playhead `seconds`: `wordIndexAt` a short lead ahead. */
 export function spokenWordIndex(starts: readonly number[], seconds: number): number {
   return wordIndexAt(starts, seconds * 1000 + WORD_LEAD_MS);
+}
+
+/**
+ * What the transcript marks at the playhead: the turn being read and the word being said, -1 for
+ * none. A turn begins at its first word (`wordStarts`, which come after any unseen lead-in), not
+ * at its segment's start, so the story before it stays current while the host speaks a bridge.
+ * Once a turn's span is over and the next has not begun, nothing is said that the page shows, so no
+ * word is lit.
+ */
+export function spokenPosition(
+  turns: readonly PlayerTurn[],
+  wordStarts: ReadonlyArray<readonly number[] | null | undefined>,
+  seconds: number,
+): { turn: number; word: number } {
+  const ms = seconds * 1000;
+  let turn = -1;
+  for (let index = 0; index < turns.length; index += 1) {
+    const start = wordStarts[index]?.[0] ?? turns[index]?.start_ms;
+    if (start === null || start === undefined) continue;
+    if (start <= ms) turn = index;
+    else break;
+  }
+  const starts = turn >= 0 ? wordStarts[turn] : null;
+  if (!starts) return { turn, word: -1 };
+  const end = turnEndMs(turns, turn);
+  if (end !== null && ms >= end) return { turn, word: -1 };
+  return { turn, word: spokenWordIndex(starts, seconds) };
 }
 
 /** Where a turn ends: its own end, else where the next timed turn begins. */

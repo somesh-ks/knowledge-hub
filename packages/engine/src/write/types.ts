@@ -1,4 +1,5 @@
 import type { Category } from "@dispatch/core";
+import type { Taste } from "../profile/tasteNote.js";
 import type { VoiceField } from "../voice/lint.js";
 
 /** One finalist and the text it is written from. `text` is untrusted web content. */
@@ -51,7 +52,7 @@ export interface RewriteRequest {
  */
 export interface Writer {
   /** `feedback` is the owner's note on what to improve; it shapes wording and emphasis, never facts. */
-  write(items: readonly SourceMaterial[], feedback?: string): Promise<WriteResult>;
+  write(items: readonly SourceMaterial[], feedback?: string, taste?: Taste): Promise<WriteResult>;
   /** Rewrite one field to fix the listed problems. Null when the model could not. */
   rewrite(request: RewriteRequest): Promise<string | null>;
 }

@@ -262,7 +262,7 @@
 }
 
 /* Every mark but the one the state calls for is hidden. Play and pause are the default pair. */
-.chip-glyph > :is(.chip-bars, .chip-check, .chip-refresh, .spinner) {
+.chip-glyph > :is(.chip-bars, .chip-check, .chip-replay, .chip-refresh, .spinner) {
   display: none;
 }
 
@@ -351,6 +351,50 @@
   display: block;
   width: var(--chip-icon);
   height: var(--chip-icon);
+}
+
+/* The label and a hidden copy of the widest one share a cell, so the chip keeps its width when a
+   pointer or the keyboard turns Played into Play again. Touch keeps Played. */
+.chip-text {
+  display: inline-grid;
+}
+
+.chip-text > * {
+  grid-area: 1 / 1;
+}
+
+.chip-again,
+.chip-replay {
+  display: none;
+}
+
+.chip[data-state="played"] .chip-again {
+  display: block;
+  visibility: hidden;
+}
+
+@media (hover: hover) {
+  .chip[data-state="played"]:hover .chip-label,
+  .chip[data-state="played"]:focus-visible .chip-label {
+    visibility: hidden;
+  }
+
+  .chip[data-state="played"]:hover .chip-again,
+  .chip[data-state="played"]:focus-visible .chip-again {
+    visibility: visible;
+  }
+
+  .chip[data-state="played"]:hover .chip-check,
+  .chip[data-state="played"]:focus-visible .chip-check {
+    display: none;
+  }
+
+  .chip[data-state="played"]:hover .chip-replay,
+  .chip[data-state="played"]:focus-visible .chip-replay {
+    display: block;
+    width: var(--chip-icon);
+    height: var(--chip-icon);
+  }
 }
 
 /* Error: the audio failed. The mark is the refresh glyph, as on the bar's disc, not a play triangle. */
