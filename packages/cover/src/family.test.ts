@@ -13,7 +13,7 @@ const SIZE = 256;
 const SCALE = SIZE / 1024;
 
 function metaFor(kind: CoverKind, day: number): CoverMeta {
-  const date = `2026-10-${String(((day - 1) % 28) + 1).padStart(2, "0")}`;
+  const date = `2026-05-${String(((day - 1) % 28) + 1).padStart(2, "0")}`;
   return { date, kind, id: kind === "regular" ? date : `${date}-${kind}` };
 }
 

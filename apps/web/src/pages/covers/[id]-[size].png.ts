@@ -23,7 +23,7 @@ export const getStaticPaths = (async () => {
     ...episodes.map((entry) => ({
       id: entry.id,
       date: entry.episode.date,
-      kind: "regular" as const,
+      kind: "on-demand" as const,
       cover: entry.cover,
     })),
   ];

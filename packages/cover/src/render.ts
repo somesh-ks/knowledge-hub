@@ -2,6 +2,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
+import { flatTemplate, isMonthly } from "./season.js";
 import { n, rectPath } from "./svg.js";
 import { TEMPLATE_FNS, TEMPLATE_LOCKUP, TEMPLATES } from "./templates/index.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
@@ -34,24 +35,41 @@ interface Composed {
   label: string;
 }
 
-function compose(spec: CoverSpec, meta: CoverMeta, size: number, wordmark = true): Composed {
+function compose(
+  spec: CoverSpec,
+  meta: CoverMeta,
+  size: number,
+  wordmark = true,
+  monthly = isMonthly(meta.date),
+): Composed {
   assertSpec(spec);
+  if (monthly) spec = { ...spec, template: flatTemplate(spec.template, spec.seed) };
   const mode = TEMPLATE_LOCKUP[spec.template];
-  const { ctx } = buildContext(spec, meta, size, mode);
+  const { ctx } = buildContext(spec, meta, size, mode, monthly);
   const out = TEMPLATE_FNS[spec.template](ctx);
   const { pal, uid, area } = ctx;
   const weekly = ctx.variant === "weekly";
+  const { plate, matte } = ctx;
   const plateClip = `${uid}p`;
-  const defs = `${out.defs ?? ""}${weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}`;
-  const art = weekly ? `<g clip-path="url(#${plateClip})">${out.body}</g>` : out.body;
+  const defs = `${out.defs ?? ""}${weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}${plate ? `<clipPath id="${plateClip}"><circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}"/></clipPath>` : ""}`;
+  // The on-demand plate: the art, drawn whole, shrunk into a disc that floats on a flat matte.
+  const art = plate
+    ? `<circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})"><g transform="translate(${n(plate.cx - plate.r)} ${n(plate.cy - plate.r)}) scale(${n((plate.r * 2) / size, 4)})">${out.body}</g></g>`
+    : weekly
+      ? `<g clip-path="url(#${plateClip})">${out.body}</g>`
+      : out.body;
+  const typePal = { ...pal, text: ctx.ink };
   const type =
-    mode === "own" ? ctx.lockup.topLine(pal, wordmark) : ctx.lockup.markup(pal, wordmark);
-  const label = `Singularity, ${ctx.day} ${ctx.monthName}`;
+    mode === "own" ? ctx.lockup.topLine(typePal, wordmark) : ctx.lockup.markup(typePal, wordmark);
+  const label =
+    weekly && monthly
+      ? `Singularity, week ${ctx.numeral.slice(1)}`
+      : `Singularity, ${ctx.day} ${ctx.monthName}`;
   const inner =
     (defs ? `<defs>${defs}</defs>` : "") +
-    `<rect width="${size}" height="${size}" fill="${pal.ground}"/>` +
+    `<rect width="${size}" height="${size}" fill="${matte ?? pal.ground}"/>` +
     art +
-    (weekly ? weeklyFrame(size, ctx.u, pal.accent) : "") +
+    (weekly && !monthly ? weeklyFrame(size, ctx.u, pal.accent) : "") +
     type;
   return { inner, ground: pal.ground, label };
 }
@@ -67,6 +85,11 @@ function wrap(size: { w: number; h: number }, composed: Composed, body: string):
 export interface CoverSvgOptions {
   /** Draw the "Singularity" signature in the top corner. On by default. */
   wordmark?: boolean;
+  /**
+   * Press the cover with its month's colour scheme, the week number on weeklies and the round plate
+   * on on-demand briefings. Left out, the date decides: October 2026 and later are monthly.
+   */
+  monthly?: boolean;
 }
 
 /** Square cover, viewBox 0 0 1024 1024, no external references. */
@@ -75,7 +98,7 @@ export function renderCoverSvg(
   meta: CoverMeta,
   options: CoverSvgOptions = {},
 ): string {
-  const composed = compose(spec, meta, SQUARE, options.wordmark ?? true);
+  const composed = compose(spec, meta, SQUARE, options.wordmark ?? true, options.monthly);
   return wrap({ w: SQUARE, h: SQUARE }, composed, composed.inner);
 }
 

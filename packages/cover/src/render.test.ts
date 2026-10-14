@@ -4,9 +4,10 @@ import { hexToRgb } from "./color.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { renderCoverPng, renderCoverSvg, renderSocialPng } from "./render.js";
+import { assertSchemes } from "./season.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
 
-const META: CoverMeta = { date: "2026-10-06", kind: "regular", id: "2026-10-06" };
+const META: CoverMeta = { date: "2026-09-06", kind: "regular", id: "2026-09-06" };
 const SPEC: CoverSpec = { template: "contour", palette: "fog-lingonberry", seed: 42 };
 
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -93,15 +94,15 @@ describe("renderCoverSvg", () => {
 
   it("sets the date from the digest, not the spec", () => {
     const a = renderCoverSvg(SPEC, META);
-    const b = renderCoverSvg(SPEC, { ...META, date: "2026-11-23", id: "2026-11-23" });
-    expect(a).toContain(">October<");
-    expect(b).toContain(">November<");
+    const b = renderCoverSvg(SPEC, { ...META, date: "2026-08-23", id: "2026-08-23" });
+    expect(a).toContain(">September<");
+    expect(b).toContain(">August<");
     expect(b).toContain(">2<");
     expect(b).toContain(">3<");
   });
 
   it("frames weekly covers differently from regular ones", () => {
-    const weeklyMeta: CoverMeta = { date: "2026-10-04", kind: "weekly", id: "2026-10-04-weekly" };
+    const weeklyMeta: CoverMeta = { date: "2026-09-04", kind: "weekly", id: "2026-09-04-weekly" };
     const weekly = renderCoverSvg({ ...SPEC, palette: "sea-lingonberry" }, weeklyMeta);
     const regular = renderCoverSvg(
       { ...SPEC, palette: "sea-lingonberry" },
@@ -118,6 +119,21 @@ describe("renderCoverSvg", () => {
   it("describes itself for assistive tech without adding visible text", () => {
     const svg = renderCoverSvg(SPEC, META);
     expect(svg).toContain('role="img"');
-    expect(svg).toContain('aria-label="Singularity, 6 October"');
+    expect(svg).toContain('aria-label="Singularity, 6 September"');
+  });
+});
+
+describe("monthly style", () => {
+  it("applies from the first monthly month on, decided by the cover's own date", () => {
+    const meta = { ...META, id: "x" };
+    const before = renderCoverSvg(SPEC, { ...meta, date: "2026-09-30" });
+    const after = renderCoverSvg(SPEC, { ...meta, date: "2026-10-01" });
+    expect(before).toBe(renderCoverSvg(SPEC, { ...meta, date: "2026-09-30" }, { monthly: false }));
+    expect(after).toBe(renderCoverSvg(SPEC, { ...meta, date: "2026-10-01" }, { monthly: true }));
+    expect(after).not.toBe(before);
+  });
+
+  it("leaves every scheme a legal colour dress for every kind", () => {
+    expect(() => assertSchemes()).not.toThrow();
   });
 });
