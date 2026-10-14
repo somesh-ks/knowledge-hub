@@ -29,8 +29,6 @@
     var(--player-dock-row) +
     max(0px, var(--safe-bottom) - var(--bottom-nav-height, 0px))
   );
-  /* The page's top corners while it travels. They ease to square as it lands. */
-  --player-page-radius: var(--radius-lg);
   /* On a phone the bar has faded out by this much of the way up. */
   --player-dock-fade: 0.3;
   /* Two columns of this much, from 64rem. */
@@ -254,16 +252,7 @@
 
 /* ------------------------------------------------------------------ the page */
 
-.player-page,
-.player-dock {
-  /* Square at rest at either end, rounded while it travels. */
-  --player-corner: calc(
-    var(--player-page-radius) *
-    clamp(0, var(--p) * 10, 1) *
-    clamp(0, (1 - var(--p)) * 4, 1)
-  );
-}
-
+/* The page is square at its top edge throughout its travel: a sheet with a sharp top. */
 .player-page {
   position: absolute;
   inset: 0;
@@ -275,8 +264,6 @@
   scrollbar-width: thin;
   /* While it moves the whole page is one handle. At rest it scrolls. */
   touch-action: none;
-  border-start-start-radius: var(--player-corner);
-  border-start-end-radius: var(--player-corner);
   background: var(--color-surface);
   outline: none;
   pointer-events: auto;
@@ -359,26 +346,12 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  /* No drag handle is drawn (the whole top of the page is the handle); the art keeps the room
+     above it that the handle and its margins took. */
+  padding-block-start: var(--space-8);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-}
-
-.player-handle {
-  align-self: center;
-  width: var(--player-handle-width);
-  height: var(--player-handle-height);
-  /* About where Material puts a sheet's drag handle, with room above the art below it. */
-  margin-block: var(--space-4) var(--space-3);
-  border-radius: var(--radius-xs);
-  background: var(--player-handle-color);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  /* A mouse closes with the bar or Escape; there is nothing to grab. */
-  .player-handle {
-    visibility: hidden;
-  }
 }
 
 /* Out of sight until the keyboard reaches it, like a skip link. */
@@ -1079,8 +1052,6 @@
 
 @media (max-width: 39.9375rem) {
   .player-dock {
-    border-start-start-radius: var(--player-corner);
-    border-start-end-radius: var(--player-corner);
     /* The same travel as the page, so the bar stays on the page's top edge while it fades. */
     transform: translate3d(0, calc(var(--p) * -1 * (100cqb - var(--player-rest-inset))), 0);
     opacity: calc(1 - var(--p) / var(--player-dock-fade));

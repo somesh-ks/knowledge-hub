@@ -159,7 +159,6 @@ export default function PlayerSurface() {
         >
           <div className="player-page-inner">
             <div className="player-drag" data-player-drag>
-              <div className="player-handle" aria-hidden="true" />
               {/* No close glyph on screen: a drag, the bar, Back or Escape close the page. This one
                   is for the keyboard and assistive technology, and shows only while focused. */}
               <button
