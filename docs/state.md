@@ -79,7 +79,7 @@ The reader is called Singularity (D30). Identifiers keep `dispatch`. Everything 
 - `npm run dev` shows the Agentation toolbar for leaving notes on elements. It is behind `import.meta.env.DEV`, and `checkBundle` fails any build that contains it. Stop the dev server when done: one left running across an install serves broken islands.
 - The first destination is called Latest (was Today); its id stays `today`. The header light on briefing and episode pages takes the colours the cover is drawn in (`coverColors`), not the palette id, so monthly covers and episodes glow in their own colours.
 - Docs are grouped by purpose and mapped in [README.md](README.md) (D116). The [design-engineering ledger](design-engineering-ledger.md) now covers every local chat since 2026-10-05; its section 10 is the queue for the `sk-design-engineering` skill.
-- No worktrees are open. The 50 local branches are all merged (by commit subject) but squash merges need `git branch -D`, which only the owner can run here; their heads are in `.git/branch-archive-2026-10-14.bundle`.
+- No worktrees are open, and `main` is the only branch, local and on GitHub (2026-10-15). The deleted local heads are kept in `.git/branch-archive-2026-10-15.bundle`.
 
 ## Tests (D99, [the postmortem](engineering/postmortem-test-suite.md))
 
