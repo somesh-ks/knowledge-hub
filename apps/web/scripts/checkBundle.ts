@@ -7,6 +7,7 @@ import {
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
+  overBudget,
   unallowedInlineScripts,
   unhintedModules,
 } from "../src/lib/bundleBudget";
@@ -55,11 +56,7 @@ for (const page of pagesIn(root)) {
   console.log(
     `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files`,
   );
-  if (report.totalGzip > FIRST_LOAD_BUDGET_BYTES) {
-    failures.push(
-      `${name}: ${kilobytes(report.totalGzip)} of first-load JavaScript, budget ${kilobytes(FIRST_LOAD_BUDGET_BYTES)}`,
-    );
-  }
+  failures.push(...overBudget([{ name, totalGzip: report.totalGzip }]));
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);
   const unhinted = unhintedModules(html, read);
   if (unhinted.length > 0) {

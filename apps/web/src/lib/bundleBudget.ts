@@ -16,8 +16,14 @@ import { gzipSync } from "node:zlib";
  * page), so React stays. Raised to 110 KB on 2026-10-10 (D53) with the ask to keep it low: the
  * budget is a ceiling, not a target, and docs/first-load-js.md lists what could still come off.
  * Raised to 150 KB on 2026-10-13 at the owner's request (D103): room for features, still a ceiling.
+ * Lowered to 109 KB on 2026-10-14 (D112), about 3 KB over the heaviest page, once three cuts had
+ * come off: the Blocked outlets editor at idle (111.0 to 106.3 KB on that page), the player's eager
+ * glyphs and scrubber math (0.4 KB on every page) and the player surface's motion after first paint
+ * (3.5 KB on every page). The heaviest page was then Topics at 105.7 KB. A ceiling 40 KB above the
+ * code let a page grow by a third before anything failed; at 3 KB a feature that adds first-load
+ * code has to take it off somewhere or load it lazily.
  */
-export const FIRST_LOAD_BUDGET_BYTES = 150 * 1024;
+export const FIRST_LOAD_BUDGET_BYTES = 109 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */
@@ -164,6 +170,20 @@ export function withModulePreloads(html: string, read: (url: string) => string |
   if (urls.length === 0 || headEnd === -1) return html;
   const links = urls.map((url) => `<link rel="modulepreload" href="${url}">`).join("");
   return `${html.slice(0, headEnd)}${links}${html.slice(headEnd)}`;
+}
+
+/** One line per page whose first load is past the budget; empty when every page is inside it. */
+export function overBudget(
+  pages: ReadonlyArray<{ name: string; totalGzip: number }>,
+  budget: number = FIRST_LOAD_BUDGET_BYTES,
+): string[] {
+  const kilobytes = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
+  return pages
+    .filter((page) => page.totalGzip > budget)
+    .map(
+      (page) =>
+        `${page.name}: ${kilobytes(page.totalGzip)} of first-load JavaScript, budget ${kilobytes(budget)}`,
+    );
 }
 
 /** `sha256-...` source expressions of the page's inline scripts that run (not JSON data blocks). */
