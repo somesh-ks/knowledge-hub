@@ -16,7 +16,7 @@
   "dependencies": {
     "@astrojs/react": "^7.0.0",
     "@astrojs/vercel": "^11.0.13",
-    "@base-ui/react": "^1.8.0",
+    "@base-ui/react": "^1.9.0",
     "@dispatch/core": "*",
     "@dispatch/cover": "*",
     "@dispatch/engine": "*",
