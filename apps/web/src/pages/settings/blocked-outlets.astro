@@ -107,7 +107,9 @@ const domains = await loadBlockedDomains();
 </BaseLayout>
 
 <script>
-  import { installBlockedPage } from "../../scripts/blockedPage";
+  import { whenIdle } from "../../scripts/idle";
 
-  installBlockedPage();
+  // The editor is not in the page's first load: until it mounts, the list reads as it is and the
+  // add field keeps its place hidden (manage.css). It loads at idle, never on a first press.
+  whenIdle(() => void import("../../scripts/blockedPage").then((page) => page.installBlockedPage()));
 </script>

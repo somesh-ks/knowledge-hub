@@ -10,16 +10,15 @@ import { chapterMask } from "./core/chapterMask";
 import { clockParts, clockSizerParts } from "./core/formatTime";
 import { createVelocityTracker } from "./core/gestureMath";
 import { getPlayerStore } from "./core/playerRuntime";
+import { fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import {
   bubbleLeft,
   crossedBoundary,
-  fractionOfTime,
   onPixelGrid,
-  scrubberValueText,
   scrubKeyAction,
   shouldFireDetent,
   timeFromPointer,
-} from "./core/scrubberMath";
+} from "./core/scrubberPointer";
 import { itemPositionLabel, storySectionName } from "./core/timeline";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import { playUiCue } from "./sound/soundController";

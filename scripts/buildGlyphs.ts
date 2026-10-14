@@ -138,7 +138,7 @@ export function buildPlayerRegistry(doc: GlyphDocument): string | null {
   const names = namesFor(doc, "player");
   if (names.length === 0) return null;
   const lines = [
-    ...header("The icon registry for the React player."),
+    ...header("The glyphs the React player draws at first paint. Icon loads the rest on demand."),
     `export const ICON_VIEW_BOX = "${doc.viewBox}";`,
     "",
     "export const ICON_PATHS = {",

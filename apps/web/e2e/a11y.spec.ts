@@ -40,11 +40,12 @@ test.describe("axe, banners and live states", () => {
     // Let the islands finish hydrating before the network goes away.
     await page.waitForLoadState("networkidle");
     await hydrated(page);
-    // The click cues load at the first gesture: fetch them now, so the press below is not the one
-    // that needs the network.
-    const cues = page.waitForResponse((response) => /\/uiClicks\./.test(response.url()));
+    // The click cues load at idle or at the first gesture: have them here before the network goes,
+    // so the press below is not the one that needs it.
     await page.evaluate(() => window.dispatchEvent(new Event("pointerdown")));
-    await (await cues).finished();
+    await page.waitForFunction(() =>
+      performance.getEntriesByType("resource").some((entry) => /\/uiClicks\./.test(entry.name)),
+    );
     await context.setOffline(true);
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     const banner = page.locator('[data-banner="offline"]');

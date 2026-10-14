@@ -1,17 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { detentGain, dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./scrubberMath";
 import {
   bubbleLeft,
   crossedBoundary,
-  detentGain,
-  dockSeekKeyValue,
   fractionFromPointer,
-  fractionOfTime,
   onPixelGrid,
-  scrubberValueText,
   scrubKeyAction,
   shouldFireDetent,
   timeFromPointer,
-} from "./scrubberMath";
+} from "./scrubberPointer";
 import { makeDigest } from "./testing";
 import { buildTimeline } from "./timeline";
 

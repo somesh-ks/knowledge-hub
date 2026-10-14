@@ -1,10 +1,12 @@
 /**
- * What an episode page knows about Regenerate and Delete without loading them: a pick in the More
- * menu (scripts/heroMenu.ts closes it first) loads the panel on demand. Both items are disabled,
+ * What an episode page knows about Regenerate and Delete without loading them: the panel's code
+ * loads at idle, and a pick in the More menu (scripts/heroMenu.ts closes it first) opens it. Both items are disabled,
  * with a reason, while a run for this episode goes and while the device is offline (both start work
  * that needs the network). The disabled state is aria-disabled, so they stay focusable and the
  * reason can be read; the shell's disabled guard swallows their clicks.
  */
+import { whenIdle } from "./idle";
+
 const BUSY_ID = "episode-actions-busy";
 /** The offline banner's line (BaseLayout.astro). */
 const OFFLINE_ID = "offline-reason";
@@ -52,4 +54,5 @@ export function installEpisodeActions(): void {
   window.addEventListener("online", sync);
   window.addEventListener("offline", sync);
   sync();
+  whenIdle(() => void import("./episodeActions").catch(() => {}));
 }
