@@ -32,20 +32,8 @@ export const TONES: ReadonlyArray<{ value: PodcastRequest["tone"]; label: string
   { value: "energetic", label: "Energetic" },
 ];
 
-/**
- * Who the script is written for. `phrase` is how the audience reads after "For" and "set for" in a
- * sentence: "For General", "Topics set for Somesh".
- */
-export const AUDIENCES: ReadonlyArray<{
-  value: NonNullable<PodcastRequest["audience"]>;
-  label: string;
-  phrase: string;
-}> = [
-  { value: "general", label: "General", phrase: "General" },
-  { value: "custom", label: "Somesh", phrase: "Somesh" },
-];
-
 export const DEFAULTS = {
+  /** Every episode is written for the owner: the General audience is retired (2026-10-14). */
   audience: "custom",
   length: 5,
   format: "readout",
@@ -59,14 +47,14 @@ export function submitLabel(minutes: number): string {
 }
 
 /**
- * The line under More options, naming the choices it holds, each with its noun: "Last 7 days ·
- * Neutral tone". The markup carries the template, so the page script fills the same words in as
- * choices change. The look back and the tone go in by their labels.
+ * The line under More options, naming the choices it holds: "Readout · Neutral tone". The markup
+ * carries the template, so the page script fills the same words in as choices change. The format
+ * and the tone go in by their labels; the voice is named under the format once the voices load.
  */
-export const MORE_OPTIONS_TEMPLATE = "Last {window} · {tone} tone";
+export const MORE_OPTIONS_TEMPLATE = "{format} · {tone} tone";
 
-export function moreOptionsSummary(window: string, tone: string): string {
-  return MORE_OPTIONS_TEMPLATE.replace("{window}", window).replace("{tone}", tone);
+export function moreOptionsSummary(format: string, tone: string): string {
+  return MORE_OPTIONS_TEMPLATE.replace("{format}", format).replace("{tone}", tone);
 }
 
 export interface TopicOption {
@@ -75,13 +63,12 @@ export interface TopicOption {
   label: string;
   /** What the chip adds to the request: briefing section ids or general topic ids, in order. */
   ids: readonly string[];
-  /** The audiences whose preset ticks this chip. */
-  presets: ReadonlyArray<NonNullable<PodcastRequest["audience"]>>;
+  /** Ticked when the form opens: the owner's three, Design, AI and Technology. */
+  ticked: boolean;
 }
 
 /**
- * The chips every episode can draw on, in the order the form lists them. One list for both
- * audiences: the audience only chooses which are ticked. A chip expands to its ids when the form
+ * The chips every episode can draw on, in the order the form lists them. A chip expands to its ids when the form
  * builds the request, so topic_ids stay plain section or general topic ids. Design folds Design
  * Engineering in; Technology is the owner's own tech sources, not the general feeds. The general
  * chips (World and the rest) are not here: topicOptions makes them from config/topics.json. Top
@@ -92,15 +79,15 @@ const CHIPS: readonly (TopicOption & { group: string })[] = [
     value: "design",
     label: "Design",
     ids: ["design", "ui-craft"],
-    presets: ["custom"],
+    ticked: true,
     group: "design",
   },
-  { value: "ai", label: "AI", ids: ["ai"], presets: ["custom"], group: "ai" },
+  { value: "ai", label: "AI", ids: ["ai"], ticked: true, group: "ai" },
   {
     value: "technology",
     label: "Technology",
     ids: ["tech"],
-    presets: ["custom", "general"],
+    ticked: true,
     group: "tech",
   },
 ];
@@ -120,7 +107,7 @@ export interface TopicInfo {
  * Business, Science, Culture, Sports, in the app's order, named as config/topics.json names them, so
  * a rename shows and a switched-off one is left out), then the owner's own topics (the custom ones
  * that are on), each by the section it publishes to and only when no chip already sends that
- * section. Their titles come from config/topics.json. Own topics are in no preset.
+ * section. Their titles come from config/topics.json. Only the first three start ticked.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,
@@ -139,7 +126,7 @@ export function topicOptions(
   for (const { id } of GENERAL_TOPICS) {
     const topic = topics.find((item) => item.origin === "general" && item.id === id);
     if (!topic?.enabled) continue;
-    general.push({ value: id, label: topic.name, ids: [id], presets: ["general"] });
+    general.push({ value: id, label: topic.name, ids: [id], ticked: false });
   }
   const taken = new Set(["top", ...CHIPS.flatMap((chip) => chip.ids)]);
   const own: TopicOption[] = [];
@@ -152,7 +139,7 @@ export function topicOptions(
       value: topic.section_id,
       label: titles.get(topic.section_id) ?? topic.name,
       ids: [topic.section_id],
-      presets: [],
+      ticked: false,
     });
   }
   return [...chips, ...general, ...own];

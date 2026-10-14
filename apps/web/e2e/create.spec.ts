@@ -35,7 +35,7 @@ async function clearTopics(page: Page): Promise<void> {
   await expect(page.locator('input[name="topic"]:checked')).toHaveCount(0);
 }
 
-/** Opens More options (look back, tone, title) unless it is already open. */
+/** Opens More options (format, voice, tone) unless it is already open. */
 async function openMore(page: Page): Promise<void> {
   const more = page.locator("[data-create-more]").first();
   if (!(await more.evaluate((details) => (details as HTMLDetailsElement).open))) {
@@ -125,110 +125,7 @@ test.describe("the Create page", () => {
     await expect(error).toBeHidden();
   });
 
-  test("a new audience keeps topics picked by hand, says so, and offers its suggestion", async ({
-    page,
-  }) => {
-    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
-    await openCreate(page);
-    await expect(page.locator('input[name="audience"]:checked')).toHaveValue("custom");
-    const note = page.locator("[data-preset-note]");
-    await expect(note).toBeHidden();
-    await chip(page, "Audio interfaces").click();
-    await segment(page, "General").click();
-    // The hand-picked topics stay, and the line says so.
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(4);
-    await expect(note).toBeVisible();
-    await expect(note).toContainText("Your topic picks are kept");
-    await page.getByRole("button", { name: "Use suggested topics" }).click();
-    await expect(note).toBeHidden();
-    // Every chip stays; the selection is General's preset, so the owner's own topic is unticked.
-    await expect(page.locator(".filter-chip:visible")).toHaveCount(9);
-    await expect(page.locator('input[name="topic"][value="audio_interfaces"]')).not.toBeChecked();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
-    await page.locator("[data-submit]").click();
-    await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.request).toMatchObject({
-      audience: "general",
-      topic_ids: ["tech", "world", "business", "science", "culture", "sports"],
-    });
-    expect(JSON.stringify(mock.bodies[0])).not.toContain('"top"');
-  });
-
-  test("a suggestion that replaces untouched topics says so, and Undo brings the ticks back", async ({
-    page,
-  }) => {
-    const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
-    await openCreate(page);
-    const ticked = page.locator(".filter-chip:has(input:checked)");
-    const note = page.locator("[data-preset-note]");
-    await expect(note).toBeHidden();
-    await segment(page, "General").click();
-    // The chips may be far above in a phone's sheet: the line where the choice was made says what
-    // changed, in a status region, with the way back.
-    await expect(note).toBeVisible();
-    await expect(note).toContainText("Topics set for General");
-    // Not hidden under the stuck foot with Generate.
-    await expect(page.getByRole("button", { name: "Undo" })).toBeInViewport();
-    await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const line = document.querySelector("[data-preset-note]")?.getBoundingClientRect();
-          const foot = document.querySelector("main .create-submit")?.getBoundingClientRect();
-          return !line || !foot || line.bottom <= foot.top + 1;
-        }),
-      )
-      .toBe(true);
-    await expect(page.locator("[data-preset-status]")).toHaveAttribute("role", "status");
-    await expect(page.getByRole("button", { name: "Use suggested topics" })).toBeHidden();
-    await page.getByRole("button", { name: "Undo" }).click();
-    await expect(note).toBeHidden();
-    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
-    // Focus stays where the choice was made, not on the page.
-    await expect(page.locator('input[name="audience"]:checked')).toBeFocused();
-    // The restored ticks are Somesh's own suggestion: switching to Somesh has nothing to replace and
-    // nothing to offer, so no line and no button that does nothing.
-    await segment(page, "Somesh").click();
-    await expect(note).toBeHidden();
-    await expect(ticked).toHaveText(["Design", "AI", "Technology"]);
-    await page.locator("[data-submit]").click();
-    await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.request).toMatchObject({
-      topic_ids: ["design", "ui-craft", "ai", "tech"],
-    });
-  });
-
-  test("picks that differ from the next audience's suggestion are kept, and the line says so", async ({
-    page,
-  }) => {
-    await openCreate(page);
-    const ticked = page.locator(".filter-chip:has(input:checked)");
-    const note = page.locator("[data-preset-note]");
-    await chip(page, "World").click();
-    await segment(page, "General").click();
-    await expect(note).toContainText("Your topic picks are kept");
-    await expect(ticked).toHaveText(["Design", "AI", "Technology", "World"]);
-    // The button does something: it brings the suggestion in, and the line goes with it.
-    await page.getByRole("button", { name: "Use suggested topics" }).click();
-    await expect(note).toBeHidden();
-    await expect(ticked).toHaveText([
-      "Technology",
-      "World",
-      "Business",
-      "Science",
-      "Culture",
-      "Sports",
-    ]);
-  });
-
-  test("a tick by hand after a suggestion takes its Undo away", async ({ page }) => {
-    await openCreate(page);
-    await segment(page, "General").click();
-    await expect(page.getByRole("button", { name: "Undo" })).toBeVisible();
-    await chip(page, "Design").click();
-    await expect(page.locator("[data-preset-note]")).toBeHidden();
-  });
-
-  test("chips ticked by hand mix both kinds of topic, and switching the audience keeps them", async ({
+  test("chips ticked by hand mix both kinds of topic, and the episode is written for the owner", async ({
     page,
   }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 3, started_at: "x" });
@@ -238,16 +135,11 @@ test.describe("the Create page", () => {
     await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
-    // Design sends two sections; the audience still says how the script is written.
+    // Design sends two sections; with Written for retired every script is the owner's.
     expect(mock.bodies[0]?.request).toMatchObject({
       audience: "custom",
       topic_ids: ["design", "ui-craft", "ai", "tech", "world", "sports"],
     });
-    await segment(page, "General").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
-    await segment(page, "Somesh").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
-    await expect(page.locator("[data-preset-note]")).toBeVisible();
   });
 
   test("More options is one closed row that names its choices, and opens in place", async ({
@@ -257,15 +149,18 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
     await expect(more).not.toHaveAttribute("open", "");
-    await expect(page.locator("[data-more-values]")).toHaveText("Last 7 days · Neutral tone");
+    await expect(page.locator("[data-more-values]")).toHaveText("Readout · Neutral tone");
     await expect(page.locator('input[name="tone"]').first()).toBeHidden();
-    // Who it is written for is the first question, with no heading, and not under More options.
-    await expect(segment(page, "General")).toBeVisible();
-    await expect(page.getByRole("radiogroup", { name: "Written for" })).toBeVisible();
+    // The title, the topics, the length and the look back are the questions; nothing says who the
+    // episode is written for any more.
+    await expect(page.getByRole("radiogroup", { name: "Written for" })).toHaveCount(0);
+    await expect(page.getByLabel("Title")).toBeVisible();
+    await expect(segment(page, "7 days")).toBeVisible();
     await more.locator("summary").click();
     await segment(page, "Energetic").click();
+    await segment(page, "Discussion").click();
     await more.locator("summary").click();
-    await expect(page.locator("[data-more-values]")).toHaveText("Last 7 days · Energetic tone");
+    await expect(page.locator("[data-more-values]")).toHaveText("Discussion · Energetic tone");
     // The three tones that were offered are two: Dry is gone.
     await expect(segment(page, "Dry")).toHaveCount(0);
   });
@@ -292,15 +187,13 @@ test.describe("the Create page", () => {
     // The pinned row is the column's heading, not a disclosure that does nothing.
     await expect(summary).toHaveAttribute("tabindex", "-1");
     await expect(page.getByRole("heading", { name: "More options", level: 2 })).toBeVisible();
-    // Format's chosen segment, then Tab: the voice, then Generate, then the first choice under More
-    // options (the look back).
-    await page.locator('input[name="format"]:checked').focus();
-    await page.keyboard.press("Tab");
-    await expect(page.locator("#create-voice")).toBeFocused();
+    // The look back's chosen segment, the last main question, then Tab: Generate, then the first
+    // choice under More options (the format).
+    await page.locator('input[name="window"]:checked').focus();
     await page.keyboard.press("Tab");
     await expect(submit(page)).toBeFocused();
     await page.keyboard.press("Tab");
-    await expect(page.locator('input[name="window"]:checked')).toBeFocused();
+    await expect(page.locator('input[name="format"]:checked')).toBeFocused();
     // Narrow again, the row is a switch in the Tab order, before Generate.
     await page.setViewportSize({ width: 900, height: 800 });
     await expect(summary).not.toHaveAttribute("tabindex", "-1");

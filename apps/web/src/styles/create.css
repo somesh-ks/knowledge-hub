@@ -27,12 +27,6 @@
   padding-block-end: var(--space-6);
 }
 
-/* Who it is written for has no heading: its two words are the question, so it sits as near the
-   panel's title as a first heading would, and the next group's heading gives the air below it. */
-.create-group-audience {
-  padding-block: var(--space-2) var(--space-2);
-}
-
 /* Inside the form a heading is a field label, not a page heading: body size, medium weight, the
    text colour (an accent label would read as a link), little air. */
 .create-view .create-group .section-head {
@@ -285,23 +279,6 @@
   .create-more-chevron {
     transition: none;
   }
-}
-
-/* "Your topic picks are kept", and the button that swaps them for the suggestion. */
-.create-preset-note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--space-2);
-  padding-block-start: var(--space-2);
-}
-
-.create-preset-note[hidden] {
-  display: none;
-}
-
-.create-inline-btn {
-  margin-inline-start: calc(var(--space-3) * -1);
 }
 
 /* ------------------------------------------------------------------ title and submit */
