@@ -1,6 +1,6 @@
 /**
  * Generated album-style covers for Singularity briefings. Every cover is a pure function of its spec and
- * date, so the same digest always yields the same bytes. See docs/build-plan.md section 8.11.
+ * date, so the same digest always yields the same bytes. See docs/plan/build-plan.md section 8.11.
  */
 
 export { getPalette, PALETTE_IDS, paletteAccent } from "./palettes.js";

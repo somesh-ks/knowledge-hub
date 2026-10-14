@@ -8,13 +8,13 @@
 >
 > **Runtime:** A private GitHub repo (`somesh-ks/knowledge-hub`) with a standalone engine that runs on GitHub Actions, locally, or from the site's Generate button. See [build-plan.md](build-plan.md) Section 4.
 >
-> **Build plan:** [build-plan.md](build-plan.md) is the executable plan (architecture, credentials, web app, phases, risks). This file is the vision and the digest spec. Decisions are logged in [decisions.md](decisions.md) and operations are in [runbook.md](runbook.md).
+> **Build plan:** [build-plan.md](build-plan.md) is the executable plan (architecture, credentials, web app, phases, risks). This file is the vision and the digest spec. Decisions are logged in [decisions.md](../decisions.md) and operations are in [runbook.md](../runbook.md).
 >
 > **Reader:** `news.someshks.work`, hosted on Vercel, public but unlisted, with pre-generated audio and a passphrase-protected on-demand button.
 >
 > **Output:** Versioned markdown digests under `Digests/YYYY/MM/<id>.md`. The id is the Stockholm date, with `-weekly` for the weekly pass and `-2`, `-3` for further runs on the same day.
 >
-> **Status:** Built and tested offline as of 2026-10-06; nothing has run against live services yet ([build-plan.md](build-plan.md) Section 13).
+> **Status:** The original vision, written 2026-10-06 before the first live run. The product has since been renamed Singularity and redesigned (D30 onward); current facts are in [state.md](../state.md) and the design record is in [the ledger](../design-engineering-ledger.md). The digest schema (Section 3) and taste model (Section 4) still hold unless a decision says otherwise.
 
 ---
 
@@ -72,7 +72,7 @@ flowchart TD
 
 ## 3. Digest specification
 
-The reader sees and hears the product as Singularity. Each story runs four beats in three or four plain sentences: what happened, the number that makes it concrete, why it happened or what it changes, and the catch, which always comes from the source. It is written to be heard and plain enough to follow cold. The rules are in [voice.md](../config/voice.md) and the limits and lint in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
+The reader sees and hears the product as Singularity. Each story runs four beats in three or four plain sentences: what happened, the number that makes it concrete, why it happened or what it changes, and the catch, which always comes from the source. It is written to be heard and plain enough to follow cold. The rules are in [voice.md](../../config/voice.md) and the limits and lint in [build-plan.md](build-plan.md) Section 7.6. The body below is generated from the frontmatter for reading in an editor or on GitHub; the site renders from the frontmatter.
 
 ```markdown
 # Wednesday 7 October
@@ -124,7 +124,7 @@ A second run on the same day (an on-demand run) takes the next free suffix, as i
 
 ## 4. Preference learning model (`preferences.json`)
 
-The source of truth is [`preferences.json`](../config/preferences.json) (weights, keywords, authors, disliked patterns, feedback history). Do not duplicate its schema here.
+The source of truth is [`preferences.json`](../../config/preferences.json) (weights, keywords, authors, disliked patterns, feedback history). Do not duplicate its schema here.
 
 **Scoring contract** (implemented by the engine; detail in [build-plan.md](build-plan.md) Sections 7.2 and 7.5)
 
@@ -151,9 +151,9 @@ The source of truth is [`preferences.json`](../config/preferences.json) (weights
 
 ## 5. Operation and open items
 
-[build-plan.md](build-plan.md) owns architecture, triggers, credentials, the web app, phases and risks. [runbook.md](runbook.md) covers day-to-day operation. This file keeps the vision, the digest schema (Section 3) and the taste model (Section 4).
+[build-plan.md](build-plan.md) owns architecture, triggers, credentials, the web app, phases and risks. [runbook.md](../runbook.md) covers day-to-day operation. This file keeps the vision, the digest schema (Section 3) and the taste model (Section 4).
 
-Decided: the "Taste & Thought of the Day" section is cut (D8, [decisions.md](decisions.md)).
+Decided: the "Taste & Thought of the Day" section is cut (D8, [decisions.md](../decisions.md)).
 
 Open items, carried from Phase 0 and checked against `config/` on 2026-10-06:
 

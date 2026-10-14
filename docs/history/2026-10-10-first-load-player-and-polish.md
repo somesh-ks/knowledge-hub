@@ -3,7 +3,7 @@
 One cloud session, six pull requests (#63 to #68), three workers. Current facts are in [state.md](../state.md); the decision is D50.
 
 ## What changed and why
-- Measured first-load JavaScript per page type and on a throttled phone ([first-load-js.md](../first-load-js.md)); the Podcast editor loads after first paint (#63, 103.9 to 101.5 KB on that page). React is 68 of the 101 KB every page shares, so the only large saving is preact/compat; a prototype passes the suites and waits for the owner.
+- Measured first-load JavaScript per page type and on a throttled phone ([first-load-js.md](../engineering/first-load-js.md)); the Podcast editor loads after first paint (#63, 103.9 to 101.5 KB on that page). React is 68 of the 101 KB every page shares, so the only large saving is preact/compat; a prototype passes the suites and waits for the owner.
 - The owner's player asks (#64): no header, the speed slider between the skips, Chapters / Transcript, a word highlight, dot markers, a balanced phone layout, and a transcript in Speechify's style. Real word marks followed (#67, replacing #66).
 - Curation (#65): one release per repository, seen means published, a source pass-rate nudge.
 - An audit for generic UI found the reading pages clean and the template look in the form controls (#68): a flat selected segment, round flat switches, hairline fields, centred selects, plainer About copy, no hedging helper text, one smaller timeline dot.

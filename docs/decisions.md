@@ -2,7 +2,7 @@
 
 Each entry records what was decided, why, and what was rejected. Add new entries at the end with the next number. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
 
-The plan that implements these decisions is [build-plan.md](build-plan.md). The vision is [vision.md](vision.md).
+The plan that implements these decisions is [build-plan.md](plan/build-plan.md). The vision is [vision.md](plan/vision.md).
 
 D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
 
@@ -125,6 +125,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
 | D114 | Every episode is written for the owner: the General audience is retired, and the New episode form is Title, Topics, Length, Look back, with Format, Voice and Tone under More options | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
+| D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
 
 ---
 
@@ -574,7 +575,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: `FIRST_LOAD_BUDGET_BYTES` is 110 KB gzipped (was 104). The budget is a ceiling, not a target: a change that adds first-load script says what it costs, and anything a first visit does not need loads on demand, as the Podcast and Topics editors, the floating button's fold and the navigation boost already do.
 - Why: the owner allowed 110 KB and asked to keep it low. The branch measured 103.2 KB on /library with the design pass, 0.8 KB under the old ceiling, so every further change would have been a fight over a few hundred bytes.
 - Measured split (2026-10-10, /library): React's client 63.4 KB plus react 3.2 and react-dom 1.4; the player runtime 12.4 (store 2.7, reader sync 1.5, open-player controller 1.4, runtime 1.0, media session 0.7, reader math 0.7, surface view 0.6, switchable audio 0.6); Astro's router 4.2 with prefetch 1.1; the player island 3.8; the layout script 2.5; the sheets island 1.7; icons 1.5; the rest under 1.4 each. Own code is about 27 KB; React is the floor while it loads with every page.
-- What could still come off, largest first, in [first-load-js.md](first-load-js.md): React and the player and sheets islands only when there is something to show (about 76 KB off a first visit with nothing playing); the open-player machinery and media session on first play (about 4 KB); the service worker code after load (about 0.2 KB, done).
+- What could still come off, largest first, in [first-load-js.md](engineering/first-load-js.md): React and the player and sheets islands only when there is something to show (about 76 KB off a first visit with nothing playing); the open-player machinery and media session on first play (about 4 KB); the service worker code after load (about 0.2 KB, done).
 - Chosen by the owner's delegation (2026-10-10): React keeps loading on idle. On-demand would move a download that never blocks first paint (LCP is CSS, the font and the HTML) to the first press of Play or Create, the app's main actions, which would then wait a network round trip on a cold visit; the service worker serves everything from cache on later visits either way. The open-player machinery stays eager too: about 4 KB against a facade over the gesture code the bar and the page share. Reopen if first visits on mobile data become the measure that matters.
 - Rejected: preact/compat (declined by the owner on 2026-10-10); dropping hover prefetch (1.1 KB) or the router (4.2 KB), which make moves between destinations immediate (D47).
 
@@ -1097,7 +1098,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 - Date: 2026-10-12
 - Decision (the owner's test-suite audit, and the ninth critic round):
-  - A test earns its place by naming the bug it prevents, and the bugs worth a test are the ones a person cannot see on a screen: state that survives navigation, reload or time, ordering, money, security, caches, platform quirks, build steps. Copy, CSS, class names, markup, geometry, constants and snapshots are not pinned; screenshots and journey critics judge them, and design rules are held by one rule table and by Biome (`noImportantStyles` is an error). One behaviour has one test in one layer. The evidence and the rules are in [the postmortem](postmortem-test-suite.md), and `AGENTS.md` carries them.
+  - A test earns its place by naming the bug it prevents, and the bugs worth a test are the ones a person cannot see on a screen: state that survives navigation, reload or time, ordering, money, security, caches, platform quirks, build steps. Copy, CSS, class names, markup, geometry, constants and snapshots are not pinned; screenshots and journey critics judge them, and design rules are held by one rule table and by Biome (`noImportantStyles` is an error). One behaviour has one test in one layer. The evidence and the rules are in [the postmortem](engineering/postmortem-test-suite.md), and `AGENTS.md` carries them.
   - A browser test runs once: on the phone unless it is tagged `@desktop` (desktop only) or `@both`. The player suite runs only against the fixture site (`@desktop` and `@wide` add a 1280 mouse run; `PLAYER_WEBKIT=1` adds an iPhone `@smoke` set, unrun here); `retries` is 0. The dev lab (`src/player/dev`, `astro dev` as a second web server, its 67 lab-only tests) and the Settings sheet only it could open are deleted: the player specs drive the product page.
   - Real code, fake world: handler tests keep the real passphrase verifier and give it a cheap hash in the real format (the verifier reads N, r and p from the stored value); the server's 10.25 s edit gap runs on `page.clock`; engine tests read frozen config under `packages/engine/test/fixtures/config`, and only `committed-data.test.ts` reads the live config and state; `workflow-contract.test.ts` runs every `dispatch` call in `.github/workflows` through the CLI's parser. Briefs no longer say "add a test for every fix"; `dispatch-worker` and `/close-session` carry the rule; a worker's report states its net test count; the browser suites have a budget (unit 2 minutes, site 7, player 4, on a 4-core container).
   - Round nine: the Model page's own note is written only once its request was accepted (a refused choice no longer reads Saved after a reload or on the Settings index; a choice still waiting is read from the pending edits); a held change refused while Today or the Library is open is told in the app's toast ("Your change to Daily was not saved.", with Open); a story whose file a standing refusal cannot make fails at its start, so a press plays nothing of the story before it and says no "Playing."; offline a press repeats its reason and loads nothing; a retry is announced as what asked for it; a press on Play in a failure scrolls the notice into view when the page was scrolled past it (a failure that only arrives scrolls nothing); the Library's long query is quoted to 24 characters, New episode stays under "No episodes yet", and the empty Library no longer scrolls; the wordmark names the briefing only when there is one.
@@ -1284,4 +1285,17 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: a toast after every change made each edit feel like a transaction. The controls and the saved overlay (D79) already show the change at once.
 - Cost: a sighted owner sees no confirmation that a save went through. A failure is still shown, and the rest of the site still updates after the redeploy (about a minute), which this does not change.
 - Rejected: a shorter-lived Saved toast; an inline check beside the changed row (more markup for the same news).
+
+## D116: docs grouped by purpose
+
+- Date: 2026-10-14 (the owner: "the docs folder has a lot of loose docs, consolidate them")
+- Decision:
+  - The record stays at the top of `docs/`: `state.md`, `decisions.md`, `learnings.md`, `history/`, the design-engineering ledger and the runbook.
+  - The first build's plan moves to `plan/` (`vision.md`, `build-plan.md`), each marked as the original plan that later decisions override.
+  - Measurements and the test postmortem move to `engineering/`.
+  - A point-in-time audit is not a standing doc: its tables go into that session's history note, and its open items into the ledger's gaps.
+  - `docs/README.md` maps every doc. It and `history/README.md` are the only names outside D14's kebab-case.
+- Why: thirteen loose files at the top mixed the live record with a superseded plan and two finished audits, and two of them still said nothing had run live.
+- Cost: links into the moved files changed; a link check found no new broken links.
+- Rejected: moving `design/` and `prototype/`, which build scripts and tests name by path.
 

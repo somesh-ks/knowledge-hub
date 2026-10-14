@@ -14,7 +14,7 @@ import { gzipSync } from "node:zlib";
  * 2026-10-10 the Podcast page's editor moved after first paint (the Topics editor already was), so
  * the heaviest page was /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every
  * page), so React stays. Raised to 110 KB on 2026-10-10 (D53) with the ask to keep it low: the
- * budget is a ceiling, not a target, and docs/first-load-js.md lists what could still come off.
+ * budget is a ceiling, not a target, and docs/engineering/first-load-js.md lists what could still come off.
  * Raised to 150 KB on 2026-10-13 at the owner's request (D103): room for features, still a ceiling.
  * Lowered to 109 KB on 2026-10-14 (D112), about 3 KB over the heaviest page, once three cuts had
  * come off: the Blocked outlets editor at idle (111.0 to 106.3 KB on that page), the player's eager
