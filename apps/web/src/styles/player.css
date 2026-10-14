@@ -230,8 +230,14 @@
   /* What the page's travel stops short of: on a phone it starts from behind the bar. */
   --player-page-inset: var(--player-rest-inset);
   --color-focus-gap: var(--color-surface);
+  /* Held by its bottom edge, as the bottom navigation and the floating button are: a mobile browser
+     slides a fixed element held by its bottom with its address bar, in the same frame, and resizes
+     one held by both edges only once the gesture ends. Held by both, the bar stayed put while the
+     navigation under it moved, so a scroll opened a gap under the bar or slid the navigation behind
+     it, and everything snapped when the finger lifted. */
   position: fixed;
-  inset: 0;
+  inset: auto 0 0;
+  height: 100%;
   z-index: var(--z-mini);
   /* Its own box is the unit for everything inside (cqb, cqi), so no viewport unit is needed and
      the address bar moving cannot leave a stale height behind. */
