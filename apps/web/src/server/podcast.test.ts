@@ -299,10 +299,7 @@ describe("handlePodcast for an episode action", () => {
 
   it("answers 400 for a malformed id and feedback over the limit", async () => {
     const { deps, github } = setup();
-    for (const bad of [
-      del({ id: "nope" }),
-      regen({ feedback: "x".repeat(501) }),
-    ]) {
+    for (const bad of [del({ id: "nope" }), regen({ feedback: "x".repeat(501) })]) {
       expect((await handlePodcast(input(bad), deps)).status).toBe(400);
     }
     expect(github.requests).toHaveLength(0);

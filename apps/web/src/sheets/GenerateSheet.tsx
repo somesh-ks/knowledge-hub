@@ -100,7 +100,9 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
         setTopicError(true);
         return;
       }
-      const original = new Set(page.chips.filter((c) => isChipOn(c, page.selected)).map((c) => c.value));
+      const original = new Set(
+        page.chips.filter((c) => isChipOn(c, page.selected)).map((c) => c.value),
+      );
       const changed = original.size !== ticked.size || [...ticked].some((v) => !original.has(v));
       if (changed) topics = idsOfChips(page.chips.filter((c) => ticked.has(c.value)));
     }
@@ -145,7 +147,12 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
                       checked={ticked.has(chip.value)}
                       onChange={() => toggle(chip.value)}
                     />
-                    <svg className="icon filter-chip-check" viewBox={ICON_VIEW_BOX} aria-hidden="true" focusable="false">
+                    <svg
+                      className="icon filter-chip-check"
+                      viewBox={ICON_VIEW_BOX}
+                      aria-hidden="true"
+                      focusable="false"
+                    >
                       <path d={ICON_PATHS.check} />
                     </svg>
                     <span>{chip.label}</span>

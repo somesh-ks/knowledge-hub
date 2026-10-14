@@ -115,7 +115,7 @@ test.describe("regenerate and delete an episode", () => {
     await expect(
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
     ).toBeVisible();
-    await panel(page).getByLabel("What should change?").fill("  Shorter intro, more on design  ");
+    await panel(page).getByLabel("Comments (optional)").fill("  Shorter intro, more on design  ");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
@@ -165,25 +165,34 @@ test.describe("regenerate and delete an episode", () => {
     }
   });
 
-  test("empty feedback is refused inline and nothing is sent", async ({ page }) => {
+  test("topics start from the episode's own, one must stay, and a changed set is sent without comments", async ({
+    page,
+  }) => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Regenerate");
-    await panel(page).getByLabel("What should change?").fill("   ");
+    const on = panel(page).locator("label.filter-chip:has(input:checked)");
+    const off = panel(page).locator("label.filter-chip:has(input:not(:checked))");
+    await expect(on.first()).toBeVisible();
+    const other = (await off.first().innerText()).trim();
+    // Dropping every topic is refused inline and sends nothing.
+    while ((await on.count()) > 0) await on.first().click();
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-    await expect(panel(page).getByRole("alert")).toHaveText("Describe what should change.");
-    await expect(panel(page).getByLabel("What should change?")).toHaveAttribute(
-      "aria-invalid",
-      "true",
-    );
+    await expect(panel(page).getByRole("alert")).toHaveText("Pick at least one topic.");
     expect(bodies).toHaveLength(0);
-    await expect(panel(page)).toBeVisible();
+    // One topic that was not ticked: sent as this regeneration's topics, comments left out.
+    await panel(page).locator("label.filter-chip", { hasText: other }).click();
+    await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+    await expect.poll(() => bodies.length).toBe(1);
+    expect(bodies[0]).toMatchObject({ action: "regenerate", id: ID });
+    expect(bodies[0]).not.toHaveProperty("feedback");
+    expect((bodies[0] as { topic_ids: string[] }).topic_ids.length).toBeGreaterThan(0);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {
     await open(page);
     await choose(page, "Regenerate");
-    const field = panel(page).getByLabel("What should change?");
+    const field = panel(page).getByLabel("Comments (optional)");
     const count = panel(page).locator("[data-count]");
     await field.fill("a".repeat(100));
     await expect(count).toBeHidden();
@@ -285,7 +294,7 @@ test.describe("regenerate and delete an episode", () => {
     ]);
     await open(page);
     await choose(page, "Regenerate");
-    await panel(page).getByLabel("What should change?").fill("Shorter intro");
+    await panel(page).getByLabel("Comments (optional)").fill("Shorter intro");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
       timeout: 15_000,
@@ -334,7 +343,7 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Regenerate");
-      await panel(page).getByLabel("What should change?").fill("More depth");
+      await panel(page).getByLabel("Comments (optional)").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
       await expect(panel(page).getByRole("alert")).toContainText(
         "You can do that again in 2 minutes.",
