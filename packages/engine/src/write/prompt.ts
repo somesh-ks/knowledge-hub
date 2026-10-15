@@ -94,12 +94,23 @@ export function writerUserMessage(
   boundary: string,
   feedback?: string,
   taste?: Taste,
+  others: readonly string[] = [],
 ): string {
   const note = tasteNote(taste, boundary);
   return [
     `Write the headline, summary and spoken version for each of these ${items.length} sources.`,
     "",
     ...items.map((item) => materialBlock(item, boundary)),
+    // Each request sees four stories, so without the rest of the briefing the writer repeated
+    // openings, closings and background across requests (loop/results/iteration-5.md).
+    ...(others.length > 0
+      ? [
+          [
+            "The same episode also airs these stories, written separately. Do not repeat their facts or background, and open and close yours differently:",
+            wrapUntrusted(others.join("\n"), boundary, "other-headlines"),
+          ].join("\n"),
+        ]
+      : []),
     // The owner's note is typed text, so it is delimited like source text (the podcast script does
     // the same for listener feedback).
     ...(feedback

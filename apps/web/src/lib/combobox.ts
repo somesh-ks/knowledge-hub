@@ -28,8 +28,10 @@ export const CLAUDE_OPTIONS: readonly ModelOption[] = CLAUDE_MODELS.map((model) 
 }));
 
 /**
- * The Claude models Anthropic lists, newest first, or the fallback ones without a live list (null);
- * then the chosen model when it is none of them, so a saved id stays shown.
+ * The Claude models Anthropic lists, newest first, then each built-in model the list leaves out
+ * (Anthropic's list can omit a model the key calls by its alias, and /api/config saves the
+ * built-in models unchecked), or only the built-in ones without a live list (null); then the
+ * chosen model when it is none of them, so a saved id stays shown.
  */
 export function claudeOptions(
   selected: string | null,
@@ -38,12 +40,20 @@ export function claudeOptions(
   const options: ModelOption[] =
     live === null
       ? [...CLAUDE_OPTIONS]
-      : live.map((model) => ({
-          id: model.id,
-          label: model.label,
-          hint: CLAUDE_MODELS.find((known) => known.id === model.id)?.hint ?? "",
-          group: "",
-        }));
+      : [
+          ...live.map(
+            (model): ModelOption => ({
+              id: model.id,
+              label: model.label,
+              hint: CLAUDE_MODELS.find((known) => known.id === model.id)?.hint ?? "",
+              group: "",
+            }),
+          ),
+          ...CLAUDE_OPTIONS.filter(
+            (known) =>
+              !live.some((model) => model.id === known.id || model.id.startsWith(`${known.id}-`)),
+          ),
+        ];
   if (selected !== null && !options.some((option) => option.id === selected))
     options.push({ id: selected, label: nebiusName(selected), hint: "", group: "" });
   return options;

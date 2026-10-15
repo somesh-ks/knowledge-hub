@@ -71,7 +71,16 @@ await mapConcurrent(batches, 4, async (batch) => {
     schemaName: "dispatch_items",
     messages: [
       { role: "system", content: prompt.writerSystemPrompt(voice, boundary) },
-      { role: "user", content: prompt.writerUserMessage(batch, boundary) },
+      {
+        role: "user",
+        content: prompt.writerUserMessage(
+          batch,
+          boundary,
+          undefined,
+          undefined,
+          materials.filter((m) => !batch.includes(m)).map((m) => m.title),
+        ),
+      },
     ],
     temperature: 0.2,
     maxTokens: 800 * batch.length + 300,
