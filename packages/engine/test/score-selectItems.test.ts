@@ -869,10 +869,10 @@ describe("one release per repository", () => {
     expect(releaseRepo(makeItem())).toBeNull();
   });
 
-  it("keeps the newest of several patch releases, even when an older one scores higher", () => {
-    const older = release("acme/kit", "v1.2.3", 0.9, "2026-10-04T00:00:00Z");
-    const newer = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
-    const oldest = release("acme/kit", "v1.2.2", 0.8, "2026-10-03T00:00:00Z");
+  it("keeps the newest of several releases, even when an older one scores higher", () => {
+    const older = release("acme/kit", "v1.3.0", 0.9, "2026-10-04T00:00:00Z");
+    const newer = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
+    const oldest = release("acme/kit", "v1.2.0", 0.8, "2026-10-03T00:00:00Z");
     const result = select([older, newer, oldest]);
     expect(ids(result.selected)).toEqual([newer.item.id]);
     expect(
@@ -884,17 +884,24 @@ describe("one release per repository", () => {
   });
 
   it("leaves releases of different repositories and non-release items alone", () => {
-    const a = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
-    const b = release("acme/other", "v3.0.1", 0.6, "2026-10-05T00:00:00Z");
+    const a = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
+    const b = release("acme/other", "v3.0.0", 0.6, "2026-10-05T00:00:00Z");
     const post = scored("design_engineering_craft", 0.7);
-    const result = select([a, b, post]);
+    // Release notes take a tenth of the briefing, so two need a briefing of twenty.
+    const result = selectItems({
+      scored: [a, b, post],
+      kind: "regular",
+      floor: 1,
+      cap: 20,
+      total: 20,
+    });
     expect(result.selected).toHaveLength(3);
     expect(result.dropped).toEqual([]);
   });
 
   it("ignores releases that never cleared the bar", () => {
-    const low = release("acme/kit", "v1.2.5", 0.1, "2026-10-06T00:00:00Z");
-    const kept = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
+    const low = release("acme/kit", "v1.5.0", 0.1, "2026-10-06T00:00:00Z");
+    const kept = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
     const result = select([low, kept]);
     expect(ids(result.selected)).toEqual([kept.item.id]);
     expect(result.dropped.map((d) => d.reason)).toEqual(["below_threshold"]);
