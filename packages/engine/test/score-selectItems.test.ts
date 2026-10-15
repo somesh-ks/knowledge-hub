@@ -465,6 +465,34 @@ describe("topics and length", () => {
   });
 });
 
+describe("release notes", () => {
+  // Package release notes cleared the bar and filled a third of the October weekly (loop/NOTES.md, I1).
+  it("keeps patch releases out and gives release notes at most a tenth of the briefing", () => {
+    const releases = ["kit 1.0", "@acme/ui@2.1.0", "tool 0.16", "lib v3.0", "cli 4.2"].map(
+      (title, i) => scored("developer_tool_launches", 0.95 - i * 0.01, { title }),
+    );
+    const patch = scored("ui_component_primitives", 0.99, {
+      title: "shadcn 4.21.5 updates dependencies",
+    });
+    const posts = Array.from({ length: 30 }, (_, i) =>
+      scored("design_engineering_craft", 0.8 - i * 0.001, { title: "Qwen3.8 reads 20.1% faster" }),
+    );
+    const result = selectItems({
+      scored: [patch, ...releases, ...posts],
+      kind: "weekly",
+      floor: 1,
+      cap: 48,
+      total: 20,
+    });
+    expect(result.selected).toHaveLength(20);
+    expect(ids(result.selected).filter((id) => ids(releases).includes(id))).toEqual([
+      releases[0]?.item.id,
+      releases[1]?.item.id,
+    ]);
+    expect(result.dropped.find((d) => d.id === patch.item.id)?.reason).toBe("release_note");
+  });
+});
+
 describe("weekly reserved slot", () => {
   const build = (): ScoredItem[] => [
     ...Array.from({ length: 3 }, (_, i) => scored("design_engineering_craft", 0.9 - i * 0.01)),

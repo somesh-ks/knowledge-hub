@@ -220,6 +220,10 @@ did not change.
    the settings"): a length-sized briefing is held to its length; the kind caps apply only to
    unsized and agent-written digests.
 
-Still failing (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
+5. Release notes and the writer (I1, quality), at the owner's word: patch releases never air,
+   release notes take at most a tenth of the main stories; the writer's brief drops the fixed
+   "The catch:" ending and repetition. `loop/rewrite.ts` judges the writer before and after.
+
+Still failing before iteration 5 (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
 scoring policy), quality (the writer stage; the replay does not run it), and the quality judge
 disagrees with itself on about half the episodes.
