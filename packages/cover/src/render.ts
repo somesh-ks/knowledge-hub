@@ -2,7 +2,8 @@ import { Resvg } from "@resvg/resvg-js";
 import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
-import { flatTemplate, isMonthly } from "./season.js";
+import { isMonthly } from "./season.js";
+import { seriesOf, seriesStyle } from "./series/index.js";
 import { n, rectPath } from "./svg.js";
 import { TEMPLATE_FNS, TEMPLATE_LOCKUP, TEMPLATES } from "./templates/index.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
@@ -20,8 +21,8 @@ function assertSpec(spec: CoverSpec): void {
 }
 
 /**
- * The weekly record: the art is a plate inside a matte of flat ground, ringed by a figure-colored
- * rule. The matte alone shows at thumbnail size; the rule is for the large cover.
+ * The weekly record before the monthly style: the art is a plate inside a matte of flat ground,
+ * ringed by a figure-colored rule. The matte alone shows at thumbnail size; the rule is for the large cover.
  */
 function weeklyFrame(size: number, u: number, figure: string): string {
   const inset = (WEEKLY_INSET / 2) * u;
@@ -43,21 +44,21 @@ function compose(
   monthly = isMonthly(meta.date),
 ): Composed {
   assertSpec(spec);
-  if (monthly) spec = { ...spec, template: flatTemplate(spec.template, spec.seed) };
-  const mode = TEMPLATE_LOCKUP[spec.template];
+  // A monthly cover draws a style from its series; older covers keep their templates.
+  const mode = monthly ? "standard" : TEMPLATE_LOCKUP[spec.template];
   const { ctx } = buildContext(spec, meta, size, mode, monthly);
-  const out = TEMPLATE_FNS[spec.template](ctx);
-  const { pal, uid, area } = ctx;
+  const draw = monthly
+    ? seriesStyle(seriesOf(ctx.variant), spec.seed)
+    : TEMPLATE_FNS[spec.template];
+  const out = draw(ctx);
+  const { pal, uid, area, matte } = ctx;
   const weekly = ctx.variant === "weekly";
-  const { plate, matte } = ctx;
+  const framed = weekly && !monthly;
   const plateClip = `${uid}p`;
-  const defs = `${out.defs ?? ""}${weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}${plate ? `<clipPath id="${plateClip}"><circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}"/></clipPath>` : ""}`;
-  // The on-demand plate: the art, drawn whole, shrunk into a disc that floats on a flat matte.
-  const art = plate
-    ? `<circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})"><g transform="translate(${n(plate.cx - plate.r)} ${n(plate.cy - plate.r)}) scale(${n((plate.r * 2) / size, 4)})">${out.body}</g></g>`
-    : weekly
-      ? `<g clip-path="url(#${plateClip})">${out.body}</g>`
-      : out.body;
+  const defs = `${out.defs ?? ""}${framed ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}`;
+  const art = framed
+    ? `<path d="${rectPath(area)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})">${out.body}</g>`
+    : out.body;
   const typePal = { ...pal, text: ctx.ink };
   const type =
     mode === "own" ? ctx.lockup.topLine(typePal, wordmark) : ctx.lockup.markup(typePal, wordmark);
@@ -69,9 +70,9 @@ function compose(
     (defs ? `<defs>${defs}</defs>` : "") +
     `<rect width="${size}" height="${size}" fill="${matte ?? pal.ground}"/>` +
     art +
-    (weekly && !monthly ? weeklyFrame(size, ctx.u, pal.accent) : "") +
+    (framed ? weeklyFrame(size, ctx.u, pal.accent) : "") +
     type;
-  return { inner, ground: pal.ground, label };
+  return { inner, ground: matte ?? pal.ground, label };
 }
 
 function wrap(size: { w: number; h: number }, composed: Composed, body: string): string {
@@ -86,8 +87,9 @@ export interface CoverSvgOptions {
   /** Draw the "Singularity" signature in the top corner. On by default. */
   wordmark?: boolean;
   /**
-   * Press the cover with its month's colour scheme, the week number on weeklies and the round plate
-   * on on-demand briefings. Left out, the date decides: October 2026 and later are monthly.
+   * Press the cover with its month's colour scheme and its series' styles: dailies, paper weeklies
+   * with the week number, and on-demand covers on a matte. Left out, the date decides: October 2026
+   * and later are monthly.
    */
   monthly?: boolean;
 }

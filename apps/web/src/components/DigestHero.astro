@@ -1,5 +1,4 @@
 ---
-import { paletteAccent } from "@dispatch/cover";
 import type { DigestEntry } from "../lib/digests";
 import type { HeroView } from "../lib/digestView";
 import AmbientLight from "./AmbientLight.astro";
@@ -25,7 +24,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
   <Cover
     digestId={entry.id}
     size="hero"
-    paletteBg={paletteAccent(entry.digest.cover.palette).bg}
+    source={entry.digest}
     weekly={entry.digest.kind === "weekly"}
     priority
   />

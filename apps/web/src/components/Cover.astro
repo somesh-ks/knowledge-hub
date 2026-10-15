@@ -1,18 +1,24 @@
 ---
+import { COVER_MODES, type CoverMode } from "@dispatch/cover";
+import { type CoverSize, type CoverSource, coverEdge, themedCoverSrc } from "../lib/covers";
 import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
   digestId: string;
   size: "thumb" | "row" | "card" | "hero" | "aside" | "player";
-  /** Box color shown before the image decodes, from the cover palette. */
-  paletteBg: string;
+  /** What the cover is drawn from; it is drawn once for each theme and the page shows its own. */
+  source: CoverSource;
   /** Weekly digests carry a framing rule so a deep dive reads as a different record. */
   weekly: boolean;
   /** The one cover that is the page's largest paint loads eagerly and first. */
   priority?: boolean;
 }
 
-const { digestId, size, paletteBg, weekly, priority = false } = Astro.props;
+const { digestId, size, source, weekly, priority = false } = Astro.props;
+// The colour at the cover's edge in each theme, shown before the image decodes (cover.css picks one).
+const edgeLight = coverEdge(source, "light");
+const edgeDark = coverEdge(source, "dark");
+const modes = COVER_MODES;
 
 /**
  * A pale ground needs a hairline to hold its edge on the light page; a deep one has its own edge, and
@@ -32,8 +38,9 @@ function isPale(hex: string): boolean {
 // The 1024 carries the Singularity signature (it is the player's own artwork), and at the size of a card,
 // a row or a hero the signature is a few pixels of noise: only the player's cover offers it. The rest
 // offer the 512, which never carries it, so a cover looks the same at every density and on every visit.
-const widths = size === "player" ? [512, 1024] : [512];
-const srcset = widths.map((width) => `/covers/${digestId}-${width}.webp ${width}w`).join(", ");
+const widths: CoverSize[] = size === "player" ? [512, 1024] : [512];
+const srcset = (mode: CoverMode) =>
+  widths.map((width) => `${themedCoverSrc(digestId, mode, width)} ${width}w`).join(", ");
 
 // Display width of each size, so the browser picks the 512 or the 1024 image for the screen's density.
 const SIZES: Record<Props["size"], string> = {
@@ -50,22 +57,26 @@ const SIZES: Record<Props["size"], string> = {
   class="cover"
   data-size={size}
   data-weekly={weekly ? "" : undefined}
-  data-pale={isPale(paletteBg) ? "" : undefined}
-  style={`--cover-bg:${paletteBg}`}
+  data-pale={isPale(edgeLight) ? "" : undefined}
+  style={`--cover-bg-light:${edgeLight};--cover-bg-dark:${edgeDark}`}
 >
-  <img
-    class="cover-image"
-    src={`/covers/${digestId}-512.webp`}
-    srcset={srcset}
-    sizes={SIZES[size]}
-    width="512"
-    height="512"
-    alt=""
-    draggable="false"
-    decoding="async"
-    loading={priority ? "eager" : "lazy"}
-    fetchpriority={priority ? "high" : undefined}
-  />
+  {/* One image per theme. The other theme's image is display: none, so a lazy one is never fetched. */}
+  {modes.map((mode) => (
+    <img
+      class="cover-image"
+      data-mode={mode}
+      src={themedCoverSrc(digestId, mode, 512)}
+      srcset={srcset(mode)}
+      sizes={SIZES[size]}
+      width="512"
+      height="512"
+      alt=""
+      draggable="false"
+      decoding="async"
+      loading={priority ? "eager" : "lazy"}
+      fetchpriority={priority ? "high" : undefined}
+    />
+  ))}
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}
   {/* The cover on an item's own page plays it in place. A list's card adds its own button beside the link. */}
   {size === "hero" && <CoverPlay digestId={digestId} pointerOnly />}

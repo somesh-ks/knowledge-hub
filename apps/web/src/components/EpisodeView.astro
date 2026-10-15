@@ -1,5 +1,4 @@
 ---
-import { paletteAccent } from "@dispatch/cover";
 import { episodeCover } from "../lib/covers";
 import { episodeHighlights } from "../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
@@ -44,7 +43,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
     <Cover
       digestId={entry.id}
       size="hero"
-      paletteBg={paletteAccent(entry.cover.palette).bg}
+      source={episodeCover(entry)}
       weekly={false}
       priority
     />

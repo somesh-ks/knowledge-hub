@@ -1,6 +1,13 @@
 import type { CSSProperties } from "react";
 import type { PlayerDigestData } from "../../types/contracts";
 
+const MODES = ["light", "dark"] as const;
+
+/** The cover drawn for one theme: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`. */
+function themedSrc(src: string, mode: (typeof MODES)[number]): string {
+  return src.replace(/^\/covers\//, `/covers/${mode}/`);
+}
+
 interface PlayerCoverProps {
   cover: PlayerDigestData["cover"];
   /** Weekly deep dives carry a framing rule so they read as a different record at a glance. */
@@ -24,17 +31,27 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
       data-weekly={weekly ? "" : undefined}
       style={style}
     >
-      <img
-        className="player-cover-image"
-        src={cover.src512}
-        srcSet={size === "player" ? `${cover.src512} 512w, ${cover.src1024} 1024w` : undefined}
-        sizes={size === "player" ? "(min-width: 40rem) 22rem, calc(100vw - 3rem)" : undefined}
-        alt=""
-        width={size === "thumb" ? 44 : 352}
-        height={size === "thumb" ? 44 : 352}
-        decoding="async"
-        draggable={false}
-      />
+      {MODES.map((mode) => (
+        <img
+          key={mode}
+          className="player-cover-image"
+          data-mode={mode}
+          src={themedSrc(cover.src512, mode)}
+          srcSet={
+            size === "player"
+              ? `${themedSrc(cover.src512, mode)} 512w, ${themedSrc(cover.src1024, mode)} 1024w`
+              : undefined
+          }
+          sizes={size === "player" ? "(min-width: 40rem) 22rem, calc(100vw - 3rem)" : undefined}
+          alt=""
+          width={size === "thumb" ? 44 : 352}
+          height={size === "thumb" ? 44 : 352}
+          decoding="async"
+          // The other theme's image is display: none, so a lazy one is never fetched.
+          loading="lazy"
+          draggable={false}
+        />
+      ))}
     </span>
   );
 }

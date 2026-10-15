@@ -2,11 +2,14 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Digest } from "@dispatch/core";
-import { renderCoverPng } from "@dispatch/cover";
+import { type CoverMode, coverColors, renderCoverPng } from "@dispatch/cover";
 import sharp from "sharp";
 
-/** What a cover is drawn from. A briefing and a podcast episode both have these. */
-export type CoverSource = Pick<Digest, "id" | "date" | "kind" | "cover">;
+/**
+ * What a cover is drawn from. A briefing and a podcast episode both have these. `mode` draws it for
+ * the app's light or dark theme; left out, it is drawn as authored (the lock screen and social card).
+ */
+export type CoverSource = Pick<Digest, "id" | "date" | "kind" | "cover"> & { mode?: CoverMode };
 
 /** An episode is drawn as an on-demand briefing, dated by when it was written. */
 export function episodeCover(entry: {
@@ -15,6 +18,20 @@ export function episodeCover(entry: {
   cover: Digest["cover"];
 }): CoverSource {
   return { id: entry.id, date: entry.episode.date, kind: "on-demand", cover: entry.cover };
+}
+
+/**
+ * The colour at the cover's edge as drawn: a monthly cover's season or a weekly's matte, not its
+ * palette id. The box shows it before the image decodes, and a pale one gets a rim on the light page.
+ */
+export function coverEdge(source: CoverSource, mode: CoverMode): string {
+  return coverColors(source.cover, { id: source.id, date: source.date, kind: source.kind, mode })
+    .ground;
+}
+
+/** Where the cover for one theme is served: `/covers/dark/<id>-512.webp`. */
+export function themedCoverSrc(id: string, mode: CoverMode, size: CoverSize): string {
+  return `/covers/${mode}/${id}-${size}.webp`;
 }
 
 export type CoverSize = 512 | 1024;
@@ -52,7 +69,7 @@ export function coverCacheKey(digest: CoverSource, size: CoverSize, fingerprint:
     fingerprint,
     size,
     spec: digest.cover,
-    meta: { id: digest.id, date: digest.date, kind: digest.kind },
+    meta: { id: digest.id, date: digest.date, kind: digest.kind, mode: digest.mode },
   });
   return createHash("sha256").update(input).digest("hex");
 }
@@ -78,7 +95,16 @@ export async function coverPng(
   }
   // Copied so the bytes are backed by a plain ArrayBuffer, which a Response accepts as a body.
   const png = new Uint8Array(
-    render(digest.cover, { id: digest.id, date: digest.date, kind: digest.kind }, size),
+    render(
+      digest.cover,
+      {
+        id: digest.id,
+        date: digest.date,
+        kind: digest.kind,
+        ...(digest.mode ? { mode: digest.mode } : {}),
+      },
+      size,
+    ),
   );
   await mkdir(options.cacheDir, { recursive: true });
   await writeFile(file, png);
