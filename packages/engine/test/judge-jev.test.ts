@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CATEGORIES, hashOf, loadEnv } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
-import { type JevClientLike, JevJudge } from "../src/judge/jev.js";
+import { DEFAULT_JEV_MODEL, type JevClientLike, JevJudge } from "../src/judge/jev.js";
 import {
   normalizeCategoryProbs,
   normalizeCraftDepth,
@@ -229,7 +229,7 @@ describe("JevJudge", () => {
     const entry = entries[0];
     expect(entry).toMatchObject({
       item_id: item.id,
-      model: "jev-latest",
+      model: DEFAULT_JEV_MODEL,
       questions_hash: QUESTIONS_HASH,
       judged_at: NOW.toISOString(),
       craft_depth: 0.775,
@@ -416,7 +416,7 @@ describe("JevJudge", () => {
 
   it("exposes the model and questions hash used for cache keys", () => {
     const judge = judgeWith(fakeJev(() => recorded));
-    expect(judge.model).toBe("jev-latest");
+    expect(judge.model).toBe(DEFAULT_JEV_MODEL);
     expect(judge.questionsHash).toBe(QUESTIONS_HASH);
     expect(judge.name).toBe("jev");
   });

@@ -1,7 +1,7 @@
 import { noul } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import type { Logger } from "../context.js";
-import type { JevClientLike } from "../judge/jev.js";
+import { DEFAULT_JEV_MODEL, type JevClientLike } from "../judge/jev.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { describeError } from "../llm/errors.js";
 import { type RetryOptions, withRetry } from "../llm/retry.js";
@@ -109,7 +109,7 @@ export class JevGrounder implements Grounder {
           this.options.client.systemOne({
             state: { sentence, source_excerpt: excerpt.text },
             questions: { supported: GROUNDING_QUESTION },
-            ...(this.options.model ? { model: this.options.model } : {}),
+            model: this.options.model ?? DEFAULT_JEV_MODEL,
           }),
         this.options.retry,
       );
