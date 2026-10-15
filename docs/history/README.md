@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-15 | [Episode quality loop](2026-10-15-episode-quality-loop.md) | Length by the owner's minutes and measured narration with spares (D119), release notes capped, every topic first, Sonnet 5.5 as writer, and eight eval iterations driven by the judge's reasons |
 | 2026-10-15 | [Reliability audit](2026-10-15-reliability-audit.md) | "Stop hearing from" failed inside the server's ten-second gap; one queue for votes and stops, browser specs on the real `/api/config` handler, the Blocked outlets re-block, and the risks left open |
 | 2026-10-14 | [Docs consolidation and the ledger from the chats](2026-10-14-docs-consolidation-and-chat-ledger.md) | Main synced, finished worktrees removed, branches archived to a bundle; docs grouped by purpose (D116); the ledger enriched from 14 chat transcripts with a working method, reusable mechanisms and a skill enrichment queue |
 | 2026-10-14 | [Quiet settings and a shorter form](2026-10-14-quiet-settings-and-a-shorter-form.md) | The bottom stack held by its bottom edge, Sonnet 5.5 the default writer (D113), the General audience retired (D114), settings that save without a toast (D115), the edit source panel, two ways to get a code review |

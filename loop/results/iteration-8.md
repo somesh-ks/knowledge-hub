@@ -20,3 +20,22 @@ pass of the run still loses at most the length's count of stories.
 
 Open: subject clusters (five token stories, three shadcn stories) and off-audience stories from the
 owner's chosen topics, as in iteration 7.
+
+## Result
+
+Eval of iteration 8 (episode-eval run 38808546772, head 5d2c29f):
+
+| Episode | Length | Quality mean | no_repetition | Major share | Changelog |
+|---|---|---|---|---|---|
+| before-daily (main prompt) | 5.6 of 5, FAIL | 3.50 | 3 | 84% | 0 |
+| after-daily (iteration 8) | 5.2 of 5, PASS | 3.75 | 4 | 75% | 0 |
+| before-weekly | 13.9 of 15 | 3.75 | 4 | 74% | 4 |
+| after-weekly (iteration 8) | 14.1 of 15, PASS | 3.75 | 4 | 68% | 3 |
+
+Both lengths pass, and the daily, which ran 5.7 minutes in iteration 7, now fits. The judge no
+longer hears one closing formula; in the weekly, four stories still end on a caveat about their
+own data. Quality stays below the rubric's 4 because of what airs, not how it is told: the
+judge's top changes for both episodes are to cut off-audience stories (knit sensors, PC
+shipments, a Riyadh strike, phone rollouts) and merge subject clusters (five token stories,
+three shadcn stories, three "AI moves work to review" essays). Both need the owner's word: the
+first is their chosen topics, the second a selection policy.
