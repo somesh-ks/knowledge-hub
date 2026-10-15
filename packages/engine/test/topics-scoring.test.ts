@@ -156,6 +156,23 @@ describe("a custom topic's score", () => {
     expect(fitCurve(1)).toBe(1);
   });
 
+  // Science never aired: its feeds are press releases no second outlet carries, and one outlet
+  // scored 0 (D120).
+  it("airs a clearly on-topic one-outlet story in Science alone", () => {
+    const general = (id: string) =>
+      customTopic({ id, weight: 1, depth: "coverage", origin: "general", section_id: "general" });
+    const single = makeItem({ title: "A new study maps deep ocean currents" });
+    const carried = { ...single, signals: { ...single.signals, coverage: 2 } };
+    const entry = makeEntry(single, { category: "none", p: 1 });
+    const science = general("science");
+    expect(topicScore(science, 0.75, entry, single)?.score).toBeGreaterThan(0.4);
+    expect(topicScore(science, 0.5, entry, single)?.score).toBeLessThan(0.4);
+    expect(topicScore(science, 0.75, entry, carried)?.score).toBeGreaterThan(
+      topicScore(science, 0.75, entry, single)?.score ?? 1,
+    );
+    expect(topicScore(general("world"), 1, entry, single)?.score).toBe(0);
+  });
+
   it("multiplies in the craft factor for a craft topic and leaves a fit-only topic alone", () => {
     const shallow = makeEntry(item, { category: "none", depth: 0 });
     const plain = topicScore(customTopic({ depth: "fit_only" }), 1, shallow);

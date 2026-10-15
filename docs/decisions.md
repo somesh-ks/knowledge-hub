@@ -129,6 +129,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned by version; Jev checks the strongest candidates against the owner's taste (votes and opens) and that answer replaces the source-vote nudge, within the same 15% | active; amends D3, D108 |
 | D119 | A briefing sized by the owner's length selects and writes 30% spares; validation airs the best survivors until their measured narration fills the length, each topic's best story kept | active |
+| D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 
 ---
 
@@ -1339,3 +1340,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: about 30% more writer and grounding calls on a deep pool; none on a thin one, which has no spares to take.
 - Rejected: a second write round after validation (the stages run as separate workflow steps, and validation has no selection logic); selecting the length alone and accepting the loss.
 - Revisit if: `validate-report.json` shows spares unaired on most runs (lower the share) or drops beyond the spares (raise it, or fix the cause of the drops).
+
+## D120: Science airs a one-outlet story
+
+- Date: 2026-10-15 (the owner chose "Science only" on the decision card "Let a well-matched science story air when only one outlet carried it?")
+- Decision: for the Science topic alone, a story carried by one outlet gets a coverage factor of 0.65 instead of 0 (`SINGLE_OUTLET_TOPICS` in `score/scoreTopics.ts`). A story the judge finds clearly about science (level 3) just clears the 0.4 bar; one loosely tied does not; a story two outlets carried (0.7) still ranks above it. World, Business, Culture and Sports keep the two-outlet rule.
+- Why: Science never aired. Its feeds are mostly press releases that no second outlet carries (ScienceDaily sent 31 stories in a week, none twice), so every science story scored 0.
+- Rejected: all general topics (World and Business are well co-covered and would gain single-source stories); wire-service science desks (big stories only); leaving it.
+- Revisit if: Science airs press releases the owner does not want (raise the factor's bar or add a source rule), or another general topic stops airing for the same reason.
+
