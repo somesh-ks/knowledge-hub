@@ -106,7 +106,7 @@ export function writerUserMessage(
     ...(others.length > 0
       ? [
           [
-            "The same episode also airs these stories, written separately. Do not repeat their facts or background, and open and close yours differently:",
+            "The same episode also airs these stories, written separately. Do not repeat their facts or background; give that room to a fact of your own story, keeping its length. Open and close yours differently:",
             wrapUntrusted(others.join("\n"), boundary, "other-headlines"),
           ].join("\n"),
         ]
