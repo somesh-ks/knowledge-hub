@@ -227,6 +227,27 @@ describe("variants", () => {
     }
   });
 
+  // Toning a cover for the dark page darkened a terracotta ground under dark type to 3.7:1.
+  it("keeps the date legible on every cover drawn for the light and the dark theme", () => {
+    for (const mode of ["light", "dark"] as const) {
+      for (const month of ["2026-10", "2026-11", "2026-12", "2027-01"]) {
+        for (const kind of ["regular", "weekly", "episode"] as const) {
+          for (let n = 0; n < 60; n += 1) {
+            const seed = n * 7919 + 13;
+            const s: CoverSpec = { template: "band", palette: "ultramarine", seed };
+            const meta: CoverMeta = { date: `${month}-14`, kind, id: `${month}-${seed}`, mode };
+            const { ctx } = buildContext(s, meta, 1024, "standard", true);
+            const under = ctx.plate && ctx.matte ? ctx.matte : ctx.pal.ground;
+            expect(
+              contrastRatio(ctx.ink, under),
+              `${mode} ${month} ${kind} ${seed}`,
+            ).toBeGreaterThanOrEqual(4.5);
+          }
+        }
+      }
+    }
+  });
+
   it("treats on-demand like a regular briefing", () => {
     const strip = (svg: string): string => svg.replace(/c[0-9a-z]{4,8}/g, "");
     const a = renderCoverSvg(spec("orbit"), { ...metaFor("regular", 6), id: "x" });

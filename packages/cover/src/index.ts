@@ -4,6 +4,7 @@
  */
 
 export { coverColors } from "./context.js";
+export { COVER_MODES, type CoverMode } from "./mode.js";
 export { getPalette, PALETTE_IDS, paletteAccent } from "./palettes.js";
 export { pickCover } from "./pick.js";
 export { renderCoverPng, renderCoverSvg, renderSocialPng, renderSocialSvg } from "./render.js";

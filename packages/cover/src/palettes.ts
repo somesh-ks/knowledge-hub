@@ -17,8 +17,8 @@ interface TokenPalette {
 const ROLES = ["ground", "accent", "text"] as const;
 
 /** How far the field tint and the mid shade sit from the ground toward the figure, in OKLab. */
-const FIELD_MIX = 0.16;
-const SHADE_MIX = 0.5;
+export const FIELD_MIX = 0.16;
+export const SHADE_MIX = 0.5;
 
 function isTokenColor(value: unknown): value is TokenColor {
   return (
