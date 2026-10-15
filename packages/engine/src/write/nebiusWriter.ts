@@ -96,7 +96,13 @@ export class NebiusWriter implements Writer {
     const results = await mapConcurrent(
       chunk(items, WRITER_BATCH_SIZE),
       WRITER_CONCURRENCY,
-      (batch) => this.writeBatch(batch, feedback, taste),
+      (batch) =>
+        this.writeBatch(
+          batch,
+          feedback,
+          taste,
+          items.filter((item) => !batch.includes(item)).map((item) => item.title),
+        ),
     );
     return {
       written: results.flatMap((r) => r.written),
@@ -108,6 +114,7 @@ export class NebiusWriter implements Writer {
     batch: readonly SourceMaterial[],
     feedback?: string,
     taste?: Taste,
+    others: readonly string[] = [],
   ): Promise<WriteResult> {
     const boundary = newBoundary();
     try {
@@ -116,7 +123,7 @@ export class NebiusWriter implements Writer {
         schemaName: "dispatch_items",
         messages: [
           { role: "system", content: writerSystemPrompt(this.options.voice, boundary) },
-          { role: "user", content: writerUserMessage(batch, boundary, feedback, taste) },
+          { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
         ],
         temperature: WRITER_TEMPERATURE,
         maxTokens: WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD,

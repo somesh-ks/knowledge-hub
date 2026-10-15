@@ -128,4 +128,16 @@ describe("claudeOptions", () => {
       "some/Old-Model",
     ]);
   });
+
+  it("offers a built-in model Anthropic's list leaves out, so Haiku can be picked", () => {
+    const live = [
+      { id: "claude-opus-6", label: "Claude Opus 6" },
+      { id: "claude-sonnet-5-5-20260901", label: "Claude Sonnet 5.5" },
+    ];
+    expect(claudeOptions(null, live).map((o) => o.id)).toEqual([
+      "claude-opus-6",
+      "claude-sonnet-5-5-20260901",
+      "claude-haiku-5-5",
+    ]);
+  });
 });

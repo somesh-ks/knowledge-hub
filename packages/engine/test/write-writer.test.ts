@@ -111,7 +111,7 @@ describe("NebiusWriter.write", () => {
     expect(plain.userText(0)).not.toContain("Shorter summaries");
   });
 
-  it("sends at most four items per request", async () => {
+  it("sends at most four items per request, each naming the episode's other stories", async () => {
     const items = Array.from({ length: 9 }, () => material());
     const llm = new FakeLlm(writeAll);
     const result = await new NebiusWriter({ llm, voice }).write(items);
@@ -119,8 +119,12 @@ describe("NebiusWriter.write", () => {
     expect(llm.calls).toHaveLength(3);
     expect(result.written).toHaveLength(9);
     for (let call = 0; call < 3; call++) {
-      expect(llm.userText(call).match(/<<<SOURCE-/g)?.length).toBeLessThanOrEqual(4);
+      expect(llm.userText(call).match(/<<<SOURCE-\w+ id=/g)?.length).toBeLessThanOrEqual(4);
     }
+    // Written four at a time with no view of the rest, the weekly repeated itself across requests.
+    const others = llm.userText(0).split("other-headlines>>>")[1] ?? "";
+    expect(others).toContain(items[8]?.title);
+    expect(others).not.toContain(`${items[0]?.title}\n`);
   });
 
   it("requests low temperature, a schema name and a token cap that scales with the batch", async () => {
