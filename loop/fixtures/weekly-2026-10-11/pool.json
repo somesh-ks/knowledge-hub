@@ -1,0 +1,2610 @@
+{
+ "run_judged_hour": "2026-10-11T11",
+ "kind": "weekly",
+ "judgments": [
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.02,
+    "hci_empirical_research": 0,
+    "none": 0.97,
+    "taste_and_design_philosophy": 0.01,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1125,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.85,
+    "sponsored": 0.08
+   },
+   "item_id": "03b77d125790",
+   "judged_at": "2026-10-11T11:28:08.737Z",
+   "launch_scale": 0.0025,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.16,
+    "consumer_tech_releases": 0.42,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.21,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.19,
+    "hci_empirical_research": 0,
+    "none": 0.02,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2375,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.21,
+    "sponsored": 0.51
+   },
+   "item_id": "04e9dc3828b5",
+   "judged_at": "2026-10-11T11:28:08.943Z",
+   "launch_scale": 0.335,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0.76,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.03,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.2,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.225,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.4,
+    "sponsored": 0.08
+   },
+   "item_id": "05d36a61a71c",
+   "judged_at": "2026-10-11T11:28:08.222Z",
+   "launch_scale": 0.5125,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.09,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0.02,
+    "ui_component_primitives": 0.88,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2625,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.13,
+    "sponsored": 0.08
+   },
+   "item_id": "076aa5167ab9",
+   "judged_at": "2026-10-11T11:28:09.050Z",
+   "launch_scale": 0.21,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.16,
+    "consumer_tech_releases": 0.09,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0.74,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2325,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.52,
+    "sponsored": 0.13
+   },
+   "item_id": "0ca1450969b5",
+   "judged_at": "2026-10-11T11:28:08.942Z",
+   "launch_scale": 0.6675,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.01,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.79,
+    "developer_tool_launches": 0.01,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.17,
+    "taste_and_design_philosophy": 0.01,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.24,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.07,
+    "sponsored": 0.03
+   },
+   "item_id": "19c45cc3b756",
+   "judged_at": "2026-10-11T11:28:08.260Z",
+   "launch_scale": 0.08,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 1,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.24,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.19,
+    "sponsored": 0.14
+   },
+   "item_id": "1d0d085035b5",
+   "judged_at": "2026-10-11T11:28:08.337Z",
+   "launch_scale": 0.4975,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.11,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.21,
+    "taste_and_design_philosophy": 0.68,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.02,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.23,
+    "sponsored": 0.08
+   },
+   "item_id": "1eab69256017",
+   "judged_at": "2026-10-11T11:28:07.743Z",
+   "launch_scale": 0.3525,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0075,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.11,
+    "sponsored": 0.06
+   },
+   "item_id": "202ce284bdd8",
+   "judged_at": "2026-10-11T11:28:08.530Z",
+   "launch_scale": 0.32,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.65,
+    "taste_and_design_philosophy": 0.34,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0025,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.71,
+    "sponsored": 0.05
+   },
+   "item_id": "214656e6a592",
+   "judged_at": "2026-10-11T11:28:08.298Z",
+   "launch_scale": 0.0275,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.01,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.84,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.15,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.18,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.05,
+    "sponsored": 0.02
+   },
+   "item_id": "24d721d47322",
+   "judged_at": "2026-10-11T11:28:08.124Z",
+   "launch_scale": 0.1825,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.195,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.17,
+    "sponsored": 0.21
+   },
+   "item_id": "288cd178a0f3",
+   "judged_at": "2026-10-11T11:28:08.478Z",
+   "launch_scale": 0.4975,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.2323,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.0101,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.1818,
+    "hci_empirical_research": 0,
+    "none": 0.5657,
+    "taste_and_design_philosophy": 0.0101,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.22,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.72,
+    "sponsored": 0.09
+   },
+   "item_id": "29ef33180d9c",
+   "judged_at": "2026-10-11T11:28:08.464Z",
+   "launch_scale": 0.0025,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.48,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.5,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.025,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.46,
+    "sponsored": 0.09
+   },
+   "item_id": "30dbb24afd9d",
+   "judged_at": "2026-10-11T11:28:08.441Z",
+   "launch_scale": 0.6825,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.13,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.01,
+    "frontier_model_releases": 0.01,
+    "generic_ai_hype_listicles": 0.44,
+    "hci_empirical_research": 0,
+    "none": 0.4,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.01
+   },
+   "craft_depth": 0.245,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.49,
+    "sponsored": 0.34
+   },
+   "item_id": "342677ae7ead",
+   "judged_at": "2026-10-11T11:28:08.949Z",
+   "launch_scale": 0.1175,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0.99,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1125,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.25,
+    "sponsored": 0.06
+   },
+   "item_id": "354ef6507825",
+   "judged_at": "2026-10-11T11:28:07.742Z",
+   "launch_scale": 0.0075,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.65,
+    "taste_and_design_philosophy": 0.35,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.035,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.32,
+    "sponsored": 0.09
+   },
+   "item_id": "35693dd27f2e",
+   "judged_at": "2026-10-11T11:28:08.820Z",
+   "launch_scale": 0.0125,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.04,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.02,
+    "developer_tool_launches": 0.76,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.18,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2525,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.11,
+    "sponsored": 0.06
+   },
+   "item_id": "35b14c13d81b",
+   "judged_at": "2026-10-11T11:28:08.219Z",
+   "launch_scale": 0.1,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.12,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.08,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.76,
+    "taste_and_design_philosophy": 0.04,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1925,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.19,
+    "sponsored": 0.05
+   },
+   "item_id": "3aba3f2d9e72",
+   "judged_at": "2026-10-11T11:28:08.340Z",
+   "launch_scale": 0.105,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.35,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.1,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.55,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0525,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.26,
+    "sponsored": 0.11
+   },
+   "item_id": "3d745c38b86d",
+   "judged_at": "2026-10-11T11:28:09.037Z",
+   "launch_scale": 0.2975,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 1,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.16,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.42,
+    "sponsored": 0.08
+   },
+   "item_id": "3fcadd7ff69d",
+   "judged_at": "2026-10-11T11:28:08.693Z",
+   "launch_scale": 0.015,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.55,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.43,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.02
+   },
+   "craft_depth": 0.025,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.05,
+    "sponsored": 0.04
+   },
+   "item_id": "4345504f32d2",
+   "judged_at": "2026-10-11T11:28:08.426Z",
+   "launch_scale": 0.63,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0.97,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.03,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.175,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.18,
+    "sponsored": 0.04
+   },
+   "item_id": "47b9255d8fa0",
+   "judged_at": "2026-10-11T11:28:08.947Z",
+   "launch_scale": 0.4225,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.01,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.77,
+    "sponsored": 0.1
+   },
+   "item_id": "4c76e08f7020",
+   "judged_at": "2026-10-11T11:28:08.473Z",
+   "launch_scale": 0.595,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.99,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0025,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.3,
+    "sponsored": 0.11
+   },
+   "item_id": "5363fcc7b1a1",
+   "judged_at": "2026-10-11T11:28:08.699Z",
+   "launch_scale": 0.7825,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0825,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.29,
+    "sponsored": 0.06
+   },
+   "item_id": "546f992fb365",
+   "judged_at": "2026-10-11T11:28:08.596Z",
+   "launch_scale": 0.6675,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.01,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.2,
+    "hci_empirical_research": 0,
+    "none": 0.51,
+    "taste_and_design_philosophy": 0.15,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.13
+   },
+   "craft_depth": 0.025,
+   "flags": {
+    "funding": 0.04,
+    "hype": 0.45,
+    "sponsored": 0.09
+   },
+   "item_id": "552284e64961",
+   "judged_at": "2026-10-11T11:28:08.788Z",
+   "launch_scale": 0.385,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.49,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0.02,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0.38,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0.09,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1725,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.31,
+    "sponsored": 0.07
+   },
+   "item_id": "595085953aee",
+   "judged_at": "2026-10-11T11:28:09.066Z",
+   "launch_scale": 0.2075,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.39,
+    "taste_and_design_philosophy": 0.28,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.33
+   },
+   "craft_depth": 0.0825,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.24,
+    "sponsored": 0.07
+   },
+   "item_id": "5a1959780366",
+   "judged_at": "2026-10-11T11:28:08.730Z",
+   "launch_scale": 0.0325,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.09,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0.06,
+    "taste_and_design_philosophy": 0.84,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1425,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.59,
+    "sponsored": 0.1
+   },
+   "item_id": "636c9edb0c32",
+   "judged_at": "2026-10-11T11:28:07.743Z",
+   "launch_scale": 0.0225,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0.01,
+    "design_engineering_craft": 0.34,
+    "developer_tool_launches": 0.49,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.16,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.25,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.09,
+    "sponsored": 0.06
+   },
+   "item_id": "64645a72faa7",
+   "judged_at": "2026-10-11T11:28:08.350Z",
+   "launch_scale": 0.6775,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.02,
+    "developer_tool_launches": 0.03,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.95,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.215,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.1,
+    "sponsored": 0.06
+   },
+   "item_id": "68e8bc572e34",
+   "judged_at": "2026-10-11T11:28:09.054Z",
+   "launch_scale": 0.8675,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.02,
+    "consumer_tech_releases": 0.23,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0.38,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0.23,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.13
+   },
+   "craft_depth": 0.205,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.08,
+    "sponsored": 0.03
+   },
+   "item_id": "6cd6f5cc677d",
+   "judged_at": "2026-10-11T11:28:08.308Z",
+   "launch_scale": 0.11,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.13,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0.8,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.03,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.03,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2625,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.03,
+    "sponsored": 0.01
+   },
+   "item_id": "6f3a0562da94",
+   "judged_at": "2026-10-11T11:28:08.122Z",
+   "launch_scale": 0.1075,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.9,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.03,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.06,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2475,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.15,
+    "sponsored": 0.04
+   },
+   "item_id": "72c2f156833a",
+   "judged_at": "2026-10-11T11:28:08.396Z",
+   "launch_scale": 0,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.31,
+    "consumer_tech_releases": 0.02,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.09,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.55,
+    "hci_empirical_research": 0,
+    "none": 0.03,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1475,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.59,
+    "sponsored": 0.28
+   },
+   "item_id": "77c5aaf7ce7d",
+   "judged_at": "2026-10-11T11:28:08.218Z",
+   "launch_scale": 0.375,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.04,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.96,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.125,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.46,
+    "sponsored": 0.11
+   },
+   "item_id": "7905fa9cf9d2",
+   "judged_at": "2026-10-11T11:28:09.076Z",
+   "launch_scale": 0.3525,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.33,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.55,
+    "hci_empirical_research": 0,
+    "none": 0.1,
+    "taste_and_design_philosophy": 0.02,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.74,
+    "sponsored": 0.17
+   },
+   "item_id": "7bc9d4667e53",
+   "judged_at": "2026-10-11T11:28:08.427Z",
+   "launch_scale": 0.005,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.66,
+    "sponsored": 0.08
+   },
+   "item_id": "7d5642ef2661",
+   "judged_at": "2026-10-11T11:28:08.395Z",
+   "launch_scale": 0.4325,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.185,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.26,
+    "sponsored": 0.05
+   },
+   "item_id": "7eff3cb10aa8",
+   "judged_at": "2026-10-11T11:28:08.575Z",
+   "launch_scale": 0.2,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.06,
+    "taste_and_design_philosophy": 0.94,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0825,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.33,
+    "sponsored": 0.16
+   },
+   "item_id": "8ccb27387c7c",
+   "judged_at": "2026-10-11T11:28:08.698Z",
+   "launch_scale": 0.2275,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.34,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.16,
+    "hci_empirical_research": 0,
+    "none": 0.5,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.01,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.85,
+    "sponsored": 0.85
+   },
+   "item_id": "8efc90036c0c",
+   "judged_at": "2026-10-11T11:28:07.749Z",
+   "launch_scale": 0,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2275,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.72,
+    "sponsored": 0.14
+   },
+   "item_id": "90691df7dd2d",
+   "judged_at": "2026-10-11T11:28:08.525Z",
+   "launch_scale": 0.6725,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.01,
+    "consumer_tech_releases": 0.01,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.11,
+    "frontier_model_releases": 0.55,
+    "generic_ai_hype_listicles": 0.27,
+    "hci_empirical_research": 0,
+    "none": 0.05,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2525,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.17,
+    "sponsored": 0.12
+   },
+   "item_id": "90995f7dbc9c",
+   "judged_at": "2026-10-11T11:28:08.946Z",
+   "launch_scale": 0.245,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.01,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.99
+   },
+   "craft_depth": 0.1825,
+   "flags": {
+    "funding": 0.95,
+    "hype": 0.09,
+    "sponsored": 0.05
+   },
+   "item_id": "95d52c99a70e",
+   "judged_at": "2026-10-11T11:28:08.207Z",
+   "launch_scale": 0.1725,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0.01,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.96,
+    "taste_and_design_philosophy": 0.02,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.01
+   },
+   "craft_depth": 0.03,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.07,
+    "sponsored": 0.02
+   },
+   "item_id": "963b8184663b",
+   "judged_at": "2026-10-11T11:28:08.208Z",
+   "launch_scale": 0.0475,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.18,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0.81,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1725,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.57,
+    "sponsored": 0.14
+   },
+   "item_id": "966404bebe5e",
+   "judged_at": "2026-10-11T11:28:07.720Z",
+   "launch_scale": 0.19,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.97,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.03,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.06,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.04,
+    "sponsored": 0.02
+   },
+   "item_id": "971128ee9d18",
+   "judged_at": "2026-10-11T11:28:08.954Z",
+   "launch_scale": 0.0325,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.47,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.01,
+    "frontier_model_releases": 0.25,
+    "generic_ai_hype_listicles": 0.11,
+    "hci_empirical_research": 0.1,
+    "none": 0.06,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.18,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.45,
+    "sponsored": 0.3
+   },
+   "item_id": "9964af802e9c",
+   "judged_at": "2026-10-11T11:28:08.955Z",
+   "launch_scale": 0.3575,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.06,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.93,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.01
+   },
+   "craft_depth": 0.24,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.26,
+    "sponsored": 0.09
+   },
+   "item_id": "9be906e8e47b",
+   "judged_at": "2026-10-11T11:28:08.497Z",
+   "launch_scale": 0.645,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.07,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.87,
+    "taste_and_design_philosophy": 0.01,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.05
+   },
+   "craft_depth": 0.0125,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.37,
+    "sponsored": 0.05
+   },
+   "item_id": "9d6f2b80be47",
+   "judged_at": "2026-10-11T11:28:07.739Z",
+   "launch_scale": 0.3475,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.92,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.03,
+    "developer_tool_launches": 0.02,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.02,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.25,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.24,
+    "sponsored": 0.05
+   },
+   "item_id": "9fff2fd38e49",
+   "judged_at": "2026-10-11T11:28:08.591Z",
+   "launch_scale": 0.2325,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.46,
+    "taste_and_design_philosophy": 0.54,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0425,
+   "flags": {
+    "funding": 0.04,
+    "hype": 0.27,
+    "sponsored": 0.09
+   },
+   "item_id": "a012ea88dbc1",
+   "judged_at": "2026-10-11T11:28:08.698Z",
+   "launch_scale": 0.255,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.025,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.21,
+    "sponsored": 0.05
+   },
+   "item_id": "a01b7a34538a",
+   "judged_at": "2026-10-11T11:28:09.176Z",
+   "launch_scale": 0.05,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0.86,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0.13,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.06,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.24,
+    "sponsored": 0.03
+   },
+   "item_id": "a0e18050b65f",
+   "judged_at": "2026-10-11T11:28:08.948Z",
+   "launch_scale": 0.26,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0025,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.06,
+    "sponsored": 0.03
+   },
+   "item_id": "a5c4243a1d94",
+   "judged_at": "2026-10-11T11:28:08.377Z",
+   "launch_scale": 0.325,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.6768,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.0101,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.1414,
+    "hci_empirical_research": 0.0404,
+    "none": 0.0505,
+    "taste_and_design_philosophy": 0.0808,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2225,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.44,
+    "sponsored": 0.09
+   },
+   "item_id": "a6cb7b4e4984",
+   "judged_at": "2026-10-11T11:28:07.743Z",
+   "launch_scale": 0.0075,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.17,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.83,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.65,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.09,
+    "sponsored": 0.15
+   },
+   "item_id": "a7e24b87fb8b",
+   "judged_at": "2026-10-11T11:28:08.276Z",
+   "launch_scale": 0.08,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.33,
+    "taste_and_design_philosophy": 0.67,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.27,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.25,
+    "sponsored": 0.1
+   },
+   "item_id": "ac087b0582a0",
+   "judged_at": "2026-10-11T11:28:08.738Z",
+   "launch_scale": 0.1525,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.93,
+    "taste_and_design_philosophy": 0.07,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.265,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.13,
+    "sponsored": 0.08
+   },
+   "item_id": "b14fc50bd1d3",
+   "judged_at": "2026-10-11T11:28:08.848Z",
+   "launch_scale": 0.005,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.02,
+    "hci_empirical_research": 0,
+    "none": 0.97,
+    "taste_and_design_philosophy": 0.01,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.105,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.45,
+    "sponsored": 0.12
+   },
+   "item_id": "b33c13b61409",
+   "judged_at": "2026-10-11T11:28:08.786Z",
+   "launch_scale": 0.085,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.6,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0.2,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.19,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2375,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.17,
+    "sponsored": 0.07
+   },
+   "item_id": "b3878b6e8e54",
+   "judged_at": "2026-10-11T11:28:08.237Z",
+   "launch_scale": 0.3425,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.37,
+    "consumer_tech_releases": 0.01,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0.62,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.24,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.29,
+    "sponsored": 0.07
+   },
+   "item_id": "b3a42dd0cbbe",
+   "judged_at": "2026-10-11T11:28:07.838Z",
+   "launch_scale": 0.0425,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.05,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.95,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.235,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.15,
+    "sponsored": 0.07
+   },
+   "item_id": "b5fadff37c57",
+   "judged_at": "2026-10-11T11:28:09.169Z",
+   "launch_scale": 0.93,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.13,
+    "css_canvas_motion_techniques": 0.37,
+    "design_engineering_craft": 0.33,
+    "developer_tool_launches": 0.02,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.15,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.265,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.11,
+    "sponsored": 0.04
+   },
+   "item_id": "b97a0b0cd71b",
+   "judged_at": "2026-10-11T11:28:09.057Z",
+   "launch_scale": 0.145,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.42,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0.48,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.09,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0325,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.16,
+    "sponsored": 0.04
+   },
+   "item_id": "bbd1b4bc8488",
+   "judged_at": "2026-10-11T11:28:09.066Z",
+   "launch_scale": 0.16,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.37,
+    "taste_and_design_philosophy": 0.63,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0125,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.48,
+    "sponsored": 0.08
+   },
+   "item_id": "c42639acd52e",
+   "judged_at": "2026-10-11T11:28:07.738Z",
+   "launch_scale": 0.0025,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0.91,
+    "none": 0.09,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.29,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.06,
+    "sponsored": 0.02
+   },
+   "item_id": "c7aca2f4232b",
+   "judged_at": "2026-10-11T11:28:09.064Z",
+   "launch_scale": 0.025,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 1,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2625,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.18,
+    "sponsored": 0.09
+   },
+   "item_id": "cb51c146c7d7",
+   "judged_at": "2026-10-11T11:28:08.320Z",
+   "launch_scale": 0.305,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.005,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.49,
+    "sponsored": 0.05
+   },
+   "item_id": "cc2ca8941494",
+   "judged_at": "2026-10-11T11:28:09.138Z",
+   "launch_scale": 0.51,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.24,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0.75,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.28,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.22,
+    "sponsored": 0.08
+   },
+   "item_id": "d591baa0621a",
+   "judged_at": "2026-10-11T11:28:08.696Z",
+   "launch_scale": 0.04,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.06,
+    "consumer_tech_releases": 0.13,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0.16,
+    "generic_ai_hype_listicles": 0.01,
+    "hci_empirical_research": 0,
+    "none": 0.43,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.21
+   },
+   "craft_depth": 0.13,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.06,
+    "sponsored": 0.03
+   },
+   "item_id": "d78bb69c4925",
+   "judged_at": "2026-10-11T11:28:08.130Z",
+   "launch_scale": 0.0975,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.97,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.02,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.01
+   },
+   "craft_depth": 0.045,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.68,
+    "sponsored": 0.06
+   },
+   "item_id": "d80f53ed3587",
+   "judged_at": "2026-10-11T11:28:08.385Z",
+   "launch_scale": 0.7875,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.12,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0.02,
+    "design_engineering_craft": 0.06,
+    "developer_tool_launches": 0.21,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.58,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.25,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.04,
+    "sponsored": 0.02
+   },
+   "item_id": "d83002380b5b",
+   "judged_at": "2026-10-11T11:28:08.123Z",
+   "launch_scale": 0.1075,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.9,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.01,
+    "taste_and_design_philosophy": 0.09,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.005,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.27,
+    "sponsored": 0.04
+   },
+   "item_id": "e003c5fa6544",
+   "judged_at": "2026-10-11T11:28:08.510Z",
+   "launch_scale": 0.0325,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0.05,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.01,
+    "developer_tool_launches": 0.26,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.67,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0.01
+   },
+   "craft_depth": 0.1225,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.07,
+    "sponsored": 0.02
+   },
+   "item_id": "e179bee0d893",
+   "judged_at": "2026-10-11T11:28:08.138Z",
+   "launch_scale": 0.18,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.02,
+    "developer_tool_launches": 0.97,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.01,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.2475,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.13,
+    "sponsored": 0.12
+   },
+   "item_id": "e4f9a91814e6",
+   "judged_at": "2026-10-11T11:28:08.301Z",
+   "launch_scale": 0.4,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.125,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.08,
+    "sponsored": 0.04
+   },
+   "item_id": "e5f848e1e2b0",
+   "judged_at": "2026-10-11T11:28:09.145Z",
+   "launch_scale": 0.01,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.04,
+    "consumer_tech_releases": 0.09,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.02,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0.49,
+    "hci_empirical_research": 0,
+    "none": 0.28,
+    "taste_and_design_philosophy": 0.08,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.17,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.3,
+    "sponsored": 0.05
+   },
+   "item_id": "ea95eacbd85b",
+   "judged_at": "2026-10-11T11:28:09.151Z",
+   "launch_scale": 0.09,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.1175,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.12,
+    "sponsored": 0.04
+   },
+   "item_id": "eb6a28b0180d",
+   "judged_at": "2026-10-11T11:28:08.545Z",
+   "launch_scale": 0.3375,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.31,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0.08,
+    "developer_tool_launches": 0.05,
+    "frontier_model_releases": 0.02,
+    "generic_ai_hype_listicles": 0.02,
+    "hci_empirical_research": 0,
+    "none": 0.03,
+    "taste_and_design_philosophy": 0.49,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.29,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.49,
+    "sponsored": 0.11
+   },
+   "item_id": "f0a84f550c04",
+   "judged_at": "2026-10-11T11:28:08.794Z",
+   "launch_scale": 0.1125,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0.04,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.92,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.04,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0,
+   "flags": {
+    "funding": 0.03,
+    "hype": 0.05,
+    "sponsored": 0.03
+   },
+   "item_id": "f54c826639b1",
+   "judged_at": "2026-10-11T11:28:08.124Z",
+   "launch_scale": 0.1275,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 1,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0275,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.05,
+    "sponsored": 0.03
+   },
+   "item_id": "f81fb4bf3584",
+   "judged_at": "2026-10-11T11:28:08.418Z",
+   "launch_scale": 0.135,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.2626,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.5657,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.0202,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.1515,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.01,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.03,
+    "sponsored": 0.02
+   },
+   "item_id": "ff3a7f2237e5",
+   "judged_at": "2026-10-11T11:28:08.192Z",
+   "launch_scale": 0.0775,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0.06,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0.83,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.02,
+    "taste_and_design_philosophy": 0,
+    "ui_component_primitives": 0.09,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0125,
+   "flags": {
+    "funding": 0.01,
+    "hype": 0.02,
+    "sponsored": 0.02
+   },
+   "item_id": "ffce94af4f97",
+   "judged_at": "2026-10-11T11:28:08.135Z",
+   "launch_scale": 0.11,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  },
+  {
+   "category_probs": {
+    "ai_ux_interaction_patterns": 0,
+    "consumer_tech_releases": 0,
+    "css_canvas_motion_techniques": 0,
+    "design_engineering_craft": 0,
+    "developer_tool_launches": 0,
+    "frontier_model_releases": 0,
+    "generic_ai_hype_listicles": 0,
+    "hci_empirical_research": 0,
+    "none": 0.97,
+    "taste_and_design_philosophy": 0.03,
+    "ui_component_primitives": 0,
+    "venture_capital_and_gossip": 0
+   },
+   "craft_depth": 0.0325,
+   "flags": {
+    "funding": 0.02,
+    "hype": 0.38,
+    "sponsored": 0.11
+   },
+   "item_id": "ffe1272825f3",
+   "judged_at": "2026-10-11T11:28:08.798Z",
+   "launch_scale": 0.06,
+   "model": "jev-latest",
+   "questions_hash": "f15d2649e212"
+  }
+ ],
+ "topic_judgments": [
+  {
+   "fit": 0.245,
+   "item_id": "03b77d125790",
+   "judged_at": "2026-10-11T11:28:08.737Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.865,
+   "item_id": "1eab69256017",
+   "judged_at": "2026-10-11T11:28:07.743Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.5175,
+   "item_id": "1f1c4b6b24ff",
+   "judged_at": "2026-10-11T11:28:07.945Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.8175,
+   "item_id": "2f58000d1df4",
+   "judged_at": "2026-10-11T11:28:07.966Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.84,
+   "item_id": "354ef6507825",
+   "judged_at": "2026-10-11T11:28:07.742Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.275,
+   "item_id": "35693dd27f2e",
+   "judged_at": "2026-10-11T11:28:08.820Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.625,
+   "item_id": "3b0432752903",
+   "judged_at": "2026-10-11T11:28:08.023Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.8925,
+   "item_id": "3b70d85cd6d7",
+   "judged_at": "2026-10-11T11:28:07.919Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.785,
+   "item_id": "3d0b55cb0172",
+   "judged_at": "2026-10-11T11:28:07.928Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.9325,
+   "item_id": "3fcadd7ff69d",
+   "judged_at": "2026-10-11T11:28:08.693Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.71,
+   "item_id": "4b0e8d591653",
+   "judged_at": "2026-10-11T11:28:07.954Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.5375,
+   "item_id": "5363fcc7b1a1",
+   "judged_at": "2026-10-11T11:28:08.699Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.225,
+   "item_id": "552284e64961",
+   "judged_at": "2026-10-11T11:28:08.788Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.3075,
+   "item_id": "5a1959780366",
+   "judged_at": "2026-10-11T11:28:08.730Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.6725,
+   "item_id": "636c9edb0c32",
+   "judged_at": "2026-10-11T11:28:07.743Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.5825,
+   "item_id": "6d6582547379",
+   "judged_at": "2026-10-11T11:28:07.931Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.53,
+   "item_id": "8bae5bb9c5f8",
+   "judged_at": "2026-10-11T11:28:07.930Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.3475,
+   "item_id": "8ccb27387c7c",
+   "judged_at": "2026-10-11T11:28:08.698Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.1425,
+   "item_id": "8efc90036c0c",
+   "judged_at": "2026-10-11T11:28:07.749Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.6,
+   "item_id": "966404bebe5e",
+   "judged_at": "2026-10-11T11:28:07.720Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.04,
+   "item_id": "9d6f2b80be47",
+   "judged_at": "2026-10-11T11:28:07.739Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.6175,
+   "item_id": "a012ea88dbc1",
+   "judged_at": "2026-10-11T11:28:08.698Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.385,
+   "item_id": "a6cb7b4e4984",
+   "judged_at": "2026-10-11T11:28:07.743Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.84,
+   "item_id": "ac087b0582a0",
+   "judged_at": "2026-10-11T11:28:08.738Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.2,
+   "item_id": "b14fc50bd1d3",
+   "judged_at": "2026-10-11T11:28:08.848Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.1075,
+   "item_id": "b33c13b61409",
+   "judged_at": "2026-10-11T11:28:08.786Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.85,
+   "item_id": "b3a42dd0cbbe",
+   "judged_at": "2026-10-11T11:28:07.838Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.8725,
+   "item_id": "b566fbb4d0cb",
+   "judged_at": "2026-10-11T11:28:07.927Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.545,
+   "item_id": "ba7d393944e5",
+   "judged_at": "2026-10-11T11:28:08.034Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.5525,
+   "item_id": "c42639acd52e",
+   "judged_at": "2026-10-11T11:28:07.738Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.7675,
+   "item_id": "d591baa0621a",
+   "judged_at": "2026-10-11T11:28:08.696Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.78,
+   "item_id": "e283b1143907",
+   "judged_at": "2026-10-11T11:28:08.027Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.88,
+   "item_id": "f0a84f550c04",
+   "judged_at": "2026-10-11T11:28:08.794Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  },
+  {
+   "fit": 0.8425,
+   "item_id": "f5af37a8357f",
+   "judged_at": "2026-10-11T11:28:08.007Z",
+   "model": "jev-latest",
+   "topic_hash": "8cdb20c64d6d",
+   "topic_id": "trending"
+  },
+  {
+   "fit": 0.1025,
+   "item_id": "ffe1272825f3",
+   "judged_at": "2026-10-11T11:28:08.798Z",
+   "model": "jev-latest",
+   "topic_hash": "52215b733fd1",
+   "topic_id": "design"
+  }
+ ]
+}

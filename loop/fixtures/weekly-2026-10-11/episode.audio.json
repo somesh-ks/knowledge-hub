@@ -1,0 +1,84 @@
+{
+  "digest": "2026-10-11-weekly",
+  "voice": "alicia",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 220913,
+  "text_chars": 3558,
+  "items": [
+    {
+      "id": "c7aca2f4232b",
+      "section": "top",
+      "start_ms": 8298,
+      "end_ms": 32277
+    },
+    {
+      "id": "076aa5167ab9",
+      "section": "top",
+      "start_ms": 32277,
+      "end_ms": 54467
+    },
+    {
+      "id": "d591baa0621a",
+      "section": "top",
+      "start_ms": 54467,
+      "end_ms": 73582
+    },
+    {
+      "id": "1d0d085035b5",
+      "section": "ui-craft",
+      "start_ms": 73582,
+      "end_ms": 88213
+    },
+    {
+      "id": "24d721d47322",
+      "section": "ui-craft",
+      "start_ms": 88213,
+      "end_ms": 109504
+    },
+    {
+      "id": "971128ee9d18",
+      "section": "ui-craft",
+      "start_ms": 109504,
+      "end_ms": 126783
+    },
+    {
+      "id": "35b14c13d81b",
+      "section": "ui-craft",
+      "start_ms": 126783,
+      "end_ms": 150207
+    },
+    {
+      "id": "05d36a61a71c",
+      "section": "ui-craft",
+      "start_ms": 150207,
+      "end_ms": 171928
+    },
+    {
+      "id": "5363fcc7b1a1",
+      "section": "tech",
+      "start_ms": 171928,
+      "end_ms": 197742
+    },
+    {
+      "id": "b3878b6e8e54",
+      "section": "tech",
+      "start_ms": 197742,
+      "end_ms": 220913
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 8298
+    },
+    {
+      "slug": "ui-craft",
+      "start_ms": 72046
+    },
+    {
+      "slug": "tech",
+      "start_ms": 170648
+    }
+  ]
+}

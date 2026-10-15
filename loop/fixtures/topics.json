@@ -1,0 +1,268 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "top",
+      "title": "Top picks",
+      "order": 0
+    },
+    {
+      "id": "design",
+      "title": "Design",
+      "order": 1
+    },
+    {
+      "id": "ui-craft",
+      "title": "Design Engineering",
+      "order": 2
+    },
+    {
+      "id": "ai",
+      "title": "AI Products",
+      "order": 3
+    },
+    {
+      "id": "tech",
+      "title": "Tech Product Launches",
+      "order": 4
+    },
+    {
+      "id": "trending",
+      "title": "Trending",
+      "order": 5
+    },
+    {
+      "id": "research",
+      "title": "Research",
+      "order": 6
+    },
+    {
+      "id": "launches",
+      "title": "Launches",
+      "order": 7
+    },
+    {
+      "id": "watch",
+      "title": "Watch and listen",
+      "order": 8
+    }
+  ],
+  "topics": [
+    {
+      "id": "design_engineering_craft",
+      "name": "Design engineering craft",
+      "description": "How an interface detail was built: implementation technique, craft process or a worked teardown of a polished UI.",
+      "weight": 0.95,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ui-craft",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "hci_empirical_research",
+      "name": "HCI research",
+      "description": "Human-computer interaction research with a method and results: user studies, experiments and papers on interaction techniques.",
+      "weight": 0.92,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "design",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "ui_component_primitives",
+      "name": "UI components and primitives",
+      "description": "Accessible building blocks and component libraries such as dialog, popover, drawer, combobox and design tokens, including their releases.",
+      "weight": 0.92,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ui-craft",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "ai_ux_interaction_patterns",
+      "name": "AI interaction patterns",
+      "description": "Interface and interaction patterns for AI products: chat and agent interfaces, streaming, correction, interruption and generative UI.",
+      "weight": 0.85,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ai",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "css_canvas_motion_techniques",
+      "name": "CSS, canvas and motion",
+      "description": "Concrete techniques in CSS, SVG, canvas, WebGL, shaders or animation, with code or a demo.",
+      "weight": 0.88,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ui-craft",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "frontier_model_releases",
+      "name": "Frontier model releases",
+      "description": "A release, model card, benchmark result or technical report for a frontier AI model.",
+      "weight": 0.85,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ai",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "developer_tool_launches",
+      "name": "Developer tool launches",
+      "description": "A launch or major release of a developer tool, framework, library, editor, CLI or platform feature.",
+      "weight": 0.82,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ui-craft",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "taste_and_design_philosophy",
+      "name": "Taste and design philosophy",
+      "description": "Essays and talks about taste, craft, design principles and how to think about designing and building interfaces.",
+      "weight": 0.85,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "ui-craft",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
+    },
+    {
+      "id": "venture_capital_and_gossip",
+      "name": "Venture capital and gossip",
+      "description": "Funding rounds, valuations, acquisitions, investor commentary and industry gossip.",
+      "weight": 0.1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "top",
+      "never_publish": true,
+      "origin": "builtin",
+      "depth": "fit_only"
+    },
+    {
+      "id": "generic_ai_hype_listicles",
+      "name": "Generic AI hype",
+      "description": "Top-N tool lists, productivity promises and marketing language with no specific technique or finding.",
+      "weight": 0.02,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "top",
+      "never_publish": true,
+      "origin": "builtin",
+      "depth": "fit_only"
+    },
+    {
+      "id": "consumer_tech_releases",
+      "name": "Consumer tech releases",
+      "description": "Consumer technology releases and the news around them: phones, laptops, wearables, chips, operating systems and the rules that shape them.",
+      "weight": 0.8,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "tech",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "launch"
+    },
+    {
+      "id": "design",
+      "name": "Design",
+      "description": "Product, UI, UX and visual design news and essays for a designer: interface and interaction design, usability research, design systems, branding and the craft and practice of design. Not architecture, furniture or interiors.",
+      "weight": 0.85,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "design",
+      "never_publish": false,
+      "origin": "app",
+      "depth": "fit_only"
+    },
+    {
+      "id": "trending",
+      "name": "Trending",
+      "description": "A news story that several major outlets are covering at once, in any field: politics, economy, science, health, technology, world events. Not sports results, celebrity gossip, obituaries of no wider interest, local crime, opinion columns or product reviews.",
+      "weight": 1,
+      "enabled": false,
+      "keywords": [],
+      "section_id": "trending",
+      "never_publish": false,
+      "origin": "app",
+      "depth": "coverage"
+    },
+    {
+      "id": "world",
+      "name": "World",
+      "description": "International news and world affairs: conflicts, diplomacy, elections and governments, disasters and humanitarian crises, and major events in any country.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "description": "Business and economic news: markets, companies, earnings, deals, jobs, trade, prices, interest rates and the policies that move them.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "description": "Science and health news: research findings, space, climate and the environment, medicine and public health, reported from a study or an expert.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "culture",
+      "name": "Culture",
+      "description": "Arts and culture news: film, television, music, books, art, games and the trends around them. Not sports results.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "description": "Sports news: results, tournaments, transfers, records and the stories around teams and athletes in major sports.",
+      "weight": 1,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "general",
+      "never_publish": false,
+      "origin": "general",
+      "depth": "coverage"
+    }
+  ]
+}

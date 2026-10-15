@@ -1,0 +1,10 @@
+{
+ "kind": "weekly",
+ "length_minutes": 20,
+ "skip_topics": [
+  "business",
+  "sports",
+  "science"
+ ],
+ "format": "readout"
+}

@@ -1,0 +1,185 @@
+---
+id: 2026-10-13
+date: 2026-10-13
+kind: regular
+verified: true
+generated_at: 2026-10-13T12:45:47.165Z
+window:
+  from: 2026-10-11T11:24:48.420Z
+  to: 2026-10-13T12:43:19.303Z
+read_minutes: 3
+listen_minutes: 4
+audio:
+  url: https://irmb7o0qwtveacjt.public.blob.vercel-storage.com/audio/2026-10-13.mp3
+  duration_ms: 229629
+cover:
+  template: spring
+  palette: fog-lingonberry
+  seed: 2236458092
+section_titles:
+  top: Top picks
+  design: Design
+  tech: Tech Product Launches
+  world: World
+items:
+  - id: c6802edd8089
+    section: top
+    category: ui_component_primitives
+    source_type: exa
+    headline: Robot-heads shows AI state with animated TV robot avatars
+    url: https://reveneau.com/ainews/robot-heads-react-component-agent-state-264-stars
+    source: reveneau.com
+    summary: "Robot-heads is a React component that shows an AI agent's state through animated robot avatars. It supports nine states like thinking, listening and error, each with distinct facial features and motion. The 2D canvas rendering requires no WebGL and shares textures to reduce cost. The animation overflows its box, so a parent with overflow: hidden will clip the hop."
+    spoken: "There's a new React component called robot-heads that shows what an AI agent is doing, using a little TV-headed robot. It has nine states, like thinking, listening, or error, each with unique animations for the face, antenna, and head motion. The robot draws on a 2D canvas, shares textures, and runs efficiently even with multiple instances. The catch: the hop animation overflows the container, so overflow: hidden will cut it off."
+    score: 0.6796
+    published_at: 2026-10-12T00:00:00.000Z
+  - id: a9534ade771f
+    section: top
+    category: ui_component_primitives
+    source_type: exa
+    headline: Figma MCP server sends design systems to coding agents
+    url: https://zandigital.in/figma-mcp-design-system-agents
+    source: zandigital.in
+    author: Sanskriti Khandelwal
+    summary: Figma's MCP server sends design system data like components, variables and code mappings to AI agents. In tests, using Code Connect cut median token use by 29.5% and task time by 19.6%. This works only if components are mapped, variables have code syntax, and layers are named by intent. Code Connect requires a Dev or Full seat and is capped at 200 reads per day on most plans.
+    score: 0.6342
+    published_at: 2026-10-12T00:00:00.000Z
+  - id: 0f89382408b9
+    section: top
+    category: design
+    source_type: rss
+    headline: Agents read your site through the accessibility tree
+    url: https://uxdesign.cc/secret-agent-bot-accessibility-matters-for-the-agents-even-if-you-cant-see-them-2f53a5670ec9?source=rss----138adf9c44c---4
+    source: UX Collective
+    author: Patrick Neeman
+    summary: AI agents read web pages using the accessibility tree, the same structure screen readers use. In June 2026, automated traffic passed human traffic at 57% of requests. Agents fail on transactional pages when landmarks, labels or roles are missing. A CHI 2026 study found agent success dropped from 78% to 42% under keyboard-only conditions.
+    spoken: "AI agents read your site through the accessibility tree, the same structure screen readers use. In June 2026, automated traffic made up 57% of web requests. That means clear labels, roles, and landmarks decide whether agents can use your site. The catch: a CHI 2026 study found agent success dropped from 78% to 42% under keyboard-only navigation."
+    score: 0.5884
+    published_at: 2026-10-12T20:19:31.000Z
+  - id: 49ad28c633d9
+    section: design
+    category: design
+    source_type: rss
+    headline: Newsrooms borrow traffic slopes they don't own
+    url: https://uxdesign.cc/borrowed-slopes-cb5c5b464a61?source=rss----138adf9c44c---4
+    source: UX Collective
+    author: Wira Indra Kusuma
+    summary: News outlets once relied on Facebook for traffic, with referrals peaking at 30 percent in 2018. By March 2024, Facebook's share fell to 7 percent across a panel of 792 sites. This shift followed Facebook's 2018 policy change favoring personal content over publisher posts. The data comes from third-party tracking, not official company reports.
+    spoken: "Newsrooms have often seen traffic spike when platforms like Facebook sent them readers. In 2018, Facebook drove 30 percent of external pageviews for some sites. By 2024, that had dropped to 7 percent. The catch: the piece doesn’t include new evidence on how design teams are adapting now."
+    score: 0.5503
+    published_at: 2026-10-12T11:35:36.000Z
+  - id: 033e57e2679e
+    section: tech
+    category: consumer_tech_releases
+    source_type: rss
+    headline: US adds 4,106 new fast-charging ports in Q3
+    url: https://electrek.co/2026/10/13/tesla-still-leads-us-supercharger-growth-but-its-raised-prices
+    source: Electrek
+    author: Michelle Lewis
+    summary: "The US added 4,106 public EV fast-charging ports across 664 stations from July to September 2026. The total now stands at 80,964 ports in 14,614 locations. Growth slowed slightly compared to last year, but new stations are larger and more powerful. The catch: rural areas received just 68 of the new stations, leaving gaps in access."
+    score: 0.666
+    published_at: 2026-10-13T12:00:00.000Z
+  - id: 049b65dbddc1
+    section: tech
+    category: consumer_tech_releases
+    source_type: rss
+    headline: Samsung rolls out Android 17 to Galaxy S24 and Z Fold/Flip 6
+    url: https://9to5google.com/2026/10/12/one-ui-9-update-available-galaxy-s24-z-fold-6-flip-6
+    source: 9to5Google
+    author: Andrew Romero
+    summary: "Samsung is rolling out One UI 9, based on Android 17, to the Galaxy S24, Z Fold 6, and Z Flip 6 in the US and South Korea. The update includes new Galaxy AI features like My FanCam and Document Scan. It also adds privacy tools such as Scam Detection and Privacy Alerts. The catch: older models like the S25 and Z Fold 5 have not yet received the update."
+    score: 0.6535
+    published_at: 2026-10-12T16:07:29.000Z
+  - id: 5fdf95a940b1
+    section: tech
+    category: consumer_tech_releases
+    source_type: rss
+    headline: Google's Fitbit Edge tracker starts at $179 with GPS, display
+    url: https://9to5google.com/2026/10/12/google-fitbit-edge-announcement
+    source: 9to5Google
+    author: Abner Li
+    summary: "Google launched the Fitbit Edge, a fitness tracker with a display and built-in GPS. It starts at $179.99, with pre-orders from October 12 and general availability on October 27. It offers advanced health tracking, seven-day battery life, and a replaceable battery. The catch: it lacks NFC, so no contactless payments."
+    score: 0.6215
+    published_at: 2026-10-12T13:00:00.000Z
+  - id: 245fc3bb3365
+    section: tech
+    category: consumer_tech_releases
+    source_type: rss
+    headline: Color OS 17 rollout starts October 29 for OnePlus and realme
+    url: https://www.androidauthority.com/coloros-17-oneplus-realme-rollout-schedule-3722527
+    source: Android Authority
+    author: Aamir Siddiqui
+    summary: OnePlus and realme will start rolling out Color OS 17, based on Android 17, on October 29, 2026. The update reaches flagship models like the OnePlus 15 and realme GT 8 Pro first. The rollout continues into Q1 2027 for other eligible devices.
+    spoken: "OnePlus and realme are starting to roll out Color OS 17, based on Android 17, from October 29, 2026. The OnePlus 15 and realme GT 8 Pro are first in line. The update includes the latest Android features for existing devices. The catch: it won't reach all devices until early 2027."
+    score: 0.6207
+    published_at: 2026-10-13T10:55:15.000Z
+  - id: 1b0d7222026b
+    section: world
+    category: world
+    source_type: rss
+    headline: Houthi missile hits Riyadh airport, killing one, injuring 11
+    url: https://www.theguardian.com/world/2026/oct/11/saudi-coalition-retaliation-houthi-attack-riyadh-airport
+    source: The Guardian World
+    author: William Christou in Jerusalem
+    summary: "A projectile struck terminal 4 at Riyadh's King Khalid airport, killing one person and injuring 11. It followed a deadly Houthi missile attack the day before that killed 13. Saudi air defenses intercepted a cruise missile nearby. The catch: the airport remains under threat, with Houthis warning of more attacks."
+    spoken: "A missile hit terminal 4 at Riyadh's airport on Sunday, killing one person and injuring 11. This came a day after a previous attack killed 13. Air defenses intercepted another missile nearby. The catch: the Houthis have warned that more attacks are coming, and the airport remains at risk."
+    score: 0.9685
+    published_at: 2026-10-11T22:28:50.000Z
+---
+
+# Tuesday 13 October
+
+9 items. 3 min read, 4 min listen.
+
+## Top picks
+
+### [Robot-heads shows AI state with animated TV robot avatars](https://reveneau.com/ainews/robot-heads-react-component-agent-state-264-stars)
+reveneau.com
+
+Robot-heads is a React component that shows an AI agent's state through animated robot avatars. It supports nine states like thinking, listening and error, each with distinct facial features and motion. The 2D canvas rendering requires no WebGL and shares textures to reduce cost. The animation overflows its box, so a parent with overflow: hidden will clip the hop.
+
+### [Figma MCP server sends design systems to coding agents](https://zandigital.in/figma-mcp-design-system-agents)
+zandigital.in, Sanskriti Khandelwal
+
+Figma's MCP server sends design system data like components, variables and code mappings to AI agents. In tests, using Code Connect cut median token use by 29.5% and task time by 19.6%. This works only if components are mapped, variables have code syntax, and layers are named by intent. Code Connect requires a Dev or Full seat and is capped at 200 reads per day on most plans.
+
+### [Agents read your site through the accessibility tree](https://uxdesign.cc/secret-agent-bot-accessibility-matters-for-the-agents-even-if-you-cant-see-them-2f53a5670ec9?source=rss----138adf9c44c---4)
+UX Collective, Patrick Neeman
+
+AI agents read web pages using the accessibility tree, the same structure screen readers use. In June 2026, automated traffic passed human traffic at 57% of requests. Agents fail on transactional pages when landmarks, labels or roles are missing. A CHI 2026 study found agent success dropped from 78% to 42% under keyboard-only conditions.
+
+## Design
+
+### [Newsrooms borrow traffic slopes they don't own](https://uxdesign.cc/borrowed-slopes-cb5c5b464a61?source=rss----138adf9c44c---4)
+UX Collective, Wira Indra Kusuma
+
+News outlets once relied on Facebook for traffic, with referrals peaking at 30 percent in 2018. By March 2024, Facebook's share fell to 7 percent across a panel of 792 sites. This shift followed Facebook's 2018 policy change favoring personal content over publisher posts. The data comes from third-party tracking, not official company reports.
+
+## Tech Product Launches
+
+### [US adds 4,106 new fast-charging ports in Q3](https://electrek.co/2026/10/13/tesla-still-leads-us-supercharger-growth-but-its-raised-prices)
+Electrek, Michelle Lewis
+
+The US added 4,106 public EV fast-charging ports across 664 stations from July to September 2026. The total now stands at 80,964 ports in 14,614 locations. Growth slowed slightly compared to last year, but new stations are larger and more powerful. The catch: rural areas received just 68 of the new stations, leaving gaps in access.
+
+### [Samsung rolls out Android 17 to Galaxy S24 and Z Fold/Flip 6](https://9to5google.com/2026/10/12/one-ui-9-update-available-galaxy-s24-z-fold-6-flip-6)
+9to5Google, Andrew Romero
+
+Samsung is rolling out One UI 9, based on Android 17, to the Galaxy S24, Z Fold 6, and Z Flip 6 in the US and South Korea. The update includes new Galaxy AI features like My FanCam and Document Scan. It also adds privacy tools such as Scam Detection and Privacy Alerts. The catch: older models like the S25 and Z Fold 5 have not yet received the update.
+
+### [Google's Fitbit Edge tracker starts at $179 with GPS, display](https://9to5google.com/2026/10/12/google-fitbit-edge-announcement)
+9to5Google, Abner Li
+
+Google launched the Fitbit Edge, a fitness tracker with a display and built-in GPS. It starts at $179.99, with pre-orders from October 12 and general availability on October 27. It offers advanced health tracking, seven-day battery life, and a replaceable battery. The catch: it lacks NFC, so no contactless payments.
+
+### [Color OS 17 rollout starts October 29 for OnePlus and realme](https://www.androidauthority.com/coloros-17-oneplus-realme-rollout-schedule-3722527)
+Android Authority, Aamir Siddiqui
+
+OnePlus and realme will start rolling out Color OS 17, based on Android 17, on October 29, 2026. The update reaches flagship models like the OnePlus 15 and realme GT 8 Pro first. The rollout continues into Q1 2027 for other eligible devices.
+
+## World
+
+### [Houthi missile hits Riyadh airport, killing one, injuring 11](https://www.theguardian.com/world/2026/oct/11/saudi-coalition-retaliation-houthi-attack-riyadh-airport)
+The Guardian World, William Christou in Jerusalem
+
+A projectile struck terminal 4 at Riyadh's King Khalid airport, killing one person and injuring 11. It followed a deadly Houthi missile attack the day before that killed 13. Saudi air defenses intercepted a cruise missile nearby. The catch: the airport remains under threat, with Houthis warning of more attacks.

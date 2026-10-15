@@ -137,3 +137,75 @@ Proof (vitest, 2026-10-15):
   silent branch fixed here for `/api/config`).
 - Open from the audit: `config.yml` shares the `dispatch` concurrency group with `run.yml`, so a
   pending stop can be cancelled after a 202 (a stop that "worked" but never applies).
+
+## Track A: episode quality
+
+### What the daily and weekly episodes are
+
+They are the narrated briefings, not Singularity podcast episodes. `run.yml` (hourly cron) gates,
+fetches, judges, writes and commits `Digests/YYYY/MM/<date>[-weekly].md`, then `audio.yml` runs
+`dispatch publish`, which reads each item's `spoken` text through `buildSpokenText`
+(`engine/src/audio/spokenText.ts`) and sends it to Speechify. Settings: `config/schedule.json`
+(daily 5 min, skip business/sports/culture; weekly 15 min, skip business/sports). On-demand podcast
+episodes (`podcast.yml`, `Podcasts/`) are a separate path (`engine/src/podcast/`).
+
+App speech rate: 968 characters a minute (`PODCAST_CHARS_PER_MINUTE`, core/src/podcast.ts:11), about
+161 words a minute. Confirmed against the audio: 2026-10-13 is 3,501 characters in 3.83 min (914/min,
+the frame's pauses included); the eval's script estimate (3.6 min) and the audio (3.8 min) agree.
+
+### Pipeline, settings to audio
+
+1. Settings: `writeStage.ts:120-133` reads `skip_topics` and `length_minutes` (daily) and the weekly pair.
+2. Fetch: `run/gatherPool.ts` (weekly reads weekly-tier sources too).
+3. Prefilter: `prefilter/prefilter.ts:204-236` (keywords, author, `high_signal` +3, `releaseWeight`).
+4. Judge: `judge/questions.ts` (category probabilities, craft depth, launch scale, flags).
+5. Score: `score/scoreItem.ts:142-156`, taste × depth × penalty + bonus; bar 0.4.
+6. Select: `score/selectItems.ts:309-396`, cap from `run/scheduleSize.ts` `capForLength`.
+7. Write: one `spoken` block per item, 40 to 95 words (`write/prompt.ts:34`).
+8. Narrate: `buildSpokenText` (frame + items), no length target; Speechify.
+
+### Causes
+
+| # | Problem | Cause | Status |
+|---|---|---|---|
+| L1 | A1 length | `capForLength` sizes by story count, assuming the full cap of 12 is 10 minutes (`scheduleSize.ts:7-10`). A real item is about 25 s (2026-10-13: 9 items, 3.8 min), so 12 items is about 5 minutes and the 5-minute daily gets 6 main items | confirmed (code + audio) |
+| L2 | A1 length | Weekly 15 min asks for 27, clipped to the weekly cap of 18 (`digest.ts:103`); 18 items is about 7.5 min, so 15 is unreachable by design | confirmed (code) |
+| L3 | A1 length | Nothing measures or targets minutes after selection: per-item text is 40 to 95 words whatever the setting; drops after selection (extract, write, voice) shrink it further | confirmed (code) |
+| L4 | A1 length | Supply is not the limit: the 2026-10-13 run judged 59 items, 26 cleared the 0.4 bar (no keyword bonus counted), 9 were published. Weekly 2026-10-11: 86 judged, 38 cleared, 10 published | confirmed (fixture replay of `scoreItem`) |
+| I1 | A2 changelogs | Release sources get a prefilter bonus (`high_signal` +3, `releaseWeight` up to +2.5) and no later penalty; a minor release judged `developer_tool_launches` with craft depth 0 still scores 0.45, above the 0.4 bar (`scoreItem.ts:46`) | confirmed (code) |
+| I2 | A2 changelogs | "Tech releases" and custom sections get allowances on top of the cap (`selectItems.ts:94-106,334-335`); the weekly forces one below-median-weight item, which today is a launch category (`selectItems.ts:354-370`) | confirmed (code) |
+| I3 | A2 changelogs | Of the 26 eligible items on 2026-10-13, 16 are `consumer_tech_releases` or `developer_tool_launches`: filling to length from this pool draws more launches. Length and importance pull against each other on a normal day | confirmed (fixture replay) |
+| T1 | A3 topics | Topics are a skip list; no selected topic is guaranteed a story; items are taken by rank, at most 3 per home section, and five categories share the one `ui-craft` section (`selectItems.ts:343-350`, `categories.ts:97-109`) | confirmed (code) |
+| T2 | A3 topics | `trending` is `enabled: false` in config/topics.json, yet 2026-10-11 aired 3 `trending` items. config/topics.json first appears in history on 2026-10-14, after that briefing, so it may have been on then | hypothesis |
+| T3 | A3 topics | General topics `science`, `culture` never appear in the month's briefings | hypothesis: no general candidates clear selection |
+
+### Fixtures (`loop/fixtures/`, frozen 2026-10-15)
+
+- `daily-2026-10-13/`, `weekly-2026-10-11/`: the run's judged pool (`pool.json`, from
+  `state/judgments.json` and `state/topic-judgments.json` by judge hour), the settings production used
+  (`settings.json`), a variant with a different length and topics (`settings-variant.json`), and
+  the episode production made (`episode.md`, `episode.audio.json`).
+- `topics.json`, `preferences.json`: copies of config at the snapshot.
+- Gap: the engine does not keep a run's fetched items, only its judgments and the published items,
+  so an unpublished item has no headline, text or URL. A run cannot be replayed end to end from the
+  repository; generating a new episode from a fixture needs the fetch step's output or a live fetch.
+
+### Eval
+
+`loop/eval.ts` with `loop/rubric.md` (topic and importance definitions fixed there). Length and
+topics are deterministic; importance and quality need `ANTHROPIC_API_KEY` and report BLOCKED
+without it. Baseline: `loop/results/iteration-0.md`, 2 of 14 rows pass (both "unselected airtime"). The month's table there uses today's settings; the length setting before 2026-10-13 is not in history.
+
+### Blocker
+
+No model key in this environment (`NEBIUS_API_KEY`/`DISPATCH_MODEL` for the writer,
+`ANTHROPIC_API_KEY` for the judge). Without the writer no fixture can be turned into a new episode,
+so no iteration can be scored: the loop has not started. Asked the owner (2026-10-15).
+
+### Planned iteration 1 (not applied)
+
+Size the briefing by airtime instead of count: cap = (minutes × 968 − frame) / measured characters
+per item, with the weekly cap raised to match, and selection taking one item per selected topic
+before filling by rank (fixes L1, L2, T1 together only if measured one at a time; L1 first).
+Expected risk, from I3: more airtime from the same pool means more launches. The judge must run
+alongside, or A2 regresses unseen.
