@@ -27,3 +27,9 @@ October story ended on "The catch:", which the judge scored lowest on repetition
 The replay reads stories as written, so `loop/rewrite.ts` rewrites the latest replay with main's
 prompt and with this branch's, from each story's summary (the pool keeps no source text), and the
 eval judges both in CI (`rewrites/before-*`, `rewrites/after-*`).
+
+Found while building the rewrite: every writer request to Claude Sonnet 5.5 failed with 400
+("`temperature` is deprecated for this model"), and the writer chain fell back to Nebius without a
+word. Since the owner picked Sonnet on 2026-10-14, the briefings have been written by the Nebius
+model (the 2026-10-15 run: 8 Anthropic requests, 17 Nebius). The Anthropic client no longer sends a
+temperature. This is likely a larger quality change than the prompt.

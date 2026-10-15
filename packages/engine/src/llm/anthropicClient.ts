@@ -65,7 +65,8 @@ export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatAp
       const payload: Record<string, unknown> = {
         model: body.model,
         max_tokens: body.max_tokens,
-        temperature: body.temperature,
+        // No temperature: Claude Sonnet 5.5 answers 400 "temperature is deprecated for this
+        // model", so every writer call fell through to the Nebius models.
         messages: all
           .filter((message) => message.role !== "system")
           .map((message) => ({ role: message.role, content: message.content })),
