@@ -501,13 +501,23 @@ describe("enforceVoice", () => {
       expect(writer.requests).toHaveLength(0);
     });
 
-    it("is dropped, not the item, when it states a number the summary does not", async () => {
-      const writer = scriptedWriter([]);
+    // Dropped at once, the telling fell back to a headline the summary restates, read twice.
+    it("gets one rewrite when it states a number the summary does not, and only then is dropped, not the item", async () => {
       const invented = SPOKEN.replace("about 120 lines", "about 900 lines");
+      const fixed = scriptedWriter([SPOKEN]);
+      const kept = await enforceVoice({
+        written: [{ ...good(m.id), spoken: invented }],
+        materials,
+        writer: fixed,
+        linter,
+      });
+      expect(kept.passed[0]?.item.spoken).toBe(SPOKEN);
+      expect(fixed.requests[0]?.problems.join(" ")).toContain("900");
+
       const out = await enforceVoice({
         written: [{ ...good(m.id), spoken: invented }],
         materials,
-        writer,
+        writer: scriptedWriter([]),
         linter,
       });
       expect(out.dropped).toEqual([]);

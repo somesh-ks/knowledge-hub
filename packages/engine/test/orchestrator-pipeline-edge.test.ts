@@ -165,6 +165,33 @@ describe("grounding and validation", () => {
     expect(written.items.every((entry) => entry.verified)).toBe(true);
   });
 
+  // The 2026-10-15 daily chose 14 stories for five minutes and aired 4: every story lost after
+  // selection came off the owner's length.
+  it("fills the owner's length with a spare when grounding drops a story", LONG, async () => {
+    await seed(repo.root, {
+      "config/schedule.json": json({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        length_minutes: 3,
+        skip_topics: [],
+        weekly: { skip_topics: [] },
+      }),
+    });
+    const feeds = goodFeeds(12);
+    const unsupported = Object.values(feeds).map((items) => items[0]?.id as string);
+    const world = makeWorld(repo.root, {
+      now: WED,
+      feeds,
+      writer: writerUnsupportedFor(unsupported),
+    });
+    const result = await runStage(world);
+    // Three minutes is eight stories at the narration's pace.
+    expect(result.report).toMatchObject({ outcome: "published", items: 8 });
+    const digest = await readDigest(repo.root, DIGEST_PATH);
+    expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
+  });
+
   it("re-checks the floor after grounding and records a quiet day", LONG, async () => {
     const feeds = { "blog-a": goodFeeds(8)["blog-a"] as Item[] };
     const ids = feeds["blog-a"].slice(0, 2).map((item) => item.id);

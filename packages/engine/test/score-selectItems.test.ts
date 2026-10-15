@@ -493,6 +493,46 @@ describe("release notes", () => {
   });
 });
 
+describe("same story", () => {
+  // The October weekly told Mistral Large 4, ColorOS 17 and ttok twice each (loop/results/iteration-6.md).
+  it("airs one telling of a story, and never a release note in place of the news", () => {
+    const plugin = scored("developer_tool_launches", 0.95, {
+      title: "llm-mistral 0.16 adds Mistral Large 4 support",
+    });
+    const launch = scored("frontier_model_releases", 0.9, {
+      title: "Mistral Large 4 scores high on cyber tasks but costs more",
+    });
+    const specs = scored("frontier_model_releases", 0.85, {
+      title: "Mistral Large 4 has 1T parameters, 49B active",
+    });
+    const beta = scored("consumer_tech_releases", 0.8, {
+      title: "OnePlus 15 gets ColorOS 17 beta before OPPO's global launch",
+    });
+    const rollout = scored("consumer_tech_releases", 0.75, {
+      title: "Color OS 17 rollout starts October 29 for OnePlus and realme",
+    });
+    const newer = scored("developer_tool_launches", 0.7, { title: "ttok 1.0 defaults to GPT-5" });
+    const older = scored("developer_tool_launches", 0.65, { title: "ttok 0.4 adds model listing" });
+    const samsung = scored("consumer_tech_releases", 0.6, {
+      title: "Samsung rolls out Android 17 to Galaxy S24",
+    });
+    const result = selectItems({
+      scored: [plugin, launch, specs, beta, rollout, newer, older, samsung],
+      kind: "weekly",
+      floor: 1,
+      cap: 48,
+      total: 20,
+    });
+    expect(ids(result.selected).sort()).toEqual(ids([launch, beta, newer, samsung]).sort());
+    expect(
+      result.dropped
+        .filter((d) => d.reason === "same_story")
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual(ids([plugin, specs, rollout, older]).sort());
+  });
+});
+
 describe("weekly reserved slot", () => {
   const build = (): ScoredItem[] => [
     ...Array.from({ length: 3 }, (_, i) => scored("design_engineering_craft", 0.9 - i * 0.01)),

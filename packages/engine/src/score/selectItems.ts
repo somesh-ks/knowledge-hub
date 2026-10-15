@@ -14,6 +14,7 @@ import {
   VOICE_LIMITS,
 } from "@dispatch/core";
 import { isPatchRelease, isReleaseNote, RELEASE_NOTE_SHARE } from "./releaseNotes.js";
+import { sameStoryRepeats } from "./sameStory.js";
 import type { Candidate, ScoredItem, SelectedItem } from "./types.js";
 
 /**
@@ -43,7 +44,9 @@ export type DropReason =
   /** An older GitHub release of a repository that has a newer release among the candidates. */
   | "same_repo_release"
   /** A patch release, or a release note beyond the briefing's share of them (releaseNotes.ts). */
-  | "release_note";
+  | "release_note"
+  /** The same story as a better-ranked candidate, from another angle or another day (sameStory.ts). */
+  | "same_story";
 
 export interface DroppedItem {
   id: string;
@@ -302,8 +305,8 @@ export function eligibility(
 /**
  * Pick what to publish. Order of rules:
  *  1. Drop items whose most probable option is "none" or a never-publish category.
- *  2. Drop items below the score threshold, and every GitHub release but the newest of its
- *     repository.
+ *  2. Drop items below the score threshold, every GitHub release but the newest of its
+ *     repository, and every story but the best told of one subject (sameStory.ts).
  *  3. Split what is left into two pools: Tech releases candidates, and everything else.
  *  4. Everything else: patch releases never air, and release notes take at most a tenth of the
  *     cap (at least one). Within that, take the best item of each category first, then walk by rank taking at
@@ -342,7 +345,21 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const candidate of releases.older) {
     dropped.push({ id: candidate.item.id, reason: "same_repo_release", score: candidate.score });
   }
-  const ranked = releases.kept.sort(compareCandidates);
+  // A release note never stands for a story told elsewhere: "llm-mistral 0.16 adds Mistral Large 4
+  // support" gives way to the launch itself.
+  const repeats = sameStoryRepeats(
+    releases.kept
+      .sort(compareCandidates)
+      .sort((a, b) => Number(isReleaseNote(a.item)) - Number(isReleaseNote(b.item)))
+      .map((c) => c.item),
+  );
+  const ranked: Candidate[] = [];
+  for (const candidate of releases.kept) {
+    if (repeats.has(candidate.item.id)) {
+      dropped.push({ id: candidate.item.id, reason: "same_story", score: candidate.score });
+    } else ranked.push(candidate);
+  }
+  ranked.sort(compareCandidates);
   const main: Candidate[] = [];
   for (const candidate of ranked) {
     if (hasOwnSection(candidate)) continue;

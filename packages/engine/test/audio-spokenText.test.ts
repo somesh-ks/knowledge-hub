@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {
   buildSpokenText,
+  itemBlock,
   MAX_SPOKEN_CHARS,
   SpokenTextError,
   SpokenTextTooLongError,
@@ -100,6 +101,16 @@ describe("buildSpokenText without a why line", () => {
     expect(text).toContain(must(digest.items.at(-1)).summary);
     expect(text).not.toContain("undefined");
     expect(text).not.toContain("Copy the pattern");
+  });
+
+  // A telling the voice check removed fell back to "ttok 1.0 defaults to GPT-5 tokenizer. ttok 1.0
+  // defaults to the GPT-5 tokenizer family...", the news read twice in a row.
+  it("leaves out a headline the summary opens by restating", () => {
+    const summary =
+      "ttok 1.0 defaults to the GPT-5 tokenizer family instead of GPT-4. An experiment found matching counts.";
+    const story = makeStory(0, { headline: "ttok 1.0 defaults to GPT-5 tokenizer", summary });
+    expect(itemBlock(story)).toBe(summary);
+    expect(itemBlock(makeStory(1))).toContain(makeStory(1).headline);
   });
 
   it("keeps exact ranges when stories with and without a why line are mixed", () => {

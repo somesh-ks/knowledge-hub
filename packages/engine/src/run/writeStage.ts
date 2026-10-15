@@ -6,6 +6,7 @@ import {
   type SourceStatsFile,
   VOICE_LIMITS,
 } from "@dispatch/core";
+import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
   loadPool,
@@ -55,7 +56,14 @@ import {
 import { generalCandidates, generalIdsFor } from "./generalScope.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
-import { storiesForMinutes } from "./scheduleSize.js";
+import {
+  charsForMinutes,
+  overNarrationLimit,
+  sparesOverLength,
+  storiesForMinutes,
+  toldChars,
+  withSpares,
+} from "./scheduleSize.js";
 import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
 import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
@@ -265,26 +273,28 @@ async function writePass(
     return false;
   });
 
+  // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
+  // the weekly podcast's own length. Such a briefing also writes spares, so a story dropped after
+  // selection does not come off the length; validation airs as many as fill it.
+  const lengthOf =
+    pass.kind === "regular" && lengthMinutes !== null
+      ? lengthMinutes
+      : pass.kind === "weekly"
+        ? weeklyLengthMinutes
+        : null;
+  const wanted =
+    lengthOf === null
+      ? undefined
+      : storiesForMinutes(lengthOf, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax);
   const chosen = selectItems({
     scored: [...scored, ...generalScored],
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
-    // the weekly podcast's own length.
-    cap:
-      (pass.kind === "regular" && lengthMinutes !== null) || pass.kind === "weekly"
-        ? VOICE_LIMITS.items.hardMax
-        : capFor(pass.kind),
+    cap: wanted === undefined ? capFor(pass.kind) : VOICE_LIMITS.items.hardMax,
     total:
-      pass.kind === "regular" && lengthMinutes !== null
-        ? storiesForMinutes(lengthMinutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax)
-        : pass.kind === "weekly"
-          ? storiesForMinutes(
-              weeklyLengthMinutes,
-              VOICE_LIMITS.items.floor,
-              VOICE_LIMITS.items.hardMax,
-            )
-          : VOICE_LIMITS.items.hardMax,
+      wanted === undefined
+        ? VOICE_LIMITS.items.hardMax
+        : withSpares(wanted, VOICE_LIMITS.items.hardMax),
     weights: preferences.weights,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.
@@ -357,6 +367,7 @@ async function writePass(
         : {
             ...nothingSelection(pass),
             outcome: "selected",
+            ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
             items: survivors.map((s) => ({
               ...s,
               ...writtenText(texts.get(s.id) as WrittenText),
@@ -367,8 +378,23 @@ async function writePass(
     await writeJson(file("materials.json"), { version: 1, items: materials });
     const outcome = survivors.length === 0 ? "nothing" : "selected";
     await markStage(deps.root, pass, "write", { at: deps.now().toISOString(), outcome });
+    const spares =
+      lengthOf === null
+        ? []
+        : sparesOverLength(
+            survivors.map((s) => ({ ...s, chars: toldChars(texts.get(s.id) as WrittenText) })),
+            charsForMinutes(lengthOf),
+            VOICE_LIMITS.items.floor,
+          );
     return {
-      kept: survivors.map((s) => s.id),
+      // A later pass of the run may still use the spares: it loses only the stories expected to
+      // air, and never more than the length's count, as before spares (a weekly on the same day
+      // shares the pool).
+      kept: survivors
+        .filter((s) => !spares.includes(s.id))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, wanted ?? survivors.length)
+        .map((s) => s.id),
       report: {
         id: pass.id,
         kind: pass.kind,
@@ -429,6 +455,16 @@ async function writePass(
   }
 
   const keptIds = new Set(voice.passed.map((p) => p.item.id));
+  // One narration request carries the whole episode, so the stories must fit it together.
+  const told = voice.passed.map((p) => ({
+    id: p.item.id,
+    score: chosen.selected.find((sel) => sel.item.id === p.item.id)?.score ?? 0,
+    chars: (p.item.spoken ?? `${p.item.headline} ${p.item.summary}`).length,
+  }));
+  for (const id of overNarrationLimit(told, MAX_SPOKEN_CHARS)) {
+    keptIds.delete(id);
+    drop(id, "voice", "the episode's narration would run past one request");
+  }
   const survivors = assignSections(chosen.selected.filter((sel) => keptIds.has(sel.item.id)));
   if (survivors.length < VOICE_LIMITS.items.floor) {
     // Extraction and writing failures are infrastructure; voice drops are editorial.
