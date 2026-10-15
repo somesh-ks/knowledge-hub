@@ -1,11 +1,12 @@
-import { contrastRatio, hexToOklch, mixHex } from "../../color.js";
+import { contrastRatio, hexToOklch, mixHex, oklchToHex } from "../../color.js";
+import { type CoverMode, holdContrast, toneFor } from "../../mode.js";
 import { schemeFor } from "../../season.js";
 import { n } from "../../svg.js";
 
 export { circle, polygon, rect } from "../../templates/kit.js";
 
 /**
- * Paper weeklies: the week's cover is printed on the month's palest colour, so it reads light next to
+ * Paper weeklies: the week's cover is printed on a dimmed stock of the month's palest colour, so it reads light next to
  * the dark daily and the mid-tone on-demand plate. Five flat colours, all from the month's scheme:
  * paper P, ink K (darkest), spot D (the most chromatic colour at 3:1 on paper), tint T (the most
  * chromatic pale colour, kept soft) and haze H (paper half way to the tint).
@@ -26,14 +27,33 @@ const most = (xs: string[]): string => {
   return best;
 };
 
-export function paper(date: string): Paper {
+/** Paper lightness per theme: a soft, dimmed stock rather than white, a step darker on a dark page. */
+export const PAPER_L: Record<CoverMode, number> = { light: 0.88, dark: 0.8 };
+/** How far the tint sits below the paper, so tint shapes read as printed, not as highlights. */
+const TINT_STEP = 0.09;
+
+const atL = (hex: string, l: number, minC = 0): string => {
+  const o = hexToOklch(hex);
+  return oklchToHex({ ...o, l, c: Math.max(o.c, minC) });
+};
+
+export function paper(date: string, mode: CoverMode): Paper {
   const [year, month] = date.split("-").map(Number) as [number, number];
   const colors = [...schemeFor(year, month).colors].sort((a, b) => L(a) - L(b));
-  const P = colors[colors.length - 1] as string;
-  const K = colors[0] as string;
-  const D = most(colors.slice(1).filter((c) => contrastRatio(P, c) >= 3));
-  const T = most(colors.filter((c) => L(c) >= 0.82 && L(c) <= 0.93));
-  return { P, K, D, T, H: mixHex(P, T, 0.45) };
+  const pale = colors[colors.length - 1] as string;
+  const P = atL(pale, PAPER_L[mode], 0.02);
+  const T = atL(
+    most(colors.filter((c) => L(c) >= 0.82 && L(c) <= 0.93)),
+    PAPER_L[mode] - TINT_STEP,
+  );
+  const D = most(colors.slice(1).filter((c) => contrastRatio(pale, c) >= 3));
+  return {
+    P,
+    K: holdContrast(toneFor(colors[0] as string, mode), P, 7),
+    D: holdContrast(toneFor(D, mode), P, 3),
+    T,
+    H: mixHex(P, T, 0.45),
+  };
 }
 
 export const SIZE = 1024;

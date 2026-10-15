@@ -7,10 +7,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
-import { mixHex } from "../../color.js";
 import { buildContext } from "../../context.js";
 import { RESVG_FONT_OPTIONS } from "../../fonts.js";
-import { type CoverMode, holdContrast, toneFor } from "../../mode.js";
+import type { CoverMode } from "../../mode.js";
 import { type Paper, paper } from "./kit.js";
 import { STYLES, type Style } from "./styles.js";
 
@@ -25,18 +24,7 @@ const MONTHS = [
   { label: "Jan", date: "2027-01-10" },
 ] as const;
 
-function colors(date: string, mode: CoverMode): Paper {
-  const base = paper(date);
-  const P = toneFor(base.P, mode);
-  const T = toneFor(base.T, mode);
-  return {
-    P,
-    K: holdContrast(toneFor(base.K, mode), P, 7),
-    D: holdContrast(toneFor(base.D, mode), P, 3),
-    T,
-    H: mixHex(P, T, 0.45),
-  };
-}
+const colors = (date: string, mode: CoverMode): Paper => paper(date, mode);
 
 function cover(style: Style, date: string, mode: CoverMode, seed = 1) {
   const { ctx } = buildContext(
