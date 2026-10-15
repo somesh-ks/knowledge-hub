@@ -256,9 +256,10 @@ describe("variants", () => {
     }
   });
 
-  // The first monthly weeklies read as one more daily in a grid. Each series now keeps its own
-  // lightness: dark dailies, light on-demand mattes and paper weeklies, in both themes.
-  it("keeps every daily darker than the weeklies and on-demand covers of its month", () => {
+  // The first monthly weeklies read as one more daily in a grid; the fix then set dark dailies beside
+  // paper weeklies, and the grid stopped reading as one set. Each series keeps its own tint of one
+  // paper: close together, in order, in both themes.
+  it("keeps the daily, on-demand and weekly grounds of a month close together and in order", () => {
     const groundL = (kind: CoverKind, month: string, mode: "light" | "dark", seed: number) => {
       const meta: CoverMeta = { date: `${month}-14`, kind, id: `${month}-${seed}`, mode };
       const s: CoverSpec = { template: "band", palette: "ultramarine", seed };
@@ -268,12 +269,13 @@ describe("variants", () => {
     for (const mode of ["light", "dark"] as const) {
       for (const month of ["2026-10", "2026-11", "2026-12", "2027-01"]) {
         const seeds = Array.from({ length: 40 }, (_, n) => n * 7919 + 13);
-        const daily = Math.max(...seeds.map((s) => groundL("regular", month, mode, s)));
-        const others = seeds.flatMap((s) => [
-          groundL("weekly", month, mode, s),
-          groundL("on-demand", month, mode, s),
-        ]);
-        expect(Math.min(...others) - daily, `${mode} ${month}`).toBeGreaterThanOrEqual(0.1);
+        const [daily, onDemand, weekly] = (["regular", "on-demand", "weekly"] as const).map(
+          (kind) => seeds.map((s) => groundL(kind, month, mode, s)),
+        ) as [number[], number[], number[]];
+        const label = `${mode} ${month}`;
+        expect(Math.min(...onDemand) - Math.max(...daily), label).toBeGreaterThanOrEqual(0.04);
+        expect(Math.min(...weekly) - Math.max(...onDemand), label).toBeGreaterThanOrEqual(0.04);
+        expect(Math.max(...weekly) - Math.min(...daily), label).toBeLessThanOrEqual(0.15);
       }
     }
   });

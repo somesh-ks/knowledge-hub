@@ -1,10 +1,10 @@
 import { isoWeek, MONTH_NAMES, rangeLabel, yearLabel } from "./calendar.js";
 import { layoutLockup, MARGIN_UNITS } from "./lockup.js";
-import { type CoverMode, holdContrast, toneFor, tonePalette } from "./mode.js";
+import { tonePalette } from "./mode.js";
 import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
-import { type Dress, dress, isMonthly, schemeFor, TYPE_CONTRAST } from "./season.js";
-import { paper, paperPalette, stock, stockPalette } from "./series/weekly/kit.js";
+import { type Dress, isMonthly, schemeFor } from "./season.js";
+import { paper, paperPalette, stock, stockPalette } from "./series/paper.js";
 import { pad } from "./svg.js";
 import type { CoverKind, CoverMeta, CoverSpec, Ctx, Palette, Rect, Variant } from "./types.js";
 
@@ -47,39 +47,22 @@ function coverDress(
   const { year, month } = parseDate(meta.date);
   const variant = variantOf(meta.kind, monthly);
   const base = getPalette(spec.palette);
-  if (monthly && variant === "weekly") {
-    // Paper weeklies carry their own tones for each theme, so they skip the generic toning.
-    const p = paper(schemeFor(year, month), meta.mode ?? "light");
+  if (monthly) {
+    // Monthly covers print on the month's paper in its inks, each series on its own close tint, and
+    // carry their own tones for each theme, so they skip the generic toning.
+    const mode = meta.mode ?? "light";
+    const scheme = schemeFor(year, month);
+    if (variant === "plate") {
+      const matte = stock(scheme, mode);
+      const { palette: pal, type } = stockPalette(base, paper(scheme, mode), matte);
+      return { pal, variant, season: { palette: pal, type, matte } };
+    }
+    const p = paper(scheme, mode, variant === "weekly" ? "weekly" : "daily");
     const pal = paperPalette(base, p);
     return { pal, variant, season: { palette: pal, type: p.K } };
   }
-  if (monthly && variant === "plate") {
-    // On-demand covers print on the month's stock in the same inks as the paper weekly.
-    const mode = meta.mode ?? "light";
-    const scheme = schemeFor(year, month);
-    const matte = stock(scheme, mode);
-    const { palette: pal, type } = stockPalette(base, paper(scheme, mode), matte);
-    return { pal, variant, season: { palette: pal, type, matte } };
-  }
-  const season = monthly ? dress(schemeFor(year, month), spec) : undefined;
-  const pal = season ? season.palette : variant === "episode" ? invertPalette(base) : base;
-  return meta.mode ? forMode({ pal, variant, season }, meta.mode) : { pal, variant, season };
-}
-
-/**
- * The cover as the app's theme draws it: every colour toned for the mode, then each contrast rule
- * held again: the figure on its ground and the type on it. Weeklies and on-demand covers carry
- * their own tones for each theme and skip this.
- */
-function forMode(
-  dressed: { pal: Palette; variant: Variant; season: Dress | undefined },
-  mode: CoverMode,
-): { pal: Palette; variant: Variant; season: Dress | undefined } {
-  const { variant, season } = dressed;
-  const pal = tonePalette(dressed.pal, mode);
-  if (!season) return { pal, variant, season };
-  const type = holdContrast(toneFor(season.type, mode), pal.ground, TYPE_CONTRAST);
-  return { pal, variant, season: { palette: pal, type } };
+  const pal = variant === "episode" ? invertPalette(base) : base;
+  return { pal: meta.mode ? tonePalette(pal, meta.mode) : pal, variant, season: undefined };
 }
 
 /**
