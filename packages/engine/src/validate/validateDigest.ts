@@ -71,6 +71,11 @@ export interface ValidateContext {
    * a custom topic's section is not checked, which is right for an old digest whose topic was removed.
    */
   topics?: TopicsFile | null | undefined;
+  /**
+   * Most items outside the sections with their own allowance. Defaults to the kind's cap (12,
+   * weekly 18); a briefing sized by the owner's length passes the digest's hard cap instead.
+   */
+  cap?: number;
   linter: Linter;
 }
 
@@ -130,7 +135,7 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
   const allowanceCount = [...allowanceBySection.values()].reduce((sum, n) => sum + n, 0);
   const mainCount = digest.items.length - allowanceCount;
-  const cap = capFor(digest.kind);
+  const cap = context.cap ?? capFor(digest.kind);
   const onlyTech = [...allowanceBySection.keys()].every((section) => section === TECH_SECTION);
   if (mainCount > cap) {
     add(

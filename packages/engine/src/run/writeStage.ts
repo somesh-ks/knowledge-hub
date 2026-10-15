@@ -20,6 +20,7 @@ import type { ExtractedText } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
+import { TASTE_LIMITS, type TasteProfile, tasteProfile } from "../profile/tasteFit.js";
 import type { Taste } from "../profile/tasteNote.js";
 import {
   tasteHeadlines,
@@ -54,7 +55,7 @@ import {
 import { generalCandidates, generalIdsFor } from "./generalScope.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
-import { capForLength } from "./scheduleSize.js";
+import { storiesForMinutes } from "./scheduleSize.js";
 import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
 import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
@@ -85,6 +86,8 @@ interface PassContext {
   /** The owner's votes as source and domain preferences, and the headlines the writer is told of. */
   votePrefs: VotePreferences;
   taste: Taste;
+  /** What the owner liked and disliked, for Jev's taste check; null below its minimum of signals. */
+  tasteProfile: TasteProfile | null;
   /** The general news topics that are switched on, for the pass level of their feeds' counters. */
   generalTopics: ReturnType<typeof activeGeneralFrom>;
   /** The schedule and run mode, which say what general topics each pass publishes. */
@@ -134,6 +137,7 @@ export async function writeStage(
     sourceStats: await readSourceStats(deps.root),
     votePrefs,
     taste,
+    tasteProfile: tasteProfile(profile),
     generalTopics: activeGeneralFrom(topics),
     schedule: fullSchedule,
     mode: plan.mode,
@@ -207,7 +211,7 @@ async function writePass(
   for (const id of judged.unjudged) drop(id, "judge", "no judgment");
 
   const layer: TopicLayer = { topics: customTopics, fits: judged.topic_fits ?? {} };
-  const scored: ScoredItem[] = [];
+  const base: ScoredItem[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (!item) continue;
@@ -215,13 +219,30 @@ async function writePass(
       drop(item.id, "select", "already chosen for an earlier digest of this run");
       continue;
     }
-    scored.push(
-      withVoteWeight(
-        withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
-        votePrefs,
-      ),
+    base.push(
+      withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
     );
   }
+  // Jev's taste check, for the strongest candidates only: the change matters near the cut.
+  const tasteFits =
+    context.tasteProfile && runtime.tasteFitter
+      ? await runtime.tasteFitter.fit(
+          [...base]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, TASTE_LIMITS.max_items)
+            .map((candidate) => candidate.item),
+          context.tasteProfile,
+        )
+      : new Map<string, number>();
+  if (tasteFits.size > 0)
+    deps.log.info("taste check", {
+      pass: pass.id,
+      answered: tasteFits.size,
+      model: runtime.tasteFitter?.model,
+    });
+  const scored = base.map((candidate) =>
+    withVoteWeight(candidate, votePrefs, tasteFits.get(candidate.item.id)),
+  );
 
   // The general topics this pass publishes (not in its podcast's skip list) add their judged
   // stories as candidates of sections of their own. They are judged already (judgeGeneral).
@@ -251,11 +272,19 @@ async function writePass(
     // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
     // the weekly podcast's own length.
     cap:
+      (pass.kind === "regular" && lengthMinutes !== null) || pass.kind === "weekly"
+        ? VOICE_LIMITS.items.hardMax
+        : capFor(pass.kind),
+    total:
       pass.kind === "regular" && lengthMinutes !== null
-        ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, lengthMinutes)
+        ? storiesForMinutes(lengthMinutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax)
         : pass.kind === "weekly"
-          ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, weeklyLengthMinutes)
-          : capFor(pass.kind),
+          ? storiesForMinutes(
+              weeklyLengthMinutes,
+              VOICE_LIMITS.items.floor,
+              VOICE_LIMITS.items.hardMax,
+            )
+          : VOICE_LIMITS.items.hardMax,
     weights: preferences.weights,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.

@@ -20,7 +20,7 @@ export interface JevClientLike {
 
 export interface JevJudgeOptions {
   client: JevClientLike;
-  /** Defaults to the `jev-latest` alias. Pin a versioned id such as `jev-1.13.0` once thresholds are tuned. */
+  /** Defaults to DEFAULT_JEV_MODEL, a pinned version, so an alias moving never changes answers unseen. */
   model?: string;
   /** In-flight requests. Jev allows far more; 8 keeps one run polite. */
   concurrency?: number;
@@ -32,7 +32,11 @@ export interface JevJudgeOptions {
   secrets?: readonly string[];
 }
 
-export const DEFAULT_JEV_MODEL = "jev-latest";
+/**
+ * Jev 1.14 (October 14, 2026), named by version: `jev-latest` still points to 1.13 and an alias
+ * moves without a code change. A new version changes judgment cache keys, so items are judged afresh once.
+ */
+export const DEFAULT_JEV_MODEL = "jev-1.14.0";
 export const DEFAULT_JEV_CONCURRENCY = 8;
 
 export interface JevUsage {

@@ -17,6 +17,7 @@ import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
 import { meterChat, meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { createWriterLlm } from "../llm/writerLlm.js";
+import { TasteFitter } from "../profile/tasteFit.js";
 import { type Grounder, JevGrounder } from "../validate/grounding.js";
 import type { VoiceConfig } from "../voice/voice.js";
 import { NebiusWriter } from "../write/nebiusWriter.js";
@@ -51,6 +52,8 @@ export interface ApiRuntime {
    * then waits for a run that has one.
    */
   sampleJudge?: Judge | null;
+  /** Jev's check of candidates against the owner's taste (profile/tasteFit.ts). Null without a Jev key. */
+  tasteFitter?: TasteFitter | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
@@ -100,6 +103,7 @@ export function createApiRuntime(
   let combinedJudge: CombinedJudge | null = null;
   let generalJudge: GeneralJudge | null = null;
   let sampleJudge: Judge | null = null;
+  let tasteFitter: TasteFitter | null = null;
   if (env.TYPESAFE_API_KEY) {
     const rawJev = createJevClient(env);
     const jevClient = spend ? meterJev(rawJev, spend.meter) : rawJev;
@@ -116,6 +120,7 @@ export function createApiRuntime(
     judge = new FallbackJudge(jevJudge, nebiusJudge, log);
     sampleJudge = jevJudge;
     grounder = new JevGrounder({ client: jevClient, log, secrets });
+    tasteFitter = new TasteFitter({ client: jevClient, log, secrets });
   } else {
     log.warn(
       "TYPESAFE_API_KEY is not set: judging with the Nebius fallback judge (lower trust) and skipping the grounding check; the digest will be unverified",
@@ -133,6 +138,7 @@ export function createApiRuntime(
     combinedJudge,
     generalJudge,
     sampleJudge,
+    tasteFitter,
     extract: (item) => extractFullText(item, { scrape, log }),
     judgeFailures,
     usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),

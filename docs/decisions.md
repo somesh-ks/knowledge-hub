@@ -127,7 +127,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
 | D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
-| D118 | Covers are drawn at medium chroma (OKLCH 0.12 or less); a monthly weekly is mounted on its month's palest colour, a frame no daily has | active; amends D110 |
+| D118 | Jev 1.14.0 is pinned by version; Jev checks the strongest candidates against the owner's taste (votes and opens) and that answer replaces the source-vote nudge, within the same 15% | active; amends D3, D108 |
+| D119 | Covers are drawn at medium chroma (OKLCH 0.12 or less); a monthly weekly is mounted on its month's palest colour, a frame no daily has | active; amends D110 |
 
 ---
 
@@ -1313,7 +1314,19 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: saving a newer Claude model fails while Anthropic's list is down.
 - Rejected: no CDN cache (every page load would call both providers); accepting any `claude-` id unchecked (the owner chose the live check).
 
-## D118: medium-chroma covers, weeklies on a pale matte
+## D118: Jev 1.14 pinned, and a taste check by Jev
+
+- Date: 2026-10-15 (the owner: "keep a lean yet powerful mechanism for us. if you are using a llm, use a smaller model to keep costs low and accurate. using jev can also be useful with new jev upgrades (make sure we use that version)")
+- Decision:
+  - The judge, topic judge, general judge and grounder name `jev-1.14.0` (`DEFAULT_JEV_MODEL`). `jev-latest` still points to 1.13.0, and an alias moves without a code change. The SDK is 0.7.0.
+  - A story opened at its source is stored as an open (`profile.opens`, newest 300). Opens wait on the device for a vote batch, or go alone once a day old, so they never cost a commit per visit.
+  - From ten votes and opens, one Jev Noul per candidate (the top 60 by score) asks whether the owner would want it, given their newest liked, opened and disliked headlines. The probability moves the score by at most 15% either way and replaces the source-vote multiplier for that story; without an answer the source votes apply.
+  - `loop/eval.ts` labels importance with the pinned Jev and once with `jev-1.13.0`, and reports how many labels moved.
+- Why: votes keyed on source and domain miss what a story is about, and the judge never saw the owner's taste. Jev is the cheapest model here (USD 0.042 per million input tokens, output free) and returns calibrated probabilities, so no new LLM is needed.
+- Cost: about 60 Jev requests a pass; the judgment cache is keyed by model, so every item is judged afresh once after the pin.
+- Rejected: an LLM recommender or embeddings (one reader, too few interactions to tune); a discovery slot in selection (the taste check is neutral on unrated sources, and every topic already gets its best story first since #144); a store of its own for opens (every save is already a commit; riding the vote batch costs nothing new).
+- Revisit if: the eval shows 1.14 moving many importance labels, or the taste check's answers sit near 0.5 for every story.
+## D119: medium-chroma covers, weeklies on a pale matte
 
 - Date: 2026-10-15 (the owner: "the color palette of the album arts is too saturated, keep it medium so it is not too much on the eye when multiple albums are viewed at the same time", and "make sure weekly and daily covers are easily distinguishable")
 - Decision:

@@ -55,9 +55,15 @@ export interface SelectInput {
   floor: number;
   /**
    * Requested cap for everything outside Tech releases; never raised above the hard cap for the
-   * kind (12, weekly 18). Tech releases has its own allowance on top of it.
+   * kind (12, weekly 18) unless `total` sizes the briefing, when the owner's length decides.
+   * Tech releases has its own allowance on top of it.
    */
   cap: number;
+  /**
+   * Stories in every section together, Tech releases and the other allowances included: the
+   * briefing's length in stories. Absent means the digest's hard cap.
+   */
+  total?: number;
   /**
    * Preference weights. Only the weekly kind needs them, to find the category median for the
    * reserved off-taste slot. Without them no slot is reserved.
@@ -193,17 +199,18 @@ export function takeOwnSections(
 ): { chosen: Candidate[]; over: Candidate[] } {
   const perSection = new Map<string, number>();
   const chosen: Candidate[] = [];
-  const over: Candidate[] = [];
-  for (const candidate of own) {
+  // Each section's best story first, so a short briefing still hears every one of them.
+  const firsts = own.filter(
+    (candidate, i) => own.findIndex((other) => other.home === candidate.home) === i,
+  );
+  for (const candidate of [...firsts, ...own.filter((c) => !firsts.includes(c))]) {
     const count = perSection.get(candidate.home) ?? 0;
     if (count < allowanceFor(candidate.home) && chosen.length < room) {
       chosen.push(candidate);
       perSection.set(candidate.home, count + 1);
-    } else {
-      over.push(candidate);
     }
   }
-  return { chosen, over };
+  return { chosen, over: own.filter((candidate) => !chosen.includes(candidate)) };
 }
 
 /**
@@ -295,8 +302,9 @@ export function eligibility(
  *  2. Drop items below the score threshold, and every GitHub release but the newest of its
  *     repository.
  *  3. Split what is left into two pools: Tech releases candidates, and everything else.
- *  4. Everything else: walk by rank taking at most 3 per home section up to the cap, then let
- *     overflow fill any remaining room, so a thin section never leaves slots empty.
+ *  4. Everything else: take the best item of each category first, then walk by rank taking at
+ *     most 3 per home section up to the cap, then let overflow fill any remaining room, so a thin
+ *     section never leaves slots empty.
  *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
  *     the median of preferences, so taste does not narrow week over week.
  *  6. Sections with an allowance of their own (Tech releases, and each section a custom topic
@@ -308,7 +316,7 @@ export function eligibility(
  */
 export function selectItems(input: SelectInput): SelectResult {
   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
-  const limit = Math.min(input.cap, capFor(input.kind));
+  const total = Math.min(input.total ?? VOICE_LIMITS.items.hardMax, VOICE_LIMITS.items.hardMax);
   const dropped: DroppedItem[] = [];
   const candidates: Candidate[] = [];
 
@@ -333,6 +341,11 @@ export function selectItems(input: SelectInput): SelectResult {
   const ranked = releases.kept.sort(compareCandidates);
   const main = ranked.filter((candidate) => !hasOwnSection(candidate));
   const own = ranked.filter(hasOwnSection);
+  // The main sections leave room for one story from each section with an allowance of its own.
+  const ownSections = new Set(own.map((candidate) => candidate.home)).size;
+  // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
+  const kindCap = input.total === undefined ? capFor(input.kind) : VOICE_LIMITS.items.hardMax;
+  const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownSections));
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();
@@ -340,8 +353,18 @@ export function selectItems(input: SelectInput): SelectResult {
     chosen.add(candidate);
     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
   };
+  // Every topic with a story that cleared the bar gets its best one first, so a strong section
+  // cannot crowd a selected topic out of the briefing.
+  const covered = new Set<string>();
   for (const candidate of main) {
     if (chosen.size >= limit) break;
+    if (covered.has(candidate.category)) continue;
+    covered.add(candidate.category);
+    take(candidate);
+  }
+  for (const candidate of main) {
+    if (chosen.size >= limit) break;
+    if (chosen.has(candidate)) continue;
     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
   }
   for (const candidate of main) {
@@ -369,7 +392,7 @@ export function selectItems(input: SelectInput): SelectResult {
     }
   }
 
-  const ownTaken = takeOwnSections(own, VOICE_LIMITS.items.hardMax - chosen.size);
+  const ownTaken = takeOwnSections(own, total - chosen.size);
   const chosenTech = ownTaken.chosen;
   if (chosen.size + chosenTech.length < input.floor) {
     return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };

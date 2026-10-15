@@ -33,6 +33,13 @@ export const BLOCKS_KEY = "dispatch:story-blocks";
 export const HEADLINE_MAX = 200;
 /** Sent votes remembered so a story shows its mark again; the oldest beyond this are forgotten. */
 const KEEP_SENT = 400;
+/**
+ * How long an open may wait for a vote or a stop to ride along with. Opens are weak signals and
+ * every save is a commit, so they never make a request of their own sooner than this.
+ */
+export const OPENS_WAIT_MS = 24 * 60 * 60 * 1000;
+/** Opens kept on the device; the oldest beyond this are forgotten, sent or not. */
+const KEEP_OPENS = 100;
 
 /** The ops as packages/core/src/configOps.ts defines them. */
 export type VoteOp = Extract<ConfigOp, { op: "profile.vote" }>;
@@ -55,15 +62,32 @@ export interface StoredVote extends StoryRef {
   sent: boolean;
 }
 
+/** A story opened at its source, kept until it goes and then forgotten. */
+export interface StoredOpen extends StoryRef {
+  /** ISO time of the open. */
+  at: string;
+}
+
 export interface VoteState {
   /** When the oldest vote not yet sent was given, in ms; null while every vote is sent. */
   waiting_since: number | null;
   votes: Record<string, StoredVote>;
+  /** Opens not yet sent, by story. */
+  opens: Record<string, StoredOpen>;
 }
 
-export const emptyVotes = (): VoteState => ({ waiting_since: null, votes: {} });
-
 const isText = (value: unknown): value is string => typeof value === "string" && value !== "";
+
+export const emptyVotes = (): VoteState => ({ waiting_since: null, votes: {}, opens: {} });
+
+const isRef = (value: Partial<StoredOpen> | null | undefined): value is StoredOpen =>
+  !!value &&
+  isText(value.story_id) &&
+  isText(value.url) &&
+  isText(value.headline) &&
+  isText(value.topic) &&
+  isText(value.source_id) &&
+  isText(value.at);
 
 /** The stored state, or an empty one when the text is missing or not ours. */
 export function parseVotes(raw: string | null | undefined): VoteState {
@@ -86,6 +110,8 @@ export function parseVotes(raw: string | null | undefined): VoteState {
         state.votes[id] = vote;
     }
     if (typeof data.waiting_since === "number") state.waiting_since = data.waiting_since;
+    if (typeof data.opens === "object" && data.opens !== null)
+      for (const [id, open] of Object.entries(data.opens)) if (isRef(open)) state.opens[id] = open;
   } catch {
     // Malformed storage reads as no votes.
   }
@@ -123,23 +149,50 @@ export function press(
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(KEEP_SENT);
   for (const entry of sent) delete votes[entry.story_id];
-  return { waiting_since: state.waiting_since ?? now, votes };
+  return { ...state, waiting_since: state.waiting_since ?? now, votes };
 }
+
+/** Notes that a story was opened at its source. It waits for the next request (pendingOps). */
+export function recordOpen(state: VoteState, story: StoryRef, now: number): VoteState {
+  const opens = {
+    ...state.opens,
+    [story.story_id]: {
+      ...story,
+      headline: story.headline.slice(0, HEADLINE_MAX),
+      at: new Date(now).toISOString(),
+    },
+  };
+  const old = Object.values(opens)
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(KEEP_OPENS);
+  for (const entry of old) delete opens[entry.story_id];
+  return { ...state, opens };
+}
+
+/** When the oldest open waiting was made, in ms, or null when none waits. */
+const oldestOpen = (state: VoteState): number | null => {
+  const times = Object.values(state.opens).map((open) => Date.parse(open.at));
+  return times.length === 0 ? null : Math.min(...times);
+};
 
 /** Milliseconds until the batch is due (0 when it is), or null when nothing waits. */
 export function dueIn(state: VoteState, now: number): number | null {
-  if (!hasUnsent(state)) return null;
-  return Math.max(0, (state.waiting_since ?? now) + SEND_AFTER_MS - now);
+  const opened = oldestOpen(state);
+  const votesDue = hasUnsent(state) ? (state.waiting_since ?? now) + SEND_AFTER_MS : Infinity;
+  const opensDue = opened === null ? Infinity : opened + OPENS_WAIT_MS;
+  const due = Math.min(votesDue, opensDue);
+  return due === Infinity ? null : Math.max(0, due - now);
 }
 
 const size = (value: unknown): number => JSON.stringify(value).length;
 
 /**
- * The ops that carry every unsent vote, oldest first: up to MAX_PER_OP in each, and each small
- * enough to go in a request on its own (long headlines and addresses would otherwise make an op the
- * server refuses every time, holding every later vote back with it).
+ * The ops that carry every unsent vote, oldest first: up to MAX_PER_OP votes and opens in each, and
+ * each small enough to go in a request on its own (long headlines and addresses would otherwise make
+ * an op the server refuses every time, holding every later vote back with it). Opens go only with a
+ * vote, or alone once the oldest has waited OPENS_WAIT_MS.
  */
-export function pendingOps(state: VoteState): VoteOp[] {
+export function pendingOps(state: VoteState, now: number = Date.now()): VoteOp[] {
   const unsent = Object.values(state.votes)
     .filter((vote) => !vote.sent)
     .sort((a, b) => a.at.localeCompare(b.at));
@@ -160,10 +213,33 @@ export function pendingOps(state: VoteState): VoteOp[] {
       current.votes.length >= MAX_PER_OP ||
       size(current) + size(given) + 1 > MAX_BODY_CHARS
     ) {
-      current = { op: "profile.vote", votes: [] };
+      current = { op: "profile.vote", votes: [], opens: [] };
       ops.push(current);
     }
     current.votes.push(given);
+  }
+  const opened = oldestOpen(state);
+  if (opened === null || (unsent.length === 0 && now - opened < OPENS_WAIT_MS)) return ops;
+  const opens = Object.values(state.opens).sort((a, b) => a.at.localeCompare(b.at));
+  for (const open of opens) {
+    const given = {
+      story_id: open.story_id,
+      url: open.url,
+      headline: open.headline.slice(0, HEADLINE_MAX),
+      topic: open.topic,
+      source_id: open.source_id,
+      at: open.at,
+    };
+    const count = current ? current.votes.length + (current.opens?.length ?? 0) : 0;
+    if (
+      current === null ||
+      count >= MAX_PER_OP ||
+      size(current) + size(given) + 1 > MAX_BODY_CHARS
+    ) {
+      current = { op: "profile.vote", votes: [], opens: [] };
+      ops.push(current);
+    }
+    current.opens = [...(current.opens ?? []), given];
   }
   return ops;
 }
@@ -212,6 +288,13 @@ export function gapLeft(last: number, now: number): number {
 }
 
 function withSent(state: VoteState, op: VoteOp, sent: boolean): VoteState {
+  const opens = { ...state.opens };
+  for (const given of op.opens ?? []) {
+    const stored = opens[given.story_id];
+    // Sent opens are forgotten; one that did not go comes back, unless opened again meanwhile.
+    if (sent && stored?.at === given.at) delete opens[given.story_id];
+    if (!sent && (!stored || stored.at <= given.at)) opens[given.story_id] = given;
+  }
   const votes = { ...state.votes };
   for (const given of op.votes) {
     const stored = votes[given.story_id];
@@ -220,7 +303,7 @@ function withSent(state: VoteState, op: VoteOp, sent: boolean): VoteState {
   }
   const waiting = Object.values(votes).filter((vote) => !vote.sent);
   const oldest = waiting.reduce((min, vote) => Math.min(min, Date.parse(vote.at)), Infinity);
-  return { waiting_since: waiting.length === 0 ? null : oldest, votes };
+  return { waiting_since: waiting.length === 0 ? null : oldest, votes, opens };
 }
 
 /**

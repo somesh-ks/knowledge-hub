@@ -35,6 +35,7 @@ import {
   pendingOps,
   press,
   pressedOf,
+  recordOpen,
   type StoryRef,
   stopFailure,
   VOTES_KEY,
@@ -361,6 +362,12 @@ export function handle(button: Element): void {
     mark(controls.dataset.storyId ?? "", state);
     schedule();
   } else block(controls);
+}
+
+/** A story's link was followed: the open waits on the device for the next request. */
+export function opened(controls: HTMLElement): void {
+  save(recordOpen(load(), refOf(controls), Date.now()));
+  schedule();
 }
 
 /**
