@@ -59,6 +59,16 @@ jobs:
           cat eval.md >> "$GITHUB_STEP_SUMMARY"
           # The table is the result; a failing metric is a finding, not a broken build.
           echo "eval exit $status"
+      - name: Show why the branch's episodes score what they do
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          for episode in rewrites/after-*/; do
+            [ -d "$episode" ] && npx tsx loop/inspect.ts "${episode%/}" | tee -a inspect.md
+          done
       - name: Keep the rewritten episodes for reading
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -67,5 +77,6 @@ jobs:
           path: |
             rewrites/
             eval.md
+            inspect.md
           if-no-files-found: ignore
           retention-days: 14
