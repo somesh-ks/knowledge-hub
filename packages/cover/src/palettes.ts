@@ -41,7 +41,7 @@ function readPalette(id: string, raw: unknown): TokenPalette {
 }
 
 /**
- * The most chroma any cover colour may carry. A grid of covers past it glares (D119), and every
+ * The most chroma any cover colour may carry. A grid of covers past it glares (D121), and every
  * monthly scheme draws only from these palettes, so the cap holds for every month to come.
  */
 export const MAX_CHROMA = 0.12;

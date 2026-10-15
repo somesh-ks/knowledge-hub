@@ -33,8 +33,17 @@ const FIELD_RULES = [
   [
     `- spoken: the same story told aloud by a host, ${VOICE_LIMITS.spokenMinSentences} to ${VOICE_LIMITS.spokenSentences} sentences, ${VOICE_LIMITS.spokenMinWords} to ${VOICE_LIMITS.spokenWords} words and at most ${VOICE_LIMITS.spokenChars} characters in total.`,
     'Conversational but not chatty: use contractions and open with a natural lead-in instead of reading the headline as a title ("Google has a new Pixel, and the headline feature is the screen.").',
-    'Say numbers the way a person says them ("about a hundred and twenty lines", "forty percent"), but write years as digits.',
-    'Give the catch as a turn ("The catch: ...").',
+    'Open on the news itself, never on a setup such as "Here\'s a..." or "Most teams..., but".',
+    "Lead with the most surprising concrete fact, and say in a clause what any unfamiliar product, person or term is, so a listener who never heard of it follows on first hearing.",
+    "Every sentence adds a fact the earlier ones did not: never restate the opening in other words.",
+    'Say at most two numbers, the way a person says them ("about a hundred and twenty lines", "forty percent"), but write years as digits. Leave out version strings, model ids, handles and plan names beyond the product\'s own name: they cannot be followed by ear.',
+    // The judge heard nearly every story of the October weekly end on a hedge ("still
+    // experimental", "a rerun would likely differ"), because every catch closed its story.
+    // Told to end on what the listener can do, every story then closed "so a team can..." and the
+    // judge heard one formula (loop/results/iteration-8.md).
+    'End on the story\'s own strongest fact, on what happens next, or on what it lets a design engineer do. Mix these across a reply, and never end on "so a team can" or a generic warning.',
+    'Give the catch only when it would change a reader\'s decision, and say it before the ending ("It only works..., so..."), never as the last line.',
+    "No two stories in a reply open or close with the same words or the same sentence shape.",
     'No "in this story", no hype, no questions to the listener, no "we" or "our".',
     "Use only facts that are in your own summary: no new number, name, date or claim.",
   ].join(" "),
@@ -50,6 +59,10 @@ const FIELD_RULES = [
 const FACT_RULES = [
   "Use facts from the source text only. Never add a claim, number, name, date or link that the text does not state.",
   "If the text lacks a detail, leave it out instead of guessing.",
+  // Seen in the October weekly: "The catch: the piece doesn't include new evidence" and a catch
+  // after a missile strike that killed a person.
+  'Tell the news, never review the article: no "the piece", "the post" or "the author doesn\'t say".',
+  "When the news is a death, an attack, a disaster or other harm, tell it plainly and end on the latest fact: no catch and no twist.",
   "Write plain sentences: no markdown, no links, no quotation marks around a field, no labels such as 'Summary:'.",
 ].join(" ");
 
@@ -90,12 +103,23 @@ export function writerUserMessage(
   boundary: string,
   feedback?: string,
   taste?: Taste,
+  others: readonly string[] = [],
 ): string {
   const note = tasteNote(taste, boundary);
   return [
     `Write the headline, summary and spoken version for each of these ${items.length} sources.`,
     "",
     ...items.map((item) => materialBlock(item, boundary)),
+    // Each request sees four stories, so without the rest of the briefing the writer repeated
+    // openings, closings and background across requests (loop/results/iteration-5.md).
+    ...(others.length > 0
+      ? [
+          [
+            "The same episode also airs these stories, written separately. Do not repeat their facts or background; give that room to a fact of your own story, keeping its length. Open and close yours differently:",
+            wrapUntrusted(others.join("\n"), boundary, "other-headlines"),
+          ].join("\n"),
+        ]
+      : []),
     // The owner's note is typed text, so it is delimited like source text (the podcast script does
     // the same for listener feedback).
     ...(feedback

@@ -13,6 +13,8 @@ import {
   TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
+import { isPatchRelease, isReleaseNote, RELEASE_NOTE_SHARE } from "./releaseNotes.js";
+import { sameStoryRepeats } from "./sameStory.js";
 import type { Candidate, ScoredItem, SelectedItem } from "./types.js";
 
 /**
@@ -40,7 +42,11 @@ export type DropReason =
   /** A candidate whose section the scheduled briefing does not cover (config/schedule.json). */
   | "skipped_topic"
   /** An older GitHub release of a repository that has a newer release among the candidates. */
-  | "same_repo_release";
+  | "same_repo_release"
+  /** A patch release, or a release note beyond the briefing's share of them (releaseNotes.ts). */
+  | "release_note"
+  /** The same story as a better-ranked candidate, from another angle or another day (sameStory.ts). */
+  | "same_story";
 
 export interface DroppedItem {
   id: string;
@@ -299,10 +305,11 @@ export function eligibility(
 /**
  * Pick what to publish. Order of rules:
  *  1. Drop items whose most probable option is "none" or a never-publish category.
- *  2. Drop items below the score threshold, and every GitHub release but the newest of its
- *     repository.
+ *  2. Drop items below the score threshold, every GitHub release but the newest of its
+ *     repository, and every story but the best told of one subject (sameStory.ts).
  *  3. Split what is left into two pools: Tech releases candidates, and everything else.
- *  4. Everything else: take the best item of each category first, then walk by rank taking at
+ *  4. Everything else: patch releases never air, and release notes take at most a tenth of the
+ *     cap (at least one). Within that, take the best item of each category first, then walk by rank taking at
  *     most 3 per home section up to the cap, then let overflow fill any remaining room, so a thin
  *     section never leaves slots empty.
  *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
@@ -338,8 +345,28 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const candidate of releases.older) {
     dropped.push({ id: candidate.item.id, reason: "same_repo_release", score: candidate.score });
   }
-  const ranked = releases.kept.sort(compareCandidates);
-  const main = ranked.filter((candidate) => !hasOwnSection(candidate));
+  // A release note never stands for a story told elsewhere: "llm-mistral 0.16 adds Mistral Large 4
+  // support" gives way to the launch itself.
+  const repeats = sameStoryRepeats(
+    releases.kept
+      .sort(compareCandidates)
+      .sort((a, b) => Number(isReleaseNote(a.item)) - Number(isReleaseNote(b.item)))
+      .map((c) => c.item),
+  );
+  const ranked: Candidate[] = [];
+  for (const candidate of releases.kept) {
+    if (repeats.has(candidate.item.id)) {
+      dropped.push({ id: candidate.item.id, reason: "same_story", score: candidate.score });
+    } else ranked.push(candidate);
+  }
+  ranked.sort(compareCandidates);
+  const main: Candidate[] = [];
+  for (const candidate of ranked) {
+    if (hasOwnSection(candidate)) continue;
+    if (isReleaseNote(candidate.item) && isPatchRelease(candidate.item)) {
+      dropped.push({ id: candidate.item.id, reason: "release_note", score: candidate.score });
+    } else main.push(candidate);
+  }
   const own = ranked.filter(hasOwnSection);
   // The main sections leave room for one story from each section with an allowance of its own.
   const ownSections = new Set(own.map((candidate) => candidate.home)).size;
@@ -349,6 +376,10 @@ export function selectItems(input: SelectInput): SelectResult {
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();
+  const releaseRoom = Math.max(1, Math.floor(limit * RELEASE_NOTE_SHARE));
+  const releasesIn = (): number => [...chosen].filter((c) => isReleaseNote(c.item)).length;
+  const fits = (candidate: Candidate): boolean =>
+    !isReleaseNote(candidate.item) || releasesIn() < releaseRoom;
   const take = (candidate: Candidate): void => {
     chosen.add(candidate);
     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
@@ -358,18 +389,18 @@ export function selectItems(input: SelectInput): SelectResult {
   const covered = new Set<string>();
   for (const candidate of main) {
     if (chosen.size >= limit) break;
-    if (covered.has(candidate.category)) continue;
+    if (covered.has(candidate.category) || !fits(candidate)) continue;
     covered.add(candidate.category);
     take(candidate);
   }
   for (const candidate of main) {
     if (chosen.size >= limit) break;
-    if (chosen.has(candidate)) continue;
+    if (chosen.has(candidate) || !fits(candidate)) continue;
     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
   }
   for (const candidate of main) {
     if (chosen.size >= limit) break;
-    if (!chosen.has(candidate)) take(candidate);
+    if (!chosen.has(candidate) && fits(candidate)) take(candidate);
   }
 
   // The reserved slot is one of the capped slots, so it is filled from the same pool. Tech
@@ -380,6 +411,7 @@ export function selectItems(input: SelectInput): SelectResult {
     const reserve = main.find(
       (c) =>
         input.weights !== undefined &&
+        (chosen.has(c) || fits(c)) &&
         isBuiltinCategory(c.category) &&
         input.weights[c.category] < median,
     );
@@ -400,7 +432,9 @@ export function selectItems(input: SelectInput): SelectResult {
 
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
-      dropped.push({ id: candidate.item.id, reason: "over_cap", score: candidate.score });
+      const reason =
+        isReleaseNote(candidate.item) && !fits(candidate) ? "release_note" : "over_cap";
+      dropped.push({ id: candidate.item.id, reason, score: candidate.score });
     }
   }
   for (const candidate of ownTaken.over) {

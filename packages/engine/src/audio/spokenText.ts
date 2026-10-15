@@ -55,12 +55,36 @@ function asSentence(text: string): string {
 }
 
 /**
+ * Words of four letters or more, lowercased, possessive and plural "s" cut: what a headline and a
+ * sentence have in common ("Figma's" is "figma", "systems" is "system").
+ */
+function contentWords(text: string): string[] {
+  return (text.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}.'\u2019-]*/gu) ?? [])
+    .map((word) => word.replace(/['\u2019]s$/, "").replace(/(?<=[^s])s$/, ""))
+    .filter((word) => word.length >= 4);
+}
+
+/**
+ * True when the summary's first sentence already says the headline ("ttok 1.0 defaults to GPT-5
+ * tokenizer" then "ttok 1.0 defaults to the GPT-5 tokenizer family"): read aloud one after the
+ * other, the listener hears the news twice.
+ */
+export function summaryRestatesHeadline(headline: string, summary: string): boolean {
+  const words = contentWords(headline);
+  if (words.length === 0) return false;
+  const first = new Set(contentWords(summary.split(/(?<=[.!?])\s+/)[0] ?? ""));
+  return words.filter((word) => first.has(word)).length / words.length >= 0.5;
+}
+
+/**
  * What the host says for one story. A digest written with a spoken version reads that alone: it
- * already has its own lead-in and carries the headline's news. Older digests read the headline and
- * the summary, as before, and the why line of those that still have one.
+ * already has its own lead-in and carries the headline's news. Without one (an older digest, or a
+ * telling the voice check removed) the host reads the headline and the summary, leaving out a
+ * headline the summary opens by restating, and the why line of a digest that still has one.
  */
 export function itemBlock(item: DigestItem): string {
-  const fields = item.spoken ? [item.spoken] : [item.headline, item.summary, item.why ?? ""];
+  const headline = summaryRestatesHeadline(item.headline, item.summary) ? "" : item.headline;
+  const fields = item.spoken ? [item.spoken] : [headline, item.summary, item.why ?? ""];
   const parts = fields
     .map((field) => toSpeech(field))
     .filter((field) => field.length > 0)

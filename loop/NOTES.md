@@ -220,6 +220,23 @@ did not change.
    the settings"): a length-sized briefing is held to its length; the kind caps apply only to
    unsized and agent-written digests.
 
-Still failing (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
+5. Release notes and the writer (I1, quality), at the owner's word: patch releases never air,
+   release notes take at most a tenth of the main stories; the writer's brief drops the fixed
+   "The catch:" ending and repetition. `loop/rewrite.ts` judges the writer before and after.
+
+6. Repetition at its source, at the owner's word ("go crazy", "iterate until finished"): one
+   telling per story (`score/sameStory.ts`), a spoken telling with a stray number is rewritten
+   before it is dropped, the fallback skips a headline the summary restates, and the writer never
+   reviews the article or puts a catch on hard news. See `results/iteration-6.md`.
+
+7. The judges' reasons (`loop/inspect.ts`): stories no longer end on a hedge, carry at most two
+   numbers and open on the news; a length-sized briefing writes spares so later drops keep its
+   length. See `results/iteration-7.md`.
+
+8. Endings mixed instead of one "so a team can" formula; the length is filled by measured
+   narration, not a story count. See `results/iteration-8.md`. This is the last iteration the
+   brief allows.
+
+Still failing before iteration 5 (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
 scoring policy), quality (the writer stage; the replay does not run it), and the quality judge
 disagrees with itself on about half the episodes.

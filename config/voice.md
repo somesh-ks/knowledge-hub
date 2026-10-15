@@ -6,10 +6,10 @@ Distilled from the house communication playbook and from how good spoken tech ne
 
 - Four beats, in order. What happened. The number that makes it concrete. Why it happened or what it changes. The catch.
 - Plain enough to follow cold. The reader is sharp but may not know this topic. Explain one unfamiliar term in a clause, then move on.
-- Written to be heard. Short sentences, one idea each, in the order a person would say them.
+- Written to be heard. Short sentences, one idea each, in the order a person would say them. Lead with the fact a listener did not know and end on what it changes; every sentence adds something, none restates another.
 - Specific beats general. Name the product, the price, the date, the percentage. Credit people by what they shipped, never with praise.
 - Dry, never excited. Facts carry the weight.
-- The catch comes from the source: a limit, a cost, a missing piece, a date that is still far away. Never an invented opinion. If the source gives none, stop after three sentences.
+- The catch comes from the source: a limit, a cost, a missing piece, a date that is still far away. Never an invented opinion or a generic risk. If the source gives none, stop after three sentences.
 - Curator, not aggregator. A quiet day has few items, or none.
 
 ## Limits
@@ -20,7 +20,7 @@ Distilled from the house communication playbook and from how good spoken tech ne
 - Plain sentences. No bullet lists, headings, markdown or links inside any field.
 - No em dashes, exclamation marks, emoji or rhetorical questions.
 - No "not just X but Y" contrasts. No second-person commands ("you should", "check out").
-- Spoken: the story told aloud by a host, 3 to 5 sentences, 40 to 95 words, 700 characters at most. Contractions are welcome, and it opens with a natural lead-in instead of reading the headline as a title. Numbers are said the way a person says them. The catch comes as a turn ("The catch: ..."). No "in this story", no hype, no questions to the listener, no "we" or "our". It holds no fact that is not in the summary.
+- Spoken: the story told aloud by a host, 3 to 5 sentences, 40 to 95 words, 700 characters at most. Contractions are welcome, and it opens with a natural lead-in instead of reading the headline as a title. At most two numbers, said the way a person says them, and no version strings, model ids or handles beyond the product's name. It opens on the news, never on a setup. It ends on its strongest fact, what happens next or what it lets the listener do, varied from story to story and never on a formula such as "so a team can"; a catch that would change a decision comes before the ending, never as the last line. No "in this story", no hype, no questions to the listener, no "we" or "our". It holds no fact that is not in the summary.
 
 ## Examples
 

@@ -30,11 +30,24 @@ export const FIT_EXPONENT = 1.5;
  * Multiplier for a "coverage" topic (Trending, D40) from the number of distinct outlets that
  * reported the story. One outlet is 0, so such a story never publishes; two is 0.7, rising 0.15
  * per extra outlet to 1 at four. Computed by code from the clustering, at no model cost.
+ *
+ * A topic in SINGLE_OUTLET_TOPICS gives one outlet 0.65 instead: a story that is clearly on it
+ * (judge level 3, curve 0.65) just clears the 0.4 bar, one that is loosely tied does not, and a
+ * story two outlets carried still ranks above it.
  */
-export function coverageFactor(coverage: number | undefined): number {
-  if (coverage === undefined || coverage < 2) return 0;
+export function coverageFactor(coverage: number | undefined, singleOutlet = false): number {
+  if (coverage === undefined || coverage < 2) return singleOutlet ? SINGLE_OUTLET_FACTOR : 0;
   return Math.min(1, 0.55 + 0.15 * (coverage - 1));
 }
+
+/**
+ * Science's feeds are mostly press releases that no second outlet carries (ScienceDaily sent 31
+ * stories in a week, none twice), so under the two-outlet rule Science never aired. The owner
+ * chose to let Science alone take a one-outlet story (D120); the other general topics are well
+ * co-covered and keep the rule.
+ */
+const SINGLE_OUTLET_TOPICS: ReadonlySet<string> = new Set(["science"]);
+const SINGLE_OUTLET_FACTOR = 0.65;
 
 export function fitCurve(fit: number): number {
   return clamp01(fit) ** FIT_EXPONENT;
@@ -62,7 +75,7 @@ export function topicScore(
       : topic.depth === "launch"
         ? launchFactor(entry.launch_scale ?? 0)
         : topic.depth === "coverage"
-          ? coverageFactor(item?.signals.coverage)
+          ? coverageFactor(item?.signals.coverage, SINGLE_OUTLET_TOPICS.has(topic.id))
           : 1;
   const penalty = penaltyFactor(entry.flags);
   return {

@@ -111,7 +111,7 @@ describe("NebiusWriter.write", () => {
     expect(plain.userText(0)).not.toContain("Shorter summaries");
   });
 
-  it("sends at most four items per request", async () => {
+  it("sends at most four items per request, each naming the episode's other stories", async () => {
     const items = Array.from({ length: 9 }, () => material());
     const llm = new FakeLlm(writeAll);
     const result = await new NebiusWriter({ llm, voice }).write(items);
@@ -119,8 +119,12 @@ describe("NebiusWriter.write", () => {
     expect(llm.calls).toHaveLength(3);
     expect(result.written).toHaveLength(9);
     for (let call = 0; call < 3; call++) {
-      expect(llm.userText(call).match(/<<<SOURCE-/g)?.length).toBeLessThanOrEqual(4);
+      expect(llm.userText(call).match(/<<<SOURCE-\w+ id=/g)?.length).toBeLessThanOrEqual(4);
     }
+    // Written four at a time with no view of the rest, the weekly repeated itself across requests.
+    const others = llm.userText(0).split("other-headlines>>>")[1] ?? "";
+    expect(others).toContain(items[8]?.title);
+    expect(others).not.toContain(`${items[0]?.title}\n`);
   });
 
   it("requests low temperature, a schema name and a token cap that scales with the batch", async () => {
@@ -497,13 +501,23 @@ describe("enforceVoice", () => {
       expect(writer.requests).toHaveLength(0);
     });
 
-    it("is dropped, not the item, when it states a number the summary does not", async () => {
-      const writer = scriptedWriter([]);
+    // Dropped at once, the telling fell back to a headline the summary restates, read twice.
+    it("gets one rewrite when it states a number the summary does not, and only then is dropped, not the item", async () => {
       const invented = SPOKEN.replace("about 120 lines", "about 900 lines");
+      const fixed = scriptedWriter([SPOKEN]);
+      const kept = await enforceVoice({
+        written: [{ ...good(m.id), spoken: invented }],
+        materials,
+        writer: fixed,
+        linter,
+      });
+      expect(kept.passed[0]?.item.spoken).toBe(SPOKEN);
+      expect(fixed.requests[0]?.problems.join(" ")).toContain("900");
+
       const out = await enforceVoice({
         written: [{ ...good(m.id), spoken: invented }],
         materials,
-        writer,
+        writer: scriptedWriter([]),
         linter,
       });
       expect(out.dropped).toEqual([]);

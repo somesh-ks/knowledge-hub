@@ -12,6 +12,12 @@ import type { LlmClient } from "./types.js";
 export const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const REQUEST_TIMEOUT_MS = 120_000;
+/**
+ * Tokens added to each request's reply allowance for thinking. Current Claude models think by
+ * default, and thinking counts against max_tokens: with the bare allowance, Claude Sonnet 5.5 spent
+ * it thinking and cut the writer's JSON off mid-object.
+ */
+export const THINKING_HEADROOM = 8_000;
 
 /** An HTTP failure from the Messages API. `status` and `headers` are what withRetry reads. */
 class AnthropicHttpError extends Error {
@@ -64,8 +70,9 @@ export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatAp
         .join("\n\n");
       const payload: Record<string, unknown> = {
         model: body.model,
-        max_tokens: body.max_tokens,
-        temperature: body.temperature,
+        max_tokens: Number(body.max_tokens ?? 0) + THINKING_HEADROOM,
+        // No temperature: Claude Sonnet 5.5 answers 400 "temperature is deprecated for this
+        // model", so every writer call fell through to the Nebius models.
         messages: all
           .filter((message) => message.role !== "system")
           .map((message) => ({ role: message.role, content: message.content })),

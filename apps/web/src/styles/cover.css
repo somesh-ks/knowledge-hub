@@ -44,7 +44,7 @@
   object-fit: cover;
 }
 
-/* Each cover is drawn for both themes (D119); the page shows the one for its own. */
+/* Each cover is drawn for both themes (D121); the page shows the one for its own. */
 .cover-image[data-mode="dark"] {
   display: none;
 }
