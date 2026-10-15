@@ -19,7 +19,7 @@ export interface LiveModel {
   context_length: number | null;
 }
 
-/** The two Claude models, in the order they are offered. */
+/** The Claude models offered when Anthropic's live list cannot be read, in the order offered. */
 export const CLAUDE_OPTIONS: readonly ModelOption[] = CLAUDE_MODELS.map((model) => ({
   id: model.id,
   label: model.label,
@@ -27,9 +27,23 @@ export const CLAUDE_OPTIONS: readonly ModelOption[] = CLAUDE_MODELS.map((model) 
   group: "",
 }));
 
-/** The Claude models, plus the chosen model when it is none of them, so a saved id stays shown. */
-export function claudeOptions(selected: string | null): ModelOption[] {
-  const options = [...CLAUDE_OPTIONS];
+/**
+ * The Claude models Anthropic lists, newest first, or the fallback ones without a live list (null);
+ * then the chosen model when it is none of them, so a saved id stays shown.
+ */
+export function claudeOptions(
+  selected: string | null,
+  live: readonly { id: string; label: string }[] | null = null,
+): ModelOption[] {
+  const options: ModelOption[] =
+    live === null
+      ? [...CLAUDE_OPTIONS]
+      : live.map((model) => ({
+          id: model.id,
+          label: model.label,
+          hint: CLAUDE_MODELS.find((known) => known.id === model.id)?.hint ?? "",
+          group: "",
+        }));
   if (selected !== null && !options.some((option) => option.id === selected))
     options.push({ id: selected, label: nebiusName(selected), hint: "", group: "" });
   return options;

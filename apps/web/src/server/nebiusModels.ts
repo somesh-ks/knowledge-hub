@@ -5,8 +5,9 @@ import type { ApiResult } from "./http";
 /**
  * GET /api/models: the Nebius text models the key can call, for the Model picker in Settings. The
  * list is the same one `dispatch models` prints, parsed and filtered by the shared core code. The
- * CDN holds the answer for an hour, so Nebius is asked about once an hour at most. Neither the key
- * nor anything Nebius says reaches the response or a log line.
+ * CDN holds the answer for five minutes, so a model Nebius adds shows within minutes while Nebius is
+ * asked about a few times an hour at most. Neither the key nor anything Nebius says reaches the
+ * response or a log line.
  */
 
 export interface ModelsEnv {
@@ -27,7 +28,7 @@ export type ModelsBody =
 /** Same default as core's env. */
 export const DEFAULT_NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1/";
 export const MODELS_TIMEOUT_MS = 8000;
-export const MODELS_CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
+export const MODELS_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=86400";
 
 const unavailable: ApiResult<ModelsBody> = {
   status: 503,

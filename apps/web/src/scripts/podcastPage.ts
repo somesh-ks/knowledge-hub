@@ -5,8 +5,8 @@
  * add up to: one schedule.set (every field that changed) or one writer.set (provider and model).
  * autosave.ts sends them a moment later through managePageSave.ts, the step the Topics page uses.
  *
- * The option logic is pure and lives in lib/combobox.ts. Anthropic's two models are static and
- * never ask for the live list.
+ * The option logic is pure and lives in lib/combobox.ts. Each vendor's live list is asked for when
+ * that vendor is shown; without it Nebius offers its top models and Anthropic its two fallback ones.
  */
 import { isModelId, NEBIUS_DEFAULT_ID } from "../lib/modelId";
 import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
@@ -38,6 +38,19 @@ const LIST_TIMEOUT_MS = 10_000;
 /** The edit a provider and model choice stand for. `null` on Nebius is the model Nebius runs on by itself. */
 export function modelOp(model: string | null, provider: Provider = "nebius"): ConfigOp {
   return { op: "writer.set", provider, model };
+}
+
+/** Anthropic's list as the API sends it, or null when it is not in the expected shape. */
+export function parseClaudeList(body: unknown): { id: string; label: string }[] | null {
+  const models = (body as { models?: unknown } | null)?.models;
+  if (!Array.isArray(models)) return null;
+  const rows: { id: string; label: string }[] = [];
+  for (const entry of models) {
+    const { id, label } = (entry ?? {}) as { id?: unknown; label?: unknown };
+    if (typeof id !== "string" || !id.startsWith("claude-") || !isModelId(id)) continue;
+    rows.push({ id, label: typeof label === "string" && label ? label : id });
+  }
+  return rows.length > 0 ? rows : null;
 }
 
 /** The list as the API sends it, or null when it is not in the expected shape. */
@@ -227,6 +240,8 @@ async function mountModel(
 
   /** The live Nebius list: initialized from cache if available, null when it failed. */
   let nebius: ModelEntry[] | null | undefined = readCachedCatalog() ?? undefined;
+  /** The live Claude list: undefined until asked for, null when it failed. */
+  let claude: { id: string; label: string }[] | null | undefined;
   let selected: string | null =
     pendingChoice && pendingChoice.provider === provider() ? pendingChoice.model : savedModel;
 
@@ -243,7 +258,7 @@ async function mountModel(
   const refresh = (): void => {
     const options =
       provider() === "anthropic"
-        ? claudeOptions(selected)
+        ? claudeOptions(selected, claude ?? null)
         : nebiusOptions(nebius ?? null, selected);
     const groups: Record<string, HTMLElement> = {};
     select.replaceChildren();
@@ -296,6 +311,21 @@ async function mountModel(
     root.dataset.loaded = "";
   };
 
+  const loadClaude = async (): Promise<void> => {
+    let entries: { id: string; label: string }[] | null = null;
+    try {
+      const response = await fetch("/api/models?provider=anthropic", {
+        signal: AbortSignal.timeout(LIST_TIMEOUT_MS),
+      });
+      if (response.ok) entries = parseClaudeList(await response.json());
+    } catch {
+      entries = null;
+    }
+    claude = entries;
+    if (provider() === "anthropic") refresh();
+    root.dataset.loaded = "";
+  };
+
   /** Where Nebius starts: GLM-5.3 while the live list serves it (or is not in), else its first model. */
   const nebiusStart = (): string => {
     const ids = nebiusOptions(nebius ?? null, null).map((option) => option.id);
@@ -312,6 +342,7 @@ async function mountModel(
         refresh();
         update();
       });
+    if (provider() === "anthropic" && claude === undefined) void loadClaude();
     refresh();
     update();
   });
@@ -326,6 +357,6 @@ async function mountModel(
   );
   refresh();
   if (provider() === "nebius") void load();
-  else root.dataset.loaded = "";
+  else void loadClaude();
   return pending;
 }
