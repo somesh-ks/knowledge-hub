@@ -399,8 +399,8 @@
 .sort-field > .icon {
   position: absolute;
   inset-inline-end: var(--space-3);
-  inline-size: var(--space-4);
-  block-size: var(--space-4);
+  inline-size: var(--size-icon-sm);
+  block-size: var(--size-icon-sm);
   pointer-events: none;
 }
 

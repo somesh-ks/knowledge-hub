@@ -90,9 +90,9 @@
 
 .manage-error .icon {
   flex: none;
-  width: var(--space-4);
-  height: var(--space-4);
-  margin-block-start: calc(var(--space-1) / 2);
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  margin-block-start: var(--space-half);
 }
 
 .manage-input {

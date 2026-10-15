@@ -60,9 +60,9 @@
 }
 
 .create-error > .icon {
-  width: var(--space-4);
-  height: var(--space-4);
-  margin-block-start: calc(var(--space-1) / 2);
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  margin-block-start: var(--space-half);
 }
 
 .create-group > .create-error {
@@ -154,7 +154,7 @@
     inset-inline-end: calc(100% + var(--space-1));
     margin-block: auto;
     margin-inline-end: 0;
-    inline-size: var(--space-4);
+    inline-size: var(--size-icon-sm);
   }
 
   .create-view .create-choice .settings-segment:has(input:checked) > span {
@@ -222,7 +222,7 @@
 .create-more-text {
   display: grid;
   flex: 1 1 auto;
-  gap: calc(var(--space-1) / 2);
+  gap: var(--space-half);
   min-width: 0;
 }
 
