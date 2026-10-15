@@ -126,6 +126,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D114 | Every episode is written for the owner: the General audience is retired, and the New episode form is Title, Topics, Length, Look back, with Format, Voice and Tone under More options | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
+| D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
 
 ---
 
@@ -1298,4 +1299,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: thirteen loose files at the top mixed the live record with a superseded plan and two finished audits, and two of them still said nothing had run live.
 - Cost: links into the moved files changed; a link check found no new broken links.
 - Rejected: moving `design/` and `prototype/`, which build scripts and tests name by path.
+
+## D117: live model lists, Claude ids checked on save
+
+- Date: 2026-10-15 (the owner: "when newer models are updated on anthropic api or nebius, the list should instantly be updated"; then "Live-checked" on the save rule)
+- Decision:
+  - `/api/models?provider=anthropic` serves Anthropic's `GET /v1/models`, newest first; without it the picker offers the two built-in Claude models (`ANTHROPIC_MODELS`).
+  - Both lists are held at the CDN for five minutes (`s-maxage=300`), not an hour, so a release shows within about five minutes.
+  - Core accepts any well-formed `claude-` id, so the engine runs a model released after the built-in list. `/api/config` refuses one Anthropic does not list, after the passphrase; it answers 503 when the list cannot be read. The built-in two save without asking.
+  - `ANTHROPIC_API_KEY` joins the Vercel environment (`npm run secrets:push`).
+- Why: a hand-kept list of two ids went stale with every Claude release.
+- Cost: saving a newer Claude model fails while Anthropic's list is down.
+- Rejected: no CDN cache (every page load would call both providers); accepting any `claude-` id unchecked (the owner chose the live check).
 

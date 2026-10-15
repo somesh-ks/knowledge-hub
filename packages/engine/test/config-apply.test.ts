@@ -555,7 +555,7 @@ describe("writer.set", () => {
     expect(await repo.readJson("config/writer.json")).toMatchObject({ model: null });
   });
 
-  it("writes an Anthropic pick and refuses a Claude id on Nebius or a free one on Anthropic", async () => {
+  it("writes an Anthropic pick and refuses a Claude id on Nebius or a malformed one on Anthropic", async () => {
     const { code, report } = await apply({
       op: "writer.set",
       provider: "anthropic",
@@ -570,7 +570,7 @@ describe("writer.set", () => {
     expect(report.summary).toBe("set the writer to claude-haiku-5-5");
     for (const bad of [
       { ...SET, model: "claude-haiku-5-5" },
-      { ...SET, provider: "anthropic", model: "claude-opus-9" },
+      { ...SET, provider: "anthropic", model: "claude opus" },
       { ...SET, provider: "anthropic", model: null },
     ]) {
       expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);

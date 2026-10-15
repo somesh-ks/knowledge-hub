@@ -11,7 +11,11 @@ export const ModelId = z.string().regex(MODEL_ID_PATTERN, "not a valid model id"
 /** An Anthropic model id: `claude-` then letters, digits and `-`. */
 export const ANTHROPIC_MODEL_ID_PATTERN = /^claude-[A-Za-z0-9-]{1,100}$/;
 
-/** The two Anthropic models Settings offers; no other id is accepted for that provider. */
+/**
+ * The Anthropic models Settings offers when Anthropic's live list cannot be read. Any well-formed
+ * claude- id passes here, so the engine can run a model released after this list; the site's
+ * /api/config refuses one Anthropic does not list (D117).
+ */
 export const ANTHROPIC_MODELS = [
   { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", hint: "Best prose and judgment" },
   { id: "claude-haiku-5-5", label: "Claude Haiku 5.5", hint: "Fastest and cheapest" },
@@ -25,9 +29,7 @@ export function isAnthropicModel(id: string): boolean {
 export function writerModelProblem(provider: string, model: string | null): string | null {
   if (provider === "anthropic") {
     if (model === null) return "choose a Claude model";
-    if (!ANTHROPIC_MODEL_ID_PATTERN.test(model) || !isAnthropicModel(model)) {
-      return "not an Anthropic model Settings offers";
-    }
+    if (!ANTHROPIC_MODEL_ID_PATTERN.test(model)) return "not an Anthropic model id";
     return null;
   }
   if (model !== null && model.startsWith("claude-"))

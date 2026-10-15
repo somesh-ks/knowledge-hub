@@ -11,8 +11,9 @@ import {
 } from "./index.js";
 
 describe("Anthropic provider", () => {
-  it("accepts the two listed models and nothing else", () => {
-    for (const id of ["claude-sonnet-5-5", "claude-haiku-5-5"]) {
+  // The engine must run a model released after ANTHROPIC_MODELS; the site checks Anthropic's list.
+  it("accepts any claude- id and nothing else", () => {
+    for (const id of ["claude-sonnet-5-5", "claude-opus-9"]) {
       expect(WriterFile.safeParse({ version: 1, provider: "anthropic", model: id }).success).toBe(
         true,
       );
@@ -20,7 +21,7 @@ describe("Anthropic provider", () => {
         ConfigOp.safeParse({ op: "writer.set", provider: "anthropic", model: id }).success,
       ).toBe(true);
     }
-    for (const model of ["claude-opus-9", "Qwen/Qwen3-235B", "claude-", null]) {
+    for (const model of ["Qwen/Qwen3-235B", "claude-", "claude opus", null]) {
       expect(
         WriterSettings.safeParse({ provider: "anthropic", model }).success,
         String(model),

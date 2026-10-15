@@ -24,7 +24,6 @@ describe("handleModels", () => {
     const result = await handleModels({ env: { NEBIUS_API_KEY: KEY }, fetch });
     expect(result.status).toBe(200);
     expect(result.headers).toEqual({ "Cache-Control": MODELS_CACHE_CONTROL });
-    expect(MODELS_CACHE_CONTROL).toBe("public, s-maxage=3600, stale-while-revalidate=86400");
     expect(result.body).toEqual({
       provider: "nebius",
       models: [
