@@ -38,10 +38,10 @@ export const Selection = z.object({
   window: z.object({ from: isoDateTime, to: isoDateTime }),
   items: z.array(SelectionItem),
   /**
-   * Stories the owner's length airs, when the briefing carries spares beyond it (scheduleSize.ts):
-   * validation keeps this many of the survivors. Absent airs every item.
+   * Narration characters the owner's length holds, when the briefing carries spares beyond it
+   * (scheduleSize.ts): validation airs survivors until they fill it. Absent airs every item.
    */
-  wanted: z.number().int().positive().optional(),
+  length_chars: z.number().int().positive().optional(),
 });
 export type Selection = z.infer<typeof Selection>;
 

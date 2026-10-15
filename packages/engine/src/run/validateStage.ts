@@ -16,7 +16,7 @@ import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
 import { loadPassPool } from "./passPool.js";
 import { markStage, type Plan, passFile, requireStage } from "./plan.js";
-import { sparesOverLength } from "./scheduleSize.js";
+import { sparesOverLength, toldChars } from "./scheduleSize.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
 type SelectionItem = Selection["items"][number];
@@ -130,13 +130,17 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       survivors = survivors.filter((g) => !bad.has(g.item.id));
     }
 
-    // A briefing sized by the owner's length wrote spares: air the best `wanted` of the survivors.
+    // A briefing sized by the owner's length wrote spares: air the best survivors that fill it.
     const spare = new Set(
-      selection.wanted === undefined
+      selection.length_chars === undefined
         ? []
         : sparesOverLength(
-            survivors.map((g) => entryOf.get(g.item.id) as SelectionItem),
-            selection.wanted,
+            survivors.map((g) => ({
+              ...(entryOf.get(g.item.id) as SelectionItem),
+              chars: toldChars(writtenText(g.item)),
+            })),
+            selection.length_chars,
+            VOICE_LIMITS.items.floor,
           ),
     );
     survivors = survivors.filter((g) => !spare.has(g.item.id));

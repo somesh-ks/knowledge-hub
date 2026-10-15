@@ -59,25 +59,44 @@ export function withSpares(wanted: number, hardMax: number): number {
   return Math.min(hardMax, wanted + Math.ceil(wanted * SPARE_SHARE));
 }
 
+/** Narration characters a briefing of this many minutes holds at the measured pace. */
+export function charsForMinutes(minutes: number): number {
+  return Math.round(minutes * PODCAST_CHARS_PER_MINUTE);
+}
+
 /**
- * The ids to leave out so that `wanted` stories air, cut in the reverse of how selection fills a
- * briefing: the lowest-scored story of a topic that has another goes first, so every topic keeps
- * its best story; only then the lowest-scored overall.
+ * The ids to leave out so the briefing's narration fills `lengthChars`, measured from what was
+ * written rather than the 364-character average: Sonnet tells a story longer than Nebius did, and a
+ * five-minute replay ran 5.7 minutes on the average alone. Stories are cut in the reverse of how
+ * selection fills a briefing: the lowest-scored story of a topic that has another goes first, so
+ * every topic keeps its best story; only then the lowest-scored overall. A cut is made only while
+ * the rest still fills the length, so the briefing ends at most one story over it, never short.
  */
 export function sparesOverLength(
-  stories: readonly { id: string; category: string; score: number }[],
-  wanted: number,
+  stories: readonly { id: string; category: string; score: number; chars: number }[],
+  lengthChars: number,
+  floor = 1,
 ): string[] {
   const left = [...stories].sort((a, b) => a.score - b.score);
+  const airtime = (): number =>
+    left.reduce((sum, story) => sum + story.chars + STORY_FRAME_CHARS, EPISODE_FRAME_CHARS);
   const cut: string[] = [];
-  while (left.length > wanted) {
+  while (left.length > floor) {
     const perTopic = new Map<string, number>();
     for (const story of left) perTopic.set(story.category, (perTopic.get(story.category) ?? 0) + 1);
     const index = Math.max(
       0,
       left.findIndex((story) => (perTopic.get(story.category) ?? 0) > 1),
     );
-    cut.push((left.splice(index, 1)[0] as { id: string }).id);
+    const next = left[index] as { id: string; chars: number };
+    if (airtime() - next.chars - STORY_FRAME_CHARS < lengthChars) break;
+    left.splice(index, 1);
+    cut.push(next.id);
   }
   return cut;
+}
+
+/** The narration a written story costs: its spoken telling, or the headline and summary it falls back to. */
+export function toldChars(text: { headline: string; summary: string; spoken?: string }): number {
+  return (text.spoken ?? `${text.headline} ${text.summary}`).length;
 }

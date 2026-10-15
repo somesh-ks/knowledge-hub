@@ -57,9 +57,11 @@ import { generalCandidates, generalIdsFor } from "./generalScope.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
 import {
+  charsForMinutes,
   overNarrationLimit,
   sparesOverLength,
   storiesForMinutes,
+  toldChars,
   withSpares,
 } from "./scheduleSize.js";
 import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
@@ -273,7 +275,7 @@ async function writePass(
 
   // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
   // the weekly podcast's own length. Such a briefing also writes spares, so a story dropped after
-  // selection does not come off the length; validation airs `wanted` of them.
+  // selection does not come off the length; validation airs as many as fill it.
   const lengthOf =
     pass.kind === "regular" && lengthMinutes !== null
       ? lengthMinutes
@@ -365,7 +367,7 @@ async function writePass(
         : {
             ...nothingSelection(pass),
             outcome: "selected",
-            ...(wanted !== undefined && survivors.length > wanted ? { wanted } : {}),
+            ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
             items: survivors.map((s) => ({
               ...s,
               ...writtenText(texts.get(s.id) as WrittenText),
@@ -376,14 +378,23 @@ async function writePass(
     await writeJson(file("materials.json"), { version: 1, items: materials });
     const outcome = survivors.length === 0 ? "nothing" : "selected";
     await markStage(deps.root, pass, "write", { at: deps.now().toISOString(), outcome });
+    const spares =
+      lengthOf === null
+        ? []
+        : sparesOverLength(
+            survivors.map((s) => ({ ...s, chars: toldChars(texts.get(s.id) as WrittenText) })),
+            charsForMinutes(lengthOf),
+            VOICE_LIMITS.items.floor,
+          );
     return {
-      // A later pass of the run may still use the spares; only the stories expected to air are
-      // taken from it.
+      // A later pass of the run may still use the spares: it loses only the stories expected to
+      // air, and never more than the length's count, as before spares (a weekly on the same day
+      // shares the pool).
       kept: survivors
-        .map((s) => s.id)
-        .filter(
-          (id) => !(wanted === undefined ? [] : sparesOverLength(survivors, wanted)).includes(id),
-        ),
+        .filter((s) => !spares.includes(s.id))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, wanted ?? survivors.length)
+        .map((s) => s.id),
       report: {
         id: pass.id,
         kind: pass.kind,

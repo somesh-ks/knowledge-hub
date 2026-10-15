@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MAX_SPOKEN_CHARS } from "../src/audio/spokenText.js";
 import {
+  charsForMinutes,
   overNarrationLimit,
   sparesOverLength,
   storiesForMinutes,
@@ -41,12 +42,27 @@ describe("sparesOverLength", () => {
   // would miss the briefing that selection had given it.
   it("keeps every topic's best story while it leaves the spares unaired", () => {
     const stories = [
-      { id: "ai-1", category: "ai", score: 0.9 },
-      { id: "ai-2", category: "ai", score: 0.8 },
-      { id: "ai-3", category: "ai", score: 0.7 },
-      { id: "css-1", category: "css", score: 0.5 },
+      { id: "ai-1", category: "ai", score: 0.9, chars: 400 },
+      { id: "ai-2", category: "ai", score: 0.8, chars: 400 },
+      { id: "ai-3", category: "ai", score: 0.7, chars: 400 },
+      { id: "css-1", category: "css", score: 0.5, chars: 400 },
     ];
-    expect(sparesOverLength(stories, 2).sort()).toEqual(["ai-2", "ai-3"]);
-    expect(sparesOverLength(stories, 4)).toEqual([]);
+    expect(sparesOverLength(stories, 1_500).sort()).toEqual(["ai-2", "ai-3"]);
+  });
+
+  // A five-minute replay ran 5.7 minutes when stories were counted at the 364-character average,
+  // because the writer told each one longer; a count can also leave the briefing short.
+  it("airs what the written stories measure, never ending short of the length", () => {
+    const stories = Array.from({ length: 10 }, (_, i) => ({
+      id: `s${i}`,
+      category: `t${i}`,
+      score: 1 - i / 100,
+      chars: 500,
+    }));
+    const length = charsForMinutes(3);
+    const kept = stories.filter((s) => !sparesOverLength(stories, length).includes(s.id));
+    const airtime = kept.reduce((sum, s) => sum + s.chars + 60, 600);
+    expect(airtime).toBeGreaterThanOrEqual(length);
+    expect(airtime - 560).toBeLessThan(length);
   });
 });

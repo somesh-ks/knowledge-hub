@@ -39,8 +39,10 @@ const FIELD_RULES = [
     'Say at most two numbers, the way a person says them ("about a hundred and twenty lines", "forty percent"), but write years as digits. Leave out version strings, model ids, handles and plan names beyond the product\'s own name: they cannot be followed by ear.',
     // The judge heard nearly every story of the October weekly end on a hedge ("still
     // experimental", "a rerun would likely differ"), because every catch closed its story.
-    "End on what the news lets a design engineer do, build or decide, in words that fit this story: never a generic warning or a risk the text does not state.",
-    'Give the catch only when it would change that decision, and say it before the ending ("It only works..., so..."), never as the last line.',
+    // Told to end on what the listener can do, every story then closed "so a team can..." and the
+    // judge heard one formula (loop/results/iteration-8.md).
+    'End on the story\'s own strongest fact, on what happens next, or on what it lets a design engineer do. Mix these across a reply, and never end on "so a team can" or a generic warning.',
+    'Give the catch only when it would change a reader\'s decision, and say it before the ending ("It only works..., so..."), never as the last line.',
     "No two stories in a reply open or close with the same words or the same sentence shape.",
     'No "in this story", no hype, no questions to the listener, no "we" or "our".',
     "Use only facts that are in your own summary: no new number, name, date or claim.",
