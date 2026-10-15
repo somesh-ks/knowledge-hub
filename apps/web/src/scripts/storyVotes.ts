@@ -36,6 +36,7 @@ import {
   press,
   pressedOf,
   type StoryRef,
+  stopFailure,
   VOTES_KEY,
   type VoteOp,
   type VoteState,
@@ -117,8 +118,16 @@ function rememberSaved(ops: BlockOp[], now: number): void {
   }
 }
 
-/** The answer's status (0 when no answer came) and, for a 429, how many seconds it asks to wait. */
-async function post(ops: ConfigOp[]): Promise<{ status: number; wait: number }> {
+interface Answer {
+  /** 0 when no answer came. */
+  status: number;
+  /** For a 429, how many seconds it asks to wait. */
+  wait: number;
+  /** The server's error code, or what kept the request from being answered, for the log. */
+  cause: string;
+}
+
+async function post(ops: ConfigOp[]): Promise<Answer> {
   let passphrase: string | null = OPEN_PASSPHRASE;
   if (PASSPHRASE_REQUIRED) {
     try {
@@ -127,7 +136,7 @@ async function post(ops: ConfigOp[]): Promise<{ status: number; wait: number }> 
       passphrase = null;
     }
   }
-  if (!passphrase) return { status: 401, wait: 0 };
+  if (!passphrase) return { status: 401, wait: 0, cause: "no passphrase on this device" };
   try {
     const response = await fetch("/api/config", {
       method: "POST",
@@ -138,11 +147,16 @@ async function post(ops: ConfigOp[]): Promise<{ status: number; wait: number }> 
     const body = (await response.json().catch(() => ({}))) as {
       status?: number;
       retry_after_s?: number;
+      error?: string;
     };
     const status = body.status ?? response.status;
-    return { status, wait: status === 429 ? body.retry_after_s || 10 : 0 };
-  } catch {
-    return { status: 0, wait: 0 };
+    return {
+      status,
+      wait: status === 429 ? body.retry_after_s || 10 : 0,
+      cause: body.error ?? response.statusText,
+    };
+  } catch (error) {
+    return { status: 0, wait: 0, cause: String(error) };
   }
 }
 
@@ -244,7 +258,8 @@ async function send(withVotes: boolean): Promise<void> {
         continue;
       }
       // Refused or not answered. The votes wait for the next attempt, ten minutes on or when the page
-      // is left; a stopped outlet is said to have failed, and its menu item is there to press again.
+      // is left; a stopped outlet is said to have failed, with what failed and whether pressing its
+      // menu item again can help (stopFailure), and the real answer goes to the console.
       votesNow = false;
       if (votes.length > 0) save({ ...load(), waiting_since: Date.now() });
       const failed = new Set(stopped.map((op) => op.domain));
@@ -252,7 +267,8 @@ async function send(withVotes: boolean): Promise<void> {
       saveOutbox(outbox().filter((entry) => !failed.has(entry.domain)));
       for (const { domain, outlet } of lost) {
         messages.delete(domain);
-        toast({ message: `Could not stop ${outlet} yet. Try again.`, kind: "error" });
+        console.error(`[story controls] stop ${domain} failed: ${answer.status} ${answer.cause}`);
+        toast({ message: stopFailure(outlet, answer.status).message, kind: "error" });
       }
       return;
     }

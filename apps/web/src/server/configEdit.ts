@@ -473,7 +473,13 @@ export function configCooldownSeconds(startedAt: readonly number[], now: number)
 export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promise<ConfigResult> {
   const config = readServerConfig(deps.env);
   const log = deps.log ?? (() => {});
-  if (!config) return unavailable;
+  if (!config) {
+    // Said nowhere else: every edit answers 503 until the deployment has these.
+    log(
+      "config unavailable: GITHUB_DISPATCH_TOKEN, GITHUB_REPOSITORY or GENERATE_PASSPHRASE_HASH is not set",
+    );
+    return unavailable;
+  }
 
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const request = parseConfigRequest(input.bodyText);
