@@ -213,6 +213,29 @@ describe("handleGenerate", () => {
     expect(dispatches().at(-1)?.body).not.toHaveProperty("inputs.feedback");
   });
 
+  it("refuses to delete a Daily or Weekly briefing, so only on-demand ones can go", async () => {
+    const kinds: Record<string, string> = {
+      "2026-10-07": "regular",
+      "2026-10-11-weekly": "weekly",
+      "2026-10-06": "on-demand",
+    };
+    const { deps, github } = setup({
+      digestIds: () => Object.keys(kinds),
+      digestKind: async (id) => kinds[id] ?? null,
+    });
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
+    const remove = (id: string) =>
+      handleGenerate(
+        input(JSON.stringify({ passphrase: "correct horse battery staple", action: "delete", id })),
+        deps,
+      );
+    expect((await remove("2026-10-07")).status).toBe(400);
+    expect((await remove("2026-10-11-weekly")).status).toBe(400);
+    expect(github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
+    expect((await remove("2026-10-06")).status).toBe(202);
+  });
+
   it("uses fixed inputs whatever the caller sends", async () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });

@@ -9,9 +9,11 @@ interface Props {
   episodeId?: string;
   /** Set on a briefing page: Regenerate replaces this digest and Delete removes it. */
   briefingId?: string;
+  /** False on a Daily or Weekly briefing: only on-demand briefings and episodes can be deleted. */
+  deletable?: boolean;
 }
 
-const { sharePath, episodeId, briefingId } = Astro.props;
+const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
 ---
 
 {/* One More button beside the title and the small menu it opens: Share, Regenerate and Delete, on a
@@ -66,14 +68,18 @@ const { sharePath, episodeId, briefingId } = Astro.props;
         </button>
       )
     }
-    <button
-      class="hero-menu-item hero-menu-delete"
-      type="button"
-      role="menuitem"
-      data-episode-action="delete"
-    >
-      Delete
-    </button>
+    {
+      deletable && (
+        <button
+          class="hero-menu-item hero-menu-delete"
+          type="button"
+          role="menuitem"
+          data-episode-action="delete"
+        >
+          Delete
+        </button>
+      )
+    }
   </div>
   <span class="sr-only" role="status" data-share-status></span>
   {

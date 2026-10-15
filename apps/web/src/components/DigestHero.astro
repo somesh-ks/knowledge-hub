@@ -35,6 +35,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
   <HeroMenu
     sharePath={`/d/${entry.id}`}
     briefingId={entry.id}
+    deletable={entry.digest.kind === "on-demand"}
   />
   <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} />
 </header>
