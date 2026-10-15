@@ -1,6 +1,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
+import { plateArt } from "./plates.js";
 import { getPalette } from "./palettes.js";
 import { flatTemplate, isMonthly } from "./season.js";
 import { n, rectPath } from "./svg.js";
@@ -46,15 +47,15 @@ function compose(
   if (monthly) spec = { ...spec, template: flatTemplate(spec.template, spec.seed) };
   const mode = TEMPLATE_LOCKUP[spec.template];
   const { ctx } = buildContext(spec, meta, size, mode, monthly);
-  const out = TEMPLATE_FNS[spec.template](ctx);
+  const out = ctx.plate ? { body: "" } : TEMPLATE_FNS[spec.template](ctx);
   const { pal, uid, area } = ctx;
   const weekly = ctx.variant === "weekly";
   const { plate, matte } = ctx;
   const plateClip = `${uid}p`;
   const defs = `${out.defs ?? ""}${weekly ? `<clipPath id="${plateClip}"><path d="${rectPath(area)}"/></clipPath>` : ""}${plate ? `<clipPath id="${plateClip}"><circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}"/></clipPath>` : ""}`;
-  // The on-demand plate: the art, drawn whole, shrunk into a disc that floats on a flat matte.
+  // The plate: art composed for the disc, which floats on a flat matte.
   const art = plate
-    ? `<circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})"><g transform="translate(${n(plate.cx - plate.r)} ${n(plate.cy - plate.r)}) scale(${n((plate.r * 2) / size, 4)})">${out.body}</g></g>`
+    ? `<circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})">${plateArt(spec.template, ctx.rng, plate, pal)}</g>`
     : weekly
       ? `<path d="${rectPath(area)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})">${out.body}</g>`
       : out.body;
