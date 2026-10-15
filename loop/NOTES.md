@@ -229,6 +229,10 @@ did not change.
    before it is dropped, the fallback skips a headline the summary restates, and the writer never
    reviews the article or puts a catch on hard news. See `results/iteration-6.md`.
 
+7. The judges' reasons (`loop/inspect.ts`): stories no longer end on a hedge, carry at most two
+   numbers and open on the news; a length-sized briefing writes spares so later drops keep its
+   length. See `results/iteration-7.md`.
+
 Still failing before iteration 5 (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
 scoring policy), quality (the writer stage; the replay does not run it), and the quality judge
 disagrees with itself on about half the episodes.
