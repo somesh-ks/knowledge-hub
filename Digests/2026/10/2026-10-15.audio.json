@@ -1,0 +1,44 @@
+{
+  "digest": "2026-10-15",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 95061,
+  "text_chars": 1512,
+  "items": [
+    {
+      "id": "fe080615128e",
+      "section": "top",
+      "start_ms": 6391,
+      "end_ms": 23927
+    },
+    {
+      "id": "cec2208a6269",
+      "section": "top",
+      "start_ms": 23927,
+      "end_ms": 44281
+    },
+    {
+      "id": "a773288808bd",
+      "section": "top",
+      "start_ms": 44281,
+      "end_ms": 63012
+    },
+    {
+      "id": "18db7a5b4e6f",
+      "section": "tech",
+      "start_ms": 63012,
+      "end_ms": 95061
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 6391
+    },
+    {
+      "slug": "tech",
+      "start_ms": 61049
+    }
+  ]
+}
