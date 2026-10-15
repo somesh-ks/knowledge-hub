@@ -37,7 +37,7 @@ jobs:
           status=${PIPESTATUS[0]}
           # Each loop iteration's replay of October's stories (loop/replay.ts), judged the same way.
           for episode in loop/results/replay-*/replay-*/; do
-            npx tsx loop/eval.ts "$episode" | tee -a eval.md
+            npx tsx loop/eval.ts "${episode%/}" | tee -a eval.md
           done
           cat eval.md >> "$GITHUB_STEP_SUMMARY"
           # The table is the result; a failing metric is a finding, not a broken build.
