@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { parseConfigRequest } from "../server/configEdit";
 import {
+  type BlockOp,
   dueIn,
   emptyVotes,
+  HEADLINE_MAX,
   markSent,
   markUnsent,
+  nextRequest,
   pendingOps,
   press,
   pressedOf,
@@ -53,11 +57,26 @@ describe("story votes", () => {
     expect(pendingOps(state)[0]?.votes[0]?.value).toBe("clear");
   });
 
-  it("splits votes into ops of fifteen", () => {
+  // A batch of long headlines and addresses was once over the server's body limit: refused as
+  // invalid every ten minutes, it held every later vote back with it.
+  it("packs every waiting vote and block into requests the server accepts", () => {
     let state = emptyVotes();
-    for (let i = 0; i < 120; i += 1) state = press(state, story(`s${i}`), "up", 1_000 + i);
-    expect(pendingOps(state).map((op) => op.votes.length)).toEqual([
-      15, 15, 15, 15, 15, 15, 15, 15,
-    ]);
+    for (let i = 0; i < 120; i += 1) {
+      const long = { ...story(`s${i}`), url: `https://example.com/${"a".repeat(300)}/${i}` };
+      state = press(state, { ...long, headline: "H".repeat(HEADLINE_MAX) }, "up", 1_000 + i);
+    }
+    let votes = pendingOps(state);
+    let blocks: BlockOp[] = [{ op: "profile.block", domain: "reveneau.com" }];
+    const carried = new Set<string>();
+    while (votes.length + blocks.length > 0) {
+      const ops = nextRequest(blocks, votes);
+      const parsed = parseConfigRequest(JSON.stringify({ passphrase: "open", op: ops }));
+      expect(parsed).not.toBeNull();
+      for (const op of ops)
+        if (op.op === "profile.vote") for (const vote of op.votes) carried.add(vote.story_id);
+      blocks = blocks.filter((op) => !ops.includes(op));
+      votes = votes.filter((op) => !ops.includes(op));
+    }
+    expect(carried.size).toBe(120);
   });
 });

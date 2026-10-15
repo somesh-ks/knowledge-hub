@@ -12,8 +12,23 @@ import type { ConfigOp } from "@dispatch/core";
 export const VOTES_KEY = "dispatch:story-votes";
 /** How long the first unsent vote may wait before the batch goes. */
 export const SEND_AFTER_MS = 10 * 60 * 1000;
-/** The most votes one op carries: the server caps a request at 8192 characters, about 20 votes. */
+/** The most votes one op carries. */
 export const MAX_PER_OP = 15;
+/**
+ * The longest request body the server reads (MAX_CONFIG_BODY_CHARS in server/configEdit.ts); a
+ * longer one is refused as invalid, every time. Room is left for the passphrase (up to 256 characters,
+ * more once escaped) and the wrapping.
+ */
+export const MAX_BODY_CHARS = 8192 - 512;
+/** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
+export const MAX_OPS = 8;
+/**
+ * The server takes one edit every ten seconds, counted from when the last one started, and refuses
+ * the next one sooner with a 429 (GAP_MS in scripts/managePageSave.ts, which sends settings).
+ */
+export const GAP_MS = 10_000 + 250;
+/** Outlets stopped and not yet accepted by the server, kept so a page left or reloaded still sends them. */
+export const BLOCKS_KEY = "dispatch:story-blocks";
 /** The longest headline an op carries. */
 export const HEADLINE_MAX = 200;
 /** Sent votes remembered so a story shows its mark again; the oldest beyond this are forgotten. */
@@ -117,27 +132,83 @@ export function dueIn(state: VoteState, now: number): number | null {
   return Math.max(0, (state.waiting_since ?? now) + SEND_AFTER_MS - now);
 }
 
-/** The ops that carry every unsent vote, oldest first, up to MAX_PER_OP in each. */
+const size = (value: unknown): number => JSON.stringify(value).length;
+
+/**
+ * The ops that carry every unsent vote, oldest first: up to MAX_PER_OP in each, and each small
+ * enough to go in a request on its own (long headlines and addresses would otherwise make an op the
+ * server refuses every time, holding every later vote back with it).
+ */
 export function pendingOps(state: VoteState): VoteOp[] {
   const unsent = Object.values(state.votes)
     .filter((vote) => !vote.sent)
     .sort((a, b) => a.at.localeCompare(b.at));
   const ops: VoteOp[] = [];
-  for (let from = 0; from < unsent.length; from += MAX_PER_OP) {
-    ops.push({
-      op: "profile.vote",
-      votes: unsent.slice(from, from + MAX_PER_OP).map((vote) => ({
-        story_id: vote.story_id,
-        url: vote.url,
-        headline: vote.headline.slice(0, HEADLINE_MAX),
-        topic: vote.topic,
-        source_id: vote.source_id,
-        value: vote.value,
-        at: vote.at,
-      })),
-    });
+  let current: VoteOp | null = null;
+  for (const vote of unsent) {
+    const given = {
+      story_id: vote.story_id,
+      url: vote.url,
+      headline: vote.headline.slice(0, HEADLINE_MAX),
+      topic: vote.topic,
+      source_id: vote.source_id,
+      value: vote.value,
+      at: vote.at,
+    };
+    if (
+      current === null ||
+      current.votes.length >= MAX_PER_OP ||
+      size(current) + size(given) + 1 > MAX_BODY_CHARS
+    ) {
+      current = { op: "profile.vote", votes: [] };
+      ops.push(current);
+    }
+    current.votes.push(given);
   }
   return ops;
+}
+
+/** An outlet stopped from a story, waiting for the server: its domain and the name the toast uses. */
+export interface PendingBlock {
+  domain: string;
+  outlet: string;
+}
+
+/** The stored outlets waiting to be stopped, or none when the text is missing or not ours. */
+export function parseBlocks(raw: string | null | undefined): PendingBlock[] {
+  try {
+    const data = JSON.parse(raw ?? "null") as unknown;
+    if (!Array.isArray(data)) return [];
+    return data.filter(
+      (entry): entry is PendingBlock =>
+        typeof entry === "object" &&
+        entry !== null &&
+        isText((entry as PendingBlock).domain) &&
+        isText((entry as PendingBlock).outlet),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The edits the next request carries: every waiting block first (they are small, and the reader is
+ * watching for them), then the vote ops that still fit in MAX_OPS and MAX_BODY_CHARS. One request
+ * for everything waiting, because a second one inside the server's ten seconds is refused.
+ */
+export function nextRequest(blocks: readonly BlockOp[], votes: readonly VoteOp[]): ConfigOp[] {
+  const ops: ConfigOp[] = [];
+  for (const op of [...blocks, ...votes]) {
+    if (ops.length >= MAX_OPS) break;
+    if (ops.length > 0 && size([...ops, op]) > MAX_BODY_CHARS) break;
+    ops.push(op);
+  }
+  return ops;
+}
+
+/** How long the next request must wait after the last one went through at `last` (0 for none). */
+export function gapLeft(last: number, now: number): number {
+  return last === 0 ? 0 : Math.max(0, Math.min(GAP_MS, last + GAP_MS - now));
 }
 
 function withSent(state: VoteState, op: VoteOp, sent: boolean): VoteState {
