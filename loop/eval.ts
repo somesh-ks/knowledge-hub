@@ -7,8 +7,9 @@
  *
  * A fixture holds settings.json (and settings-variant.json), and the episode produced for each:
  * episode.md / episode.audio.json and episode-variant.md / episode-variant.audio.json. A missing
- * episode is reported as NOT GENERATED. The judge needs ANTHROPIC_API_KEY (JUDGE_MODEL picks the
- * model); without it importance and quality are BLOCKED.
+ * episode is reported as NOT GENERATED. The judge needs ANTHROPIC_API_KEY; it is the newest Sonnet the
+ * key can call, read from Anthropic's model list on each run (JUDGE_MODEL pins one instead). Without
+ * the key importance and quality are BLOCKED.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -127,6 +128,32 @@ interface Judgement {
   scores: { clarity: number; novelty: number; no_repetition: number; worth_listening: number };
 }
 
+const anthropicHeaders = (): Record<string, string> => ({
+  "content-type": "application/json",
+  "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
+  "anthropic-version": "2023-06-01",
+});
+
+let judgeModel: Promise<string> | null = null;
+
+/** The newest Sonnet on Anthropic's model list, so a new release judges without an edit here. */
+function latestSonnet(): Promise<string> {
+  judgeModel ??= (async () => {
+    if (process.env.JUDGE_MODEL) return process.env.JUDGE_MODEL;
+    const response = await fetch("https://api.anthropic.com/v1/models?limit=1000", {
+      headers: anthropicHeaders(),
+    });
+    if (!response.ok) throw new Error(`model list answered ${response.status}`);
+    const { data } = (await response.json()) as { data: Array<{ id: string; created_at: string }> };
+    const newest = data
+      .filter((model) => model.id.startsWith("claude-sonnet"))
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+    if (!newest) throw new Error("no Sonnet model on the list");
+    return newest.id;
+  })();
+  return judgeModel;
+}
+
 async function judgeOnce(segments: Segment[], rubric: string): Promise<Judgement> {
   const prompt = [
     "You judge a news audio episode against this rubric.",
@@ -137,13 +164,9 @@ async function judgeOnce(segments: Segment[], rubric: string): Promise<Judgement
   ].join("\n\n");
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
-      "anthropic-version": "2023-06-01",
-    },
+    headers: anthropicHeaders(),
     body: JSON.stringify({
-      model: process.env.JUDGE_MODEL ?? "claude-sonnet-5-5",
+      model: await latestSonnet(),
       max_tokens: 2000,
       temperature: 0,
       messages: [{ role: "user", content: prompt }],
@@ -237,6 +260,7 @@ async function main(): Promise<void> {
   console.log("| Episode | Metric | Value | Verdict |\n|---|---|---|---|");
   for (const row of rows)
     console.log(`| ${row.episode} | ${row.metric} | ${row.value} | ${row.verdict} |`);
+  if (process.env.ANTHROPIC_API_KEY) console.log(`\nJudge: ${await latestSonnet()}, two runs.`);
   const passed = rows.filter((row) => row.verdict === "PASS").length;
   console.log(`\n${passed} of ${rows.length} pass.`);
   process.exitCode = passed === rows.length ? 0 : 1;
