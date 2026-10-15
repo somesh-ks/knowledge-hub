@@ -1,4 +1,4 @@
-import { hostOf, type Vote } from "./profile.js";
+import { hostOf, type Open, type Vote } from "./profile.js";
 
 /** Every number that decides how far votes move a briefing, in one place. */
 export const VOTE_LIMITS = {
@@ -10,6 +10,8 @@ export const VOTE_LIMITS = {
   min_votes: 3,
   /** Largest change to a ranking score, either way (a multiplier of 0.85 to 1.15). */
   max_swing: 0.15,
+  /** Stored opens; the newest by `at` are kept. */
+  max_opens: 300,
   /** Recent liked and disliked headlines each, passed to the writer. */
   headlines_each: 5,
 } as const;
@@ -32,6 +34,15 @@ export function mergeVotes(stored: readonly Vote[], incoming: readonly IncomingV
   return [...byStory.values()]
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.story_id.localeCompare(b.story_id))
     .slice(0, VOTE_LIMITS.max_stored);
+}
+
+/** The stored opens with the incoming ones applied: one per story, the newest kept. */
+export function mergeOpens(stored: readonly Open[], incoming: readonly Open[]): Open[] {
+  const byStory = new Map(stored.map((open) => [open.story_id, open]));
+  for (const open of incoming) byStory.set(open.story_id, open);
+  return [...byStory.values()]
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.story_id.localeCompare(b.story_id))
+    .slice(0, VOTE_LIMITS.max_opens);
 }
 
 /** Preference in [-1, 1] per key, absent for a key with fewer than `min_votes` votes. */

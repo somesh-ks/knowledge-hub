@@ -277,6 +277,7 @@ describe("parseConfigOp: profile ops", () => {
     ).toEqual({
       op: "profile.vote",
       votes: [vote, { ...vote, value: "clear" }],
+      opens: [],
     });
     const bad = [
       [],

@@ -22,6 +22,14 @@ export const VoteInput = z.object({
 });
 export const MAX_VOTES_PER_OP = 50;
 
+/**
+ * A story the reader opened at its source, as the app sends it: a weak like, read by the taste
+ * check (engine profile/tasteFit.ts). Opens ride along with votes and never trigger a save alone
+ * before they are a day old (apps/web lib/storyVotes.ts), since every save is a commit.
+ */
+export const OpenInput = VoteInput.omit({ value: true });
+export const MAX_OPENS_PER_OP = 50;
+
 const weight = z.number().min(0).max(1);
 
 /**
@@ -148,10 +156,15 @@ export const ConfigOp = z.discriminatedUnion("op", [
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),
-  z.object({
-    op: z.literal("profile.vote"),
-    votes: z.array(VoteInput).min(1).max(MAX_VOTES_PER_OP),
-  }),
+  z
+    .object({
+      op: z.literal("profile.vote"),
+      votes: z.array(VoteInput).max(MAX_VOTES_PER_OP),
+      opens: z.array(OpenInput).max(MAX_OPENS_PER_OP).default([]),
+    })
+    .refine((value) => value.votes.length + value.opens.length > 0, {
+      message: "send at least one vote or open",
+    }),
 ]);
 /** The op as a caller writes it, before defaults are filled in. */
 export type ConfigOp = z.input<typeof ConfigOp>;

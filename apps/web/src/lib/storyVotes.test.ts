@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseConfigRequest } from "../server/configEdit";
+import { parseConfigOp, parseConfigRequest } from "../server/configEdit";
 import {
   type BlockOp,
   dueIn,
@@ -8,9 +8,11 @@ import {
   markSent,
   markUnsent,
   nextRequest,
+  OPENS_WAIT_MS,
   pendingOps,
   press,
   pressedOf,
+  recordOpen,
   SEND_AFTER_MS,
   type StoryRef,
 } from "./storyVotes";
@@ -55,6 +57,23 @@ describe("story votes", () => {
     state = press(state, story("a"), "up", 2_000);
     state = markSent(state, sent);
     expect(pendingOps(state)[0]?.votes[0]?.value).toBe("clear");
+  });
+
+  // Every save is a commit and a redeploy: an open sent on its own each time a page was left would
+  // cost one per visit, for a signal weaker than a vote.
+  it("holds opens for a vote to ride with, or a day, and puts a refused one back", () => {
+    let state = recordOpen(emptyVotes(), story("a"), 1_000);
+    expect(pendingOps(state, 1_000 + OPENS_WAIT_MS - 1)).toHaveLength(0);
+    expect(dueIn(state, 1_000)).toBe(OPENS_WAIT_MS);
+    state = press(state, story("b"), "up", 2_000);
+    const [op] = pendingOps(state, 2_000);
+    expect(op?.opens?.map((open) => open.story_id)).toEqual(["a"]);
+    const sent = op as NonNullable<typeof op>;
+    state = markSent(state, sent);
+    expect(pendingOps(state, 1_000 + OPENS_WAIT_MS)).toHaveLength(0);
+    state = markUnsent(state, sent);
+    expect(pendingOps(state, 1_000 + OPENS_WAIT_MS)[0]?.opens).toHaveLength(1);
+    expect(parseConfigOp(sent)).not.toBeNull();
   });
 
   // A batch of long headlines and addresses was once over the server's body limit: refused as

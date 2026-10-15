@@ -23,16 +23,21 @@ export const Vote = z.object({
 });
 export type Vote = z.infer<typeof Vote>;
 
+/** A story opened at its source: a weak like for the taste check (src/profile/tasteFit.ts). */
+export const Open = Vote.omit({ value: true });
+export type Open = z.infer<typeof Open>;
+
 export const Profile = z.object({
   user_id: z.string().min(1),
   /** Normalised domains (see `normalizeDomain`): blocking one blocks its subdomains too. */
   blocked_domains: z.array(z.string().min(1)).default([]),
   votes: z.array(Vote).default([]),
+  opens: z.array(Open).default([]),
 });
 export type Profile = z.infer<typeof Profile>;
 
 export function emptyProfile(userId: string): Profile {
-  return { user_id: userId, blocked_domains: [], votes: [] };
+  return { user_id: userId, blocked_domains: [], votes: [], opens: [] };
 }
 
 export interface ProfileStore {
