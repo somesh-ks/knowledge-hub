@@ -40,6 +40,12 @@ function readPalette(id: string, raw: unknown): TokenPalette {
   return palette as TokenPalette;
 }
 
+/**
+ * The most chroma any cover colour may carry. A grid of covers past it glares (D118), and every
+ * monthly scheme draws only from these palettes, so the cap holds for every month to come.
+ */
+export const MAX_CHROMA = 0.12;
+
 const OKLCH_BY_ID = new Map<string, Record<(typeof ROLES)[number], Oklch>>();
 
 const PALETTES: readonly Palette[] = Object.entries(tokens.cover)
@@ -49,6 +55,13 @@ const PALETTES: readonly Palette[] = Object.entries(tokens.cover)
     const oklch = Object.fromEntries(
       ROLES.map((role) => [role, parseOklch(palette[role].$value)]),
     ) as Record<(typeof ROLES)[number], Oklch>;
+    for (const role of ROLES) {
+      if (oklch[role].c > MAX_CHROMA) {
+        throw new Error(
+          `tokens/covers.json: palette "${id}" ${role} has chroma ${oklch[role].c}, above ${MAX_CHROMA}`,
+        );
+      }
+    }
     OKLCH_BY_ID.set(id, oklch);
     const ground = oklchToHex(oklch.ground);
     const accent = oklchToHex(oklch.accent);
