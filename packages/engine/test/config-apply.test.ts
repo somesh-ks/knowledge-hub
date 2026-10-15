@@ -461,6 +461,7 @@ describe("profile.block and profile.unblock", () => {
       user_id: "owner",
       blocked_domains: ["medium.com"],
       votes: [],
+      opens: [],
     });
     expect((await apply({ op: "profile.block", domain: "medium.com" })).code).toBe(1);
 

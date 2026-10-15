@@ -16,10 +16,16 @@ async function stop(story: Locator): Promise<void> {
 }
 
 test.describe("story controls", () => {
-  test("a like survives a reload and goes out once, as the page is left", async ({ page }) => {
+  test("a like survives a reload and goes out once, as the page is left, with an open riding along", async ({
+    page,
+  }) => {
     await page.clock.install();
     const server = await routeConfigServer(page);
     await page.goto("/");
+    // An open alone never makes a request (every save is a commit); it waits for the like.
+    const popup = page.waitForEvent("popup");
+    await page.locator("article.story").nth(1).locator("a.story-link").click();
+    await (await popup).close();
     const like = page.locator("[data-story-controls] [data-vote=up]").first();
     const dislike = page.locator("[data-story-controls] [data-vote=down]").first();
     await like.click();
@@ -33,10 +39,15 @@ test.describe("story controls", () => {
     // Moving to another page is leaving this one.
     await page.getByRole("link", { name: "Library" }).first().click();
     await expect.poll(() => server.applied.length).toBe(1);
-    const op = server.applied[0] as { op: string; votes: Array<Record<string, unknown>> };
+    const op = server.applied[0] as {
+      op: string;
+      votes: Array<Record<string, unknown>>;
+      opens: unknown[];
+    };
     expect(op.op).toBe("profile.vote");
     expect(op.votes).toHaveLength(1);
     expect(op.votes[0]).toMatchObject({ value: "up" });
+    expect(op.opens).toHaveLength(1);
 
     // After a reload the story is still pressed, and having been sent it is not sent again.
     await page.goto("/");

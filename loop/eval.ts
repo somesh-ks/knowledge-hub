@@ -7,8 +7,9 @@
  *
  * A fixture holds settings.json (and settings-variant.json), and the episode produced for each:
  * episode.md / episode.audio.json and episode-variant.md / episode-variant.audio.json. A missing
- * episode is reported as NOT GENERATED. Importance is labelled by Jev (TYPESAFE_API_KEY), segment by
- * segment, as the engine's own judge classifies items. Quality is scored by the newest Sonnet the
+ * episode is reported as NOT GENERATED. Importance is labelled by the engine's pinned Jev
+ * (TYPESAFE_API_KEY), and once by the previous version (JEV_COMPARE_MODEL) to show what a version
+ * change moves, segment by segment, as the engine's own judge classifies items. Quality is scored by the newest Sonnet the
  * ANTHROPIC_API_KEY can call, read from Anthropic's model list each run (JUDGE_MODEL pins one), at
  * the effort the model chooses. A metric whose key is missing is BLOCKED.
  */
@@ -21,6 +22,7 @@ import {
   parseDigestFile,
 } from "../packages/core/src/index.js";
 import { buildSpokenText, itemBlock } from "../packages/engine/src/audio/spokenText.js";
+import { DEFAULT_JEV_MODEL } from "../packages/engine/src/judge/jev.js";
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
 const TOLERANCE = 0.1;
@@ -170,8 +172,14 @@ const IMPORTANCE = choice(
 
 let jev: TypeSafeClient | null = null;
 
-/** One Jev label per segment. */
-async function labelOnce(segments: Segment[]): Promise<Record<string, Label>> {
+/** The previous Jev, labelled once more so a version change shows how many labels it moved. */
+const COMPARE_JEV = process.env.JEV_COMPARE_MODEL ?? "jev-1.13.0";
+
+/** One Jev label per segment, from the engine's pinned Jev unless another model is named. */
+async function labelOnce(
+  segments: Segment[],
+  model: string = DEFAULT_JEV_MODEL,
+): Promise<Record<string, Label>> {
   jev ??= new TypeSafeClient({ apiKey: process.env.TYPESAFE_API_KEY ?? "", logLevel: "error" });
   const client = jev;
   const answers = await Promise.all(
@@ -179,7 +187,7 @@ async function labelOnce(segments: Segment[]): Promise<Record<string, Label>> {
       const reply = (await client.systemOne({
         state: { title: segment.headline, source: segment.source, snippet: segment.text },
         questions: { importance: IMPORTANCE },
-        model: "jev-latest",
+        model,
       })) as { answers: { importance: { choice: Label } } };
       return [segment.id, reply.answers.importance.choice] as const;
     }),
@@ -218,6 +226,8 @@ async function importanceRow(name: string, segments: Segment[]): Promise<Row> {
   }
   const [first, second] = [await labelOnce(segments), await labelOnce(segments)];
   const agree = JSON.stringify(first) === JSON.stringify(second);
+  const before = COMPARE_JEV === DEFAULT_JEV_MODEL ? first : await labelOnce(segments, COMPARE_JEV);
+  const moved = segments.filter((segment) => before[segment.id] !== first[segment.id]).length;
   const total = segments.reduce((sum, segment) => sum + segment.chars, 0);
   const major = segments
     .filter((segment) => first[segment.id] === "major")
@@ -227,7 +237,7 @@ async function importanceRow(name: string, segments: Segment[]): Promise<Row> {
   return {
     episode: name,
     metric,
-    value: `${Math.round(share * 100)}% major, ${changelog} changelog${agree ? "" : "; the two runs disagree"}`,
+    value: `${Math.round(share * 100)}% major, ${changelog} changelog${agree ? "" : "; the two runs disagree"}; ${moved} of ${segments.length} labels differ from ${COMPARE_JEV}`,
     verdict: agree && share >= MIN_MAJOR_SHARE && changelog === 0 ? "PASS" : "FAIL",
   };
 }
@@ -307,7 +317,8 @@ async function main(): Promise<void> {
     console.log(`| ${row.episode} | ${row.metric} | ${row.value} | ${row.verdict} |`);
   if (process.env.ANTHROPIC_API_KEY)
     console.log(`\nQuality judge: ${await latestSonnet()}, two runs.`);
-  if (process.env.TYPESAFE_API_KEY) console.log("Importance judge: jev-latest, two runs.");
+  if (process.env.TYPESAFE_API_KEY)
+    console.log(`Importance judge: ${DEFAULT_JEV_MODEL}, two runs, against ${COMPARE_JEV} once.`);
   const passed = rows.filter((row) => row.verdict === "PASS").length;
   console.log(`\n${passed} of ${rows.length} pass.`);
   process.exitCode = passed === rows.length ? 0 : 1;
