@@ -22,7 +22,8 @@ export const STYLES: Style[] = [
     draw: ({ P, K, D }, rng) => {
       const hot = rng.int(0, 6);
       const out = [fill(P)];
-      for (let i = 0; i < 7; i += 1) out.push(circle(130 + i * 128, 400, 24 + i * 6, i === hot ? D : K));
+      for (let i = 0; i < 7; i += 1)
+        out.push(circle(130 + i * 128, 400, 24 + i * 6, i === hot ? D : K));
       return out.join("");
     },
   },
@@ -30,7 +31,12 @@ export const STYLES: Style[] = [
     name: "Ink block",
     note: "A bled ink block crossed by a tint bar, a spot square in the corner. Reid Miles' Blue Note sleeves.",
     draw: ({ P, K, D, T }) =>
-      [fill(P), rect(380, 0, 644, 520, K), rect(380, 300, 644, 64, T), rect(820, 120, 80, 80, D)].join(""),
+      [
+        fill(P),
+        rect(380, 0, 644, 520, K),
+        rect(380, 300, 644, 64, T),
+        rect(820, 120, 80, 80, D),
+      ].join(""),
   },
   {
     name: "Lens",
@@ -81,9 +87,12 @@ export const STYLES: Style[] = [
           const y = 40 + r * 160;
           const ink = inks[rng.int(0, inks.length - 1)] as string;
           const kind = rng.int(0, 3);
-          if (kind === 0) out.push(path(`M${x} ${y}H${x + 160}A160 160 0 0 1 ${x} ${y + 160}Z`, ink));
-          else if (kind === 1) out.push(path(`M${x + 160} ${y + 160}V${y}A160 160 0 0 0 ${x} ${y + 160}Z`, ink));
-          else if (kind === 2) out.push(path(`M${x} ${y + 160}A80 80 0 0 1 ${x + 160} ${y + 160}Z`, ink));
+          if (kind === 0)
+            out.push(path(`M${x} ${y}H${x + 160}A160 160 0 0 1 ${x} ${y + 160}Z`, ink));
+          else if (kind === 1)
+            out.push(path(`M${x + 160} ${y + 160}V${y}A160 160 0 0 0 ${x} ${y + 160}Z`, ink));
+          else if (kind === 2)
+            out.push(path(`M${x} ${y + 160}A80 80 0 0 1 ${x + 160} ${y + 160}Z`, ink));
           else out.push(circle(x + 80, y + 80, 64, ink));
         }
       }
@@ -106,10 +115,10 @@ export const STYLES: Style[] = [
     draw: ({ P, K, D }, rng) => {
       const out = [fill(P)];
       const hot = rng.int(0, 6);
-      let x = 744;
-      for (let i = 0; i < 7 && x < 980; i += 1) {
+      let x = 800;
+      for (let i = 0; i < 7 && x < 1000; i += 1) {
         const w = [8, 16, 24, 40][rng.int(0, 3)] as number;
-        out.push(rect(x, 0, Math.min(w, 984 - x), 1024, i === hot ? D : K));
+        out.push(rect(x, 0, Math.min(w, 1004 - x), 1024, i === hot ? D : K));
         x += w + rng.int(12, 20);
       }
       return out.join("");
@@ -119,7 +128,19 @@ export const STYLES: Style[] = [
     name: "Folded corner",
     note: "A tint square folded on its diagonal, ink on the turned half. Munari's paper folds.",
     draw: ({ P, K, D, T }) =>
-      [fill(P), rect(560, 0, 464, 464, T), polygon([[560, 0], [1024, 0], [1024, 464]], K), circle(700, 330, 40, D)].join(""),
+      [
+        fill(P),
+        rect(560, 0, 464, 464, T),
+        polygon(
+          [
+            [560, 0],
+            [1024, 0],
+            [1024, 464],
+          ],
+          K,
+        ),
+        circle(700, 330, 40, D),
+      ].join(""),
   },
   {
     name: "Week ring",
@@ -129,7 +150,13 @@ export const STYLES: Style[] = [
       const gap = (6 * Math.PI) / 180;
       const step = (2 * Math.PI) / 7;
       const out = [fill(P)];
-      for (let i = 0; i < 7; i += 1) out.push(path(sector(700, 330, 130, 230, i * step + gap / 2, (i + 1) * step - gap / 2), i === hot ? D : K));
+      for (let i = 0; i < 7; i += 1)
+        out.push(
+          path(
+            sector(700, 330, 130, 230, i * step + gap / 2, (i + 1) * step - gap / 2),
+            i === hot ? D : K,
+          ),
+        );
       return out.join("");
     },
   },
@@ -137,10 +164,20 @@ export const STYLES: Style[] = [
     name: "Domino",
     note: "An ink domino carrying seven pips, three over four. Game tiles.",
     draw: ({ P, K, T }, rng) => {
-      const pips: [number, number][] = [[680, 124], [750, 174], [820, 224], [690, 370], [810, 370], [690, 470], [810, 470]];
+      const pips: [number, number][] = [
+        [680, 124],
+        [750, 174],
+        [820, 224],
+        [690, 370],
+        [810, 370],
+        [690, 470],
+        [810, 470],
+      ];
       const hot = rng.int(0, 6);
       const out = [fill(P), rect(600, 60, 300, 480, K, 40), rect(630, 288, 240, 10, P)];
-      pips.forEach(([x, y], i) => out.push(circle(x, y, 28, i === hot ? T : P)));
+      pips.forEach(([x, y], i) => {
+        out.push(circle(x, y, 28, i === hot ? T : P));
+      });
       return out.join("");
     },
   },
@@ -150,19 +187,29 @@ export const STYLES: Style[] = [
     draw: ({ P, K, D }, rng) => {
       const hot = rng.int(0, 6);
       const out = [fill(P)];
-      for (let i = 0; i < 7; i += 1) out.push(rect(380 + i * 90, -40, 60, 240 + rng.int(0, 300), i === hot ? D : K, 30));
+      for (let i = 0; i < 7; i += 1)
+        out.push(rect(380 + i * 90, -40, 60, 240 + rng.int(0, 300), i === hot ? D : K, 30));
       return out.join("");
     },
   },
   {
     name: "Overprint squares",
     note: "Two squares overlapping, the shared corner in the spot colour. Albers' interaction of colour.",
-    draw: ({ P, K, D, T }) => [fill(P), rect(420, 60, 320, 320, T), rect(580, 220, 320, 320, K), rect(580, 220, 160, 160, D)].join(""),
+    draw: ({ P, K, D, T }) =>
+      [
+        fill(P),
+        rect(420, 60, 320, 320, T),
+        rect(580, 220, 320, 320, K),
+        rect(580, 220, 160, 160, D),
+      ].join(""),
   },
   {
     name: "Eclipse",
     note: "An ink moon sliding over a tint sun, a small spot planet below. Astronomy plates.",
-    draw: ({ P, K, D, T }) => [fill(P), circle(660, 300, 220, T), circle(780, 250, 170, K), circle(520, 480, 30, D)].join(""),
+    draw: ({ P, K, D, T }) =>
+      [fill(P), circle(660, 300, 220, T), circle(780, 250, 170, K), circle(520, 480, 30, D)].join(
+        "",
+      ),
   },
   {
     name: "Week line",
@@ -171,7 +218,9 @@ export const STYLES: Style[] = [
       const pts = Array.from({ length: 7 }, (_, i) => [380 + i * 100, rng.int(160, 500)] as const);
       const top = pts.reduce((m, p, i) => (p[1] < (pts[m]?.[1] ?? 1e9) ? i : m), 0);
       const out = [fill(P), stroke(`M${pts.map(([x, y]) => `${x} ${y}`).join("L")}`, K, 20)];
-      pts.forEach(([x, y], i) => out.push(circle(x, y, i === top ? 40 : 26, i === top ? D : K)));
+      pts.forEach(([x, y], i) => {
+        out.push(circle(x, y, i === top ? 40 : 26, i === top ? D : K));
+      });
       return out.join("");
     },
   },
@@ -204,7 +253,8 @@ export const STYLES: Style[] = [
     draw: ({ P, K, D, T }, rng) => {
       const hot = rng.int(0, 6);
       const out = [fill(P)];
-      for (let i = 0; i < 7; i += 1) out.push(petal(700, 320, 220, 84, (i * 2 * Math.PI) / 7, i === hot ? D : K));
+      for (let i = 0; i < 7; i += 1)
+        out.push(petal(700, 320, 220, 84, (i * 2 * Math.PI) / 7, i === hot ? D : K));
       out.push(circle(700, 320, 54, T));
       return out.join("");
     },
@@ -217,7 +267,8 @@ export const STYLES: Style[] = [
       const out = [fill(P)];
       for (let c = 0; c < 7; c += 1) {
         for (let r = 0; r < 2; r += 1) {
-          if ((c + r) % 2 === 0) out.push(rect(128 + c * 128, 240 + r * 80, 128, 80, c === hot ? D : K));
+          if ((c + r) % 2 === 0)
+            out.push(rect(128 + c * 128, 240 + r * 80, 128, 80, c === hot ? D : K));
         }
       }
       out.push(rect(128, 420, 896, 32, T));
@@ -230,7 +281,8 @@ export const STYLES: Style[] = [
     draw: ({ P, K, D, T }, rng) => {
       const hot = rng.int(0, 6);
       const out = [fill(P), circle(660, 300, 140, T), rect(760, 0, 264, 1024, K)];
-      for (let i = 0; i < 7; i += 1) out.push(rect(800, 200 + i * 100, i === hot ? 184 : 120, 14, i === hot ? D : P));
+      for (let i = 0; i < 7; i += 1)
+        out.push(rect(800, 200 + i * 100, i === hot ? 184 : 120, 14, i === hot ? D : P));
       return out.join("");
     },
   },

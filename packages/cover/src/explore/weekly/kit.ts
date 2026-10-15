@@ -8,7 +8,7 @@ export { circle, polygon, rect } from "../../templates/kit.js";
  * Paper weeklies: the week's cover is printed on the month's palest colour, so it reads light next to
  * the dark daily and the mid-tone on-demand plate. Five flat colours, all from the month's scheme:
  * paper P, ink K (darkest), spot D (the most chromatic colour at 3:1 on paper), tint T (the most
- * chromatic light colour) and haze H (paper half way to the tint).
+ * chromatic pale colour, kept soft) and haze H (paper half way to the tint).
  */
 export interface Paper {
   P: string;
@@ -32,7 +32,7 @@ export function paper(date: string): Paper {
   const P = colors[colors.length - 1] as string;
   const K = colors[0] as string;
   const D = most(colors.slice(1).filter((c) => contrastRatio(P, c) >= 3));
-  const T = most(colors.filter((c) => L(c) >= 0.7 && c !== P));
+  const T = most(colors.filter((c) => L(c) >= 0.82 && L(c) <= 0.93));
   return { P, K, D, T, H: mixHex(P, T, 0.45) };
 }
 
@@ -47,13 +47,27 @@ const pt = (cx: number, cy: number, r: number, a: number): string =>
   `${n(cx + r * Math.sin(a))} ${n(cy - r * Math.cos(a))}`;
 
 /** A ring sector from `a0` to `a1` radians (0 is up, clockwise). */
-export function sector(cx: number, cy: number, r0: number, r1: number, a0: number, a1: number): string {
+export function sector(
+  cx: number,
+  cy: number,
+  r0: number,
+  r1: number,
+  a0: number,
+  a1: number,
+): string {
   const large = a1 - a0 > Math.PI ? 1 : 0;
   return `M${pt(cx, cy, r1, a0)}A${n(r1)} ${n(r1)} 0 ${large} 1 ${pt(cx, cy, r1, a1)}L${pt(cx, cy, r0, a1)}A${n(r0)} ${n(r0)} 0 ${large} 0 ${pt(cx, cy, r0, a0)}Z`;
 }
 
 /** An ellipse petal of length `len` and width `w` from the centre, turned `a` radians. */
-export function petal(cx: number, cy: number, len: number, w: number, a: number, color: string): string {
+export function petal(
+  cx: number,
+  cy: number,
+  len: number,
+  w: number,
+  a: number,
+  color: string,
+): string {
   const deg = (a * 180) / Math.PI;
   return `<ellipse cx="${n(cx)}" cy="${n(cy - len / 2)}" rx="${n(w / 2)}" ry="${n(len / 2)}" fill="${color}" transform="rotate(${n(deg)} ${n(cx)} ${n(cy)})"/>`;
 }
