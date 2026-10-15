@@ -21,7 +21,9 @@ export type ViolationRule =
   | "too_few_words"
   | "too_few_sentences"
   | "sentence_too_long"
-  | "spoken_style";
+  | "spoken_style"
+  /** A spoken text states a number the headline and summary do not (write/spokenCheck.ts). */
+  | "ungrounded_number";
 
 export interface Violation {
   field: VoiceField;

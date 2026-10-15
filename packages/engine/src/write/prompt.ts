@@ -54,6 +54,10 @@ const FIELD_RULES = [
 const FACT_RULES = [
   "Use facts from the source text only. Never add a claim, number, name, date or link that the text does not state.",
   "If the text lacks a detail, leave it out instead of guessing.",
+  // Seen in the October weekly: "The catch: the piece doesn't include new evidence" and a catch
+  // after a missile strike that killed a person.
+  'Tell the news, never review the article: no "the piece", "the post" or "the author doesn\'t say".',
+  "When the news is a death, an attack, a disaster or other harm, tell it plainly and end on the latest fact: no catch and no twist.",
   "Write plain sentences: no markdown, no links, no quotation marks around a field, no labels such as 'Summary:'.",
 ].join(" ");
 
