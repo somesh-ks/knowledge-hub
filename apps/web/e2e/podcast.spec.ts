@@ -643,22 +643,31 @@ test.describe("the Model page", () => {
     await expect(options(page).filter({ hasText: /Kimi/ })).toHaveCount(0);
   });
 
-  test("Anthropic offers the two Claude models, without asking for the live list", async ({
-    page,
-  }) => {
+  test("Anthropic offers the Claude models it lists, newest first", async ({ page }) => {
     await page.clock.install();
     const sent = await mockConfig(page);
+    await page.route("**/api/models?provider=anthropic", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          provider: "anthropic",
+          models: [
+            { id: "claude-opus-6", label: "Claude Opus 6" },
+            { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+            { id: "claude-haiku-5-5", label: "Claude Haiku 5.5" },
+          ],
+        }),
+      }),
+    );
     await open(page, "model");
-    let asked = 0;
-    await page.route("**/api/models", (route) => {
-      asked += 1;
-      return route.abort();
-    });
     await page.getByLabel("Provider").selectOption("anthropic");
     await expect(combo(page).locator("option:checked")).toHaveText("Claude Sonnet 5.5");
-    await expect(options(page)).toHaveCount(2);
-    expect(asked).toBe(0);
-    await combo(page).selectOption({ label: "Claude Haiku 5.5" });
+    await expect(options(page)).toHaveText([
+      "Claude Opus 6",
+      "Claude Sonnet 5.5",
+      "Claude Haiku 5.5",
+    ]);
+    await combo(page).selectOption({ label: "Claude Opus 6" });
     // The pick waits out the server's gap after the provider's own save.
     await page.clock.runFor(GAP_MS);
     await expect
@@ -666,7 +675,7 @@ test.describe("the Model page", () => {
       .toEqual({
         op: "writer.set",
         provider: "anthropic",
-        model: "claude-haiku-5-5",
+        model: "claude-opus-6",
       });
     await expect(spoken(page)).toHaveText(SAVED);
   });
