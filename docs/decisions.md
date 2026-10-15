@@ -128,7 +128,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
 | D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned by version; Jev checks the strongest candidates against the owner's taste (votes and opens) and that answer replaces the source-vote nudge, within the same 15% | active; amends D3, D108 |
-| D119 | Covers are drawn at medium chroma (OKLCH 0.12 or less); a monthly weekly is mounted on its month's palest colour, a frame no daily has | active; amends D110 |
+| D119 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and lightness: dark dailies, light on-demand covers, paper weeklies | active; amends D110 |
 
 ---
 
@@ -1326,15 +1326,18 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: about 60 Jev requests a pass; the judgment cache is keyed by model, so every item is judged afresh once after the pin.
 - Rejected: an LLM recommender or embeddings (one reader, too few interactions to tune); a discovery slot in selection (the taste check is neutral on unrated sources, and every topic already gets its best story first since #144); a store of its own for opens (every save is already a commit; riding the vote batch costs nothing new).
 - Revisit if: the eval shows 1.14 moving many importance labels, or the taste check's answers sit near 0.5 for every story.
-## D119: medium-chroma covers, weeklies on a pale matte
+## D119: medium-chroma covers, three series apart by lightness
 
 - Date: 2026-10-15 (the owner: "the color palette of the album arts is too saturated, keep it medium so it is not too much on the eye when multiple albums are viewed at the same time", and "make sure weekly and daily covers are easily distinguishable")
 - Decision:
   - Every cover palette in `tokens/covers.json` sits at OKLCH chroma 0.12 or less, hue and lightness kept. Near-duplicates the lower chroma would have made (the October scheme's two terracottas and two sands) are pulled apart in lightness.
-  - A monthly weekly is mounted on its scheme's palest colour, at 2:1 or better against the plate (`MATTE_CONTRAST`, `season.ts`), with the inset widened from 44 to 56 of 1024 so the frame is about 9 px on a phone card. A daily is full bleed and a briefing or episode is a disc, so the three read apart by shape, which holds in grayscale and for colour-blind eyes.
+  - Each monthly series draws from its own twenty styles, picked by the cover's seed (`packages/cover/src/series/`): dailies, on-demand covers (briefings and episodes) and paper weeklies. The owner chose them from contact sheets of twenty per series and dropped a first weekly set of coloured covers in a cream frame ("drop the brick red option").
+  - The series read apart by lightness, which holds in grayscale and for colour-blind eyes: a daily keeps a dark ground, an on-demand matte sits at OKLCH lightness 0.65 to 0.87 (`PLATE_L`, `season.ts`), and a weekly is printed on a dimmed paper made from the month's palest colour, 0.88 in the light theme and 0.80 in the dark (`PAPER_L`, `series/weekly/kit.ts`; the owner: "too bright on light mode, could be faintly less bright on dark mode"). Covers before October 2026 keep their templates and the framed weekly.
+  - The weekly's range prints with a dash, "2 – 8 November", from that year's ISO week (the owner: "each year the week range changes ... the subtitle can be like 5 - 10 November").
   - The cover box takes the colour drawn at the cover's edge (`coverEdge`, `lib/covers.ts`), not the palette id's ground, so a pale matte or a pale monthly ground gets its rim on the light page.
   - Covers adapt to the theme (the owner: "I want the color palette to adapt to light and dark theme, have this modularity in design theme"). `tokens/covers.json` `mode` maps every drawn colour's lightness into a band per theme (light lifts the darkest inks to charcoal, dark settles the palest grounds to parchment); `mode.ts` then holds each contrast floor again. Pages and the player show `/covers/<light|dark>/<id>-<size>.webp` by theme; the lock screen and social card keep the colours as authored.
 - Why: October's scheme drew from chroma 0.16 to 0.22 colours, and a grid of them measured 107 to 134 on Hasler and Suesstrunk's colourfulness ("extremely colourful"). The weekly's matte was its own ground, so it showed only as a slightly smaller picture.
-- Check: grids of every scheme measure 47 to 58 (moderately to quite colourful), 95th-percentile chroma 0.11; the worst date contrast is 4.8:1; the worst weekly frame is 3.2:1 under deuteranopia.
-- Rejected: a coloured badge or a "W" corner mark (the week numeral already says it, and it fails at the 40 px row size); a dark matte (it disappears into the dark page).
+- Check: grids of every scheme measure 47 to 58 (moderately to quite colourful), 95th-percentile chroma 0.11; the worst date contrast is 4.8:1; every daily sits at least 0.1 darker in OKLCH lightness than the weeklies and on-demand covers of its month, in both themes (`family.test.ts`).
+- Rejected: a coloured badge or a "W" corner mark (the week numeral already says it, and it fails at the 40 px row size); a dark matte (it disappears into the dark page); a weekly mounted in a pale frame around a coloured plate (the owner dropped it for the paper set).
+- Known gap: a month whose scheme has no colour in the on-demand band (November, moss) falls back to a matte as light as the weekly paper, so those two series differ by hue and form there, not lightness.
 

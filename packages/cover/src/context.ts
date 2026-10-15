@@ -3,14 +3,8 @@ import { layoutLockup, MARGIN_UNITS } from "./lockup.js";
 import { type CoverMode, holdContrast, toneFor, tonePalette } from "./mode.js";
 import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
-import {
-  type Dress,
-  dress,
-  isMonthly,
-  MATTE_CONTRAST,
-  schemeFor,
-  TYPE_CONTRAST,
-} from "./season.js";
+import { type Dress, dress, isMonthly, schemeFor, TYPE_CONTRAST } from "./season.js";
+import { paper, paperPalette } from "./series/weekly/kit.js";
 import { pad } from "./svg.js";
 import type { CoverKind, CoverMeta, CoverSpec, Ctx, Palette, Rect, Variant } from "./types.js";
 
@@ -33,7 +27,7 @@ export interface BuiltContext {
   ctx: Ctx;
 }
 
-/** Weekly records sit in a matte: the art is a plate inset from the edge, ringed by a hairline. */
+/** Weeklies before the monthly style sit in a matte: the art is inset from the edge, ringed by a hairline. */
 export const WEEKLY_INSET = 56;
 
 /** `monthly` presses an on-demand briefing and an episode as the round plate on a matte. */
@@ -53,12 +47,14 @@ function coverDress(
   const { year, month } = parseDate(meta.date);
   const variant = variantOf(meta.kind, monthly);
   const base = getPalette(spec.palette);
+  if (monthly && variant === "weekly") {
+    // Paper weeklies carry their own tones for each theme, so they skip the generic toning.
+    const p = paper(schemeFor(year, month), meta.mode ?? "light");
+    const pal = paperPalette(base, p);
+    return { pal, variant, season: { palette: pal, type: p.K } };
+  }
   const season = monthly
-    ? dress(
-        schemeFor(year, month),
-        spec,
-        variant === "weekly" ? "weekly" : variant === "plate" ? "plate" : "daily",
-      )
+    ? dress(schemeFor(year, month), spec, variant === "plate" ? "plate" : "daily")
     : undefined;
   const pal = season ? season.palette : variant === "episode" ? invertPalette(base) : base;
   return meta.mode ? forMode({ pal, variant, season }, meta.mode) : { pal, variant, season };
@@ -69,7 +65,7 @@ const PLATE_CONTRAST = 1.6;
 
 /**
  * The cover as the app's theme draws it: every colour toned for the mode, then each contrast rule
- * held again, the figure on its ground, the matte off its plate and the type on what it sits on.
+ * held again, the figure on its ground, the disc off its matte and the type on what it sits on.
  */
 function forMode(
   dressed: { pal: Palette; variant: Variant; season: Dress | undefined },
@@ -80,8 +76,7 @@ function forMode(
   if (!season) return { pal, variant, season };
   const plate = variant === "plate";
   const matte =
-    season.matte &&
-    holdContrast(toneFor(season.matte, mode), pal.ground, plate ? PLATE_CONTRAST : MATTE_CONTRAST);
+    season.matte && holdContrast(toneFor(season.matte, mode), pal.ground, PLATE_CONTRAST);
   const under = plate && matte ? matte : pal.ground;
   const type = holdContrast(toneFor(season.type, mode), under, TYPE_CONTRAST);
   return {
@@ -119,13 +114,14 @@ export function buildContext(
   const weekly = variant === "weekly" && monthly;
   const numeral = weekly ? `W${isoWeek(meta.date)}` : String(day);
   const u = size / 1024;
-  // The weekly's type sits on the plate, so its margin grows by the matte.
-  const margin = (variant === "weekly" ? MARGIN_UNITS + WEEKLY_INSET : MARGIN_UNITS) * u;
+  // A framed weekly's type sits on the plate, so its margin grows by the matte.
+  const framed = variant === "weekly" && !monthly;
+  const margin = (framed ? MARGIN_UNITS + WEEKLY_INSET : MARGIN_UNITS) * u;
   const monthName = MONTH_NAMES[month - 1] ?? "January";
   const caption = weekly ? rangeLabel(meta.date) : monthName;
   const lockup = layoutLockup(size, size, u, numeral, caption, margin);
 
-  const inset = variant === "weekly" ? WEEKLY_INSET * u : 0;
+  const inset = framed ? WEEKLY_INSET * u : 0;
   const area: Rect = { x: inset, y: inset, w: size - inset * 2, h: size - inset * 2 };
   const quiet =
     lockupMode === "own"
@@ -147,12 +143,9 @@ export function buildContext(
     caption,
     ink: season?.type ?? pal.text,
     ...(season?.matte ? { matte: season.matte } : {}),
-    ...(season?.matte && variant === "plate"
-      ? { plate: { cx: size / 2, cy: size * 0.4, r: size * 0.275 } }
-      : {}),
     uid,
     margin,
-    quiet: variant === "plate" ? [] : quiet,
+    quiet,
     area,
     lockup,
   };

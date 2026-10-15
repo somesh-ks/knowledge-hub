@@ -4,16 +4,6 @@ import { hash32, mulberry32 } from "./prng.js";
 import { TEMPLATES } from "./templates/index.js";
 import type { Palette, TemplateId } from "./types.js";
 
-/** Templates that draw outlined numerals or ring line art. A monthly cover uses solid flat fills only. */
-const LINE_ART: readonly TemplateId[] = ["numeral", "orbit"];
-
-/** The template a monthly cover draws: the picked one, or a flat one chosen by the seed. */
-export function flatTemplate(template: TemplateId, seed: number): TemplateId {
-  if (!LINE_ART.includes(template)) return template;
-  const flat = TEMPLATES.filter((t) => !LINE_ART.includes(t));
-  return flat[hash32(`flat:${seed}`) % flat.length] ?? template;
-}
-
 /**
  * Monthly colour schemes. A month draws every cover, of every kind, from one scheme: a small set of
  * colours taken from the existing palettes, kept inside one hue family or an analogous or
@@ -129,24 +119,18 @@ const tintsOk = (ground: string, figure: string): boolean => {
 };
 
 const isLight = (hex: string): boolean => hexToOklch(hex).l >= 0.7;
+/** OKLCH lightness an on-demand matte aims for, between the dark daily and the paper weekly. */
+const PLATE_L = [0.65, 0.87] as const;
+/** The palest matte a month without a colour in that band may fall back to. */
+const PLATE_L_MAX = 0.9;
 
 export interface Dress {
   /** Ground and figure the template draws with; on a plate, the disc and the art on it. */
   palette: Palette;
-  /** The flat ground around a plate or a weekly's art. Absent when the palette's own ground fills the cover. */
+  /** The flat ground of an on-demand cover. Absent when the palette's own ground fills the cover. */
   matte?: string;
   /** Color of the date, month and wordmark. */
   type: string;
-}
-
-/** A weekly's matte must stand off its plate by this much, as luminance alone. */
-export const MATTE_CONTRAST = 2;
-
-/** The palest colour of the scheme: the paper every weekly of the month is mounted on. */
-function weeklyMatte(scheme: Scheme): string {
-  const [palest] = [...scheme.colors].sort((a, b) => hexToOklch(b).l - hexToOklch(a).l);
-  if (!palest) throw new Error(`Cover scheme "${scheme.id}" has no colours`);
-  return palest;
 }
 
 /** Every (ground, figure, type) the rules allow. With a plate: (matte, disc, art, type). */
@@ -197,46 +181,25 @@ export function assertSchemes(): void {
 }
 
 /**
- * The dress for one cover. `weekly` prefers a deep ground mounted on the month's palest colour; `plate`
- * is the on-demand layout. Seeded by the cover's own seed, so it is stable and varies by episode.
+ * The dress for one daily or on-demand cover (weeklies are printed on paper, see series/weekly).
+ * Seeded by the cover's own seed, so it is stable and varies by episode.
  */
 export function dress(
   scheme: Scheme,
   spec: { palette: string; seed: number },
-  kind: "daily" | "weekly" | "plate",
+  kind: "daily" | "plate",
 ): Dress {
   const rng = mulberry32(hash32(`dress:${spec.seed}`));
   const plate = kind === "plate";
-  let options = valid(scheme.colors, plate);
-  if (kind === "weekly") {
-    const deep = options.filter(
-      ([g]) =>
-        g !== undefined && contrastRatio(g, "#000000") > 2.2 && contrastRatio(g, "#000000") < 8,
-    );
-    if (deep.length > 0) options = deep;
-    const paper = weeklyMatte(scheme);
-    const mounted = options.filter(
-      ([g]) => g !== undefined && contrastRatio(paper, g) >= MATTE_CONTRAST,
-    );
-    if (mounted.length > 0) options = mounted;
-  }
-  if (kind !== "weekly") {
-    // About a third of a month sits on a light ground, as production does.
-    const light = options.filter(([g]) => g !== undefined && isLight(g));
-    const dark = options.filter(([g]) => g !== undefined && !isLight(g));
-    if (light.length > 0 && dark.length > 0) options = rng.chance(1 / 3) ? light : dark;
-  }
-  const pick = rng.pick(options);
-  if (kind === "weekly") {
-    // The weekly is the boxed set: its plate sits in a pale matte that a daily never has, so it reads
-    // as a different record at a glance, in grayscale and to colour-blind eyes alike.
-    const [ground, figure, type] = pick as [string, string, string];
-    return {
-      palette: palette(spec.palette, ground, figure, type),
-      matte: weeklyMatte(scheme),
-      type,
-    };
-  }
+  const all = valid(scheme.colors, plate);
+  // The series read apart by lightness: a daily stays dark, an on-demand matte sits in the light
+  // middle, and the palest colours belong to the paper weekly.
+  const within = (lo: number, hi: number) =>
+    all.filter(([g]) => g !== undefined && hexToOklch(g).l >= lo && hexToOklch(g).l <= hi);
+  const tiers = plate
+    ? [within(PLATE_L[0], PLATE_L[1]), within(PLATE_L[0], PLATE_L_MAX), all]
+    : [all.filter(([g]) => g !== undefined && !isLight(g)), all];
+  const pick = rng.pick(tiers.find((t) => t.length > 0) ?? all);
   if (plate) {
     const [matte, disc, art, type] = pick as [string, string, string, string];
     return { palette: palette(spec.palette, disc, art, type), matte, type };

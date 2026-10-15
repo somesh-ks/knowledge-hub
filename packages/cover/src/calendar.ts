@@ -77,11 +77,11 @@ export function isoWeekRange(date: string): { monday: YmdParts; sunday: YmdParts
   return { monday: part(t - (isoDay - 1) * DAY_MS), sunday: part(t + (7 - isoDay) * DAY_MS) };
 }
 
-/** The weekly's range on one line: "13 to 19 October" or "28 Sep to 4 Oct". */
+/** The weekly's range on one line: "13 – 19 October" or "28 Sep – 4 Oct", from that year's own calendar. */
 export function rangeLabel(date: string): string {
   const { monday, sunday } = isoWeekRange(date);
   const name = (m: number) => MONTH_NAMES[m - 1] ?? "";
-  if (monday.month === sunday.month) return `${monday.day} to ${sunday.day} ${name(monday.month)}`;
+  if (monday.month === sunday.month) return `${monday.day} – ${sunday.day} ${name(monday.month)}`;
   const short = (m: number) => name(m).slice(0, 3);
-  return `${monday.day} ${short(monday.month)} to ${sunday.day} ${short(sunday.month)}`;
+  return `${monday.day} ${short(monday.month)} – ${sunday.day} ${short(sunday.month)}`;
 }

@@ -88,15 +88,14 @@ export interface Ctx {
   caption: string;
   /** Color of the lockup type. */
   ink: string;
-  /** The flat ground around a plate's disc or a monthly weekly's art, and the disc itself in canvas px. */
+  /** The flat ground of a monthly on-demand cover, which the art and type sit on. */
   matte?: string;
-  plate?: { cx: number; cy: number; r: number };
   /** Unique per cover so several inline SVGs can share one HTML document. */
   uid: string;
   margin: number;
   /** Padded rectangles that art must keep clear so type always sits on flat ground. */
   quiet: Rect[];
-  /** Drawable area: the full canvas, or the inset plate on weekly covers. */
+  /** Drawable area: the full canvas, or the inset plate on a framed weekly. */
   area: Rect;
   /** Where the date numeral and wordmark go, for a template that draws its own date. */
   lockup: LockupLayout;

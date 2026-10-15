@@ -1,10 +1,11 @@
 import { Resvg } from "@resvg/resvg-js";
 import { describe, expect, it } from "vitest";
-import { contrastRatio, hexToRgb } from "./color.js";
-import { buildContext, WEEKLY_INSET } from "./context.js";
+import { contrastRatio, hexToOklch, hexToRgb } from "./color.js";
+import { buildContext } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { renderCoverSvg } from "./render.js";
+import { SERIES_STYLES, type Series } from "./series/index.js";
 import { TEMPLATE_LOCKUP, TEMPLATES } from "./templates/index.js";
 import type { CoverKind, CoverMeta, CoverSpec, Rect, TemplateId } from "./types.js";
 
@@ -89,6 +90,54 @@ describe("lockup legibility", () => {
       });
     }
   });
+
+  // The monthly styles were drawn around the lockup of one date; a wider week range or numeral on
+  // another date could reach under it.
+  const SERIES_KIND: Record<Series, CoverKind> = {
+    daily: "regular",
+    weekly: "weekly",
+    "on-demand": "on-demand",
+  };
+  it.each(Object.keys(SERIES_STYLES) as Series[])(
+    "keeps flat ground behind the type on every %s style",
+    (series) => {
+      const under = new Set<string>();
+      for (const date of ["2026-10-01", "2026-11-30", "2027-01-03"]) {
+        SERIES_STYLES[series].forEach((style, i) => {
+          const spec: CoverSpec = { template: "band", palette: "ultramarine", seed: 31 + i };
+          const meta: CoverMeta = { date, kind: SERIES_KIND[series], id: `${date}-${i}` };
+          const { ctx } = buildContext(spec, meta, 1024, "standard", true);
+          const ground = ctx.matte ?? ctx.pal.ground;
+          const out = style(ctx);
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><rect width="1024" height="1024" fill="${ground}"/>${out.defs ? `<defs>${out.defs}</defs>` : ""}${out.body}</svg>`;
+          const pixels = raster(svg);
+          const [gr, gg, gb] = hexToRgb(ground);
+          for (const box of [ctx.lockup.date, ctx.lockup.mark]) {
+            for (
+              let y = Math.floor(box.y * SCALE);
+              y < Math.ceil((box.y + box.h) * SCALE);
+              y += 1
+            ) {
+              for (
+                let x = Math.floor(box.x * SCALE);
+                x < Math.ceil((box.x + box.w) * SCALE);
+                x += 1
+              ) {
+                const at = (y * SIZE + x) * 4;
+                const off = Math.max(
+                  Math.abs((pixels[at] as number) - gr),
+                  Math.abs((pixels[at + 1] as number) - gg),
+                  Math.abs((pixels[at + 2] as number) - gb),
+                );
+                if (off > 3) under.add(`${series} style ${i + 1} on ${date}`);
+              }
+            }
+          }
+        });
+      }
+      expect([...under], "art under the type").toEqual([]);
+    },
+  );
 
   it("draws the lockup inside the safe margins and inside its own ink boxes", () => {
     for (const template of TEMPLATES.filter((t) => TEMPLATE_LOCKUP[t] === "standard")) {
@@ -207,22 +256,24 @@ describe("variants", () => {
     }
   });
 
-  // The month's schemes dressed weeklies and dailies alike, so a weekly read as one more daily in a grid.
-  it("mounts a monthly weekly on a matte that stands off its plate in grayscale", () => {
-    for (const month of ["2026-10", "2026-11", "2026-12", "2027-01"]) {
-      for (let seed = 1; seed <= 12; seed += 1) {
-        const s: CoverSpec = { template: "band", palette: "ultramarine", seed: seed * 7919 };
-        const meta: CoverMeta = { date: `${month}-14`, kind: "weekly", id: `${month}-w${seed}` };
-        const { ctx } = buildContext(s, meta, 1024, "standard", true);
-        const where = `${month} seed ${seed}`;
-        expect(ctx.matte, where).toBeDefined();
-        expect(contrastRatio(ctx.matte ?? "", ctx.pal.ground), where).toBeGreaterThanOrEqual(2);
-        // The matte is drawn: a pixel halfway into it carries its colour.
-        const px = raster(renderCoverSvg(s, meta));
-        const at = (Math.round(SIZE / 2) * SIZE + Math.round((WEEKLY_INSET * SCALE) / 2)) * 4;
-        expect([px[at], px[at + 1], px[at + 2]], where).toEqual(hexToRgb(ctx.matte ?? ""));
-        const daily = buildContext(s, { ...meta, kind: "regular" }, 1024, "standard", true);
-        expect(daily.ctx.matte, where).toBeUndefined();
+  // The first monthly weeklies read as one more daily in a grid. Each series now keeps its own
+  // lightness: dark dailies, light on-demand mattes and paper weeklies, in both themes.
+  it("keeps every daily darker than the weeklies and on-demand covers of its month", () => {
+    const groundL = (kind: CoverKind, month: string, mode: "light" | "dark", seed: number) => {
+      const meta: CoverMeta = { date: `${month}-14`, kind, id: `${month}-${seed}`, mode };
+      const s: CoverSpec = { template: "band", palette: "ultramarine", seed };
+      const { ctx } = buildContext(s, meta, 1024, "standard", true);
+      return hexToOklch(ctx.matte ?? ctx.pal.ground).l;
+    };
+    for (const mode of ["light", "dark"] as const) {
+      for (const month of ["2026-10", "2026-11", "2026-12", "2027-01"]) {
+        const seeds = Array.from({ length: 40 }, (_, n) => n * 7919 + 13);
+        const daily = Math.max(...seeds.map((s) => groundL("regular", month, mode, s)));
+        const others = seeds.flatMap((s) => [
+          groundL("weekly", month, mode, s),
+          groundL("on-demand", month, mode, s),
+        ]);
+        expect(Math.min(...others) - daily, `${mode} ${month}`).toBeGreaterThanOrEqual(0.1);
       }
     }
   });
@@ -237,7 +288,7 @@ describe("variants", () => {
             const s: CoverSpec = { template: "band", palette: "ultramarine", seed };
             const meta: CoverMeta = { date: `${month}-14`, kind, id: `${month}-${seed}`, mode };
             const { ctx } = buildContext(s, meta, 1024, "standard", true);
-            const under = ctx.plate && ctx.matte ? ctx.matte : ctx.pal.ground;
+            const under = ctx.matte ?? ctx.pal.ground;
             expect(
               contrastRatio(ctx.ink, under),
               `${mode} ${month} ${kind} ${seed}`,
