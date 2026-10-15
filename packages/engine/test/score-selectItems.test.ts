@@ -451,6 +451,18 @@ describe("topics and length", () => {
     expect(result.selected).toHaveLength(5);
     expect(result.selected.filter(isTech)).toHaveLength(1);
   });
+
+  // Before: a weekly set to 15 minutes stopped at 18 main stories (about 9 minutes), whatever
+  // the setting.
+  it("lets the owner's length, not the kind's count cap, size a briefing", () => {
+    const craft = Array.from({ length: 30 }, (_, i) =>
+      scored("design_engineering_craft", 0.9 - i * 0.001),
+    );
+    const result = selectItems({ scored: craft, kind: "weekly", floor: 3, cap: 48, total: 25 });
+    expect(result.selected).toHaveLength(25);
+    const unsized = selectItems({ scored: craft, kind: "weekly", floor: 3, cap: 48 });
+    expect(unsized.selected).toHaveLength(capFor("weekly"));
+  });
 });
 
 describe("weekly reserved slot", () => {

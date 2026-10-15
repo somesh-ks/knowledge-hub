@@ -7,6 +7,7 @@ import {
   type Source,
   serializeDigestFile,
   stockholmDate,
+  VOICE_LIMITS,
   withGeneralTopics,
 } from "@dispatch/core";
 import {
@@ -221,7 +222,15 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       verified: selection.mode === "agent" ? false : selection.verified,
       topics,
     });
-    const report = validateDigest(digest, { pool: pool.items, sources, linter, topics });
+    const report = validateDigest(digest, {
+      pool: pool.items,
+      sources,
+      linter,
+      topics,
+      // The engine's selection already held the pass to its length; an agent's is held to the
+      // kind's cap here as it was when the agent wrote it.
+      ...(selection.mode === "agent" ? {} : { cap: VOICE_LIMITS.items.hardMax }),
+    });
     if (!report.ok) {
       const first = report.issues.find((issue) => issue.severity === "error");
       throw new StageFailure(
