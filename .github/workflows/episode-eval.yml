@@ -35,6 +35,9 @@ jobs:
           set +e
           npx tsx loop/eval.ts | tee eval.md
           status=${PIPESTATUS[0]}
+          # The replay: today's selection on October's stories (loop/replay.ts), judged the same way.
+          npx tsx loop/replay.ts .replay
+          for episode in .replay/*/; do npx tsx loop/eval.ts "$episode" | tee -a eval.md; done
           cat eval.md >> "$GITHUB_STEP_SUMMARY"
           # The table is the result; a failing metric is a finding, not a broken build.
           echo "eval exit $status"
