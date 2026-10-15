@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { MAX_SPOKEN_CHARS } from "../src/audio/spokenText.js";
-import { overNarrationLimit, storiesForMinutes } from "../src/run/scheduleSize.js";
+import {
+  overNarrationLimit,
+  sparesOverLength,
+  storiesForMinutes,
+} from "../src/run/scheduleSize.js";
 
 describe("storiesForMinutes", () => {
   // Before: 12 stories were taken to make 10 minutes, so a 5-minute daily got 6 main stories and
@@ -29,5 +33,20 @@ describe("overNarrationLimit", () => {
     expect(over.length).toBeGreaterThan(0);
     expect(over).toEqual(stories.slice(40 - over.length).map((s) => s.id));
     expect(overNarrationLimit(stories.slice(0, 13), MAX_SPOKEN_CHARS)).toEqual([]);
+  });
+});
+
+describe("sparesOverLength", () => {
+  // Cutting spares by score alone would drop a topic's only story, and the topic the owner chose
+  // would miss the briefing that selection had given it.
+  it("keeps every topic's best story while it leaves the spares unaired", () => {
+    const stories = [
+      { id: "ai-1", category: "ai", score: 0.9 },
+      { id: "ai-2", category: "ai", score: 0.8 },
+      { id: "ai-3", category: "ai", score: 0.7 },
+      { id: "css-1", category: "css", score: 0.5 },
+    ];
+    expect(sparesOverLength(stories, 2).sort()).toEqual(["ai-2", "ai-3"]);
+    expect(sparesOverLength(stories, 4)).toEqual([]);
   });
 });

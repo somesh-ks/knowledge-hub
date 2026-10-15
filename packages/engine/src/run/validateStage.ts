@@ -16,6 +16,7 @@ import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
 import { loadPassPool } from "./passPool.js";
 import { markStage, type Plan, passFile, requireStage } from "./plan.js";
+import { sparesOverLength } from "./scheduleSize.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
 type SelectionItem = Selection["items"][number];
@@ -129,6 +130,17 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       survivors = survivors.filter((g) => !bad.has(g.item.id));
     }
 
+    // A briefing sized by the owner's length wrote spares: air the best `wanted` of the survivors.
+    const spare = new Set(
+      selection.wanted === undefined
+        ? []
+        : sparesOverLength(
+            survivors.map((g) => entryOf.get(g.item.id) as SelectionItem),
+            selection.wanted,
+          ),
+    );
+    survivors = survivors.filter((g) => !spare.has(g.item.id));
+
     const outcome = survivors.length < VOICE_LIMITS.items.floor ? "nothing" : "selected";
     const finalists = outcome === "nothing" ? [] : survivors;
     const verified = finalists.length > 0 && finalists.every((g) => g.verified);
@@ -139,7 +151,18 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         ? { ...selection, outcome: "nothing", verified: false, items: [] }
         : { ...asSelection(finalists), outcome: "selected", verified },
     );
-    await writeJson(file("written.json"), updatedWritten(written, finalists, grounding.dropped));
+    const rewritten = updatedWritten(written, finalists, grounding.dropped);
+    await writeJson(file("written.json"), {
+      ...rewritten,
+      dropped: [
+        ...rewritten.dropped,
+        ...[...spare].map((id) => ({
+          id,
+          stage: "select" as const,
+          reason: "a spare the briefing's length did not need",
+        })),
+      ],
+    });
     await writeJson(file("validate-report.json"), {
       version: 1,
       id: pass.id,
@@ -148,6 +171,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       kept: finalists.length,
       grounding_dropped: grounding.dropped.length,
       validate_dropped: validateDrops,
+      spares_unaired: [...spare],
       warnings,
     });
     await markStage(deps.root, pass, "validate", {

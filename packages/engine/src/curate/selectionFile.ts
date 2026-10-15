@@ -37,6 +37,11 @@ export const Selection = z.object({
   verified: z.boolean(),
   window: z.object({ from: isoDateTime, to: isoDateTime }),
   items: z.array(SelectionItem),
+  /**
+   * Stories the owner's length airs, when the briefing carries spares beyond it (scheduleSize.ts):
+   * validation keeps this many of the survivors. Absent airs every item.
+   */
+  wanted: z.number().int().positive().optional(),
 });
 export type Selection = z.infer<typeof Selection>;
 

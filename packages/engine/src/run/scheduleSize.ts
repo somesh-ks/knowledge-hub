@@ -44,3 +44,40 @@ export function overNarrationLimit(
   }
   return over;
 }
+
+/**
+ * Extra stories, as a share of the length's stories, that a length-sized briefing selects and
+ * writes beyond what it airs. Every story the writer, the voice check or grounding drops after
+ * selection used to come off the owner's length: the 2026-10-15 daily chose 14 stories for five
+ * minutes and published 4 (4 not written, 6 dropped by grounding). Validation keeps the best
+ * survivors up to the length and leaves the rest unaired.
+ */
+export const SPARE_SHARE = 0.3;
+
+/** The stories to select and write for a briefing of `wanted` stories, spares included. */
+export function withSpares(wanted: number, hardMax: number): number {
+  return Math.min(hardMax, wanted + Math.ceil(wanted * SPARE_SHARE));
+}
+
+/**
+ * The ids to leave out so that `wanted` stories air, cut in the reverse of how selection fills a
+ * briefing: the lowest-scored story of a topic that has another goes first, so every topic keeps
+ * its best story; only then the lowest-scored overall.
+ */
+export function sparesOverLength(
+  stories: readonly { id: string; category: string; score: number }[],
+  wanted: number,
+): string[] {
+  const left = [...stories].sort((a, b) => a.score - b.score);
+  const cut: string[] = [];
+  while (left.length > wanted) {
+    const perTopic = new Map<string, number>();
+    for (const story of left) perTopic.set(story.category, (perTopic.get(story.category) ?? 0) + 1);
+    const index = Math.max(
+      0,
+      left.findIndex((story) => (perTopic.get(story.category) ?? 0) > 1),
+    );
+    cut.push((left.splice(index, 1)[0] as { id: string }).id);
+  }
+  return cut;
+}
