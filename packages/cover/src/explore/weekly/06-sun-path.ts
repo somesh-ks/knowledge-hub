@@ -11,7 +11,7 @@ export const weekly: Template = (ctx) => {
   const { G, S, A, M } = flat(ctx);
   const out = [
     fill(G),
-    stroke("M450 560V360A250 250 0 0 1 950 360V560Z", M, 26, ' stroke-linejoin="miter"'),
+    stroke("M452 562V362A248 248 0 0 1 948 362V562Z", M, 36, ' stroke-linejoin="miter"'),
   ];
   for (let i = 0; i < 7; i += 1) {
     const t = (i / 6) * Math.PI;

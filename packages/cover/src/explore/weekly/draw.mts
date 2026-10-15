@@ -42,7 +42,16 @@ function build(date: string, seed = 1) {
 }
 
 /** The cover as inner markup on the 1024 canvas, and the same without the lockup. */
-function cover(style: Style, date: string, seed = 1): { full: string; bare: string; ground: string; quiet: { x: number; y: number; w: number; h: number }[] } {
+function cover(
+  style: Style,
+  date: string,
+  seed = 1,
+): {
+  full: string;
+  bare: string;
+  ground: string;
+  quiet: { x: number; y: number; w: number; h: number }[];
+} {
   const ctx = build(date, seed);
   const out = style.fn(ctx);
   const bare = `<rect width="1024" height="1024" fill="${ctx.matte ?? ctx.pal.ground}"/>${out.defs ? `<defs>${out.defs}</defs>` : ""}${out.body}`;
@@ -98,8 +107,18 @@ function sheet(page: string, text: string, sub: string, mute: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="Schibsted Grotesk">${parts.join("")}</svg>`;
 }
 
-writeFileSync(join(outDir, "sheet-dark.png"), render(sheet("#0b1220", "#f2f5f8", "#b4bfcc", ""), 1392).render().asPng());
-writeFileSync(join(outDir, "sheet-light.png"), render(sheet("#f6f8f9", "#0b1220", "#44505e", ""), 1392).render().asPng());
+writeFileSync(
+  join(outDir, "sheet-dark.png"),
+  render(sheet("#0b1220", "#f2f5f8", "#b4bfcc", ""), 1392)
+    .render()
+    .asPng(),
+);
+writeFileSync(
+  join(outDir, "sheet-light.png"),
+  render(sheet("#f6f8f9", "#0b1220", "#44505e", ""), 1392)
+    .render()
+    .asPng(),
+);
 
 // Months: styles as rows, four months as columns.
 {
@@ -121,7 +140,9 @@ writeFileSync(join(outDir, "sheet-light.png"), render(sheet("#f6f8f9", "#0b1220"
     );
     MONTHS.forEach((m, j) => {
       const x = GAP + lab + j * (TILE + GAP);
-      parts.push(`<g transform="translate(${x} ${y}) scale(${TILE / 1024})">${cover(s, m.date).full}</g>`);
+      parts.push(
+        `<g transform="translate(${x} ${y}) scale(${TILE / 1024})">${cover(s, m.date).full}</g>`,
+      );
     });
   });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="Schibsted Grotesk">${parts.join("")}</svg>`;
@@ -139,7 +160,9 @@ writeFileSync(join(outDir, "sheet-light.png"), render(sheet("#f6f8f9", "#0b1220"
   styles.forEach((s, i) => {
     const x = 16 + (i % cols) * (t + 16);
     const y = 16 + Math.floor(i / cols) * (t + 16);
-    parts.push(`<g transform="translate(${x} ${y}) scale(${t / 1024})">${cover(s, MONTHS[0].date).full}</g>`);
+    parts.push(
+      `<g transform="translate(${x} ${y}) scale(${t / 1024})">${cover(s, MONTHS[0].date).full}</g>`,
+    );
   });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${parts.join("")}</svg>`;
   writeFileSync(join(outDir, "check-170.png"), render(svg, w).render().asPng());

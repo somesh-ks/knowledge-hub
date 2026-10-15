@@ -12,11 +12,8 @@ export const weekly: Template = (ctx) => {
   const x = ctx.rng.pick([480, 620, 744]);
   return scene(
     ctx,
-    [
-      fill(G),
-      rect(x, 190, 280, 280, A),
-      rect(0, 470, 1024, 64, M),
-      rect(0, 552, 1024, 6, M),
-    ].join(""),
+    [fill(G), rect(x, 190, 280, 280, A), rect(0, 470, 1024, 64, M), rect(0, 552, 1024, 6, M)].join(
+      "",
+    ),
   );
 };
