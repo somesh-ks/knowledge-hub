@@ -1,8 +1,8 @@
 import { Resvg } from "@resvg/resvg-js";
 import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
-import { plateArt } from "./plates.js";
 import { getPalette } from "./palettes.js";
+import { plateArt } from "./plates.js";
 import { flatTemplate, isMonthly } from "./season.js";
 import { n, rectPath } from "./svg.js";
 import { TEMPLATE_FNS, TEMPLATE_LOCKUP, TEMPLATES } from "./templates/index.js";

@@ -17,10 +17,7 @@ const path = (d: string, fill: string): string => `<path d="${d}" fill="${fill}"
 
 /** A half disc standing on a flat edge at y, its curve facing up. */
 const dome = (x: number, y: number, radius: number, fill: string): string =>
-  path(
-    `M${n(x - radius)} ${n(y)}A${n(radius)} ${n(radius)} 0 0 1 ${n(x + radius)} ${n(y)}Z`,
-    fill,
-  );
+  path(`M${n(x - radius)} ${n(y)}A${n(radius)} ${n(radius)} 0 0 1 ${n(x + radius)} ${n(y)}Z`, fill);
 
 /** A doorway: a stem and a half-round top, standing on y = base. */
 const arch = (x: number, top: number, base: number, width: number, fill: string): string => {
@@ -42,9 +39,24 @@ const horizon: Form = (rng, r, pal) => {
 
 /** Two rolling hills under a small sun. */
 const hills: Form = (rng, r, pal) => {
-  const back = circle(r * rng.range(-0.7, -0.25), r * rng.range(0.8, 1.05), r * rng.range(0.72, 0.9), pal.shade);
-  const front = circle(r * rng.range(0.25, 0.6), r * rng.range(1.0, 1.3), r * rng.range(0.85, 1.05), pal.accent);
-  const sun = circle(r * rng.range(-0.3, 0.3), r * rng.range(-0.5, -0.3), r * rng.range(0.12, 0.18), pal.accent);
+  const back = circle(
+    r * rng.range(-0.7, -0.25),
+    r * rng.range(0.8, 1.05),
+    r * rng.range(0.72, 0.9),
+    pal.shade,
+  );
+  const front = circle(
+    r * rng.range(0.25, 0.6),
+    r * rng.range(1.0, 1.3),
+    r * rng.range(0.85, 1.05),
+    pal.accent,
+  );
+  const sun = circle(
+    r * rng.range(-0.3, 0.3),
+    r * rng.range(-0.5, -0.3),
+    r * rng.range(0.12, 0.18),
+    pal.accent,
+  );
   return sun + back + front;
 };
 
@@ -64,9 +76,12 @@ const rainbow: Form = (rng, r, pal) => {
 /** Vertical stripes of unequal width, one of them the loud one. */
 const stripes: Form = (rng, r, pal) => {
   const count = rng.int(5, 7);
-  const weights = Array.from({ length: count }, () => rng.range(0.3, 1) ** 2);
-  const total = weights.reduce((sum, v) => sum + v, 0);
   const hero = rng.int(1, count - 2);
+  const weights = Array.from(
+    { length: count },
+    (_, i) => rng.range(0.3, 1) ** 2 * (i === hero ? 2 : 1),
+  );
+  const total = weights.reduce((sum, v) => sum + v, 0);
   let x = -r;
   const out: string[] = [];
   weights.forEach((weight, i) => {
@@ -101,9 +116,12 @@ const capsules: Form = (rng, r, pal) => {
   const angle = rng.pick([-38, -30, 30, 38]);
   const out: string[] = [];
   for (let i = 0; i < count; i += 1) {
-    const length = r * rng.range(0.9, 1.6);
-    const x = r * rng.range(-0.3, 0.3) - length / 2;
     const y = -span / 2 + i * (thick + gap);
+    // Longest bar that still ends inside the disc, so no capsule is cut by its edge.
+    const chord =
+      2 * Math.sqrt(r * r - (Math.max(Math.abs(y), Math.abs(y + thick)) + 0.02 * r) ** 2);
+    const length = chord * rng.range(0.55, 0.95);
+    const x = rng.range(-0.5, 0.5) * (chord - length) - length / 2;
     const fill = i % 2 === 0 ? pal.accent : pal.shade;
     out.push(
       `<rect x="${n(x)}" y="${n(y)}" width="${n(length)}" height="${n(thick)}" rx="${n(thick / 2)}" fill="${fill}"/>`,
