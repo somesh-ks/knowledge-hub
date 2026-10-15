@@ -56,6 +56,32 @@ describe("createAnthropicLlm", () => {
     expect(sent.response_format).toBeUndefined();
   });
 
+  it("sends no temperature, which Claude Sonnet 5.5 refuses with a 400", async () => {
+    const fetchMock = vi.fn(async () => reply('{"items":[]}'));
+    const llm = createAnthropicLlm({
+      env,
+      model: "claude-sonnet-5-5",
+      budget: budget(),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    await llm.completeJson({ ...request(), temperature: 0.2 });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).not.toHaveProperty("temperature");
+  });
+
+  it("leaves room to think on top of the reply, so thinking cannot cut the JSON off", async () => {
+    const fetchMock = vi.fn(async () => reply('{"items":[]}'));
+    const llm = createAnthropicLlm({
+      env,
+      model: "claude-sonnet-5-5",
+      budget: budget(),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    await llm.completeJson({ ...request(), maxTokens: 3_500 });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body)).max_tokens).toBeGreaterThan(3_500 + 4_000);
+  });
+
   it("retries a 429 and counts every request", async () => {
     const fetchMock = vi
       .fn()

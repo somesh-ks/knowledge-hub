@@ -465,6 +465,34 @@ describe("topics and length", () => {
   });
 });
 
+describe("release notes", () => {
+  // Package release notes cleared the bar and filled a third of the October weekly (loop/NOTES.md, I1).
+  it("keeps patch releases out and gives release notes at most a tenth of the briefing", () => {
+    const releases = ["kit 1.0", "@acme/ui@2.1.0", "tool 0.16", "lib v3.0", "cli 4.2"].map(
+      (title, i) => scored("developer_tool_launches", 0.95 - i * 0.01, { title }),
+    );
+    const patch = scored("ui_component_primitives", 0.99, {
+      title: "shadcn 4.21.5 updates dependencies",
+    });
+    const posts = Array.from({ length: 30 }, (_, i) =>
+      scored("design_engineering_craft", 0.8 - i * 0.001, { title: "Qwen3.8 reads 20.1% faster" }),
+    );
+    const result = selectItems({
+      scored: [patch, ...releases, ...posts],
+      kind: "weekly",
+      floor: 1,
+      cap: 48,
+      total: 20,
+    });
+    expect(result.selected).toHaveLength(20);
+    expect(ids(result.selected).filter((id) => ids(releases).includes(id))).toEqual([
+      releases[0]?.item.id,
+      releases[1]?.item.id,
+    ]);
+    expect(result.dropped.find((d) => d.id === patch.item.id)?.reason).toBe("release_note");
+  });
+});
+
 describe("weekly reserved slot", () => {
   const build = (): ScoredItem[] => [
     ...Array.from({ length: 3 }, (_, i) => scored("design_engineering_craft", 0.9 - i * 0.01)),
@@ -841,10 +869,10 @@ describe("one release per repository", () => {
     expect(releaseRepo(makeItem())).toBeNull();
   });
 
-  it("keeps the newest of several patch releases, even when an older one scores higher", () => {
-    const older = release("acme/kit", "v1.2.3", 0.9, "2026-10-04T00:00:00Z");
-    const newer = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
-    const oldest = release("acme/kit", "v1.2.2", 0.8, "2026-10-03T00:00:00Z");
+  it("keeps the newest of several releases, even when an older one scores higher", () => {
+    const older = release("acme/kit", "v1.3.0", 0.9, "2026-10-04T00:00:00Z");
+    const newer = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
+    const oldest = release("acme/kit", "v1.2.0", 0.8, "2026-10-03T00:00:00Z");
     const result = select([older, newer, oldest]);
     expect(ids(result.selected)).toEqual([newer.item.id]);
     expect(
@@ -856,17 +884,24 @@ describe("one release per repository", () => {
   });
 
   it("leaves releases of different repositories and non-release items alone", () => {
-    const a = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
-    const b = release("acme/other", "v3.0.1", 0.6, "2026-10-05T00:00:00Z");
+    const a = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
+    const b = release("acme/other", "v3.0.0", 0.6, "2026-10-05T00:00:00Z");
     const post = scored("design_engineering_craft", 0.7);
-    const result = select([a, b, post]);
+    // Release notes take a tenth of the briefing, so two need a briefing of twenty.
+    const result = selectItems({
+      scored: [a, b, post],
+      kind: "regular",
+      floor: 1,
+      cap: 20,
+      total: 20,
+    });
     expect(result.selected).toHaveLength(3);
     expect(result.dropped).toEqual([]);
   });
 
   it("ignores releases that never cleared the bar", () => {
-    const low = release("acme/kit", "v1.2.5", 0.1, "2026-10-06T00:00:00Z");
-    const kept = release("acme/kit", "v1.2.4", 0.6, "2026-10-05T00:00:00Z");
+    const low = release("acme/kit", "v1.5.0", 0.1, "2026-10-06T00:00:00Z");
+    const kept = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
     const result = select([low, kept]);
     expect(ids(result.selected)).toEqual([kept.item.id]);
     expect(result.dropped.map((d) => d.reason)).toEqual(["below_threshold"]);

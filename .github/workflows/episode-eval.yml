@@ -1,7 +1,8 @@
 name: episode-eval
 
 # Scores the episode fixtures in loop/ against loop/rubric.md: Jev labels importance, the newest
-# Sonnet scores quality.
+# Sonnet scores quality. On a pull request it also rewrites the latest replay with main's writer
+# prompt and with the branch's, so a prompt change is judged before and after on the same stories.
 # The keys exist only as repository secrets, so the eval with its judges runs here.
 on:
   pull_request:
@@ -27,6 +28,20 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Rewrite the latest replay with main's writer prompt and this branch's
+        if: github.event_name == 'pull_request'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git fetch --depth=1 origin main
+          git show origin/main:packages/engine/src/write/prompt.ts > packages/engine/src/write/prompt.main.ts
+          git show origin/main:config/voice.md > "$RUNNER_TEMP/voice.main.md"
+          latest=$(ls -d loop/results/replay-*/ | sort -V | tail -1)
+          for kind in daily weekly; do
+            npx tsx loop/rewrite.ts "${latest}replay-$kind" "rewrites/before-$kind" \
+              --prompt packages/engine/src/write/prompt.main.ts --voice "$RUNNER_TEMP/voice.main.md"
+            npx tsx loop/rewrite.ts "${latest}replay-$kind" "rewrites/after-$kind"
+          done
       - name: Eval
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -36,7 +51,9 @@ jobs:
           npx tsx loop/eval.ts | tee eval.md
           status=${PIPESTATUS[0]}
           # Each loop iteration's replay of October's stories (loop/replay.ts), judged the same way.
-          for episode in loop/results/replay-*/replay-*/; do
+          # The writer before and after this branch's prompt, on the same stories.
+          for episode in loop/results/replay-*/replay-*/ rewrites/*/; do
+            [ -d "$episode" ] || continue
             npx tsx loop/eval.ts "${episode%/}" | tee -a eval.md
           done
           cat eval.md >> "$GITHUB_STEP_SUMMARY"
