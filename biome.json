@@ -13,6 +13,7 @@
       "!**/playwright-report",
       "!docs/prototype",
       "!**/fixtures",
+      "!loop/results",
       "!package-lock.json",
       "!state",
       "!config"

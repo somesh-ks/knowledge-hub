@@ -9,7 +9,7 @@
  * the length sizing writeStage uses), so a change to those shows here. The writer is not run: each
  * story is read as it was written, so this measures selection, not the writer.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   type Digest,
@@ -118,13 +118,12 @@ function main(): void {
   ] as const) {
     const dir = join(out, `replay-${name}`);
     mkdirSync(dir, { recursive: true });
-    const settings = readJson<{ length_minutes: number; skip_topics: string[] }>(
-      join(ROOT, "loop", "fixtures", digestFile, "settings.json"),
-    );
+    const settingsFile = join(ROOT, "loop", "fixtures", digestFile, "settings.json");
+    const settings = readJson<{ length_minutes: number; skip_topics: string[] }>(settingsFile);
     const base = parseDigestFile(
       readFileSync(join(ROOT, "loop", "fixtures", digestFile, "episode.md"), "utf8"),
     );
-    writeFileSync(join(dir, "settings.json"), JSON.stringify(settings, null, 1));
+    copyFileSync(settingsFile, join(dir, "settings.json"));
     writeFileSync(join(dir, "episode.md"), episode(kind, settings, pool, base));
   }
 }
