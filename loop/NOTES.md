@@ -210,10 +210,14 @@ exist only as repository secrets, so `.github/workflows/episode-eval.yml` runs t
 and writes the table to the job summary. Changed before any track A fix; the rubric's definitions
 did not change.
 
-### Planned iteration 1 (not applied)
+### Iterations (results in `loop/results/`)
 
-Size the briefing by airtime instead of count: cap = (minutes × 968 − frame) / measured characters
-per item, with the weekly cap raised to match, and selection taking one item per selected topic
-before filling by rank (fixes L1, L2, T1 together only if measured one at a time; L1 first).
-Expected risk, from I3: more airtime from the same pool means more launches. The judge must run
-alongside, or A2 regresses unseen.
+1. Every topic's best story first (T1): applied.
+2. Size by airtime, all sections inside the length (L1, and I2's allowances on top of the cap): applied.
+   `capForLength` is gone; `storiesForMinutes` uses 364 spoken characters per story.
+3. Weekly held to its length instead of 18 (L2): reverted. `validateDigest` and agent-mode curation
+   still cap main stories at 12 and 18; lifting that is the owner's call.
+
+Still failing (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
+scoring policy), quality (the writer stage; the replay does not run it), and the quality judge
+disagrees with itself on about half the episodes.

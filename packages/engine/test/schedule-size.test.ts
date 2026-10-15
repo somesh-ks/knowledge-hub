@@ -1,18 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { capForLength } from "../src/run/scheduleSize.js";
+import { storiesForMinutes } from "../src/run/scheduleSize.js";
 
-describe("capForLength", () => {
-  it("keeps the whole cap at 10 and 15 minutes", () => {
-    expect(capForLength(12, 3, 10)).toBe(12);
-    expect(capForLength(12, 3, 15)).toBe(12);
+describe("storiesForMinutes", () => {
+  // Before: 12 stories were taken to make 10 minutes, so a 5-minute daily got 6 main stories and
+  // ran about 3.5 minutes. A story with its share of the frame is about 22 seconds.
+  it("fills the length at the narration's measured pace", () => {
+    expect(storiesForMinutes(5, 3, 48)).toBe(13);
+    expect(storiesForMinutes(15, 3, 48)).toBe(40);
   });
 
-  it("keeps a share of it for a shorter podcast", () => {
-    expect(capForLength(12, 3, 5)).toBe(6);
-    expect(capForLength(12, 3, 3)).toBe(4);
-  });
-
-  it("never goes below the floor", () => {
-    expect(capForLength(12, 5, 3)).toBe(5);
+  it("stays between the floor and the hard cap", () => {
+    expect(storiesForMinutes(0.5, 3, 48)).toBe(3);
+    expect(storiesForMinutes(60, 3, 48)).toBe(48);
   });
 });

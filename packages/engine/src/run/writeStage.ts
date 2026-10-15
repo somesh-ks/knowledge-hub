@@ -54,7 +54,7 @@ import {
 import { generalCandidates, generalIdsFor } from "./generalScope.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
-import { capForLength } from "./scheduleSize.js";
+import { storiesForMinutes } from "./scheduleSize.js";
 import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
 import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
@@ -250,12 +250,17 @@ async function writePass(
     floor: VOICE_LIMITS.items.floor,
     // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
     // the weekly podcast's own length.
-    cap:
+    cap: capFor(pass.kind),
+    total:
       pass.kind === "regular" && lengthMinutes !== null
-        ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, lengthMinutes)
+        ? storiesForMinutes(lengthMinutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax)
         : pass.kind === "weekly"
-          ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, weeklyLengthMinutes)
-          : capFor(pass.kind),
+          ? storiesForMinutes(
+              weeklyLengthMinutes,
+              VOICE_LIMITS.items.floor,
+              VOICE_LIMITS.items.hardMax,
+            )
+          : VOICE_LIMITS.items.hardMax,
     weights: preferences.weights,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.
