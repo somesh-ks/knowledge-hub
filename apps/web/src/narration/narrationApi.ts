@@ -195,7 +195,7 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
     case "segment_not_found":
       return "This page is out of date. Reload it, then try again.";
     case "unavailable":
-      return "Narration is not available right now. Try again later.";
+      return "Narration ran into a problem on the server. Try again.";
     case "offline":
       return "You are offline. Reconnect, then try again.";
     case "failed":
@@ -227,7 +227,7 @@ function failureSummary(reason: NarrationFailure): string | undefined {
     case "segment_not_found":
       return "Not ready for narration";
     case "unavailable":
-      return "Narration is not available";
+      return "Narration failed on the server";
     case "offline":
       return "You are offline";
     case "failed":
@@ -248,7 +248,7 @@ export function describeNarrationFailure(
     reason === "failed"
       ? "The audio could not be made."
       : reason === "unavailable"
-        ? "Narration is not available right now."
+        ? "Narration ran into a problem on the server."
         : failureCopy(reason, noun);
   if (!message) return null;
   return { message, summary: failureSummary(reason), standing: STANDING_REASONS.has(reason) };

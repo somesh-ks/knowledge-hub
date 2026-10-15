@@ -258,7 +258,7 @@ Track expiry here. Fill the dates when you create each token and set a calendar 
 | --- | --- | --- | --- |
 | `GITHUB_DISPATCH_TOKEN` | | | |
 
-When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("Generate is not available right now"). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. No Vercel token exists, so no Vercel token can expire.
+When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ..."). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. No Vercel token exists, so no Vercel token can expire.
 
 ---
 
@@ -323,7 +323,9 @@ Nebius retires and renames models (Qwen3-32B left its serverless tier on 2026-08
 | --- | --- | --- |
 | "That passphrase does not match. Check it and try again." | Typo, or the stored hash does not match | Retry. If forgotten, run `npm run passphrase`, then `npm run secrets:push -- --only vercel`, then redeploy from the Vercel dashboard |
 | "Generate is on cooldown. Try again in ..." or "Generate has reached its limit for today. Try again in ..." | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
-| "Generate is not available right now. Try again in a few minutes." | A Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Check the three variables in the Vercel project's Environment Variables, then rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
+| "The server ran into a problem, so ... Error ref 3f9a1c." (Create, Generate, Regenerate, Delete, saving settings) | The function answered but could not do the job: a Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Search the Vercel function logs for `ref 3f9a1c`: the lines name the missing variable or GitHub's answer. Then fix the variable, or rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
+| "The server crashed before it could answer ..." | The function failed before it ran (a broken deploy, a missing native binary) or threw | Open the deployment's function logs in Vercel; redeploy or roll back. A thrown error is logged as `[api/...] [ref ...] crashed:` |
+| "The server's passphrase setting does not match this site's ..." | The site sends its built-in passphrase and the server's `GENERATE_PASSPHRASE_HASH` does not match it | Set the hash for the built-in passphrase (`npm run passphrase`, then `npm run secrets:push -- --only vercel`) and redeploy |
 
 ---
 

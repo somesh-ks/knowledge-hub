@@ -2,28 +2,28 @@ import type { APIRoute } from "astro";
 import { passphraseCheck } from "../../server/access";
 import { bundledDigestIds } from "../../server/digestSource";
 import { handleGenerate, MAX_BODY_CHARS } from "../../server/generate";
-import { toResponse } from "../../server/http";
+import { answerWithRef, toResponse } from "../../server/http";
 
 // The site is static; this route alone runs on demand, as a Vercel Function.
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, url }) => {
-  // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
-  const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
-  const result = await handleGenerate(
-    { bodyText, origin: request.headers.get("origin"), expectedOrigin: url.origin },
-    {
-      env: process.env,
-      fetch,
-      now: Date.now,
-      delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-      verifyPassphrase: passphraseCheck(),
-      digestIds: bundledDigestIds,
-      log: (message) => console.error(`[api/generate] ${message}`),
-    },
-  );
-  return toResponse(result);
-};
+export const POST: APIRoute = ({ request, url }) =>
+  answerWithRef("api/generate", async (log) => {
+    // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
+    const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
+    return handleGenerate(
+      { bodyText, origin: request.headers.get("origin"), expectedOrigin: url.origin },
+      {
+        env: process.env,
+        fetch,
+        now: Date.now,
+        delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+        verifyPassphrase: passphraseCheck(),
+        digestIds: bundledDigestIds,
+        log,
+      },
+    );
+  });
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });

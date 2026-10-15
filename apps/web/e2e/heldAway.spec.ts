@@ -37,7 +37,9 @@ test.describe("a refused settings change", () => {
     await expect(root).toHaveAttribute("data-loaded", "");
     const combo = page.getByRole("combobox", { name: "AI Model" });
     await combo.selectOption({ label: "Kimi K3" });
-    await expect(toastText(page)).toHaveText("Saving failed.");
+    await expect(toastText(page)).toHaveText(
+      "The server crashed before it could answer. Not saved yet.",
+    );
     expect(sent).toHaveLength(1);
 
     await page.reload();

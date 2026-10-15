@@ -50,6 +50,18 @@ export function readServerConfig(env: ServerEnv): ServerConfig | null {
   };
 }
 
+/**
+ * The settings readServerConfig needs that the deployment lacks or has malformed, by name only, so a
+ * log line can say which one to fix without printing a value.
+ */
+export function missingSettings(env: ServerEnv): string[] {
+  return [
+    ...(env.GITHUB_DISPATCH_TOKEN?.trim() ? [] : ["GITHUB_DISPATCH_TOKEN"]),
+    ...(REPOSITORY.exec(env.GITHUB_REPOSITORY?.trim() ?? "") ? [] : ["GITHUB_REPOSITORY"]),
+    ...(env.GENERATE_PASSPHRASE_HASH?.trim() ? [] : ["GENERATE_PASSPHRASE_HASH"]),
+  ];
+}
+
 /** What the log redactor must never let through. */
 export function secretsOf(config: ServerConfig | null): string[] {
   return config ? [config.token, config.passphraseHash] : [];

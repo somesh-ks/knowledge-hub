@@ -1,5 +1,5 @@
 import type { GenerateResponse } from "../types/contracts";
-import { readServerConfig, type ServerEnv, secretsOf } from "./config";
+import { missingSettings, readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { DELETE_POLICY, evaluateLimits } from "./limits";
@@ -129,7 +129,10 @@ export async function handleGenerate(
 ): Promise<GenerateResult> {
   const config = readServerConfig(deps.env);
   const log = deps.log ?? (() => {});
-  if (!config) return unavailable;
+  if (!config) {
+    log(`generate unavailable: ${missingSettings(deps.env).join(", ")} not set`);
+    return unavailable;
+  }
 
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const passphrase = parsePassphrase(input.bodyText);
@@ -193,7 +196,12 @@ export async function handleGenerate(
         after.find((run) => Date.parse(run.createdAt) >= startedAt - 5000 && run.status !== "")
           ?.id ?? null;
     }
-    if (runId === null) return unavailable;
+    if (runId === null) {
+      log(
+        "generate unavailable: GitHub accepted the dispatch but the run never appeared in its list",
+      );
+      return unavailable;
+    }
 
     return {
       status: 202,

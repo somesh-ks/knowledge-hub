@@ -40,7 +40,8 @@ export function problemText(status: number): string {
   if (status === 422) return "The address could not be read. Try the site's home page instead.";
   if (status === 429) return "That was a lot of lookups. Wait a minute, then try again.";
   if (status === 504) return "The site took too long to answer. Try again in a moment.";
-  return "The lookup could not be reached. Check your connection and try again.";
+  if (status >= 500) return "The lookup failed on the server. Try again in a moment.";
+  return "Couldn't reach the site to look it up. Check your connection and try again.";
 }
 
 /**

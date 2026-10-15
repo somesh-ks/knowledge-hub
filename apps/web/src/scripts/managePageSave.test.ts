@@ -323,7 +323,7 @@ describe("a left page's held run", () => {
     await run;
     const [held] = heard;
     expect(held?.ok).toBe(false);
-    expect(held?.failure).toBe("Saving failed.");
+    expect(held?.failure).toBe("The server crashed before it could answer. Not saved yet.");
     expect(held?.lost.map(({ op }) => op)).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
     // Nothing is pending any more, and the left page holds nothing.
     expect(anyPending(pending(), Date.now())).toBe(false);
@@ -338,7 +338,7 @@ describe("a left page's held run", () => {
       [{ op: "schedule.set", length_minutes: 3 }, true],
       [{ op: "schedule.set", hour: 8 }, undefined],
     ]);
-    expect(said).toEqual([["Saving failed.", "error"]]);
+    expect(said).toEqual([["The server crashed before it could answer. Not saved yet.", "error"]]);
     // Taken once: another page takes nothing.
     const other = page();
     adopt(other.context);
@@ -361,10 +361,10 @@ describe("a left page's held run", () => {
     answers.push(0);
     await vi.advanceTimersByTimeAsync(GAP_MS);
     await run;
-    expect(heard[0]?.failure).toBe("The site could not be reached. Not saved yet.");
+    expect(heard[0]?.failure).toBe("Couldn't reach the site. Not saved yet.");
     const { context: open, said } = page(new Map(), true);
     adopt(open);
-    expect(said).toEqual([["The site could not be reached. Not saved yet.", "error"]]);
+    expect(said).toEqual([["Couldn't reach the site. Not saved yet.", "error"]]);
     const before = posted.length;
     await flush(open, "open");
     expect(posted.slice(before)).toEqual([[{ op: "schedule.set", length_minutes: 3 }]]);
@@ -418,7 +418,10 @@ describe("a left page's held run", () => {
     expect(heard).toEqual([]);
     expect(context.left).toBe(false);
     expect(changes.get("a")?.failed).toBe(true);
-    expect(said.at(-1)).toEqual(["Saving failed.", "error"]);
+    expect(said.at(-1)).toEqual([
+      "The server crashed before it could answer. Not saved yet.",
+      "error",
+    ]);
     expect(anyPending(pending(), Date.now())).toBe(false);
   });
 

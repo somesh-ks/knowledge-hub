@@ -32,9 +32,12 @@ const lines = {
   "data-starting": "Starting…",
   "data-retry-cooldown": "You can make another episode in {wait}.",
   "data-retry-daily_cap": "That's today's limit. Try again in {wait}.",
-  "data-retry-503": "Episodes are not available right now. Try again in a few minutes.",
-  "data-retry-400": "That request did not go through. Reload the page and try again.",
-  "data-retry-network": "The request did not go through. Check your connection, then try again.",
+  // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
+  "data-retry-503": "The server ran into a problem, so nothing was started.",
+  "data-retry-crashed":
+    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
+  "data-retry-400": "The server turned that request down. Reload the page and try again.",
+  "data-retry-network": "Couldn't reach the site. Check your connection, then try again.",
   // The Create form and the New episode buttons say this while a run is still going (createPage.ts).
   "data-busy-create": "An episode is still being made. You can start another when it's ready.",
 };
@@ -53,6 +56,7 @@ const lines = {
       <span class="run-message" data-run-text></span>
     </p>
     <a class="run-link" href="/library" data-run-library hidden>Open Library</a>
+    <a class="run-link" href="#" data-run-log target="_blank" rel="noopener noreferrer" hidden>Details</a>
     <button class="btn run-retry" type="button" data-run-retry hidden>Try again</button>
     <button class="btn run-retry" type="button" data-run-play hidden>Listen now</button>
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
