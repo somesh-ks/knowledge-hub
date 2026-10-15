@@ -1978,7 +1978,7 @@
 .script-word[data-spoken] {
   --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
   background: var(--spoken-fill);
-  box-shadow: 0 0 0 calc(var(--space-1) / 2) var(--spoken-fill);
+  box-shadow: 0 0 0 var(--space-half) var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
   transition: none;
 }

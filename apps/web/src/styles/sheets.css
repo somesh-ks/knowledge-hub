@@ -292,9 +292,9 @@ textarea.sheet-input {
 }
 
 .sheet-field-error .ui-icon {
-  width: var(--space-4);
-  height: var(--space-4);
-  margin-block-start: calc(var(--space-1) / 2);
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  margin-block-start: var(--space-half);
 }
 
 /* With no field to belong to (the passphrase step is off), the error stands in the form by itself and
@@ -420,7 +420,7 @@ textarea.sheet-input {
 }
 
 .sheet-banner .ui-icon {
-  margin-block-start: calc(var(--space-1) / 2);
+  margin-block-start: var(--space-half);
   color: var(--tone);
 }
 
@@ -563,7 +563,7 @@ textarea.sheet-input {
 }
 
 .sheet-hint-card .ui-icon {
-  margin-block-start: calc(var(--space-1) / 2);
+  margin-block-start: var(--space-half);
   color: var(--color-accent);
 }
 

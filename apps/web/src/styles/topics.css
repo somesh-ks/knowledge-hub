@@ -748,8 +748,8 @@
 /* Two classes, so it outranks the base .icon size wherever the build puts this file. */
 .edit-address-link > .edit-address-icon {
   flex: none;
-  width: var(--space-4);
-  height: var(--space-4);
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
 }
 
 /* The scorecard: a tonal card, its title on the left and the rating on the right, then one row per

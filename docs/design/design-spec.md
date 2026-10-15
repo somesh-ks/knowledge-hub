@@ -243,6 +243,7 @@ A 4px base on a scale where adjacent steps are at least 25 percent apart (assert
 
 | Token | Value | Typical use |
 | --- | --- | --- |
+| `--space-half` | 2px | Optical nudges only: an icon onto its text's first line, a title onto its second line |
 | `--space-1` | 4px | Gaps inside a control, row inset in the rail strip |
 | `--space-2` | 8px | Mini player inset, within-group gaps |
 | `--space-3` | 12px | Control padding, gap between byline items |
@@ -301,7 +302,7 @@ Covers also carry a 1px inner outline at 10 percent black or white, for edge def
 | `--stroke-rail`, `--stroke-ring`, `--stroke-ring-gap` | 2px |
 | `--size-touch` | 44px |
 | `--size-touch-comfortable` | 48px |
-| `--size-icon`, `--size-icon-lg` | 20px, 24px |
+| `--size-icon-sm`, `--size-icon`, `--size-icon-lg` | 16px, 20px, 24px |
 | z-index | header 10, mini 20, sheet 30, toast 40 |
 
 Icons are one set (Lucide-style, 2px round strokes) at 20px, 24px for transport controls, 16px inside the item play button. Decorative, `aria-hidden`.

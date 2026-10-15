@@ -149,7 +149,7 @@
 .settings-text {
   display: grid;
   flex: 1 1 0;
-  gap: calc(var(--space-1) / 2);
+  gap: var(--space-half);
   min-width: 0;
 }
 
@@ -329,7 +329,7 @@
 }
 
 .settings-segment:has(input:checked) > span::before {
-  inline-size: var(--space-4);
+  inline-size: var(--size-icon-sm);
   margin-inline-end: calc(var(--space-1) * 1.5);
   opacity: 1;
 }

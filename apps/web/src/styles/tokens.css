@@ -88,6 +88,7 @@
   --space-12: 3rem;
   --space-16: 4rem;
   --space-24: 6rem;
+  --space-half: 0.125rem;
   --radius-xs: 0.25rem;
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
@@ -231,6 +232,7 @@
   --layout-measure: 34rem;
   --size-touch: 2.75rem;
   --size-touch-comfortable: 3rem;
+  --size-icon-sm: 1rem;
   --size-icon: 1.25rem;
   --size-icon-lg: 1.5rem;
   --breakpoint-wide: 40rem;
