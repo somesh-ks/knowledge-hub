@@ -1,4 +1,5 @@
 import { MIN_JUDGED, type SourceStatsFile } from "@dispatch/core";
+import { tasteMultiplier } from "../profile/tasteFit.js";
 import { type VotePreferences, voteMultiplier } from "../profile/votes.js";
 import { passRate } from "../state/sourceStats.js";
 import { clamp01, round4 } from "./numbers.js";
@@ -49,11 +50,21 @@ export function withSourceAdjustment(
 }
 
 /**
- * The score scaled by the owner's votes on the item's source and domain (profile/votes.ts), at
- * most 15 percent either way and nothing until a source or domain has three votes.
+ * The score scaled by the owner's taste, at most 15 percent either way: Jev's taste check when it
+ * answered for the item, otherwise the votes on its source and domain (profile/votes.ts), which
+ * do nothing until a source or domain has three votes.
  */
-export function withVoteWeight(scored: ScoredItem, prefs: VotePreferences): ScoredItem {
-  const multiplier = voteMultiplier(prefs, scored.item.source_id, scored.item.url);
+export function withVoteWeight(
+  scored: ScoredItem,
+  prefs: VotePreferences,
+  tasteFit?: number,
+): ScoredItem {
+  // Jev's taste check reads the headlines behind the votes, so it speaks for the source votes when
+  // it answered (profile/tasteFit.ts); counting both would weigh one vote twice.
+  const multiplier =
+    tasteFit === undefined
+      ? voteMultiplier(prefs, scored.item.source_id, scored.item.url)
+      : tasteMultiplier(tasteFit);
   if (multiplier === 1) return scored;
   return { ...scored, score: round4(clamp01(scored.score * multiplier)) };
 }
