@@ -1,5 +1,5 @@
 ---
-import { paletteAccent } from "@dispatch/cover";
+import { coverEdge } from "../lib/covers";
 import type { DigestEntry } from "../lib/digests";
 import { longDate, longDateTitle } from "../lib/format";
 import { FACT_SEPARATOR } from "../lib/library";
@@ -44,7 +44,7 @@ const hasCount = segments.length > 2;
     <Cover
       digestId={entry.id}
       size="card"
-      paletteBg={paletteAccent(digest.cover.palette).bg}
+      paletteBg={coverEdge(digest)}
       weekly={digest.kind === "weekly"}
       priority={priority}
     />

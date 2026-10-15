@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Digest } from "@dispatch/core";
-import { renderCoverPng } from "@dispatch/cover";
+import { coverColors, renderCoverPng } from "@dispatch/cover";
 import sharp from "sharp";
 
 /** What a cover is drawn from. A briefing and a podcast episode both have these. */
@@ -15,6 +15,14 @@ export function episodeCover(entry: {
   cover: Digest["cover"];
 }): CoverSource {
   return { id: entry.id, date: entry.episode.date, kind: "on-demand", cover: entry.cover };
+}
+
+/**
+ * The colour at the cover's edge as drawn: a monthly cover's season or a weekly's matte, not its
+ * palette id. The box shows it before the image decodes, and a pale one gets a rim on the light page.
+ */
+export function coverEdge(source: CoverSource): string {
+  return coverColors(source.cover, { id: source.id, date: source.date, kind: source.kind }).ground;
 }
 
 export type CoverSize = 512 | 1024;

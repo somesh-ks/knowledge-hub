@@ -1,5 +1,5 @@
 ---
-import { paletteAccent } from "@dispatch/cover";
+import { coverEdge, episodeCover } from "../lib/covers";
 import type { EpisodeEntry } from "../lib/episodes";
 import { EPISODE_KIND, FACT_SEPARATOR } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
@@ -37,7 +37,7 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     <Cover
       digestId={entry.id}
       size="card"
-      paletteBg={paletteAccent(entry.cover.palette).bg}
+      paletteBg={coverEdge(episodeCover(entry))}
       weekly={false}
       priority={priority}
     />

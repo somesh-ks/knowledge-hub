@@ -1,7 +1,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { describe, expect, it } from "vitest";
-import { hexToRgb } from "./color.js";
-import { buildContext } from "./context.js";
+import { contrastRatio, hexToRgb } from "./color.js";
+import { buildContext, WEEKLY_INSET } from "./context.js";
 import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { getPalette } from "./palettes.js";
 import { renderCoverSvg } from "./render.js";
@@ -203,6 +203,26 @@ describe("variants", () => {
         expect(renderCoverSvg(spec(template), metaFor(kind, 6)), `${template} ${kind}`).not.toMatch(
           /<rect [^>]*fill="none" stroke=/,
         );
+      }
+    }
+  });
+
+  // The month's schemes dressed weeklies and dailies alike, so a weekly read as one more daily in a grid.
+  it("mounts a monthly weekly on a matte that stands off its plate in grayscale", () => {
+    for (const month of ["2026-10", "2026-11", "2026-12", "2027-01"]) {
+      for (let seed = 1; seed <= 12; seed += 1) {
+        const s: CoverSpec = { template: "band", palette: "ultramarine", seed: seed * 7919 };
+        const meta: CoverMeta = { date: `${month}-14`, kind: "weekly", id: `${month}-w${seed}` };
+        const { ctx } = buildContext(s, meta, 1024, "standard", true);
+        const where = `${month} seed ${seed}`;
+        expect(ctx.matte, where).toBeDefined();
+        expect(contrastRatio(ctx.matte ?? "", ctx.pal.ground), where).toBeGreaterThanOrEqual(2);
+        // The matte is drawn: a pixel halfway into it carries its colour.
+        const px = raster(renderCoverSvg(s, meta));
+        const at = (Math.round(SIZE / 2) * SIZE + Math.round((WEEKLY_INSET * SCALE) / 2)) * 4;
+        expect([px[at], px[at + 1], px[at + 2]], where).toEqual(hexToRgb(ctx.matte ?? ""));
+        const daily = buildContext(s, { ...meta, kind: "regular" }, 1024, "standard", true);
+        expect(daily.ctx.matte, where).toBeUndefined();
       }
     }
   });

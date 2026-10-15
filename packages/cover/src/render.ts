@@ -56,7 +56,7 @@ function compose(
   const art = plate
     ? `<circle cx="${n(plate.cx)}" cy="${n(plate.cy)}" r="${n(plate.r)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})"><g transform="translate(${n(plate.cx - plate.r)} ${n(plate.cy - plate.r)}) scale(${n((plate.r * 2) / size, 4)})">${out.body}</g></g>`
     : weekly
-      ? `<g clip-path="url(#${plateClip})">${out.body}</g>`
+      ? `<path d="${rectPath(area)}" fill="${pal.ground}"/><g clip-path="url(#${plateClip})">${out.body}</g>`
       : out.body;
   const typePal = { ...pal, text: ctx.ink };
   const type =

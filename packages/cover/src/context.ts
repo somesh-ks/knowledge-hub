@@ -26,7 +26,7 @@ export interface BuiltContext {
 }
 
 /** Weekly records sit in a matte: the art is a plate inset from the edge, ringed by a hairline. */
-export const WEEKLY_INSET = 44;
+export const WEEKLY_INSET = 56;
 
 /** `monthly` presses an on-demand briefing and an episode as the round plate on a matte. */
 export function variantOf(kind: CoverKind, monthly = false): Variant {
@@ -111,8 +111,9 @@ export function buildContext(
     numeral,
     caption,
     ink: season?.type ?? pal.text,
-    ...(season?.matte
-      ? { matte: season.matte, plate: { cx: size / 2, cy: size * 0.4, r: size * 0.275 } }
+    ...(season?.matte ? { matte: season.matte } : {}),
+    ...(season?.matte && variant === "plate"
+      ? { plate: { cx: size / 2, cy: size * 0.4, r: size * 0.275 } }
       : {}),
     uid,
     margin,

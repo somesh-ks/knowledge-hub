@@ -85,7 +85,7 @@ export interface Ctx {
   caption: string;
   /** Color of the lockup type. */
   ink: string;
-  /** On a plate cover, the flat ground around the disc, and the disc itself in canvas px. */
+  /** The flat ground around a plate's disc or a monthly weekly's art, and the disc itself in canvas px. */
   matte?: string;
   plate?: { cx: number; cy: number; r: number };
   /** Unique per cover so several inline SVGs can share one HTML document. */
