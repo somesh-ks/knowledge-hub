@@ -33,3 +33,18 @@ Found while building the rewrite: every writer request to Claude Sonnet 5.5 fail
 word. Since the owner picked Sonnet on 2026-10-14, the briefings have been written by the Nebius
 model (the 2026-10-15 run: 8 Anthropic requests, 17 Nebius). The Anthropic client no longer sends a
 temperature, and adds 8,000 tokens to each reply allowance: Sonnet 5.5 thinks by default, and thinking used the allowance and cut the JSON off (the next CI run failed with "not valid JSON"). This is likely a larger quality change than the prompt.
+
+Judged in CI (episode-eval run 38765610387, head c0f6681). Both arms written by Claude Sonnet 5.5
+from the same summaries; only the prompt differs. Quality is the mean of clarity, novelty, no
+repetition and worth listening, two judge runs.
+
+| Episode | Prompt on main | This branch |
+|---|---|---|
+| daily | 3.25, min 2 (no repetition 2 or 3) | 3.50, min 3 |
+| weekly | 2.50, min 2 | 2.75, min 2 (no repetition 2, worth listening 2) |
+| daily length | 4.9 of 5 min | 4.9 of 5 min |
+| weekly length | 13.9 of 15 min | 13.4 of 15 min (just under the 10% band) |
+
+For comparison the stories as Nebius wrote them in October scored 2.50 to 3.00. The weekly still
+repeats: 38 stories written four at a time, with several on the same subject in different
+requests, which the prompt alone cannot see.
