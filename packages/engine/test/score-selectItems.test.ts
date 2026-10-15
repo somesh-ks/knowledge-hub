@@ -420,6 +420,39 @@ describe("tie-breaking and determinism", () => {
   });
 });
 
+describe("topics and length", () => {
+  // Before: three craft stories filled a section's target and the cap, so a selected topic with a
+  // story over the bar (motion techniques) never aired.
+  it("airs every topic's best story before a stronger topic's second", () => {
+    const craft = Array.from({ length: 4 }, (_, i) =>
+      scored("design_engineering_craft", 0.9 - i * 0.01),
+    );
+    const motion = scored("css_canvas_motion_techniques", 0.5);
+    const result = selectItems({ scored: [...craft, motion], kind: "regular", floor: 3, cap: 3 });
+    expect(ids(result.selected)).toContain(motion.item.id);
+  });
+
+  // Before: Tech releases and each general section were added on top of the cap, so a short
+  // briefing ran long, and five tech stories could take the airtime from every other section.
+  it("holds every section together to the briefing's length, one story per section first", () => {
+    const craft = Array.from({ length: 6 }, (_, i) =>
+      scored("design_engineering_craft", 0.9 - i * 0.01),
+    );
+    const tech = Array.from({ length: 5 }, (_, i) =>
+      scored("consumer_tech_releases", 0.8 - i * 0.01),
+    );
+    const result = selectItems({
+      scored: [...craft, ...tech],
+      kind: "regular",
+      floor: 3,
+      cap: 12,
+      total: 5,
+    });
+    expect(result.selected).toHaveLength(5);
+    expect(result.selected.filter(isTech)).toHaveLength(1);
+  });
+});
+
 describe("weekly reserved slot", () => {
   const build = (): ScoredItem[] => [
     ...Array.from({ length: 3 }, (_, i) => scored("design_engineering_craft", 0.9 - i * 0.01)),
@@ -440,12 +473,14 @@ describe("weekly reserved slot", () => {
   });
 
   it("guarantees one slot to the best below-median category in a weekly digest", () => {
+    // Three slots for four topics: every topic's best story competes for them, so the launch
+    // gets in only through the reserved slot.
     const launch = scored("developer_tool_launches", 0.45);
     const pool = [...build(), launch];
-    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
-    expect(weekly.selected).toHaveLength(6);
+    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 3, weights });
+    expect(weekly.selected).toHaveLength(3);
     expect(ids(weekly.selected)).toContain(launch.item.id);
-    const regular = selectItems({ scored: pool, kind: "regular", floor: 3, cap: 6, weights });
+    const regular = selectItems({ scored: pool, kind: "regular", floor: 3, cap: 3, weights });
     expect(ids(regular.selected)).not.toContain(launch.item.id);
   });
 
@@ -468,7 +503,7 @@ describe("weekly reserved slot", () => {
     expect(weights.taste_and_design_philosophy).toBe(medianWeight(weights));
     const atMedian = scored("taste_and_design_philosophy", 0.47);
     const pool = [...build(), atMedian];
-    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
+    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 3, weights });
     expect(ids(weekly.selected)).not.toContain(atMedian.item.id);
   });
 

@@ -21,7 +21,7 @@ import {
   serializeDigestFile,
   VOICE_LIMITS,
 } from "../packages/core/src/index.js";
-import { capForLength } from "../packages/engine/src/run/scheduleSize.js";
+import { storiesForMinutes } from "../packages/engine/src/run/scheduleSize.js";
 import { scoreItem } from "../packages/engine/src/score/scoreItem.js";
 import { capFor, selectItems } from "../packages/engine/src/score/selectItems.js";
 import type { ScoredItem } from "../packages/engine/src/score/types.js";
@@ -82,7 +82,12 @@ function episode(
     scored: scored(pool, preferences),
     kind,
     floor: VOICE_LIMITS.items.floor,
-    cap: capForLength(capFor(kind), VOICE_LIMITS.items.floor, settings.length_minutes),
+    cap: capFor(kind),
+    total: storiesForMinutes(
+      settings.length_minutes,
+      VOICE_LIMITS.items.floor,
+      VOICE_LIMITS.items.hardMax,
+    ),
     weights: preferences.weights,
     skipTopics: settings.skip_topics,
   });
