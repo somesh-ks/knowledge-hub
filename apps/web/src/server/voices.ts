@@ -324,6 +324,8 @@ export function byteRange(
     end = size - 1;
   } else {
     start = Number(match[1]);
+    // A last byte before the first makes the header invalid, which is ignored (RFC 9110, 14.1.1).
+    if (match[2] !== "" && Number(match[2]) < start) return null;
     end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
   }
   if (start >= size || start > end) return "unsatisfiable";

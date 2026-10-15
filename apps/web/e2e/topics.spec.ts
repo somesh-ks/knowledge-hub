@@ -968,5 +968,11 @@ test.describe("Blocked outlets", () => {
         { op: "profile.unblock", domain: "example.com" },
       ]);
     await expect(page.getByText("No blocked outlets")).toBeVisible();
+
+    // Blocked again once the unblock has gone: the row was hidden as removing and stayed hidden.
+    await page.getByLabel("Block an outlet").fill("example.com");
+    await page.getByRole("button", { name: "Block", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
+    await expect(page.getByText("No blocked outlets")).toBeHidden();
   });
 });

@@ -102,7 +102,9 @@ function mount(root: HTMLElement): void {
       row.removeAttribute("data-removing");
     } else if (!row || !shown(row)) {
       const made = row ?? insert(domain);
+      // A row whose removal was saved keeps data-removing (settle adds data-gone): both go.
       made.removeAttribute("data-gone");
+      made.removeAttribute("data-removing");
       changes.set(`block:${domain}`, {
         op: { op: "profile.block", domain },
         el: made.querySelector<HTMLElement>(".settings-label") as HTMLElement,

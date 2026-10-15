@@ -327,5 +327,7 @@ describe("byteRange", () => {
     expect(byteRange("bytes=50-500", 100)).toEqual([50, 99]);
     expect(byteRange("bytes=100-", 100)).toBe("unsatisfiable");
     expect(byteRange("items=0-1", 100)).toBeNull();
+    // Reversed: invalid, so the whole sample is sent rather than a 416.
+    expect(byteRange("bytes=5-2", 100)).toBeNull();
   });
 });

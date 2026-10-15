@@ -857,12 +857,12 @@ test.describe("the page head", () => {
 });
 
 test.describe("the page's chrome", () => {
-  test("the latest briefing at its dated address is Today: no Back in the app bar", async ({
+  test("the latest briefing at its dated address is the home page: no Back in the app bar", async ({
     page,
   }) => {
     await page.goto("/d/2026-10-07");
     await expect(page.locator(".app-bar-back")).toHaveCount(0);
-    await expect(page.locator('.app-nav [aria-current="page"]')).toHaveText(/Today/);
+    await expect(page.locator('.app-nav [aria-current="page"]')).toHaveAttribute("href", "/");
     // An older briefing is one level down from the Library, and leads back to it.
     await page.goto(SILENT_DIGEST);
     await expect(page.locator(".app-bar-back")).toHaveAttribute("href", "/library");

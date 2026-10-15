@@ -2,6 +2,7 @@
 
 One line each: symptom, cause, fix. Newest first. Search before debugging.
 
+- 2026-10-15: "Stop hearing from" failed with "Could not stop X yet" whenever another config edit had gone in the last ten seconds: the story sender took the server's 429 cooldown as final, and its spec faked `/api/config` as 202 for everything, so the gap never existed in a test. A browser spec that sends config edits uses `e2e/configServer.ts` (the real handler, GitHub faked), not a stub ([audit](engineering/reliability-audit-2026-10-15.md)).
 - 2026-10-13: the two voice-picker specs failed every run beside other specs (on the D101 commit too, so not this session's change) and passed alone: the page had scrolled after the press and a scroll closes an open list, which the trace's last frame showed. `openPicker` in `e2e/picker.ts` presses again until the list stays open; 77 runs passed three times in a row after it. When a spec fails only in company, open its trace and read the last screencast frame before touching the product.
 - 2026-10-13: the Speechify tests (a real loopback server) failed in 2 of 6 full-suite runs with `fetch failed`, never alone, and a retry of two on those describes fixed the red; the cause is not found. `describe.configure` and `vi.setConfig({ retry })` do not exist in Vitest 5: pass `{ retry: 2 }` as the describe's second argument.
 
