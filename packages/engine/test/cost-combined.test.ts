@@ -5,7 +5,7 @@ import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { lookupJudgments, mergeJudgments } from "../src/judge/cache.js";
 import { CombinedJudge } from "../src/judge/combinedJudge.js";
-import { type JevClientLike, JevJudge } from "../src/judge/jev.js";
+import { DEFAULT_JEV_MODEL, type JevClientLike, JevJudge } from "../src/judge/jev.js";
 import { JEV_QUESTIONS, QUESTIONS_HASH } from "../src/judge/questions.js";
 import { planTopicJudging, TopicJudge } from "../src/judge/topicJudge.js";
 import { neutralEntry, topicOnlyTopics } from "../src/judge/topicOnly.js";
@@ -201,7 +201,7 @@ describe("topic-only items and cached items", () => {
     expect(fresh).toHaveLength(1);
 
     const neutral = neutralEntry(item, {
-      model: "jev-latest",
+      model: DEFAULT_JEV_MODEL,
       questionsHash: QUESTIONS_HASH,
       now: NOW,
     });
@@ -210,7 +210,7 @@ describe("topic-only items and cached items", () => {
     // Nothing merged it, so the main cache still lacks the item.
     const cache = mergeJudgments({ version: 1, entries: {} }, []);
     const lookup = lookupJudgments(cache, [item], {
-      model: "jev-latest",
+      model: DEFAULT_JEV_MODEL,
       questionsHash: QUESTIONS_HASH,
     });
     expect(lookup.misses).toEqual([item]);
@@ -222,7 +222,7 @@ describe("topic-only items and cached items", () => {
     const mainJev = fakeJev();
     const entries = await new JevJudge(options(mainJev)).judge([item]);
     const cache = mergeJudgments({ version: 1, entries: {} }, entries);
-    const judgeIdentity = { model: "jev-latest", questionsHash: QUESTIONS_HASH };
+    const judgeIdentity = { model: DEFAULT_JEV_MODEL, questionsHash: QUESTIONS_HASH };
     expect(lookupJudgments(cache, [item], judgeIdentity).misses).toEqual([]);
 
     const jev = fakeJev();

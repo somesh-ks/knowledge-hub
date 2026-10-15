@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Vote } from "../src/profile/profile.js";
+import { TasteFitter, tasteProfile } from "../src/profile/tasteFit.js";
 import { VOTE_LIMITS, voteMultiplier, votePreferences } from "../src/profile/votes.js";
+import { makeItem } from "./score-factories.js";
+import { NO_WAIT } from "./write-fakes.js";
 
 const NOW = new Date("2026-10-14T00:00:00Z");
 const DAY = 86_400_000;
@@ -40,5 +43,25 @@ describe("voteMultiplier", () => {
 
   it("lets old votes fade", () => {
     expect(1 - multiplier(votes(5, "down", 120))).toBeLessThan(1 - multiplier(votes(5, "down", 1)));
+  });
+});
+
+describe("taste check", () => {
+  // A story the owner opened and then disliked once counted as liked in the taste the judge read,
+  // and a Jev outage must never move a score.
+  it("never counts a disliked story as liked, and keeps scores when Jev cannot answer", async () => {
+    const down = votes(1, "down")[0] as Vote;
+    const opens = [...votes(9, "up", 2), down].map(({ value: _value, ...open }) => open);
+    const taste = tasteProfile({ votes: [down], opens });
+    expect(taste?.disliked).toEqual([down.headline]);
+    expect(taste?.liked).toHaveLength(9);
+    expect(tasteProfile({ votes: [down], opens: opens.slice(0, 8) })).toBeNull();
+
+    const failing = { systemOne: async () => Promise.reject(new Error("down")) };
+    const fits = await new TasteFitter({ client: failing, retry: NO_WAIT }).fit(
+      [makeItem({ title: "A story" })],
+      taste as NonNullable<typeof taste>,
+    );
+    expect(fits.size).toBe(0);
   });
 });

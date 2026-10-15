@@ -1,6 +1,6 @@
 import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
-import type { JevClientLike } from "../src/judge/jev.js";
+import { DEFAULT_JEV_MODEL, type JevClientLike } from "../src/judge/jev.js";
 import { NEBIUS_QUESTIONS_HASH, QUESTIONS_HASH } from "../src/judge/questions.js";
 import {
   judgeTopicsWithCache,
@@ -153,7 +153,7 @@ describe("TopicJudge", () => {
     ]);
     expect(entries[0]).toMatchObject({
       item_id: item.id,
-      model: "jev-latest",
+      model: DEFAULT_JEV_MODEL,
       judged_at: NOW.toISOString(),
     });
     expect(judge.usage).toEqual({ requests: 1, inputTokens: 10, outputTokens: 2 });
@@ -255,7 +255,7 @@ describe("the topic judgment cache", () => {
   it("keys entries by item, topic, topic hash and model, and prunes after 30 days", async () => {
     const result = await judgeTopicsWithCache(judgeOver(fakeJev()), [item], [a]);
     const [key] = Object.keys(result.cache.entries);
-    expect(key).toBe(topicJudgmentKey(item.id, "alpha", topicHash(a), "jev-latest"));
+    expect(key).toBe(topicJudgmentKey(item.id, "alpha", topicHash(a), DEFAULT_JEV_MODEL));
 
     const old = mergeTopicJudgments(EMPTY_TOPIC_JUDGMENTS, [
       {

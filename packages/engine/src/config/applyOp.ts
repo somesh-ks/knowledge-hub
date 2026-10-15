@@ -20,7 +20,7 @@ import {
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
 import { hostOf, normalizeDomain, type Profile } from "../profile/profile.js";
-import { mergeVotes } from "../profile/votes.js";
+import { mergeOpens, mergeVotes } from "../profile/votes.js";
 import { buildSourceFromUrl } from "../sources/addSource.js";
 import type { DiscoverDeps } from "../sources/discover.js";
 
@@ -568,13 +568,20 @@ function castVotes(
     if (domain === null) throw new ConfigOpError(`"${tidy(vote.url, 60)}" has no usable host.`);
     return { ...vote, domain };
   });
+  const opens = op.opens.map((open) => {
+    const domain = hostOf(open.url);
+    if (domain === null) throw new ConfigOpError(`"${tidy(open.url, 60)}" has no usable host.`);
+    return { ...open, domain };
+  });
   const next = clone(bundle);
   next.profile.votes = mergeVotes(next.profile.votes, incoming);
+  next.profile.opens = mergeOpens(next.profile.opens, opens);
   const cleared = incoming.filter((vote) => vote.value === "clear").length;
   const cast = incoming.length - cleared;
   const parts = [
     cast > 0 ? `${cast} vote${cast === 1 ? "" : "s"}` : "",
     cleared > 0 ? `clear ${cleared}` : "",
+    opens.length > 0 ? `${opens.length} open${opens.length === 1 ? "" : "s"}` : "",
   ];
   return { next, summary: `record ${parts.filter(Boolean).join(", ")}` };
 }
