@@ -55,7 +55,8 @@ export interface SelectInput {
   floor: number;
   /**
    * Requested cap for everything outside Tech releases; never raised above the hard cap for the
-   * kind (12, weekly 18). Tech releases has its own allowance on top of it.
+   * kind (12, weekly 18) unless `total` sizes the briefing, when the owner's length decides.
+   * Tech releases has its own allowance on top of it.
    */
   cap: number;
   /**
@@ -342,7 +343,9 @@ export function selectItems(input: SelectInput): SelectResult {
   const own = ranked.filter(hasOwnSection);
   // The main sections leave room for one story from each section with an allowance of its own.
   const ownSections = new Set(own.map((candidate) => candidate.home)).size;
-  const limit = Math.min(input.cap, capFor(input.kind), Math.max(0, total - ownSections));
+  // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
+  const kindCap = input.total === undefined ? capFor(input.kind) : VOICE_LIMITS.items.hardMax;
+  const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownSections));
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();

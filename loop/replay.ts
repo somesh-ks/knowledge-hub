@@ -23,7 +23,7 @@ import {
 } from "../packages/core/src/index.js";
 import { storiesForMinutes } from "../packages/engine/src/run/scheduleSize.js";
 import { scoreItem } from "../packages/engine/src/score/scoreItem.js";
-import { capFor, selectItems } from "../packages/engine/src/score/selectItems.js";
+import { selectItems } from "../packages/engine/src/score/selectItems.js";
 import type { ScoredItem } from "../packages/engine/src/score/types.js";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -82,7 +82,7 @@ function episode(
     scored: scored(pool, preferences),
     kind,
     floor: VOICE_LIMITS.items.floor,
-    cap: capFor(kind),
+    cap: VOICE_LIMITS.items.hardMax,
     total: storiesForMinutes(
       settings.length_minutes,
       VOICE_LIMITS.items.floor,

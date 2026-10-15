@@ -422,6 +422,7 @@ describe("general topics in the daily and weekly briefings", () => {
         version: 1,
         hour: 7,
         cadence_days: 2,
+        length_minutes: 5,
         skip_topics: skip,
         weekly: { skip_topics: skip },
         general_scoped: true,

@@ -215,8 +215,10 @@ did not change.
 1. Every topic's best story first (T1): applied.
 2. Size by airtime, all sections inside the length (L1, and I2's allowances on top of the cap): applied.
    `capForLength` is gone; `storiesForMinutes` uses 364 spoken characters per story.
-3. Weekly held to its length instead of 18 (L2): reverted. `validateDigest` and agent-mode curation
-   still cap main stories at 12 and 18; lifting that is the owner's call.
+3. Weekly held to its length instead of 18 (L2): reverted first, because the validator capped main
+   stories at 12 and 18. Applied as iteration 4 at the owner's word ("the length should follow
+   the settings"): a length-sized briefing is held to its length; the kind caps apply only to
+   unsized and agent-written digests.
 
 Still failing (`results/judged-replays.md`): importance (package releases clear the 0.4 bar, I1, a
 scoring policy), quality (the writer stage; the replay does not run it), and the quality judge
