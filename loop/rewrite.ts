@@ -4,10 +4,11 @@
  *
  *   npx tsx loop/rewrite.ts <episode dir> <out dir> [--prompt <prompt module>] [--voice <voice.md>]
  *
- * The pool keeps no source text, so each story's summary stands in for it, the same for both
- * prompts. Defaults are this branch's prompt and config/voice.md; CI passes main's copies to get
- * the "before" episode. Batches of four with the writer's own model, like the engine. Needs
- * ANTHROPIC_API_KEY.
+ * Each story's source is read again with the engine's own extractor (feed text, then the page
+ * through Readability; no paid scrape), and its summary stands in when the page cannot be read, the
+ * same for both prompts. Defaults are this branch's prompt and config/voice.md; CI passes main's
+ * copies to get the "before" episode. Batches of four with the writer's own model, like the engine.
+ * Needs ANTHROPIC_API_KEY.
  */
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -15,10 +16,12 @@ import { parseArgs } from "node:util";
 import { z } from "zod";
 import {
   type Category,
+  type Item,
   isBuiltinCategory,
   parseDigestFile,
   serializeDigestFile,
 } from "../packages/core/src/index.js";
+import { extractFullText } from "../packages/engine/src/extract/extractText.js";
 import { createAnthropicLlm } from "../packages/engine/src/llm/anthropicClient.js";
 import { mapConcurrent } from "../packages/engine/src/llm/concurrency.js";
 import { TokenBudget } from "../packages/engine/src/llm/tokenBudget.js";
@@ -52,12 +55,22 @@ const Output = z.object({
 });
 
 const digest = parseDigestFile(readFileSync(join(episodeDir, "episode.md"), "utf8"));
-const materials: SourceMaterial[] = digest.items.map((item) => ({
+const sources = await mapConcurrent(digest.items, 8, async (item) => {
+  const page = await extractFullText({
+    id: item.id,
+    url: item.url,
+    canonical_url: item.url,
+    title: item.headline,
+    snippet: item.summary,
+  } as Item).catch(() => null);
+  return page && page.method !== "snippet" ? page.text : null;
+});
+const materials: SourceMaterial[] = digest.items.map((item, i) => ({
   id: item.id,
   title: item.headline,
   source: item.source,
   category: (isBuiltinCategory(item.category) ? item.category : "none") as Category,
-  text: item.summary,
+  text: sources[i] ?? item.summary,
 }));
 const batches: SourceMaterial[][] = [];
 for (let i = 0; i < materials.length; i += WRITER_BATCH_SIZE) {
@@ -102,4 +115,6 @@ const items = digest.items.flatMap((item) => {
 mkdirSync(outDir, { recursive: true });
 copyFileSync(join(episodeDir, "settings.json"), join(outDir, "settings.json"));
 writeFileSync(join(outDir, "episode.md"), serializeDigestFile({ ...digest, items }));
-console.log(`${outDir}: ${items.length} of ${digest.items.length} stories rewritten with ${model}`);
+console.log(
+  `${outDir}: ${items.length} of ${digest.items.length} stories rewritten with ${model}, ${sources.filter(Boolean).length} from the page`,
+);
