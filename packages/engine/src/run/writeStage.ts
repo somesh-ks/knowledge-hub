@@ -6,6 +6,7 @@ import {
   type SourceStatsFile,
   VOICE_LIMITS,
 } from "@dispatch/core";
+import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
   loadPool,
@@ -55,7 +56,7 @@ import {
 import { generalCandidates, generalIdsFor } from "./generalScope.js";
 import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
-import { storiesForMinutes } from "./scheduleSize.js";
+import { overNarrationLimit, storiesForMinutes } from "./scheduleSize.js";
 import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
 import { countSources } from "./sourceCounts.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
@@ -429,6 +430,16 @@ async function writePass(
   }
 
   const keptIds = new Set(voice.passed.map((p) => p.item.id));
+  // One narration request carries the whole episode, so the stories must fit it together.
+  const told = voice.passed.map((p) => ({
+    id: p.item.id,
+    score: chosen.selected.find((sel) => sel.item.id === p.item.id)?.score ?? 0,
+    chars: (p.item.spoken ?? `${p.item.headline} ${p.item.summary}`).length,
+  }));
+  for (const id of overNarrationLimit(told, MAX_SPOKEN_CHARS)) {
+    keptIds.delete(id);
+    drop(id, "voice", "the episode's narration would run past one request");
+  }
   const survivors = assignSections(chosen.selected.filter((sel) => keptIds.has(sel.item.id)));
   if (survivors.length < VOICE_LIMITS.items.floor) {
     // Extraction and writing failures are infrastructure; voice drops are editorial.
