@@ -57,6 +57,42 @@ export function paper(scheme: Scheme, mode: CoverMode): Paper {
   };
 }
 
+/**
+ * The on-demand stock: the paper's own hue as a mid-tone card, between the dark daily and the paper
+ * weekly, so all three series print in one colour theme and still read apart by lightness.
+ */
+export const STOCK_L: Record<CoverMode, number> = { light: 0.74, dark: 0.68 };
+const STOCK_C = 0.035;
+
+export function stock(scheme: Scheme, mode: CoverMode): string {
+  const pale = [...scheme.colors].sort((a, b) => L(b) - L(a))[0];
+  if (!pale) throw new Error(`Cover scheme "${scheme.id}" has no colours`);
+  return oklchToHex({ ...hexToOklch(pale), l: STOCK_L[mode], c: STOCK_C });
+}
+
+/**
+ * An on-demand cover on the stock: the disc in ink, the art on it in paper, the spot as its shade.
+ * Returns the palette (ground is the disc) and the matte.
+ */
+export function stockPalette(
+  base: Palette,
+  p: Paper,
+  matte: string,
+): { palette: Palette; type: string } {
+  const type = holdContrast(p.K, matte, 4.5);
+  return {
+    palette: {
+      ...base,
+      ground: p.K,
+      accent: p.P,
+      text: type,
+      shade: p.D,
+      field: mixHex(p.K, p.P, 0.16),
+    },
+    type,
+  };
+}
+
 /** The paper as a cover palette: ground P, figure and type K, shade D, field T. */
 export function paperPalette(base: Palette, p: Paper): Palette {
   return { ...base, ground: p.P, accent: p.K, text: p.K, shade: p.D, field: p.T };

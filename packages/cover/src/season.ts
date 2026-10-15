@@ -1,8 +1,7 @@
 import { contrastRatio, hexToOklch, mixHex } from "./color.js";
 import { getPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
-import { TEMPLATES } from "./templates/index.js";
-import type { Palette, TemplateId } from "./types.js";
+import type { Palette } from "./types.js";
 
 /**
  * Monthly colour schemes. A month draws every cover, of every kind, from one scheme: a small set of
@@ -100,8 +99,6 @@ export function schemeFor(year: number, month: number): Scheme {
 /** Contrast floors: type on its ground, a figure on its ground. */
 export const TYPE_CONTRAST = 4.5;
 export const FORM_CONTRAST = 3;
-/** A plate must read as a disc on its matte. */
-const PLATE_CONTRAST = 1.6;
 /** The derived shade must stand apart from both ground and figure; the field only needs a trace of tint. */
 const SHADE_CONTRAST = 1.6;
 const FIELD_CONTRAST = 1.08;
@@ -118,14 +115,14 @@ const tintsOk = (ground: string, figure: string): boolean => {
   );
 };
 
-const isLight = (hex: string): boolean => hexToOklch(hex).l >= 0.7;
-/** OKLCH lightness an on-demand matte aims for, between the dark daily and the paper weekly. */
-const PLATE_L = [0.65, 0.87] as const;
-/** The palest matte a month without a colour in that band may fall back to. */
-const PLATE_L_MAX = 0.9;
+/**
+ * The darkest series: a daily's ground stays at or under this OKLCH lightness, so even lifted for the
+ * light theme it sits below the on-demand stock and the weekly paper.
+ */
+const DAILY_MAX_L = 0.55;
 
 export interface Dress {
-  /** Ground and figure the template draws with; on a plate, the disc and the art on it. */
+  /** Ground and figure the template draws with; on an on-demand cover, the disc and the art on it. */
   palette: Palette;
   /** The flat ground of an on-demand cover. Absent when the palette's own ground fills the cover. */
   matte?: string;
@@ -133,24 +130,15 @@ export interface Dress {
   type: string;
 }
 
-/** Every (ground, figure, type) the rules allow. With a plate: (matte, disc, art, type). */
-function valid(colors: readonly string[], plate: boolean): string[][] {
+/** Every (ground, figure, type) the rules allow. */
+function valid(colors: readonly string[]): string[][] {
   const out: string[][] = [];
   for (const ground of colors) {
     for (const type of colors) {
       if (contrastRatio(type, ground) < TYPE_CONTRAST) continue;
       for (const figure of colors) {
-        if (!plate) {
-          if (contrastRatio(figure, ground) >= FORM_CONTRAST && tintsOk(ground, figure))
-            out.push([ground, figure, type]);
-          continue;
-        }
-        // Plate: ground is the matte, figure the disc, then the art on the disc.
-        if (contrastRatio(figure, ground) < PLATE_CONTRAST) continue;
-        for (const art of colors) {
-          if (contrastRatio(art, figure) >= FORM_CONTRAST && tintsOk(figure, art))
-            out.push([ground, figure, art, type]);
-        }
+        if (contrastRatio(figure, ground) >= FORM_CONTRAST && tintsOk(ground, figure))
+          out.push([ground, figure, type]);
       }
     }
   }
@@ -169,41 +157,23 @@ function palette(id: string, ground: string, accent: string, text: string): Pale
   };
 }
 
-/** Throws when a scheme could leave a kind with no legal dress. Run by the contact sheet. */
+/** Throws when a scheme could leave a daily with no legal dress. Run by the contact sheet. */
 export function assertSchemes(): void {
   for (const scheme of SCHEMES) {
-    for (const plate of [false, true]) {
-      if (valid(scheme.colors, plate).length === 0) {
-        throw new Error(`Cover scheme "${scheme.id}" has no legal dress (plate ${plate})`);
-      }
+    if (valid(scheme.colors).length === 0) {
+      throw new Error(`Cover scheme "${scheme.id}" has no legal dress`);
     }
   }
 }
 
 /**
- * The dress for one daily or on-demand cover (weeklies are printed on paper, see series/weekly).
- * Seeded by the cover's own seed, so it is stable and varies by episode.
+ * The dress for one daily (weeklies print on paper and on-demand covers on stock, see
+ * series/weekly/kit.ts). Seeded by the cover's own seed, so it is stable and varies by episode.
  */
-export function dress(
-  scheme: Scheme,
-  spec: { palette: string; seed: number },
-  kind: "daily" | "plate",
-): Dress {
+export function dress(scheme: Scheme, spec: { palette: string; seed: number }): Dress {
   const rng = mulberry32(hash32(`dress:${spec.seed}`));
-  const plate = kind === "plate";
-  const all = valid(scheme.colors, plate);
-  // The series read apart by lightness: a daily stays dark, an on-demand matte sits in the light
-  // middle, and the palest colours belong to the paper weekly.
-  const within = (lo: number, hi: number) =>
-    all.filter(([g]) => g !== undefined && hexToOklch(g).l >= lo && hexToOklch(g).l <= hi);
-  const tiers = plate
-    ? [within(PLATE_L[0], PLATE_L[1]), within(PLATE_L[0], PLATE_L_MAX), all]
-    : [all.filter(([g]) => g !== undefined && !isLight(g)), all];
-  const pick = rng.pick(tiers.find((t) => t.length > 0) ?? all);
-  if (plate) {
-    const [matte, disc, art, type] = pick as [string, string, string, string];
-    return { palette: palette(spec.palette, disc, art, type), matte, type };
-  }
-  const [ground, figure, type] = pick as [string, string, string];
+  const all = valid(scheme.colors);
+  const dark = all.filter(([g]) => g !== undefined && hexToOklch(g).l <= DAILY_MAX_L);
+  const [ground, figure, type] = rng.pick(dark.length > 0 ? dark : all) as [string, string, string];
   return { palette: palette(spec.palette, ground, figure, type), type };
 }

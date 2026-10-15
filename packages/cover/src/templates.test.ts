@@ -72,15 +72,16 @@ describe.each(TEMPLATES)("template %s", (template) => {
     expect(svg).not.toMatch(/NaN|Infinity|undefined/);
   });
 
-  it("carries only the date and the wordmark as text", () => {
+  it("carries only the date, the year and the wordmark as text", () => {
     const strings = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
     const day = "6";
-    const allowed = new Set([...day, "September", "Singularity"]);
+    const allowed = new Set([...day, "September", "2026", "Singularity"]);
     expect(strings.length).toBeGreaterThanOrEqual(3);
     for (const text of strings)
       expect(allowed.has(text as string), `unexpected text "${text}"`).toBe(true);
     expect(strings).toContain("Singularity");
     expect(strings).toContain("September");
+    expect(strings).toContain("2026");
     expect(strings).toContain("6");
   });
 

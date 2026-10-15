@@ -1,10 +1,10 @@
-import { isoWeek, MONTH_NAMES, rangeLabel } from "./calendar.js";
+import { isoWeek, MONTH_NAMES, rangeLabel, yearLabel } from "./calendar.js";
 import { layoutLockup, MARGIN_UNITS } from "./lockup.js";
 import { type CoverMode, holdContrast, toneFor, tonePalette } from "./mode.js";
 import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
 import { type Dress, dress, isMonthly, schemeFor, TYPE_CONTRAST } from "./season.js";
-import { paper, paperPalette } from "./series/weekly/kit.js";
+import { paper, paperPalette, stock, stockPalette } from "./series/weekly/kit.js";
 import { pad } from "./svg.js";
 import type { CoverKind, CoverMeta, CoverSpec, Ctx, Palette, Rect, Variant } from "./types.js";
 
@@ -30,7 +30,7 @@ export interface BuiltContext {
 /** Weeklies before the monthly style sit in a matte: the art is inset from the edge, ringed by a hairline. */
 export const WEEKLY_INSET = 56;
 
-/** `monthly` presses an on-demand briefing and an episode as the round plate on a matte. */
+/** `monthly` prints an on-demand briefing and an episode on the month's stock ("plate"). */
 export function variantOf(kind: CoverKind, monthly = false): Variant {
   if (kind === "weekly") return "weekly";
   if (kind === "episode" || kind === "on-demand")
@@ -53,19 +53,23 @@ function coverDress(
     const pal = paperPalette(base, p);
     return { pal, variant, season: { palette: pal, type: p.K } };
   }
-  const season = monthly
-    ? dress(schemeFor(year, month), spec, variant === "plate" ? "plate" : "daily")
-    : undefined;
+  if (monthly && variant === "plate") {
+    // On-demand covers print on the month's stock in the same inks as the paper weekly.
+    const mode = meta.mode ?? "light";
+    const scheme = schemeFor(year, month);
+    const matte = stock(scheme, mode);
+    const { palette: pal, type } = stockPalette(base, paper(scheme, mode), matte);
+    return { pal, variant, season: { palette: pal, type, matte } };
+  }
+  const season = monthly ? dress(schemeFor(year, month), spec) : undefined;
   const pal = season ? season.palette : variant === "episode" ? invertPalette(base) : base;
   return meta.mode ? forMode({ pal, variant, season }, meta.mode) : { pal, variant, season };
 }
 
-/** A plate's disc must read against its matte. */
-const PLATE_CONTRAST = 1.6;
-
 /**
  * The cover as the app's theme draws it: every colour toned for the mode, then each contrast rule
- * held again, the figure on its ground, the disc off its matte and the type on what it sits on.
+ * held again: the figure on its ground and the type on it. Weeklies and on-demand covers carry
+ * their own tones for each theme and skip this.
  */
 function forMode(
   dressed: { pal: Palette; variant: Variant; season: Dress | undefined },
@@ -74,16 +78,8 @@ function forMode(
   const { variant, season } = dressed;
   const pal = tonePalette(dressed.pal, mode);
   if (!season) return { pal, variant, season };
-  const plate = variant === "plate";
-  const matte =
-    season.matte && holdContrast(toneFor(season.matte, mode), pal.ground, PLATE_CONTRAST);
-  const under = plate && matte ? matte : pal.ground;
-  const type = holdContrast(toneFor(season.type, mode), under, TYPE_CONTRAST);
-  return {
-    pal,
-    variant,
-    season: { palette: pal, type, ...(matte ? { matte } : {}) },
-  };
+  const type = holdContrast(toneFor(season.type, mode), pal.ground, TYPE_CONTRAST);
+  return { pal, variant, season: { palette: pal, type } };
 }
 
 /**
@@ -119,7 +115,15 @@ export function buildContext(
   const margin = (framed ? MARGIN_UNITS + WEEKLY_INSET : MARGIN_UNITS) * u;
   const monthName = MONTH_NAMES[month - 1] ?? "January";
   const caption = weekly ? rangeLabel(meta.date) : monthName;
-  const lockup = layoutLockup(size, size, u, numeral, caption, margin);
+  const lockup = layoutLockup(
+    size,
+    size,
+    u,
+    numeral,
+    caption,
+    margin,
+    yearLabel(meta.date, weekly),
+  );
 
   const inset = framed ? WEEKLY_INSET * u : 0;
   const area: Rect = { x: inset, y: inset, w: size - inset * 2, h: size - inset * 2 };

@@ -85,3 +85,14 @@ export function rangeLabel(date: string): string {
   const short = (m: number) => name(m).slice(0, 3);
   return `${monday.day} ${short(monday.month)} – ${sunday.day} ${short(sunday.month)}`;
 }
+
+/**
+ * The year a cover prints after its month or range: the date's own year, or for a weekly whose week
+ * crosses New Year both years, "2026–27".
+ */
+export function yearLabel(date: string, weekly: boolean): string {
+  if (!weekly) return String(parseYmd(date).year);
+  const { monday, sunday } = isoWeekRange(date);
+  if (monday.year === sunday.year) return String(monday.year);
+  return `${monday.year}–${String(sunday.year).slice(2)}`;
+}

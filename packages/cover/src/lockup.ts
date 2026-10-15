@@ -1,9 +1,9 @@
 import { FONT_STACK } from "./fonts.js";
-import { CAP_HEIGHT, measureNumeral, type NumeralWeight } from "./metrics.js";
+import { CAP_HEIGHT, measureNumeral, measureText, type NumeralWeight } from "./metrics.js";
 import { escapeXml, n } from "./svg.js";
 import type { Palette, Rect } from "./types.js";
 
-/** The one fixed piece of typography on every cover: day numeral, month and the wordmark. */
+/** The one fixed piece of typography on every cover: day numeral, month, year and the wordmark. */
 
 export const MARGIN_UNITS = 72;
 export const WORDMARK = "Singularity";
@@ -21,6 +21,9 @@ const ASCENT = 0.77;
 const DESCENT = 0.24;
 const MONTH_ADVANCE = 0.62;
 const MARK_ADVANCE = 0.6;
+/** The year follows the month on its line, a word space on and one weight lighter: there to read, quiet. */
+const YEAR_WEIGHT = 500;
+const YEAR_GAP = 0.36;
 
 export interface NumeralPlacement {
   digits: string;
@@ -32,7 +35,7 @@ export interface NumeralPlacement {
 }
 
 export interface LockupLayout {
-  /** Ink box of the date numeral plus month, bottom left. */
+  /** Ink box of the date numeral plus month and year, bottom left. */
   date: Rect;
   /** Ink box of the wordmark, top left. */
   mark: Rect;
@@ -88,6 +91,7 @@ export function layoutLockup(
   day: number | string,
   monthName: string,
   margin: number,
+  year = "",
 ): LockupLayout {
   const size = NUMERAL_SIZE * u;
   const tracking = NUMERAL_TRACKING * size;
@@ -103,7 +107,11 @@ export function layoutLockup(
   const monthBaseline = h - margin - DESCENT * monthSize;
   const numeralBaseline = monthBaseline - monthCap - gap;
   const numeralX = margin - run.left;
-  const monthWidth = monthName.length * MONTH_ADVANCE * monthSize;
+  // The year's x comes from the month's measured advance; the box keeps the older estimate as a floor.
+  const yearAt = (size: number): number => measureText(monthName, 700, size) + YEAR_GAP * size;
+  const yearRun = (size: number): number =>
+    year ? yearAt(size) + measureText(year, 500, size) : 0;
+  const monthWidth = Math.max(monthName.length * MONTH_ADVANCE * monthSize, yearRun(monthSize));
   const dateWidth = Math.max(run.ink, monthWidth);
   // Round digits overshoot the cap line by a hair; the box leaves room for it.
   const overshoot = 0.025 * size;
@@ -135,7 +143,13 @@ export function layoutLockup(
     });
 
   const topMonthSize = 40 * u;
-  const topMonthWidth = monthName.length * MONTH_ADVANCE * topMonthSize;
+  const topMonthWidth = Math.max(
+    monthName.length * MONTH_ADVANCE * topMonthSize,
+    yearRun(topMonthSize),
+  );
+  const yearMarkup = (fill: string, x: number, y: number, size: number, anchor?: "end"): string =>
+    year ? textMarkup({ text: year, x, y, size, weight: YEAR_WEIGHT, fill, anchor }) : "";
+  const topYearWidth = year ? measureText(year, 500, topMonthSize) + YEAR_GAP * topMonthSize : 0;
   const month: Rect = {
     x: w - margin - topMonthWidth,
     y: margin,
@@ -160,17 +174,19 @@ export function layoutLockup(
         weight: 700,
         fill: pal.text,
       }) +
+      yearMarkup(pal.text, margin - 2 * u + yearAt(monthSize), monthBaseline, monthSize) +
       (wordmark ? markMarkup(pal.text) : ""),
     topLine: (pal, wordmark = true) =>
       (wordmark ? markMarkup(pal.text) : "") +
       textMarkup({
         text: monthName,
-        x: w - margin,
+        x: w - margin - topYearWidth,
         y: margin + ASCENT * topMonthSize,
         size: topMonthSize,
         weight: 700,
         fill: pal.text,
         anchor: "end",
-      }),
+      }) +
+      yearMarkup(pal.text, w - margin, margin + ASCENT * topMonthSize, topMonthSize, "end"),
   };
 }
