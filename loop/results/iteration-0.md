@@ -32,3 +32,15 @@ Run 2026-10-15 with `npx tsx loop/eval.ts`. The episodes are the ones production
 | 2026-10-11 | 5 min | 2.9 min | 8 |
 | 2026-10-13 | 5 min | 3.8 min | 9 |
 | 2026-10-15 | 5 min | 1.6 min | 4 |
+
+## Judged baseline (CI, run 38744864598, 2026-10-15 13:42 UTC)
+
+Importance by Jev (`jev-latest`), quality by `claude-sonnet-5-5` (newest Sonnet on the model list), two runs each.
+
+| Episode | Importance (Jev) | Quality (Sonnet) |
+|---|---|---|
+| daily-2026-10-13 | 47% major, 3 changelog: FAIL | mean 3.00, min 2; second run differs (3/3/2/2): FAIL |
+| weekly-2026-10-11 | 70% major, 2 changelog: FAIL | mean 3.50, min 3 (4/3/4/3): FAIL |
+
+Jev's two runs agreed on every segment. Sonnet's two runs disagreed on the daily, which the rubric counts as a fail.
+Total with judges: 2 of 14 pass.
