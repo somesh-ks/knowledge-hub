@@ -128,6 +128,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
 | D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned by version; Jev checks the strongest candidates against the owner's taste (votes and opens) and that answer replaces the source-vote nudge, within the same 15% | active; amends D3, D108 |
+| D119 | A briefing sized by the owner's length selects and writes 30% spares; validation airs the best survivors up to the length, each topic's best story kept | active |
 
 ---
 
@@ -1325,3 +1326,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: about 60 Jev requests a pass; the judgment cache is keyed by model, so every item is judged afresh once after the pin.
 - Rejected: an LLM recommender or embeddings (one reader, too few interactions to tune); a discovery slot in selection (the taste check is neutral on unrated sources, and every topic already gets its best story first since #144); a store of its own for opens (every save is already a commit; riding the vote batch costs nothing new).
 - Revisit if: the eval shows 1.14 moving many importance labels, or the taste check's answers sit near 0.5 for every story.
+
+## D119: spares keep a briefing at its length
+
+- Date: 2026-10-15 (the owner's brief: "episodes ignore the length setting"; then "go crazy! I'd like to get high quality output")
+- Decision:
+  - A regular briefing with a length, and every weekly, selects `withSpares(wanted)` stories: the length's stories plus 30%, at most the hard maximum (`run/scheduleSize.ts`). All of them are extracted, written, voice-checked and grounded.
+  - `selection.json` carries `wanted`. Validation airs that many survivors; it leaves out first the lowest-scored story of a topic that has another, so each topic keeps its best. Unaired spares are recorded in `written.json` as `select` drops and in `validate-report.json` as `spares_unaired`.
+  - A later pass of the same run may still take the spares; only the stories expected to air are claimed.
+  - The run artifact keeps `written.json` and `validate-report.json` for 30 days.
+- Why: the 2026-10-15 daily chose 14 stories for five minutes and aired 4. Four were not written (Sonnet was failing and Qwen wrote) and grounding dropped six. Every drop after selection came off the length.
+- Cost: about 30% more writer and grounding calls on a deep pool; none on a thin one, which has no spares to take.
+- Rejected: a second write round after validation (the stages run as separate workflow steps, and validation has no selection logic); selecting the length alone and accepting the loss.
+- Revisit if: `validate-report.json` shows spares unaired on most runs (lower the share) or drops beyond the spares (raise it, or fix the cause of the drops).
