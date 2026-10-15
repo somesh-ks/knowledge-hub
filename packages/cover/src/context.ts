@@ -1,8 +1,16 @@
 import { isoWeek, MONTH_NAMES, rangeLabel } from "./calendar.js";
 import { layoutLockup, MARGIN_UNITS } from "./lockup.js";
+import { type CoverMode, holdContrast, toneFor, tonePalette } from "./mode.js";
 import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
-import { type Dress, dress, isMonthly, schemeFor } from "./season.js";
+import {
+  type Dress,
+  dress,
+  isMonthly,
+  MATTE_CONTRAST,
+  schemeFor,
+  TYPE_CONTRAST,
+} from "./season.js";
 import { pad } from "./svg.js";
 import type { CoverKind, CoverMeta, CoverSpec, Ctx, Palette, Rect, Variant } from "./types.js";
 
@@ -53,7 +61,34 @@ function coverDress(
       )
     : undefined;
   const pal = season ? season.palette : variant === "episode" ? invertPalette(base) : base;
-  return { pal, variant, season };
+  return meta.mode ? forMode({ pal, variant, season }, meta.mode) : { pal, variant, season };
+}
+
+/** A plate's disc must read against its matte. */
+const PLATE_CONTRAST = 1.6;
+
+/**
+ * The cover as the app's theme draws it: every colour toned for the mode, then each contrast rule
+ * held again, the figure on its ground, the matte off its plate and the type on what it sits on.
+ */
+function forMode(
+  dressed: { pal: Palette; variant: Variant; season: Dress | undefined },
+  mode: CoverMode,
+): { pal: Palette; variant: Variant; season: Dress | undefined } {
+  const { variant, season } = dressed;
+  const pal = tonePalette(dressed.pal, mode);
+  if (!season) return { pal, variant, season };
+  const plate = variant === "plate";
+  const matte =
+    season.matte &&
+    holdContrast(toneFor(season.matte, mode), pal.ground, plate ? PLATE_CONTRAST : MATTE_CONTRAST);
+  const under = plate && matte ? matte : pal.ground;
+  const type = holdContrast(toneFor(season.type, mode), under, TYPE_CONTRAST);
+  return {
+    pal,
+    variant,
+    season: { palette: pal, type, ...(matte ? { matte } : {}) },
+  };
 }
 
 /**
@@ -97,7 +132,7 @@ export function buildContext(
       ? [pad(lockup.mark, 24 * u), pad(lockup.month, 24 * u)]
       : [pad(lockup.date, 30 * u), pad(lockup.mark, 24 * u)];
 
-  const uid = `c${hash32(`${spec.template}|${spec.palette}|${spec.seed}|${meta.date}|${meta.kind}|${size}|${monthly}`).toString(36)}`;
+  const uid = `c${hash32(`${spec.template}|${spec.palette}|${spec.seed}|${meta.date}|${meta.kind}|${size}|${monthly}|${meta.mode ?? ""}`).toString(36)}`;
   const ctx: Ctx = {
     w: size,
     h: size,

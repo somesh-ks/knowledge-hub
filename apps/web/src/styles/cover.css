@@ -6,7 +6,7 @@
  */
 
 .cover {
-  --cover-bg: var(--color-surface-sunken);
+  --cover-bg: var(--cover-bg-light, var(--color-surface-sunken));
   position: relative;
   display: block;
   aspect-ratio: 1;
@@ -42,6 +42,37 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Each cover is drawn for both themes (D119); the page shows the one for its own. */
+.cover-image[data-mode="dark"] {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cover {
+    --cover-bg: var(--cover-bg-dark, var(--color-surface-sunken));
+  }
+
+  :root:not([data-theme="light"]) .cover-image[data-mode="light"] {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .cover-image[data-mode="dark"] {
+    display: block;
+  }
+}
+
+:root[data-theme="dark"] .cover {
+  --cover-bg: var(--cover-bg-dark, var(--color-surface-sunken));
+}
+
+:root[data-theme="dark"] .cover-image[data-mode="light"] {
+  display: none;
+}
+
+:root[data-theme="dark"] .cover-image[data-mode="dark"] {
+  display: block;
 }
 
 /* Used before any digest exists: the brand mark on a quiet block, not a generated cover. */

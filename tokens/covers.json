@@ -290,5 +290,26 @@
         "$value": "oklch(96% 0.02 100)"
       }
     }
+  },
+  "mode": {
+    "$description": "How every cover adapts to the app's theme, applied after a cover is dressed so palettes and monthly schemes stay theme-free. Each colour's OKLCH lightness is mapped linearly into `lightness` (the band that sits well on that page) and its chroma scaled by `chroma`; contrast floors are then re-held by moving the foreground away from its ground. Covers outside the app (lock screen, social card) use the colours as authored.",
+    "light": {
+      "$description": "On the light page: the darkest inks lift to charcoal so a cover is no hole in the page.",
+      "lightness": {
+        "$value": [0.2, 1]
+      },
+      "chroma": {
+        "$value": 0.95
+      }
+    },
+    "dark": {
+      "$description": "On the dark page: the palest grounds settle to parchment so a cover does not glare.",
+      "lightness": {
+        "$value": [0, 0.9]
+      },
+      "chroma": {
+        "$value": 1
+      }
+    }
   }
 }

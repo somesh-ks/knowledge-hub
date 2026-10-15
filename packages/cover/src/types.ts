@@ -1,5 +1,6 @@
 import type { Category, COVER_TEMPLATES, CoverSpec, DigestKind } from "@dispatch/core";
 import type { LockupLayout } from "./lockup.js";
+import type { CoverMode } from "./mode.js";
 import type { Rng } from "./prng.js";
 
 /**
@@ -17,6 +18,8 @@ export interface CoverMeta {
   date: string;
   kind: CoverKind;
   id: string;
+  /** The app theme the cover is drawn for. Left out, the colours are drawn as authored. */
+  mode?: CoverMode;
 }
 
 export interface PickInput extends CoverMeta {

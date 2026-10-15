@@ -1,5 +1,4 @@
 ---
-import { coverEdge } from "../lib/covers";
 import type { DigestEntry } from "../lib/digests";
 import type { HeroView } from "../lib/digestView";
 import AmbientLight from "./AmbientLight.astro";
@@ -25,7 +24,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
   <Cover
     digestId={entry.id}
     size="hero"
-    paletteBg={coverEdge(entry.digest)}
+    source={entry.digest}
     weekly={entry.digest.kind === "weekly"}
     priority
   />
