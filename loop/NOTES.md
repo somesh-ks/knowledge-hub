@@ -202,6 +202,14 @@ No model key in this environment (`NEBIUS_API_KEY`/`DISPATCH_MODEL` for the writ
 `ANTHROPIC_API_KEY` for the judge). Without the writer no fixture can be turned into a new episode,
 so no iteration can be scored: the loop has not started. Asked the owner (2026-10-15).
 
+### Judges (owner's direction, 2026-10-15)
+
+Importance: Jev labels each segment (`TYPESAFE_API_KEY`). Quality: the newest Sonnet on the
+Anthropic model list scores the episode, effort left to the model (`ANTHROPIC_API_KEY`). Both keys
+exist only as repository secrets, so `.github/workflows/episode-eval.yml` runs the eval on this PR
+and writes the table to the job summary. Changed before any track A fix; the rubric's definitions
+did not change.
+
 ### Planned iteration 1 (not applied)
 
 Size the briefing by airtime instead of count: cap = (minutes × 968 − frame) / measured characters

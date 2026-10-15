@@ -1,7 +1,8 @@
 name: episode-eval
 
-# Scores the episode fixtures in loop/ against loop/rubric.md, with the newest Sonnet as the judge.
-# The repository's Anthropic key exists only as a secret, so the eval with its judge runs here.
+# Scores the episode fixtures in loop/ against loop/rubric.md: Jev labels importance, the newest
+# Sonnet scores quality.
+# The keys exist only as repository secrets, so the eval with its judges runs here.
 on:
   pull_request:
     paths:
@@ -29,6 +30,7 @@ jobs:
       - name: Eval
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
           set +e
           npx tsx loop/eval.ts | tee eval.md

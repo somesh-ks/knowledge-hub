@@ -30,7 +30,7 @@ The frame (hello, section bridges, sign-off) is airtime but not a segment.
 - Pass: every selected topic has at least 1 segment, and unselected airtime is at most 20% of the
   segments' airtime.
 
-## Importance (LLM judge)
+## Importance (Jev)
 
 The judge labels each segment `major`, `minor` or `changelog`.
 
@@ -52,7 +52,7 @@ Any other segment is **minor**.
 
 Pass: major segments take at least 80% of the segments' airtime, and no segment is changelog.
 
-## Quality (LLM judge)
+## Quality (Sonnet)
 
 The judge scores the whole episode from 1 to 5 on four criteria:
 
@@ -65,7 +65,9 @@ Pass: the mean of the four is at least 4 and no score is below 3.
 
 ## Judge runs
 
-The judge runs twice per episode at temperature 0, with the same prompt. If the two runs give any
-segment a different label, or score any criterion differently, the episode fails
-importance and quality. Without a model key, both metrics are reported as BLOCKED, which counts as
+Importance is labelled by Jev (`jev-latest`, the engine's own item judge), one segment at a time,
+with the three labels above as one choice. Quality is scored by the newest Sonnet on Anthropic's
+model list, at the effort the model picks (owner's direction, 2026-10-15, before any track A fix).
+Each judge runs twice per episode. If the two runs give any segment a different label, or score any
+criterion differently, that metric fails. A metric whose key is missing is BLOCKED, which counts as
 not passing.
