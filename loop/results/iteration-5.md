@@ -32,4 +32,4 @@ Found while building the rewrite: every writer request to Claude Sonnet 5.5 fail
 ("`temperature` is deprecated for this model"), and the writer chain fell back to Nebius without a
 word. Since the owner picked Sonnet on 2026-10-14, the briefings have been written by the Nebius
 model (the 2026-10-15 run: 8 Anthropic requests, 17 Nebius). The Anthropic client no longer sends a
-temperature. This is likely a larger quality change than the prompt.
+temperature, and adds 8,000 tokens to each reply allowance: Sonnet 5.5 thinks by default, and thinking used the allowance and cut the JSON off (the next CI run failed with "not valid JSON"). This is likely a larger quality change than the prompt.
