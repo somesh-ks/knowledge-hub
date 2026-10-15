@@ -231,3 +231,41 @@ export const markSent = (state: VoteState, op: VoteOp): VoteState => withSent(st
 
 /** The op was refused or did not go: its votes wait for the next attempt. */
 export const markUnsent = (state: VoteState, op: VoteOp): VoteState => withSent(state, op, false);
+
+/** Whether pressing Stop again can help: at once, after a while, or not until something changes. */
+export type StopRetry = "now" | "later" | "no";
+
+/**
+ * What a failed stop says, from the answer's status (0 when none came). Each known cause names what
+ * failed and whether pressing again can help, so a refusal that will repeat does not read as the
+ * reader's bad timing. A 503 is the site failing to reach GitHub: a passing outage or a refused
+ * token, which the answer does not tell apart, so it is "later" and says what to suspect if it stays.
+ */
+export function stopFailure(outlet: string, status: number): { message: string; retry: StopRetry } {
+  switch (status) {
+    case 0:
+      return {
+        message: `Could not reach the site to stop ${outlet}. Check the connection and try again.`,
+        retry: "now",
+      };
+    case 429:
+      return {
+        message: `Could not stop ${outlet}: settings changed too often just now. Try again in a minute.`,
+        retry: "later",
+      };
+    case 503:
+      return {
+        message: `Could not stop ${outlet}: the site could not save settings. If it keeps failing, its GitHub access needs fixing.`,
+        retry: "later",
+      };
+    case 400:
+      return { message: `Could not stop ${outlet}: its address was not accepted.`, retry: "no" };
+    case 401:
+      return { message: `Could not stop ${outlet}: the change was refused.`, retry: "no" };
+    default:
+      return {
+        message: `Could not stop ${outlet}: the site answered ${status}. Try again later.`,
+        retry: "later",
+      };
+  }
+}

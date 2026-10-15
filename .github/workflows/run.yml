@@ -210,6 +210,23 @@ jobs:
           DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
         run: npm run --silent dispatch -- run --stage validate --json
 
+      # Every story each pass considered (pool, judgments, selection), kept 30 days, so loop/replay.ts
+      # can rebuild a briefing exactly. The committed digest keeps only what published.
+      - name: Keep the story pool
+        if: always() && steps.gate.outputs.due == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: story-pool-${{ github.run_id }}
+          path: |
+            .cache/run/plan.json
+            .cache/run/**/pool.json
+            .cache/run/**/judged.json
+            .cache/run/**/general.json
+            .cache/run/**/general-judged.json
+            .cache/run/**/selection.json
+          retention-days: 30
+          if-no-files-found: ignore
+
       # Commit records the outcome (published, nothing, gated, failed) in state/last-run.json
       # before the run concludes. Published, nothing and gated all end as a successful run.
       - name: Commit

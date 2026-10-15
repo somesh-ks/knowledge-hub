@@ -1,0 +1,12 @@
+{
+ "kind": "regular",
+ "length_minutes": 10,
+ "skip_topics": [
+  "business",
+  "sports",
+  "culture",
+  "world",
+  "consumer_tech_releases"
+ ],
+ "format": "readout"
+}

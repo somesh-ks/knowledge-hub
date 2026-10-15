@@ -1,0 +1,82 @@
+{
+  "digest": "2026-10-13",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 229629,
+  "text_chars": 3501,
+  "items": [
+    {
+      "id": "c6802edd8089",
+      "section": "top",
+      "start_ms": 6680,
+      "end_ms": 31171
+    },
+    {
+      "id": "a9534ade771f",
+      "section": "top",
+      "start_ms": 31171,
+      "end_ms": 59847
+    },
+    {
+      "id": "0f89382408b9",
+      "section": "top",
+      "start_ms": 59847,
+      "end_ms": 83953
+    },
+    {
+      "id": "49ad28c633d9",
+      "section": "design",
+      "start_ms": 83953,
+      "end_ms": 102219
+    },
+    {
+      "id": "033e57e2679e",
+      "section": "tech",
+      "start_ms": 102219,
+      "end_ms": 132939
+    },
+    {
+      "id": "049b65dbddc1",
+      "section": "tech",
+      "start_ms": 132939,
+      "end_ms": 162469
+    },
+    {
+      "id": "5fdf95a940b1",
+      "section": "tech",
+      "start_ms": 162469,
+      "end_ms": 189434
+    },
+    {
+      "id": "245fc3bb3365",
+      "section": "tech",
+      "start_ms": 189434,
+      "end_ms": 210940
+    },
+    {
+      "id": "1b0d7222026b",
+      "section": "world",
+      "start_ms": 210940,
+      "end_ms": 229629
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 6680
+    },
+    {
+      "slug": "design",
+      "start_ms": 82929
+    },
+    {
+      "slug": "tech",
+      "start_ms": 100897
+    },
+    {
+      "slug": "world",
+      "start_ms": 209788
+    }
+  ]
+}

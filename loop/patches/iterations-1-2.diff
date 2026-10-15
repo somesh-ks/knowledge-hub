@@ -1,0 +1,192 @@
+diff --git a/loop/replay.ts b/loop/replay.ts
+index f48c240..d7945df 100644
+--- a/loop/replay.ts
++++ b/loop/replay.ts
+@@ -21,7 +21,7 @@ import {
+   serializeDigestFile,
+   VOICE_LIMITS,
+ } from "../packages/core/src/index.js";
+-import { capForLength } from "../packages/engine/src/run/scheduleSize.js";
++import { storiesForMinutes } from "../packages/engine/src/run/scheduleSize.js";
+ import { scoreItem } from "../packages/engine/src/score/scoreItem.js";
+ import { capFor, selectItems } from "../packages/engine/src/score/selectItems.js";
+ import type { ScoredItem } from "../packages/engine/src/score/types.js";
+@@ -82,7 +82,12 @@ function episode(
+     scored: scored(pool, preferences),
+     kind,
+     floor: VOICE_LIMITS.items.floor,
+-    cap: capForLength(capFor(kind), VOICE_LIMITS.items.floor, settings.length_minutes),
++    cap: capFor(kind),
++    total: storiesForMinutes(
++      settings.length_minutes,
++      VOICE_LIMITS.items.floor,
++      VOICE_LIMITS.items.hardMax,
++    ),
+     weights: preferences.weights,
+     skipTopics: settings.skip_topics,
+   });
+diff --git a/packages/engine/src/run/scheduleSize.ts b/packages/engine/src/run/scheduleSize.ts
+index f430a25..66a3a13 100644
+--- a/packages/engine/src/run/scheduleSize.ts
++++ b/packages/engine/src/run/scheduleSize.ts
+@@ -1,3 +1,5 @@
++import { PODCAST_CHARS_PER_MINUTE } from "@dispatch/core";
++
+ /**
+  * How many stories a scheduled briefing keeps for the length the owner chose. A ten minute
+  * podcast is the digest as the engine has always written it (the full cap); a shorter one keeps a
+@@ -8,3 +10,20 @@ export function capForLength(baseCap: number, floor: number, minutes: number): n
+   const scaled = Math.round((baseCap * minutes) / 10);
+   return Math.max(floor, Math.min(baseCap, scaled));
+ }
++
++/**
++ * Spoken characters per story, its share of the frame (hello, section bridges, sign-off)
++ * included: October 2026's seven briefings, 60 stories, 21,850 characters, 364 a story. The
++ * writer's 40 to 95 word range keeps a story near this whatever the length.
++ */
++export const STORY_CHARS = 364;
++
++/**
++ * How many stories, in every section together, fill a briefing of this many minutes at the
++ * narration's measured pace. Never fewer than the floor below which nothing publishes, never more
++ * than the digest's hard cap.
++ */
++export function storiesForMinutes(minutes: number, floor: number, hardMax: number): number {
++  const stories = Math.round((minutes * PODCAST_CHARS_PER_MINUTE) / STORY_CHARS);
++  return Math.max(floor, Math.min(hardMax, stories));
++}
+diff --git a/packages/engine/src/run/writeStage.ts b/packages/engine/src/run/writeStage.ts
+index c49fddb..e53fdb6 100644
+--- a/packages/engine/src/run/writeStage.ts
++++ b/packages/engine/src/run/writeStage.ts
+@@ -54,7 +54,7 @@ import {
+ import { generalCandidates, generalIdsFor } from "./generalScope.js";
+ import { mostlyFailed } from "./judgeStage.js";
+ import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
+-import { capForLength } from "./scheduleSize.js";
++import { storiesForMinutes } from "./scheduleSize.js";
+ import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
+ import { countSources } from "./sourceCounts.js";
+ import type { PassReport, RunDeps, StageReport } from "./types.js";
+@@ -250,12 +250,17 @@ async function writePass(
+     floor: VOICE_LIMITS.items.floor,
+     // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
+     // the weekly podcast's own length.
+-    cap:
++    cap: capFor(pass.kind),
++    total:
+       pass.kind === "regular" && lengthMinutes !== null
+-        ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, lengthMinutes)
++        ? storiesForMinutes(lengthMinutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax)
+         : pass.kind === "weekly"
+-          ? capForLength(capFor(pass.kind), VOICE_LIMITS.items.floor, weeklyLengthMinutes)
+-          : capFor(pass.kind),
++          ? storiesForMinutes(
++              weeklyLengthMinutes,
++              VOICE_LIMITS.items.floor,
++              VOICE_LIMITS.items.hardMax,
++            )
++          : VOICE_LIMITS.items.hardMax,
+     weights: preferences.weights,
+     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
+     // pass its own; an episode made on request covers everything it was asked for.
+diff --git a/packages/engine/src/score/selectItems.ts b/packages/engine/src/score/selectItems.ts
+index df3329e..b8d21c9 100644
+--- a/packages/engine/src/score/selectItems.ts
++++ b/packages/engine/src/score/selectItems.ts
+@@ -58,6 +58,11 @@ export interface SelectInput {
+    * kind (12, weekly 18). Tech releases has its own allowance on top of it.
+    */
+   cap: number;
++  /**
++   * Stories in every section together, Tech releases and the other allowances included: the
++   * briefing's length in stories. Absent means the digest's hard cap.
++   */
++  total?: number;
+   /**
+    * Preference weights. Only the weekly kind needs them, to find the category median for the
+    * reserved off-taste slot. Without them no slot is reserved.
+@@ -193,17 +198,18 @@ export function takeOwnSections(
+ ): { chosen: Candidate[]; over: Candidate[] } {
+   const perSection = new Map<string, number>();
+   const chosen: Candidate[] = [];
+-  const over: Candidate[] = [];
+-  for (const candidate of own) {
++  // Each section's best story first, so a short briefing still hears every one of them.
++  const firsts = own.filter(
++    (candidate, i) => own.findIndex((other) => other.home === candidate.home) === i,
++  );
++  for (const candidate of [...firsts, ...own.filter((c) => !firsts.includes(c))]) {
+     const count = perSection.get(candidate.home) ?? 0;
+     if (count < allowanceFor(candidate.home) && chosen.length < room) {
+       chosen.push(candidate);
+       perSection.set(candidate.home, count + 1);
+-    } else {
+-      over.push(candidate);
+     }
+   }
+-  return { chosen, over };
++  return { chosen, over: own.filter((candidate) => !chosen.includes(candidate)) };
+ }
+ 
+ /**
+@@ -295,8 +301,9 @@ export function eligibility(
+  *  2. Drop items below the score threshold, and every GitHub release but the newest of its
+  *     repository.
+  *  3. Split what is left into two pools: Tech releases candidates, and everything else.
+- *  4. Everything else: walk by rank taking at most 3 per home section up to the cap, then let
+- *     overflow fill any remaining room, so a thin section never leaves slots empty.
++ *  4. Everything else: take the best item of each category first, then walk by rank taking at
++ *     most 3 per home section up to the cap, then let overflow fill any remaining room, so a thin
++ *     section never leaves slots empty.
+  *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
+  *     the median of preferences, so taste does not narrow week over week.
+  *  6. Sections with an allowance of their own (Tech releases, and each section a custom topic
+@@ -308,7 +315,7 @@ export function eligibility(
+  */
+ export function selectItems(input: SelectInput): SelectResult {
+   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
+-  const limit = Math.min(input.cap, capFor(input.kind));
++  const total = Math.min(input.total ?? VOICE_LIMITS.items.hardMax, VOICE_LIMITS.items.hardMax);
+   const dropped: DroppedItem[] = [];
+   const candidates: Candidate[] = [];
+ 
+@@ -333,6 +340,9 @@ export function selectItems(input: SelectInput): SelectResult {
+   const ranked = releases.kept.sort(compareCandidates);
+   const main = ranked.filter((candidate) => !hasOwnSection(candidate));
+   const own = ranked.filter(hasOwnSection);
++  // The main sections leave room for one story from each section with an allowance of its own.
++  const ownSections = new Set(own.map((candidate) => candidate.home)).size;
++  const limit = Math.min(input.cap, capFor(input.kind), Math.max(0, total - ownSections));
+ 
+   const chosen = new Set<Candidate>();
+   const perSection = new Map<string, number>();
+@@ -340,8 +350,18 @@ export function selectItems(input: SelectInput): SelectResult {
+     chosen.add(candidate);
+     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
+   };
++  // Every topic with a story that cleared the bar gets its best one first, so a strong section
++  // cannot crowd a selected topic out of the briefing.
++  const covered = new Set<string>();
++  for (const candidate of main) {
++    if (chosen.size >= limit) break;
++    if (covered.has(candidate.category)) continue;
++    covered.add(candidate.category);
++    take(candidate);
++  }
+   for (const candidate of main) {
+     if (chosen.size >= limit) break;
++    if (chosen.has(candidate)) continue;
+     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
+   }
+   for (const candidate of main) {
+@@ -369,7 +389,7 @@ export function selectItems(input: SelectInput): SelectResult {
+     }
+   }
+ 
+-  const ownTaken = takeOwnSections(own, VOICE_LIMITS.items.hardMax - chosen.size);
++  const ownTaken = takeOwnSections(own, total - chosen.size);
+   const chosenTech = ownTaken.chosen;
+   if (chosen.size + chosenTech.length < input.floor) {
+     return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };

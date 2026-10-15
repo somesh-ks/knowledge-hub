@@ -1,0 +1,44 @@
+name: episode-eval
+
+# Scores the episode fixtures in loop/ against loop/rubric.md: Jev labels importance, the newest
+# Sonnet scores quality.
+# The keys exist only as repository secrets, so the eval with its judges runs here.
+on:
+  pull_request:
+    paths:
+      - "loop/**"
+      - "packages/engine/src/**"
+      - ".github/workflows/episode-eval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    # Secrets reach pull requests from this repository only, never from a fork.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          set +e
+          npx tsx loop/eval.ts | tee eval.md
+          status=${PIPESTATUS[0]}
+          # Each loop iteration's replay of October's stories (loop/replay.ts), judged the same way.
+          for episode in loop/results/replay-*/replay-*/; do
+            npx tsx loop/eval.ts "${episode%/}" | tee -a eval.md
+          done
+          cat eval.md >> "$GITHUB_STEP_SUMMARY"
+          # The table is the result; a failing metric is a finding, not a broken build.
+          echo "eval exit $status"
