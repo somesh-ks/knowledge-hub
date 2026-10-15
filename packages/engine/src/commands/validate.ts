@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import { parseDigestFile } from "@dispatch/core";
+import { parseDigestFile, VOICE_LIMITS } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import { loadPool, loadSources } from "../curate/inputs.js";
 import { emit } from "../curate/output.js";
@@ -58,7 +58,14 @@ export const run: CommandRun = async (argv, ctx) => {
     const linter = createLinter(await loadVoice(ctx.root));
     const sources = await loadSources(ctx.root);
     const pool = poolFlag ? (await loadPool(fromRoot(ctx.root, poolFlag))).items : undefined;
-    const report = validateDigest(digest, { pool, sources, linter });
+    // A published briefing's length came from settings this file does not record, so its count
+    // is checked against the digest's hard cap only.
+    const report = validateDigest(digest, {
+      pool,
+      sources,
+      linter,
+      cap: VOICE_LIMITS.items.hardMax,
+    });
 
     const lines = report.ok
       ? [`${digest.id} is valid${report.warnings > 0 ? ` (${report.warnings} warnings)` : ""}.`]

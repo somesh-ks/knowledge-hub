@@ -250,7 +250,10 @@ async function writePass(
     floor: VOICE_LIMITS.items.floor,
     // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
     // the weekly podcast's own length.
-    cap: capFor(pass.kind),
+    cap:
+      (pass.kind === "regular" && lengthMinutes !== null) || pass.kind === "weekly"
+        ? VOICE_LIMITS.items.hardMax
+        : capFor(pass.kind),
     total:
       pass.kind === "regular" && lengthMinutes !== null
         ? storiesForMinutes(lengthMinutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax)

@@ -104,7 +104,15 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         verified: false,
         topics,
       });
-      const report = validateDigest(digest, { pool: pool.items, sources, linter, topics });
+      // Selection already held the pass to its length or its kind's cap, and this digest holds
+      // only what selection chose, so the count check here is the digest's hard cap.
+      const report = validateDigest(digest, {
+        pool: pool.items,
+        sources,
+        linter,
+        topics,
+        cap: VOICE_LIMITS.items.hardMax,
+      });
       warnings = report.warnings;
       const general = report.issues.find((i) => i.severity === "error" && !i.itemId);
       if (general) {
