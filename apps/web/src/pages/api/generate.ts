@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { passphraseCheck } from "../../server/access";
-import { bundledDigestIds } from "../../server/digestSource";
+import { bundledDigestIds, bundledDigestKind } from "../../server/digestSource";
 import { handleGenerate, MAX_BODY_CHARS } from "../../server/generate";
 import { toResponse } from "../../server/http";
 
@@ -19,6 +19,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       verifyPassphrase: passphraseCheck(),
       digestIds: bundledDigestIds,
+      digestKind: bundledDigestKind,
       log: (message) => console.error(`[api/generate] ${message}`),
     },
   );
