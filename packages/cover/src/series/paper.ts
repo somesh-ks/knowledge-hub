@@ -1,5 +1,6 @@
-import { contrastRatio, hexToOklch, mixHex, oklchToHex } from "../color.js";
+import { clampToGamut, contrastRatio, hexToOklch, mixHex, oklchToHex } from "../color.js";
 import { type CoverMode, holdContrast, toneFor } from "../mode.js";
+import { MAX_CHROMA } from "../palettes.js";
 import type { Scheme } from "../season.js";
 import type { Ctx, Palette } from "../types.js";
 
@@ -41,6 +42,19 @@ export type PaperSeries = keyof typeof SERIES_L;
 /** How far the tint sits below the paper, so tint shapes read as printed, not as highlights. */
 const TINT_STEP = 0.09;
 
+/**
+ * The paper's least chroma: enough to read as a tinted stock in the month's hue, not as grey. At 0.03
+ * the paper, nine tenths of every cover, made the grid look dull (2026-10-16).
+ */
+const PAPER_CHROMA = 0.045;
+/** The spot and the tint print this much richer than the scheme's colour, up to MAX_CHROMA. */
+const INK_LIFT = 1.25;
+
+const richer = (hex: string): string => {
+  const o = hexToOklch(hex);
+  return oklchToHex(clampToGamut({ ...o, c: Math.min(MAX_CHROMA, o.c * INK_LIFT) }));
+};
+
 const atL = (hex: string, l: number, minC = 0): string => {
   const o = hexToOklch(hex);
   return oklchToHex({ ...o, l, c: Math.max(o.c, minC) });
@@ -50,13 +64,13 @@ export function paper(scheme: Scheme, mode: CoverMode, series: PaperSeries = "we
   const colors = [...scheme.colors].sort((a, b) => L(a) - L(b));
   const pale = colors[colors.length - 1] as string;
   const l = SERIES_L[series][mode];
-  const P = atL(pale, l, 0.03);
-  const T = atL(most(colors.filter((c) => L(c) >= 0.82 && L(c) <= 0.93)), l - TINT_STEP);
+  const P = atL(pale, l, PAPER_CHROMA);
+  const T = richer(atL(most(colors.filter((c) => L(c) >= 0.82 && L(c) <= 0.93)), l - TINT_STEP));
   const D = most(colors.slice(1).filter((c) => contrastRatio(pale, c) >= 3));
   return {
     P,
     K: holdContrast(toneFor(colors[0] as string, mode), P, 7),
-    D: holdContrast(toneFor(D, mode), P, 3),
+    D: holdContrast(richer(toneFor(D, mode)), P, 3),
     T,
     H: mixHex(P, T, 0.45),
   };
