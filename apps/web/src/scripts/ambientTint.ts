@@ -1,4 +1,5 @@
 import { clampToGamut, hexToOklch, oklchToHex } from "../../../../packages/cover/src/color";
+import type { Swatch } from "../../../../packages/cover/src/swatches";
 
 /**
  * Server side only: the light is the colours a cover shows, read from its drawn image
@@ -12,28 +13,25 @@ export const DARK = { l: 0.56, maxC: 0.2 } as const;
 /** A swatch darker than this with no colour to speak of is ink or shadow, and gives no light. */
 const SHADOW_L = 0.35;
 
-interface Swatch {
-  hex: string;
-  share: number;
-}
-
 /** How much a colour draws the eye: its area, and far more its chroma. */
 const salience = (swatch: Swatch) => swatch.share * (0.2 + 10 * hexToOklch(swatch.hex).c);
 
 /**
- * The three colours of the light, as a cover shows them: its largest colour first, which lights the
- * page behind the cover, then the two that catch the eye most. On a monthly cover the paper takes
+ * The three colours of the light, as a cover shows them: its largest colour that gives light first,
+ * behind the cover, then the two that catch the eye most. On a monthly cover the paper takes
  * nine tenths of the area and the spot colour a few hundredths, so area alone would light the page
  * in paper and ink and lose the red the eye remembers.
  */
 export function lightColors(swatches: readonly Swatch[]): [string, string, string] {
-  const [main, ...rest] = swatches;
-  if (!main) return ["#808080", "#808080", "#808080"];
-  const lit = rest.filter((s) => {
+  const glows = (s: Swatch) => {
     const c = hexToOklch(s.hex);
     return c.l >= SHADOW_L || c.c >= NEUTRAL_CHROMA;
-  });
-  const [b = main, c = b] = lit.sort((x, y) => salience(y) - salience(x));
+  };
+  // A cover that is mostly black ink lights the page in its colours, not in grey.
+  const lit = swatches.filter(glows);
+  const [main, ...rest] = lit.length > 0 ? lit : swatches;
+  if (!main) return ["#808080", "#808080", "#808080"];
+  const [b = main, c = b] = rest.sort((x, y) => salience(y) - salience(x));
   return [main.hex, b.hex, c.hex];
 }
 
