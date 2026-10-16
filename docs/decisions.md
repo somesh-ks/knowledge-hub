@@ -131,6 +131,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D119 | A briefing sized by the owner's length selects and writes 30% spares; validation airs the best survivors until their measured narration fills the length, each topic's best story kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
+| D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
 
 ---
 
@@ -1364,4 +1365,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: October's scheme drew from chroma 0.16 to 0.22 colours, and a grid of them measured 107 to 134 on Hasler and Suesstrunk's colourfulness ("extremely colourful"). The weekly's matte was its own ground, so it showed only as a slightly smaller picture.
 - Check: grids of every scheme measure 47 to 58 (moderately to quite colourful), 95th-percentile chroma 0.11; the worst date contrast is 4.8:1; a month's daily, on-demand and weekly grounds sit in that order at least 0.04 apart and within 0.15 of each other in OKLCH lightness, in both themes (`family.test.ts`).
 - Rejected: a coloured badge or a "W" corner mark (the week numeral already says it, and it fails at the 40 px row size); a dark matte (it disappears into the dark page); a weekly mounted in a pale frame around a coloured plate (the owner dropped it for the paper set).
+
+## D122: brighter covers, a header light read from the cover, a clean theme switch
+
+- Date: 2026-10-16 (the owner, over a dark Library grid: "the album arts are too dull in both dark and light theme, they can be slightly brighter", "the shader color blur must be natural and not very elliptical, if there's an ambient movement that's even better. The shader color should match the colors of the album art every time", and "there is a glitch in the screen when I switch the app theme")
+- Decision:
+  - Every series' paper sits 0.04 to 0.05 lighter (`SERIES_L`: weekly 0.92 and 0.85, on-demand 0.86 and 0.79, daily 0.80 and 0.73, light and dark), with at least 0.03 chroma, and the dark theme keeps full chroma (`tokens/covers.json` `mode.dark.chroma` 1). Inks still lift to charcoal on the dark page. A card's progress scrim covers the bottom quarter, not 40%.
+  - The header light's colours are read from the drawn cover for each theme (`coverSwatches`, `packages/cover/src/swatches.ts`: the cover rendered at 64 px with its fonts, flat colours counted by area). The light is the largest colour, then the two that catch the eye most (area weighted by chroma; dark colourless ink gives no light), each at the theme's lightness (`ambientTint.ts`).
+  - The shader draws three round gaussian lights, sized and placed from the measured cover: the main colour behind the cover, the other two beside it toward the title, drifting on a 40 s loop and bent by slow noise. The layer's mask is only a fade at its four edges; the CSS layer draws the same three as circles.
+  - A theme change fetches and decodes the new theme's covers on screen first (at most 400 ms), then crossfades with the bars in the page's picture (`data-theme-change`, `themeApply.ts`).
+- Why: the paper at 0.68 to 0.88, under a 40% scrim, read grey. The light used `coverColors`' three roles, dropped every colour under 0.03 chroma and squeezed the field into one wide ellipse, so a beige and red cover lit the page in a faint pink smear. The other theme's cover images are lazy and `display: none`, so they were never fetched: a switch showed empty boxes filling in after the fade, while the bars, in their own view-transition groups, faded at 100 ms over a 200 ms page.
+- Check: the contrast proof now sweeps every hue at every chroma up to each theme's cap (`ambientPalette.test.ts`); `family.test.ts` still holds the series' order and spacing; a screencast of a switch on Library shows every cover in both pictures and no bar ahead of the page.
+- Rejected: sampling the cover image in the browser (the CSS layer and the first paint would still need server colours); warming the other theme's images on every page load (twice the cover bytes for a switch made rarely).
 

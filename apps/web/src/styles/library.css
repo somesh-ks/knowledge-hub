@@ -85,12 +85,12 @@
 }
 
 /* Under the bar the art darkens toward its foot, so the bar reads on a pale cover as on a dark one.
-   Only a card that holds a bar gets it. */
+   Only a card that holds a bar gets it, and only the foot: deeper, it dulled the art and its date. */
 .card-link:has(> .card-progress:not([hidden])):not(:has([data-played])) .cover::before {
   content: "";
   position: absolute;
   inset: auto 0 0;
-  height: 40%;
+  height: 25%;
   background: linear-gradient(to top, var(--color-scrim), transparent);
   pointer-events: none;
 }

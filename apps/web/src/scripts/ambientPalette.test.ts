@@ -1,20 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { contrastRatio, mixHex } from "../../../../packages/cover/src/color";
-import { allPalettes } from "../../../../packages/cover/src/palettes";
-import { SCHEMES } from "../../../../packages/cover/src/season";
+import { clampToGamut, contrastRatio, oklchToHex } from "../../../../packages/cover/src/color";
 import { oklchStringToRgb, toHex } from "../../../../scripts/colorMath";
 import tokens from "../../../../tokens/tokens.json" with { type: "json" };
-import {
-  ambientColors,
-  backingSize,
-  blendTint,
-  MAX_SIDE,
-  paletteUniforms,
-  shouldAnimate,
-} from "./ambientPalette";
-import { tintColors } from "./ambientTint";
+import { backingSize, blendTint, MAX_SIDE, paletteUniforms, shouldAnimate } from "./ambientPalette";
+import { DARK, LIGHT, lightColors, tint } from "./ambientTint";
 
 type Mode = "light" | "dark";
 
@@ -56,30 +47,17 @@ describe("ambient light contrast", () => {
       };
       // Every offender at once, so a tint that is too strong shows how far off it is and where.
       const tooFaint: string[] = [];
-      // The light takes the colours a cover is drawn in: a palette's own, or on a monthly cover any
-      // two of its season's colours with their mix as the shade.
-      const lights = allPalettes().map((p) => ({
-        id: p.id,
-        colors: [p.ground, p.accent, p.shade],
-      }));
-      for (const scheme of SCHEMES) {
-        for (const ground of scheme.colors) {
-          for (const accent of scheme.colors) {
-            const shade = mixHex(ground, accent, 0.5);
-            lights.push({
-              id: `${scheme.id} ${ground}/${accent}`,
-              colors: [ground, accent, shade],
-            });
-          }
-        }
-      }
-      for (const { id, colors } of lights) {
-        const [ground = "", accent = "", shade = ""] = colors;
-        for (const color of tintColors(ground, accent, shade, mode)) {
+      // The light takes whatever colours a cover image shows, so the proof covers every hue at
+      // every chroma up to the theme's cap, from grey to the most vivid the cap allows.
+      const { l, maxC: cap } = mode === "light" ? LIGHT : DARK;
+      for (let hue = 0; hue < 360; hue += 5) {
+        for (const chroma of [0, cap / 4, cap / 2, cap]) {
+          const color = tint(oklchToHex(clampToGamut({ l, c: chroma, h: hue })), mode);
           const blended = blendTint(color, surface, TINT[mode]);
           for (const [role, text] of Object.entries(texts)) {
             const ratio = contrastRatio(text, blended);
-            if (ratio < 4.5) tooFaint.push(`${id} ${role} over ${color}: ${ratio.toFixed(2)}`);
+            if (ratio < 4.5)
+              tooFaint.push(`h${hue} c${chroma} ${role} over ${color}: ${ratio.toFixed(2)}`);
           }
         }
       }
@@ -101,9 +79,17 @@ describe("ambient light contrast", () => {
 });
 
 describe("ambient palette", () => {
-  it("puts the most colorful color first", () => {
-    expect(ambientColors("#808080", "#ff0000", "#aa4040")[0]).toBe("#ff0000");
-    expect(ambientColors("#00aa00", "#777777", "#336633")[0]).toBe("#00aa00");
+  // A monthly cover is nine tenths paper: by area alone the light was paper and ink, and the red
+  // the eye takes away from the cover was lost. Ink and shadow give no light.
+  it("lights the page in the cover's main colour and the two that catch the eye, never its ink", () => {
+    const swatches = [
+      { hex: "#b7b0a3", share: 0.89 },
+      { hex: "#130807", share: 0.05 },
+      { hex: "#94443c", share: 0.02 },
+      { hex: "#877268", share: 0.01 },
+    ];
+    expect(lightColors(swatches)).toEqual(["#b7b0a3", "#94443c", "#877268"]);
+    expect(lightColors([{ hex: "#274172", share: 1 }])).toEqual(["#274172", "#274172", "#274172"]);
   });
 
   it("turns colors into three vec3 uniforms", () => {

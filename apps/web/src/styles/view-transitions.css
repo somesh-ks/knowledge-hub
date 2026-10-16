@@ -18,6 +18,13 @@
   animation-timing-function: var(--ease-out);
 }
 
+/* During a theme change the chrome has no group of its own: the bars faded at their own pace over a
+   page fading at another, and their edges showed as boxes for a moment. The window fades as one
+   picture (themeApply.ts sets the attribute). */
+html[data-theme-change] :is(.app-bar, .app-nav, .player-dock) {
+  view-transition-name: none;
+}
+
 /* The chrome stays put while the page behind it changes. Its old and new images crossfade in place,
    which is how the current destination changes colour without a jump. */
 ::view-transition-group(app-bar),

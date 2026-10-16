@@ -8,35 +8,41 @@ import {
 } from "./ambientPalette";
 
 /**
- * The ambient cover light: one full-screen triangle and a fragment shader that mixes the cover's
- * colors through two octaves of warped value noise. The canvas is tiny and CSS scales it up, which
- * is the blur. It draws only while the header is on screen and the tab is visible, and it leaves
- * the CSS layer underneath in place whenever WebGL, the context or the shader is missing.
+ * The ambient cover light: one full-screen triangle and a fragment shader that draws three round,
+ * soft lights in the cover's colors: the main one behind the cover, the other two drifting beside it
+ * toward the title. Slow warped noise bends their edges, so no light reads as a drawn circle. The
+ * canvas is tiny and CSS scales it up, which is the blur. It draws only while the header is on
+ * screen and the tab is visible, and it leaves the CSS layer underneath in place whenever WebGL, the
+ * context or the shader is missing.
  */
 
 const VERT = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
 
+// o is the cover in backing pixels: centre x, centre y from the bottom, side. Every term of t is a
+// whole multiple of it, so the drift comes back to where it started and the loop has no seam.
 const FRAG = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
 precision mediump float;
 #endif
-uniform vec2 r;uniform float t;uniform vec3 c[3];
+uniform float t;uniform vec3 c[3];uniform vec3 o;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
 return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}
-float v(vec2 p){return .65*n(p)+.35*n(p*2.1+7.3);}
+float g(vec2 p,vec2 at,float r){vec2 d=(p-at)/r;return exp(-dot(d,d));}
 void main(){
-vec2 u=gl_FragCoord.xy/r;vec2 p=u*vec2(r.x/r.y,1.)*1.2;
-vec2 d=vec2(cos(t),sin(t))*.7;
-vec2 q=vec2(v(p+d),v(p+4.1-d.yx));
-float f=v(p+1.6*(q-.5));
-vec3 k=mix(c[0],c[1],.55*smoothstep(.35,.75,f));
-k=mix(k,c[2],.4*smoothstep(.5,.9,v(p*.8+q)));
-float a=(.5+.5*smoothstep(.25,.75,f))*mix(.5,1.,smoothstep(.9,0.,length((u-vec2(.36,.6))*vec2(r.x/r.y,1.))));
+float s=o.z;vec2 p=(gl_FragCoord.xy-o.xy)/s;
+vec2 d=vec2(cos(t),sin(t));
+p+=(vec2(n(p*1.4+d*1.2),n(p*1.4+5.2-d.yx*1.2))-.5)*.6;
+float a=g(p,vec2(.12*cos(t),.1*sin(2.*t)),.8);
+float b=g(p,vec2(1.05+.3*cos(t+2.1),.1+.2*sin(2.*t+1.)),.6);
+float e=g(p,vec2(2.+.35*cos(t+4.2),.2*sin(3.*t+2.)),.55);
+float m=a+b+e;
+vec3 k=(c[0]*a+c[1]*b+c[2]*e)/max(m,1e-4);
+float w=1.-exp(-1.6*m);
 float z=(h(gl_FragCoord.xy+fract(t))-.5)/255.;
-gl_FragColor=vec4(k*a+z,a+z);}`;
+gl_FragColor=vec4(k*w+z,w+z);}`;
 
 interface Live {
   host: HTMLElement;
@@ -71,9 +77,9 @@ function build(gl: WebGLRenderingContext) {
   gl.enableVertexAttribArray(at);
   gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
   return {
-    r: gl.getUniformLocation(program, "r"),
     t: gl.getUniformLocation(program, "t"),
     c: gl.getUniformLocation(program, "c"),
+    o: gl.getUniformLocation(program, "o"),
   };
 }
 
@@ -152,12 +158,23 @@ export function mountAmbient(host: HTMLElement) {
   let last = 0;
   let lost = false;
   const t0 = performance.now();
+  // Where the light gathers: the header's cover, in backing pixels (see FRAG).
+  const cover = new Float32Array(3);
+  const measure = () => {
+    const box = host.getBoundingClientRect();
+    const art = host.parentElement?.querySelector(".cover")?.getBoundingClientRect();
+    const scale = canvas.width / Math.max(box.width, 1);
+    const side = art?.width || box.height / 2;
+    const x = art ? art.left - box.left + side / 2 : box.height / 2;
+    const y = art ? art.top - box.top + side / 2 : box.height / 2;
+    cover.set([x * scale, (box.height - y) * scale, side * scale]);
+  };
 
   const draw = (now: number) => {
     if (!program || lost) return;
     const turn = (((now - t0) / 1000 + 9) % DRIFT_SECONDS) / DRIFT_SECONDS;
-    gl.uniform2f(program.r, canvas.width, canvas.height);
     gl.uniform1f(program.t, turn * Math.PI * 2);
+    gl.uniform3fv(program.o, cover);
     gl.uniform3fv(program.c, isDark() ? dark : light);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     host.dataset.live = "";
@@ -192,6 +209,7 @@ export function mountAmbient(host: HTMLElement) {
     canvas.width = w;
     canvas.height = h;
     gl.viewport(0, 0, w, h);
+    measure();
     // Setting the size clears the canvas. The loop may skip its next frame, so draw here always;
     // otherwise a resize or a turned phone shows one empty frame.
     redraw();

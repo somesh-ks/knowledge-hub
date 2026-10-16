@@ -1,11 +1,11 @@
 /**
- * The pure half of the ambient cover light (ambientLight.ts draws it): which palette colours the
- * light uses, how they become shader uniforms, how strongly they tint the page, and when a frame
+ * The pure half of the ambient cover light (ambientLight.ts draws it): how its colours become shader
+ * uniforms, how strongly they tint the page, and when a frame
  * is worth drawing. No DOM, so it is tested without a browser.
  */
 
 /** One full turn of the drift takes this many seconds. */
-export const DRIFT_SECONDS = 48;
+export const DRIFT_SECONDS = 40;
 /** At most one frame in this many milliseconds; the loop skips the rest. */
 export const FRAME_MS = 1000 / 30;
 /** Long side of the backing store; CSS scales it up and the scaling is the blur. */
@@ -15,24 +15,6 @@ export const MAX_SIDE = 128;
 export function hexToUnit(hex: string): [number, number, number] {
   const n = Number.parseInt(hex.slice(1), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
-}
-
-/** How far a color sits from grey. */
-function spread(hex: string): number {
-  const [r, g, b] = hexToUnit(hex);
-  return Math.max(r, g, b) - Math.min(r, g, b);
-}
-
-/**
- * The three colors of the light, most colorful first, so a cover on a grey ground still lights the
- * page with its figure color. Takes ground, accent and the mid shade between them.
- */
-export function ambientColors(
-  ground: string,
-  accent: string,
-  shade: string,
-): [string, string, string] {
-  return spread(accent) > spread(ground) ? [accent, ground, shade] : [ground, accent, shade];
 }
 
 /** The nine floats the shader reads as three vec3 colors. */
