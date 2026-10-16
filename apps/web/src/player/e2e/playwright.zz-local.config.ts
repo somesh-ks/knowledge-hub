@@ -1,2 +1,8 @@
 import base from "./playwright.config";
-export default { ...base, use: { ...base.use, launchOptions: { ...base.use?.launchOptions, executablePath: "/opt/pw-browsers/chromium" } } };
+export default {
+  ...base,
+  use: {
+    ...base.use,
+    launchOptions: { ...base.use?.launchOptions, executablePath: "/opt/pw-browsers/chromium" },
+  },
+};

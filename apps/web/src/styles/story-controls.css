@@ -17,8 +17,8 @@
 }
 
 /* Outline and fill share one cell, as play and pause do: the outgoing glyph fades, shrinks and
-   blurs while the incoming one arrives. */
-.story-vote {
+   blurs while the incoming one arrives. As specific as .icon-btn's flex, which loads later. */
+.icon-btn.story-vote {
   display: inline-grid;
   place-items: center;
 }
