@@ -1,7 +1,7 @@
 /*
- * Ambient cover light: a soft field of the cover's colors behind the briefing and episode header, as
- * if the sleeve were lit. It starts at the cover's edge, spills toward the end side and a little
- * down, and is gone before the first section. The whole layer is one opacity, the peak tint, so the
+ * Ambient cover light: soft round lights in the cover's colors behind the briefing and episode
+ * header, as if the sleeve were lit. They gather at the cover, spill toward the end side, and are
+ * gone before the first section. The whole layer is one opacity, the peak tint, so the
  * colors inside can be full strength and the contrast proof (ambientPalette.test.ts) is a single
  * blend. The still CSS layer is what shows before script and where WebGL is missing; the canvas
  * fades in over it.
@@ -36,26 +36,15 @@
   /* Chromium on a GPU leaves the layer's outermost device row unmasked: a line one device pixel
      thick and a few levels off, measured along the top edge. The clip takes that row away. */
   clip-path: inset(1px);
-  /* Strongest at the cover's edge and zero at all four edges of the layer: the ellipse is as tall
-     above its centre as the centre is from the top, and the sweep closes both sides. No line
-     anywhere. */
+  /* Zero at all four edges of the layer, so no line anywhere. The lights inside are round; this
+     fade, not an ellipse, decides where they end. */
   mask-image:
-    radial-gradient(
-      ellipse 50% 46% at 36% 46%,
-      black,
-      color-mix(in srgb, black 55%, transparent) 45%,
-      transparent
-    ),
-    linear-gradient(to right, transparent, black 16%, black 45%, transparent 92%);
+    linear-gradient(to right, transparent, black 8%, black 50%, transparent),
+    linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
   mask-composite: intersect;
   -webkit-mask-image:
-    radial-gradient(
-      ellipse 50% 46% at 36% 46%,
-      black,
-      color-mix(in srgb, black 55%, transparent) 45%,
-      transparent
-    ),
-    linear-gradient(to right, transparent, black 16%, black 45%, transparent 92%);
+    linear-gradient(to right, transparent, black 8%, black 50%, transparent),
+    linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
   -webkit-mask-composite: source-in;
 }
 
@@ -83,11 +72,25 @@
   height: 100%;
 }
 
+/* The shader's three lights at rest, round: the cover's main colour behind the cover, the other two
+   beside it toward the title. Placed from the cover's own size and position in the header. */
 .ambient-still {
+  --s: var(--hero-cover);
+  --x: calc(min(var(--space-12), var(--page-gutter-start)) + var(--s) / 2);
+  --y: calc(var(--page-top) + var(--s) / 2);
   background:
-    radial-gradient(ellipse 36% 70% at 36% 42%, var(--ambient-a), transparent),
-    radial-gradient(ellipse 34% 55% at 56% 58%, var(--ambient-b), transparent),
-    radial-gradient(ellipse 30% 45% at 30% 24%, var(--ambient-c), transparent);
+    radial-gradient(
+      circle calc(var(--s) * 1.1) at calc(var(--x) + var(--s) * 2.2) var(--y),
+      var(--ambient-c),
+      transparent
+    ),
+    radial-gradient(
+      circle calc(var(--s) * 1.2) at calc(var(--x) + var(--s) * 1.1)
+        calc(var(--y) - var(--s) * 0.15),
+      var(--ambient-b),
+      transparent
+    ),
+    radial-gradient(circle calc(var(--s) * 1.5) at var(--x) var(--y), var(--ambient-a), transparent);
   transition: opacity var(--duration-enter) var(--ease-out);
 }
 

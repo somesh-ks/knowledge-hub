@@ -27,14 +27,14 @@ const most = (xs: string[]): string => {
 };
 
 /**
- * The paper's lightness for each series and theme: one family of soft, dimmed stocks, a step darker
+ * The paper's lightness for each series and theme: one family of soft, bright stocks, a step darker
  * on a dark page. Weeklies take the palest, on-demand covers a step deeper and dailies a step deeper
  * again, close enough to read as one set and far enough to tell apart in a grid.
  */
 export const SERIES_L = {
-  weekly: { light: 0.88, dark: 0.8 },
-  "on-demand": { light: 0.82, dark: 0.74 },
-  daily: { light: 0.76, dark: 0.68 },
+  weekly: { light: 0.92, dark: 0.85 },
+  "on-demand": { light: 0.86, dark: 0.79 },
+  daily: { light: 0.8, dark: 0.73 },
 } as const satisfies Record<string, Record<CoverMode, number>>;
 export type PaperSeries = keyof typeof SERIES_L;
 
@@ -50,7 +50,7 @@ export function paper(scheme: Scheme, mode: CoverMode, series: PaperSeries = "we
   const colors = [...scheme.colors].sort((a, b) => L(a) - L(b));
   const pale = colors[colors.length - 1] as string;
   const l = SERIES_L[series][mode];
-  const P = atL(pale, l, 0.02);
+  const P = atL(pale, l, 0.03);
   const T = atL(most(colors.filter((c) => L(c) >= 0.82 && L(c) <= 0.93)), l - TINT_STEP);
   const D = most(colors.slice(1).filter((c) => contrastRatio(pale, c) >= 3));
   return {

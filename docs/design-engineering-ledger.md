@@ -152,10 +152,11 @@ Ask, then what was built, then the decision. Values are as built.
 - **Theme.**
   - A 512-byte head script applies the stored choice before first paint (D20). Anything else a page restores, such as the Library's gallery or list view, waits one frame for the page script, because the head budget has no room (2026-10-08).
   - One store: `dispatch:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
-  - The theme change crossfades with a view transition, and `theme-color` metas follow.
+  - The theme change crossfades with a view transition, and `theme-color` metas follow. It first decodes the new theme's covers on screen (at most 400 ms), and the bars fade inside the page's picture, after "there is a glitch in the screen when I switch the app theme" (2026-10-16, D122).
 - **Ambient light.** The ask was "clever integration of shaders but mild" (2026-10-08, D48).
   - A CSS field of the cover's colours, with a 128px WebGL canvas faded over it.
   - The colours are the ones the art is drawn in: "make sure the blur/shader in the podcast details page header matches the color of the albumart" (2026-10-14). The light had read the cover's palette id, while monthly covers (D110) are dressed from their season and older episodes are inverted. `coverColors` (`packages/cover/src/context.ts`) now gives the renderer and the light one answer, and a test checks that its colours appear in the drawn SVG.
+  - Asked again: "the shader color should match the colors of the album art every time", "natural and not very elliptical", movement welcome (2026-10-16, D122). The colours are now read from the drawn image per theme (`coverSwatches`): the largest colour, then the two most eye-catching, never dark ink. Three round gaussian lights placed from the measured cover drift on a 40 s loop; the mask only fades the layer's edges.
   - 30 fps, off-screen paused; off for reduced motion, data saver and software renderers.
   - Software renderers are found by name, because `failIfMajorPerformanceCaveat` lets headless SwiftShader through: `WEBGL_debug_renderer_info` against `/swiftshader|llvmpipe|softpipe|software|basic render/i` (`ambientLight.ts:114`).
   - Light mode was "coloured but still faint", so the tint was remapped (0.6 light, 0.32 dark) rather than dropped (D77). The contrast proof loops every palette in both themes; the worst text is 4.78:1.
@@ -166,6 +167,7 @@ Ask, then what was built, then the decision. Values are as built.
   - The social card is composed at 1200x630, never cropped from the square.
   - Monthly schemes from 2026-10 (D110).
   - Medium chroma, 0.12 or less, after "too saturated ... too much on the eye when multiple albums are viewed at the same time"; three monthly series with their own style sets, all printed on the month's paper in its inks, on three close tints (weekly palest, then on-demand, then daily) after "the albums should be in a harmony"; crisp in the light theme and faded in the dark; the year after the month; the weekly range reads "2 – 8 November" (2026-10-15, D121).
+  - A step brighter in both themes after "too dull in both dark and light theme" (2026-10-16, D122): paper 0.80 to 0.92 light and 0.73 to 0.85 dark, full chroma on the dark page, and a card's progress scrim on the bottom quarter only.
   - Contrast held by `TYPE_CONTRAST` and `FORM_CONTRAST`; date text sits at 11 to 16:1; topic-art letters use the inverse text at 4.5:1 (`cover/src/palettes.ts:137`).
   - The Strata, Orbits and Facets redesign was rejected as busy: an outlined numeral, strokes crossing the digits, and titles unreadable at 48px (2026-10-13).
   - Reviewed on a contact sheet with a 1080-render crash sweep before wiring (2026-10-05).

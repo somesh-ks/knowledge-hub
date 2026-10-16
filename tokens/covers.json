@@ -303,12 +303,12 @@
       }
     },
     "dark": {
-      "$description": "On the dark page: covers fade, the darkest inks lift to charcoal, the palest settle to parchment and colour softens, so a grid does not glare (the owner: faded ones in dark mode).",
+      "$description": "On the dark page: the darkest inks lift to charcoal and the palest settle to parchment, so a grid does not glare (the owner: faded ones in dark mode), while colour keeps its full chroma (then: slightly brighter in both themes, 2026-10-16).",
       "lightness": {
         "$value": [0.2, 0.9]
       },
       "chroma": {
-        "$value": 0.9
+        "$value": 1
       }
     }
   }
