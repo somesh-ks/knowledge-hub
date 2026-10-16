@@ -193,7 +193,7 @@ export default function PlayerSurface() {
                 <div className="player-meta-line" data-notice-slot>
                   {state.error || state.interrupted ? null : (
                     <>
-                      <p className="player-story">
+                      <p className="player-story" key={item?.id ?? "story"}>
                         {item?.headline ?? recordingCaption(digest, state.duration)}
                       </p>
                       <SourceLink />

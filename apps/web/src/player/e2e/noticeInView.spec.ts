@@ -83,7 +83,16 @@ test.describe("the notice answers a press", () => {
     expect(discTop).toBeLessThan(height);
 
     // With the reason in view a press moves nothing.
-    const settled = await scroller.evaluate((node) => node.scrollTop);
+    // The smooth scroll that brought it there may still be running: wait for it to stop.
+    let settled = -1;
+    await expect
+      .poll(async () => {
+        const now = await scroller.evaluate((node) => node.scrollTop);
+        const stopped = now === settled;
+        settled = now;
+        return stopped;
+      })
+      .toBe(true);
     await finger.press(disc);
     await expect(notice).toContainText("Daily narration limit reached");
     expect(await scroller.evaluate((node) => node.scrollTop)).toBe(settled);
