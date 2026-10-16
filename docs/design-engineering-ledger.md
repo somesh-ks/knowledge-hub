@@ -533,6 +533,7 @@ Each is a chat ask with no later record of being built or dropped. Check the cod
 - "Narration is not available", reported 2026-10-12 and never diagnosed.
 - Regenerate replacing the item in place while it runs, a menu for built-in topics, and Listen now switching itself on (2026-10-13).
 - General chips unticked by default, waiting on an answer from the owner (2026-10-13).
+- From the PWA audit of 2026-10-16 (D123), each the owner's call: offline listening of the latest few recordings, iOS startup images in both themes, an iPhone check of the light theme's status bar, and a Gallery and List morph.
 - QA defects from 2026-10-08: a Play tap before hydration lost on a phone, a 429 that shows no wait time, focus on opening the expanded player, and "5 min" repeated in an episode's meta. Status unknown.
 - Word-level focus in the transcript beyond the spoken-word fill, and a live measurement of time to first sound on Play (2026-10-08).
 - The Apple touch icon's alpha: iOS composites it on black (DD-006).
