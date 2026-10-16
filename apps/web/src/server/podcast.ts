@@ -1,5 +1,5 @@
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
-import { readServerConfig, secretsOf } from "./config";
+import { missingSettings, readServerConfig, secretsOf } from "./config";
 import {
   type GenerateDeps,
   type GenerateInput,
@@ -187,7 +187,10 @@ export async function handlePodcast(
 ): Promise<PodcastResult> {
   const config = readServerConfig(deps.env);
   const log = deps.log ?? (() => {});
-  if (!config) return unavailable;
+  if (!config) {
+    log(`podcast unavailable: ${missingSettings(deps.env).join(", ")} not set`);
+    return unavailable;
+  }
 
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const body = parsePodcastBody(input.bodyText);
@@ -244,7 +247,12 @@ export async function handlePodcast(
         after.find((run) => Date.parse(run.createdAt) >= startedAt - 5000 && run.status !== "")
           ?.id ?? null;
     }
-    if (runId === null) return unavailable;
+    if (runId === null) {
+      log(
+        "podcast unavailable: GitHub accepted the dispatch but the run never appeared in its list",
+      );
+      return unavailable;
+    }
 
     return {
       status: 202,

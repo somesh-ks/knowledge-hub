@@ -11,7 +11,7 @@ import type { Pending, SaveContext, SaveState } from "./managePageSave";
 type Saver = typeof import("./managePageSave");
 
 /** When the sending code itself cannot be fetched (the device went offline before the first change). */
-const CANNOT_SEND = "The site could not be reached. Not saved yet.";
+const CANNOT_SEND = "Couldn't reach the site. Not saved yet.";
 
 /** How long the controls must be still before a save. */
 export const SETTLE_MS = 1200;

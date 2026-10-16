@@ -524,10 +524,10 @@ test.describe("a refused save", () => {
     ]);
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText("Saving is not available right now. Not saved yet.");
+    await expect(toastText(page)).toHaveText("The server ran into a problem. Not saved yet.");
     // One region speaks each message, an error through the alert region; the toast has no role.
     await expect(page.locator("[data-alert]")).toHaveText(
-      "Saving is not available right now. Not saved yet.",
+      "The server ran into a problem. Not saved yet.",
     );
     await expect(page.locator("[data-live]")).toHaveText("");
     await expect(toast(page)).not.toHaveAttribute("role", /.+/);
@@ -573,7 +573,7 @@ test.describe("a change made offline", () => {
     await context.setOffline(true);
     online = false;
     await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText("The site could not be reached. Not saved yet.");
+    await expect(toastText(page)).toHaveText("Couldn't reach the site. Not saved yet.");
     expect(sent).toHaveLength(0);
     await context.setOffline(false);
     online = true;

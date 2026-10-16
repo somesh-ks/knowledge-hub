@@ -6,13 +6,16 @@
  * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
  * After the workflow has published, the last stage waits for the new page. Every sentence is in the
  * element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this file imports
- * nothing up front; the episode prewarm is loaded only once a new episode is live.
+ * only the error reference helper up front; the episode prewarm is loaded only once a new episode is
+ * live.
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
  * out again and the new run is followed. When it cannot be sent from here (no passphrase to send,
  * or a refused one), the form is opened again, filled in with it. A finished run goes away once its
  * episode has been opened.
  */
+import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+
 const KEY = "dispatch:run";
 const POLL_MS = 4000;
 const MAX_POLLS = 300;
@@ -51,6 +54,8 @@ interface Stored {
   href?: string;
   /** Said instead of the failure after a Try again was refused (a cooldown names its wait). */
   note?: string;
+  /** A failed run's log on GitHub, from the status route: where the real error is. */
+  log?: string;
 }
 
 /** The stage fields of a status answer, kept with the run. */
@@ -212,6 +217,14 @@ function show(run: Stored | null): void {
   if (listen) {
     listen.hidden = !(run && !run.kind && live?.runId === run.id && GOING.includes(run.phase));
   }
+  // A failed run links to its log, which says what went wrong.
+  const log = card.querySelector<HTMLAnchorElement>("[data-run-log]");
+  if (log) {
+    const href =
+      run?.phase === "failed" && run.log?.startsWith("https://github.com/") ? run.log : "";
+    if (href && log.getAttribute("href") !== href) log.setAttribute("href", href);
+    log.hidden = !href;
+  }
   const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
   if (again) again.hidden = !(run?.phase === "failed" && canRetry(run));
   const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
@@ -353,7 +366,8 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       // route's, and finishes at once.
       const waiting = !failed && !run.kind && body.stages;
       const phase: Phase = failed ? "failed" : waiting ? "updating" : "done";
-      const next = { ...run, ...staged(body), phase };
+      const next: Stored = { ...run, ...staged(body), phase };
+      if (failed && typeof body.run_url === "string") next.log = body.run_url;
       if (waiting)
         next.label = document.querySelector<HTMLElement>("[data-run-status]")?.dataset.updating;
       set(next);
@@ -432,7 +446,8 @@ function refusal(root: HTMLElement, res: Response | null, reply: Record<string, 
   if (res.status === 429) {
     return line(String(reply.error)).replace("{wait}", waitFor(Number(reply.retry_after_s) || 60));
   }
-  return line(res.status === 400 ? "400" : "503");
+  if (res.status === 400) return line("400");
+  return isSiteAnswer(reply) ? withErrorRef(line("503"), reply) : line("crashed");
 }
 
 /**

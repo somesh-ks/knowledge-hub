@@ -5,6 +5,7 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { clearPendingChoice, readPendingChoice, writePendingChoice } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
@@ -25,11 +26,13 @@ export const ADDED_SOURCE = "Added. Read from the next update.";
 export const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 const REASONS: Record<number, string> = {
-  0: "The site could not be reached.",
-  400: "That change was not accepted.",
-  401: PASSPHRASE_REQUIRED ? "That passphrase is not right." : "Saving was refused.",
+  0: "Couldn't reach the site.",
+  400: "The server turned that change down.",
+  401: PASSPHRASE_REQUIRED
+    ? "That passphrase is not right."
+    : "The server's passphrase setting does not match this site's.",
   429: "There were too many edits in a row.",
-  503: "Saving is not available right now.",
+  503: "The server ran into a problem.",
 };
 
 /**
@@ -37,9 +40,14 @@ const REASONS: Record<number, string> = {
  * reason of its own (a 500, say) is a plain failure: only status 0, no answer at all, is the site
  * not being reached.
  */
-export function failureText(status: number): string {
+export function failureText(status: number, body?: unknown): string {
+  // A server failure's reference (lib/errorRef.ts) finds the real error in the function logs; a 5xx
+  // that is not the site's own answer is the function crashing before it could save anything.
+  if (status >= 500 && body !== undefined && !isSiteAnswer(body)) {
+    return "The server crashed before it could answer. Not saved yet.";
+  }
   const reason = REASONS[status];
-  return reason ? `${reason} Not saved yet.` : "Saving failed.";
+  return withErrorRef(reason ? `${reason} Not saved yet.` : "Saving failed on the server.", body);
 }
 
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
@@ -443,6 +451,8 @@ interface Answer {
   /** For a 429: how long the server asks to wait. */
   wait: number;
   timeRefused: boolean;
+  /** The answer's body, for a failure's reference. */
+  body?: unknown;
 }
 
 /** One request. `keepalive` lets it finish when the page is closed right after a change. */
@@ -460,6 +470,7 @@ async function post(ops: ConfigOp[], given: string): Promise<Answer> {
       status,
       wait: status === 429 ? ("retry_after_s" in body && body.retry_after_s) || 10 : 0,
       timeRefused: status === 202 && "time_changed" in body && body.time_changed === false,
+      body,
     };
   } catch {
     return { status: 0, wait: 0, timeRefused: false };
@@ -554,7 +565,7 @@ export async function flush(
           memory(null);
           passphrase = null;
         }
-        failure = failureText(answer.status);
+        failure = failureText(answer.status, answer.body);
         // A row that said Adding says so no more: the change stays for Retry, and the row for itself.
         for (const [, pending] of batch.sent) {
           pending.failed = true;

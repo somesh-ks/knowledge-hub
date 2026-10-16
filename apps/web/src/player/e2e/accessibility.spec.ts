@@ -89,7 +89,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await enterPassphrase(dialog);
     const start = dialog.getByRole("button", { name: "Regenerate" });
     await player.finger.press(start);
-    await expect(dialog.getByRole("alert")).toContainText("not available right now");
+    await expect(dialog.getByRole("alert")).toContainText("ran into a problem");
     await expectAccessible(page, "the Generate sheet refused");
     await player.finger.press(start);
     await expect(dialog.getByRole("list", { name: "Progress" })).toBeVisible();

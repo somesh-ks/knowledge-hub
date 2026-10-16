@@ -19,6 +19,7 @@
 import type { ConfigOp } from "@dispatch/core";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { blockedDomainOf } from "../lib/blockedOutlets";
+import { withErrorRef } from "../lib/errorRef";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved } from "../lib/savedOverlay";
 import {
@@ -126,6 +127,8 @@ interface Answer {
   wait: number;
   /** The server's error code, or what kept the request from being answered, for the log. */
   cause: string;
+  /** The answer's body, for a server failure's reference (lib/errorRef.ts). */
+  body?: unknown;
 }
 
 async function post(ops: ConfigOp[]): Promise<Answer> {
@@ -155,6 +158,7 @@ async function post(ops: ConfigOp[]): Promise<Answer> {
       status,
       wait: status === 429 ? body.retry_after_s || 10 : 0,
       cause: body.error ?? response.statusText,
+      body,
     };
   } catch (error) {
     return { status: 0, wait: 0, cause: String(error) };
@@ -269,7 +273,10 @@ async function send(withVotes: boolean): Promise<void> {
       for (const { domain, outlet } of lost) {
         messages.delete(domain);
         console.error(`[story controls] stop ${domain} failed: ${answer.status} ${answer.cause}`);
-        toast({ message: stopFailure(outlet, answer.status).message, kind: "error" });
+        toast({
+          message: withErrorRef(stopFailure(outlet, answer.status).message, answer.body),
+          kind: "error",
+        });
       }
       return;
     }

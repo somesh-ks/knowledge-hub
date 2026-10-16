@@ -36,11 +36,17 @@ const COPY = {
         "401": "That passphrase does not match. Check it and try again.",
       }
     : {}),
-  "400": "That request did not go through. Reload the page and try again.",
+  "400": "The server turned that request down. Reload the page and try again.",
   cooldown: "You can do that again in",
   daily_cap: "That's today's limit. Try again in",
-  "503": "That is not available right now. Try again in a few minutes.",
-  network: "The request did not go through. Check your connection, then try again.",
+  // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
+  "503": "The server ran into a problem, so nothing changed.",
+  // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).
+  crashed:
+    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
+  // A 401 when the site sends its own passphrase: the deployment's settings disagree.
+  refused: "The server's passphrase setting does not match this site's, so nothing was started.",
+  network: "Couldn't reach the site. Check your connection, then try again.",
 } as const;
 ---
 

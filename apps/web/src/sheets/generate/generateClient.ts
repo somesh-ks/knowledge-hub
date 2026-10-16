@@ -3,6 +3,7 @@
  * and outcome is testable without a network.
  */
 import { PASSPHRASE_REQUIRED } from "../../lib/access";
+import { isSiteAnswer, withErrorRef } from "../../lib/errorRef";
 import type { GenerateRequest, StatusResponse } from "../../types/contracts";
 import { GENERATE_STEPS } from "../../types/contracts";
 
@@ -30,14 +31,17 @@ export type StartResult =
 export const MESSAGES = {
   empty: PASSPHRASE_REQUIRED
     ? "Enter the passphrase to continue."
-    : "Generate refused that request. Try again in a few minutes.",
+    : "This site was built without its passphrase, so nothing was started.",
   offline: "You are offline. Reconnect, then try again.",
   wrongPassphrase: PASSPHRASE_REQUIRED
     ? "That passphrase does not match. Check it and try again."
-    : "Generate refused that request. Try again in a few minutes.",
-  unavailable: "Generate is not available right now. Try again in a few minutes.",
-  invalid: "That request did not go through. Reload the page and try again.",
-  network: "The request did not go through. Check your connection, then try again.",
+    : "The server's passphrase setting does not match this site's, so nothing was started.",
+  // The server logged why; the reference it sent is added to this (lib/errorRef.ts).
+  unavailable: "The server ran into a problem, so no briefing was started.",
+  crashed:
+    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
+  invalid: "The server turned that request down. Reload the page and try again.",
+  network: "Couldn't reach the site. Check your connection, then try again.",
 } as const;
 
 function pluralize(count: number, unit: string): string {
@@ -153,7 +157,11 @@ export async function startGenerate(
       };
     }
     default:
-      return { kind: "rejected", reason: "unavailable", message: MESSAGES.unavailable };
+      return {
+        kind: "rejected",
+        reason: "unavailable",
+        message: isSiteAnswer(body) ? withErrorRef(MESSAGES.unavailable, body) : MESSAGES.crashed,
+      };
   }
 }
 

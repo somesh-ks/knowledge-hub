@@ -90,7 +90,7 @@ test.describe("a recording that fails", () => {
     await player.open("/d/2026-10-05");
     await finger.press(player.cta);
     await expect.poll(() => asked).toBeGreaterThan(0);
-    await expect(page.getByText("Narration is not available right now.")).toBeVisible();
+    await expect(page.getByText("Narration ran into a problem on the server.")).toBeVisible();
     await expect(player.root).toHaveAttribute("data-player-state", "idle");
     await expect(player.cta).toHaveAttribute("data-state", "idle");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -155,7 +155,7 @@ test.describe("a recording that fails", () => {
     await player.dialog.getByRole("button", { name: "Next story" }).first().click();
     await expect(player.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
     const notice = player.dialog.getByRole("alert");
-    await expect(notice).toContainText("Narration is not available right now.");
+    await expect(notice).toContainText("Narration ran into a problem on the server.");
     // Still down: Enter on the notice's Try again retries, the notice leaves while it loads, and
     // focus stays on the page, on the Play disc.
     await notice.getByRole("button", { name: "Try again" }).focus();
