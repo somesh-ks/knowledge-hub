@@ -206,7 +206,8 @@ test.describe("sharing", () => {
       .toEqual([expect.stringMatching(/\/d\/2026-10-05$/)]);
   });
 
-  test("every briefing offers Regenerate, which asks what to improve, and Delete", async ({
+  // Only on-demand briefings and episodes can be deleted (#152): a Daily or Weekly has no Delete.
+  test("every briefing offers Regenerate, which asks what to improve, and a daily no Delete", async ({
     page,
   }) => {
     for (const path of ["/", "/d/2026-10-07"]) {
@@ -214,7 +215,7 @@ test.describe("sharing", () => {
       await hydrated(page);
       await page.getByRole("button", { name: "More actions" }).click();
       const items = page.locator("#hero-menu [role=menuitem]");
-      await expect(items).toHaveText(["Share", "Regenerate", "Delete"]);
+      await expect(items).toHaveText(["Share", "Regenerate"]);
     }
     await openNewBriefing(page);
   });

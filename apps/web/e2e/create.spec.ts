@@ -211,7 +211,8 @@ test.describe("the Create page", () => {
     await page.clock.install();
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 5, started_at: "x" });
     await openCreate(page);
-    await expect(page.getByText(/passphrase/i)).toHaveCount(0);
+    // Visible text only: the form keeps every message it can show in its markup, hidden until used.
+    await expect(page.getByText(/passphrase/i).filter({ visible: true })).toHaveCount(0);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.passphrase).toBe(OPEN_PASSPHRASE);
@@ -780,7 +781,7 @@ test.describe("an episode page", () => {
       "Discussion",
       "7 October",
     ]);
-    await expect(page.locator(".hero .cover img")).toHaveAttribute(
+    await expect(page.locator('.hero .cover img[data-mode="light"]')).toHaveAttribute(
       "srcset",
       new RegExp(EPISODE_ID),
     );
