@@ -1,0 +1,61 @@
+name: smoke
+
+# Asks the live site three read-only questions after every production deploy and once a day: does
+# the server load, does it have its settings, and does GitHub accept its token. On 2026-10-14 an
+# adapter update made every API route answer 500 for a day while CI stayed green, because nothing
+# looked at the deployed site (docs/learnings.md). A failed run emails the repository owner.
+
+on:
+  deployment_status:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+concurrency:
+  group: smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    # Vercel reports every deployment; only a successful production one changes the live site.
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE: https://news.someshks.work
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Ask the live site
+        shell: bash
+        run: |
+          set -uo pipefail
+          # A finished episode run of this repository: the site reads it from GitHub with its token.
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/podcast.yml/runs?event=workflow_dispatch&status=completed&per_page=1" --jq '.workflow_runs[0].id // empty')
+
+          # expect <status> <path> <what a different answer means>
+          expect() {
+            local code
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${SITE}$2")
+            if [ "$code" = "$1" ]; then echo "ok   $2 -> $code"; return 0; fi
+            echo "FAIL $2 -> $code (wanted $1): $3"
+            return 1
+          }
+
+          check() {
+            expect 405 /api/podcast "the server does not load" &&
+              expect 400 "/api/status?run=x" "the deployment is missing GITHUB_DISPATCH_TOKEN, GITHUB_REPOSITORY or GENERATE_PASSPHRASE_HASH" &&
+              { [ -z "$run_id" ] || expect 200 "/api/status?run=${run_id}" "GitHub refused the site's token (expired or revoked GITHUB_DISPATCH_TOKEN)"; }
+          }
+
+          # The domain can take a few seconds to point at a deployment that just finished.
+          for attempt in 1 2 3; do
+            check && exit 0
+            [ "$attempt" = 3 ] || sleep 20
+          done
+          exit 1
