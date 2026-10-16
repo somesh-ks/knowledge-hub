@@ -67,7 +67,7 @@ Patterns from about 150 asks, strongest first.
 6. **Minimal, with high brevity.** Fewer controls, fewer words, one way to say each thing.
    - Settings: one job per page (D51).
    - A shorter New episode form (D76, D114), and modes retired: "Remove, always Somesh" (D114).
-   - Plain labels: Format, Custom, AI Model, Last updated (D83, D102). A model named by its name, never by id (D101).
+   - Plain labels: Format, Custom, AI model, Last updated (D83, D102). A model named by its name, never by id (D101). The model is one select on Settings, not a page (D123).
    - One noun for one thing: the third critic round found "five spellings of one noun" (D89). "Story" everywhere in the player (D90).
    - A failure is told once, in one place (D94). A status line is three or four words: "Episode queued", "Writing your episode" (D84).
    - No hedging helper text, and a plainer About (#68, 2026-10-10).
@@ -162,6 +162,9 @@ Ask, then what was built, then the decision. Values are as built.
   - Light mode was "coloured but still faint", so the tint was remapped (0.6 light, 0.32 dark) rather than dropped (D77). The contrast proof loops every palette in both themes; the worst text is 4.78:1.
   - The field bleeds past the gutters by `min(space-12, gutter)` so the phone app bar never clips it, and hero chips sit on the surface colour (`ambient.css:32`).
   - Cost: 317 B gzip eager, 2 KB lazy on idle.
+- **The playing cover's light** (D123): "Light animation of album art when playing". The cover, blurred, glows behind the open player's cover while it plays, fades on pause, breathes on 4.2 s; still under reduced motion.
+- **Launch screen** (D123): "Flash screen design animation for pwa - dark & light". Installed app only; the ringed dot sends out two rings and lifts away in about 0.9 s.
+- **Android bars** (D123): no manifest colours, so the navigation and status bars follow the system theme; a light theme_color had frozen a white bar that hid the buttons.
 - **Covers.**
   - The first set (2026-10-05): eight templates (spring, dither, contour, numeral, lattice, orbit, aperture, band) over OKLCH palettes, chosen by seed. Forms come from the craft the briefing covers. One gesture per cover, one accent, flat colour. Neighbours never share a template; weekly covers sit matted inside a ground border; your own episodes are inverted (2026-10-08).
   - The social card is composed at 1200x630, never cropped from the square.

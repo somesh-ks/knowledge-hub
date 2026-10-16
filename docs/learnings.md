@@ -261,3 +261,7 @@ One line each: symptom, cause, fix. Newest first. Search before debugging.
 - 2026-10-16: an image that is `display: none` with `loading="lazy"` is never fetched, so swapping a cover per theme by CSS showed empty boxes after a theme change. Fetch and decode what is on screen before the view transition starts.
 - 2026-10-16: reading a cover's colours with resvg and no fonts drops every glyph, and on some covers a numeral is the art; load the cover fonts (`RESVG_FONT_OPTIONS`).
 - 2026-10-16: `page.screenshot` in the middle of a view transition can show a blank page that never reaches the screen. Record real frames with CDP `Page.startScreencast` to judge a transition.
+- 2026-10-16: an installed Android web app keeps the manifest's theme_color from install and paints the system navigation bar in it (Chromium's WebAppNavigationBarThemeColor); a runtime theme-color meta never repaints it, and Chrome 128 dropped dark manifest colours. Leave theme_color out to get bars that follow the system theme.
+- 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
+- 2026-10-16: headless Chromium cannot emulate `display-mode: standalone` (CDP's setEmulatedMedia ignores it). To record a standalone-only rule, set the matching `CSSMediaRule`'s `media.mediaText` to `all` from an init script.
+

@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-16 | [One model select, Android bars, a launch screen](2026-10-16-pwa-launch-and-one-model-select.md) | One AI model select on Settings, a manifest without colours so Android follows the system theme, a launch screen, the playing cover's light, and a PWA audit (D123) |
 | 2026-10-16 | [Brighter covers and a cover light](2026-10-16-brighter-covers-and-cover-light.md) | Covers a step brighter, the header light read from the drawn cover as three round drifting lights, and a theme switch that waits for its covers and fades as one picture (D122) |
 | 2026-10-15 | [Episode quality loop](2026-10-15-episode-quality-loop.md) | Length by the owner's minutes and measured narration with spares (D119), release notes capped, every topic first, Sonnet 5.5 as writer, and eight eval iterations driven by the judge's reasons |
 | 2026-10-15 | [Reliability audit](2026-10-15-reliability-audit.md) | "Stop hearing from" failed inside the server's ten-second gap; one queue for votes and stops, browser specs on the real `/api/config` handler, the Blocked outlets re-block, and the risks left open |
