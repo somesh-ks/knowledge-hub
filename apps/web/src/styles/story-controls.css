@@ -16,17 +16,49 @@
   margin-inline-end: calc((var(--size-touch) - var(--size-icon-lg)) / -2);
 }
 
-.story-vote .icon:first-child {
-  display: block;
+/* Outline and fill share one cell, as play and pause do: the outgoing glyph fades, shrinks and
+   blurs while the incoming one arrives. */
+.story-vote {
+  display: inline-grid;
+  place-items: center;
+}
+
+.story-vote .icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-state) var(--ease-out),
+    transform var(--duration-state) var(--ease-out),
+    filter var(--duration-state) var(--ease-out);
 }
 
 .story-vote .icon:last-child,
 .story-vote[aria-pressed="true"] .icon:first-child {
-  display: none;
+  opacity: 0;
+  transform: scale(0.95);
+  filter: blur(var(--blur-enter));
 }
 
 .story-vote[aria-pressed="true"] .icon:last-child {
-  display: block;
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Turning a vote on pops the fill in. A vote restored on load never carries data-just-voted. */
+.story-vote[data-just-voted] .icon:last-child {
+  animation: vote-pop var(--duration-spring-pop) var(--ease-spring-pop);
+}
+
+@keyframes vote-pop {
+  from {
+    transform: scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-vote[data-just-voted] .icon:last-child {
+    animation: none;
+  }
 }
 
 .icon-btn.story-vote[aria-pressed="true"] {

@@ -294,11 +294,21 @@ function controlsOf(id: string): HTMLElement[] {
   );
 }
 
-function mark(id: string, state: VoteState): void {
+/** Longer than the pop's animation, so the attribute is gone once it has run. */
+const POP_MS = 600;
+
+function mark(id: string, state: VoteState, pop = false): void {
   const pressed = pressedOf(state, id);
   for (const controls of controlsOf(id))
-    for (const button of controls.querySelectorAll<HTMLElement>("[data-vote]"))
-      button.setAttribute("aria-pressed", String(button.dataset.vote === pressed));
+    for (const button of controls.querySelectorAll<HTMLElement>("[data-vote]")) {
+      const on = button.dataset.vote === pressed;
+      button.setAttribute("aria-pressed", String(on));
+      // Only a press pops the fill in; a vote restored on load just shows it.
+      if (pop && on) {
+        button.setAttribute("data-just-voted", "");
+        setTimeout(() => button.removeAttribute("data-just-voted"), POP_MS);
+      } else button.removeAttribute("data-just-voted");
+    }
 }
 
 function refOf(controls: HTMLElement): StoryRef {
@@ -366,7 +376,7 @@ export function handle(button: Element): void {
     const value = button.dataset.vote === "down" ? "down" : "up";
     const state = press(load(), refOf(controls), value, Date.now());
     save(state);
-    mark(controls.dataset.storyId ?? "", state);
+    mark(controls.dataset.storyId ?? "", state, true);
     schedule();
   } else block(controls);
 }

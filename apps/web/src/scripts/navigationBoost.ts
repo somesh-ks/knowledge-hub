@@ -10,6 +10,8 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
+import { ARRIVED_ATTRIBUTE } from "./navigation";
+
 const NAV_ITEM = ".app-nav-item";
 const NAV_BRAND = ".app-nav-brand";
 /** Root attribute that says the page itself, not a view transition, draws this move. */
@@ -112,7 +114,13 @@ export function installNavigationBoost(): void {
 
   document.addEventListener("astro:before-preparation", (event) => {
     const item = pressedDestination(event.sourceElement, document);
-    if (item) markCurrent(item, document);
+    if (item) {
+      // The pill grows under the item as it lights, here, and not again on the page that arrives.
+      if (item.getAttribute("aria-current") !== "page") {
+        document.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+      }
+      markCurrent(item, document);
+    }
     // Without the API the router swaps at once anyway.
     if (!document.startViewTransition) return;
     Object.defineProperty(document, "startViewTransition", {

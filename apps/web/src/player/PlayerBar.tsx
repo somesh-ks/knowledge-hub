@@ -272,7 +272,9 @@ export default function PlayerBar() {
           ) : null}
         </span>
         <span className="dock-text">
-          <span className="dock-title">{headline}</span>
+          <span className="dock-title" key={item?.id ?? "title"}>
+            {headline}
+          </span>
           <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
             {caption}
           </span>

@@ -475,8 +475,13 @@
   background: transparent;
   color: var(--color-on-surface-muted);
   transition:
+    transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
     color var(--duration-hover) var(--ease-hover);
+}
+
+.view-btn:active {
+  transition-duration: var(--duration-press-in), var(--duration-hover), var(--duration-hover);
 }
 
 .view-btn[aria-pressed="true"] {

@@ -475,6 +475,8 @@
   text-wrap: balance;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  /* Keyed on the story (PlayerSurface.tsx): a new headline fades in. */
+  animation: fade-in var(--duration-state) var(--ease-out);
 }
 
 /* Two lines, so a long title reads in full on the page instead of one ellipsised line. */
@@ -828,6 +830,8 @@
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Keyed on the story (PlayerBar.tsx): a new headline fades in. */
+  animation: fade-in var(--duration-state) var(--ease-out);
 }
 
 .dock-caption[data-tone="danger"] {
@@ -1121,8 +1125,15 @@
   }
 }
 
+/* Unlayered, so this transition replaces .press's: the scale keeps the press's timing here. */
 .dock-btn {
-  transition: background-color var(--duration-press-in) var(--ease-out);
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-press-in) var(--ease-out);
+}
+
+.dock-btn:active {
+  transition-duration: var(--duration-press-in);
 }
 
 .dock-btn:not([aria-disabled="true"]):active {
@@ -1657,7 +1668,9 @@
   height: var(--control-size-lg);
   background: var(--color-accent);
   color: var(--color-on-accent);
-  transition: background-color var(--duration-press-in) var(--ease-out);
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-press-in) var(--ease-out);
 }
 
 .transport-btn[data-primary] .spinner {
@@ -1720,6 +1733,7 @@
 }
 
 .transport-btn[data-primary]:active {
+  transition-duration: var(--duration-press-in);
   background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
 }
 
@@ -2168,7 +2182,26 @@
   color: var(--color-on-surface-inverse);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
-  transition: background-color var(--duration-press-in) var(--ease-out);
+  transition:
+    background-color var(--duration-press-in) var(--ease-out),
+    opacity var(--duration-enter) var(--ease-out),
+    translate var(--duration-enter) var(--ease-out);
+}
+
+/* It rises in when the reader scrolls away from the current line, and leaves at once. */
+@starting-style {
+  .script-back {
+    opacity: 0;
+    translate: 0 var(--distance-base);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .script-back {
+      translate: none;
+    }
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
