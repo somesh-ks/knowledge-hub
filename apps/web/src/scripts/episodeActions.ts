@@ -1,3 +1,4 @@
+import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { navigateTo } from "../player/core/navigation";
 import { libraryAddress } from "./libraryAddress";
 import { forgetRunAbout, startRun } from "./runStatus";
@@ -146,9 +147,17 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     }
     if (res?.status !== 202 || !reply.run_id) {
       say(
-        res?.status === 429
-          ? `${copy(reply.error)} ${wait(reply.retry_after_s)}.`
-          : copy(!res ? "network" : res.status === 400 ? "400" : "503"),
+        !res
+          ? copy("network")
+          : res.status === 429
+            ? `${copy(reply.error)} ${wait(reply.retry_after_s)}.`
+            : res.status === 400
+              ? copy("400")
+              : res.status === 401
+                ? copy("refused")
+                : isSiteAnswer(reply)
+                  ? withErrorRef(copy("503"), reply)
+                  : copy("crashed"),
       );
       return;
     }

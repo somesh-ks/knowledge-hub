@@ -82,7 +82,7 @@ describe("startGenerate", () => {
     const { fetch } = scriptedFetch(json(401, { error: "wrong_passphrase" }));
     expect(await startGenerate("nope", { fetch, isOnline: online })).toMatchObject({
       reason: "wrongPassphrase",
-      message: "Generate refused that request. Try again in a few minutes.",
+      message: MESSAGES.wrongPassphrase,
     });
   });
 
@@ -297,7 +297,7 @@ describe("the Generate store", () => {
     await store.submit("nope");
     expect(store.getState()).toMatchObject({
       phase: "idle",
-      fieldError: "Generate refused that request. Try again in a few minutes.",
+      fieldError: MESSAGES.wrongPassphrase,
     });
     expect(cues).toEqual(["failed"]);
   });

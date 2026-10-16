@@ -13,7 +13,7 @@ import {
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { handleAnthropicModels } from "./anthropicModels";
-import { readServerConfig, secretsOf } from "./config";
+import { missingSettings, readServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
 import {
   type GenerateDeps,
@@ -502,9 +502,7 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
   const log = deps.log ?? (() => {});
   if (!config) {
     // Said nowhere else: every edit answers 503 until the deployment has these.
-    log(
-      "config unavailable: GITHUB_DISPATCH_TOKEN, GITHUB_REPOSITORY or GENERATE_PASSPHRASE_HASH is not set",
-    );
+    log(`config unavailable: ${missingSettings(deps.env).join(", ")} not set`);
     return unavailable;
   }
 
@@ -520,7 +518,10 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
 
   // Asked only after the passphrase, so a stranger cannot make the site call Anthropic.
   const claude = await claudeModelsListed(request.op, deps);
-  if (claude === "unavailable") return unavailable;
+  if (claude === "unavailable") {
+    log("config unavailable: the Anthropic model list could not be read to check the picked model");
+    return unavailable;
+  }
   if (claude === "unlisted") return invalid;
 
   const github = createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE);

@@ -10,8 +10,7 @@ import { mountSamples } from "./voiceSamples";
 const LIST_TIMEOUT_MS = 10_000;
 
 /** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
-const VOICES_UNAVAILABLE =
-  "The voice list is not available right now. Default and your saved voice stay.";
+const VOICES_UNAVAILABLE = "Couldn't load the voice list. Default and your saved voice stay.";
 
 /** What the schedule controls hold, by field: "daily.hour", "weekly.day", "weekly.voice_b". */
 export type FieldValues = Record<string, string>;

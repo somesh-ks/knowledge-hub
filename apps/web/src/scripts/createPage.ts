@@ -1,3 +1,4 @@
+import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import type { Voice } from "../lib/voices";
 import { startRun } from "./runStatus";
 import { mountSamples } from "./voiceSamples";
@@ -11,8 +12,7 @@ import { mountSamples } from "./voiceSamples";
 const KEY = "dispatch:narrate-passphrase";
 
 /** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
-const VOICES_UNAVAILABLE =
-  "The voice list is not available right now. Default and your saved voice stay.";
+const VOICES_UNAVAILABLE = "Couldn't load the voice list. Default and your saved voice stay.";
 
 export function installCreate(root: HTMLElement, onStart?: () => void): void {
   if (root.dataset.ready !== undefined) return;
@@ -257,7 +257,13 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
           "form",
           res?.status === 429
             ? `${copy(body.error)} ${wait(body.retry_after_s)}.`
-            : copy(!res ? "network" : res.status === 400 ? "400" : "503"),
+            : !res
+              ? copy("network")
+              : res.status === 400
+                ? copy("400")
+                : isSiteAnswer(body)
+                  ? withErrorRef(copy("503"), body)
+                  : copy("crashed"),
         );
         return "done";
       }
@@ -365,7 +371,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (open !== undefined || !dialog) {
       // Nothing was asked, so a refusal here is the service's, not a mistyped passphrase.
       const sent = await post(open ?? "", $("[data-submit]") as HTMLButtonElement);
-      if (sent === "wrong") say("form", copy("503"));
+      if (sent === "wrong") say("form", copy("refused"));
       return;
     }
     say("dialog");

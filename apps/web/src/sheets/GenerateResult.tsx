@@ -103,7 +103,11 @@ export default function GenerateResult({
           <SheetBanner
             tone="danger"
             title={failureTitle(state.failedAt)}
-            body="Open the run for details, or try again in a few minutes."
+            body={
+              state.runUrl
+                ? "The run's log on GitHub says what went wrong. Nothing was published."
+                : "Nothing was published. Try again."
+            }
           />
           <div className="sheet-actions">
             <button className="btn-primary" type="button" onClick={onTryAgain}>

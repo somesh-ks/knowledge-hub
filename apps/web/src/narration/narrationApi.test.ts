@@ -289,8 +289,8 @@ describe("describeNarrationFailure", () => {
   it("treats the server's 503 as passing: Try again, not a refusal that stands", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
     expect(describeNarrationFailure("unavailable", "briefing")).toEqual({
-      message: "Narration is not available right now.",
-      summary: "Narration is not available",
+      message: "Narration ran into a problem on the server.",
+      summary: "Narration failed on the server",
       standing: false,
     });
   });
