@@ -1,8 +1,7 @@
 /*
  * The Podcast page: the Daily | Weekly | Custom switch, one profile's rows at a time (selects and
- * segmented choices from settings.css and manage.css), the voice rows, and the shared model list,
- * laid out with the fields, rows and bar of manage.css. Imported by pages/settings/podcast.astro,
- * after manage.css.
+ * segmented choices from settings.css and manage.css) and the voice rows, laid out with the fields,
+ * rows and bar of manage.css. Imported by pages/settings/[profile].astro, after manage.css.
  */
 
 .daily-panel {
@@ -34,18 +33,6 @@
   .daily-selects:has(#weekly-day) {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr);
   }
-}
-
-.daily-model {
-  /* Its own layer, so the open list covers the links under it. */
-  position: relative;
-  z-index: var(--z-raised);
-  display: grid;
-  gap: var(--space-2);
-}
-
-.daily-selects-one {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 /* Off, the weekly podcast is one switch: its other groups wait until it is on, and a line under the

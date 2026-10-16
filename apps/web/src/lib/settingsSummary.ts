@@ -59,17 +59,12 @@ export function weeklySummary(input: {
 export function writerLabel(model: string | null, provider: Provider = "nebius"): string {
   if (model === null)
     return provider === "anthropic"
-      ? (CLAUDE_MODELS[0]?.label ?? "")
+      ? (CLAUDE_MODELS.find((entry) => entry.id === "claude-sonnet-5-5")?.label ?? "")
       : nebiusName(NEBIUS_DEFAULT_ID);
   if (provider === "anthropic") {
     return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
   }
   return nebiusName(model);
-}
-
-/** "Nebius, GLM-5.3", "Anthropic, Claude Sonnet 5.5". */
-export function modelSummary(provider: Provider, model: string | null): string {
-  return `${provider === "anthropic" ? "Anthropic" : "Nebius"}, ${writerLabel(model, provider)}`;
 }
 
 /** "9 topics · 11 sources": how many there are, not how many are read. */

@@ -78,7 +78,7 @@ export function addSaved(
 
 /**
  * The entries with the edits still waiting, `ops`, as the one pending entry, added last. A writer
- * edit counts here: the Model page shows its choice from its own note, and says Saving while it waits.
+ * edit counts here: the Settings page shows its choice from its own note, and says Saving while it waits.
  */
 export function withPending(
   entries: readonly SavedEntry[],
