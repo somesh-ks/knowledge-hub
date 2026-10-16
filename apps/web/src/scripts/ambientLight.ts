@@ -164,9 +164,10 @@ export function mountAmbient(host: HTMLElement) {
     const box = host.getBoundingClientRect();
     const art = host.parentElement?.querySelector(".cover")?.getBoundingClientRect();
     const scale = canvas.width / Math.max(box.width, 1);
-    const side = art?.width || box.height / 2;
-    const x = art ? art.left - box.left + side / 2 : box.height / 2;
-    const y = art ? art.top - box.top + side / 2 : box.height / 2;
+    const shown = art && art.width > 0 ? art : undefined;
+    const side = shown?.width ?? box.height / 2;
+    const x = shown ? shown.left - box.left + side / 2 : box.height / 2;
+    const y = shown ? shown.top - box.top + side / 2 : box.height / 2;
     cover.set([x * scale, (box.height - y) * scale, side * scale]);
   };
 
@@ -205,7 +206,11 @@ export function mountAmbient(host: HTMLElement) {
 
   const size = () => {
     const [w, h] = backingSize(host.clientWidth, host.clientHeight);
-    if (canvas.width === w && canvas.height === h) return;
+    // The header can change size while the backing store keeps its size: the light follows the cover.
+    if (canvas.width === w && canvas.height === h) {
+      measure();
+      return;
+    }
     canvas.width = w;
     canvas.height = h;
     gl.viewport(0, 0, w, h);

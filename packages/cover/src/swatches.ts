@@ -14,8 +14,10 @@ export interface Swatch {
 const SAMPLE_PX = 64;
 /** Colours closer than this in OKLab are one colour: the blends along an antialiased edge. */
 const SAME_COLOR = 0.06;
-/** Under this share a colour is an edge blend or a speck. A thin red rule is still more than this. */
+/** Under this share a colour is a speck. */
 const MIN_SHARE = 0.003;
+/** How far off the line between two colours a blend of them may sit. */
+const BLEND_OFF_LINE = 0.02;
 
 const lab = (hex: string): [number, number, number] => {
   const { l, c, h } = hexToOklch(hex);
@@ -51,6 +53,32 @@ export function coverSwatches(spec: CoverSpec, meta: CoverMeta, count = 8): Swat
     );
     if (near) near.n += n;
     else kept.push({ hex, at, n });
+  }
+  // An antialiased edge between two fills far apart is a colour of its own, on neither side of the
+  // edge: one that sits on the line between two larger colours joins the nearer of them.
+  const between = (p: number[], a: number[], b: number[]) => {
+    const ab = a.map((v, i) => (b[i] ?? 0) - v);
+    const ap = a.map((v, i) => (p[i] ?? 0) - v);
+    const len = ab.reduce((sum, v) => sum + v * v, 0);
+    const t = len > 0 ? ap.reduce((sum, v, i) => sum + v * (ab[i] ?? 0), 0) / len : -1;
+    if (t <= 0 || t >= 1) return false;
+    return Math.hypot(...ap.map((v, i) => v - t * (ab[i] ?? 0))) < BLEND_OFF_LINE;
+  };
+  for (let i = kept.length - 1; i >= 2; i -= 1) {
+    const k = kept[i];
+    if (!k) continue;
+    const larger = kept.slice(0, i);
+    const pair = larger.flatMap((a, x) => larger.slice(x + 1).map((b) => [a, b] as const));
+    const ends = pair.find(([a, b]) => between(k.at, a.at, b.at));
+    if (!ends) continue;
+    const [a, b] = ends;
+    const near =
+      Math.hypot(...a.at.map((v, j) => v - (k.at[j] ?? 0))) <=
+      Math.hypot(...b.at.map((v, j) => v - (k.at[j] ?? 0)))
+        ? a
+        : b;
+    near.n += k.n;
+    kept.splice(i, 1);
   }
   const swatches = kept
     .map(({ hex, n }) => ({ hex, share: n / Math.max(total, 1) }))
