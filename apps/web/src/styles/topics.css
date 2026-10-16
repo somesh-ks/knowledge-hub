@@ -1159,3 +1159,17 @@
 .topics-more {
   padding-block-start: var(--space-6);
 }
+
+/* A source deleted in the edit panel: quiet while its Undo waits, gone once it is saved. */
+.source-row:has(> .source-remove[data-pressed="true"]) {
+  opacity: var(--opacity-disabled);
+}
+
+.source-row[data-gone] {
+  display: none;
+}
+
+/* Delete source sits at the start of the panel's foot, before Save. */
+.topics-panel-foot > [data-panel-delete]:not([hidden]) {
+  flex: none;
+}

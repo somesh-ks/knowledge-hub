@@ -559,6 +559,17 @@ test.describe("a topic's page", () => {
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "source.set", id: "quiet-motion", enabled: true }]);
   });
+
+  // A source could be turned off but never deleted: no control sent source.remove, on any screen.
+  test("a source is deleted from its edit panel, after a wait with Undo", async ({ page }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/other");
+    await page.getByRole("button", { name: "Edit Quiet Motion" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
+    await expect(toastText(page)).toHaveText("Removing Quiet Motion");
+    await expect(page.locator('li.source-row[data-id="quiet-motion"]')).toBeHidden(AFTER_UNDO);
+    expect(ops(sent)).toEqual([{ op: "source.remove", id: "quiet-motion" }]);
+  });
 });
 
 // The catalogue's feeds that fit a topic are in the page when it is built: no request, no waiting.
