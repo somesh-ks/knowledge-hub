@@ -7,7 +7,7 @@
     "dev": "astro dev",
     "prebuild": "tsx ../../scripts/buildTokens.ts",
     "build": "astro build",
-    "postbuild": "tsx scripts/checkBundle.ts",
+    "postbuild": "tsx scripts/checkBundle.ts && tsx scripts/checkFunction.ts",
     "preview": "node e2e/run.mjs",
     "check": "astro check",
     "e2e": "playwright test",
@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^7.0.0",
-    "@astrojs/vercel": "^11.0.13",
+    "@astrojs/vercel": "11.0.11",
     "@base-ui/react": "^1.9.0",
     "@dispatch/core": "*",
     "@dispatch/cover": "*",
