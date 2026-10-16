@@ -61,6 +61,10 @@ const measureGutter = (): void => {
 measureGutter();
 addEventListener("resize", measureGutter, { passive: true });
 document.addEventListener("astro:after-swap", holdGutter);
+// The launch screen plays once per full load (launch.css), and is hidden once it has, so the copy
+// that persists across in-app moves never plays again. A little after its 0.9 seconds.
+const launch = document.querySelector<HTMLElement>(".launch");
+if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.

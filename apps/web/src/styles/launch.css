@@ -1,0 +1,123 @@
+/*
+ * The launch screen of the installed app. Android shows its own splash (the app icon on the system's
+ * light or dark ground) until the page's first paint; this takes over from it at the same place and
+ * size, so the hand-off is not seen. The ringed dot sends out two rings, the dot gives a beat, and
+ * the screen lifts away. About 0.9 seconds in all, transform and opacity only, theme colours from the
+ * tokens. In a browser tab there is no splash to take over from, so there is no launch screen.
+ */
+
+.launch {
+  display: none;
+}
+
+@media (display-mode: standalone) {
+  .launch {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-toast) + 1);
+    display: grid;
+    place-items: center;
+    background: var(--color-surface);
+    pointer-events: none;
+    animation: launch-out var(--launch-out) var(--ease-out) var(--launch-hold) both;
+  }
+}
+
+.launch {
+  --launch-hold: 560ms;
+  --launch-out: 340ms;
+  --launch-size: 6rem;
+  --launch-ring: 720ms;
+  --launch-beat: 420ms;
+  --launch-ring-start: 60ms;
+  --launch-ring-next: 220ms;
+}
+
+.launch-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--launch-size);
+  height: var(--launch-size);
+  color: var(--color-accent);
+}
+
+.launch-glyph {
+  width: 100%;
+  height: 100%;
+}
+
+/* A ring the size of the mark's own, drawn in the accent, that widens and thins away. */
+.launch-ring {
+  position: absolute;
+  inset: 4.5%;
+  border: calc(var(--launch-size) * 0.1) solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .launch-ring {
+    animation: launch-ring var(--launch-ring) var(--ease-out) var(--launch-ring-start) both;
+  }
+
+  .launch-ring + .launch-ring {
+    animation-delay: var(--launch-ring-next);
+  }
+
+  .launch-glyph {
+    animation: launch-beat var(--launch-beat) var(--ease-out) var(--launch-ring-start) both;
+  }
+
+  .launch-mark {
+    animation: launch-lift var(--launch-out) var(--ease-out) var(--launch-hold) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch {
+    --launch-hold: 200ms;
+    --launch-out: 200ms;
+  }
+}
+
+@keyframes launch-ring {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes launch-beat {
+  40% {
+    transform: scale(0.88);
+  }
+}
+
+@keyframes launch-lift {
+  to {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes launch-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.launch[hidden] {
+  display: none;
+}
+
+@media (forced-colors: active) {
+  .launch {
+    display: none;
+  }
+}

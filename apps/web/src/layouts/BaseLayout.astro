@@ -5,6 +5,7 @@ import AppNav, { type Destination } from "../components/AppNav.astro";
 import Banner from "../components/Banner.astro";
 import CreateFab from "../components/CreateFab.astro";
 import CreateSheet from "../components/CreateSheet.astro";
+import LaunchScreen from "../components/LaunchScreen.astro";
 import PlayFab, { type PageAudio } from "../components/PlayFab.astro";
 import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
@@ -135,6 +136,7 @@ const back =
     <ClientRouter fallback="swap" />
   </head>
   <body>
+    <LaunchScreen />
     <a class="skip-link" href="#main">{skipLabel}</a>
     <SiteHeader back={back} />
     <AppNav current={destination} />
