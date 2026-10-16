@@ -124,11 +124,12 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
     Date: { now: () => clock.now },
   });
 
-  async function dispatchFetch(req: FakeRequest) {
+  async function dispatchFetch(req: FakeRequest, preloadResponse?: Promise<Response | undefined>) {
     const waits: Promise<unknown>[] = [];
     let handled: Promise<Response> | undefined;
     handlers.get("fetch")?.({
       request: req,
+      preloadResponse,
       respondWith: (promise: Promise<Response>) => {
         handled = promise;
       },
@@ -247,6 +248,23 @@ describe("service worker: caching strategies", () => {
     version = 2;
     const next = await worker.dispatchFetch(request("/", { mode: "navigate" }));
     expect(await next.response?.text()).toBe("home v2");
+  });
+
+  // A preload the worker ignores is a second request for the same page and a console warning.
+  it("answers a page load from the browser's navigation preload instead of fetching again", async () => {
+    const worker = load(() => new Response("fetched"));
+    const home = await worker.dispatchFetch(
+      request("/", { mode: "navigate" }),
+      Promise.resolve(new Response("preloaded")),
+    );
+    expect(await home.response?.text()).toBe("preloaded");
+    const digest = await worker.dispatchFetch(
+      request("/d/2026-10-16", { mode: "navigate" }),
+      Promise.resolve(new Response("preloaded digest")),
+    );
+    expect(await digest.response?.text()).toBe("preloaded digest");
+    expect(worker.fetched).not.toContain(`${ORIGIN}/`);
+    expect(worker.fetched).not.toContain(`${ORIGIN}/d/2026-10-16`);
   });
 
   it("treats a fetch from the client router as a page, not as an asset", async () => {
@@ -463,6 +481,23 @@ describe("service worker: install and update", () => {
     ]) {
       expect(stored).toContain(`${ORIGIN}${path}`);
     }
+  });
+
+  // Every deploy renames the hashed files; the cache is only emptied when VERSION changes.
+  it("drops hashed files the new shell no longer reaches, so the cache does not grow every deploy", async () => {
+    let build = "a";
+    const worker = load((url) => {
+      if (url.endsWith("/")) {
+        return new Response(`<script type="module" src="/_astro/page.${build}.js"></script>`);
+      }
+      return new Response("x");
+    });
+    await worker.lifecycle("install");
+    build = "b";
+    await worker.lifecycle("install");
+    const stored = worker.caches.stored();
+    expect(stored).toContain(`${ORIGIN}/_astro/page.b.js`);
+    expect(stored).not.toContain(`${ORIGIN}/_astro/page.a.js`);
   });
 
   it("does not take over on install, so an update cannot interrupt playback", async () => {

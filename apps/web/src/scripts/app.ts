@@ -1,6 +1,7 @@
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
+import { captureInstallPrompt } from "./installPrompt";
 import { installNavigation } from "./navigation";
 import { installThemeColor } from "./themeColor";
 import { installUiSound } from "./uiSound";
@@ -12,6 +13,7 @@ import { installUiSound } from "./uiSound";
  * astro:page-load.
  */
 installDisabledGuard();
+captureInstallPrompt();
 installNavigation();
 installCreateEntry();
 installDeviceBanners();

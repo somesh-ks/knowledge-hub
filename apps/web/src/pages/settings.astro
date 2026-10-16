@@ -177,6 +177,19 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so
            the section starts hidden and the script shows it where it applies. */}
+      {/* Chrome and Edge on Android hand the page an install prompt; the row shows only while one is held. */}
+      <section data-install-app hidden>
+        <div class="rows">
+          <div class="settings-row">
+            <div class="settings-text">
+              <span class="settings-label">Install Singularity</span>
+              <span class="settings-hint">Opens on its own, like an app, and works offline.</span>
+            </div>
+            <button class="btn" type="button" data-install-app-button>Install</button>
+          </div>
+        </div>
+      </section>
+
       <section data-install-hint hidden>
         <div class="rows">
           <div class="settings-row">

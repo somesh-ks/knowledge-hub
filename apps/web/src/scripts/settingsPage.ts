@@ -25,6 +25,7 @@ import { safeLocalStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { type Cue, cueForSwitch, cueForVolumeRelease } from "../player/sound/soundMap";
+import { installPromptReady, onInstallPromptChange, requestInstall } from "./installPrompt";
 
 const ROOT_SELECTOR = "[data-settings]";
 
@@ -112,6 +113,7 @@ function mountSettings(root: HTMLElement): () => void {
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
+  const installApp = root.querySelector<HTMLElement>("[data-install-app]");
 
   // An edit saved in the last few minutes is not in this page until the next build: the rows' lines
   // say it, so Back from a page never lands on a summary that contradicts it.
@@ -157,6 +159,10 @@ function mountSettings(root: HTMLElement): () => void {
   };
 
   const onClick = (event: MouseEvent): void => {
+    if (event.target instanceof Element && event.target.closest("[data-install-app-button]")) {
+      void requestInstall();
+      return;
+    }
     if (!hint || !(event.target instanceof Element)) return;
     if (!event.target.closest("[data-install-dismiss]")) return;
     dismissInstallHint(safeLocalStorage());
@@ -174,6 +180,11 @@ function mountSettings(root: HTMLElement): () => void {
   const stopTheme = startThemeSync();
 
   if (hint) hint.hidden = !installHintApplies();
+  const showInstallApp = (): void => {
+    if (installApp) installApp.hidden = !installPromptReady() || isStandaloneDisplay();
+  };
+  showInstallApp();
+  const stopInstallWatch = onInstallPromptChange(showInstallApp);
   render();
   // The stylesheet keeps the switch's thumb and the slider's thumb hidden, with no transition, until
   // the page is marked ready. Reading a layout value here settles the first state under those rules,
@@ -187,6 +198,7 @@ function mountSettings(root: HTMLElement): () => void {
     root.removeEventListener("click", onClick);
     unsubscribe();
     stopTheme();
+    stopInstallWatch();
   };
 }
 

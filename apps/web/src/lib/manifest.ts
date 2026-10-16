@@ -18,6 +18,13 @@ export interface WebManifest {
   scope: string;
   display: "standalone";
   orientation: "any";
+  shortcuts: Array<{
+    name: string;
+    short_name: string;
+    url: string;
+    icons: Array<{ src: string; sizes: string; type: "image/png" }>;
+  }>;
+  launch_handler: { client_mode: string[] };
   icons: Array<{ src: string; sizes: string; type: "image/png"; purpose: "any" | "maskable" }>;
 }
 
@@ -31,6 +38,17 @@ export function buildManifest(): WebManifest {
     scope: "/",
     display: "standalone",
     orientation: "any",
+    // Long-press on the Android icon. The 192px icon is reused: a shortcut gets no icon of its own.
+    shortcuts: [
+      { name: "Latest briefing", short_name: "Latest", url: "/" },
+      { name: "Library", short_name: "Library", url: "/library" },
+      { name: "New episode", short_name: "New", url: "/create" },
+    ].map((shortcut) => ({
+      ...shortcut,
+      icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" as const }],
+    })),
+    // A link or shortcut opened while the app is running goes to its window instead of a second one.
+    launch_handler: { client_mode: ["focus-existing", "auto"] },
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

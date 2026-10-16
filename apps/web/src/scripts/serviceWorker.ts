@@ -18,14 +18,30 @@ function activateWhenIdle(registration: ServiceWorkerRegistration): void {
   }
 }
 
+/** An installed app can stay open for days, so it asks for a new worker when it comes back, at most this often. */
+export const UPDATE_CHECK_MS = 30 * 60 * 1000;
+
+/** Whether enough time has passed since the last check for a new worker. */
+export function shouldCheckForUpdate(now: number, lastCheck: number): boolean {
+  return now - lastCheck >= UPDATE_CHECK_MS;
+}
+
 function watchForUpdates(registration: ServiceWorkerRegistration): void {
   activateWhenIdle(registration);
   registration.addEventListener("updatefound", () => {
     registration.installing?.addEventListener("statechange", () => activateWhenIdle(registration));
   });
   // Try again whenever the page is hidden, so an update that waited out a long listen still lands.
+  let lastCheck = Date.now();
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) activateWhenIdle(registration);
+    if (document.hidden) {
+      activateWhenIdle(registration);
+    } else if (shouldCheckForUpdate(Date.now(), lastCheck)) {
+      lastCheck = Date.now();
+      registration.update().catch(() => {
+        // Offline: the next visit asks again.
+      });
+    }
   });
 }
 
