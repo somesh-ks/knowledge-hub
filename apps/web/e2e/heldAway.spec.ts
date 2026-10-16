@@ -28,14 +28,12 @@ test.describe("a refused settings change", () => {
   // The refusals are on purpose, which the browser logs.
   test.use({ allowNetworkErrors: true });
 
-  test("a refused model choice is not shown as saved after a reload, nor on the index", async ({
-    page,
-  }) => {
+  test("a refused model choice is not shown as saved after a reload", async ({ page }) => {
     const sent = await mockConfig(page, [500]);
-    await page.goto("/settings/model");
+    await page.goto("/settings");
     const root = page.locator("[data-manage]");
     await expect(root).toHaveAttribute("data-loaded", "");
-    const combo = page.getByRole("combobox", { name: "AI Model" });
+    const combo = page.getByRole("combobox", { name: "AI model" });
     await combo.selectOption({ label: "Kimi K3" });
     await expect(toastText(page)).toHaveText(
       "The server crashed before it could answer. Not saved yet.",
@@ -46,11 +44,6 @@ test.describe("a refused settings change", () => {
     await expect(root).toHaveAttribute("data-loaded", "");
     await expect(combo).toHaveValue("zai-org/GLM-5.3");
     await expect(page.locator("[data-saved-note]")).toHaveCount(0);
-
-    await page.goto("/settings");
-    await expect(page.getByRole("link", { name: /^AI Model/ }).locator("[data-hint]")).toHaveText(
-      "Nebius, GLM-5.3",
-    );
   });
 
   test("a held change refused while Today is open is told there, and Daily keeps the old value", async ({

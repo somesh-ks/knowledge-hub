@@ -1,7 +1,7 @@
 /**
  * The writer's own note of a provider and model saved since the build (written once the request that
  * carried it went through, remember in scripts/managePageSave.ts; a refused choice is never noted):
- * the Model page and the Settings index show it in place of the built choice. On its own
+ * the Settings page shows it in place of the built choice. On its own
  * and DOM-free, so the index's first script can ask whether there is one without loading the editor.
  */
 import type { Provider } from "./settingsSummary";

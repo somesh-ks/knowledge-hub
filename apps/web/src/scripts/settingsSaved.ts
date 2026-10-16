@@ -4,17 +4,15 @@
  * lib/settingsSummary.ts words it as the build does). Loaded by settingsPage.ts only when something
  * saved is kept, so the index's first load never carries it.
  */
-import { readPendingChoice, type StoredWriterChoice } from "../lib/pendingWriter";
 import {
   type FieldValues,
-  heldWriter,
   type SourceSpot,
   savedFields,
   savedSources,
   savedTopicCount,
   sourceCounts,
 } from "../lib/savedOverlay";
-import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { dropUnclaimed, HELD_EVENT, type Held } from "./managePageSave";
 import { readSaved } from "./savedView";
@@ -24,7 +22,7 @@ export const LOST_NOTE = "Your last change was not saved.";
 
 /** The rows with what was saved since the build, and following a left page's run still on its way. */
 export function showSaved(root: HTMLElement): void {
-  overlayIndex(root, readSaved(), readPendingChoice());
+  overlayIndex(root, readSaved());
   followHeld(root);
 }
 
@@ -49,7 +47,7 @@ function followHeld(root: HTMLElement): void {
           root.querySelector("#page-title")?.after(note);
         }
       }
-      overlayIndex(root, readSaved(), readPendingChoice());
+      overlayIndex(root, readSaved());
     },
     { signal: off.signal },
   );
@@ -67,11 +65,7 @@ function say(target: HTMLElement | null, text: string): boolean {
 }
 
 /** Each row's line with the saved edits laid over what it was built from. True when one changed. */
-export function overlayIndex(
-  root: ParentNode,
-  ops: readonly ConfigOp[],
-  pending: StoredWriterChoice | null,
-): boolean {
+export function overlayIndex(root: ParentNode, ops: readonly ConfigOp[]): boolean {
   const daily = row(root, "daily");
   const weekly = row(root, "weekly");
   const baked: FieldValues = {
@@ -122,15 +116,5 @@ export function overlayIndex(
     shown = say(topics, topicsSummary(count, sourceCounts(spots).total)) || shown;
   }
 
-  const model = row(root, "model");
-  // A choice still on its way, else one saved; with neither (a refused one is never noted), the row
-  // says what it was built with.
-  const built = model?.dataset;
-  const choice: Pick<StoredWriterChoice, "provider" | "model"> = heldWriter(ops) ??
-    pending ?? {
-      provider: built?.provider === "anthropic" ? "anthropic" : "nebius",
-      model: built?.model || null,
-    };
-  if (model) shown = say(model, modelSummary(choice.provider, choice.model)) || shown;
   return shown;
 }

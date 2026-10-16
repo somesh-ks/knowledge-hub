@@ -9,7 +9,6 @@ const ROUTES = [
   "/settings",
   "/settings/daily",
   "/settings/weekly",
-  "/settings/model",
   "/settings/topics",
   "/settings/topics/audio_interfaces",
   "/settings/topics/other",

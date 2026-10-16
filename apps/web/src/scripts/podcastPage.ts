@@ -1,14 +1,14 @@
 /**
- * The editor of the podcast settings pages, loaded by podcastEntry.ts. Each page is static HTML with
- * the saved values written in: a profile page (Daily, Weekly, Custom) or the Model page. This loads
- * the voices and the live Nebius model list, runs the model select, and records what the controls
+ * The editor of the podcast settings, loaded by podcastEntry.ts. Each page is static HTML with the
+ * saved values written in: a profile page (Daily, Weekly) or the Settings index, which holds the
+ * model select. This loads the voices and the live model lists, runs the model select, and records what the controls
  * add up to: one schedule.set (every field that changed) or one writer.set (provider and model).
  * autosave.ts sends them a moment later through managePageSave.ts, the step the Topics page uses.
  *
- * The option logic is pure and lives in lib/combobox.ts. Each vendor's live list is asked for when
- * that vendor is shown; without it Nebius offers its top models and Anthropic its two fallback ones.
+ * The option logic is pure and lives in lib/combobox.ts. Both live lists are asked for once the page
+ * is up; without them the select offers the built-in Claude models and the curated Nebius ones.
  */
-import { isModelId, NEBIUS_DEFAULT_ID } from "../lib/modelId";
+import { isModelId, NEBIUS_DEFAULT_ID, providerOf } from "../lib/modelId";
 import { clearPendingChoice, readPendingChoice } from "../lib/pendingWriter";
 import { hasSaved } from "../lib/savedKey";
 import { heldWriter } from "../lib/savedOverlay";
@@ -103,8 +103,8 @@ export function writeCachedCatalog(
 }
 
 /**
- * Mounts the editor on whichever settings page holds it: a profile page (Daily, Weekly, Custom) has
- * schedule fields, the Model page has the writer's vendor and model. podcastEntry.ts loads this file
+ * Mounts the editor on whichever settings page holds it: a profile page (Daily, Weekly) has
+ * schedule fields, the Settings index has the writer's model select. podcastEntry.ts loads this file
  * and the combobox's pure logic after the page's first script, so neither counts against the
  * first-load budget. A change is recorded here and sent by autosave.ts a moment later.
  */
@@ -114,7 +114,7 @@ export async function mount(root: HTMLElement): Promise<void> {
   const changes = new Map<string, Pending>();
   /** The diff, from the profiles script, which loads right after the page is up. */
   let ops: typeof ScheduleOp | undefined;
-  /** The writer edit the Model page's controls stand for, or null when they hold the saved one. */
+  /** The writer edit the model select stands for, or null when they hold the saved one. */
   let writer: (() => Pending | null) | undefined;
 
   /** What the schedule controls hold: the page's starting point and the test for "changed". */
@@ -204,8 +204,9 @@ export async function mount(root: HTMLElement): Promise<void> {
 }
 
 /**
- * The Model page: the vendor select and the model select. Returns what the controls stand for as
- * a pending writer edit, or null while they hold the saved choice.
+ * The one model select: Claude's three families and the top Nebius models in two groups. Returns
+ * what the select stands for as a pending writer edit, or null while it holds the saved choice. The
+ * vendor is implied by the id (providerOf).
  */
 async function mountModel(
   root: HTMLElement,
@@ -213,11 +214,8 @@ async function mountModel(
   update: (save?: boolean) => void,
   saved: readonly ConfigOp[],
 ): Promise<() => Pending | null> {
-  const { CLAUDE_OPTIONS, claudeOptions, nebiusOptions } = await import("../lib/combobox");
-  const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
-    root.querySelector(selector) as T;
-  const vendor = one<HTMLSelectElement>("#daily-vendor");
-  const select = one<HTMLSelectElement>("#model-select");
+  const { writerOptions } = await import("../lib/combobox");
+  const select = root.querySelector("#model-select") as HTMLSelectElement;
   const savedModel = group.dataset.saved ? group.dataset.saved : null;
   const savedProvider: Provider = group.dataset.provider === "anthropic" ? "anthropic" : "nebius";
 
@@ -230,20 +228,14 @@ async function mountModel(
     if (pendingChoice.provider === savedProvider && pendingChoice.model === savedModel) {
       if (!held) clearPendingChoice();
       pendingChoice = null;
-    } else {
-      vendor.value = pendingChoice.provider;
-      void import("./savedView").then((view) => view.markSaved(root));
-    }
+    } else void import("./savedView").then((view) => view.markSaved(root));
   }
 
-  const provider = (): Provider => (vendor.value === "anthropic" ? "anthropic" : "nebius");
-
-  /** The live Nebius list: initialized from cache if available, null when it failed. */
-  let nebius: ModelEntry[] | null | undefined = readCachedCatalog() ?? undefined;
-  /** The live Claude list: undefined until asked for, null when it failed. */
-  let claude: { id: string; label: string }[] | null | undefined;
-  let selected: string | null =
-    pendingChoice && pendingChoice.provider === provider() ? pendingChoice.model : savedModel;
+  /** The live lists: Nebius's from cache when kept; null when not read (the built-in ones stand in). */
+  let nebius: ModelEntry[] | null = readCachedCatalog();
+  let claude: { id: string; label: string }[] | null = null;
+  let selected: string | null = pendingChoice ? pendingChoice.model : savedModel;
+  const provider = (): Provider => (selected === null ? savedProvider : providerOf(selected));
 
   const pending = (): Pending | null => {
     const now = JSON.stringify([provider(), selected]);
@@ -252,28 +244,22 @@ async function mountModel(
   };
 
   /**
-   * Draws the options for the vendor on screen. The chosen model is always one of them, even when
-   * neither the top models nor the live list have it, so an id saved earlier is shown and kept.
+   * Draws the options. The chosen model is always one of them, even when neither list offers it, so
+   * an id saved earlier is shown and kept.
    */
   const refresh = (): void => {
-    const options =
-      provider() === "anthropic"
-        ? claudeOptions(selected, claude ?? null)
-        : nebiusOptions(nebius ?? null, selected);
+    const options = writerOptions(selected, claude, nebius);
     const groups: Record<string, HTMLElement> = {};
     select.replaceChildren();
     for (const option of options) {
       const item = document.createElement("option");
       item.value = option.id;
-      item.textContent =
-        option.hint === "Not in the live list"
-          ? `${option.label} (not in the live list)`
-          : option.label;
+      item.textContent = option.label;
       let into: HTMLElement = select;
       if (option.group !== "") {
         into = groups[option.group] ??= (() => {
           const optgroup = document.createElement("optgroup");
-          optgroup.label = option.group === "top" ? "Top models" : "All models";
+          optgroup.label = option.group;
           // A drawn list shows a legend in place of the label, where it can be lined up with the
           // options' words; a native list keeps the label.
           const legend = document.createElement("legend");
@@ -293,59 +279,18 @@ async function mountModel(
         : (options[0]?.id ?? ""));
   };
 
-  const load = async (): Promise<void> => {
-    let entries: ModelEntry[] | null = null;
+  /** One live list, or null when it cannot be read. */
+  const fetchList = async <T>(
+    url: string,
+    parse: (body: unknown) => T | null,
+  ): Promise<T | null> => {
     try {
-      const response = await fetch("/api/models", { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
-      if (response.ok) {
-        entries = parseModelList(await response.json());
-        if (entries && entries.length > 0) writeCachedCatalog(entries);
-      }
+      const response = await fetch(url, { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
+      return response.ok ? parse(await response.json()) : null;
     } catch {
-      entries = null;
+      return null;
     }
-    if (entries !== null || nebius === undefined) {
-      nebius = entries;
-      if (provider() === "nebius") refresh();
-    }
-    root.dataset.loaded = "";
   };
-
-  const loadClaude = async (): Promise<void> => {
-    let entries: { id: string; label: string }[] | null = null;
-    try {
-      const response = await fetch("/api/models?provider=anthropic", {
-        signal: AbortSignal.timeout(LIST_TIMEOUT_MS),
-      });
-      if (response.ok) entries = parseClaudeList(await response.json());
-    } catch {
-      entries = null;
-    }
-    claude = entries;
-    if (provider() === "anthropic") refresh();
-    root.dataset.loaded = "";
-  };
-
-  /** Where Nebius starts: GLM-5.3 while the live list serves it (or is not in), else its first model. */
-  const nebiusStart = (): string => {
-    const ids = nebiusOptions(nebius ?? null, null).map((option) => option.id);
-    return ids.includes(NEBIUS_DEFAULT_ID) ? NEBIUS_DEFAULT_ID : (ids[0] ?? NEBIUS_DEFAULT_ID);
-  };
-
-  vendor.addEventListener("change", () => {
-    // Each vendor starts on its first model: GLM-5.3 on Nebius, Claude Sonnet on Anthropic.
-    selected = provider() === "anthropic" ? (CLAUDE_OPTIONS[0]?.id ?? null) : nebiusStart();
-    if (provider() === "nebius" && nebius === undefined)
-      void load().then(() => {
-        // The live list has come: start on a model it serves.
-        if (provider() === "nebius" && selected === NEBIUS_DEFAULT_ID) selected = nebiusStart();
-        refresh();
-        update();
-      });
-    if (provider() === "anthropic" && claude === undefined) void loadClaude();
-    refresh();
-    update();
-  });
 
   select.addEventListener("change", () => {
     selected = select.value;
@@ -356,7 +301,18 @@ async function mountModel(
     pendingChoice ? [pendingChoice.provider, pendingChoice.model] : [savedProvider, savedModel],
   );
   refresh();
-  if (provider() === "nebius") void load();
-  else void loadClaude();
+  void Promise.all([
+    fetchList("/api/models", parseModelList),
+    fetchList("/api/models?provider=anthropic", parseClaudeList),
+  ]).then(([nebiusList, claudeList]) => {
+    // A list that could not be read leaves the cached or built-in models in place.
+    if (nebiusList && nebiusList.length > 0) {
+      nebius = nebiusList;
+      writeCachedCatalog(nebiusList);
+    }
+    claude = claudeList;
+    refresh();
+    root.dataset.loaded = "";
+  });
   return pending;
 }

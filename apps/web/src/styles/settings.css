@@ -720,6 +720,11 @@
   }
 }
 
+/* The model select answers once the editor (scripts/podcastEntry.ts) has mounted and not before. */
+[data-manage]:not([data-ready]) select {
+  pointer-events: none;
+}
+
 /* ------------------------------------------------------------------ a select as the row's value */
 
 /*
