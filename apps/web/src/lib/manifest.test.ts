@@ -1,10 +1,6 @@
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseBrandColors, readBrandColors } from "./brandColors";
+import { parseBrandColors } from "./brandColors";
 import { buildManifest } from "./manifest";
-
-const TOKENS = join(import.meta.dirname, "..", "styles", "tokens.css");
-const colors = readBrandColors(TOKENS);
 
 describe("parseBrandColors", () => {
   it("reads the surface and accent values from the generated footer", () => {
@@ -25,7 +21,14 @@ describe("parseBrandColors", () => {
 });
 
 describe("buildManifest", () => {
-  const manifest = buildManifest(colors);
+  const manifest = buildManifest();
+
+  // An installed Android app keeps the manifest's theme_color from install and paints the system
+  // navigation bar in it: a light one stayed white in dark mode and hid the navigation buttons.
+  it("names no fixed colour, so Android's bars and splash follow the system theme", () => {
+    expect(manifest).not.toHaveProperty("theme_color");
+    expect(manifest).not.toHaveProperty("background_color");
+  });
 
   it("lists PNG icons at 192 and 512 plus a maskable one", () => {
     expect(manifest.icons.every((icon) => icon.type === "image/png")).toBe(true);

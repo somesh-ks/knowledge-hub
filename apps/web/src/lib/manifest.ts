@@ -1,9 +1,13 @@
-import type { BrandColors } from "./brandColors";
-
 /**
- * The web app manifest. PNG icons only: iOS ignores SVG and WebP icons. background_color matches the
- * body, the icon and the splash so there is no flash between them. Android reads theme_color;
- * iOS ignores most of this file and takes its values from the head tags and CSS.
+ * The web app manifest. PNG icons only: iOS ignores SVG and WebP icons.
+ *
+ * No theme_color and no background_color, on purpose. An installed Android app reads both once, at
+ * install, and keeps them: Chrome paints the system navigation bar and the status bar in
+ * theme_color (WebAppNavigationBarThemeColor) and the launch splash in background_color, whatever
+ * theme the page shows later, and it stopped reading per-scheme colours from the manifest in
+ * Chrome 128. A light one gave a white bar that hid the light navigation buttons in dark mode
+ * (2026-10-16). Without them Android draws its own bars and splash in the system's light or dark
+ * theme. The page's theme-color meta still colours the browser's own chrome.
  */
 export interface WebManifest {
   id: string;
@@ -14,12 +18,10 @@ export interface WebManifest {
   scope: string;
   display: "standalone";
   orientation: "any";
-  background_color: string;
-  theme_color: string;
   icons: Array<{ src: string; sizes: string; type: "image/png"; purpose: "any" | "maskable" }>;
 }
 
-export function buildManifest(colors: BrandColors): WebManifest {
+export function buildManifest(): WebManifest {
   return {
     id: "/",
     name: "Singularity",
@@ -29,8 +31,6 @@ export function buildManifest(colors: BrandColors): WebManifest {
     scope: "/",
     display: "standalone",
     orientation: "any",
-    background_color: colors.surfaceLight,
-    theme_color: colors.surfaceLight,
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
