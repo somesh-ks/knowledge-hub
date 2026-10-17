@@ -1,11 +1,11 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseDigestFile } from "./digestFile.js";
 import { parseEpisodeFile } from "./podcast.js";
 import { parseSourceCatalog } from "./sourceCatalog.js";
-import { SourcesFile, SourcesUserFile } from "./sources.js";
+import { SourcesFile } from "./sources.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const read = (path: string): unknown => JSON.parse(readFileSync(join(ROOT, path), "utf8"));
@@ -38,15 +38,15 @@ describe("config/source-catalog.json", () => {
     expect(() => parseSourceCatalog({ version: 1, sources: [ok, ok] })).toThrow();
   });
 
+  // The built-in registry only. A source the owner adds from the catalogue is in both by design: the
+  // pages leave it out of the suggestions (sourceCatalogMatch.ts), and counting it here turned CI red
+  // each time a suggestion was added (2026-10-16, Yanko Design).
   it("duplicates nothing already in the registry", () => {
     const registry = SourcesFile.parse(read("config/sources.json")).sources;
-    const user = existsSync(join(ROOT, "config/sources.user.json"))
-      ? SourcesUserFile.parse(read("config/sources.user.json")).added
-      : [];
     const known = new Set(
-      [...registry, ...user].flatMap((s) => [key(s.url), ...(s.feed_url ? [key(s.feed_url)] : [])]),
+      registry.flatMap((s) => [key(s.url), ...(s.feed_url ? [key(s.feed_url)] : [])]),
     );
-    const ids = new Set([...registry, ...user].map((s) => s.id));
+    const ids = new Set(registry.map((s) => s.id));
     for (const s of catalog.sources) {
       expect(known.has(key(s.feed_url)), s.id).toBe(false);
       expect(known.has(key(s.url)), s.id).toBe(false);
