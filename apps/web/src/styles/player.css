@@ -1668,9 +1668,7 @@
   height: var(--control-size-lg);
   background: var(--color-accent);
   color: var(--color-on-accent);
-  transition:
-    transform var(--duration-press-out) var(--ease-out),
-    background-color var(--duration-press-in) var(--ease-out);
+  transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
 .transport-btn[data-primary] .spinner {
@@ -1733,7 +1731,6 @@
 }
 
 .transport-btn[data-primary]:active {
-  transition-duration: var(--duration-press-in);
   background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
 }
 
