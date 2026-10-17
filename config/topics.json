@@ -76,7 +76,7 @@
       "id": "ui_component_primitives",
       "name": "UI components and primitives",
       "description": "Accessible building blocks and component libraries such as dialog, popover, drawer, combobox and design tokens, including their releases.",
-      "weight": 0.92,
+      "weight": 0.7,
       "enabled": true,
       "keywords": [],
       "section_id": "ui-craft",

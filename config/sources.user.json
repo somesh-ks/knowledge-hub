@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "added": [
+    {
+      "id": "yankodesign-com-feed",
+      "name": "yankodesign.com",
+      "type": "rss",
+      "url": "https://www.yankodesign.com/feed/",
+      "feed_url": "https://www.yankodesign.com/feed/",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "manual",
+      "topic_ids": [
+        "design"
+      ]
+    },
+    {
+      "id": "uxplanet-org-feed",
+      "name": "uxplanet.org",
+      "type": "rss",
+      "url": "https://uxplanet.org/feed",
+      "feed_url": "https://uxplanet.org/feed",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {},
+      "origin": "manual",
+      "topic_ids": [
+        "design"
+      ]
+    }
+  ],
+  "overrides": {}
+}
