@@ -14,14 +14,14 @@
  *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v7";
+const VERSION = "v8";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
 const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE];
 
 const OFFLINE_URL = "/offline";
-const SHELL_PAGES = ["/", OFFLINE_URL];
+const SHELL_PAGES = ["/", "/library", OFFLINE_URL];
 const SHELL_FILES = ["/manifest.webmanifest", "/favicon.svg", "/icon-192.png"];
 const NETWORK_WAIT_MS = 3000;
 /** A saved page younger than this answers a move inside the app without waiting for the network. */
@@ -62,7 +62,7 @@ function referencedAssets(text, baseUrl) {
   return found;
 }
 
-/** Follows stylesheet and script references a few levels deep and stores each file once. */
+/** Follows stylesheet and script references a few levels deep and stores each file once. Returns every address it visited. */
 async function precacheAssets(cache, startUrls, baseUrl, depth) {
   const queue = [...startUrls];
   const seen = new Set();
@@ -88,6 +88,7 @@ async function precacheAssets(cache, startUrls, baseUrl, depth) {
     );
     queue.push(...next.flat());
   }
+  return seen;
 }
 
 async function precacheShell() {
@@ -108,7 +109,16 @@ async function precacheShell() {
     }),
   );
   // Deep enough for the longest chain of lazy imports: a file missed here fails offline.
-  await precacheAssets(cache, [...assets, ...SHELL_FILES], self.location.origin, 6);
+  const current = await precacheAssets(cache, [...assets, ...SHELL_FILES], self.location.origin, 6);
+  // Every deploy renames its hashed files, and the cache is only emptied when VERSION changes. Drop the
+  // ones the shell no longer reaches, or the cache grows without bound. Only when the pages were read:
+  // a failed fetch would otherwise look like a shell that needs nothing. A page visited since is warmed
+  // again on its next visit.
+  if (assets.size === 0) return;
+  for (const key of await cache.keys()) {
+    const path = new URL(key.url).pathname;
+    if (path.startsWith("/_astro/") && !current.has(path)) await cache.delete(key);
+  }
 }
 
 self.addEventListener("install", (event) => {
@@ -131,6 +141,8 @@ self.addEventListener("activate", (event) => {
           .filter((name) => name.startsWith("dispatch-") && !CURRENT_CACHES.includes(name))
           .map((name) => caches.delete(name)),
       );
+      // The browser starts a page request while the worker boots; the strategies below use that answer.
+      await self.registration?.navigationPreload?.enable().catch(() => {});
       await self.clients.claim();
     })(),
   );
@@ -214,9 +226,20 @@ async function warmAssets(response) {
   await precacheAssets(cache, [...assets], self.location.origin, 6);
 }
 
+/**
+ * The answer to a page load. The browser starts the request while the worker boots (navigation
+ * preload) and an unused one is wasted, so it is the network answer when there is one.
+ */
+async function pageFetch(event) {
+  const preloaded = event.preloadResponse
+    ? await event.preloadResponse.catch(() => undefined)
+    : undefined;
+  return preloaded || fetch(event.request);
+}
+
 function staleWhileRevalidate(event, cacheName, limit) {
   const request = event.request;
-  const refresh = fetch(request)
+  const refresh = pageFetch(event)
     .then(async (response) => {
       await store(cacheName, request, response, limit);
       return response;
@@ -253,7 +276,7 @@ function sharedFetch(request) {
 function networkFirst(event, cacheName, limit, beforeStore, shared, key) {
   const request = event.request;
   const saveAs = key || request;
-  const network = (shared ? sharedFetch(request) : fetch(request)).then(async (response) => {
+  const network = (shared ? sharedFetch(request) : pageFetch(event)).then(async (response) => {
     if (response.ok && beforeStore) await beforeStore(saveAs, response);
     await store(cacheName, saveAs, response, limit);
     if (response.ok) background(event, warmAssets(response.clone()));

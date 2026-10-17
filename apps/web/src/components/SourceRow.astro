@@ -98,4 +98,16 @@ const facts = {
     />
     <span class="suggest-box" aria-hidden="true"></span>
   </label>
+  {/* Delete, pressed from the edit panel's Delete source (topicsEditor.ts): it waits with an Undo in
+       the toast, as a topic's removal does, and the row is gone once it is saved. */}
+  <button
+    class="source-remove"
+    type="button"
+    hidden
+    data-remove
+    data-name={source.name}
+    data-label={`Delete ${source.name}`}
+    data-label-undo={`Undo deleting ${source.name}`}
+    data-op={JSON.stringify({ op: "source.remove", id: source.id })}
+  ></button>
 </li>

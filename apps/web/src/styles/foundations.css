@@ -141,13 +141,35 @@
       .aside-link,
       .app-nav-item,
       .create-fab,
-      .row-action
+      .row-action,
+      .icon-btn,
+      .settings-up,
+      .edit-address-link
     )
   ) {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* A story's headline stays selectable; it only loses the tap flash. */
+  :where(a.story-link) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* In-app navigation does not open the system's link sheet on a long press (app.ts also stops the
+     context menu in an installed app). External story links keep it, so they stay copyable. */
+  :where(
+    .app-nav-item,
+    .app-nav-create,
+    .app-bar-back,
+    .wordmark,
+    .create-fab,
+    .card-link,
+    .cover-image
+  ) {
+    -webkit-touch-callout: none;
   }
 
   :where(a) {

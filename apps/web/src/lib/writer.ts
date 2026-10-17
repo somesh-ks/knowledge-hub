@@ -8,7 +8,7 @@ import { usesFixtures } from "./site";
 export { writerLabel } from "./settingsSummary";
 
 /**
- * The writer settings the Model page shows, read from the repository at build time. A missing or
+ * The writer settings the Settings page shows, read from the repository at build time. A missing or
  * invalid config/writer.json means the default writer (DEFAULT_WRITER), which the engine runs on too.
  */
 export interface WriterView {

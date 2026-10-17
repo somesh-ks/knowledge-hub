@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  dailySummary,
-  modelSummary,
-  sourcesSummary,
-  topicsSummary,
-  weeklySummary,
-  writerLabel,
-} from "./settingsSummary";
+import { dailySummary, sourcesSummary, topicsSummary, weeklySummary } from "./settingsSummary";
 
 describe("settings summaries", () => {
   it("word the podcast rows as the build and the saved overlay both show them", () => {
@@ -21,12 +14,6 @@ describe("settings summaries", () => {
     expect(dailySummary({ hour: 7, cadenceDays: 5 })).toBe("Every 5 days at 07:00");
     expect(weeklySummary({ enabled: true, day: 1, hour: 7 })).toBe("Mondays at 07:00");
     expect(weeklySummary({ enabled: false, day: 1, hour: 7 })).toBe("Off");
-  });
-
-  it("name the model as the Model field does", () => {
-    expect(writerLabel(null)).toBe("GLM-5.3");
-    expect(modelSummary("nebius", null)).toBe("Nebius, GLM-5.3");
-    expect(modelSummary("anthropic", "claude-haiku-5-5")).toBe("Anthropic, Claude Haiku 5.5");
   });
 
   it("count only the sources that are on", () => {

@@ -77,6 +77,8 @@ export interface PanelHandlers {
   editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
+  /** Deletes a source, with an Undo in the toast. */
+  removeSource(id: string): void;
 }
 
 export type PanelStart =
@@ -206,6 +208,7 @@ export function openPanel(
   const sourcePane = one<HTMLElement>('[data-pane="source"]');
   const editPane = one<HTMLElement>('[data-pane="edit"]');
   const go = one<HTMLButtonElement>("[data-panel-go]");
+  const remove = one<HTMLButtonElement>("[data-panel-delete]");
 
   let mode: PanelStart["kind"] = start.kind;
 
@@ -411,6 +414,7 @@ export function openPanel(
     topicPane.hidden = !topicLike;
     sourcePane.hidden = mode !== "source";
     editPane.hidden = mode !== "edit";
+    remove.hidden = mode !== "edit";
     title.textContent = {
       topic: "Add a topic",
       "topic-edit": "Edit topic",
@@ -489,6 +493,12 @@ export function openPanel(
       return;
     }
     if (!go.disabled) go.click();
+  });
+
+  remove.addEventListener("click", () => {
+    if (start.kind !== "edit") return;
+    handlers.removeSource(start.source.id);
+    panel.close();
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());

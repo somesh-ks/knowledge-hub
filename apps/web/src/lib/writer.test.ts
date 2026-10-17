@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ANTHROPIC_MODELS, ConfigOp, MODEL_ID_PATTERN } from "@dispatch/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseConfigOp } from "../server/configEdit";
-import { CLAUDE_MODELS, contextLabel, isModelId, modelParts, NEBIUS_TOP } from "./modelId";
+import { CLAUDE_MODELS, isModelId, modelParts, NEBIUS_TOP } from "./modelId";
 import { loadWriterView, writerLabel } from "./writer";
 
 describe("modelId", () => {
@@ -34,14 +34,6 @@ describe("modelId", () => {
     });
     expect(modelParts("plain")).toEqual({ vendor: "", name: "plain" });
     expect(modelParts("a/b/c")).toEqual({ vendor: "a/b", name: "c" });
-  });
-
-  it("words the context window", () => {
-    expect(contextLabel(131072)).toBe("128k context");
-    expect(contextLabel(163840)).toBe("160k context");
-    expect(contextLabel(512)).toBe("512 tokens context");
-    expect(contextLabel(null)).toBe("");
-    expect(contextLabel(0)).toBe("");
   });
 });
 

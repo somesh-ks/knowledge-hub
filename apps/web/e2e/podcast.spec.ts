@@ -36,27 +36,30 @@ const opsOf = (sent: Sent[]) =>
 const scheduleSent = (sent: Sent[]) =>
   Object.assign({}, ...opsOf(sent).filter((op) => op.op === "schedule.set"));
 
-type Leaf = "daily" | "weekly" | "model";
+type Leaf = "daily" | "weekly";
 
 async function open(page: Page, leaf: Leaf): Promise<void> {
   await page.goto(`/settings/${leaf}`);
   const root = page.locator("[data-manage]");
   await expect(root).toHaveAttribute("data-ready", "");
-  // The model page loads the live list, and a profile page its voices, after the page is up.
-  if (leaf === "model") await expect(root).toHaveAttribute("data-loaded", "");
-  else {
-    await expect(root).toHaveAttribute("data-voices", "");
-    // The time zone and the voices are lists with a search box once their script has run.
-    await expect(root).toHaveAttribute("data-pickers", "");
-  }
+  // A profile page loads its voices after the page is up.
+  await expect(root).toHaveAttribute("data-voices", "");
+  // The time zone and the voices are lists with a search box once their script has run.
+  await expect(root).toHaveAttribute("data-pickers", "");
+}
+
+/** The Settings page, whose model select is filled once both live lists have been asked for. */
+async function openSettings(page: Page): Promise<void> {
+  await page.goto("/settings");
+  await expect(page.locator("[data-manage]")).toHaveAttribute("data-loaded", "");
 }
 
 const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 /** A save that went through shows no toast; a screen reader hears it. */
 const spoken = (page: Page) => page.locator("[data-live]");
-const combo = (page: Page) => page.getByRole("combobox", { name: "AI Model" });
-/** The model select's options, or those under one heading: "Top models" or "All models". */
+const combo = (page: Page) => page.getByRole("combobox", { name: "AI model" });
+/** The model select's options, or those under one heading: "Claude" or "Nebius". */
 const options = (page: Page) => combo(page).getByRole("option");
 const grouped = (page: Page, name: string) =>
   combo(page).locator(`optgroup[label="${name}"] option`);
@@ -69,7 +72,6 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every second day at 07:00", "/settings/daily"],
       ["Weekly", "Sundays at 07:00", "/settings/weekly"],
-      ["AI Model", "Nebius, GLM-5.3", "/settings/model"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
@@ -465,7 +467,8 @@ test.describe("saved, before the build", () => {
     await expect(hint("Daily")).toHaveText("Every second day at 09:00");
     await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
     await expect(hint("Topics and sources")).toHaveText("8 topics · 12 sources");
-    await expect(hint("AI Model")).toHaveText("Anthropic, Claude Haiku 5.5");
+    // A choice saved in the last few minutes is in the select before the next build has it.
+    await expect(combo(page)).toHaveValue("claude-haiku-5-5");
 
     await page.goto("/settings/topics");
     await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
@@ -583,24 +586,26 @@ test.describe("a change made offline", () => {
   });
 });
 
-test.describe("the Model page", () => {
-  test("lists the top models the live list has, then the rest, with Nebius's own model shown", async ({
+test.describe("the model select on Settings", () => {
+  test("lists Claude's three families and the top Nebius models the live list has", async ({
     page,
   }) => {
-    await open(page, "model");
+    await openSettings(page);
     await expect(combo(page)).toHaveValue("zai-org/GLM-5.3");
-    await expect(page.getByLabel("Provider")).toHaveValue("nebius");
-    // The fixture list serves two of the top models; the others are left out.
-    await expect(options(page)).toHaveCount(4);
-    await expect(grouped(page, "Top models")).toHaveText([/^GLM-5\.3/, /^Kimi K3/]);
-    await expect(grouped(page, "All models")).toHaveCount(2);
-    await expect(options(page).filter({ hasText: /^Kimi K2\.6/ })).toHaveCount(0);
+    // The fixture lists serve two of the top models; the others are left out.
+    await expect(grouped(page, "Claude")).toHaveText([
+      "Claude Opus 5.5",
+      "Claude Sonnet 5.5",
+      "Claude Haiku 5.5",
+    ]);
+    await expect(grouped(page, "Nebius")).toHaveText(["GLM-5.3", "Kimi K3"]);
+    await expect(options(page)).toHaveCount(5);
     await expect(toast(page)).toBeHidden();
   });
 
-  test("a pick saves itself", async ({ page }) => {
+  test("a Nebius pick saves itself with its provider", async ({ page }) => {
     const sent = await mockConfig(page);
-    await open(page, "model");
+    await openSettings(page);
     // A top model is picked by its short name and saved by its id, as any live pick is.
     await combo(page).selectOption({ label: "Kimi K3" });
     await expect(spoken(page)).toHaveText(SAVED);
@@ -611,40 +616,9 @@ test.describe("the Model page", () => {
     });
   });
 
-  test("a long list shows the top models first and leaves out the retired ones", async ({
+  test("offers the newest of each Claude family Anthropic lists, and saves a pick as Anthropic", async ({
     page,
   }) => {
-    // Nebius's list on 2026-10-11 without three of the top models, as if they had been retired.
-    const models = [
-      ["MiniMaxAI/MiniMax-M3", 1048576],
-      ["Qwen/Qwen3-235B-A22B-Instruct-2507", 262144],
-      ["Qwen/Qwen3.5-397B-A17B", 262144],
-      ["deepseek-ai/DeepSeek-V4-Pro-0813", 1002496],
-      ["nvidia/Nemotron-3-Ultra-550b-a55b", 1048576],
-      ["openai/gpt-oss-120b", 131072],
-      ["zai-org/GLM-5.3", 1048576],
-    ].map(([id, context_length]) => ({ id, context_length }));
-    await page.route("**/api/models", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ provider: "nebius", models }),
-      }),
-    );
-    await open(page, "model");
-    // The three top models still served, in their order, and the four others.
-    await expect(options(page)).toHaveCount(7);
-    await expect(grouped(page, "Top models")).toHaveText([
-      /^GLM-5\.3/,
-      /^DeepSeek V4 Pro 0813/,
-      /^Qwen3\.5 397B/,
-    ]);
-    await expect(grouped(page, "All models")).toHaveCount(4);
-    await expect(options(page).filter({ hasText: /Kimi/ })).toHaveCount(0);
-  });
-
-  test("Anthropic offers the Claude models it lists, newest first", async ({ page }) => {
-    await page.clock.install();
     const sent = await mockConfig(page);
     await page.route("**/api/models?provider=anthropic", (route) =>
       route.fulfill({
@@ -654,30 +628,50 @@ test.describe("the Model page", () => {
           models: [
             { id: "claude-opus-6", label: "Claude Opus 6" },
             { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+            { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
             { id: "claude-haiku-5-5", label: "Claude Haiku 5.5" },
           ],
         }),
       }),
     );
-    await open(page, "model");
-    await page.getByLabel("Provider").selectOption("anthropic");
-    await expect(combo(page).locator("option:checked")).toHaveText("Claude Sonnet 5.5");
-    await expect(options(page)).toHaveText([
+    await openSettings(page);
+    await expect(grouped(page, "Claude")).toHaveText([
       "Claude Opus 6",
       "Claude Sonnet 5.5",
       "Claude Haiku 5.5",
     ]);
     await combo(page).selectOption({ label: "Claude Opus 6" });
-    // The pick waits out the server's gap after the provider's own save.
-    await page.clock.runFor(GAP_MS);
-    await expect
-      .poll(() => opsOf(sent).at(-1))
-      .toEqual({
-        op: "writer.set",
-        provider: "anthropic",
-        model: "claude-opus-6",
-      });
     await expect(spoken(page)).toHaveText(SAVED);
+    expect(opsOf(sent)).toEqual([
+      { op: "writer.set", provider: "anthropic", model: "claude-opus-6" },
+    ]);
+  });
+
+  test("keeps a saved model the lists do not offer, flagged, and caps Nebius at five", async ({
+    page,
+  }) => {
+    // Nebius's list with all six curated models, and the saved one retired.
+    const models = NEBIUS_TOP.map(({ id }) => ({ id, context_length: 262144 }));
+    await page.route("**/api/models", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ provider: "nebius", models }),
+      }),
+    );
+    await seedStorage(page, {
+      session: {
+        "dispatch:writer-pending": JSON.stringify({
+          provider: "nebius",
+          model: "old/Gone-7B",
+          timestamp: Date.now(),
+        }),
+      },
+    });
+    await openSettings(page);
+    await expect(grouped(page, "Nebius")).toHaveCount(5);
+    await expect(combo(page)).toHaveValue("old/Gone-7B");
+    await expect(combo(page).locator("option:checked")).toHaveText("Gone-7B (current)");
   });
 });
 
@@ -693,17 +687,17 @@ test.describe("offline", () => {
       }),
     );
 
-  test("without the model list every top model is offered, and a pick saves itself", async ({
+  test("without the model list the first five top models are offered, and a pick saves itself", async ({
     page,
   }) => {
     await unavailable(page);
     const sent = await mockConfig(page);
-    await open(page, "model");
+    await openSettings(page);
     await expect(combo(page)).toHaveValue("zai-org/GLM-5.3");
-    await expect(grouped(page, "Top models")).toHaveText(
-      NEBIUS_TOP.map((model) => new RegExp(`^${model.label.replaceAll(".", "\\.")}`)),
+    await expect(grouped(page, "Nebius")).toHaveText(
+      NEBIUS_TOP.slice(0, 5).map((model) => model.label),
     );
-    await expect(options(page)).toHaveCount(NEBIUS_TOP.length);
+    await expect(grouped(page, "Claude")).toHaveCount(3);
     await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
     await expect(spoken(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toEqual([
@@ -724,10 +718,10 @@ test("read with scripts off", async ({ browser, baseURL }) => {
 });
 
 test.describe("axe", () => {
-  test("the daily, weekly and model pages have no WCAG 2.2 AA violations", async ({ page }) => {
-    // Six scans on one page load.
+  test("the daily and weekly pages have no WCAG 2.2 AA violations", async ({ page }) => {
+    // Four scans on one page load.
     test.setTimeout(60_000);
-    for (const leaf of ["daily", "weekly", "model"] as const) {
+    for (const leaf of ["daily", "weekly"] as const) {
       await open(page, leaf);
       await expectNoViolationsInEitherScheme(page);
     }
@@ -742,9 +736,9 @@ test.describe("axe", () => {
   });
 
   test("none with the model list open in its groups", async ({ page }) => {
-    await open(page, "model");
+    await openSettings(page);
     await combo(page).click();
-    await expect(grouped(page, "Top models").first()).toBeVisible();
+    await expect(grouped(page, "Claude").first()).toBeVisible();
     await expectNoViolationsInEitherScheme(page);
   });
 });

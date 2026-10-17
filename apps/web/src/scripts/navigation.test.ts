@@ -7,7 +7,7 @@ import {
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
-import { shouldActivateUpdate } from "./serviceWorker";
+import { shouldActivateUpdate, shouldCheckForUpdate, UPDATE_CHECK_MS } from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
 
@@ -133,5 +133,13 @@ describe("shouldActivateUpdate", () => {
     for (const state of ["idle", "paused", "ended", "error", undefined]) {
       expect(shouldActivateUpdate(state)).toBe(true);
     }
+  });
+});
+
+describe("shouldCheckForUpdate", () => {
+  // An installed app returning to the foreground must not hit /sw.js on every switch of app.
+  it("asks for a new worker at most once per interval", () => {
+    expect(shouldCheckForUpdate(UPDATE_CHECK_MS - 1, 0)).toBe(false);
+    expect(shouldCheckForUpdate(UPDATE_CHECK_MS, 0)).toBe(true);
   });
 });

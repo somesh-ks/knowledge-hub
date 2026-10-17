@@ -1,143 +1,75 @@
 import { describe, expect, it } from "vitest";
-import { CLAUDE_OPTIONS, claudeOptions, nebiusOptions } from "./combobox";
+import { writerOptions } from "./combobox";
 import { NEBIUS_TOP } from "./modelId";
-import { shortlist } from "./modelRank";
 
-// Shaped like the live list on 2026-10-11: two top models and two others, sorted by id.
-const LIVE = [
+const TOP_IDS = NEBIUS_TOP.map((model) => model.id);
+const ids = (options: ReturnType<typeof writerOptions>, group: string) =>
+  options.filter((option) => option.group === group).map((option) => option.id);
+
+// Anthropic's list, newest first, with two Sonnets and a model released after the built-in ones.
+const CLAUDE = [
+  { id: "claude-opus-6", label: "Claude Opus 6" },
+  { id: "claude-sonnet-6", label: "Claude Sonnet 6" },
+  { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+  { id: "claude-haiku-5-5", label: "Claude Haiku 5.5" },
+];
+
+// Nebius's list with two of the curated models and others between them.
+const NEBIUS = [
   { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262144 },
   { id: "moonshotai/Kimi-K3", context_length: 1048576 },
   { id: "openai/gpt-oss-120b", context_length: 131072 },
   { id: "zai-org/GLM-5.3", context_length: 1048576 },
 ];
 
-// A list from before every top model, for the fallback to the ranking.
-const OLD = [
-  { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262144 },
-  { id: "meta-llama/Llama-3.3-70B-Instruct", context_length: 131072 },
-  { id: "BAAI/bge-multilingual-gemma2", context_length: 8192 },
-  { id: "tiny/Model-1B", context_length: null },
-];
-
-const TOP_IDS = NEBIUS_TOP.map((model) => model.id);
-const rows = (options: ReturnType<typeof nebiusOptions>) =>
-  options.map((option) => [option.id, option.group]);
-
-describe("nebiusOptions with the live list", () => {
-  it("starts with the top models it serves in their order, then the rest", () => {
-    expect(rows(nebiusOptions(LIVE, null))).toEqual([
-      ["zai-org/GLM-5.3", "top"],
-      ["moonshotai/Kimi-K3", "top"],
-      ["Qwen/Qwen3-235B-A22B-Instruct-2507", "rest"],
-      ["openai/gpt-oss-120b", "rest"],
-    ]);
-  });
-
-  it("leaves out a top model the live list no longer serves", () => {
-    const ids = nebiusOptions(LIVE, null).map((option) => option.id);
-    for (const gone of TOP_IDS.filter((id) => !LIVE.some((entry) => entry.id === id))) {
-      expect(ids, gone).not.toContain(gone);
-    }
-  });
-
-  // The vendor's prefix is part of the model's id, and the id is never shown.
-  it("names a top model by its short name, any other by its last segment, and shows no id", () => {
-    const options = nebiusOptions(LIVE, null);
-    expect(options.find((o) => o.id === "moonshotai/Kimi-K3")).toMatchObject({
-      label: "Kimi K3",
-      hint: "1024k context",
-    });
-    expect(options.find((o) => o.id === "openai/gpt-oss-120b")).toMatchObject({
-      label: "gpt-oss-120b",
-      hint: "128k context",
-    });
-  });
-
-  it("adds a saved model the list no longer has first among the rest, and says so", () => {
-    const options = nebiusOptions(LIVE, "old/Gone-7B");
-    expect(rows(options)[2]).toEqual(["old/Gone-7B", "rest"]);
-    expect(options[2]?.hint).toBe("Not in the live list");
-  });
-
-  it("flags a saved top model that has been retired, under its short name", () => {
-    const gone = nebiusOptions(LIVE, "moonshotai/Kimi-K2.6").find(
-      (o) => o.id === "moonshotai/Kimi-K2.6",
-    );
-    expect(gone).toMatchObject({
-      label: "Kimi K2.6",
-      hint: "Not in the live list",
-      group: "rest",
-    });
-  });
-
-  it("does not repeat a saved model that is listed", () => {
-    for (const saved of ["zai-org/GLM-5.3", "openai/gpt-oss-120b"]) {
-      expect(nebiusOptions(LIVE, saved)).toHaveLength(4);
-    }
-  });
-
-  it("lets the ranking fill the top models when it serves none of them", () => {
-    const options = nebiusOptions(OLD, null);
-    const top = options.filter((o) => o.group === "top").map((o) => o.id);
-    expect(top).toEqual(shortlist(OLD));
-    expect(options.find((o) => o.id.includes("bge"))?.group).toBe("rest");
-    expect(options).toHaveLength(OLD.length);
-  });
-});
-
-describe("nebiusOptions without the live list", () => {
-  it("offers every top model by name alone", () => {
-    const options = nebiusOptions(null, null);
-    expect(rows(options)).toEqual(TOP_IDS.map((id) => [id, "top"]));
-    expect(options.map((o) => o.label)).toEqual(NEBIUS_TOP.map((m) => m.label));
-    expect(options.find((o) => o.id === "zai-org/GLM-5.3")?.hint).toBe("");
-  });
-
-  it("keeps a saved model that is not a top model, first", () => {
-    const options = nebiusOptions(null, "acme/Fast-1");
-    expect(rows(options).slice(0, 2)).toEqual([
-      ["acme/Fast-1", ""],
-      [TOP_IDS[0], "top"],
-    ]);
-    expect(options[0]).toMatchObject({ label: "Fast-1", hint: "" });
-  });
-
-  it("does not repeat a saved top model", () => {
-    const options = nebiusOptions(null, "zai-org/GLM-5.3");
-    expect(options).toHaveLength(TOP_IDS.length);
-    expect(options.filter((o) => o.id === "zai-org/GLM-5.3")).toHaveLength(1);
-  });
-});
-
-describe("the top models", () => {
-  it("are five to eight distinct ids, each with its own name", () => {
-    expect(TOP_IDS.length).toBeGreaterThanOrEqual(5);
-    expect(TOP_IDS.length).toBeLessThanOrEqual(8);
-    expect(new Set(TOP_IDS).size).toBe(TOP_IDS.length);
-    const labels = NEBIUS_TOP.map((model) => model.label);
-    expect(new Set(labels).size).toBe(labels.length);
-    for (const label of labels) expect(label.trim()).not.toBe("");
-  });
-});
-
-describe("claudeOptions", () => {
-  it("keeps a chosen model that is not a Claude model, so a saved id is not changed on save", () => {
-    expect(claudeOptions("claude-haiku-5-5")).toEqual([...CLAUDE_OPTIONS]);
-    expect(claudeOptions("some/Old-Model").map((o) => o.id)).toEqual([
-      ...CLAUDE_OPTIONS.map((o) => o.id),
-      "some/Old-Model",
-    ]);
-  });
-
-  it("offers a built-in model Anthropic's list leaves out, so Haiku can be picked", () => {
-    const live = [
-      { id: "claude-opus-6", label: "Claude Opus 6" },
-      { id: "claude-sonnet-5-5-20260901", label: "Claude Sonnet 5.5" },
-    ];
-    expect(claudeOptions(null, live).map((o) => o.id)).toEqual([
+describe("writerOptions", () => {
+  // Bug it prevents: a newer Opus, Sonnet or Haiku exists but the select keeps offering the old one.
+  it("offers the newest Opus, Sonnet and Haiku Anthropic lists, in that order", () => {
+    expect(ids(writerOptions(null, CLAUDE, NEBIUS), "Claude")).toEqual([
       "claude-opus-6",
-      "claude-sonnet-5-5-20260901",
+      "claude-sonnet-6",
       "claude-haiku-5-5",
     ]);
+  });
+
+  // Bug it prevents: no Claude model to pick while Anthropic's list is down or lacks a family.
+  it("falls back to the built-in model of a family the list cannot give", () => {
+    expect(ids(writerOptions(null), "Claude")).toEqual([
+      "claude-opus-5-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
+    ]);
+    const noOpus = CLAUDE.filter((model) => !model.id.includes("opus"));
+    expect(ids(writerOptions(null, noOpus), "Claude")[0]).toBe("claude-opus-5-5");
+  });
+
+  // Bug it prevents: a retired Nebius model offered, or more than five crowding the select.
+  it("offers the first five curated Nebius models the live list still serves", () => {
+    expect(ids(writerOptions(null, null, NEBIUS), "Nebius")).toEqual([
+      "zai-org/GLM-5.3",
+      "moonshotai/Kimi-K3",
+    ]);
+    const all = TOP_IDS.map((id) => ({ id, context_length: null }));
+    expect(ids(writerOptions(null, null, all), "Nebius")).toEqual(TOP_IDS.slice(0, 5));
+  });
+
+  // Bug it prevents: no Nebius model to pick while Nebius's list cannot be read.
+  it("offers the first five curated models without a live list", () => {
+    expect(ids(writerOptions(null), "Nebius")).toEqual(TOP_IDS.slice(0, 5));
+  });
+
+  // Bug it prevents: opening the page quietly swaps a saved choice for the first option.
+  it("keeps a saved model that is not offered, flagged, and does not repeat one that is", () => {
+    for (const saved of ["old/Gone-7B", "moonshotai/Kimi-K2.6", "claude-sonnet-5-5"]) {
+      const options = writerOptions(saved, CLAUDE, NEBIUS);
+      expect(options.filter((option) => option.id === saved)).toHaveLength(1);
+    }
+    const current = writerOptions("old/Gone-7B", CLAUDE, NEBIUS).at(-1);
+    expect(current).toEqual({ id: "old/Gone-7B", label: "Gone-7B (current)", group: "" });
+    expect(writerOptions("claude-sonnet-5-5", CLAUDE, NEBIUS).at(-1)).toMatchObject({
+      id: "claude-sonnet-5-5",
+      label: "Claude Sonnet 5.5 (current)",
+    });
+    expect(writerOptions("zai-org/GLM-5.3", CLAUDE, NEBIUS).at(-1)?.group).toBe("Nebius");
   });
 });

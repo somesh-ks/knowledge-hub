@@ -1,6 +1,7 @@
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
+import { captureInstallPrompt } from "./installPrompt";
 import { installNavigation } from "./navigation";
 import { installThemeColor } from "./themeColor";
 import { installUiSound } from "./uiSound";
@@ -12,6 +13,7 @@ import { installUiSound } from "./uiSound";
  * astro:page-load.
  */
 installDisabledGuard();
+captureInstallPrompt();
 installNavigation();
 installCreateEntry();
 installDeviceBanners();
@@ -42,6 +44,15 @@ addEventListener(
   { capture: true, passive: true },
 );
 addEventListener("pointerdown", inputBy("pointer"), { capture: true, passive: true });
+// An installed app has no browser chrome to copy an address from, so a long press on its own
+// navigation opens no context menu. External story links are not listed and stay copyable.
+const IN_APP_NAV =
+  ".app-nav-item, .app-nav-create, .app-bar-back, .wordmark, .create-fab, .card-link, .cover-image";
+if (matchMedia("(display-mode: standalone)").matches) {
+  document.addEventListener("contextmenu", (event) => {
+    if (event.target instanceof Element && event.target.closest(IN_APP_NAV)) event.preventDefault();
+  });
+}
 // The service worker registers once the page has loaded, so its code can arrive then too.
 const registerWorker = (): void =>
   void import("./serviceWorker").then((worker) => worker.registerServiceWorker());
@@ -61,6 +72,10 @@ const measureGutter = (): void => {
 measureGutter();
 addEventListener("resize", measureGutter, { passive: true });
 document.addEventListener("astro:after-swap", holdGutter);
+// The launch screen plays once per full load (launch.css), and is hidden once it has, so the copy
+// that persists across in-app moves never plays again. A little after its 0.9 seconds.
+const launch = document.querySelector<HTMLElement>(".launch");
+if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.

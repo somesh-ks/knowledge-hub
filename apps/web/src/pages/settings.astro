@@ -1,15 +1,17 @@
 ---
 import Icon from "../components/Icon.astro";
+import ManageChrome from "../components/ManageChrome.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
-import { dailySummary, modelSummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
-import { loadWriterView } from "../lib/writer";
+import { loadWriterView, writerLabel } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
+import "../styles/manage.css";
 
 const [schedule, writer, manage] = await Promise.all([
   loadScheduleView(),
@@ -63,12 +65,6 @@ const PODCAST = [
       sources: JSON.stringify(spots),
     },
   },
-  {
-    href: "/settings/model",
-    label: "AI Model",
-    hint: modelSummary(writer.provider, writer.model),
-    data: { summary: "model", provider: writer.provider, model: writer.model ?? "" },
-  },
 ];
 
 // The day this build was made, which is what changes when the site does.
@@ -98,7 +94,9 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      <section>
+      {/* The Podcast section is also the model editor's root: scripts/podcastEntry.ts loads it after
+           first paint and fills the select, and autosave.ts sends a pick a moment later. */}
+      <section data-manage="podcast">
         <h2 class="section-head">Podcast</h2>
         <div class="rows">
           {
@@ -116,7 +114,17 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               </a>
             ))
           }
+          <div class="settings-row" data-models data-saved={writer.model ?? ""} data-provider={writer.provider}>
+            <label class="settings-label" for="model-select">AI model</label>
+            <span class="manage-select value-select">
+              <select class="manage-input" id="model-select" name="model" autocomplete="off">
+                <option value={writer.model ?? ""} selected>{writerLabel(writer.model, writer.provider)}</option>
+              </select>
+              <Icon name="chevronDown" />
+            </span>
+          </div>
         </div>
+        <ManageChrome />
       </section>
 
       <section>
@@ -169,6 +177,19 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so
            the section starts hidden and the script shows it where it applies. */}
+      {/* Chrome and Edge on Android hand the page an install prompt; the row shows only while one is held. */}
+      <section data-install-app hidden>
+        <div class="rows">
+          <div class="settings-row">
+            <div class="settings-text">
+              <span class="settings-label">Install Singularity</span>
+              <span class="settings-hint">Opens on its own, like an app, and works offline.</span>
+            </div>
+            <button class="btn" type="button" data-install-app-button>Install</button>
+          </div>
+        </div>
+      </section>
+
       <section data-install-hint hidden>
         <div class="rows">
           <div class="settings-row">
@@ -185,7 +206,9 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 </BaseLayout>
 
 <script>
+  import { installPodcastPage } from "../scripts/podcastEntry";
   import { installSettingsPage } from "../scripts/settingsPage";
 
   installSettingsPage();
+  installPodcastPage();
 </script>

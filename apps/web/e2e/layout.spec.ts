@@ -7,7 +7,6 @@ const PAGES = [
   "/create",
   "/settings",
   "/settings/daily",
-  "/settings/model",
   "/settings/topics/design",
   "/e/ep-20261007-1930",
 ];

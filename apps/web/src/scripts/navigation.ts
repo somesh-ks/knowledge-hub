@@ -59,6 +59,15 @@ export function carryRootAttributes(from: HTMLElement, to: HTMLElement): void {
  */
 export const NAV_ATTRIBUTE = "data-astro-nav";
 
+/**
+ * On the incoming document alone, for a move to another page: the bar's pill grows in under the new
+ * current tab (shell.css). data-astro-nav is no use for that, as it is also on the page that is
+ * leaving while the next one is fetched, and would replay the pill under the old tab. A press on a
+ * navigation item lights it on the page that is leaving (navigationBoost.ts), with this mark; the
+ * incoming page then does not play the growth a second time.
+ */
+export const ARRIVED_ATTRIBUTE = "data-nav-arrived";
+
 /** Puts the mark for this move on the incoming document, so it is still there when the move is drawn. */
 export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
   const kind = from.getAttribute(NAV_ATTRIBUTE);
@@ -77,7 +86,14 @@ export function installNavigation(): void {
   document.addEventListener("astro:before-swap", (event) => {
     carryRootAttributes(document.documentElement, event.newDocument.documentElement);
     carryNavigationKind(document.documentElement, event.newDocument.documentElement);
-    const clear = (): void => document.documentElement.removeAttribute(NAV_ATTRIBUTE);
+    const root = document.documentElement;
+    const moved =
+      root.getAttribute(NAV_ATTRIBUTE) !== "none" && !root.hasAttribute(ARRIVED_ATTRIBUTE);
+    if (moved) event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+    const clear = (): void => {
+      document.documentElement.removeAttribute(NAV_ATTRIBUTE);
+      document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
+    };
     void event.viewTransition.finished.then(clear, clear);
   });
 

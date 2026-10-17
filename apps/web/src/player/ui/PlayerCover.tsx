@@ -55,3 +55,30 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
     </span>
   );
 }
+
+/**
+ * The light the cover gives while it plays: the cover itself, blurred, behind the page's cover. It is
+ * the cover's own colours by construction. player.css fades it in while playing and lets it breathe.
+ */
+export function PlayerCoverGlow({ cover }: { cover: PlayerDigestData["cover"] }) {
+  return (
+    <span className="player-cover-glow" aria-hidden="true">
+      <span className="player-cover-glow-light">
+        {MODES.map((mode) => (
+          <img
+            key={mode}
+            className="player-cover-image"
+            data-mode={mode}
+            src={themedSrc(cover.src512, mode)}
+            alt=""
+            width={352}
+            height={352}
+            decoding="async"
+            loading="lazy"
+            draggable={false}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}

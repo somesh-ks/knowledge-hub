@@ -340,6 +340,15 @@ export function mountEditor(root: HTMLElement): Editor {
     autosave.now();
   };
 
+  /** A source deleted in the panel: its row's remove control, pressed, waits with an Undo. */
+  const removeSource = (id: string): void => {
+    const row = [...root.querySelectorAll<HTMLElement>("li.source-row")].find(
+      (item) => item.dataset.id === id,
+    );
+    const button = row?.querySelector<HTMLButtonElement>("button.source-remove");
+    if (button && button.dataset.pressed !== "true") press(button);
+  };
+
   const openPanel = (trigger: HTMLElement): void => {
     let start: PanelStart;
     if ("editSource" in trigger.dataset) {
@@ -359,7 +368,7 @@ export function mountEditor(root: HTMLElement): Editor {
         .closest<HTMLElement>(".topic-card-menu")
         ?.querySelector<HTMLElement>("[data-hero-more]") ?? trigger;
     void import("./topicsPanel").then((module) =>
-      module.openPanel(back, { addTopic, editTopic, addSource, editSource }, start),
+      module.openPanel(back, { addTopic, editTopic, addSource, editSource, removeSource }, start),
     );
   };
 

@@ -1,5 +1,5 @@
 /**
- * Pure helpers for model ids, shared by the build-time pages and the Model page's script. They
+ * Pure helpers for model ids, shared by the build-time pages and the model select's script. They
  * import nothing, so the browser bundle stays small. The id pattern is core's MODEL_ID_PATTERN
  * (packages/core/src/writer.ts); writer.test.ts pins the two together.
  */
@@ -14,6 +14,7 @@ export function isModelId(value: string): boolean {
  * the two together.
  */
 export const CLAUDE_MODELS: ReadonlyArray<{ id: string; label: string; hint: string }> = [
+  { id: "claude-opus-5-5", label: "Claude Opus 5.5", hint: "Strongest, slowest and dearest" },
   { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", hint: "Best prose and judgment" },
   { id: "claude-haiku-5-5", label: "Claude Haiku 5.5", hint: "Fastest and cheapest" },
 ];
@@ -41,6 +42,11 @@ export const NEBIUS_TOP: ReadonlyArray<{ id: string; label: string }> = [
  */
 export const NEBIUS_DEFAULT_ID = "zai-org/GLM-5.3";
 
+/** The vendor an id belongs to: Claude ids start with "claude-", every other id is Nebius's. */
+export function providerOf(id: string): "anthropic" | "nebius" {
+  return id.startsWith("claude-") ? "anthropic" : "nebius";
+}
+
 /** "meta-llama/Llama-3.3-70B-Instruct" gives name "Llama-3.3-70B-Instruct", vendor "meta-llama". */
 export function modelParts(id: string): { name: string; vendor: string } {
   const cut = id.lastIndexOf("/");
@@ -50,10 +56,4 @@ export function modelParts(id: string): { name: string; vendor: string } {
 /** What a Nebius model is called on the page: its Top models name, or the id's last segment. */
 export function nebiusName(id: string): string {
   return NEBIUS_TOP.find((model) => model.id === id)?.label ?? modelParts(id).name;
-}
-
-/** "128k context" for a window of 131072 tokens, or "" when it is not known. */
-export function contextLabel(tokens: number | null | undefined): string {
-  if (typeof tokens !== "number" || !Number.isFinite(tokens) || tokens <= 0) return "";
-  return tokens >= 1024 ? `${Math.round(tokens / 1024)}k context` : `${tokens} tokens context`;
 }

@@ -720,6 +720,11 @@
   }
 }
 
+/* The model select answers once the editor (scripts/podcastEntry.ts) has mounted and not before. */
+[data-manage]:not([data-ready]) select {
+  pointer-events: none;
+}
+
 /* ------------------------------------------------------------------ a select as the row's value */
 
 /*
@@ -757,6 +762,13 @@
 
 .settings-row .value-select > .icon {
   inset-inline-end: var(--space-2);
+}
+
+/* On Settings the model is a row's current value, as every other row's hint is: the muted colour at
+   the regular weight. In the text colour at medium it read as the darkest words on the page. */
+.settings-row[data-models] .value-select > select.manage-input {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
 }
 
 .settings-row .value-select > select.manage-input:focus-visible {

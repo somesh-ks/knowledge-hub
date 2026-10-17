@@ -48,7 +48,7 @@ Lazy, not in the budget (fetched on use; the first three are also warmed at idle
 | PlayerPageContent | 8.5 | all | PlayerRoot (idle) |
 | GenerateSheet (icons.ts is 4.5 of it) | 6.6 | all | SheetsRoot (idle) |
 | narrationRuntime | 5.5 | all | playerRuntime, runStatus |
-| savedView | 5.2 | settings, daily, topics, model | settings pages |
+| savedView | 5.2 | settings, daily, topics | settings pages |
 | soundmap audio (`src`) | 4.0 | all | soundController |
 | createPage, runStatus, managePageSave, generateRuntime, topicsPanel | 3.9, 3.5, 3.1, 3.1, 3.1 | various | |
 | topicsEditor, picker, podcastPage, ambientLight, briefingPage | 2.7, 2.6, 2.2, 2.2, 2.0 | various | |

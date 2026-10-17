@@ -1,5 +1,5 @@
 /**
- * Which Nebius models the Model page puts first. The Top models group is a curated list checked
+ * Which Nebius models the model select offers. The Top models group is a curated list checked
  * against the live one (topModels); the ranking (shortlist) stands in when none of the curated ids
  * is left. The ranking is pure over the ids the API sends: larger chat models of the newest
  * generations first, with the models that cannot write a script (embedding, vision, guard, base,

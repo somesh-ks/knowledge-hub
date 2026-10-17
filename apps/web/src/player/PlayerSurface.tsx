@@ -16,7 +16,7 @@ import {
   subscribePageContent,
 } from "./pageContentLoader";
 import SourceLink from "./SourceLink";
-import PlayerCover from "./ui/PlayerCover";
+import PlayerCover, { PlayerCoverGlow } from "./ui/PlayerCover";
 
 const TITLE_ID = "dispatch-player-title";
 
@@ -170,6 +170,7 @@ export default function PlayerSurface() {
               </button>
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>
+                  {digest ? <PlayerCoverGlow cover={digest.cover} /> : null}
                   {cover}
                 </div>
               </div>
@@ -192,7 +193,7 @@ export default function PlayerSurface() {
                 <div className="player-meta-line" data-notice-slot>
                   {state.error || state.interrupted ? null : (
                     <>
-                      <p className="player-story">
+                      <p className="player-story" key={item?.id ?? "story"}>
                         {item?.headline ?? recordingCaption(digest, state.duration)}
                       </p>
                       <SourceLink />

@@ -1,0 +1,17 @@
+---
+import BrandMark from "./BrandMark.astro";
+import "../styles/launch.css";
+---
+
+{/* The installed app's first moment: the mark Android's splash showed, at the same place, sends out
+     two rings like sound and then lifts away to the page (launch.css). Shown only in the installed
+     app, only on a full load: it persists across in-app moves, and app.ts hides it once it is done,
+     so a move never plays it again. Never in the way: it takes no pointer and is hidden from
+     assistive technology. */}
+<div class="launch" aria-hidden="true" transition:persist="launch">
+  <div class="launch-mark">
+    <span class="launch-ring"></span>
+    <span class="launch-ring"></span>
+    <BrandMark class="launch-glyph" />
+  </div>
+</div>
