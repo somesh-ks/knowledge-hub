@@ -1,10 +1,10 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "marigold-fog",
-    "template": "contour"
+    "palette": "sea-lingonberry",
+    "template": "spring"
   },
-  "last_fetch_at": "2026-10-17T05:37:41.374Z",
+  "last_fetch_at": "2026-10-18T05:37:40.079Z",
   "on_demand": {
     "at": "2026-10-06T14:36:15.964Z",
     "digest_id": "2026-10-06",
@@ -18,23 +18,23 @@
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-10-17T05:40:47.548Z",
+    "at": "2026-10-18T05:42:13.841Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [
-      "xai-blog"
+      "toools-newsletter"
     ],
     "requests": {
-      "anthropic": 13,
+      "anthropic": 29,
       "exa": 12,
       "firecrawl_listing": 16,
-      "firecrawl_scrape": 3,
-      "jev": 519
+      "firecrawl_scrape": 7,
+      "jev": 582
     }
   },
   "weekly": {
-    "at": "2026-10-11T11:30:28.493Z",
-    "digest_id": "2026-10-11-weekly",
-    "items": 10,
+    "at": "2026-10-18T05:42:13.841Z",
+    "digest_id": "2026-10-18-weekly",
+    "items": 14,
     "outcome": "published"
   }
 }
