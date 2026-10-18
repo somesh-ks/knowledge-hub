@@ -2,6 +2,8 @@
 
 Last updated 2026-10-18. Rewrite this file; do not append.
 
+Design fixes, 2026-10-18: CI gains a `browser` job running the player and site suites for any change to the site, core or tokens (needs a manual merge: workflow change). The speed button reads a fixed five characters ("1.00x") so its label no longer slides as the speed changes; the speed spec guards it. AGENTS.md: commented design rules are extended, not rewritten. Not verified: the job on GitHub's runner (both suites pass on Linux in a cloud session).
+
 Player bar, 2026-10-18: the bar's title is the story's chapter, a label of at most 5 words and about 22 characters the writer now produces (`chapter` on a digest item; a label over 26 characters or 5 words is dropped), so it fits a 360px phone; older stories show their headline. Under it: the clock, then the story's section ("0:02 / 0:36 · Top picks"), or what the recording is before story 1 and in an episode; the centre clock and "Story N of M" are gone. The volume button holds the bar's right edge and its level opens to the left. Not verified: a live briefing with chapters (the next run writes the first).
 
 Release news, 2026-10-18: library, framework and changelog stories (a release note, or a story judged a developer tool launch) take at most 6% of the selected stories (about a tenth of what airs), are never Top picks, and are filed in the Launches section, which reads last in briefings, weeklies and custom episodes. Not verified: a live briefing.
