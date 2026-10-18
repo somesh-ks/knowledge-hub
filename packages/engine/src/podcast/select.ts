@@ -155,8 +155,8 @@ export async function selectStories(
   // Library, framework and changelog news goes last, so it closes an episode and is the first cut
   // when the budget is short (2026-10-18).
   const ordered = [
-    ...matched.filter((story) => !isReleaseStory(story)),
-    ...matched.filter(isReleaseStory),
+    ...matched.filter((story) => !filedAsRelease(story)),
+    ...matched.filter(filedAsRelease),
   ];
   return {
     stories: ordered.slice(0, Math.max(2, plan.max_stories)),
@@ -166,7 +166,10 @@ export async function selectStories(
   };
 }
 
-/** A story a briefing filed as release news, by its section or its category. */
-function isReleaseStory(story: { section: string; category: string }): boolean {
+/**
+ * A published story a briefing filed as release news, by its section or its category. Its title is
+ * gone by now, so this reads what the digest kept (selection uses releaseNotes.isReleaseStory).
+ */
+function filedAsRelease(story: { section: string; category: string }): boolean {
   return story.section === RELEASE_SECTION || story.category === RELEASE_CATEGORY;
 }

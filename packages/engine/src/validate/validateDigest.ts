@@ -314,7 +314,8 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   // Release stories are never Top picks (selectItems.ts), so a briefing of few others has fewer.
   const releases = digest.items.filter((item) => item.section === RELEASE_SECTION).length;
   const expectedTop = Math.min(TOP_PICKS, mainCount - releases);
-  if (top !== expectedTop) {
+  // A digest from before D39, when Launches was an ordinary section, kept three picks beside it.
+  if (top !== expectedTop && top !== Math.min(TOP_PICKS, mainCount)) {
     add("error", "top_size", `Top picks has ${top} items; it must have ${expectedTop}.`);
   }
 

@@ -163,20 +163,23 @@ describe("NebiusWriter.write", () => {
   });
 
   // The player bar cut the headline off (2026-10-18); a chapter too long for its one line would too.
+  // The chapter skips the voice and grounding checks, so it may not state what the headline does not.
   it("keeps a chapter that fits the player bar and drops one that does not", async () => {
-    const [short, long] = [material(), material()];
+    const [short, long, invented] = [material(), material(), material()];
     const llm = new FakeLlm(() => ({
       items: [
         { ...good(short.id), chapter: " Drawers keep their speed. " },
+        { ...good(invented.id), chapter: "Springlet 9 ships" },
         {
           ...good(long.id),
           chapter: "Springlet retargets springs mid-flight without resetting velocity",
         },
       ],
     }));
-    const result = await new NebiusWriter({ llm, voice }).write([short, long]);
+    const result = await new NebiusWriter({ llm, voice }).write([short, long, invented]);
     expect(result.written[0]?.chapter).toBe("Drawers keep their speed");
     expect(result.written[1]).not.toHaveProperty("chapter");
+    expect(result.written[2]).not.toHaveProperty("chapter");
   });
 
   it("delimits each source with a fresh random boundary per request", async () => {

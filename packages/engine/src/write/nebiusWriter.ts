@@ -68,10 +68,15 @@ export function cleanField(field: VoiceField, raw: string): string {
 
 /**
  * The writer's chapter label, cleaned like a headline, or null when it is too long for the player
- * bar's one line: the bar then shows the headline, as for a story written before chapters.
+ * bar's one line, carries a dash, or states a number its headline does not: the label skips the
+ * voice and grounding checks the headline passes, so it may only say less than the headline. The
+ * bar then shows the headline, as for a story written before chapters.
  */
-export function chapterLabel(raw: string): string | null {
+export function chapterLabel(raw: string, headline: string): string | null {
   const text = cleanField("headline", raw).replace(/:$/, "");
+  if (/[\u2013\u2014]/.test(text)) return null;
+  const numbers = text.match(/\d+(?:[.,]\d+)?/g) ?? [];
+  if (numbers.some((number) => !headline.includes(number))) return null;
   const words = text.split(" ").filter(Boolean).length;
   const fits = text.length <= VOICE_LIMITS.chapterChars + 4;
   return words >= 1 && words <= VOICE_LIMITS.chapterWords && fits ? text : null;
@@ -148,7 +153,7 @@ export class NebiusWriter implements Writer {
       for (const row of value.items) {
         if (!wanted.has(row.id) || seen.has(row.id)) continue;
         const spoken = row.spoken ? cleanField("spoken", row.spoken) : "";
-        const chapter = row.chapter ? chapterLabel(row.chapter) : null;
+        const chapter = row.chapter ? chapterLabel(row.chapter, row.headline) : null;
         seen.set(row.id, {
           id: row.id,
           headline: cleanField("headline", row.headline),

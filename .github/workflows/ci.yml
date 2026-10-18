@@ -36,7 +36,7 @@ jobs:
           fi
           # The browser suites are the only checks that see CSS and layout: they run for any
           # change the site is built from.
-          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/core/|tokens/|package-lock\.json$)'; then
+          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|package(-lock)?\.json$|tsconfig)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "web=false" >> "$GITHUB_OUTPUT"

@@ -58,6 +58,7 @@ import { mostlyFailed } from "./judgeStage.js";
 import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./plan.js";
 import {
   charsForMinutes,
+  lengthMinutesFor,
   overNarrationLimit,
   sparesOverLength,
   storiesForMinutes,
@@ -87,9 +88,6 @@ interface PassContext {
   /** Minutes the scheduled podcast runs, which sizes the regular briefing; null for other modes. */
   /** Topics the weekly pass leaves out, from the schedule in every mode. */
   weeklySkipTopics: readonly string[];
-  lengthMinutes: number | null;
-  /** Minutes of the weekly podcast, which sizes the weekly pass in any run mode. */
-  weeklyLengthMinutes: number;
   /** 30-day per-source counters, for the small score adjustment from each source's pass rate. */
   sourceStats: SourceStatsFile;
   /** The owner's votes as source and domain preferences, and the headlines the writer is told of. */
@@ -141,8 +139,6 @@ export async function writeStage(
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
-    lengthMinutes: schedule?.length_minutes ?? null,
-    weeklyLengthMinutes: fullSchedule.weekly.length_minutes,
     sourceStats: await readSourceStats(deps.root),
     votePrefs,
     taste,
@@ -203,8 +199,6 @@ async function writePass(
     skipTopics,
     onlyTopics,
     weeklySkipTopics,
-    lengthMinutes,
-    weeklyLengthMinutes,
     sourceStats,
     votePrefs,
   } = context;
@@ -277,12 +271,8 @@ async function writePass(
   // The owner's chosen length sizes the scheduled regular briefing, and the weekly pass takes
   // the weekly podcast's own length. Such a briefing also writes spares, so a story dropped after
   // selection does not come off the length; validation airs as many as fill it.
-  const lengthOf =
-    pass.kind === "regular" && lengthMinutes !== null
-      ? lengthMinutes
-      : pass.kind === "weekly"
-        ? weeklyLengthMinutes
-        : null;
+  // The same rule sizes the judge's pool in the fetch stage (fetchStage.ts).
+  const lengthOf = lengthMinutesFor(context.schedule, pass.kind, context.mode);
   const wanted =
     lengthOf === null
       ? undefined

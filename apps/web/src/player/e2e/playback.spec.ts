@@ -80,22 +80,27 @@ test.describe("playback on a briefing", () => {
     // The owner saw the controls shake as the speed changed (2026-10-11, 2026-10-18): the label
     // changed its length, so it slid inside its pill and moved the skips either side. The skips and
     // the label's own text keep their boxes whatever the speed reads.
-    const boxes = () =>
-      page
-        .locator(".transport .transport-btn, .transport .speed-btn")
-        .filter({ visible: true })
-        .evaluateAll((nodes) =>
-          nodes.map((node) => {
-            const range = document.createRange();
-            range.selectNodeContents(node);
-            const box = node.classList.contains("speed-btn")
-              ? range.getBoundingClientRect()
-              : node.getBoundingClientRect();
-            return `${box.x.toFixed(1)},${box.width.toFixed(1)}`;
-          }),
-        );
+    // Found by role and name, so the guard holds whatever the controls' markup becomes.
+    const steady = [
+      player.dialog.getByRole("button", { name: /^Back \d+ seconds$/ }),
+      player.dialog.getByRole("button", { name: /^Forward \d+ seconds$/ }),
+    ];
+    const boxes = async () => [
+      ...(await Promise.all(
+        steady.map(async (control) => {
+          const box = await control.boundingBox();
+          return `${box?.x.toFixed(1)},${box?.width.toFixed(1)}`;
+        }),
+      )),
+      // The label's own text: the box around it held while the words inside it slid.
+      await speed.evaluate((node) => {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const box = range.getBoundingClientRect();
+        return `${box.x.toFixed(1)},${box.width.toFixed(1)}`;
+      }),
+    ];
     const atOne = await boxes();
-    expect(atOne.length).toBeGreaterThanOrEqual(3);
     // The keyboard: Enter opens the panel on its slider, Tab stays inside, Escape closes only it.
     await speed.focus();
     await page.keyboard.press("Enter");
