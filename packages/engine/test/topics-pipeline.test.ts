@@ -151,7 +151,12 @@ describe("a run with a custom topic", () => {
       // Outside the cap: the main sections still hold their own twelve at most.
       expect(digest.items.length - own.length).toBeLessThanOrEqual(12);
       // The headings are written into the digest, in reading order, custom section last.
-      expect(Object.keys(digest.section_titles ?? {}).at(-1)).toBe("quantum");
+      // A custom section follows the built-in ones; only Launches (release news), when there is one, reads later.
+      expect(
+        Object.keys(digest.section_titles ?? {})
+          .filter((id) => id !== "launches")
+          .at(-1),
+      ).toBe("quantum");
       expect(digest.section_titles?.quantum).toBe("Quantum computing");
 
       // State: fits cached, counters recorded, both in the one commit.

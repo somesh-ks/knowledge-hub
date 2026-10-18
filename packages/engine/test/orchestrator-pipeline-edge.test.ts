@@ -192,6 +192,31 @@ describe("grounding and validation", () => {
     expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
   });
 
+  // A 15-minute briefing writes spares past the digest's 48 stories; with nothing dropped, the
+  // validate stage built a digest of every survivor and failed the schema (2026-10-18 review).
+  it("airs at most the digest's cap when more spares survive than it holds", LONG, async () => {
+    await seed(repo.root, {
+      "config/schedule.json": json({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        length_minutes: 15,
+        skip_topics: [],
+        weekly: { skip_topics: [] },
+      }),
+      // Each blog may send 40 stories, so the 90 written ones reach the judge.
+      "config/sources.json": json({
+        ...sourcesFile(),
+        sources: sourcesFile().sources.map((entry) => ({ ...entry, options: { pool_cap: "40" } })),
+      }),
+    });
+    const world = makeWorld(repo.root, { now: WED, feeds: goodFeeds(90) });
+    const result = await runStage(world);
+    expect(result.report).toMatchObject({ outcome: "published" });
+    const digest = await readDigest(repo.root, DIGEST_PATH);
+    expect(digest.items.length).toBeLessThanOrEqual(48);
+  });
+
   it("re-checks the floor after grounding and records a quiet day", LONG, async () => {
     const feeds = { "blog-a": goodFeeds(8)["blog-a"] as Item[] };
     const ids = feeds["blog-a"].slice(0, 2).map((item) => item.id);

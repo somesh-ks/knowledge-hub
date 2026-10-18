@@ -1,6 +1,14 @@
 # State
 
-Last updated 2026-10-16. Rewrite this file; do not append.
+Last updated 2026-10-18. Rewrite this file; do not append.
+
+Design fixes, 2026-10-18: CI gains a `browser` job running the player and site suites for any change to the site, core or tokens (needs a manual merge: workflow change). The speed button reads a fixed five characters ("1.00x") so its label no longer slides as the speed changes; the speed spec guards it. AGENTS.md: commented design rules are extended, not rewritten. Not verified: the job on GitHub's runner (both suites pass on Linux in a cloud session).
+
+Player bar, 2026-10-18: the bar's title is the story's chapter, a label of at most 5 words and about 22 characters the writer now produces (`chapter` on a digest item; a label over 26 characters or 5 words is dropped), so it fits a 360px phone; older stories show their headline. Under it: the clock, then the story's section ("0:02 / 0:36 · Top picks"), or what the recording is before story 1 and in an episode; the centre clock and "Story N of M" are gone. The volume button holds the bar's right edge and its level opens to the left. Not verified: a live briefing with chapters (the next run writes the first).
+
+Release news, 2026-10-18: library, framework and changelog stories (a release note, or a story judged a developer tool launch) take at most 6% of the selected stories (about a tenth of what airs), are never Top picks, and are filed in the Launches section, which reads last in briefings, weeklies and custom episodes. Not verified: a live briefing.
+
+Episode length, 2026-10-18 ([learnings](learnings.md)): the 15-minute weekly of 2026-10-18 aired 5 minutes because the prefilter sent the judge a daily's 60 candidates and 30% spares could not cover the ~45% that writing, grounding and validation drop. A sized pass now sends the judge 2.4 candidates per story it writes (178 for the 15-minute weekly, 60 for a 5-minute daily), writes 85% spares up to 80 stories (the digest still airs at most 48), and the narration-limit cut waits until the spares are trimmed to the length. Not verified: a live weekly at the new size (next Sunday); Jev judging and the writer cost about three times more stories that day.
 
 PWA and Settings, 2026-10-16 (D123, [the history note](history/2026-10-16-pwa-launch-and-one-model-select.md)): Settings has one AI model select (newest Claude Opus, Sonnet and Haiku, five curated Nebius models); the AI Model page is gone. The manifest names no colours, so an installed app's Android bars and splash follow the system theme. The installed app opens on a 0.9 s launch screen, and the playing cover lights the open player. From the PWA audit: navigation preload, an update check on return, a pruned offline shell with /library, manifest shortcuts, an Android Install row, and a round of press, vote, navigation and player micro-motion; a source can be deleted from its edit panel. Open, the owner's call: offline listening, iOS startup images, the iOS status bar in the light theme. Not verified on a device: the bars after a reinstall, and the hand-off from Android's splash to the launch screen.
 

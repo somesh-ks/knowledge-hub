@@ -77,7 +77,8 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     const previous = shown("Previous story");
     await finger.press(next);
     await expect(player.scrubber).toHaveAttribute("aria-valuetext", /^0:18 of .*story 1 of /);
-    await expect(caption).toContainText("Story 1 of");
+    // The clock leads the line once a story plays (its width sizer is in the text, not in view).
+    await expect(caption).toHaveText(/^0:18/);
     // Previous from the first seconds of story 1 goes back to the start, never forward.
     await finger.press(previous);
     await expect(player.scrubber).toHaveAttribute("aria-valuetext", /^0:00 of [0-9:]+$/);

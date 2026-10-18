@@ -256,8 +256,8 @@ describe("sections and top picks", () => {
     expect(bySection[a.item.id]).toBe("top");
     expect(bySection[b.item.id]).toBe("top");
     expect(bySection[c.item.id]).toBe("top");
-    // Developer tool launches now file under Design Engineering (D39).
-    expect(bySection[d.item.id]).toBe("ui-craft");
+    // Library, framework and changelog news files under Launches, read last (2026-10-18).
+    expect(bySection[d.item.id]).toBe("launches");
     expect(bySection[e.item.id]).toBe("ui-craft");
     expect(result.selected.filter((s) => s.section === "top")).toHaveLength(3);
   });
@@ -277,8 +277,8 @@ describe("sections and top picks", () => {
       "top",
       "top",
       "design",
-      "ui-craft",
       "ai",
+      "launches",
     ]);
   });
 
@@ -333,7 +333,7 @@ describe("sections and top picks", () => {
         scored("design_engineering_craft", 0.9),
         scored("hci_empirical_research", 0.8),
         scored("frontier_model_releases", 0.7),
-        scored("developer_tool_launches", 0.6),
+        scored("ui_component_primitives", 0.6),
       ],
       kind: "regular",
       floor: 3,
@@ -462,12 +462,19 @@ describe("topics and length", () => {
     expect(result.selected).toHaveLength(25);
     const unsized = selectItems({ scored: craft, kind: "weekly", floor: 3, cap: 48 });
     expect(unsized.selected).toHaveLength(capFor("weekly"));
+    // The 2026-10-18 weekly: its spares stopped at the digest's 48, below what grounding loses.
+    const week = Array.from({ length: 80 }, (_, i) =>
+      scored("design_engineering_craft", 0.9 - i * 0.001),
+    );
+    const spares = selectItems({ scored: week, kind: "weekly", floor: 3, cap: 70, total: 70 });
+    expect(spares.selected).toHaveLength(70);
   });
 });
 
 describe("release notes", () => {
-  // Package release notes cleared the bar and filled a third of the October weekly (loop/NOTES.md, I1).
-  it("keeps patch releases out and gives release notes at most a tenth of the briefing", () => {
+  // Package release notes cleared the bar and filled a third of the October weekly (loop/NOTES.md,
+  // I1), and the 2026-10-18 weekly opened its Top picks on a shadcn release.
+  it("keeps patch releases out, holds release notes to a small share and reads them last", () => {
     const releases = ["kit 1.0", "@acme/ui@2.1.0", "tool 0.16", "lib v3.0", "cli 4.2"].map(
       (title, i) => scored("developer_tool_launches", 0.95 - i * 0.01, { title }),
     );
@@ -487,9 +494,11 @@ describe("release notes", () => {
     expect(result.selected).toHaveLength(20);
     expect(ids(result.selected).filter((id) => ids(releases).includes(id))).toEqual([
       releases[0]?.item.id,
-      releases[1]?.item.id,
     ]);
     expect(result.dropped.find((d) => d.id === patch.item.id)?.reason).toBe("release_note");
+    // It outscores every post, and still is no Top pick and closes the briefing.
+    expect(result.selected.at(-1)?.item.id).toBe(releases[0]?.item.id);
+    expect(result.selected.at(-1)?.section).toBe("launches");
   });
 });
 
@@ -704,7 +713,7 @@ describe("the tech allowance", () => {
     }
   });
 
-  it("lists the sections in the order of the contract, retired ones last", () => {
+  it("lists the sections in the order of the contract, releases last", () => {
     expect(SECTIONS).toEqual([
       "top",
       "design",
@@ -734,10 +743,10 @@ describe("the tech allowance", () => {
       "design",
       "ui-craft",
       "ui-craft",
-      "ui-craft",
       "ai",
       "tech",
       "tech",
+      "launches",
     ]);
   });
 
@@ -927,13 +936,13 @@ describe("one release per repository", () => {
     const a = release("acme/kit", "v1.4.0", 0.6, "2026-10-05T00:00:00Z");
     const b = release("acme/other", "v3.0.0", 0.6, "2026-10-05T00:00:00Z");
     const post = scored("design_engineering_craft", 0.7);
-    // Release notes take a tenth of the briefing, so two need a briefing of twenty.
+    // Release notes take 6% of the briefing, so two need a briefing of 34.
     const result = selectItems({
       scored: [a, b, post],
       kind: "regular",
       floor: 1,
-      cap: 20,
-      total: 20,
+      cap: 40,
+      total: 40,
     });
     expect(result.selected).toHaveLength(3);
     expect(result.dropped).toEqual([]);

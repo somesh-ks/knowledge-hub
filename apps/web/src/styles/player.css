@@ -822,7 +822,7 @@
   min-width: 0;
 }
 
-/* The title, then one quieter line under it: what is playing, then where it sits in the briefing. */
+/* The chapter, then one quieter line under it: the clock, then the story's section. */
 .dock-caption {
   overflow: hidden;
   color: var(--color-on-surface-muted);
@@ -864,15 +864,6 @@
 .dock-wide,
 .dock-tools {
   display: none;
-}
-
-.dock-time {
-  align-items: baseline;
-  gap: var(--space-1);
-  margin-inline-start: var(--space-3);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  white-space: nowrap;
 }
 
 /*
@@ -1305,12 +1296,6 @@
   .dock-btn[data-primary]:active {
     background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
-
-  /* Centred on the row, as the buttons are, not on its baseline. */
-  .dock-time {
-    display: inline-flex;
-    align-items: center;
-  }
 }
 
 /* Under the open page the bar stays, and with a mouse on a wide screen it keeps its whole transport:
@@ -1319,22 +1304,16 @@
    so the bar shows only what is playing: nothing said twice, and one filled play control. Hidden in
    place, so the middle group holds still. */
 @media (min-width: 40rem) and (not ((min-width: 64rem) and (hover: hover) and (pointer: fine))) {
-  /* With its buttons gone the transport keeps their height, so the clock it centres stays level with
-     the cover and the open group, as it is while the page is closed. */
+  /* With its buttons gone the transport keeps their height, so the bar keeps its height. */
   .player[data-open="true"] .dock-transport {
     min-height: var(--mini-player-control-size);
     visibility: hidden;
   }
 
-  /* The buttons leave the layout, not just the view: the clock that a mouse keeps (below) then
-     sits against the seek line instead of in the room they left. The middle group is placed by the
-     bar's outer columns, so it holds still. */
+  /* The buttons leave the layout, not just the view. The middle group is placed by the bar's outer
+     columns, so it holds still. */
   .player[data-open="true"] .dock-transport > .dock-btn {
     display: none;
-  }
-
-  .player[data-open="true"] .dock-time {
-    margin-inline-start: 0;
   }
 }
 
@@ -1378,7 +1357,7 @@
     justify-self: end;
   }
 
-  /* The level shows beside the button while the pointer is over the control or focus is inside it
+  /* The level shows left of the button while the pointer is over the control or focus is inside it
      by keyboard, and while it is dragged. Its room is always reserved, so nothing around it moves,
      and the hidden slider stays focusable and under the pointer: no gap to cross. It hides 400 ms
      after the pointer leaves. */
@@ -1391,7 +1370,7 @@
   }
 
   /* The one timeline is the bar's: a 16px strip along its edge, a target for a mouse, with the
-     clock beside the transport. The player page has none (see "nothing said twice" below). Under
+     clock under the chapter title. The player page has none (see "nothing said twice" below). Under
      this width, or with a finger, the page's scrubber is the only one, so the two never show
      together. */
   .dock-seek,
@@ -1743,9 +1722,9 @@
   place-items: center;
 }
 
-/* A quiet pill, so it reads as a control and not as a caption. It is as wide as its longest label
-   ("0.55x") in tabular figures, so the skips either side stay put as the speed changes. A press
-   shows on the fill; the words keep their size. */
+/* A quiet pill, so it reads as a control and not as a caption. Its label is always five characters
+   ("1.00x", SpeedControl.tsx) in tabular figures, so neither the label nor the skips either side
+   move as the speed changes. A press shows on the fill; the words keep their size. */
 .speed-btn {
   display: grid;
   place-items: center;

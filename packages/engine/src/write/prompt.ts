@@ -31,6 +31,10 @@ const FIELD_RULES = [
     'Not a changelog line ("X 2.0 released with Y"), not a colon list, not title case. Name the product, number or result.',
   ].join(" "),
   [
+    `- chapter: 2 to ${VOICE_LIMITS.chapterWords} words and at most ${VOICE_LIMITS.chapterChars} characters naming the story for a phone's player bar, so it fits on one line: the subject and what changed ("shadcn moves to Zod 4", "Pixels get Android 17").`,
+    "No trailing period, no colon, no version strings beyond the product's own name, and never the headline cut short.",
+  ].join(" "),
+  [
     `- spoken: the same story told aloud by a host, ${VOICE_LIMITS.spokenMinSentences} to ${VOICE_LIMITS.spokenSentences} sentences, ${VOICE_LIMITS.spokenMinWords} to ${VOICE_LIMITS.spokenWords} words and at most ${VOICE_LIMITS.spokenChars} characters in total.`,
     'Conversational but not chatty: use contractions and open with a natural lead-in instead of reading the headline as a title ("Google has a new Pixel, and the headline feature is the screen.").',
     'Open on the news itself, never on a setup such as "Here\'s a..." or "Most teams..., but".',
@@ -82,7 +86,7 @@ export function writerSystemPrompt(voice: VoiceConfig, boundary: string): string
     untrustedInstruction(boundary),
     "",
     "OUTPUT",
-    'Reply with one JSON object: {"items":[{"id":"...","headline":"...","summary":"...","spoken":"..."}]}, one entry per source, keeping each id exactly.',
+    'Reply with one JSON object: {"items":[{"id":"...","headline":"...","chapter":"...","summary":"...","spoken":"..."}]}, one entry per source, keeping each id exactly.',
     "Write the summary first, then the spoken version from it.",
   ].join("\n");
 }
@@ -107,7 +111,7 @@ export function writerUserMessage(
 ): string {
   const note = tasteNote(taste, boundary);
   return [
-    `Write the headline, summary and spoken version for each of these ${items.length} sources.`,
+    `Write the headline, chapter, summary and spoken version for each of these ${items.length} sources.`,
     "",
     ...items.map((item) => materialBlock(item, boundary)),
     // Each request sees four stories, so without the rest of the briefing the writer repeated

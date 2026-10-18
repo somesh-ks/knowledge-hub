@@ -15,7 +15,6 @@ import {
   itemIndexAt,
   itemPositionLabel,
   sectionIndexOfItem,
-  storyCaption,
   storySectionName,
 } from "./timeline";
 
@@ -123,10 +122,6 @@ describe("item lookup", () => {
     expect(findItemIndexById(timeline, "c1b2c3d4e5f6")).toBe(2);
     expect(findItemIndexById(timeline, "nope")).toBe(-1);
     expect(itemPositionLabel(timeline, 4 - 1)).toBe("Story 4 of 4");
-    expect(storyCaption(timeline, 1, "Design engineering")).toBe(
-      "Story 2 of 4 · Design engineering",
-    );
-    expect(storyCaption(timeline, 0, "")).toBe("Story 1 of 4");
     // An episode's one section is a placeholder: its position is told without it.
     const digest = makeDigest();
     expect(storySectionName(digest, { title: "Top picks" })).toBe("Top picks");

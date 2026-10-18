@@ -46,6 +46,8 @@ export interface GatherInput {
    * everything else as every general story is.
    */
   probeGeneral?: readonly Source[];
+  /** The prefilter's main cap, sized to the stories the pass writes; absent keeps its default. */
+  poolCap?: number;
 }
 
 export interface GatherResult {
@@ -170,7 +172,13 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
         })
       : null;
   const deduped = dedupe({ items, sources: sources.sources, seen });
-  const filtered = prefilter({ items: deduped.items, preferences, sources: sources.sources, now });
+  const filtered = prefilter({
+    items: deduped.items,
+    preferences,
+    sources: sources.sources,
+    now,
+    ...(input.poolCap === undefined ? {} : { cap: input.poolCap }),
+  });
   const kept = new Set(filtered.items.map((item) => item.id));
   const leftovers = deduped.items.filter((item) => !kept.has(item.id));
 

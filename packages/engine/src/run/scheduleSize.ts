@@ -1,4 +1,5 @@
-import { PODCAST_CHARS_PER_MINUTE } from "@dispatch/core";
+import { type DigestKind, PODCAST_CHARS_PER_MINUTE, type ScheduleFile } from "@dispatch/core";
+import type { RunMode } from "../gate/decideRun.js";
 
 /**
  * Spoken characters per story, its share of the frame (hello, section bridges, sign-off)
@@ -50,13 +51,49 @@ export function overNarrationLimit(
  * writes beyond what it airs. Every story the writer, the voice check or grounding drops after
  * selection used to come off the owner's length: the 2026-10-15 daily chose 14 stories for five
  * minutes and published 4 (4 not written, 6 dropped by grounding). Validation keeps the best
- * survivors up to the length and leaves the rest unaired.
+ * survivors up to the length and leaves the rest unaired. Writing, grounding and validation lose
+ * about 45% of what selection chose (2026-10-09: 6 of 15 written; the 2026-10-18 weekly: 13 of 27
+ * selected), so a 0.3 share left the 15-minute weekly at 14 stories and 5 minutes. Covering a
+ * 45% loss takes a share of at least 0.82.
  */
-export const SPARE_SHARE = 0.3;
+export const SPARE_SHARE = 0.85;
+
+/**
+ * Stories a length-sized briefing may select and write, spares included. Above the digest's hard
+ * maximum (48), which holds what airs: a 15-minute weekly wants 40 stories and writes 74.
+ */
+export const WRITE_MAX = 80;
 
 /** The stories to select and write for a briefing of `wanted` stories, spares included. */
-export function withSpares(wanted: number, hardMax: number): number {
-  return Math.min(hardMax, wanted + Math.ceil(wanted * SPARE_SHARE));
+export function withSpares(wanted: number, most = WRITE_MAX): number {
+  return Math.min(most, wanted + Math.ceil(wanted * SPARE_SHARE));
+}
+
+/**
+ * Candidates the prefilter sends to the judge per story a sized briefing writes: its fixed 60 for a
+ * five-minute daily's 25. The pool was 60 whatever the length, so the 15-minute weekly of
+ * 2026-10-18 had 99 qualifying stories (most of them general news and release notes held to their
+ * own allowances) and filled 27 of its 52 slots.
+ */
+export const CANDIDATES_PER_STORY = 2.4;
+
+/** The prefilter's main cap for a briefing that writes `written` stories; never below `floor`. */
+export function poolCapFor(written: number, floor: number): number {
+  return Math.max(floor, Math.ceil(written * CANDIDATES_PER_STORY));
+}
+
+/**
+ * Minutes that size a pass: the weekly podcast's length for the weekly pass in any mode, the daily
+ * podcast's for a scheduled regular briefing, none otherwise.
+ */
+export function lengthMinutesFor(
+  schedule: Pick<ScheduleFile, "length_minutes" | "weekly">,
+  kind: DigestKind,
+  mode: RunMode,
+): number | null {
+  if (kind === "weekly") return schedule.weekly.length_minutes;
+  if (kind === "regular" && mode === "scheduled") return schedule.length_minutes;
+  return null;
 }
 
 /** Narration characters a briefing of this many minutes holds at the measured pace. */

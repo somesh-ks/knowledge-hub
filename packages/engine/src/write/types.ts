@@ -15,6 +15,8 @@ export interface SourceMaterial {
 export interface WrittenItem {
   id: string;
   headline: string;
+  /** A few words naming the story for the player bar; absent when the writer gave none that fit. */
+  chapter?: string | undefined;
   summary: string;
   /** The story as a host would tell it aloud. Narration only; absent when it failed a check. */
   spoken?: string | undefined;

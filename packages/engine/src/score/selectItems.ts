@@ -13,7 +13,13 @@ import {
   TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
-import { isPatchRelease, isReleaseNote, RELEASE_NOTE_SHARE } from "./releaseNotes.js";
+import {
+  isPatchRelease,
+  isReleaseNote,
+  isReleaseStory,
+  RELEASE_NOTE_SHARE,
+  RELEASE_SECTION,
+} from "./releaseNotes.js";
 import { sameStoryRepeats } from "./sameStory.js";
 import type { Candidate, ScoredItem, SelectedItem } from "./types.js";
 
@@ -174,6 +180,10 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
   const ranked = [...chosen].sort(compareCandidates);
   let picks = 0;
   const withSection: SelectedItem[] = ranked.map((candidate) => {
+    // Library, framework and changelog news is never a Top pick and closes the episode.
+    if (!hasOwnSection(candidate) && isReleaseStory(candidate)) {
+      return { ...candidate, section: RELEASE_SECTION };
+    }
     const pick = !hasOwnSection(candidate) && picks < TOP_PICKS;
     if (pick) picks += 1;
     return { ...candidate, section: pick ? "top" : candidate.home };
@@ -185,9 +195,11 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
     if (!best.has(entry.section)) best.set(entry.section, index);
   });
   const order = (section: string): number =>
-    isBuiltinSection(section)
-      ? SECTIONS.indexOf(section)
-      : SECTIONS.length + (best.get(section) ?? 0);
+    section === RELEASE_SECTION
+      ? Number.MAX_SAFE_INTEGER
+      : isBuiltinSection(section)
+        ? SECTIONS.indexOf(section)
+        : SECTIONS.length + (best.get(section) ?? 0);
   return withSection.sort((a, b) => {
     if (a.section !== b.section) return order(a.section) - order(b.section);
     return compareCandidates(a, b);
@@ -323,7 +335,9 @@ export function eligibility(
  */
 export function selectItems(input: SelectInput): SelectResult {
   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
-  const total = Math.min(input.total ?? VOICE_LIMITS.items.hardMax, VOICE_LIMITS.items.hardMax);
+  // A briefing sized by the owner's length selects its spares too, so its total may pass the
+  // digest's hard maximum; validation airs at most that many.
+  const total = input.total ?? VOICE_LIMITS.items.hardMax;
   const dropped: DroppedItem[] = [];
   const candidates: Candidate[] = [];
 
@@ -371,15 +385,15 @@ export function selectItems(input: SelectInput): SelectResult {
   // The main sections leave room for one story from each section with an allowance of its own.
   const ownSections = new Set(own.map((candidate) => candidate.home)).size;
   // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
-  const kindCap = input.total === undefined ? capFor(input.kind) : VOICE_LIMITS.items.hardMax;
+  const kindCap = input.total === undefined ? capFor(input.kind) : total;
   const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownSections));
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();
   const releaseRoom = Math.max(1, Math.floor(limit * RELEASE_NOTE_SHARE));
-  const releasesIn = (): number => [...chosen].filter((c) => isReleaseNote(c.item)).length;
+  const releasesIn = (): number => [...chosen].filter(isReleaseStory).length;
   const fits = (candidate: Candidate): boolean =>
-    !isReleaseNote(candidate.item) || releasesIn() < releaseRoom;
+    !isReleaseStory(candidate) || releasesIn() < releaseRoom;
   const take = (candidate: Candidate): void => {
     chosen.add(candidate);
     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
@@ -432,8 +446,7 @@ export function selectItems(input: SelectInput): SelectResult {
 
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
-      const reason =
-        isReleaseNote(candidate.item) && !fits(candidate) ? "release_note" : "over_cap";
+      const reason = isReleaseStory(candidate) && !fits(candidate) ? "release_note" : "over_cap";
       dropped.push({ id: candidate.item.id, reason, score: candidate.score });
     }
   }

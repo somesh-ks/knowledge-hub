@@ -76,17 +76,42 @@ test.describe("playback on a briefing", () => {
     const speed = player.dialog.getByRole("button", { name: /^Playback speed / });
     const panel = page.getByRole("dialog", { name: "Playback speed" });
     const slider = page.getByRole("slider", { name: "Playback speed" });
-    await expect(speed).toHaveText("1x");
+    await expect(speed).toHaveAccessibleName("Playback speed 1x");
+    // The owner saw the controls shake as the speed changed (2026-10-11, 2026-10-18): the label
+    // changed its length, so it slid inside its pill and moved the skips either side. The skips and
+    // the label's own text keep their boxes whatever the speed reads.
+    // Found by role and name, so the guard holds whatever the controls' markup becomes.
+    const steady = [
+      player.dialog.getByRole("button", { name: /^Back \d+ seconds$/ }),
+      player.dialog.getByRole("button", { name: /^Forward \d+ seconds$/ }),
+    ];
+    const boxes = async () => [
+      ...(await Promise.all(
+        steady.map(async (control) => {
+          const box = await control.boundingBox();
+          return `${box?.x.toFixed(1)},${box?.width.toFixed(1)}`;
+        }),
+      )),
+      // The label's own text: the box around it held while the words inside it slid.
+      await speed.evaluate((node) => {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const box = range.getBoundingClientRect();
+        return `${box.x.toFixed(1)},${box.width.toFixed(1)}`;
+      }),
+    ];
+    const atOne = await boxes();
     // The keyboard: Enter opens the panel on its slider, Tab stays inside, Escape closes only it.
     await speed.focus();
     await page.keyboard.press("Enter");
     await expect(slider).toBeFocused();
     await page.keyboard.press("ArrowRight");
-    await expect(speed).toHaveText("1.05x");
+    await expect(speed).toHaveAccessibleName("Playback speed 1.05x");
+    expect(await boxes()).toEqual(atOne);
     await page.keyboard.press("Tab");
     await expect(panel.getByRole("button", { name: "1x" })).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(speed).toHaveText("1x");
+    await expect(speed).toHaveAccessibleName("Playback speed 1x");
     await page.keyboard.press("Escape");
     await expect(panel).toBeHidden();
     await expect(speed).toBeFocused();

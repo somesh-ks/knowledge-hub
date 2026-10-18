@@ -1,3 +1,4 @@
+import { VOICE_LIMITS } from "@dispatch/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
@@ -41,6 +42,8 @@ const WriterOutput = z.object({
     z.object({
       id: z.string(),
       headline: z.string(),
+      // Nullish like spoken: without one the player bar shows the headline.
+      chapter: z.string().nullish(),
       summary: z.string(),
       // Nullish so a model that skips it, or sends null, still delivers the item; narration then
       // reads the summary. The strict response format needs the key to be nullable.
@@ -61,6 +64,22 @@ export function cleanField(field: VoiceField, raw: string): string {
   if (field === "why") text = text.replace(/^why:\s*/i, "");
   if (field !== "summary" && field !== "spoken") text = text.replace(/\.$/, "");
   return text;
+}
+
+/**
+ * The writer's chapter label, cleaned like a headline, or null when it is too long for the player
+ * bar's one line, carries a dash, or states a number its headline does not: the label skips the
+ * voice and grounding checks the headline passes, so it may only say less than the headline. The
+ * bar then shows the headline, as for a story written before chapters.
+ */
+export function chapterLabel(raw: string, headline: string): string | null {
+  const text = cleanField("headline", raw).replace(/:$/, "");
+  if (/[\u2013\u2014]/.test(text)) return null;
+  const numbers = text.match(/\d+(?:[.,]\d+)?/g) ?? [];
+  if (numbers.some((number) => !headline.includes(number))) return null;
+  const words = text.split(" ").filter(Boolean).length;
+  const fits = text.length <= VOICE_LIMITS.chapterChars + 4;
+  return words >= 1 && words <= VOICE_LIMITS.chapterWords && fits ? text : null;
 }
 
 function chunk<T>(items: readonly T[], size: number): T[][] {
@@ -134,9 +153,11 @@ export class NebiusWriter implements Writer {
       for (const row of value.items) {
         if (!wanted.has(row.id) || seen.has(row.id)) continue;
         const spoken = row.spoken ? cleanField("spoken", row.spoken) : "";
+        const chapter = row.chapter ? chapterLabel(row.chapter, row.headline) : null;
         seen.set(row.id, {
           id: row.id,
           headline: cleanField("headline", row.headline),
+          ...(chapter ? { chapter } : {}),
           summary: cleanField("summary", row.summary),
           ...(spoken.length > 0 ? { spoken } : {}),
         });

@@ -90,7 +90,12 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
 
     // validateDigest catches what the earlier stages cannot see in isolation. An error tied to an
     // item drops that item; an error about the digest as a whole fails the stage.
-    let survivors: GroundedItem[] = grounding.kept;
+    // A sized briefing writes spares past the digest's hard cap (WRITE_MAX), and a digest holds at
+    // most that cap, so the loop validates the best stories that fit; one it drops makes room for
+    // the next spare. What lies past the cap is a spare that could never air.
+    const scoreOf = (g: GroundedItem): number => entryOf.get(g.item.id)?.score ?? 0;
+    let ranked: GroundedItem[] = [...grounding.kept].sort((a, b) => scoreOf(b) - scoreOf(a));
+    let survivors: GroundedItem[] = ranked.slice(0, VOICE_LIMITS.items.hardMax);
     const validateDrops: ValidateDrop[] = [];
     let warnings = 0;
     while (survivors.length >= VOICE_LIMITS.items.floor) {
@@ -105,8 +110,8 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         verified: false,
         topics,
       });
-      // Selection already held the pass to its length or its kind's cap, and this digest holds
-      // only what selection chose, so the count check here is the digest's hard cap.
+      // Selection already held the pass to its length or its kind's cap, and the window above holds
+      // this digest to its hard cap, so the count check here is that cap.
       const report = validateDigest(digest, {
         pool: pool.items,
         sources,
@@ -127,7 +132,8 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       }
       if (bad.size === 0) break;
       for (const [id, messages] of bad) validateDrops.push({ id, reason: messages.join(" ") });
-      survivors = survivors.filter((g) => !bad.has(g.item.id));
+      ranked = ranked.filter((g) => !bad.has(g.item.id));
+      survivors = ranked.slice(0, VOICE_LIMITS.items.hardMax);
     }
 
     // A briefing sized by the owner's length wrote spares: air the best survivors that fill it.
@@ -143,6 +149,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
             VOICE_LIMITS.items.floor,
           ),
     );
+    for (const g of ranked.slice(VOICE_LIMITS.items.hardMax)) spare.add(g.item.id);
     survivors = survivors.filter((g) => !spare.has(g.item.id));
 
     const outcome = survivors.length < VOICE_LIMITS.items.floor ? "nothing" : "selected";
