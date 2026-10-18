@@ -77,12 +77,27 @@ test.describe("playback on a briefing", () => {
     const panel = page.getByRole("dialog", { name: "Playback speed" });
     const slider = page.getByRole("slider", { name: "Playback speed" });
     await expect(speed).toHaveText("1x");
+    // The owner saw the controls shake as the speed changed (2026-10-11): the label's width moved
+    // the skips either side. Every transport control keeps its box whatever the speed reads.
+    const boxes = () =>
+      page
+        .locator(".transport .transport-btn")
+        .filter({ visible: true })
+        .evaluateAll((nodes) =>
+          nodes.map((node) => {
+            const box = node.getBoundingClientRect();
+            return `${box.x.toFixed(1)},${box.width.toFixed(1)}`;
+          }),
+        );
+    const atOne = await boxes();
+    expect(atOne.length).toBeGreaterThanOrEqual(2);
     // The keyboard: Enter opens the panel on its slider, Tab stays inside, Escape closes only it.
     await speed.focus();
     await page.keyboard.press("Enter");
     await expect(slider).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(speed).toHaveText("1.05x");
+    expect(await boxes()).toEqual(atOne);
     await page.keyboard.press("Tab");
     await expect(panel.getByRole("button", { name: "1x" })).toBeFocused();
     await page.keyboard.press("Enter");

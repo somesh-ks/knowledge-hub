@@ -31,11 +31,14 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
 - Code review: PRs get none by default. There are two ways to get one. (1) The `review` label on GitHub: add it to the PR when you open it; `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so a human merges it after the review lands (to re-review, remove and re-add the label). (2) The `/code-review` skill: run it on the branch or the commit range yourself, before the PR or after the merge.
 - TypeScript stays on 6.x.
+- Design fixes are load-bearing. A CSS rule or markup whose comment says why it exists (a date, a D-number, a sizer, "so ... stays put", a specificity bump) is never removed or rewritten to make another task work: extend it, or stop and ask. Before changing a selector in a shared stylesheet (`player.css`, `primitives.css`, `buttons.css`, the tokens), read its history (`git log -L '/<selector>/,+20:<file>'`) and search the [ledger](docs/design-engineering-ledger.md) for it. Unit tests and CI never see CSS: only the browser suites do.
+- Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
 
 ## Tests
 
 Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/postmortem-test-suite.md)).
 
+- An owner-reported "it moves, shakes or jumps" fix gets one browser assertion that the thing holds still, comparing its box to itself, never to a pinned value (the speed spec in `playback.spec.ts` is the pattern).
 - A test names the bug it prevents: no sentence, no test. Search the unit, `apps/web/e2e` and `apps/web/src/player/e2e` suites for the behaviour first, and extend or replace a test instead of adding one.
 - Test journeys across pages, reload, offline and time, not states. Never pin copy, CSS, class names, markup, geometry or constants: screenshots and critics judge those.
 - Fake the clock, crypto and network; freeze fixtures; never sleep or read live config. Test the product page, not a lab.
