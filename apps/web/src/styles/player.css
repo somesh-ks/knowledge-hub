@@ -1722,9 +1722,9 @@
   place-items: center;
 }
 
-/* A quiet pill, so it reads as a control and not as a caption. It is as wide as its longest label
-   ("0.55x") in tabular figures, so the skips either side stay put as the speed changes. A press
-   shows on the fill; the words keep their size. */
+/* A quiet pill, so it reads as a control and not as a caption. Its label is always five characters
+   ("1.00x", SpeedControl.tsx) in tabular figures, so neither the label nor the skips either side
+   move as the speed changes. A press shows on the fill; the words keep their size. */
 .speed-btn {
   display: grid;
   place-items: center;

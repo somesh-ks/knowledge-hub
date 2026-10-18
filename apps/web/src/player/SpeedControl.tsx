@@ -13,9 +13,18 @@ import { usePlayerState } from "./hooks/usePlayer";
 /** The gap between the button and its panel, and the least the panel keeps from the window's edge. */
 const PANEL_GAP_PX = 8;
 
-/** "1x", "1.25x", "0.5x": no trailing zeros. */
+/** "1x", "1.25x", "0.5x": no trailing zeros. What is said, and the presets, which never change. */
 export function rateLabel(rate: number): string {
   return `${Number(rate.toFixed(2))}x`;
+}
+
+/**
+ * "1.00x", "1.05x", "0.50x": the button's label, always five characters. Tabular digits keep each
+ * digit one width, but "1x" against "1.05x" changed the label's length, so as the speed moved the
+ * centred label slid by up to 11px (the owner: "not having set character width", 2026-10-18).
+ */
+export function rateFace(rate: number): string {
+  return `${rate.toFixed(2)}x`;
 }
 
 /**
@@ -140,7 +149,7 @@ export default function SpeedControl() {
         aria-label={`Playback speed ${rateLabel(state.rate)}`}
         onClick={show}
       >
-        {rateLabel(state.rate)}
+        {rateFace(state.rate)}
       </button>
       <dialog
         ref={panelRef}
