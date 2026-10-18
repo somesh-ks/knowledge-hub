@@ -16,7 +16,7 @@ import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
 import { loadPassPool } from "./passPool.js";
 import { markStage, type Plan, passFile, requireStage } from "./plan.js";
-import { sparesOverLength, toldChars } from "./scheduleSize.js";
+import { sparesOverLength, toldChars, WRITE_MAX } from "./scheduleSize.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 
 type SelectionItem = Selection["items"][number];
@@ -106,13 +106,14 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         topics,
       });
       // Selection already held the pass to its length or its kind's cap, and this digest holds
-      // only what selection chose, so the count check here is the digest's hard cap.
+      // only what selection chose, spares included, so the count check here is the write ceiling;
+      // what airs is held to the digest's hard cap below and again at commit.
       const report = validateDigest(digest, {
         pool: pool.items,
         sources,
         linter,
         topics,
-        cap: VOICE_LIMITS.items.hardMax,
+        cap: Math.max(VOICE_LIMITS.items.hardMax, WRITE_MAX),
       });
       warnings = report.warnings;
       const general = report.issues.find((i) => i.severity === "error" && !i.itemId);
@@ -144,6 +145,17 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
           ),
     );
     survivors = survivors.filter((g) => !spare.has(g.item.id));
+    if (survivors.length > VOICE_LIMITS.items.hardMax) {
+      const best = new Set(
+        survivors
+          .map((g) => entryOf.get(g.item.id) as SelectionItem)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, VOICE_LIMITS.items.hardMax)
+          .map((entry) => entry.id),
+      );
+      for (const g of survivors) if (!best.has(g.item.id)) spare.add(g.item.id);
+      survivors = survivors.filter((g) => best.has(g.item.id));
+    }
 
     const outcome = survivors.length < VOICE_LIMITS.items.floor ? "nothing" : "selected";
     const finalists = outcome === "nothing" ? [] : survivors;

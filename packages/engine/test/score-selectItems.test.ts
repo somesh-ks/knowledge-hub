@@ -462,6 +462,12 @@ describe("topics and length", () => {
     expect(result.selected).toHaveLength(25);
     const unsized = selectItems({ scored: craft, kind: "weekly", floor: 3, cap: 48 });
     expect(unsized.selected).toHaveLength(capFor("weekly"));
+    // The 2026-10-18 weekly: its spares stopped at the digest's 48, below what grounding loses.
+    const week = Array.from({ length: 80 }, (_, i) =>
+      scored("design_engineering_craft", 0.9 - i * 0.001),
+    );
+    const spares = selectItems({ scored: week, kind: "weekly", floor: 3, cap: 70, total: 70 });
+    expect(spares.selected).toHaveLength(70);
   });
 });
 

@@ -1,15 +1,17 @@
 import { rm } from "node:fs/promises";
-import { type SourceStatsFile, stockholmDate } from "@dispatch/core";
+import { type SourceStatsFile, stockholmDate, VOICE_LIMITS } from "@dispatch/core";
 import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
 import type { SourceResult } from "../fetch/types.js";
+import { DEFAULT_CAP } from "../prefilter/prefilter.js";
 import {
   createFileProfileStore,
   dropBlocked,
   isBlockedSource,
   OWNER_ID,
 } from "../profile/profile.js";
+import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
 import { readSeen, readSourceHealth, readSourceStats, writeSourceHealth } from "../state/store.js";
@@ -17,6 +19,7 @@ import { withRunJudgments } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
 import { type GatherResult, gatherPool } from "./gatherPool.js";
 import { markStage, type Plan, type PlanPass, passFile, runJudgmentsPath } from "./plan.js";
+import { lengthMinutesFor, poolCapFor, storiesForMinutes, withSpares } from "./scheduleSize.js";
 import {
   answeredBefore,
   pickSample,
@@ -150,6 +153,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       ? undefined
       : plan.passes.find((pass) => pass.kind === "regular");
   const planned = samplePass ? await planSample(deps, deps.now()) : null;
+  const schedule = await loadSchedule(deps.root);
   for (const pass of plan.passes) {
     const now = deps.now();
     const sampling = pass === samplePass && planned !== null;
@@ -171,6 +175,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       window: { from: new Date(pass.window.from), to: new Date(pass.window.to) },
       setup: deps.fetch,
       ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
+      ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode)),
     });
     await writePool(passFile(deps.root, pass.id, "pool.json"), gathered.pool);
     // The general stories live beside the pool, never in it. A file left by an earlier attempt
@@ -236,4 +241,14 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
     });
   }
   return { stage: "fetch", ok: true, dry_run: plan.dry_run, passes };
+}
+
+/**
+ * A pass sized by a length sends the judge candidates in proportion to the stories it writes, so a
+ * 15-minute weekly is not chosen from the pool of a five-minute daily.
+ */
+function poolCapOf(minutes: number | null): { poolCap?: number } {
+  if (minutes === null) return {};
+  const wanted = storiesForMinutes(minutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax);
+  return { poolCap: poolCapFor(withSpares(wanted), DEFAULT_CAP) };
 }

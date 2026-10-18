@@ -62,6 +62,7 @@ import {
   sparesOverLength,
   storiesForMinutes,
   toldChars,
+  WRITE_MAX,
   withSpares,
 } from "./scheduleSize.js";
 import { countSample, mergeSampleCounts, readSampleFiles } from "./scoreSample.js";
@@ -290,11 +291,8 @@ async function writePass(
     scored: [...scored, ...generalScored],
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    cap: wanted === undefined ? capFor(pass.kind) : VOICE_LIMITS.items.hardMax,
-    total:
-      wanted === undefined
-        ? VOICE_LIMITS.items.hardMax
-        : withSpares(wanted, VOICE_LIMITS.items.hardMax),
+    cap: wanted === undefined ? capFor(pass.kind) : WRITE_MAX,
+    total: wanted === undefined ? VOICE_LIMITS.items.hardMax : withSpares(wanted),
     weights: preferences.weights,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.
@@ -455,13 +453,15 @@ async function writePass(
   }
 
   const keptIds = new Set(voice.passed.map((p) => p.item.id));
-  // One narration request carries the whole episode, so the stories must fit it together.
+  // One narration request carries the whole episode, so the stories must fit it together. A
+  // sized briefing's spares are cut to its length after grounding (validateStage), and no length
+  // reaches the request's limit, so cutting them here would only cut the spares grounding needs.
   const told = voice.passed.map((p) => ({
     id: p.item.id,
     score: chosen.selected.find((sel) => sel.item.id === p.item.id)?.score ?? 0,
     chars: (p.item.spoken ?? `${p.item.headline} ${p.item.summary}`).length,
   }));
-  for (const id of overNarrationLimit(told, MAX_SPOKEN_CHARS)) {
+  for (const id of lengthOf === null ? overNarrationLimit(told, MAX_SPOKEN_CHARS) : []) {
     keptIds.delete(id);
     drop(id, "voice", "the episode's narration would run past one request");
   }

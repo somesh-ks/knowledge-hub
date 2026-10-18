@@ -323,7 +323,9 @@ export function eligibility(
  */
 export function selectItems(input: SelectInput): SelectResult {
   const threshold = input.threshold ?? DEFAULT_SCORE_THRESHOLD;
-  const total = Math.min(input.total ?? VOICE_LIMITS.items.hardMax, VOICE_LIMITS.items.hardMax);
+  // A briefing sized by the owner's length selects its spares too, so its total may pass the
+  // digest's hard maximum; validation airs at most that many.
+  const total = input.total ?? VOICE_LIMITS.items.hardMax;
   const dropped: DroppedItem[] = [];
   const candidates: Candidate[] = [];
 
@@ -371,7 +373,7 @@ export function selectItems(input: SelectInput): SelectResult {
   // The main sections leave room for one story from each section with an allowance of its own.
   const ownSections = new Set(own.map((candidate) => candidate.home)).size;
   // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
-  const kindCap = input.total === undefined ? capFor(input.kind) : VOICE_LIMITS.items.hardMax;
+  const kindCap = input.total === undefined ? capFor(input.kind) : total;
   const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownSections));
 
   const chosen = new Set<Candidate>();
