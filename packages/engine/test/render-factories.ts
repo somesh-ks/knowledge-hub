@@ -15,7 +15,7 @@ const CATEGORY_CYCLE: Category[] = [
   "design_engineering_craft",
   "frontier_model_releases",
   "hci_empirical_research",
-  "developer_tool_launches",
+  "taste_and_design_philosophy",
   "css_canvas_motion_techniques",
   "ai_ux_interaction_patterns",
 ];
@@ -66,7 +66,7 @@ export function makeFixture(count = 8, tech = 0): Fixture {
         frontier_model_releases: "ai",
         ai_ux_interaction_patterns: "ai",
         hci_empirical_research: "design",
-        developer_tool_launches: "ui-craft",
+        taste_and_design_philosophy: "ui-craft",
       } as Record<string, SelectedItem["home"]>
     )[category] as SelectedItem["home"];
     candidates.push({ item, category, home, score: Math.round((0.95 - i * 0.03) * 1000) / 1000 });

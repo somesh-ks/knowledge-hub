@@ -17,6 +17,7 @@ import {
 } from "@dispatch/core";
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
+import { RELEASE_SECTION } from "../score/releaseNotes.js";
 import { allowanceFor, capFor, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 import { ungroundedNumbers } from "../write/spokenCheck.js";
@@ -310,7 +311,9 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
 
   const top = digest.items.filter((item) => item.section === "top").length;
-  const expectedTop = Math.min(TOP_PICKS, mainCount);
+  // Release stories are never Top picks (selectItems.ts), so a briefing of few others has fewer.
+  const releases = digest.items.filter((item) => item.section === RELEASE_SECTION).length;
+  const expectedTop = Math.min(TOP_PICKS, mainCount - releases);
   if (top !== expectedTop) {
     add("error", "top_size", `Top picks has ${top} items; it must have ${expectedTop}.`);
   }

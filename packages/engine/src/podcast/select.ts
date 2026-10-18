@@ -4,6 +4,7 @@ import { type Digest, parseDigestFile, stockholmDate } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { createFileProfileStore, isBlockedUrl, OWNER_ID } from "../profile/profile.js";
 import { voteMultiplier, votePreferences } from "../profile/votes.js";
+import { RELEASE_CATEGORY, RELEASE_SECTION } from "../score/releaseNotes.js";
 import { topicLabel } from "./episode.js";
 import type { PodcastPlan } from "./plan.js";
 import { PodcastError, type PodcastStory } from "./types.js";
@@ -151,10 +152,21 @@ export async function selectStories(
       `Only ${matched.length} ${matched.length === 1 ? "story matches" : "stories match"} ${request.topic_ids.join(", ")} in the last ${request.window_days} days; an episode needs at least ${minStories}. ${advice}`,
     );
   }
+  // Library, framework and changelog news goes last, so it closes an episode and is the first cut
+  // when the budget is short (2026-10-18).
+  const ordered = [
+    ...matched.filter((story) => !isReleaseStory(story)),
+    ...matched.filter(isReleaseStory),
+  ];
   return {
-    stories: matched.slice(0, Math.max(2, plan.max_stories)),
+    stories: ordered.slice(0, Math.max(2, plan.max_stories)),
     matched: matched.length,
     digests: digests.length,
     empty_topics: emptyTopics,
   };
+}
+
+/** A story a briefing filed as release news, by its section or its category. */
+function isReleaseStory(story: { section: string; category: string }): boolean {
+  return story.section === RELEASE_SECTION || story.category === RELEASE_CATEGORY;
 }

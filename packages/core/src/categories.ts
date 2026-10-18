@@ -46,9 +46,10 @@ export const Section = z.enum(SECTIONS);
 export type Section = z.infer<typeof Section>;
 
 /**
- * Sections that no longer receive stories (D39). They stay known ids so a briefing published
- * before the change keeps its headings and keeps validating. HCI research now goes to Design,
- * developer tool launches to Design Engineering, and a video to the section of its topic.
+ * Sections no category calls home (D39). They stay known ids so a briefing published before the
+ * change keeps its headings and keeps validating. HCI research now goes to Design and a video to
+ * the section of its topic. Launches is filed again since 2026-10-18: library, framework and
+ * changelog news goes there and is read last (the engine's releaseNotes.ts).
  */
 export const RETIRED_SECTIONS = ["research", "launches", "watch"] as const;
 

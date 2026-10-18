@@ -8,12 +8,34 @@ const VERSION =
   /(?:^|[\s@(])v?(\d+)\.(\d+)(?:\.(\d+))?(?:[-.]?(?:a|b|rc|alpha|beta)\d*)?(?=$|[\s,:;)])/i;
 
 /**
- * Share of a briefing's main stories release notes may take. Release notes clear the score bar
- * easily (a judged developer tool launch with no depth still scores about 0.45), and on a busy
- * week they filled a third of the weekly. The owner asked that they not take up much of an
- * episode (2026-10-15).
+ * Share of a briefing's main stories release stories may take. They clear the score bar easily (a
+ * judged developer tool launch with no depth still scores about 0.45), and on a busy week they
+ * filled a third of the weekly. The owner asked that they not take up much of an episode
+ * (2026-10-15), and again that library, framework and changelog news be less (2026-10-18), when
+ * four of the weekly's 14 stories were tool launches. The share is of the stories selected, spares
+ * included (scheduleSize.ts), so about a tenth of what airs.
  */
-export const RELEASE_NOTE_SHARE = 0.1;
+export const RELEASE_NOTE_SHARE = 0.06;
+
+/** The category of library, framework and tool launches. */
+export const RELEASE_CATEGORY = "developer_tool_launches";
+
+/**
+ * The section release stories are filed in: the retired Launches section, which reads last, so
+ * library, framework and changelog news closes an episode instead of opening it (2026-10-18).
+ */
+export const RELEASE_SECTION = "launches";
+
+/**
+ * True for library, framework or changelog news: a release note, or a story the judge filed as a
+ * developer tool launch. Such a story never becomes a Top pick and is read at the end.
+ */
+export function isReleaseStory(candidate: {
+  item: Pick<Item, "source_type" | "title">;
+  category: string;
+}): boolean {
+  return candidate.category === RELEASE_CATEGORY || isReleaseNote(candidate.item);
+}
 
 /**
  * True for a story whose substance is a version: a GitHub release, or a headline that names a
