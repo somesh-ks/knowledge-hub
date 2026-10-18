@@ -147,16 +147,9 @@ function DockVolume() {
 
   const muted = volume === 0;
   return (
+    // The level comes first, so the button holds the bar's right edge and the level opens to its
+    // left; focus moves in the order the eye reads.
     <div className="dock-volume">
-      <button
-        className="dock-btn press"
-        type="button"
-        aria-label={muted ? "Unmute" : "Mute"}
-        aria-pressed={muted}
-        onClick={() => change(muted ? lastAudible.current : 0)}
-      >
-        <Icon name={muted ? "volumeMute" : "volume"} />
-      </button>
       <input
         className="dock-volume-level"
         type="range"
@@ -169,6 +162,15 @@ function DockVolume() {
         style={{ "--level": volume } as React.CSSProperties}
         onChange={(event) => change(Number(event.currentTarget.value))}
       />
+      <button
+        className="dock-btn press"
+        type="button"
+        aria-label={muted ? "Unmute" : "Mute"}
+        aria-pressed={muted}
+        onClick={() => change(muted ? lastAudible.current : 0)}
+      >
+        <Icon name={muted ? "volumeMute" : "volume"} />
+      </button>
     </div>
   );
 }

@@ -1378,7 +1378,7 @@
     justify-self: end;
   }
 
-  /* The level shows beside the button while the pointer is over the control or focus is inside it
+  /* The level shows left of the button while the pointer is over the control or focus is inside it
      by keyboard, and while it is dragged. Its room is always reserved, so nothing around it moves,
      and the hidden slider stays focusable and under the pointer: no gap to cross. It hides 400 ms
      after the pointer leaves. */

@@ -226,7 +226,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Stories and Transcript (D101).
   - One left edge (D90).
   - No handle, square top corners throughout (D111).
-  - On a wide screen with a mouse, the bar keeps previous, play, next and the clock (D101): details on the left, transport centred, volume on the right (2026-10-13). "In mobile, it's a different behavior, so you need to be mindful" (2026-10-12).
+  - On a wide screen with a mouse, the bar keeps previous, play, next and the clock (D101): details on the left, transport centred, volume on the right (2026-10-13); the mute button holds the right edge and the level opens to its left (2026-10-18). "In mobile, it's a different behavior, so you need to be mindful" (2026-10-12).
   - Previous shows only on wide screens; the phone bar never carries it (2026-10-08).
   - One transport on screen at a time (D92), and one timeline: the page's own scrubber "duplicates the bar's timeline" and went (2026-10-09).
   - Speed sits between the skips in the DOM, not by CSS `order`, so Tab follows the drawn order in every browser (`TransportControls.tsx:67`).
