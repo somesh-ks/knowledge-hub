@@ -7,6 +7,8 @@ export interface TimelineItem {
   startSec: number;
   endSec: number;
   headline: string;
+  /** The bar's short name for the story. Stories written before 2026-10-18 have none. */
+  chapter?: string;
   source: string;
   /** The story's source page, or null when the digest has none that is safe to link. */
   url: string | null;
@@ -52,6 +54,7 @@ export function buildTimeline(digest: PlayerDigestData): Timeline | null {
       // A zero-length item would divide by zero in the rail's interpolation.
       endSec: Math.max(endSec, startSec),
       headline: item.headline,
+      ...(item.chapter ? { chapter: item.chapter } : {}),
       source: item.source,
       url: item.url ?? null,
       section: item.section,
@@ -133,14 +136,4 @@ export function storySectionName(
 ): string {
   if (!digest || !section || digest.kind === "on-demand" || digest.turns) return "";
   return section.title;
-}
-
-/** The bar's caption for a story: "Story 6 of 12 · Design engineering", or "Story 1 of 6". */
-export function storyCaption(
-  timeline: Timeline | null,
-  index: number,
-  sectionName: string,
-): string {
-  const position = itemPositionLabel(timeline, index);
-  return sectionName ? `${position} · ${sectionName}` : position;
 }

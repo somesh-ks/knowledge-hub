@@ -38,6 +38,11 @@ export const DigestItem = z.object({
   category: CategoryId,
   source_type: SourceType,
   headline: z.string().min(1),
+  /**
+   * A label of a few words for the player bar, where the headline would be cut off. Written since
+   * 2026-10-18; the bar shows the headline for a story without one.
+   */
+  chapter: z.string().min(1).optional(),
   url: z.string().url(),
   source: z.string().min(1),
   author: z.string().optional(),
@@ -88,6 +93,13 @@ export type Digest = z.infer<typeof Digest>;
  */
 export const VOICE_LIMITS = {
   headlineWords: 12,
+  /**
+   * The player bar's chapter label (DigestItem.chapter). A 360px phone's bar holds 161px of title
+   * beside the cover and two buttons, about 22 characters; the writer is asked for that, and a
+   * label a few over is kept (cut by a letter or two on the narrowest phones).
+   */
+  chapterWords: 5,
+  chapterChars: 22,
   summaryWords: 80,
   summarySentences: 4,
   summaryMinWords: 25,

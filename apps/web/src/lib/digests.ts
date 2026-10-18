@@ -74,6 +74,7 @@ function playerItems(
   return items.map((item) => ({
     id: item.id,
     headline: item.headline,
+    ...(item.chapter ? { chapter: item.chapter } : {}),
     section: item.section,
     source: item.source,
     url: isWebUrl(item.url) ? item.url : null,

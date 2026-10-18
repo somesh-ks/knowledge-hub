@@ -2,6 +2,8 @@
 
 Last updated 2026-10-18. Rewrite this file; do not append.
 
+Player bar, 2026-10-18: the bar's title is the story's chapter, a label of at most 5 words and about 22 characters the writer now produces (`chapter` on a digest item; a label over 26 characters or 5 words is dropped), so it fits a 360px phone; older stories show their headline. Under it: the clock, then the story's section ("0:02 / 0:36 · Top picks"), or what the recording is before story 1 and in an episode; the centre clock and "Story N of M" are gone. The volume button holds the bar's right edge and its level opens to the left. Not verified: a live briefing with chapters (the next run writes the first).
+
 Release news, 2026-10-18: library, framework and changelog stories (a release note, or a story judged a developer tool launch) take at most 6% of the selected stories (about a tenth of what airs), are never Top picks, and are filed in the Launches section, which reads last in briefings, weeklies and custom episodes. Not verified: a live briefing.
 
 Episode length, 2026-10-18 ([learnings](learnings.md)): the 15-minute weekly of 2026-10-18 aired 5 minutes because the prefilter sent the judge a daily's 60 candidates and 30% spares could not cover the ~45% that writing, grounding and validation drop. A sized pass now sends the judge 2.4 candidates per story it writes (178 for the 15-minute weekly, 60 for a 5-minute daily), writes 85% spares up to 80 stories (the digest still airs at most 48), and the narration-limit cut waits until the spares are trimmed to the length. Not verified: a live weekly at the new size (next Sunday); Jev judging and the writer cost about three times more stories that day.

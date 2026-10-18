@@ -8,6 +8,8 @@ import type { ConfigOp as CoreConfigOp, DigestKind } from "@dispatch/core";
 export interface PlayerItem {
   id: string;
   headline: string;
+  /** A few words naming the story for the player bar. Stories written before 2026-10-18 have none. */
+  chapter?: string;
   /** A section id: one of the built-in ones, or one that came with a topic the owner added. */
   section: string;
   source: string;

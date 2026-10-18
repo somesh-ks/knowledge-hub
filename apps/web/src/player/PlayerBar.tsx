@@ -6,12 +6,13 @@ import {
   INTERRUPTED_LINE,
   isPlayingStatus,
   recordingCaption,
+  recordingKind,
   toggleLabel,
 } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
-import { itemIndexAt, storyCaption, storySectionName } from "./core/timeline";
+import { itemIndexAt, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import Clock from "./ui/Clock";
@@ -208,15 +209,20 @@ export default function PlayerBar() {
   const playing = isPlayingStatus(state.status);
   // After a failure nothing is being read: the bar names the recording, not its first story.
   const headline = (state.error ? null : item?.headline) ?? digest?.title ?? "";
+  // The bar's line is the story's chapter, a few words that fit; the full headline stays the
+  // button's name. A story written before chapters shows its headline.
+  const title = (state.error ? null : (item?.chapter ?? item?.headline)) ?? digest?.title ?? "";
 
-  // A story's place is told while one is being read. The rundown before story 1 is none, and
-  // "Story 1 of 1" says nothing: the line then says what the recording is.
-  let caption =
-    item && section && itemCount > 1
-      ? storyCaption(timeline ?? null, state.itemIndex, storySectionName(digest, section))
-      : recordingCaption(digest, state.duration);
-  if (state.error) caption = errorSummary(state.error);
-  else if (state.interrupted) caption = INTERRUPTED_LINE;
+  // Under the title: the clock, then the story's section, or what the recording is before story 1
+  // and in an episode, which has no sections. A failure or an interruption takes the line.
+  const where =
+    (item && section ? storySectionName(digest, section) : "") ||
+    (digest ? recordingKind(digest) : "");
+  const notice = state.error
+    ? errorSummary(state.error)
+    : state.interrupted
+      ? INTERRUPTED_LINE
+      : null;
 
   // The bar shows once something has played, so what it holds is laid out: the timeline steps.
   // In the rundown before story 1, Previous goes to 0:00 and has nowhere further to go from there.
@@ -275,10 +281,20 @@ export default function PlayerBar() {
         </span>
         <span className="dock-text">
           <span className="dock-title" key={item?.id ?? "title"}>
-            {headline}
+            {title}
           </span>
           <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
-            {caption}
+            {notice ??
+              (state.duration > 0 ? (
+                <>
+                  <Clock seconds={Math.min(second, state.duration)} widest={state.duration} />
+                  {" / "}
+                  <Clock seconds={state.duration} />
+                  {where ? ` \u00b7 ${where}` : ""}
+                </>
+              ) : (
+                recordingCaption(digest, state.duration)
+              ))}
           </span>
         </span>
       </button>
@@ -315,11 +331,6 @@ export default function PlayerBar() {
         >
           <Icon name="skipForward" />
         </button>
-        <span className="dock-time dock-wide" aria-hidden="true">
-          <Clock seconds={Math.min(second, state.duration)} widest={state.duration} />
-          <span className="dock-time-of">/</span>
-          <Clock seconds={state.duration} />
-        </span>
       </div>
       <div className="dock-tools">
         <DockVolume />

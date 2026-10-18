@@ -59,13 +59,13 @@ describe("writer prompt", () => {
     expect(system).not.toContain("Dispatch");
     expect(rewriteSystemPrompt(voice, "abcdef0123456789")).not.toContain("Dispatch");
     expect(system).toContain(
-      '{"items":[{"id":"...","headline":"...","summary":"...","spoken":"..."}]}, one entry per source',
+      '{"items":[{"id":"...","headline":"...","chapter":"...","summary":"...","spoken":"..."}]}, one entry per source',
     );
     expect(system).not.toMatch(/^- why:/m);
     expect(system).not.toContain('"why"');
     expect(rewriteSystemPrompt(voice, "abcdef0123456789")).not.toMatch(/^- why:/m);
     expect(writerUserMessage([material()], "feedfacecafebeef").split("\n")[0]).toBe(
-      "Write the headline, summary and spoken version for each of these 1 sources.",
+      "Write the headline, chapter, summary and spoken version for each of these 1 sources.",
     );
   });
 
@@ -160,6 +160,23 @@ describe("NebiusWriter.write", () => {
     expect(result.written[0]?.spoken).toBe("Springlet has a new release. It keeps speed.");
     expect(result.written[1]).not.toHaveProperty("spoken");
     expect(result.written[2]).not.toHaveProperty("spoken");
+  });
+
+  // The player bar cut the headline off (2026-10-18); a chapter too long for its one line would too.
+  it("keeps a chapter that fits the player bar and drops one that does not", async () => {
+    const [short, long] = [material(), material()];
+    const llm = new FakeLlm(() => ({
+      items: [
+        { ...good(short.id), chapter: " Drawers keep their speed. " },
+        {
+          ...good(long.id),
+          chapter: "Springlet retargets springs mid-flight without resetting velocity",
+        },
+      ],
+    }));
+    const result = await new NebiusWriter({ llm, voice }).write([short, long]);
+    expect(result.written[0]?.chapter).toBe("Drawers keep their speed");
+    expect(result.written[1]).not.toHaveProperty("chapter");
   });
 
   it("delimits each source with a fresh random boundary per request", async () => {

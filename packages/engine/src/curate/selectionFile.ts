@@ -15,6 +15,8 @@ export const SelectionItem = z.object({
   /** 0 to 1. Ranks the items: the three highest outside the sections with their own allowance become Top picks. */
   score: z.number().min(0).max(1),
   headline: z.string().min(1),
+  /** The player bar's label for the story. Optional: old files and agents have none. */
+  chapter: z.string().min(1).optional(),
   summary: z.string().min(1),
   /** The host's telling of the story, for narration only. Optional: old files and agents have none. */
   spoken: z.string().min(1).optional(),
