@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { Category, Digest } from "@dispatch/core";
+import { type Category, type Digest, seedTopicsFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Selection } from "../src/curate/selectionFile.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
@@ -32,7 +32,7 @@ import {
   sourcesFile,
   WED,
 } from "./orchestrator-fixtures.js";
-import { FIXTURE_CONFIG } from "./score-factories.js";
+import { FIXTURE_CONFIG, plainPreferences } from "./score-factories.js";
 
 let root: string;
 beforeEach(async () => {
@@ -230,6 +230,7 @@ describe("digestFromSelection", () => {
     expect(() =>
       digestFromSelection({
         ...base,
+        topics: seedTopicsFile(plainPreferences().weights),
         selection: selection([entry(0), entry(1), entry(2, "venture_capital_and_gossip")]),
       }),
     ).toThrow(/never publishes/);

@@ -145,7 +145,7 @@ describe("eligibility", () => {
     expect(ids(result.selected)).toContain(edge.item.id);
   });
 
-  it("never publishes venture or hype categories, whatever their score", () => {
+  it("never publishes a category at Off (weight 0), whatever its score", () => {
     const vc = scored("venture_capital_and_gossip", 0.99);
     const hype = scored("generic_ai_hype_listicles", 0.98);
     const result = selectItems({
@@ -157,6 +157,7 @@ describe("eligibility", () => {
         scored("css_canvas_motion_techniques", 0.7),
       ],
       kind: "regular",
+      weights,
       floor: 3,
       cap: 12,
     });

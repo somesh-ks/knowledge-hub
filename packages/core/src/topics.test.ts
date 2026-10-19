@@ -122,6 +122,19 @@ describe("TopicsFile", () => {
     );
   });
 
+  it("snaps a stored weight to its stop, and a topic at Off never publishes", () => {
+    const stored = { ...preferences, weights: { ...preferences.weights } };
+    stored.weights.css_canvas_motion_techniques = 0.88;
+    stored.weights.venture_capital_and_gossip = 0.1;
+    const byId = new Map(resolveTopics(null, stored).topics.map((t) => [t.id, t]));
+    expect(byId.get("css_canvas_motion_techniques")?.weight).toBe(0.85);
+    expect(byId.get("css_canvas_motion_techniques")?.never_publish).toBe(false);
+    expect(byId.get("venture_capital_and_gossip")).toMatchObject({
+      weight: 0,
+      never_publish: true,
+    });
+  });
+
   it("restores built-in topics and sections a file leaves out, and reads a missing file as the seed", () => {
     expect(resolveTopics(null, preferences)).toEqual(seedTopicsFile(preferences.weights));
     const trimmed = { ...customTopics(), topics: customTopics().topics.slice(3) };

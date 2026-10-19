@@ -1,4 +1,5 @@
 import {
+  categoryIsOff,
   type Digest,
   homeSectionFor,
   type Item,
@@ -35,7 +36,7 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
     const item = byId.get(entry.id);
     if (!item) throw new StageFailure(`The selection names ${entry.id}, which is not in the pool.`);
     const home = homeSectionFor(input.topics, entry.category, item.source_type);
-    if (home === null) {
+    if (home === null || categoryIsOff(input.topics, entry.category)) {
       throw new StageFailure(
         `The category ${entry.category} of ${entry.id} never publishes or is no longer a topic.`,
       );

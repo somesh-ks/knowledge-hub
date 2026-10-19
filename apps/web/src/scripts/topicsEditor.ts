@@ -12,6 +12,7 @@
  */
 import type { SourceFormat } from "@dispatch/core";
 import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
+import { weightOf } from "../lib/weightStops";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -39,13 +40,13 @@ const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
  * X"), and a toggle button's name must not.
  */
 function held(control: Control): boolean | number {
-  if (control.type === "range") return Number(control.value);
+  if (control.type === "range") return weightOf(control);
   return control.type === "checkbox" ? control.checked : control.dataset.pressed === "true";
 }
 
 /** What a control held when the page was built: its markup, before anyone touched it. */
 function builtAs(control: Control): string {
-  if (control.type === "range") return String(Number(control.defaultValue));
+  if (control.type === "range") return String(weightOf(control, control.defaultValue));
   return String(control.type === "checkbox" ? control.defaultChecked : false);
 }
 

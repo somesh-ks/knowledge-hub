@@ -10,7 +10,7 @@ import { applyPatch, PreferencesPatch } from "../learn/patch.js";
 
 const USAGE = `Usage:
   dispatch learn --schema                 Print the JSON Schema of a preferences patch
-  dispatch learn --apply <patch.json>     Apply a patch within the bounds (0.05 per weight, 0.15 total)
+  dispatch learn --apply <patch.json>     Apply a patch within the bounds (one stop per weight, three weights)
     [--dry-run]                           Show the diff without writing
     [--commit] [--no-push]                Commit config/preferences.json as chore(prefs): <summary>
                                           and push (--no-push keeps it local). Refuses on a dirty

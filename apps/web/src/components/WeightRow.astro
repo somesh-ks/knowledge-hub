@@ -1,37 +1,45 @@
 ---
-import { percent, snap, WEIGHT_STEP } from "../lib/topicPages";
+import { stopIndex, WEIGHT_STOPS } from "@dispatch/core";
 
 interface Props {
   /** The topic the slider weighs: `weights.set` keys its value by this id. */
   id: string;
   label: string;
+  /** The topic's name, spoken with the stop ("Build breakdowns, More") when the label is "Weight". */
+  name?: string;
   weight: number;
 }
 
-const { id, label, weight } = Astro.props;
+const { id, label, name = label, weight } = Astro.props;
+const place = stopIndex(weight);
+const stopName = WEIGHT_STOPS[place]?.name ?? "Normal";
 ---
 
-{/* How much one topic counts, in five steps. The readout sits under the label, where topicsPage.ts
-     updates it as the thumb moves, so the slider ends where every control ends; every slider on a
-     page goes in one weights.set. */}
+{/* How much one topic counts, on five fixed stops. The stop's name sits under the label, where
+     topicsPage.ts updates it as the thumb moves, so the slider ends where every control ends; every
+     slider on a page goes in one weights.set. The input holds the stop's place (0 to 4) so the
+     stops sit evenly; data-stops maps it back to the weight that is saved. */}
 <div class="settings-row topic-weight">
   <div class="settings-text">
     <label class="settings-label" for={`weight-${id}`}>{label}</label>
-    <output class="settings-hint topic-percent" for={`weight-${id}`} data-word>{percent(weight)}</output>
+    <output class="settings-hint" for={`weight-${id}`} data-word>{stopName}</output>
   </div>
   <input
     class="settings-range"
     id={`weight-${id}`}
     type="range"
     min="0"
-    max="1"
-    step={WEIGHT_STEP}
-    value={snap(weight).toFixed(2)}
+    max={WEIGHT_STOPS.length - 1}
+    step="1"
+    value={place}
     autocomplete="off"
-    aria-valuetext={percent(weight)}
-    style={`--range-fill: ${snap(weight) * 100}%`}
+    aria-valuetext={`${name}, ${stopName}`}
+    style={`--range-fill: ${(place / (WEIGHT_STOPS.length - 1)) * 100}%`}
     data-op={JSON.stringify({ op: "weights.set", weights: {} })}
     data-field={`weights.${id}`}
+    data-stops={WEIGHT_STOPS.map((s) => s.weight).join(",")}
+    data-names={WEIGHT_STOPS.map((s) => s.name).join(",")}
+    data-label={name}
     data-weight
   />
 </div>

@@ -15,33 +15,8 @@ import {
   parseTopicsFile,
   qualityInWords,
   recordInWords,
-  stepToWeight,
-  weightToStep,
   withGeneralTopics,
 } from "./manage";
-
-describe("weight steps", () => {
-  it("maps a stored weight to the nearest step", () => {
-    expect(weightToStep(0)).toBe(0);
-    expect(weightToStep(0.02)).toBe(0);
-    expect(weightToStep(0.3)).toBe(1);
-    expect(weightToStep(0.5)).toBe(2);
-    expect(weightToStep(0.72)).toBe(3);
-    expect(weightToStep(0.95)).toBe(4);
-    expect(weightToStep(1)).toBe(4);
-  });
-
-  it("keeps a weight outside 0 to 1 and a broken one on the control", () => {
-    expect(weightToStep(-3)).toBe(0);
-    expect(weightToStep(7)).toBe(4);
-    expect(weightToStep(Number.NaN)).toBe(2);
-  });
-
-  it("maps a step back to a weight in 0 to 1, and the two agree", () => {
-    expect([0, 1, 2, 3, 4].map(stepToWeight)).toEqual([0, 0.25, 0.5, 0.75, 1]);
-    for (const step of [0, 1, 2, 3, 4]) expect(weightToStep(stepToWeight(step))).toBe(step);
-  });
-});
 
 describe("hostOf", () => {
   it("returns the host without www", () => {
@@ -111,17 +86,19 @@ describe("fallbackTopics", () => {
     expect(topics.map((topic) => topic.id)).toEqual([...CATEGORIES]);
     expect(topics.every((topic) => topic.origin === "builtin")).toBe(true);
     const craft = topics.find((topic) => topic.id === "design_engineering_craft");
-    expect(craft).toMatchObject({ name: "Design engineering craft", weight: 0.95, step: 4 });
-    expect(topics.find((topic) => topic.id === "frontier_model_releases")?.step).toBe(1);
+    expect(craft).toMatchObject({ name: "Build breakdowns", weight: 0.95 });
+    expect(topics.find((topic) => topic.id === "frontier_model_releases")?.weight).toBe(0.5);
   });
 
-  it("uses a middle weight when preferences are missing", () => {
+  it("uses Normal when preferences are missing", () => {
     const topics = fallbackTopics(null);
-    expect(topics.every((topic) => topic.weight === 0.5 && topic.step === 2)).toBe(true);
+    expect(topics.every((topic) => topic.weight === 0.7 && !topic.never_publish)).toBe(true);
   });
 
-  it("marks the categories that never publish and gives each a section and a description", () => {
-    const topics = fallbackTopics(null);
+  it("marks the categories at Off as never publishing and gives each a section and a description", () => {
+    const topics = fallbackTopics({
+      weights: { venture_capital_and_gossip: 0, generic_ai_hype_listicles: 0.02 },
+    });
     expect(topics.filter((topic) => topic.never_publish).map((topic) => topic.id)).toEqual([
       "venture_capital_and_gossip",
       "generic_ai_hype_listicles",
@@ -167,7 +144,6 @@ describe("parseTopicsFile", () => {
       enabled: false,
       keywords: ["one", "two"],
       origin: "custom",
-      step: 4,
     });
     expect(parsed?.sections.map((section) => section.id)).toEqual(["top", "tech"]);
   });
@@ -208,7 +184,6 @@ describe("withGeneralTopics", () => {
         name: "Global",
         description: "",
         weight: 1,
-        step: 4,
         enabled: false,
         keywords: [],
         section_id: "general",
@@ -546,13 +521,11 @@ describe("buildCandidates", () => {
     expect(candidates.map((candidate) => candidate.domain)).toEqual(["a.example", "b.example"]);
     expect(candidates[0]).toMatchObject({
       quality: "Strong match",
-      detail: "Strong match for Design engineering craft, from 8 recent stories",
+      detail: "Strong match for Build breakdowns, from 8 recent stories",
       topic_id: "design_engineering_craft",
       feed_url: "https://a.example/feed",
     });
-    expect(candidates[1]?.detail).toBe(
-      "Good match for Design engineering craft, from 1 recent story",
-    );
+    expect(candidates[1]?.detail).toBe("Good match for Build breakdowns, from 1 recent story");
   });
 
   it("leaves out a feed that is already a source", () => {
@@ -605,7 +578,7 @@ describe("loadManage", () => {
     });
     const data = await loadManage({ root, env: {} });
     expect(data.topics).toHaveLength(CATEGORIES.length + GENERAL_TOPICS.length);
-    expect(data.topics[0]).toMatchObject({ id: "design_engineering_craft", step: 1 });
+    expect(data.topics[0]).toMatchObject({ id: "design_engineering_craft", weight: 0 });
     expect(data.sections.length).toBeGreaterThan(0);
     expect(data.sources.map((source) => source.id)).toEqual(["one"]);
     expect(data.candidates).toEqual([]);

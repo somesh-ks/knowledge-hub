@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, digestRelPath, parseDigestFile, type Source } from "@dispatch/core";
+import {
+  type Digest,
+  digestRelPath,
+  parseDigestFile,
+  type Source,
+  seedTopicsFile,
+} from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { validateDigest } from "../src/validate/validateDigest.js";
@@ -14,7 +20,7 @@ import {
   NOW,
   WINDOW,
 } from "./render-factories.js";
-import { REPO_ROOT } from "./score-factories.js";
+import { plainPreferences, REPO_ROOT } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const linter = testLinter();
@@ -253,7 +259,10 @@ describe("validateDigest", () => {
     const { digest } = buildFixtureDigest(5);
     const bad = clone(digest);
     (bad.items[4] as { category: string }).category = "venture_capital_and_gossip";
-    expect(codes(bad)).toContain("error:never_publish");
+    // Off is the rule: the category is refused because its weight is 0, not because it is listed.
+    const topics = seedTopicsFile(plainPreferences().weights);
+    const issues = validateDigest(bad, { linter, topics }).issues;
+    expect(issues.map((i) => `${i.severity}:${i.code}`)).toContain("error:never_publish");
   });
 
   it("rejects a section that does not fit the category", () => {

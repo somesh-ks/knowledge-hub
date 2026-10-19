@@ -6,6 +6,7 @@
  */
 
 import { hasSaved } from "../lib/savedKey";
+import { drawStop } from "../lib/weightStops";
 import { installHeroMenu } from "./heroMenu";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
@@ -53,12 +54,8 @@ function mount(root: HTMLElement): void {
   root.addEventListener("input", (event) => {
     const target = event.target as HTMLInputElement;
     if (target.matches("[data-weight]")) {
-      // The fill and the readout follow the thumb; recording the change waits for the editor.
-      const percent = `${Math.round(Number(target.value) * 100)}%`;
-      target.style.setProperty("--range-fill", `${Number(target.value) * 100}%`);
-      target.setAttribute("aria-valuetext", percent);
-      const output = target.closest(".topic-weight")?.querySelector("[data-word]");
-      if (output) output.textContent = percent;
+      // The fill and the stop's name follow the thumb; recording the change waits for the editor.
+      drawStop(target);
     }
     forward(event);
   });

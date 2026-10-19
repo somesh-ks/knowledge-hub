@@ -4,23 +4,11 @@ import { sourcesSummary } from "./settingsSummary";
 import type { TopicWords } from "./sourceCatalog";
 
 /**
- * What the Topics pages are built from: each topic's sources, best first, a stored weight at the
- * slider's step, and the line each topic's row says on the Topics page.
+ * What the Topics pages are built from: each topic's sources, best first, the line each topic's row says on the Topics page.
  */
 
 /** The page of the sources that feed no known topic. Reserved: no topic may take this id. */
 export const OTHER_ID = "other";
-
-/** The slider moves in twentieths; a stored weight is shown at the nearest one. */
-export const WEIGHT_STEP = 0.05;
-
-export function snap(weight: number): number {
-  return Math.round(weight / WEIGHT_STEP) * WEIGHT_STEP;
-}
-
-export function percent(weight: number): string {
-  return `${Math.round(snap(weight) * 100)}%`;
-}
 
 /** By name, as a person reads a list: letters before case, so "audio" and "Audio" sit together. */
 export function byName(a: { name: string }, b: { name: string }): number {
