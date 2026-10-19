@@ -37,7 +37,10 @@ export function deriveSourceFormat(type: SourceType): SourceFormat {
 }
 
 /** A source's format: the one it carries, else the rule's. Old files without the field read the same as new ones. */
-export function sourceFormat(source: { type: SourceType; format?: SourceFormat | undefined }): SourceFormat {
+export function sourceFormat(source: {
+  type: SourceType;
+  format?: SourceFormat | undefined;
+}): SourceFormat {
   return source.format ?? deriveSourceFormat(source.type);
 }
 

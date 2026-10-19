@@ -4,7 +4,15 @@
  * without it. The state lives in the address (?q=&format=&status=), written with replaceState so
  * a reload, or Back to the page, finds it as it was.
  */
-import { fold, isIdle, passes, readFilter, writeFilter, type FilterRow, type FilterState } from "../lib/sourceFilter";
+import {
+  type FilterRow,
+  type FilterState,
+  fold,
+  isIdle,
+  passes,
+  readFilter,
+  writeFilter,
+} from "../lib/sourceFilter";
 
 interface Entry {
   el: HTMLElement;
@@ -69,7 +77,11 @@ export function mountFilter(root: HTMLElement): void {
       if (more && !wasAll) more.hidden = !idle;
     }
     if (none) none.hidden = idle || shown > 0;
-    history.replaceState(history.state, "", `${location.pathname}${writeFilter(state)}${location.hash}`);
+    history.replaceState(
+      history.state,
+      "",
+      `${location.pathname}${writeFilter(state)}${location.hash}`,
+    );
   };
 
   field.addEventListener("input", () => {

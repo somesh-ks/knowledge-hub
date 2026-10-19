@@ -4,6 +4,7 @@ import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
+const CRAFT_PAGE = "/settings/topics/design";
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 // A one-pixel PNG, so the sources' icons load in a browser that is not online.
 const PIXEL = Buffer.from(
@@ -84,7 +85,9 @@ const ops = (sent: Sent[]) => sent.flatMap((item) => [item.op].flat());
 const AFTER_UNDO = { timeout: 10_000 };
 
 test.describe("the Topics list", () => {
-  test("has one row per topic, each with what it holds now, and no filters", async ({ page }) => {
+  test("has one row per topic, each with what it holds now, and no source rows until a search", async ({
+    page,
+  }) => {
     await setup(page);
     await open(page);
     await expect(page.getByRole("heading", { level: 1, name: "Topics and sources" })).toBeVisible();
@@ -103,9 +106,44 @@ test.describe("the Topics list", () => {
     for (const [name, hint] of rows) {
       await expect(page.getByRole("link", { name: new RegExp(`^${name}`) })).toContainText(hint);
     }
-    await expect(page.locator("li.source-row")).toHaveCount(0);
+    await expect(page.locator("li.source-row:visible")).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: "Show sources with score" })).toHaveCount(0);
     await expect(page.getByText("Top picks")).toHaveCount(0);
+  });
+
+  test("a search and a format chip narrow every source to a flat list, and a reload or Back keeps them", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page);
+    await page.getByRole("searchbox", { name: "Search sources" }).fill("studio");
+    await page.getByRole("button", { name: /^Blog/ }).click();
+    // The topic list gives way to the sources that match, which open and edit as on a topic page.
+    await expect(page.getByRole("link", { name: /^Design/ })).toBeHidden();
+    const row = page.locator("li.source-row:visible");
+    await expect(row).toHaveCount(1);
+    await row.getByRole("button", { name: "Edit Studio Notes" }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit source" });
+    await expect(sheet.getByRole("combobox", { name: "Format" })).toHaveValue("blog");
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    // Leaving for a topic and coming Back, and a reload, find the same search and chip.
+    await page.goto(CRAFT_PAGE);
+    await page.goBack();
+    for (const again of [false, true]) {
+      if (again) await page.reload();
+      await expect(page.getByRole("searchbox", { name: "Search sources" })).toHaveValue("studio");
+      await expect(page.getByRole("button", { name: /^Blog/ })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(page.locator("li.source-row:visible")).toHaveCount(1);
+    }
+    // Nothing matching says so and offers Clear, which brings the topics back.
+    await page.getByRole("searchbox", { name: "Search sources" }).fill("zzzz");
+    await expect(page.getByText("No sources match.")).toBeVisible();
+    await page.getByRole("button", { name: "Clear" }).click();
+    await expect(page.getByRole("link", { name: /^Design/ })).toBeVisible();
   });
 
   test("lists every topic in one list by name, Other last, and the panel offers them in the same order", async ({
@@ -194,6 +232,7 @@ test.describe("the Topics list", () => {
         op: "source.add",
         url: "https://newsroom.example/",
         topic_ids: ["audio_interfaces"],
+        format: "blog",
         id: expect.stringMatching(/^newsroom-example-/),
       },
     ]);

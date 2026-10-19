@@ -2,12 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import {
-  deriveSourceFormat,
-  SOURCE_FORMATS,
-  type Source,
-  type SourceFormat,
-} from "@dispatch/core";
+import { deriveSourceFormat, SOURCE_FORMATS, type Source, type SourceFormat } from "@dispatch/core";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { parseFeed } from "../fetch/feedParser.js";
 import { createHttpClient } from "../http.js";
@@ -126,7 +121,16 @@ export const run: CommandRun = async (argv, ctx) => {
       else if (ruleDecides(source.type)) {
         if (jev !== rule) note = `CONTRADICTS the type rule (Jev says ${jev}); rule kept`;
       } else chosen = jev;
-      return { id: source.id, name: source.name, type: source.type, url: source.url, rule, jev, chosen, note };
+      return {
+        id: source.id,
+        name: source.name,
+        type: source.type,
+        url: source.url,
+        rule,
+        jev,
+        chosen,
+        note,
+      };
     });
 
     const out = resolve(values.out ?? join(tmpdir(), "dispatch-format-review"));
@@ -141,7 +145,8 @@ export const run: CommandRun = async (argv, ctx) => {
       `${JSON.stringify(Object.fromEntries(rows.map((row) => [row.id, row.chosen])), null, 2)}\n`,
     );
     process.stdout.write(`${head}Wrote ${join(out, "format-review.md")} and formats.json\n`);
-    if (failures.length > 0) process.stdout.write(`Jev failures: ${failures.slice(0, 3).join("; ")}\n`);
+    if (failures.length > 0)
+      process.stdout.write(`Jev failures: ${failures.slice(0, 3).join("; ")}\n`);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

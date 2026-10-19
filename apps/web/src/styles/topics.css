@@ -1190,7 +1190,7 @@
   align-self: stretch;
   inline-size: var(--stroke-hairline);
   margin-inline: var(--space-1);
-  background: var(--color-outline-variant);
+  background: var(--color-border-hairline);
 }
 
 .filter-chip {

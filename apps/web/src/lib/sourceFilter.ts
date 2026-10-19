@@ -20,16 +20,14 @@ export type StatusKey = keyof typeof STATUS_LABEL;
 
 /** Lowercase, accents removed: "Café" and "cafe" are one word. */
 export function fold(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 /** What the search matches in a source: its name, address and topic name. */
-export function searchText(source: { name: string; url: string | null; host: string }, topic: string): string {
+export function searchText(
+  source: { name: string; url: string | null; host: string },
+  topic: string,
+): string {
   return fold(`${source.name} ${source.host} ${source.url ?? ""} ${topic}`);
 }
 
@@ -89,7 +87,11 @@ export function passes(row: FilterRow, state: FilterState, skip?: "format" | "st
 /** `?q=&format=&format=&status=` from a location's search string. */
 export function readFilter(search: string): FilterState {
   const params = new URLSearchParams(search);
-  return { q: params.get("q") ?? "", formats: params.getAll("format"), statuses: params.getAll("status") };
+  return {
+    q: params.get("q") ?? "",
+    formats: params.getAll("format"),
+    statuses: params.getAll("status"),
+  };
 }
 
 /** The search string for a state; empty when nothing is set. */

@@ -13,7 +13,8 @@ const FORMAT_CRITERIA: Record<SourceFormat, string> = {
   forum: "A community feed of user-submitted links or discussion, ranked by votes.",
   video: "A video channel.",
   research: "Papers, preprints or a research index.",
-  releases: "A stream of versions, launches or product listings, such as release notes or a repository's releases.",
+  releases:
+    "A stream of versions, launches or product listings, such as release notes or a repository's releases.",
   podcast: "An audio show.",
 };
 
@@ -85,7 +86,12 @@ export class FormatClassifier {
 /** The site's classifier, from a key alone: one try and a short timeout, since the caller gives up after 3 s. */
 export function createFormatClassifier(apiKey: string): FormatClassifier {
   return new FormatClassifier({
-    client: new TypeSafeClient({ apiKey, timeout: 5_000, retry: { maxRetries: 0 }, logLevel: "error" }),
+    client: new TypeSafeClient({
+      apiKey,
+      timeout: 5_000,
+      retry: { maxRetries: 0 },
+      logLevel: "error",
+    }),
     retry: { retries: 0 },
     secrets: [apiKey],
   });

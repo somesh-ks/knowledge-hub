@@ -1,12 +1,12 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { deriveSourceFormat, type SourceFormat } from "@dispatch/core";
 import {
   createPreviewHttp,
   PreviewError,
   previewSource,
   type SourcePreview,
 } from "@dispatch/engine/source-preview";
-import { deriveSourceFormat, type SourceFormat } from "@dispatch/core";
 import type { ApiResult } from "./http";
 
 /**
@@ -292,7 +292,9 @@ async function withFormat(
     }),
   ]);
   clearTimeout(timer);
-  return jev ? { ...preview, format: jev, format_by: "jev" } : { ...preview, format: rule, format_by: "rule" };
+  return jev
+    ? { ...preview, format: jev, format_by: "jev" }
+    : { ...preview, format: rule, format_by: "rule" };
 }
 
 export async function handleSourcePreview(
