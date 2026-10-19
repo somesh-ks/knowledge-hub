@@ -4,7 +4,7 @@
 
 > The canonical UI specification. Two implementers build the web app from this file, [tokens.json](../../tokens/tokens.json), [foundations.css](../../apps/web/src/styles/foundations.css) and the prototype. Sound is specified in [sound-design.md](./sound-design.md).
 >
-> Visual reference: [ui-prototype.html](../prototype/ui-prototype.html), a working prototype built on the real tokens, the real foundations stylesheet and the real sound engine. Its component CSS, [ui-prototype.css](../../scripts/prototype/ui-prototype.css), is the source for every value below. [Screenshots](./screenshots) show each state. Hosting is Vercel; the Cloudflare mentions in the build plan are stale for design purposes.
+> Visual reference: [ui-prototype.html](../prototype/ui-prototype.html), a working prototype built on the real tokens, the real foundations stylesheet and the real sound engine. Its component CSS, [ui-prototype.css](../../scripts/prototype/ui-prototype.css), is the source for every value below. Screenshots of each state are written to `docs/design/screenshots` by `scripts/screenshotPrototype.ts`. Hosting is Vercel; the Cloudflare mentions in the build plan are stale for design purposes.
 
 When a number appears here, it comes from a token. When this file and the prototype disagree, the token wins, then the prototype, then this file; open a fix.
 
@@ -1044,7 +1044,7 @@ The two hex values come from the generated footer of `tokens.css`. The manifest'
 | Sample content against `config/voice.md` limits and banned lists; no em dashes in authored files | Pass (`scripts/prototype/sampleContent.test.ts`) |
 | axe-core, WCAG 2.2 AA, 10 screens in light and dark | No violations (`scripts/auditPrototype.ts`) |
 | Pointer-driven behavior in headless Chrome: play and pause, continuous rail fill, rail tap, scrubber drag with pause and resume, keyboard seek, flick to dismiss, slow release snaps back, swipe up to open, focus return, reduced-motion and sound defaults | Pass (`scripts/checkPrototypeInteractions.ts`) |
-| Visual review of every state at 320, 390, 820 and 1280px, light and dark | See [screenshots](./screenshots) |
+| Visual review of every state at 320, 390, 820 and 1280px, light and dark | See `docs/design/screenshots` (`scripts/screenshotPrototype.ts`) |
 | userinterface-wiki rules applied by hand to the finished CSS and TypeScript: animation timing, physics, springs, pseudo-elements, view transitions, sound synthesis, typography, visual design, hit targets | Pass, with two deliberate deviations where `~/.agents/DESIGN.md` is the source of truth: exits use ease-out or the drawer curve because DESIGN.md forbids ease-in, and press-in is 100ms (inside DESIGN.md's 100 to 160ms range, below the wiki's 120 to 180ms) |
 | Biome and TypeScript on every authored file | Biome: no errors, 16 descending-specificity warnings in the prototype stylesheet (selectors for different elements, harmless). TypeScript strict: clean |
 

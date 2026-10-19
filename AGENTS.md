@@ -4,18 +4,21 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 ## Read first
 
-1. [docs/state.md](docs/state.md): what works, what is broken, what is next. Rewritten, never appended.
-2. [docs/decisions.md](docs/decisions.md): read the Index table; open an entry only when you need its reasoning.
-3. [docs/learnings.md](docs/learnings.md): failures and gotchas. Search it before debugging.
-4. [docs/history/](docs/history/README.md): one note per session, only for the why behind a change.
-5. [docs/engineering/postmortem-test-suite.md](docs/engineering/postmortem-test-suite.md): how the test suite grew past its use and what it missed. Read it before you add, change or delete a test.
+1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
+2. [docs/specs/](docs/specs/README.md): what each capability does now. Read the spec of what you touch; update it in the same PR.
+3. [docs/decisions.md](docs/decisions.md): grep the Index; open an entry only for its reasoning.
+4. [docs/learnings.md](docs/learnings.md): failures and gotchas. Search it before debugging.
+5. [docs/history/](docs/history/README.md): one note per session, only for the why behind a change.
+6. [docs/engineering/postmortem-test-suite.md](docs/engineering/postmortem-test-suite.md): read it before you add, change or delete a test.
+
+`node scripts/docsCheck.mjs` (in the gate) holds these to their budgets.
 
 [docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
 
 ## Commands
 
 - `npm run dispatch -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, the site's type check (`astro check`), lint, the unit tests and the static build, in parallel (about 80 s). All must pass; prefer it to running them one after another. `npm test`, `npm run typecheck` and `npm run lint` run alone.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, the unit tests, the docs check and the static build, in parallel (about 80 s). All must pass; prefer it to running them one after another. `npm test`, `npm run typecheck` and `npm run lint` run alone.
 - Run commands through PowerShell (`powershell -NoProfile -Command "Set-Location '<repo>'; ..."`), not the agent's Git Bash: each process Git Bash starts costs 3 to 8 s on this machine, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @dispatch/web` (about 6 minutes) and `npm run e2e:player -w @dispatch/web` (about 3): the browser suites. CI runs both (the `browser` job) when the site, `packages/core` or the tokens change; run them yourself first for a change to a page, a page script, the player or the service worker.
@@ -51,4 +54,4 @@ Project agents (`dispatch-verify`, `dispatch-worker`) are in `.claude/agents/`; 
 
 After a large piece of work (several PRs, or one that touches the player, a page or the build): clean up (scratch files, servers, stashes, local branches, leftover remote branches), review the merged diff (the `code-review` skill on the commit range, or the `review` label on a PR) and fix what it finds, then confirm production serves it (Vercel deploys `main`; check the deployment and the live site).
 
-At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
+At the end of a session: update `docs/state.md` and the spec of any changed behaviour, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
