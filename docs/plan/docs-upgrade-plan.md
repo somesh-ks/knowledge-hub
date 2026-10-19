@@ -1,5 +1,7 @@
 # Docs upgrade plan (2026-10-19)
 
+Status: built 2026-10-19 on branch `docs/record-check` (both PRs as one branch). Read-first went from 88.7 KB to about 35 KB; the check runs in fail mode.
+
 Goal: an agent starts a session on a quarter of today's tokens, finds current behaviour in one place, and a check, not memory, keeps the record honest. Source: the owner's review of an outside framework plan (ADR, Divio, C4, RFC, OpenSpec) on 2026-10-19.
 
 ## Baseline (measured 2026-10-19)
@@ -39,7 +41,7 @@ Specs replace the long behaviour bullets, so state stops repeating them. The sch
    - every relative link in `AGENTS.md` and `docs/**/*.md` resolves;
    - Index rows and `## Dn` entries match one to one; a `superseded by Dn` names an existing D;
    - every bullet under state's Unverified heading contains `closed when:`;
-   - every file in `docs/` is listed in `docs/README.md` (`history/` and `prototype/` keep their own index);
+   - every file in `docs/` is listed in `docs/README.md` (`history/`, `prototype/` and `specs/` keep their own index);
    - `houseRules.test.ts` covers `docs/specs` for dashes.
    - It prints the read-first total in KB and tokens (bytes / 4) on every run.
 2. A unit test with three frozen fixtures: an over-budget file, a broken link and an orphan Index row. Each must fail with its own line. Per the Tests rules, it names the bug: "the record drifts and nobody sees it".

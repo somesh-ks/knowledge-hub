@@ -12,7 +12,7 @@ const chains = [
   [{ name: "lint", command: "npm run lint" }],
   [{ name: "test", command: "npm test" }],
   [{ name: "site types", command: "npm run check -w @dispatch/web" }],
-  [{ name: "docs", command: "node scripts/docsCheck.mjs --warn" }],
+  [{ name: "docs", command: "node scripts/docsCheck.mjs" }],
 ];
 if (process.argv.includes("--build")) {
   chains[3].push({ name: "build", command: "npm run build", env: { DISPATCH_STATIC_ONLY: "1" } });

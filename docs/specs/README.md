@@ -4,3 +4,11 @@ What each capability does now, one file each. A spec states requirements in the 
 
 | Capability | Spec | Code |
 | :--- | :--- | :--- |
+| Player | [player.md](player.md) | `apps/web/src/player` |
+| Library | [library.md](library.md) | `apps/web/src/scripts/libraryPage.ts` |
+| Create | [create.md](create.md) | `apps/web/src/sheets` |
+| Settings | [settings.md](settings.md) | `apps/web/src/pages/settings` |
+| Engine | [engine.md](engine.md) | `packages/engine/src` |
+| Narration | [narration.md](narration.md) | `apps/web/src/narration` |
+| Navigation and offline | [navigation-and-offline.md](navigation-and-offline.md) | `apps/web/public/sw.js` |
+| Look and sound | [look-and-sound.md](look-and-sound.md) | `apps/web/src/styles` |

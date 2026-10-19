@@ -1,0 +1,43 @@
+# Look and sound
+
+Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D31, D48, D54, D72, D73, D86, D96, D101, D110, D122; history: docs/history/.
+
+## Requirements
+
+### Visual language
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons and chips, 12px rows, no outline except on text fields.
+- Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings 22px regular (D73).
+- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a rounded hover and press tile clear of the hairlines (`.row-action`). Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
+- Scroll edge fade masks on tabs and shelf; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
+- Dropdowns share one chevron gap.
+
+### Covers and the header light
+- Covers dated 2026-10 or later are drawn monthly (D110, `packages/cover/src/season.ts`, `MONTHLY_FROM`): one colour scheme a month; Daily and Weekly with set layouts (the weekly shows its ISO week number and Monday to Sunday range); On demand and episodes as a round plate on a matte; every draw held to 4.5:1 for type and 3:1 for form in code. Earlier covers keep mixed palettes.
+- Covers are a step brighter and a little more saturated in both themes (paper chroma 0.045, spot and tint 25% richer, under the 0.12 cap); a card's progress scrim covers only its bottom quarter (D122).
+- Ambient cover light (D48): a soft light in the cover's colours behind the header of Latest and of an episode, drawn by a small WebGL canvas on a GPU and by a CSS layer elsewhere. It reads its colours from the drawn cover for each theme (`coverColors`, not the palette id) and draws three round lights that drift; the CSS layer draws the same three (D122). Its GPU tests skip in headless Chromium, so CI covers only the CSS layer and the decision not to draw.
+- Covers ship as lossless WebP (pixel-identical, about a third of the PNG bytes), encoded with sharp at build time and cached beside the PNG, which is still built for the lock screen's media controls.
+- Safari lacks `overlay` and `interpolate-size`: the sheets, the Delete confirm, the hero menu and toasts place and stack themselves for their exit, the speed panel closes at once there, and heights do not animate to auto.
+- Scenario: WHEN the theme changes THEN the covers on screen decode before the crossfade and the bars fade with the page.
+- A topic's picture is drawn from its name and id (`packages/cover/src/topicArt.ts`).
+
+### Empty states
+- Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96): Latest with no briefing, an empty Library, a search or filter with no result (its line follows the search box in CSS), offline and back online, 404, and a topic with no sources (compact).
+- The art is inline SVG in `EmptyArt.astro`, coloured by classes in `empty.css` from the theme's roles, `aria-hidden`, hidden under forced colours.
+
+### Interface sounds
+- Sounds are by kind of action (navigate, select, tap, open and close, success, failure) through one delegated listener that loads the sound code on the first gesture, key or focus and follows the Sounds setting (D101).
+- Every enabled control makes one: an action button a soft tap, a dialog or popover its open and close including Escape, a toast its outcome. The first press of a page is queued until the engine is ready. A save that went through is silent.
+
+### Style rules
+- Style tests forbid raw lengths for spacing, type size and radius, and reading a custom property nothing defines. Unpinned: copy, geometry.
+- Design fixes with a commented reason are extended, never rewritten.
+
+## Code
+- `apps/web/src/styles/tokens.css`
+- `apps/web/src/styles/primitives.css`
+- `apps/web/src/styles/empty.css`
+- `apps/web/src/components/EmptyArt.astro`
+- `apps/web/src/scripts/ambientLight.ts`
+- `packages/cover/src/season.ts`
+- `packages/sound/src/engine.ts`
+- `apps/web/src/scripts/uiSound.ts`

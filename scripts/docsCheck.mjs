@@ -16,7 +16,7 @@ export const BUDGETS = {
 export const SPEC_BUDGET = 8_000;
 export const READ_FIRST_BUDGET = 40_000;
 // Folders with an index of their own, left out of the docs README check.
-const OWN_INDEX = ["history/", "prototype/"];
+const OWN_INDEX = ["history/", "prototype/", "specs/"];
 
 const read = (path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 
