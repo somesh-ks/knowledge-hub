@@ -10,6 +10,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [decisions.md](decisions.md) | Every decision, D1 onward, with an Index table | One entry per change of direction |
 | [learnings.md](learnings.md) | Failures and gotchas, one line each | Appended |
 | [history/](history/README.md) | One note per session: why something was done, including the 2026-10-11 audits | One note per session |
+| [specs/README.md](specs/README.md) | What each capability does now, one spec each, with its code | Rewritten with the behaviour, in the same PR |
 
 ## Design
 
@@ -28,6 +29,8 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [plan/build-plan.md](plan/build-plan.md) | The first build's architecture and as-built record; later decisions override it |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page, where the bytes are, and the cuts |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use; read before changing a test |
+| [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | The reliability audit of 2026-10-15: what failed inside the server's edit gap and the risks left open |
+| [plan/docs-upgrade-plan.md](plan/docs-upgrade-plan.md) | The docs upgrade of 2026-10-19: budgets, the docs check, specs and why |
 | [runbook.md](runbook.md) | Owner setup and day-to-day operation |
 
 ## Reference

@@ -1,0 +1,121 @@
+// The record's guard: budgets, links, the decisions Index and closure conditions, so the docs an agent
+// reads first stay small and true without anyone remembering to keep them so (docs/plan/docs-upgrade-plan.md).
+//
+// Usage: node scripts/docsCheck.mjs [--warn]   (--warn prints the problems and exits 0)
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Bytes. Read-first is what every session reads: AGENTS.md, state.md and the decisions Index.
+export const BUDGETS = {
+  "AGENTS.md": 7_000,
+  "docs/state.md": 12_000,
+  "docs/learnings.md": 25_000,
+  "docs/specs/README.md": 4_000,
+};
+export const SPEC_BUDGET = 8_000;
+export const READ_FIRST_BUDGET = 40_000;
+// Folders with an index of their own, left out of the docs README check.
+const OWN_INDEX = ["history/", "prototype/", "specs/"];
+
+const read = (path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+
+function markdownFiles(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) return markdownFiles(full);
+    return name.endsWith(".md") ? [full] : [];
+  });
+}
+
+export function decisionsIndex(text) {
+  const start = text.indexOf("## Index");
+  const end = text.indexOf("\n## D", start);
+  return start < 0 ? "" : text.slice(start, end < 0 ? undefined : end);
+}
+
+export function checkDocs(root) {
+  const fails = [];
+  const at = (rel) => join(root, rel);
+  const size = (rel) => Buffer.byteLength(read(at(rel)));
+
+  for (const [rel, max] of Object.entries(BUDGETS)) {
+    if (existsSync(at(rel)) && size(rel) > max)
+      fails.push(`${rel}: ${size(rel)} bytes, budget ${max}`);
+  }
+  for (const file of markdownFiles(at("docs/specs"))) {
+    const rel = relative(root, file).replace(/\\/g, "/");
+    if (rel !== "docs/specs/README.md" && size(rel) > SPEC_BUDGET) {
+      fails.push(`${rel}: ${size(rel)} bytes, budget ${SPEC_BUDGET}`);
+    }
+  }
+
+  const decisionsPath = at("docs/decisions.md");
+  const decisions = existsSync(decisionsPath) ? read(decisionsPath) : "";
+  const index = decisionsIndex(decisions);
+  const readFirst = ["AGENTS.md", "docs/state.md"]
+    .filter((rel) => existsSync(at(rel)))
+    .reduce((sum, rel) => sum + size(rel), Buffer.byteLength(index));
+  if (readFirst > READ_FIRST_BUDGET)
+    fails.push(`read-first: ${readFirst} bytes, budget ${READ_FIRST_BUDGET}`);
+
+  // Every Index row has an entry and every entry a row; a supersession names a decision that exists.
+  const rows = new Set([...index.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]));
+  const entries = new Set([...decisions.matchAll(/^## (D\d+):/gm)].map((m) => m[1]));
+  for (const id of rows)
+    if (!entries.has(id)) fails.push(`docs/decisions.md: Index row ${id} has no entry`);
+  for (const id of entries)
+    if (!rows.has(id)) fails.push(`docs/decisions.md: ${id} has no Index row`);
+  for (const m of decisions.matchAll(/superseded by (D\d+)/gi)) {
+    if (!entries.has(m[1]))
+      fails.push(`docs/decisions.md: "${m[0]}" names a decision that does not exist`);
+  }
+
+  // An open item says what closes it, so a stale note can be told from a real question.
+  if (existsSync(at("docs/state.md"))) {
+    const state = read(at("docs/state.md"));
+    const section = state.match(/^## [^\n]*unverified[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/im);
+    for (const line of (section?.[1] ?? "").split("\n")) {
+      if (line.startsWith("- ") && !/closed when:/i.test(line)) {
+        fails.push(`docs/state.md: unverified item without "closed when:": ${line.slice(2, 70)}`);
+      }
+    }
+  }
+
+  const docs = markdownFiles(at("docs"));
+  for (const file of [at("AGENTS.md"), ...docs].filter(existsSync)) {
+    const text = read(file)
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/`[^`\n]*`/g, "");
+    for (const m of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+      const target = decodeURIComponent(m[1].split("#")[0]);
+      if (!target || /^[a-z]+:/i.test(target)) continue;
+      if (!existsSync(resolve(dirname(file), target))) {
+        fails.push(`${relative(root, file).replace(/\\/g, "/")}: broken link ${m[1]}`);
+      }
+    }
+  }
+
+  if (existsSync(at("docs/README.md"))) {
+    const map = read(at("docs/README.md"));
+    for (const file of docs) {
+      const rel = relative(at("docs"), file).replace(/\\/g, "/");
+      if (rel === "README.md" || OWN_INDEX.some((dir) => rel.startsWith(dir))) continue;
+      if (!map.includes(`(${rel})`)) fails.push(`docs/README.md: does not list ${rel}`);
+    }
+  }
+
+  return { fails, readFirst };
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const { fails, readFirst } = checkDocs(root);
+  for (const fail of fails) console.log(`FAIL  ${fail}`);
+  console.log(
+    `read-first: ${(readFirst / 1000).toFixed(1)} KB, about ${Math.round(readFirst / 4000)}k tokens (budget ${READ_FIRST_BUDGET / 1000} KB)`,
+  );
+  console.log(fails.length ? `docs check: ${fails.length} problem(s)` : "docs check passed");
+  process.exit(fails.length && !process.argv.includes("--warn") ? 1 : 0);
+}
