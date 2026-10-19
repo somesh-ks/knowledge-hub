@@ -347,7 +347,9 @@ export async function handleSourcePreview(
       AbortSignal.timeout(OVERALL_TIMEOUT_MS),
     );
     const formatted = await withFormat(preview, deps.classify);
-    cache.set(key, { at: now, preview: formatted });
+    // A rule guess standing in for a Jev that failed or was slow is not kept, so a retry asks again.
+    const settled = formatted.format_by === "jev" || !deps.classify || formatted.format !== "blog";
+    if (settled) cache.set(key, { at: now, preview: formatted });
     if (cache.size > CACHE_MAX_ENTRIES) {
       const oldest = cache.keys().next().value;
       if (oldest !== undefined) cache.delete(oldest);

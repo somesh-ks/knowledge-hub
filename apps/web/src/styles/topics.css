@@ -1185,12 +1185,11 @@
   display: contents;
 }
 
-/* The rule between the formats and the statuses. */
+/* A line break between the formats and the statuses, so the statuses start their own row instead
+   of wrapping mid-group on a phone (2026-10-20). */
 .filter-sep {
-  align-self: stretch;
-  inline-size: var(--stroke-hairline);
-  margin-inline: var(--space-1);
-  background: var(--color-border-hairline);
+  flex-basis: 100%;
+  block-size: 0;
 }
 
 .filter-chip {

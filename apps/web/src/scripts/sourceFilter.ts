@@ -32,7 +32,8 @@ export function mountFilter(root: HTMLElement): void {
   const list = library ?? root.querySelector<HTMLElement>("ul[data-sources]:not([data-added])");
   const more = root.querySelector<HTMLButtonElement>("[data-show-all]");
   if (!field || !list) return;
-  const wasAll = list.hasAttribute("data-all");
+  let expanded = list.hasAttribute("data-all");
+  let wasIdle = true;
 
   const entries: Entry[] = [...list.querySelectorAll<HTMLElement>("li.source-row")].map((el) => ({
     el,
@@ -73,8 +74,11 @@ export function mountFilter(root: HTMLElement): void {
       library.hidden = idle;
       for (const topics of topicLists) topics.hidden = !idle;
     } else {
-      list.toggleAttribute("data-all", !idle || wasAll);
-      if (more && !wasAll) more.hidden = !idle;
+      // Remember a "Show more" the owner pressed before filtering, so clearing keeps it open.
+      if (wasIdle && !idle) expanded = list.hasAttribute("data-all");
+      list.toggleAttribute("data-all", !idle || expanded);
+      if (more) more.hidden = !idle || expanded;
+      wasIdle = idle;
     }
     if (none) none.hidden = idle || shown > 0;
     history.replaceState(
