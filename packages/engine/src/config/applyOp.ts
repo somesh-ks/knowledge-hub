@@ -327,6 +327,7 @@ async function addSource(
   ).catch((error: unknown) => {
     throw new ConfigOpError(error instanceof Error ? error.message : String(error));
   });
+  if (op.format !== undefined) source.format = op.format;
   next.sourcesUser.added.push(source);
   return { next, summary: `add source ${tidy(source.name)}` };
 }
@@ -378,9 +379,11 @@ function updateSource(
       if (topicIds.length > 0) added.topic_ids = topicIds;
       else delete added.topic_ids;
     }
+    if (op.format !== undefined) added.format = op.format;
   } else {
     next.sourcesUser.overrides[op.id] = {
       ...next.sourcesUser.overrides[op.id],
+      ...(op.format === undefined ? {} : { format: op.format }),
       ...(op.name === undefined ? {} : { name: op.name }),
       ...(topicIds === undefined ? {} : { topic_ids: topicIds }),
     };
@@ -388,7 +391,8 @@ function updateSource(
   const where = topicNames.length > 0 ? listInWords(topicNames) : "no topic";
   const rename = op.name === undefined ? null : `rename source ${tidy(before)} to ${tidy(op.name)}`;
   let summary: string;
-  if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
+  if (rename === null && topicIds === undefined) summary = `set format of source ${tidy(before)}`;
+  else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
   return { next, summary };
