@@ -20,6 +20,7 @@ const GITHUB_SECRETS = [
   "BLOB_READ_WRITE_TOKEN",
   "VERCEL_TOKEN",
   "COMPOSIO_API_KEY",
+  "GEMINI_API_KEY",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
@@ -27,6 +28,7 @@ const GITHUB_VARIABLES = [
   "NEBIUS_BASE_URL",
   "DISPATCH_MODEL",
   "DISPATCH_FALLBACK_MODEL",
+  "GEMINI_TRANSCRIBE_MODEL",
   "SPEECHIFY_VOICE_ID",
   "SPEECHIFY_MONTHLY_CHARS",
   "DISPATCH_GIT_NAME",

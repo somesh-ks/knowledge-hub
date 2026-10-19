@@ -1,9 +1,11 @@
+import { join } from "node:path";
 import type { Item } from "@dispatch/core";
 import { requireKey } from "@dispatch/core";
 import { type CommandContext, secretsFromEnv } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { extractFullText } from "../extract/extractText.js";
 import { createFirecrawlScrape } from "../extract/firecrawlScrape.js";
+import { createVideoText, withVideoText } from "../extract/youtubeText.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import { CombinedJudge } from "../judge/combinedJudge.js";
 import { FallbackJudge } from "../judge/fallbackJudge.js";
@@ -139,7 +141,15 @@ export function createApiRuntime(
     generalJudge,
     sampleJudge,
     tasteFitter,
-    extract: (item) => extractFullText(item, { scrape, log }),
+    extract: withVideoText(
+      (item) => extractFullText(item, { scrape, log }),
+      createVideoText({
+        apiKey: env.GEMINI_API_KEY,
+        model: env.GEMINI_TRANSCRIBE_MODEL,
+        cachePath: join(ctx.root, "state", "video-text.json"),
+        log,
+      }),
+    ),
     judgeFailures,
     usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),
   };

@@ -23,6 +23,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - General topics: Science takes a clearly on-topic story from one outlet (D120); the other general topics need two. General feeds are judged by Jev each run for the feeds' scores and never reach a briefing as such (D66); a general section gets two stories outside the briefing's cap; the weekly ceiling is 600 judged items.
 
 ### Sources and scores
+- A YouTube finalist is read as text before the writer sees it (`extract/youtubeText.ts`): its subtitles from youtube.com (manual, then auto-generated, English first); with none, Gemini transcribes the first 30 minutes by video URL (`GEMINI_API_KEY`, model `GEMINI_TRANSCRIBE_MODEL`, 3 per run); if both fail, its description, or nothing under 200 characters. Results are cached in `state/video-text.json` (150 entries), so a video is read once.
 - A source's score is out of 5 (D103) from health, quality and trust, combined as a geometric mean (D55). New: under 10 judged items. Trust "not measured yet": under 10 checked items.
 - A scoring sample judges up to 200 items a run for scores alone (left-overs of sources under the bar, a new source's recent posts from its own feed, switched-off feeds weekly), so every source reaches a score (D70). The report has `sample_items` and `sample_fresh`.
 - A source with nothing that could have been published is scored on its pass share alone; one whose feed held under ten posts when read is scored from 3 judged items.
