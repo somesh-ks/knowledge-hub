@@ -107,6 +107,7 @@ describe("the general news sources", () => {
       ).toEqual({
         ...draft,
         failures: 0,
+        format: expect.any(String),
       });
     }
   });

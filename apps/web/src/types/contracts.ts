@@ -1,4 +1,4 @@
-import type { ConfigOp as CoreConfigOp, DigestKind } from "@dispatch/core";
+import type { ConfigOp as CoreConfigOp, DigestKind, SourceFormat } from "@dispatch/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -305,7 +305,7 @@ export type ConfigOp =
       };
     }
   | { op: "topic.remove"; id: string }
-  | { op: "source.add"; url: string; topic_ids?: string[]; id?: string }
+  | { op: "source.add"; url: string; topic_ids?: string[]; id?: string; format?: SourceFormat }
   | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
   | {
       op: "source.update";
@@ -314,9 +314,10 @@ export type ConfigOp =
       name?: string;
       /**
        * Every topic the source feeds, custom or built-in, up to 12; an empty list files it under
-       * Other. At least one of `name` and `topic_ids` is required.
+       * Other. At least one of `name`, `topic_ids` and `format` is required.
        */
       topic_ids?: string[];
+      format?: SourceFormat;
     }
   | { op: "source.remove"; id: string }
   | { op: "weights.set"; weights: Record<string, number> }

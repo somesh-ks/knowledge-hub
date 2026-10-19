@@ -1,6 +1,7 @@
 ---
 import type { ManageSource } from "../lib/manage";
 import { readableUrl } from "../lib/manage";
+import { FORMAT_LABEL, searchText, statusesOf } from "../lib/sourceFilter";
 import { sourceInitial } from "../lib/sourceInitial";
 import ScoreMeter from "./ScoreMeter.astro";
 
@@ -13,9 +14,11 @@ interface Props {
    * the owner's three topics): the group's home, so choosing the same group moves nothing.
    */
   shownTopic?: { id: string; name: string } | undefined;
+  /** On the index's flat list, the line that says what the source is and where it is filed. */
+  labelled?: boolean;
 }
 
-const { source, topicName = "", shownTopic } = Astro.props;
+const { source, topicName = "", shownTopic, labelled = false } = Astro.props;
 // The address as a person reads it; the row's title holds all of it.
 const address = readableUrl(source.url) || source.host;
 // The bands of a score out of 5: Good is 3.5 and up, Fair 2.5 to 3.5, Poor under 2.5, New has none.
@@ -38,6 +41,7 @@ const facts = {
   score: source.score,
   label: source.score_label,
   parts: source.score_parts,
+  format: source.format,
 };
 ---
 
@@ -53,6 +57,9 @@ const facts = {
   data-band={band}
   data-score={source.score ?? -1}
   data-name={source.name.toLowerCase()}
+  data-text={searchText(source, shownTopic?.name ?? topicName)}
+  data-format={source.format}
+  data-statuses={statusesOf(source).join(" ")}
   title={source.url ?? undefined}
 >
   <button
@@ -84,6 +91,13 @@ const facts = {
       <span class="source-meta">
         <span class="source-url">{address}</span>
       </span>
+      {
+        labelled && (
+          <span class="source-meta source-kind">
+            {`${FORMAT_LABEL[source.format]} · ${shownTopic?.name ?? (topicName || "Other")}`}
+          </span>
+        )
+      }
     </span>
   </span>
   <ScoreMeter label={source.score_label} score={source.score} />

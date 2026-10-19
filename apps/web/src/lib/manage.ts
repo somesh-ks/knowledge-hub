@@ -2,12 +2,15 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   CATEGORIES,
+  deriveSourceFormat,
   generalTopics,
   homeSection,
   isGeneralTopicId,
   NEVER_PUBLISH,
   SECTION_TITLES,
   SECTIONS,
+  SOURCE_FORMATS,
+  type SourceFormat,
   sourceScore,
 } from "@dispatch/core";
 import { findRepoRoot } from "./repoRoot";
@@ -83,6 +86,8 @@ export interface ManageSource {
   score_parts: { health: number; quality: number; trust: number | null } | null;
   /** Lowercase text the search matches. */
   search: string;
+  /** Blog, news, forum and so on: the source's own, else the one its type implies. */
+  format: SourceFormat;
 }
 
 export interface ManageCandidate {
@@ -396,6 +401,7 @@ interface RawSource {
   last_ok: string | null;
   /** Discovery quality, 0 to 1. */
   quality: number | null;
+  format: SourceFormat;
 }
 
 /** The strings in a list, trimmed, or null when the value is not a list. */
@@ -403,6 +409,15 @@ function stringList(value: unknown): string[] | null {
   return Array.isArray(value)
     ? value.map(asString).filter((entry): entry is string => entry !== null)
     : null;
+}
+
+function asFormat(value: unknown): SourceFormat | null {
+  return SOURCE_FORMATS.find((format) => format === value) ?? null;
+}
+
+/** A source type the core knows, else rss (read as a blog). */
+function asType(value: unknown): Parameters<typeof deriveSourceFormat>[0] {
+  return (typeof value === "string" ? value : "rss") as Parameters<typeof deriveSourceFormat>[0];
 }
 
 function parseSource(value: unknown): RawSource | null {
@@ -422,6 +437,7 @@ function parseSource(value: unknown): RawSource | null {
     failures: asNumber(value.failures) ?? 0,
     last_ok: asString(value.last_ok),
     quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
+    format: asFormat(value.format) ?? deriveSourceFormat(asType(value.type)),
   };
 }
 
@@ -438,6 +454,7 @@ interface Override {
   name?: string;
   /** Wins over the source's own topics; an empty list files it under none. */
   topic_ids?: string[];
+  format?: SourceFormat;
 }
 
 function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<string, Override> } {
@@ -449,12 +466,14 @@ function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<str
       if (!isRecord(entry)) continue;
       const name = asString(entry.name);
       const topicIds = stringList(entry.topic_ids);
+      const format = asFormat(entry.format);
       overrides.set(id, {
         ...(typeof entry.enabled === "boolean" ? { enabled: entry.enabled } : {}),
         ...(typeof entry.pinned === "boolean" ? { pinned: entry.pinned } : {}),
         ...(typeof entry.removed === "boolean" ? { removed: entry.removed } : {}),
         ...(name === null ? {} : { name }),
         ...(topicIds === null ? {} : { topic_ids: topicIds }),
+        ...(format === null ? {} : { format }),
       });
     }
   }
@@ -576,6 +595,7 @@ export function buildSources(input: {
       score_label: rated.label,
       score_parts: rated.parts,
       search: `${name} ${host} ${source.id}`.toLowerCase(),
+      format: override.format ?? source.format,
     });
   }
   return rows.sort(

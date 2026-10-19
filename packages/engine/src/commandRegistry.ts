@@ -14,6 +14,17 @@ export interface CommandSpec {
 /** Every command, in the order `dispatch --help` lists them. Each module exports `run`. */
 export const COMMANDS: readonly CommandSpec[] = [
   {
+    name: "classify-formats",
+    summary: "Ask Jev for every source's format and write a review table",
+    help: `Usage: dispatch classify-formats [--out <dir>] [--apply <formats.json>]
+
+Asks Jev which format (blog, news, forum, video, research, releases, podcast) each source is and
+writes format-review.md and formats.json to --out. A row where Jev contradicts a type that decides
+its own format is flagged and keeps the rule's value. --apply writes a reviewed formats.json into
+config/sources.json and config/sources.user.json. Uses TYPESAFE_API_KEY.`,
+    load: async () => (await import("./commands/classifyFormats.js")).run,
+  },
+  {
     name: "sources",
     summary: "Import, discover and check the source registry",
     help: `Usage: dispatch sources <import|discover|check> [flags]

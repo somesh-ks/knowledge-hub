@@ -1,0 +1,73 @@
+---
+import type { ManageSource } from "../lib/manage";
+import { FORMAT_LABEL, STATUS_LABEL, type StatusKey, statusesOf } from "../lib/sourceFilter";
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** Every source the filter covers: the page's own list, or all of them on the index. */
+  sources: ManageSource[];
+}
+
+const { sources } = Astro.props;
+const formats = Object.entries(FORMAT_LABEL)
+  .map(([format, label]) => ({
+    format,
+    label,
+    count: sources.filter((source) => source.format === format).length,
+  }))
+  .filter((chip) => chip.count > 0);
+const statuses = (Object.keys(STATUS_LABEL) as StatusKey[]).map((key) => ({
+  key,
+  label: STATUS_LABEL[key],
+  count: sources.filter((source) => statusesOf(source).includes(key)).length,
+}));
+---
+
+{/* One search field and two groups of chips over a list of source rows (sourceFilter.ts reads
+     their data-text, data-format and data-statuses). Chips in a group add up (any of them), the
+     groups and the words narrow. A chip that would leave nothing is dimmed and cannot be pressed.
+     Whole static HTML without the script: the list simply stays unfiltered. */}
+<div class="source-filter" data-filter data-needs-js>
+  <div class="filter-field">
+    <Icon name="search" />
+    <input
+      class="manage-input"
+      type="search"
+      name="q"
+      placeholder="Search sources"
+      aria-label="Search sources"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      enterkeyhint="search"
+      data-filter-q
+    />
+  </div>
+  <div class="filter-chips">
+    <div class="filter-group" role="group" aria-label="Format">
+      {
+        formats.map((chip) => (
+          <button class="filter-chip" type="button" aria-pressed="false" data-chip="format" data-value={chip.format}>
+            <span>{chip.label}</span>
+            <span class="filter-count" data-count>{chip.count}</span>
+          </button>
+        ))
+      }
+    </div>
+    <span class="filter-sep" aria-hidden="true"></span>
+    <div class="filter-group" role="group" aria-label="Status">
+      {
+        statuses.map((chip) => (
+          <button class="filter-chip" type="button" aria-pressed="false" data-chip="status" data-value={chip.key}>
+            <span>{chip.label}</span>
+            <span class="filter-count" data-count>{chip.count}</span>
+          </button>
+        ))
+      }
+    </div>
+  </div>
+  <p class="filter-none" role="status" hidden data-filter-none>
+    <span>No sources match.</span>
+    <button class="btn" type="button" data-filter-clear>Clear</button>
+  </p>
+</div>

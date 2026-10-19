@@ -220,7 +220,7 @@ describe("handleSourcePreview", () => {
       deps(),
     );
     expect(result.status).toBe(200);
-    expect(result.body).toEqual(PREVIEW);
+    expect(result.body).toEqual({ ...PREVIEW, format: "blog", format_by: "rule" });
     expect(result.headers?.["Cache-Control"]).toBe("private, max-age=600");
   });
 

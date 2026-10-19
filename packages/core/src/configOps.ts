@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
-import { SOURCE_NAME_MAX } from "./sources.js";
+import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
 import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
@@ -97,6 +97,8 @@ export const ConfigOp = z.discriminatedUnion("op", [
     topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
     /** The id the page chose, so its row can be edited before the build lists the source. Refused if taken. */
     id: IdString.optional(),
+    /** The format the person chose or accepted; left out, the type's rule decides. */
+    format: SourceFormat.optional(),
   }),
   z
     .object({
@@ -114,10 +116,13 @@ export const ConfigOp = z.discriminatedUnion("op", [
       id: z.string().min(1),
       name: z.string().trim().min(1).max(SOURCE_NAME_MAX).optional(),
       topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
+      format: SourceFormat.optional(),
     })
-    .refine((value) => value.name !== undefined || value.topic_ids !== undefined, {
-      message: "set name, topic_ids or both",
-    }),
+    .refine(
+      (value) =>
+        value.name !== undefined || value.topic_ids !== undefined || value.format !== undefined,
+      { message: "set name, topic_ids, format or any of them" },
+    ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
   z.object({
     op: z.literal("weights.set"),

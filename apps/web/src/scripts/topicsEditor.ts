@@ -10,6 +10,7 @@
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
+import type { SourceFormat } from "@dispatch/core";
 import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
@@ -195,7 +196,13 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   const addRow = (
-    shown: { name: string; icon: string | null; score?: number | null; label?: string },
+    shown: {
+      name: string;
+      icon: string | null;
+      score?: number | null;
+      label?: string;
+      format?: string;
+    },
     op: ConfigOp,
     topicId: string,
   ): void => {
@@ -206,6 +213,7 @@ export function mountEditor(root: HTMLElement): Editor {
     row.dataset.band = bandOf(shown.score ?? null);
     row.dataset.score = String(shown.score ?? -1);
     row.dataset.name = shown.name.toLowerCase();
+    row.dataset.format = shown.format ?? "blog";
     // The same parts as a built row (SourceRow.astro), live at once: the page names the source's id
     // in the add, so the checkbox, the edit panel and Delete work before the build lists it.
     const address = op.op === "source.add" ? op.url : "";
@@ -238,6 +246,7 @@ export function mountEditor(root: HTMLElement): Editor {
       score: shown.score ?? null,
       label: shown.label ?? "New",
       parts: null,
+      format: shown.format ?? "blog",
     });
     const main = element("span", "source-main");
     const label = element("span", "source-text");
@@ -322,15 +331,21 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   /** A source chosen by its address in the panel: a decision already made, so it goes now. */
-  const addSource = ({ url, topic_id, preview }: Chosen): void => {
+  const addSource = ({ url, topic_id, preview, format }: Chosen): void => {
     addRow(
       {
         name: preview.name,
         icon: preview.favicon_url ?? preview.thumbnail_url,
         score: preview.score,
         label: preview.score_label,
+        format,
       },
-      { op: "source.add", url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
+      {
+        op: "source.add",
+        url,
+        ...(topic_id ? { topic_ids: [topic_id] } : {}),
+        ...(format ? { format: format as SourceFormat } : {}),
+      },
       topic_id,
     );
     autosave.now();
@@ -353,6 +368,10 @@ export function mountEditor(root: HTMLElement): Editor {
       const name = row.querySelector(".source-name");
       if (name) name.textContent = edit.name;
       button.setAttribute("aria-label", `Edit ${edit.name}`);
+    }
+    if (edit.format !== undefined) {
+      facts.format = edit.format;
+      row.dataset.format = edit.format;
     }
     if (edit.topic_ids !== undefined) {
       facts.topic_id = edit.topic_ids[0] ?? "";
