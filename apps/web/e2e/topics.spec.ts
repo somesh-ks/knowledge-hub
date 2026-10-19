@@ -472,6 +472,15 @@ test.describe("a topic's page", () => {
     await expect(row.locator(".score")).toBeVisible();
     await expect(row.getByRole("checkbox", { name: "Read Newsroom Example" })).toBeChecked();
     expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
+    // The one picture of the list: the new row beside its neighbour, where the tint once spread
+    // over the next row. Local only (CI's fonts differ): when topics.css changes, run this spec,
+    // read the diff, and update with --update-snapshots after a look.
+    if (!process.env.CI) {
+      await expect(page.locator("[data-sources]")).toHaveScreenshot("added-source-row.png", {
+        animations: "disabled",
+        maxDiffPixelRatio: 0.01,
+      });
+    }
     // It is live at once, under the id the add named: untick, tick, then delete it, no reload.
     const added = ops(sent).find((op) => op.op === "source.add")?.id as string;
     const box = row.getByRole("checkbox", { name: "Read Newsroom Example" });
