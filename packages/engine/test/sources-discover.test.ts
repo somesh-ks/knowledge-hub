@@ -1,6 +1,7 @@
 import type { SourcesFile } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { parseFeed } from "../src/fetch/feedParser.js";
+import { buildSourceFromUrl } from "../src/sources/addSource.js";
 import {
   classifyLinkKind,
   discoverFeed,
@@ -337,6 +338,22 @@ describe("resolveYoutubeChannel", () => {
     ).toBeUndefined();
   });
 
+  it("needs no request for a /channel/ address, and asks the resolver, not the 1 MB page, for a handle", async () => {
+    const id = `UC${"c".repeat(22)}`;
+    const direct = http({});
+    expect(await resolveYoutubeChannel(`https://www.youtube.com/channel/${id}`, direct.deps)).toBe(
+      id,
+    );
+    expect(direct.fake.calls).toEqual([]);
+    // The page is refused for its size (the preview caps a page at 1 MB); the resolver answers.
+    const handle = http({
+      "https://www.youtube.com/youtubei/v1/navigation/resolve_url": () =>
+        Response.json({ endpoint: { browseEndpoint: { browseId: id } } }),
+      "https://www.youtube.com/@big": () => new Response("x".repeat(2 * 1024 * 1024)),
+    });
+    expect(await resolveYoutubeChannel("https://www.youtube.com/@big", handle.deps)).toBe(id);
+  });
+
   it("sends a consent cookie so the EU interstitial does not hide the page", async () => {
     let cookie: string | null = null;
     const fake = fakeFetch({
@@ -535,5 +552,17 @@ describe("discoverAll", () => {
     };
     const result = await discoverAll(file, deps);
     expect(result.file.sources[0]?.options.kind).toBe("newsletter-link");
+  });
+});
+
+describe("a social media page", () => {
+  it("is refused as a source when it has no feed, since Firecrawl cannot read it", async () => {
+    const { deps } = http({ "https://x.com/somebody": "<html><body>Sign in</body></html>" });
+    await expect(
+      buildSourceFromUrl(
+        { url: "https://x.com/somebody", origin: "manual", takenIds: new Set(), existing: [] },
+        deps,
+      ),
+    ).rejects.toThrow(/Social media pages cannot be read/);
   });
 });
