@@ -4,6 +4,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Browser tests
 
+- 2026-10-19: a source just added showed as a tinted stub with no address, rating or checkbox, and its `box-shadow` tint spread 8px over the next row. The add specs checked text and the request, never the row's parts or box, and unit tests cannot see CSS. The new row is built from the same parts as a built row (`source.add` takes the page's `id`, so it is live at once) and the spec asserts those parts and no `box-shadow`. A row made in script must mirror its Astro component's markup; a state drawn by `box-shadow` or outline spreads past the box.
 - 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
