@@ -1,5 +1,5 @@
 import { VOICE_LIMITS } from "@dispatch/core";
-import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
+import { boundaryLine, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { type Taste, tasteNote } from "../profile/tasteNote.js";
 import type { VoiceConfig } from "../voice/voice.js";
 import type { RewriteRequest, SourceMaterial } from "./types.js";
@@ -70,7 +70,7 @@ const FACT_RULES = [
   "Write plain sentences: no markdown, no links, no quotation marks around a field, no labels such as 'Summary:'.",
 ].join(" ");
 
-export function writerSystemPrompt(voice: VoiceConfig, boundary: string): string {
+export function writerSystemPrompt(voice: VoiceConfig): string {
   return [
     "You write items for Singularity, a private tech and design engineering briefing. The reader is sharp but may not know the topic.",
     "",
@@ -83,7 +83,7 @@ export function writerSystemPrompt(voice: VoiceConfig, boundary: string): string
     FACT_RULES,
     "",
     "SOURCE HANDLING",
-    untrustedInstruction(boundary),
+    untrustedInstruction(),
     "",
     "OUTPUT",
     'Reply with one JSON object: {"items":[{"id":"...","headline":"...","chapter":"...","summary":"...","spoken":"..."}]}, one entry per source, keeping each id exactly.',
@@ -111,6 +111,7 @@ export function writerUserMessage(
 ): string {
   const note = tasteNote(taste, boundary);
   return [
+    boundaryLine(boundary),
     `Write the headline, chapter, summary and spoken version for each of these ${items.length} sources.`,
     "",
     ...items.map((item) => materialBlock(item, boundary)),
@@ -139,7 +140,7 @@ export function writerUserMessage(
   ].join("\n\n");
 }
 
-export function rewriteSystemPrompt(voice: VoiceConfig, boundary: string): string {
+export function rewriteSystemPrompt(voice: VoiceConfig): string {
   return [
     "You fix one field of a Singularity item so that it follows the house voice.",
     "",
@@ -153,7 +154,7 @@ export function rewriteSystemPrompt(voice: VoiceConfig, boundary: string): strin
     "Keep every fact of the current text that the source supports. Change only what the problems list requires.",
     "",
     "SOURCE HANDLING",
-    untrustedInstruction(boundary),
+    untrustedInstruction(),
     "",
     "OUTPUT",
     'Reply with one JSON object: {"text":"..."} holding the corrected field and nothing else.',
@@ -165,6 +166,7 @@ export function rewriteUserMessage(request: RewriteRequest, boundary: string): s
   // delimited. The problem list is written by our code and never embeds quoted text.
   const focus = request.focus ?? [];
   return [
+    boundaryLine(boundary),
     `Field to fix: ${request.field}`,
     "Current text:",
     wrapUntrusted(request.current, boundary, "current"),

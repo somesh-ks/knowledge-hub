@@ -51,7 +51,10 @@ describe("createAnthropicLlm", () => {
     expect(headers["anthropic-version"]).toBe("2023-06-01");
     const sent = JSON.parse(String(init.body));
     expect(sent.model).toBe("claude-haiku-5-5");
-    expect(sent.system).toBe("be brief");
+    // Without the breakpoint every request pays full price for the same system prompt.
+    expect(sent.system).toEqual([
+      { type: "text", text: "be brief", cache_control: { type: "ephemeral" } },
+    ]);
     expect(sent.messages.every((m: { role: string }) => m.role !== "system")).toBe(true);
     expect(sent.response_format).toBeUndefined();
   });

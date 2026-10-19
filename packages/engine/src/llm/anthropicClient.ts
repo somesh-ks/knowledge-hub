@@ -33,7 +33,12 @@ class AnthropicHttpError extends Error {
 
 interface MessagesResponse {
   content?: Array<{ type?: string; text?: string }>;
-  usage?: { input_tokens?: number; output_tokens?: number };
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  };
 }
 
 async function failureMessage(response: Response): Promise<string> {
@@ -77,7 +82,11 @@ export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatAp
           .filter((message) => message.role !== "system")
           .map((message) => ({ role: message.role, content: message.content })),
       };
-      if (system) payload.system = system;
+      // The breakpoint ends the system prompt, which is the same on every request of a kind (the
+      // boundary token lives in the user message), so batches after the first read it from cache.
+      if (system) {
+        payload.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
+      }
       options.onRequest?.();
       let response: Response;
       try {
@@ -111,8 +120,15 @@ export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatAp
         .filter((block) => block.type === "text" && typeof block.text === "string")
         .map((block) => block.text)
         .join("");
-      const input = json.usage?.input_tokens;
-      const output = json.usage?.output_tokens;
+      // input_tokens is only the uncached part; the prompt is all three.
+      const usage = json.usage;
+      const input =
+        usage?.input_tokens === undefined
+          ? undefined
+          : usage.input_tokens +
+            (usage.cache_creation_input_tokens ?? 0) +
+            (usage.cache_read_input_tokens ?? 0);
+      const output = usage?.output_tokens;
       return {
         choices: [{ message: { content: text } }],
         usage:

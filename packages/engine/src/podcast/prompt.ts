@@ -1,5 +1,5 @@
 import { type HostNames, hostNamesFor, type PodcastRequest } from "@dispatch/core";
-import { untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
+import { boundaryLine, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { tasteNote } from "../profile/tasteNote.js";
 import {
   type EpisodeStructure,
@@ -133,7 +133,7 @@ export function lengthLines(input: ScriptInput): string[] {
   return lines;
 }
 
-export function scriptSystemPrompt(input: ScriptInput, boundary: string): string {
+export function scriptSystemPrompt(input: ScriptInput): string {
   const { request } = input;
   return [
     request.audience === "general"
@@ -154,7 +154,7 @@ export function scriptSystemPrompt(input: ScriptInput, boundary: string): string
           "The first turns are already written and have been shown to the listener (see OPENING DONE in the message). Answer with the turns that come after them only: do not greet again, do not name the show again, and do not repeat the rundown or the story they lead into; carry on from the last turn. The sign-off stays at the end.",
         ]
       : []),
-    untrustedInstruction(boundary),
+    untrustedInstruction(),
   ].join("\n");
 }
 
@@ -188,6 +188,7 @@ export function scriptUserMessage(
   problems: readonly string[],
 ): string {
   const lines = [
+    boundaryLine(boundary),
     `Episode: ${input.request.title ?? "untitled"}. ${input.request.length_minutes} minutes, ${input.stories.length} stories.`,
     "",
     ...input.stories.map((story) => storyBlock(story, boundary)),
@@ -221,12 +222,12 @@ export function scriptUserMessage(
   return lines.join("\n");
 }
 
-export function rewriteSystemPrompt(boundary: string): string {
+export function rewriteSystemPrompt(): string {
   return [
     "You rewrite one line of a podcast script so that it keeps to the facts of its story.",
     RULES,
     'Keep the line\'s meaning, its voice and about its length. Answer with JSON only: {"text":"..."}.',
-    untrustedInstruction(boundary),
+    untrustedInstruction(),
   ].join("\n");
 }
 
@@ -234,5 +235,11 @@ export function rewriteUserMessage(input: TurnRewrite, boundary: string): string
   const facts = input.story
     ? [storyBlock(input.story, boundary)]
     : input.stories.map((story) => storyBlock(story, boundary));
-  return [...facts, "", `Line to rewrite: ${input.text}`, `Problem: ${input.problem}`].join("\n");
+  return [
+    boundaryLine(boundary),
+    ...facts,
+    "",
+    `Line to rewrite: ${input.text}`,
+    `Problem: ${input.problem}`,
+  ].join("\n");
 }

@@ -141,7 +141,7 @@ export class NebiusWriter implements Writer {
         schema: WriterOutput,
         schemaName: "dispatch_items",
         messages: [
-          { role: "system", content: writerSystemPrompt(this.options.voice, boundary) },
+          { role: "system", content: writerSystemPrompt(this.options.voice) },
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
         ],
         temperature: WRITER_TEMPERATURE,
@@ -181,7 +181,7 @@ export class NebiusWriter implements Writer {
         schema: RewriteOutput,
         schemaName: "dispatch_rewrite",
         messages: [
-          { role: "system", content: rewriteSystemPrompt(this.options.voice, boundary) },
+          { role: "system", content: rewriteSystemPrompt(this.options.voice) },
           { role: "user", content: rewriteUserMessage(request, boundary) },
         ],
         temperature: WRITER_TEMPERATURE,

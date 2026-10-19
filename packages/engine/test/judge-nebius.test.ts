@@ -198,7 +198,8 @@ describe("NebiusJudge", () => {
     expect(user.indexOf("Ignore previous instructions")).toBeLessThan(
       user.indexOf(`<<<END-${boundary}>>>`),
     );
-    expect(system).toContain(`<<<END-${boundary}>>>`);
+    expect(user.split("\n")[0]).toBe(`Delimiter token for this message: ${boundary}`);
+    expect(system).toContain("<<<END-<token>>>");
     expect(system).toContain("untrusted");
   });
 

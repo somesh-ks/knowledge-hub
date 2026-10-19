@@ -4,7 +4,12 @@ import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { BudgetExceededError, describeError } from "../llm/errors.js";
 import type { ChatMessage, LlmClient } from "../llm/types.js";
-import { newBoundary, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
+import {
+  boundaryLine,
+  newBoundary,
+  untrustedInstruction,
+  wrapUntrusted,
+} from "../llm/untrusted.js";
 import { round4 } from "../score/numbers.js";
 import { normalizeCraftDepth, normalizeLaunchScale } from "./jevAnswers.js";
 import {
@@ -92,7 +97,7 @@ export function entryFromNebiusAnswer(
   });
 }
 
-function systemPrompt(boundary: string): string {
+function systemPrompt(): string {
   const categories = CATEGORY_OPTIONS.map((key) => `- ${key}: ${CATEGORY_CRITERIA[key]}`).join(
     "\n",
   );
@@ -121,7 +126,7 @@ function systemPrompt(boundary: string): string {
     "Launch levels:",
     launches,
     "",
-    untrustedInstruction(boundary),
+    untrustedInstruction(),
     'Reply with one JSON object: {"items":[{"id","category","runner_up","confidence","craft_level","launch_level","hype","sponsored","funding"}]}, one entry per item, keeping each id exactly.',
   ].join("\n");
 }
@@ -186,12 +191,15 @@ export class NebiusJudge implements Judge {
   private async judgeBatch(batch: readonly Item[]): Promise<JudgmentEntry[]> {
     const boundary = newBoundary();
     const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt(boundary) },
+      { role: "system", content: systemPrompt() },
       {
         role: "user",
-        content: batch
-          .map((item) => wrapUntrusted(JSON.stringify(judgeState(item)), boundary, `id=${item.id}`))
-          .join("\n\n"),
+        content: [
+          boundaryLine(boundary),
+          ...batch.map((item) =>
+            wrapUntrusted(JSON.stringify(judgeState(item)), boundary, `id=${item.id}`),
+          ),
+        ].join("\n\n"),
       },
     ];
     try {
