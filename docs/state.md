@@ -19,7 +19,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Not working or unverified
 
-- YouTube text ran only against fakes. closed when: a run with a YouTube source shows `extract_method` captions or transcription.
+- YouTube text: captions and Gemini each worked on live videos (2026-10-19), but no full run has used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - The `browser` CI job has not run on GitHub's runner. closed when: a PR touching `apps/web` shows the job green on GitHub.
 - Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120): a live run with spares and a one-outlet Science story. closed when: a committed digest has a Science story from one outlet and airs within 10% of its length.
