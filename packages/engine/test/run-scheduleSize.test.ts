@@ -4,6 +4,7 @@ import { DEFAULT_CAP } from "../src/prefilter/prefilter.js";
 import {
   lengthMinutesFor,
   poolCapFor,
+  sparesOverLength,
   storiesForMinutes,
   withSpares,
 } from "../src/run/scheduleSize.js";
@@ -28,5 +29,21 @@ describe("sizing a briefing by its length", () => {
     // About 45% of what selection chooses never airs (scheduleSize.ts, SPARE_SHARE).
     expect(Math.floor(written * 0.55)).toBeGreaterThanOrEqual(wanted);
     expect(poolCapFor(written, DEFAULT_CAP)).toBeGreaterThan(2 * DEFAULT_CAP);
+  });
+
+  // The 2026-10-17 daily aired 10 of its 11 stories, 3.7 of its 5 minutes: the trim's estimate of
+  // the host's frame (60 a story, 600 an episode) ran 905 characters over the real narration.
+  it("keeps every story the length still has room for, measured by the real narration", () => {
+    const stories = Array.from({ length: 11 }, (_, i) => ({
+      id: `s${i}`,
+      category: `topic-${i}`,
+      score: 1 - i / 100,
+      chars: 370,
+    }));
+    // About 30 characters of frame a story, as 2026-10-17's narration had.
+    const narration = (ids: ReadonlySet<string>) => ids.size * 400 + 100;
+    expect(sparesOverLength(stories, 4840, 3, narration)).toEqual([]);
+    // Past the length, the real measure still trims the lowest-scored story.
+    expect(sparesOverLength(stories, 3600, 3, narration)).toEqual(["s10", "s9"]);
   });
 });

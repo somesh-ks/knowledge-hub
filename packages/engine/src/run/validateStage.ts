@@ -1,4 +1,5 @@
-import { VOICE_LIMITS, withGeneralTopics } from "@dispatch/core";
+import { type Digest, VOICE_LIMITS, withGeneralTopics } from "@dispatch/core";
+import { buildSpokenText } from "../audio/spokenText.js";
 import { linkSourceIds, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
@@ -98,6 +99,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     let survivors: GroundedItem[] = ranked.slice(0, VOICE_LIMITS.items.hardMax);
     const validateDrops: ValidateDrop[] = [];
     let warnings = 0;
+    let validated: Digest | null = null;
     while (survivors.length >= VOICE_LIMITS.items.floor) {
       const digest = digestFromSelection({
         selection: asSelection(survivors),
@@ -120,6 +122,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         cap: VOICE_LIMITS.items.hardMax,
       });
       warnings = report.warnings;
+      validated = digest;
       const general = report.issues.find((i) => i.severity === "error" && !i.itemId);
       if (general) {
         throw new StageFailure(`${pass.id}: the digest fails validation: ${general.message}`);
@@ -147,6 +150,16 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
             })),
             selection.length_chars,
             VOICE_LIMITS.items.floor,
+            // The narration these stories would make, as the audio stage builds it.
+            validated === null
+              ? undefined
+              : (ids) => {
+                  const digest = validated as Digest;
+                  return buildSpokenText({
+                    ...digest,
+                    items: digest.items.filter((item) => ids.has(item.id)),
+                  }).text.length;
+                },
           ),
     );
     for (const g of ranked.slice(VOICE_LIMITS.items.hardMax)) spare.add(g.item.id);
