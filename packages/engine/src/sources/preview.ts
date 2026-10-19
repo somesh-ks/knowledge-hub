@@ -1,4 +1,4 @@
-import { combineScoreParts, type ScoreLabel, scoreLabel } from "@dispatch/core";
+import { combineScoreParts, type ScoreLabel, type SourceType, scoreLabel } from "@dispatch/core";
 import { parseHTML } from "linkedom";
 import { looksLikeFeed, type ParsedFeed, parseFeed } from "../fetch/feedParser.js";
 import {
@@ -68,6 +68,10 @@ export interface SourcePreview {
    */
   score_parts: PreviewScoreParts;
   reason: string;
+  /** What kind of source the address resolved to, for the format rule. */
+  type?: SourceType;
+  /** A few recent post titles, what Jev reads to place the source's format. */
+  sample_titles?: string[];
 }
 
 /** A preview's three parts. Unlike a record's, its trust is always a number. */
@@ -387,5 +391,12 @@ export async function previewSource(url: string, deps: PreviewDeps): Promise<Sou
     score_label: rated.label,
     score_parts: rated.parts,
     reason: rated.reason,
+    type: source.type,
+    sample_titles: (feed?.entries ?? [])
+      .map((entry) => entry.title?.trim() ?? "")
+      .filter((title) => title !== "")
+      .slice(0, 5),
   };
 }
+
+export { createFormatClassifier } from "./classifyFormat.js";

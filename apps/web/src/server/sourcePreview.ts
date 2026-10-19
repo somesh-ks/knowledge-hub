@@ -6,6 +6,7 @@ import {
   previewSource,
   type SourcePreview,
 } from "@dispatch/engine/source-preview";
+import { deriveSourceFormat, type SourceFormat } from "@dispatch/core";
 import type { ApiResult } from "./http";
 
 /**
@@ -28,6 +29,8 @@ export const CACHE_MAX_ENTRIES = 200;
 export const RATE_LIMIT = 20;
 export const RATE_WINDOW_MS = 60 * 1000;
 export const OVERALL_TIMEOUT_MS = 9000;
+/** Jev gets this long to place the format; after it the type's rule stands and the answer goes out (D75). */
+export const FORMAT_TIMEOUT_MS = 3000;
 const MAX_REDIRECTS = 5;
 
 // -------------------------------------------------------------------------------------- the guard
@@ -212,8 +215,11 @@ export function guardedFetch(fetchImpl: FetchImpl, resolve: Resolver): FetchImpl
 
 // ------------------------------------------------------------------------------------- the handler
 
+/** A preview with the format Jev gave it, or the type's rule when Jev was slow or unavailable. */
+export type FormattedPreview = SourcePreview & { format: SourceFormat; format_by: "jev" | "rule" };
+
 export type SourcePreviewBody =
-  | SourcePreview
+  | FormattedPreview
   | { error: "invalid" | "unreachable" | "timeout" | "rate_limited"; message: string };
 
 export interface SourcePreviewInput {
@@ -229,9 +235,11 @@ export interface SourcePreviewDeps {
   log?: (message: string) => void;
   /** Replaced in tests so the preview engine is not exercised twice. */
   preview?: (url: string, fetchImpl: FetchImpl, signal: AbortSignal) => Promise<SourcePreview>;
+  /** Asks Jev for the format; absent when the server has no key. It may be slow: the handler gives up after FORMAT_TIMEOUT_MS. */
+  classify?: (preview: SourcePreview) => Promise<SourceFormat | null>;
 }
 
-const cache = new Map<string, { at: number; preview: SourcePreview }>();
+const cache = new Map<string, { at: number; preview: FormattedPreview }>();
 const asks = new Map<string, number[]>();
 
 /** Empties the in-memory cache and counters. Tests call this between cases. */
@@ -267,6 +275,25 @@ function rateLimited(key: string, now: number): number | null {
 
 const defaultPreview: NonNullable<SourcePreviewDeps["preview"]> = (url, fetchImpl, signal) =>
   previewSource(url, { http: createPreviewHttp(fetchImpl), signal });
+
+/** The preview with its format: Jev's answer within the time, else the type's rule. Never throws, never blocks. */
+async function withFormat(
+  preview: SourcePreview,
+  classify: SourcePreviewDeps["classify"],
+): Promise<FormattedPreview> {
+  const rule = deriveSourceFormat(preview.type ?? "rss");
+  // A type that decides its own format (video, releases, research, forum) is not asked about.
+  if (!classify || rule !== "blog") return { ...preview, format: rule, format_by: "rule" };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const jev = await Promise.race([
+    classify(preview).catch(() => null),
+    new Promise<null>((done) => {
+      timer = setTimeout(() => done(null), FORMAT_TIMEOUT_MS);
+    }),
+  ]);
+  clearTimeout(timer);
+  return jev ? { ...preview, format: jev, format_by: "jev" } : { ...preview, format: rule, format_by: "rule" };
+}
 
 export async function handleSourcePreview(
   input: SourcePreviewInput,
@@ -317,12 +344,17 @@ export async function handleSourcePreview(
       guardedFetch(deps.fetch, resolve),
       AbortSignal.timeout(OVERALL_TIMEOUT_MS),
     );
-    cache.set(key, { at: now, preview });
+    const formatted = await withFormat(preview, deps.classify);
+    cache.set(key, { at: now, preview: formatted });
     if (cache.size > CACHE_MAX_ENTRIES) {
       const oldest = cache.keys().next().value;
       if (oldest !== undefined) cache.delete(oldest);
     }
-    return { status: 200, headers: { "Cache-Control": "private, max-age=600" }, body: preview };
+    return {
+      status: 200,
+      headers: { "Cache-Control": "private, max-age=600" },
+      body: formatted,
+    };
   } catch (error) {
     if (error instanceof PreviewError && error.code === "timeout") {
       return fail(504, "timeout", "The address took too long to answer.");

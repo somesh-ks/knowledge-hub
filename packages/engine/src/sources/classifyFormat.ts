@@ -1,5 +1,5 @@
 import { SOURCE_FORMATS, type SourceFormat } from "@dispatch/core";
-import { choice } from "@typesafe-ai/sdk";
+import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { DEFAULT_JEV_MODEL, type JevClientLike } from "../judge/jev.js";
 import { cleanText } from "../judge/state.js";
@@ -80,4 +80,13 @@ export class FormatClassifier {
       return null;
     }
   }
+}
+
+/** The site's classifier, from a key alone: one try and a short timeout, since the caller gives up after 3 s. */
+export function createFormatClassifier(apiKey: string): FormatClassifier {
+  return new FormatClassifier({
+    client: new TypeSafeClient({ apiKey, timeout: 5_000, retry: { maxRetries: 0 }, logLevel: "error" }),
+    retry: { retries: 0 },
+    secrets: [apiKey],
+  });
 }

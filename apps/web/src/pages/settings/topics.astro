@@ -2,6 +2,8 @@
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
+import SourceFilter from "../../components/SourceFilter.astro";
+import SourceRow from "../../components/SourceRow.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { outletsSummary } from "../../lib/blockedOutlets";
@@ -57,6 +59,13 @@ const spots = Object.fromEntries(
   ),
 );
 const others = layout.sources.get(OTHER_ID) ?? [];
+// Every source once, by name, under the page it is filed on: the flat list the search shows.
+const pageNames = new Map([...rows.map((row) => [row.id, row.name] as const), [OTHER_ID, "Other"] as const]);
+const library = new Map<string, { source: (typeof sources)[number]; page: string }>();
+for (const [page, list] of layout.sources) {
+  for (const source of list) library.set(source.id, { source, page });
+}
+const libraryRows = [...library.values()].sort((a, b) => a.source.name.localeCompare(b.source.name, "en"));
 const choices = topicChoicesOf(layout);
 ---
 
@@ -93,6 +102,8 @@ const choices = topicChoicesOf(layout);
           </button>
         </div>
 
+        <SourceFilter sources={libraryRows.map((row) => row.source)} />
+
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
         <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>
 
@@ -128,6 +139,23 @@ const choices = topicChoicesOf(layout);
             )
           }
         </div>
+
+        {/* Every source, shown in place of the topics while the search or a chip is set. */}
+        <ul class="topic-sources topics-library" role="list" hidden data-library data-all aria-label="Matching sources">
+          {
+            libraryRows.map(({ source, page }) => {
+              const group = groups.find((candidate) => candidate.id === page);
+              return (
+                <SourceRow
+                  source={source}
+                  topicName={pageNames.get(page) ?? ""}
+                  shownTopic={group ? { id: group.home, name: group.name } : undefined}
+                  labelled
+                />
+              );
+            })
+          }
+        </ul>
 
         {/* Outlets left out of every briefing and episode; its page is blocked-outlets.astro. */}
         <div class="rows topics-more">

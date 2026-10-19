@@ -5,6 +5,7 @@ import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
+import SourceFilter from "../../../components/SourceFilter.astro";
 import SourceRow from "../../../components/SourceRow.astro";
 import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
@@ -270,6 +271,7 @@ const facts = topic && {
               )
             }
           </div>
+          {list.length > 0 && <SourceFilter sources={list} />}
           <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
             {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
           </ul>

@@ -102,6 +102,11 @@ function mount(root: HTMLElement): void {
     forward(event);
   });
 
+  // The search and chips (sourceFilter.ts) read the address, so a reload or Back finds them set.
+  if (root.querySelector("[data-filter]")) {
+    void import("./sourceFilter").then((module) => module.mountFilter(root)).catch(() => {});
+  }
+
   root.dataset.ready = "";
 }
 

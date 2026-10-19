@@ -8,6 +8,7 @@
  * modal dialog gives the scrim, the focus trap and Escape; browser Back closes it the way it closes
  * the Create panel. Loaded the first time it is opened.
  */
+import type { SourceFormat } from "@dispatch/core";
 import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
@@ -28,6 +29,8 @@ export interface Chosen {
   /** The chosen topic's id; empty for Other. */
   topic_id: string;
   preview: SourcePreview;
+  /** The format select's value: the guess, Jev's answer, or the person's choice. */
+  format: string;
 }
 
 /** What changed about a source: only the fields that did. */
@@ -35,6 +38,7 @@ export interface SourceEdit {
   id: string;
   name?: string;
   topic_ids?: string[];
+  format?: SourceFormat;
 }
 
 /** What a source's row tells the panel about it. */
@@ -49,6 +53,7 @@ export interface SourceFacts {
   host: string;
   score: number | null;
   label: string;
+  format: string;
   /** Each part 0 to 1; trust is null until enough items were checked for hype and sponsorship. */
   parts: { health: number; quality: number; trust: number | null } | null;
 }
@@ -89,14 +94,32 @@ export type PanelStart =
 
 /** What changed between a source and the edit panel's fields, or null when nothing did. */
 export function editOf(
-  source: Pick<SourceFacts, "id" | "name" | "topic_id">,
-  fields: { name: string; topic: string },
+  source: Pick<SourceFacts, "id" | "name" | "topic_id" | "format">,
+  fields: { name: string; topic: string; format: string },
 ): SourceEdit | null {
   const edit: SourceEdit = { id: source.id };
   const name = fields.name.trim();
   if (name && name !== source.name) edit.name = name;
   if (fields.topic !== source.topic_id) edit.topic_ids = fields.topic ? [fields.topic] : [];
-  return edit.name === undefined && edit.topic_ids === undefined ? null : edit;
+  if (fields.format !== source.format) edit.format = fields.format as SourceFormat;
+  return edit.name === undefined && edit.topic_ids === undefined && edit.format === undefined
+    ? null
+    : edit;
+}
+
+/** The format a web address implies before anything is fetched: the same rule as the type's, read from the host. */
+export function guessFormat(address: string): string {
+  let host = "";
+  try {
+    host = new URL(address).hostname.replace(/^www./, "");
+  } catch {
+    return "blog";
+  }
+  if (/(^|.)(youtube.com|youtu.be)$/.test(host)) return "video";
+  if (/(^|.)(github.com|producthunt.com)$/.test(host)) return "releases";
+  if (/(^|.)(arxiv.org|crossref.org)$/.test(host)) return "research";
+  if (/(^|.)(news.ycombinator.com|lobste.rs)$/.test(host)) return "forum";
+  return "blog";
 }
 
 type Outcome = { preview: SourcePreview } | { status: number };
@@ -292,6 +315,12 @@ export function openPanel(
   const address = one<HTMLInputElement>("[data-source-url]");
   const sourceTopic = one<HTMLSelectElement>("[data-source-topic]");
   const area = one<HTMLElement>("[data-source-preview]");
+  const sourceFormat = one<HTMLSelectElement>("[data-source-format]");
+  // Once the person has chosen a format, neither the guess nor Jev's answer replaces it.
+  let picked = false;
+  sourceFormat.addEventListener("change", () => {
+    picked = true;
+  });
   let loaded: { url: string; preview: SourcePreview } | null = null;
   let timer = 0;
   let seq = 0;
@@ -320,11 +349,14 @@ export function openPanel(
       show("idle");
       return;
     }
+    if (!picked) sourceFormat.value = guessFormat(url);
     show("loading", skeleton());
     void look(url).then((outcome) => {
       if (turn !== seq) return;
       if ("preview" in outcome) {
         loaded = { url, preview: outcome.preview };
+        const answered = (outcome.preview as SourcePreview & { format?: string }).format;
+        if (!picked && answered) sourceFormat.value = answered;
         show("ready", card(outcome.preview));
       } else {
         show("idle");
@@ -352,6 +384,7 @@ export function openPanel(
 
   const editName = one<HTMLInputElement>("[data-edit-name]");
   const editTopic = one<HTMLSelectElement>("[data-edit-topic]");
+  const editFormat = one<HTMLSelectElement>("[data-edit-format]");
   const editNote = one<HTMLElement>('[data-error="edit-name"]');
   const edited = start.kind === "edit" ? start.source : null;
   if (edited) {
@@ -361,6 +394,7 @@ export function openPanel(
       editTopic.add(new Option(edited.topic_name || edited.topic_id, edited.topic_id), 0);
     }
     editTopic.value = edited.topic_id;
+    editFormat.value = edited.format;
     const open = one<HTMLAnchorElement>("[data-edit-open]");
     const where = one<HTMLElement>(".edit-address");
     if (edited.url) {
@@ -394,7 +428,9 @@ export function openPanel(
     }
   }
   const editNow = (): SourceEdit | null =>
-    edited ? editOf(edited, { name: editName.value, topic: editTopic.value }) : null;
+    edited
+      ? editOf(edited, { name: editName.value, topic: editTopic.value, format: editFormat.value })
+      : null;
   editName.addEventListener("input", () => {
     if (editName.value.trim()) {
       editNote.hidden = true;
@@ -403,6 +439,7 @@ export function openPanel(
     render();
   });
   editTopic.addEventListener("change", render);
+  editFormat.addEventListener("change", render);
 
   // ---------------------------------------------------------------------------------- the frame
 
@@ -466,7 +503,12 @@ export function openPanel(
       panel.close();
     } else if (mode === "source") {
       if (!loaded) return;
-      handlers.addSource({ url: loaded.url, topic_id: sourceTopic.value, preview: loaded.preview });
+      handlers.addSource({
+        url: loaded.url,
+        topic_id: sourceTopic.value,
+        preview: loaded.preview,
+        format: sourceFormat.value,
+      });
       panel.close();
     } else {
       if (!editName.value.trim()) {
