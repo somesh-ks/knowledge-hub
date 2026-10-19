@@ -308,15 +308,19 @@ async function addSource(
   for (const id of op.topic_ids ?? []) {
     if (!known.has(id)) throw new ConfigOpError(`There is no topic ${id}.`);
   }
+  const taken = new Set([
+    ...next.registry.sources.map((s) => s.id),
+    ...next.sourcesUser.added.map((s) => s.id),
+  ]);
+  if (op.id !== undefined && taken.has(op.id))
+    throw new ConfigOpError(`There is already a source ${op.id}.`);
   const source = await buildSourceFromUrl(
     {
+      id: op.id,
       url: op.url,
       origin: "manual",
       topicIds: op.topic_ids,
-      takenIds: new Set([
-        ...next.registry.sources.map((s) => s.id),
-        ...next.sourcesUser.added.map((s) => s.id),
-      ]),
+      takenIds: taken,
       existing: [...next.registry.sources, ...next.sourcesUser.added],
     },
     deps.discover,

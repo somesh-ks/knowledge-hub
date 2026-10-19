@@ -15,6 +15,8 @@ export interface AddSourceInput {
   url: string;
   origin: "manual" | "auto";
   topicIds?: readonly string[] | undefined;
+  /** An id the caller chose (already checked free); otherwise one is made from the address. */
+  id?: string | undefined;
   /** Display name; defaults to the host. */
   name?: string | undefined;
   /** Ids already in use, so the new id never collides with a seed or earlier added source. */
@@ -97,7 +99,7 @@ export async function buildSourceFromUrl(
     if (dup) throw new AddSourceError(`Already a source: ${dup}.`);
     return {
       ...common,
-      id: sourceIdFor(`https://github.com/${repo}`, input.takenIds),
+      id: input.id ?? sourceIdFor(`https://github.com/${repo}`, input.takenIds),
       name: input.name ?? repo,
       type: "github",
       url: `https://github.com/${repo}/releases`,
@@ -114,7 +116,7 @@ export async function buildSourceFromUrl(
     if (dup) throw new AddSourceError(`Already a source: ${dup}.`);
     return {
       ...common,
-      id: sourceIdFor(input.url, input.takenIds),
+      id: input.id ?? sourceIdFor(input.url, input.takenIds),
       name: input.name ?? `${host} channel`,
       type: "youtube",
       url: input.url,
@@ -135,7 +137,7 @@ export async function buildSourceFromUrl(
   if (dup) throw new AddSourceError(`Already a source: ${dup}.`);
   return {
     ...common,
-    id: sourceIdFor(input.url, input.takenIds),
+    id: input.id ?? sourceIdFor(input.url, input.takenIds),
     name: input.name ?? host,
     type: feedUrl ? "rss" : "firecrawl",
     url: input.url,

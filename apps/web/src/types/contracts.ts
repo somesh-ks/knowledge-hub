@@ -305,7 +305,7 @@ export type ConfigOp =
       };
     }
   | { op: "topic.remove"; id: string }
-  | { op: "source.add"; url: string; topic_ids?: string[] }
+  | { op: "source.add"; url: string; topic_ids?: string[]; id?: string }
   | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
   | {
       op: "source.update";
