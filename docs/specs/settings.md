@@ -33,7 +33,7 @@ Schedule, topics and sources, model, autosave and the edit gap, blocked outlets.
 - A choice for the page after a reload is noted only once its request was accepted, so a refused choice never reads Saved (D99).
 
 ### Autosave and the edit gap
-- Changes save themselves (`scripts/autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. No toast while saving or once saved (a screen reader hears "Saved."). The toast is for a failure (reason and Retry), an Undo, or the time refused. A removal waits 5 s with Undo. The toast keeps the control just changed in sight.
+- Changes save themselves (`apps/web/src/scripts/autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. No toast while saving or once saved (a screen reader hears "Saved."). The toast is for a failure (reason and Retry), an Undo, or the time refused. A removal waits 5 s with Undo. The toast keeps the control just changed in sight.
 - Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with everything changed meanwhile in one request, also when the page is left inside the app: waiting edits are kept in storage marked pending for up to 90 s and the next page shows them (D91).
 - Scenario: WHEN the held request fails THEN the open page shows "Not saved yet" under its title, takes the lost changes as its own with the reason and Retry, and the Settings index says "Your last change was not saved." (D98). On Today or the Library the toast says "Your change to Daily was not saved." with an Open button (D99).
 - For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`dispatch:saved-edits`, D79, D115).

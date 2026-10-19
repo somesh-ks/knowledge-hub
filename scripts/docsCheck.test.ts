@@ -41,7 +41,7 @@ describe("docs check", () => {
         "docs/state.md": `# State\n\n${"x".repeat(12_001)}\n\n## Not working or unverified\n\n- The flick is flaky.\n`,
         "docs/decisions.md":
           "## Index\n\n| D1 | One | superseded by D9 |\n| D2 | Two | active |\n\n## D1: One\n\nsuperseded by D9\n",
-        "docs/learnings.md": "See [the note](history/gone.md).\n",
+        "docs/learnings.md": "See [the note](history/gone.md). Fixed in `scripts/moved.ts`.\n",
       }),
     );
     expect(fails).toEqual(
@@ -51,6 +51,7 @@ describe("docs check", () => {
         "docs/decisions.md: Index row D2 has no entry",
         expect.stringContaining('"superseded by D9" names a decision that does not exist'),
         "docs/learnings.md: broken link history/gone.md",
+        "docs/learnings.md: names a missing file scripts/moved.ts",
         "docs/README.md: does not list learnings.md",
       ]),
     );

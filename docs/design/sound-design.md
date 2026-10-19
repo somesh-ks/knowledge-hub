@@ -1,6 +1,6 @@
 # Dispatch sound design
 
-> Companion to [design-spec.md](./design-spec.md). The engine lives in `packages/sound`. Hear every sound in [sound-lab.html](../prototype/sound-lab.html); see them in context in [ui-prototype.html](../prototype/ui-prototype.html).
+> The engine lives in `packages/sound`. Hear every sound in [sound-lab.html](../prototype/sound-lab.html); see them in context in [ui-prototype.html](../prototype/ui-prototype.html).
 
 Dispatch is a quiet reading and listening app. Its sounds exist to confirm, never to decorate. Fourteen sounds, one instrument, all synthesized in the browser with no audio files.
 

@@ -1,14 +1,10 @@
 ## What changed
 
-One or two sentences.
-
-## Specs and decisions
-
-Specs updated (`docs/specs/...`) and D-numbers added, or "none".
+One or two sentences, and how you checked it.
 
 ## Open items
 
-Closed: the `docs/state.md` items this settles. Opened: what is now unverified, each with `closed when:`.
+Closed: the `docs/state.md` items this settles. Opened: what is now unverified, each with `closed when:`. Or "none".
 
 ## Shared files
 

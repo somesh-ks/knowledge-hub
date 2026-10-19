@@ -2,9 +2,9 @@
 
 Each entry records what was decided, why, and what was rejected. Add new entries at the end with the next number. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
 
-From D124 on, an entry that supersedes another adds `- Context changed:` (one sentence: what made the old decision wrong), and an entry whose reason can expire (a provider, a price, a budget, an unmeasured guess) adds `- Revisit if:` (the evidence that would reopen it). Current behaviour lives in [specs/](specs/README.md); an entry links to the spec it changes.
+From D124 on, an entry that supersedes another adds `- Context changed:` (one sentence: what made the old decision wrong), and an entry whose reason can expire (a provider, a price, a budget, an unmeasured guess) adds `- Revisit if:` (the evidence that would reopen it). Current behaviour lives in [specs/](specs/README.md).
 
-The plan that implements these decisions is [build-plan.md](plan/build-plan.md). The vision is [vision.md](plan/vision.md).
+The first build's plan and vision were retired on 2026-10-19: `git show 91bc533:docs/plan/build-plan.md` and `git show 91bc533:docs/plan/vision.md`.
 
 D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
 

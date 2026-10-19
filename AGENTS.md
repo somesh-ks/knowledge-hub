@@ -5,13 +5,10 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 ## Read first
 
 1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
-2. [docs/specs/](docs/specs/README.md): what each capability does now. Read the spec of what you touch; update it in the same PR.
+2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
 3. [docs/decisions.md](docs/decisions.md): grep the Index; open an entry only for its reasoning.
-4. [docs/learnings.md](docs/learnings.md): failures and gotchas. Search it before debugging.
-5. [docs/history/](docs/history/README.md): one note per session, only for the why behind a change.
-6. [docs/engineering/postmortem-test-suite.md](docs/engineering/postmortem-test-suite.md): read it before you add, change or delete a test.
 
-`node scripts/docsCheck.mjs` (in the gate) holds these to their budgets.
+On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the code and tests win where they differ; fix a spec you find wrong), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` (in the gate) holds the docs to their budgets.
 
 [docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
 
@@ -54,4 +51,4 @@ Project agents (`dispatch-verify`, `dispatch-worker`) are in `.claude/agents/`; 
 
 After a large piece of work (several PRs, or one that touches the player, a page or the build): clean up (scratch files, servers, stashes, local branches, leftover remote branches), review the merged diff (the `code-review` skill on the commit range, or the `review` label on a PR) and fix what it finds, then confirm production serves it (Vercel deploys `main`; check the deployment and the live site).
 
-At the end of a session: update `docs/state.md` and the spec of any changed behaviour, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
+At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.

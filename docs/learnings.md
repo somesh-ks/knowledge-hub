@@ -1,6 +1,6 @@
 # Learnings
 
-One line each: symptom, cause, fix. Search this file and [the archive](history/learnings-archive.md) before debugging. Grouped by area, newest first within each. A gotcha now enforced by code, an agent file or AGENTS.md moves to [the archive](history/learnings-archive.md).
+One line each: symptom, cause, fix. Search before debugging; older gotchas are in git history (`git log -S '<words>' -- docs/learnings.md`). Grouped by area, newest first within each. Delete a gotcha once code, a check or AGENTS.md enforces it.
 
 ## Browser tests
 
@@ -17,7 +17,7 @@ One line each: symptom, cause, fix. Search this file and [the archive](history/l
 - 2026-10-13: a removed feature's last call (`showNext`) sat below the deleted function in a long script, passed `tsc` and the unit tests, and failed 45 browser tests on one `pageerror`. After deleting a function, grep its name in the file, and run the gate that includes the site check.
 - 2026-10-12: Playwright's `click` on a tab of a stuck strip first scrolls the strip to where it sits in the flow, moving the page it was about to measure. Click from the page (`el.click()`) in a test that measures a landing.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
-- 2026-10-12: in the cloud container Playwright 1.63 wants Chromium 1243 and only 1194 is installed (the player config's chromium_headless_shell is absent too, so all 149 player tests failed on launch). Point an ignored `apps/web/playwright.override.config.ts` at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` for every project (project regex from the environment), give each worktree its own PORT, and run the `lab-phone` project for player rule changes. A long-running `astro dev` that met the Settings sheet's slider and switch only lazily answered 504 for their pre-bundled files (13 specs) until restarted with `--force`.
+- 2026-10-12: in the cloud container Playwright 1.63 wants Chromium 1243 and only 1194 is installed (the player config's chromium_headless_shell is absent too, so all 149 player tests failed on launch). Point an ignored playwright.override.config.ts in apps/web at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` for every project (project regex from the environment), give each worktree its own PORT, and run the `lab-phone` project for player rule changes. A long-running `astro dev` that met the Settings sheet's slider and switch only lazily answered 504 for their pre-bundled files (13 specs) until restarted with `--force`.
 - 2026-10-12: a server or build left from an earlier step makes a suite run against the wrong build: a static server still listening (Playwright reuses it and skips the build; in Git Bash `kill $!` does not stop a Windows `node`, use `netstat -ano` and `taskkill`), a preview server on 4321 (`reuseExistingServer`), a "before" server on 4711 (EADDRINUSE in an unread log, seven false failures), a long-lived static server with old fixture stubs (112 failures; restart after changing `e2e/staticServer.mjs`, `curl` the new route first) and another session's `apps/web/dist` (a page reading "10 stories" is the real briefing). Stop old servers, confirm the port is free, give each session its own worktree.
 - 2026-10-11: adding a flag to each voice label passed every unit test and broke two e2e specs that assert the option text. Run the e2e specs that read a label you change.
 - 2026-10-11: adding a flag to each voice label passed every unit test and broke two e2e specs that assert the option text. Run the e2e specs that read a label you change.
@@ -73,8 +73,6 @@ One line each: symptom, cause, fix. Search this file and [the archive](history/l
 
 ## Build and tooling
 
-- 2026-10-14: `docs/plan/build-plan.md` says a 100 KB first-load budget; the enforced value is 102 KB in `apps/web/src/lib/bundleBudget.ts`. Trust the constant.
-- 2026-10-14: `docs/plan/build-plan.md` says a 100 KB first-load budget; the enforced value is 102 KB in `apps/web/src/lib/bundleBudget.ts`. Trust the constant.
 - 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
 - 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
