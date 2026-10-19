@@ -2,7 +2,7 @@ import type { PlayerEvent, Track } from "./playerTypes";
 import { itemPositionLabel } from "./timeline";
 
 /**
- * What a screen reader hears for each player event (design-spec.md, Screen-reader announcement
+ * What a screen reader hears for each player event (the retired design-spec.md, `git show 91bc533:docs/design/design-spec.md`, Screen-reader announcement
  * plan). Automatic advance, keyboard seeks and scrubbing announce nothing here: the narrator is
  * already speaking, and the scrubber's aria-valuetext carries position for keyboard users.
  */

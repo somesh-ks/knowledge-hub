@@ -1,41 +1,22 @@
 # Docs
 
-Where each kind of fact lives. Each fact is kept in one place; the others link to it.
+Where each kind of fact lives. Each fact is kept in one place; the others link to it. Code, tests and git history are the source for anything they express; these files hold only what they cannot.
 
-## The record (read first, kept current)
-
-| File | Holds | How it changes |
+| File | Holds | When to read |
 | :--- | :--- | :--- |
-| [state.md](state.md) | What works, what is broken, what is next | Rewritten each session |
-| [decisions.md](decisions.md) | Every decision, D1 onward, with an Index table | One entry per change of direction |
-| [learnings.md](learnings.md) | Failures and gotchas, one line each | Appended |
-| [history/](history/README.md) | One note per session: why something was done, including the 2026-10-11 audits | One note per session |
-| [specs/README.md](specs/README.md) | What each capability does now, one spec each, with its code | Rewritten with the behaviour, in the same PR |
+| [state.md](state.md) | What works, what is unverified (each with `closed when:`), risks, next | Every session |
+| [decisions.md](decisions.md) | Every decision, D1 onward; grep its Index | For the reason behind a choice |
+| [learnings.md](learnings.md) | Gotchas by area, one line each | Before debugging |
+| [specs/README.md](specs/README.md) | What each capability does now, one spec each | Before changing a capability you do not know |
+| [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, every design ask and fix by surface, gaps, open asks | Before UI work |
+| [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
+| [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
+| [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
+| [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
+| [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |
+| [reference/sources-reference.md](reference/sources-reference.md) | Sources outside the pipeline, and rejected candidates | Before adding a source |
+| [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources | When asked for references |
+| [history/](history/README.md) | One note per session: why something was done | Only for the why behind a change |
+| [prototype/](prototype/) | Generated prototype pages and the sound lab (built by `scripts/`) | Rarely |
 
-## Design
-
-| File | Holds |
-| :--- | :--- |
-| [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, how to work on UI here, every design ask and fix by surface, reusable mechanisms, gaps, open asks, and the queue for the design-engineering skill. Read before UI work. |
-| [design/design-spec.md](design/design-spec.md) | The first prototype's UI specification; the look has since moved on (D31, D72), and the ledger records how |
-| [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules |
-| [prototype/](prototype/) | Generated prototype pages and the sound lab (built by `scripts/`) |
-
-## Plan and engineering
-
-| File | Holds |
-| :--- | :--- |
-| [plan/vision.md](plan/vision.md) | The original vision, the digest schema and the taste model |
-| [plan/build-plan.md](plan/build-plan.md) | The first build's architecture and as-built record; later decisions override it |
-| [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page, where the bytes are, and the cuts |
-| [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use; read before changing a test |
-| [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | The reliability audit of 2026-10-15: what failed inside the server's edit gap and the risks left open |
-| [plan/docs-upgrade-plan.md](plan/docs-upgrade-plan.md) | The docs upgrade of 2026-10-19: budgets, the docs check, specs and why |
-| [runbook.md](runbook.md) | Owner setup and day-to-day operation |
-
-## Reference
-
-| File | Holds |
-| :--- | :--- |
-| [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources |
-| [reference/sources-reference.md](reference/sources-reference.md) | Sources outside the automated pipeline, and rejected candidates |
+The first build's plan, vision and UI spec (`plan/build-plan.md`, `plan/vision.md`, `design/design-spec.md`) were retired on 2026-10-19; later decisions had overridden most of them. Read them with `git show 91bc533:docs/<path>`.

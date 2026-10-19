@@ -2,7 +2,7 @@
 
 Operations for the owner. Short, imperative, in the order you need it.
 
-Status: updated 2026-10-06 against the built code. Nothing here has run against live services yet ([build-plan.md](plan/build-plan.md) Section 13), so expect to correct a step during the first setup. `npm run dispatch -- <command>` runs the engine CLI; `--help` on any command lists its flags.
+Status: updated 2026-10-06 against the built code. Correct a step here when it turns out wrong. `npm run dispatch -- <command>` runs the engine CLI; `--help` on any command lists its flags.
 
 Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
 
@@ -12,7 +12,7 @@ Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
 
 Accounts for Nebius, TypeSafe, Exa, Firecrawl and Speechify already exist (D13 in [decisions.md](decisions.md)). You also need GitHub, Vercel (Hobby) and Cloudflare (DNS only).
 
-**Cost.** About 2 USD per month, dominated by Exa. Judgments cost about 0.01 USD per run and the writer under 0.07 USD per run. Speechify, Vercel Hobby, GitHub Actions (about 120 of 2,000 free minutes) and Cloudflare DNS use free tiers. Details are in [build-plan.md](plan/build-plan.md) Section 10.
+**Cost.** About 2 USD per month, dominated by Exa. Judgments cost about 0.01 USD per run and the writer under 0.07 USD per run. Speechify, Vercel Hobby, GitHub Actions (about 120 of 2,000 free minutes) and Cloudflare DNS use free tiers. Details: `git show 91bc533:docs/plan/build-plan.md` Section 10.
 
 **Privacy.** The site is public but unlisted: `noindex` headers, `robots.txt` disallow, no sitemap, no inbound links. Anyone with the URL can read it, and the Blob audio URLs are public. The repository is private. Put nothing in a digest that you would not show a stranger who has the link.
 
@@ -103,7 +103,7 @@ Run this after sections 1.2 to 1.8. The Vercel part needs the project from secti
 
 1. Preview: `npm run secrets:push -- --dry-run`.
 2. Send: `npm run secrets:push`. Use `-- --only github` or `-- --only vercel` to send one side.
-3. The script reads `.env` and sends each non-empty value to GitHub Actions secrets, GitHub Actions variables or the Vercel production environment, with the value on stdin. It prints names and results, never values. Which name goes where is in [build-plan.md](plan/build-plan.md) Section 5.
+3. The script reads `.env` and sends each non-empty value to GitHub Actions secrets, GitHub Actions variables or the Vercel production environment, with the value on stdin. It prints names and results, never values. Which name goes where is in `scripts/pushSecrets.ts`.
 4. Check the names arrived:
 
 ```bash
@@ -140,7 +140,7 @@ Do this on the current iOS, once a digest with audio is live. Note the iOS versi
 
 1. Open the site in Safari. Tap Share, then Add to Home Screen. Open the app from the home screen: it runs full screen.
 2. Open the latest briefing and tap play. Lock the phone. The lock screen shows one track, "Dispatch", with the cover. Check play, pause, the 15 second skips, previous and next item, and that the scrubber moves.
-3. On the lock screen, drag the scrubber, then unlock and tap another item's play button. Seeking must work; if only seeking fails, it is the Blob Range risk ([build-plan.md](plan/build-plan.md) Section 14).
+3. On the lock screen, drag the scrubber, then unlock and tap another item's play button. Seeking must work; if only seeking fails, it is the Blob Range risk (`git show 91bc533:docs/plan/build-plan.md` Section 14).
 4. Flip the silent switch. Narration keeps playing; interface sounds go quiet. Flip it back and open Settings: the switch and volume control the sounds.
 5. Change the speed, rotate the phone, and trigger a notification or call during playback. After a call the player offers to resume and does not start by itself.
 6. Switch to airplane mode and relaunch: the last briefing opens and the banner says you are offline.
@@ -290,7 +290,7 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
 3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `audio.yml`.
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
-5. Playback starts but seeking fails on iPhone only: this is the Blob Range risk in [build-plan.md](plan/build-plan.md) Section 14. Record the iOS version and report it.
+5. Playback starts but seeking fails on iPhone only: this is the Blob Range risk (`git show 91bc533:docs/plan/build-plan.md` Section 14). Record the iOS version and report it.
 
 ### 8.3 The Nebius model id changed
 

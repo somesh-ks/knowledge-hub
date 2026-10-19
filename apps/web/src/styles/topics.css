@@ -326,7 +326,7 @@
   position: absolute;
   z-index: var(--z-base);
   inset-block: 0;
-  inset-inline: calc(var(--space-2) * -1) 0;
+  inset-inline: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -549,13 +549,6 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-/* Keeps a row that has no button lined up with the rows that do. */
-.source-slot {
-  width: var(--size-touch);
-  height: var(--size-touch);
-  margin-inline-end: calc(var(--space-3) * -1);
-}
-
 /* An unticked source is off: it keeps its place and its score, quieter, and still readable (4.5:1):
    the name in the muted ink at the regular weight, and the tile faded, as nothing reads it. The
    empty box says off in a shape. */
@@ -566,26 +559,6 @@
 
 .source-row:has(.source-check input:not(:checked)) .source-icon {
   opacity: var(--opacity-disabled);
-}
-
-/* A source just added: tinted until the page is left, and the tint settles in at first. */
-.source-row.is-new {
-  background: var(--color-accent-container);
-  box-shadow: 0 0 0 var(--space-2) var(--color-accent-container);
-  animation: source-flash var(--duration-progress) var(--ease-out);
-}
-
-@keyframes source-flash {
-  from {
-    background: color-mix(in oklch, var(--color-accent) 28%, transparent);
-    box-shadow: 0 0 0 var(--space-2) color-mix(in oklch, var(--color-accent) 28%, transparent);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .source-row.is-new {
-    animation: none;
-  }
 }
 
 /* ------------------------------------------------------------------ the score */

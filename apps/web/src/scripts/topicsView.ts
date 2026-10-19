@@ -3,6 +3,7 @@
  * matches components/ScoreMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded
  * with the editor, never with the page.
  */
+import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { sourceInitial } from "../lib/sourceInitial";
 
 /** What GET /api/source-preview returns. */
@@ -60,6 +61,19 @@ export function iconNode(src: string | null, name: string): HTMLElement {
     tile.append(image);
   }
   return tile;
+}
+
+/** The star before a score (ScoreMeter.astro draws the same one on a built row). */
+export function starNode(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "icon score-star");
+  svg.setAttribute("viewBox", ICON_VIEW_BOX);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", ICON_PATHS.star);
+  svg.append(path);
+  return svg;
 }
 
 /** A score as one word, for the edit panel: a New source says it is not scored yet. */

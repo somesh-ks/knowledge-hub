@@ -37,7 +37,7 @@ function coversReady(theme: ThemePreference): Promise<unknown> {
 let changes = 0;
 
 /**
- * A theme change crossfades through the View Transitions API where it exists (design-spec.md,
+ * A theme change crossfades through the View Transitions API where it exists (the retired design-spec.md,
  * Settings). Without the API it is an instant swap, which is correct, only plainer. During the
  * crossfade `data-theme-change` is on the root, and the whole window fades as one picture
  * (view-transitions.css).

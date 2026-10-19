@@ -62,7 +62,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - topic.upsert: create a custom topic, or edit one. For a built-in topic only `weight` and
  *   `keywords` may change.
  * - topic.remove: delete a custom topic and the discovery queries written for it.
- * - source.add: add a source by URL; its feed is discovered when the op runs.
+ * - source.add: add a source by URL; its feed is discovered when the op runs. An `id` may be given
+ *   (refused when taken); otherwise one is made from the address.
  * - source.set: switch a source on or off, or pin it. Works on seed and added sources.
  * - source.update: rename a source (1 to 80 characters, trimmed), set the topics it feeds, or both.
  *   An added source is changed in place; a seed source keeps the change in its override, which
@@ -94,6 +95,8 @@ export const ConfigOp = z.discriminatedUnion("op", [
       .url()
       .refine((value) => /^https?:\/\//i.test(value), "must be an http or https URL"),
     topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
+    /** The id the page chose, so its row can be edited before the build lists the source. Refused if taken. */
+    id: IdString.optional(),
   }),
   z
     .object({

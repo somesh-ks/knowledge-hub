@@ -186,11 +186,16 @@ test.describe("the Topics list", () => {
     await sheet.getByRole("combobox", { name: "Topic" }).selectOption("audio_interfaces");
     await add.click();
     await expect(sheet).toBeHidden();
-    const row = page.locator("[data-added] li.source-row.is-new");
+    const row = page.locator("[data-added] li.source-row").first();
     await expect(row).toContainText("Newsroom Example");
     await expect(row).toContainText(ADDED);
     expect(ops(sent)).toEqual([
-      { op: "source.add", url: "https://newsroom.example/", topic_ids: ["audio_interfaces"] },
+      {
+        op: "source.add",
+        url: "https://newsroom.example/",
+        topic_ids: ["audio_interfaces"],
+        id: expect.stringMatching(/^newsroom-example-/),
+      },
     ]);
   });
 
@@ -446,6 +451,7 @@ test.describe("a topic's page", () => {
   });
 
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
+    await page.clock.install();
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
     await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
@@ -457,12 +463,28 @@ test.describe("a topic's page", () => {
     // The feed address ends in an ellipsis rather than breaking mid-word.
     await expect(sheet.locator(".source-facts-url")).toHaveCSS("white-space", "nowrap");
     await sheet.getByRole("button", { name: "Add source", exact: true }).click();
-    const row = page.locator("[data-sources] li.source-row.is-new");
+    const row = page.locator("[data-sources] li.source-row").first();
     await expect(row).toContainText("Newsroom Example");
     await expect(row).toContainText(ADDED);
-    expect(ops(sent)).toEqual([
-      { op: "source.add", url: "https://newsroom.example/", topic_ids: ["audio_interfaces"] },
-    ]);
+    // It is a row like the others: the address, a rating and the checkbox, ticked, with no tint of
+    // its own (it was once a tinted stub that spread over the next row).
+    await expect(row.locator(".source-url")).toContainText("newsroom.example");
+    await expect(row.locator(".score")).toBeVisible();
+    await expect(row.getByRole("checkbox", { name: "Read Newsroom Example" })).toBeChecked();
+    expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
+    // It is live at once, under the id the add named: untick, tick, then delete it, no reload.
+    const added = ops(sent).find((op) => op.op === "source.add")?.id as string;
+    const box = row.getByRole("checkbox", { name: "Read Newsroom Example" });
+    await box.uncheck();
+    await page.clock.runFor(GAP_MS);
+    await expect
+      .poll(() => ops(sent))
+      .toContainEqual({ op: "source.set", id: added, enabled: false });
+    await box.check();
+    await row.getByRole("button", { name: "Edit Newsroom Example" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
+    await expect(row).toBeHidden(AFTER_UNDO);
+    await expect.poll(() => ops(sent)).toContainEqual({ op: "source.remove", id: added });
   });
 
   test("removing a custom topic waits with Undo, then goes back to the list without it", async ({

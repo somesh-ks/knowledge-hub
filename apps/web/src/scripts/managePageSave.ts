@@ -197,7 +197,7 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
       // A topic added on the page: it stays listed, saved, until the build shows it in place.
       const note = el.querySelector(".manage-quiet");
       if (note) note.textContent = ADDED_TOPIC;
-    } else if (el.matches(".source-note")) el.textContent = ADDED_SOURCE;
+    } else if (el.matches(".source-note, .source-announce")) el.textContent = ADDED_SOURCE;
     else {
       if (el.matches("[data-remove]")) {
         const row = el.closest("li") ?? el.closest("[data-topic]");

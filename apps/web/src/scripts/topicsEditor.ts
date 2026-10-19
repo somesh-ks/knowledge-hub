@@ -23,7 +23,7 @@ import type {
   TopicEdit,
   TopicFacts,
 } from "./topicsPanel";
-import { bandOf, element, iconNode } from "./topicsView";
+import { bandOf, element, iconNode, starNode } from "./topicsView";
 
 type Control = HTMLInputElement;
 
@@ -184,6 +184,16 @@ export function mountEditor(root: HTMLElement): Editor {
    * The row for a source being added, in its topic's list and tinted. On the list page, or for a topic
    * not built yet, it waits under the list until the build files it under its topic.
    */
+  /** The address as a built row shows it (readableUrl in lib/manage.ts, which a page script cannot import). */
+  const readableUrl = (address: string): string => {
+    try {
+      const url = new URL(address);
+      return `${url.hostname.replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}`;
+    } catch {
+      return "";
+    }
+  };
+
   const addRow = (
     shown: { name: string; icon: string | null; score?: number | null; label?: string },
     op: ConfigOp,
@@ -191,18 +201,78 @@ export function mountEditor(root: HTMLElement): Editor {
   ): void => {
     added += 1;
     const key = `src${added}`;
-    const row = element("li", "source-row is-new");
+    const row = element("li", "source-row");
     row.dataset.key = key;
     row.dataset.band = bandOf(shown.score ?? null);
     row.dataset.score = String(shown.score ?? -1);
     row.dataset.name = shown.name.toLowerCase();
+    // The same parts as a built row (SourceRow.astro), live at once: the page names the source's id
+    // in the add, so the checkbox, the edit panel and Delete work before the build lists it.
+    const address = op.op === "source.add" ? op.url : "";
+    const host = readableUrl(address);
+    const id = `${
+      host
+        .split("/")[0]
+        ?.replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40) || "source"
+    }-${Math.random().toString(36).slice(2, 6)}`;
+    if (op.op === "source.add") op.id = id;
+    row.dataset.id = id;
+    row.title = address;
+    const topicName =
+      [...(document.querySelector<HTMLSelectElement>("[data-edit-topic]")?.options ?? [])].find(
+        (option) => option.value === topicId,
+      )?.text ??
+      (topicId || "Other");
+    const edit = element("button", "source-edit");
+    edit.type = "button";
+    edit.setAttribute("aria-label", `Edit ${shown.name}`);
+    edit.dataset.editSource = JSON.stringify({
+      id,
+      name: shown.name,
+      topic_id: topicId,
+      topic_name: topicName,
+      url: address,
+      host: host.split("/")[0] ?? "",
+      score: shown.score ?? null,
+      label: shown.label ?? "New",
+      parts: null,
+    });
     const main = element("span", "source-main");
     const label = element("span", "source-text");
-    const note = element("span", "source-note", "Adding");
-    label.append(element("span", "source-name", shown.name), note);
+    const meta = element("span", "source-meta");
+    meta.append(element("span", "source-url", host));
+    label.append(element("span", "source-name", shown.name), meta);
     main.append(iconNode(shown.icon, shown.name), label);
-    // Its second line says how the save goes; the score joins it once the build lists the source.
-    row.append(main, element("span", "source-slot"));
+    const score = element("span", "score");
+    score.dataset.label = shown.label ?? "New";
+    if (shown.score == null) score.append(element("span", "score-new", "New"));
+    else score.append(starNode(), element("span", "score-number", shown.score.toFixed(1)));
+    const check = element("label", "source-check");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = true;
+    box.autocomplete = "off";
+    box.setAttribute("aria-label", `Read ${shown.name}`);
+    box.dataset.op = JSON.stringify({ op: "source.set", id, enabled: true });
+    box.dataset.field = "enabled";
+    box.dataset.was = "true";
+    check.append(box, element("span", "suggest-box"));
+    const remove = element("button", "source-remove");
+    remove.type = "button";
+    remove.hidden = true;
+    remove.dataset.remove = "";
+    remove.dataset.name = shown.name;
+    remove.dataset.label = `Delete ${shown.name}`;
+    remove.dataset.labelUndo = `Undo deleting ${shown.name}`;
+    remove.dataset.op = JSON.stringify({ op: "source.remove", id });
+    remove.dataset.was = "false";
+    controls.push(box, remove as unknown as Control);
+    // How the save goes is told to a screen reader here, and to the eye by the toast.
+    const note = element("span", "source-announce sr-only", "Adding");
+    note.setAttribute("role", "status");
+    row.append(edit, main, score, check, remove, note);
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(
       (item) => item.dataset.id === topicId,
     );

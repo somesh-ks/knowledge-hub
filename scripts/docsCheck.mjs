@@ -1,5 +1,5 @@
 // The record's guard: budgets, links, the decisions Index and closure conditions, so the docs an agent
-// reads first stay small and true without anyone remembering to keep them so (docs/plan/docs-upgrade-plan.md).
+// reads first stay small and true without anyone remembering to keep them so.
 //
 // Usage: node scripts/docsCheck.mjs [--warn]   (--warn prints the problems and exits 0)
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -94,6 +94,20 @@ export function checkDocs(root) {
       if (!existsSync(resolve(dirname(file), target))) {
         fails.push(`${relative(root, file).replace(/\\/g, "/")}: broken link ${m[1]}`);
       }
+    }
+  }
+
+  // A doc that names a repo file in backticks goes stale silently when the file moves, so the read-first docs
+  // and the specs must name only files that exist (history notes are a record and may name gone files).
+  const named = ["AGENTS.md", "docs/state.md", "docs/learnings.md"]
+    .map(at)
+    .concat(markdownFiles(at("docs/specs")));
+  for (const file of named.filter(existsSync)) {
+    for (const m of read(file).matchAll(
+      /`((?:apps|packages|scripts|docs|config|\.github|\.claude)\/[\w./-]+\.\w+)`/g,
+    )) {
+      if (!existsSync(at(m[1])))
+        fails.push(`${relative(root, file).replace(/\\/g, "/")}: names a missing file ${m[1]}`);
     }
   }
 

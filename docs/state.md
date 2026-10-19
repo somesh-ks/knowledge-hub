@@ -1,6 +1,6 @@
 # State
 
-Last updated 2026-10-19. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md); the old long state is [kept whole](history/2026-10-19-state-before-the-record.md).
+Last updated 2026-10-19. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md); the old long state: `git show 91bc533:docs/state.md`.
 
 ## Working
 
@@ -10,7 +10,7 @@ Last updated 2026-10-19. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Narration on Play, story by story, and custom episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Deploy: the Vercel GitHub integration deploys `main`. CI on Linux: typecheck, lint, unit tests, site build, gitleaks, and the `browser` job (both suites) for changes to the site, core or tokens. Owner and Dependabot PRs auto-merge.
-- Docs: `scripts/docsCheck.mjs` in the gate holds the record to its budgets ([plan](plan/docs-upgrade-plan.md)).
+- Docs: `scripts/docsCheck.mjs` in the gate holds the record to its budgets.
 - Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (eight user level; `dispatch-verify` and `dispatch-worker` in `.claude/agents/`, which hold their own budgets), `/close-session`, a read-only Bash hook, 4 concurrent agents at depth 1. Untested: the per-call `effort` override, `omitClaudeMd`, `researcher`'s Firecrawl tools, `ui-critic`. Biome skips `config/` and `state/`, which workflows write with `JSON.stringify`.
 
 ## Tests
@@ -44,7 +44,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - On a 360x740 phone the sticky Generate bar covers More options on `/create` at rest. closed when: axe reports no obscured target there.
 - An aggregator's or redirect's link to a blocked outlet is not caught (matching reads the item's own URL). closed when: matching resolves the final URL, or the owner accepts it.
 - Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source score thresholds (D55), the vote numbers (15%, 3 votes, 30 days). closed when: each is checked against the golden set or two weeks of real data.
-- P3 polish from critic rounds five to nine is listed in [the 2026-10-19 note](history/2026-10-19-state-before-the-record.md). closed when: the owner picks which to fix.
+- P3 polish from critic rounds five to nine is listed in `git show 91bc533:docs/state.md`. closed when: the owner picks which to fix.
 - Settings logic gaps (D102): `schedule.set` with a partial `skip_topics` on a file without `general_scoped` un-skips the general topics it leaves out (the site never sends that op); `topic.enabled` is read by `createForm.ts`, `savedOverlay.ts` and `configEdit.ts` but never set false (dead branches); Edit topic sends the build's weight and keywords, not a pending weight edit. closed when: each is fixed or removed with a test.
 - Unverified (D106 to D109): the volume slider's 400 ms linger and hold while dragged (CSS only), the highlight's pause on a live briefing, a vote batch sent as a page unloads (a lost batch is not retried), a briefing regenerated with a topic the original run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - From the 2026-10-08 QA sweep: a refused narration (429) shows no wait time; focus on opening the player is unchecked. closed when: the 429 names its wait and a keyboard test opens the player with focus inside.
@@ -64,7 +64,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` and `audio.yml` ones; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide whether pre-narration counts against the three narrations a day, whether general topics start ticked, whether a photograph replaces a topic's generated picture, whether Design, AI and Technology get a group override (so they gain a More menu), whether briefings become discussions, and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (offline listening, iOS startup images, the iOS light status bar) and in [the cost note](history/2026-10-19-state-before-the-record.md) (feeds for 17 sources, `MAX_TEXT_CHARS`).
+1. Owner: revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` and `audio.yml` ones; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide whether pre-narration counts against the three narrations a day, whether general topics start ticked, whether a photograph replaces a topic's generated picture, whether Design, AI and Technology get a group override (so they gain a More menu), whether briefings become discussions, and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (offline listening, iOS startup images, the iOS light status bar) and in the cost note (`git show 91bc533:docs/state.md`) (feeds for 17 sources, `MAX_TEXT_CHARS`).
 2. Parked by the owner (2026-10-14): no island eager at first load (cut 1 in [first-load-js.md](engineering/first-load-js.md), about 73 KB). Do not build it until asked.
 3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow checkout in workflows; first-load cuts in [first-load-js.md](engineering/first-load-js.md) within the 109 KB budget (D112).
 4. Finer episode stages (the podcast command in phases, a workflow change); Firecrawl filling a gap in Design, AI or Technology for an episode (`podcast.yml` has no Firecrawl key; a workflow change).

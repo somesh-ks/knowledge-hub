@@ -6,7 +6,7 @@
  * no dependency. In `motion` the equivalent is animate(value, target, { type: "spring",
  * duration, bounce, velocity }); the parameters map one to one.
  *
- * Parameters (design-spec.md, Springs): mass 1, stiffness (2 pi / duration)^2, damping ratio
+ * Parameters (the retired design-spec.md, Springs): mass 1, stiffness (2 pi / duration)^2, damping ratio
  * 1 - bounce. `duration` is the perceptual duration; the settling tail runs a little longer.
  */
 export interface SpringSpec {
