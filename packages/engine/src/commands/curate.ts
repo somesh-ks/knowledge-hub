@@ -20,7 +20,7 @@ import { agentSelectionJsonSchema, type WrittenFile } from "../curate/selectionF
 import { resolveWindow } from "../curate/window.js";
 import { mergeJudgments, pruneJudgments } from "../judge/cache.js";
 import { describeError } from "../llm/errors.js";
-import { loadTopicsFile } from "../topics/store.js";
+import { loadTopics } from "../topics/store.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { writtenText } from "../write/text.js";
@@ -315,7 +315,7 @@ async function runAgent(ctx: CommandContext, flags: Flags): Promise<number> {
     linter: createLinter(voice),
     kind,
     window,
-    topics: await loadTopicsFile(root),
+    topics: await loadTopics(root, await loadPreferences(root)),
   });
   if (!checked.ok) {
     ctx.log.error(`selection.json has ${checked.issues.length} problems`);

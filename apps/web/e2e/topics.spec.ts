@@ -283,7 +283,7 @@ test.describe("the Topics list", () => {
           id: "motion-design",
           name: "Motion design",
           description: "Animation and motion in interfaces.",
-          weight: 0.5,
+          weight: 0.7,
           enabled: true,
           keywords: [],
           section_id: "motion-design",

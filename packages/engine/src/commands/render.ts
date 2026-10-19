@@ -1,11 +1,12 @@
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { homeSectionFor, topicSectionTitles, zonedDate } from "@dispatch/core";
+import { categoryIsOff, homeSectionFor, topicSectionTitles, zonedDate } from "@dispatch/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
   linkSourceIds,
   loadLastRun,
   loadPool,
+  loadPreferences,
   loadSources,
   readJsonIfExists,
   sourceNameMap,
@@ -20,7 +21,7 @@ import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
 import { loadScheduleZone } from "../schedule/store.js";
 import type { SelectedItem } from "../score/types.js";
-import { loadTopicsFile } from "../topics/store.js";
+import { loadTopics } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
@@ -102,7 +103,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         return 0;
       }
 
-      const topics = await loadTopicsFile(root);
+      const topics = await loadTopics(root, await loadPreferences(root));
       const loaded = await loadPool(location.poolPath);
       const pool = new Map(loaded.items.map((item) => [item.id, item]));
       const selected: SelectedItem[] = [];
@@ -115,7 +116,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
           return 1;
         }
         const home = homeSectionFor(topics, entry.category, item.source_type);
-        if (home === null) {
+        if (home === null || categoryIsOff(topics, entry.category)) {
           log.error(`The category ${entry.category} of ${entry.id} never publishes.`);
           return 1;
         }

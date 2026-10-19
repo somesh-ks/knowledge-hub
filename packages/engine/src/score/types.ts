@@ -38,6 +38,8 @@ export interface ScoredItem {
    */
   topCategory: CategoryOrNone;
   breakdown: ScoreBreakdown;
+  /** The weight of `topCategory`, so a category at Off is refused even where no weights are passed. */
+  categoryWeight?: number | undefined;
   /** Set only when a custom topic scored higher than the built-in categories. */
   topic?: WinningTopic;
 }

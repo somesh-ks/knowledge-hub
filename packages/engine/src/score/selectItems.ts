@@ -308,11 +308,9 @@ export function eligibility(
   }
   const category = scored.topCategory;
   if (category === "none") return { eligible: false, reason: "no_category" };
-  if (weights !== undefined && snapWeight(weights[category] ?? 1) === 0) {
+  if (snapWeight(weights?.[category] ?? scored.categoryWeight ?? 1) === 0) {
     return { eligible: false, reason: "never_publish" };
   }
-  if (weights !== undefined && snapWeight(weights[category] ?? 1) === 0)
-    return { eligible: false, reason: "never_publish" };
   const home = homeSection(category, scored.item.source_type);
   if (home === null) return { eligible: false, reason: "never_publish" };
   if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };

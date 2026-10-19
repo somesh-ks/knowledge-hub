@@ -166,7 +166,7 @@ export function mountEditor(root: HTMLElement): Editor {
           id,
           name: topic.name,
           description: topic.description,
-          weight: 0.5,
+          weight: 0.7,
           enabled: true,
           keywords: topic.keywords,
           // A new topic gets a section of its own, titled after it.
