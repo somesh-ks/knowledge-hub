@@ -19,16 +19,16 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Not working or unverified
 
-- Unverified (YouTube text): the caption scrape of youtube.com watch pages and the Gemini transcription by video URL have only run against fakes. Closed when: a run with a YouTube source and `GEMINI_API_KEY` set shows `extract_method` captions or transcription for a finalist.
+- YouTube text ran only against fakes. closed when: a run with a YouTube source shows `extract_method` captions or transcription.
 - The `browser` CI job has not run on GitHub's runner. closed when: a PR touching `apps/web` shows the job green on GitHub.
-- Live runs of the 2026-10-18 changes: chapters in the bar, release news filed last, the sized weekly (2.4 candidates a story, 85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
+- Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120): a live run with spares and a one-outlet Science story. closed when: a committed digest has a Science story from one outlet and airs within 10% of its length.
-- Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open sent from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
+- Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
 - PWA (D123) on a device: Android bars after a reinstall, splash to launch-screen hand-off. closed when: the owner reinstalls on Android and both match the theme.
-- Covers and header light (D110, D122): monthly covers on the deployed site, the light on a real GPU and in Safari and Firefox, a theme switch past the 400 ms wait. closed when: phone and desktop screenshots of production show each.
-- Real phone, Safari and WebKit: the player's iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has never run; six old WebKit failures (flick up, long pull, three stuck paths, cover flight) are the checklist; drawn selects, the searchable list, sounds heard on a device, the address-bar move (#120). closed when: one pass on a real iPhone and one on Android works through the checklist.
-- "Narration is not available right now" (2026-10-12) was not reproduced; the fault is in synthesis (Blob, Speechify or the counters). closed when: the Vercel function log of a failing try names the step.
-- The `VERCEL_TOKEN` in `.env` and `audio.yml` is probably dead, so `audio.yml` fails at `vercel link` and new briefings make audio on first Play (3 to 6 s). closed when: the token is replaced or `BLOB_READ_WRITE_TOKEN` is set (D81) and an `audio.yml` run succeeds.
+- Covers and header light (D110, D122): monthly covers on the deployed site; the light on a real GPU, Safari and Firefox; a theme switch past 400 ms. closed when: phone and desktop screenshots of production show each.
+- Real phone, Safari and WebKit: the player's iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has never run; its six old failures (flick up, long pull, three stuck paths, cover flight), drawn selects, the searchable list, device sounds and the address-bar move (#120) are the checklist. closed when: one pass on a real iPhone and one on Android works through the checklist.
+- "Narration is not available right now" (2026-10-12) was not reproduced; the fault is in synthesis. closed when: the Vercel function log of a failing try names the step.
+- The `VERCEL_TOKEN` is probably dead: `audio.yml` fails at `vercel link`, so audio is made on first Play (3 to 6 s). closed when: the token is replaced or `BLOB_READ_WRITE_TOKEN` is set (D81) and an `audio.yml` run succeeds.
 - Scheduled trigger (D61): no 07:00 dispatch from Vercel Cron seen since `CRON_SECRET` was set (2026-10-13). closed when: the Cron Jobs page shows a 07:00 call that started `run.yml`.
 - Time zone (D100) only against fakes: not a non-Stockholm zone, a fallback entry or a clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still compare with Stockholm's today. closed when: a run across the 2026-10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no run has judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge stage reports the feeds.
@@ -57,10 +57,10 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 ## Known risks
 
 - With the passphrase off (D41), anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps.
-- Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges in one instant, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
+- Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
 - `podcast.yml` and `config.yml` push to `main` beside `run.yml`; the rebase-and-retry push is unexercised.
-- A save made while a briefing runs waits in the `dispatch` queue and a later save replaces an earlier waiting one; closing the tab inside the 10 s gap loses that edit (D79, D91).
+- A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
 - Two sessions running browser suites at once share `apps/web/dist` and give false failures.
 
 ## Next
