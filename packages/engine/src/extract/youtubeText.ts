@@ -55,21 +55,6 @@ export function pickTrack(tracks: readonly CaptionTrack[]): CaptionTrack | null 
   return [...tracks].sort((a, b) => rank(a) - rank(b))[0] ?? null;
 }
 
-function tracksFromWatchPage(html: string): CaptionTrack[] {
-  const match = /"captionTracks":(\[.*?\])\s*,\s*"(?:audioTracks|translationLanguages)"/s.exec(
-    html,
-  );
-  if (!match?.[1]) return [];
-  try {
-    const parsed = JSON.parse(match[1]) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.filter((t): t is CaptionTrack => typeof (t as CaptionTrack)?.baseUrl === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 /** Plain text from a json3 caption document. */
 export function json3ToText(doc: unknown): string {
   const events = (doc as { events?: Array<{ segs?: Array<{ utf8?: string }> }> })?.events ?? [];
@@ -80,23 +65,52 @@ export function json3ToText(doc: unknown): string {
     .trim();
 }
 
-async function getText(fetchImpl: typeof fetch, url: string): Promise<string | null> {
-  const response = await fetchImpl(url, {
-    headers: { "accept-language": "en", "user-agent": "Mozilla/5.0 (compatible; DispatchBot/1.0)" },
+/**
+ * The Android client's player response, which lists a video's caption tracks. The watch page lists
+ * them too, but its track URLs answer 200 with an empty body (checked 2026-10-19); this client's
+ * answer with the text, and the call needs no key.
+ */
+const ANDROID_AGENT = "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip";
+
+async function playerTracks(id: string, fetchImpl: typeof fetch): Promise<CaptionTrack[]> {
+  const response = await fetchImpl(`https://${CAPTION_HOST}/youtubei/v1/player`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "user-agent": ANDROID_AGENT },
+    body: JSON.stringify({
+      videoId: id,
+      context: {
+        client: {
+          clientName: "ANDROID",
+          clientVersion: "20.10.38",
+          androidSdkVersion: 34,
+          hl: "en",
+        },
+      },
+    }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  return response.ok ? await response.text() : null;
+  if (!response.ok) return [];
+  const body = (await response.json()) as {
+    captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: unknown } };
+  };
+  const tracks = body.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  return Array.isArray(tracks)
+    ? tracks.filter((t): t is CaptionTrack => typeof (t as CaptionTrack)?.baseUrl === "string")
+    : [];
 }
 
 /** Subtitles for a video (manual, then auto-generated) from youtube.com, or null. */
 export async function fetchCaptions(id: string, fetchImpl: typeof fetch): Promise<string | null> {
-  const page = await getText(fetchImpl, `https://${CAPTION_HOST}/watch?v=${id}&hl=en`);
-  const track = page ? pickTrack(tracksFromWatchPage(page)) : null;
+  const track = pickTrack(await playerTracks(id, fetchImpl));
   if (!track) return null;
   const url = new URL(track.baseUrl, `https://${CAPTION_HOST}`);
   if (url.protocol !== "https:" || url.hostname !== CAPTION_HOST) return null;
   url.searchParams.set("fmt", "json3");
-  const body = await getText(fetchImpl, url.toString());
+  const response = await fetchImpl(url, {
+    headers: { "user-agent": ANDROID_AGENT },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  const body = response.ok ? await response.text() : "";
   return body ? json3ToText(JSON.parse(body)) : null;
 }
 

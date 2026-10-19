@@ -6,7 +6,11 @@ import { createVideoText, withVideoText } from "../src/extract/youtubeText.js";
 import { makeItem } from "./score-factories.js";
 
 const speech = "Today we look at the new release and what it changes for designers. ".repeat(6);
-const watchPage = `<script>{"captionTracks":[{"baseUrl":"https://www.youtube.com/api/timedtext?v=abcdefghijk&lang=en","languageCode":"en","kind":"asr"}],"audioTracks":[]}</script>`;
+const track = {
+  baseUrl: "https://www.youtube.com/api/timedtext?v=abcdefghijk&lang=en",
+  languageCode: "en",
+  kind: "asr",
+};
 const video = makeItem({
   url: "https://www.youtube.com/watch?v=abcdefghijk",
   source_type: "youtube",
@@ -21,7 +25,10 @@ function fakeNet(opts: { captions: boolean }) {
     if (url.startsWith("https://generativelanguage")) {
       return Response.json({ candidates: [{ content: { parts: [{ text: speech }] } }] });
     }
-    if (url.includes("/watch")) return new Response(opts.captions ? watchPage : "<html></html>");
+    if (url.includes("/youtubei/v1/player")) {
+      const captionTracks = opts.captions ? [track] : [];
+      return Response.json({ captions: { playerCaptionsTracklistRenderer: { captionTracks } } });
+    }
     return Response.json({ events: [{ segs: [{ utf8: speech }] }] });
   }) as typeof fetch;
   return { fn, calls };
