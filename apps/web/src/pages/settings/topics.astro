@@ -60,12 +60,17 @@ const spots = Object.fromEntries(
 );
 const others = layout.sources.get(OTHER_ID) ?? [];
 // Every source once, by name, under the page it is filed on: the flat list the search shows.
-const pageNames = new Map([...rows.map((row) => [row.id, row.name] as const), [OTHER_ID, "Other"] as const]);
+const pageNames = new Map([
+  ...rows.map((row) => [row.id, row.name] as const),
+  [OTHER_ID, "Other"] as const,
+]);
 const library = new Map<string, { source: (typeof sources)[number]; page: string }>();
 for (const [page, list] of layout.sources) {
   for (const source of list) library.set(source.id, { source, page });
 }
-const libraryRows = [...library.values()].sort((a, b) => a.source.name.localeCompare(b.source.name, "en"));
+const libraryRows = [...library.values()].sort((a, b) =>
+  a.source.name.localeCompare(b.source.name, "en"),
+);
 const choices = topicChoicesOf(layout);
 ---
 
