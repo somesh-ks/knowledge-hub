@@ -21,6 +21,10 @@ export const Env = z.object({
   /** Account token the audio workflow uses to run `vercel link` and `vercel env pull`. */
   VERCEL_TOKEN: optionalString,
   COMPOSIO_API_KEY: optionalString,
+  /** Gemini API key: transcribes a YouTube finalist that has no subtitles. */
+  GEMINI_API_KEY: optionalString,
+  /** Gemini model for those transcriptions; the engine has a default. */
+  GEMINI_TRANSCRIBE_MODEL: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */
   SPEECHIFY_MONTHLY_CHARS: z.coerce.number().int().positive().default(500_000),

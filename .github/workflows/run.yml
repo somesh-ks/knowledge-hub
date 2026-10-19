@@ -195,6 +195,8 @@ jobs:
           DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
           DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_TRANSCRIBE_MODEL: ${{ vars.GEMINI_TRANSCRIBE_MODEL }}
           # Typed text from the site: passed as data in the environment, never spliced into the script.
           FEEDBACK: ${{ inputs.feedback }}
           TOPICS: ${{ inputs.topics }}
