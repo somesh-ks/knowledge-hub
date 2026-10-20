@@ -126,10 +126,7 @@ const upsert =
       section_id: topic.section_id,
     },
   });
-// A topic at Off keeps its page: its slider is how it comes back.
-const editable = topic !== null;
 // Every page takes a new source, filed under the topic (a group's under its home topic).
-const addable = topic === null || editable;
 const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
@@ -142,9 +139,13 @@ const weightRows =
 // Left to right is a question for political coverage: world affairs and business, not sport, science
 // or culture (2026-10-20).
 const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
-const perspective = topic !== null && general && PERSPECTIVE_TOPICS.has(topic.id);
-// The Formats group: one slider for each format the topic's sources use, and for a general news topic a
-// Perspective slider. Both go as one topic.mix (managePageSave.ts joins them).
+// A lean set before then stays visible where it applies, so it can be seen and set back to Even.
+const perspective =
+  topic !== null &&
+  general &&
+  (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
+// The Formats group: one slider for each format the topic's sources use. Formats and Perspective are
+// two groups on the page and go as one topic.mix (managePageSave.ts joins them).
 const usedFormats = SOURCE_FORMATS.filter((format) =>
   list.some((source) => source.format === format),
 );
@@ -318,20 +319,16 @@ const facts = topic && {
 
           <div class="topic-sources-head">
             <h2 class="section-head">Sources</h2>
-            {
-              addable && (
-                <button
-                  class="btn-secondary topic-add-source"
-                  type="button"
-                  aria-label={`Add source to ${name}`}
-                  data-add-source={addTo}
-                  data-needs-js
-                >
-                  <Icon name="plus" />
-                  <span>Add source</span>
-                </button>
-              )
-            }
+            <button
+              class="btn-secondary topic-add-source"
+              type="button"
+              aria-label={`Add source to ${name}`}
+              data-add-source={addTo}
+              data-needs-js
+            >
+              <Icon name="plus" />
+              <span>Add source</span>
+            </button>
           </div>
           {/* The sources and their search, in one block, so the search and tabs that stick on a
                phone let go where the list ends, before Suggested sources. */}
@@ -352,9 +349,7 @@ const facts = topic && {
               <EmptyArt art="library" size="compact" />
               <p class="empty-title">No sources yet</p>
               <p class="empty-body">
-                {addable
-                  ? `Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`
-                  : "Sources filed under this topic are listed here."}
+                {`Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`}
               </p>
             </div>
           </div>
@@ -364,7 +359,7 @@ const facts = topic && {
         </div>
       </fieldset>
 
-      {addable && <AddFab label={`Add source to ${name}`} source={addTo} />}
+      <AddFab label={`Add source to ${name}`} source={addTo} />
       <ManageChrome />
       <TopicsPanel topics={choices} />
       {

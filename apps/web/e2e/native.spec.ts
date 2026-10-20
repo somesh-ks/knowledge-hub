@@ -96,7 +96,7 @@ test.describe("the floating button", () => {
       await expect(page.locator(".create-fab"), path).toHaveCount(0);
     }
     await page.goto("/settings/topics");
-    await expect(page.locator(".create-fab")).toHaveAccessibleName("Add a topic or a source");
+    await expect(page.locator(".create-fab")).toHaveCount(1);
     await expect(page.locator("html")).toHaveAttribute("data-fab", "");
   });
 

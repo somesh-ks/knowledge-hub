@@ -11,6 +11,8 @@
 const SLOP_PX = 10;
 /** A release faster than this (px per ms) closes the sheet, however short the pull. */
 const FLICK = 0.5;
+/** A finger that rested this long (ms) before it lifted made no flick. */
+const FLICK_WINDOW_MS = 100;
 
 export function pullToDismiss(sheet: HTMLDialogElement, close: () => void): void {
   const phone = matchMedia("(width < 40rem)");
@@ -68,7 +70,12 @@ export function pullToDismiss(sheet: HTMLDialogElement, close: () => void): void
           armed = false;
           return;
         }
-        if (dy < SLOP_PX) return;
+        // A small move down at the top is held back from the browser, so it never starts an
+        // overscroll it would then keep: once it has, the pull could no longer be cancelled.
+        if (dy < SLOP_PX) {
+          if (dy > 0 && event.cancelable) event.preventDefault();
+          return;
+        }
         pulling = true;
         startY = touch.clientY;
         dy = 0;
@@ -83,14 +90,16 @@ export function pullToDismiss(sheet: HTMLDialogElement, close: () => void): void
     { passive: false },
   );
 
-  const release = (): void => {
+  const release = (event: TouchEvent): void => {
     if (!pulling) {
       reset();
       return;
     }
     const pulled = Math.max(0, dy);
     reset();
-    if (pulled > sheet.clientHeight / 4 || speed > FLICK) {
+    // A cancelled touch (the system took it) only springs back; it never closes.
+    const flicked = speed > FLICK && event.timeStamp - lastT < FLICK_WINDOW_MS;
+    if (event.type === "touchend" && (pulled > sheet.clientHeight / 4 || flicked)) {
       // The sheet leaves from where the finger let go: its exit slide adds to this offset.
       close();
       return;
