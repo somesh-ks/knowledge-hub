@@ -1,36 +1,18 @@
 ---
-import Icon from "./Icon.astro";
-
 interface Props {
   /** The page's own name, which is its heading. */
   title: string;
-  /** The page one level up: Settings, or Topics for a topic. */
-  up?: { href: string; label: string };
   /** One quiet line under the title: what the page is for. */
   note?: string;
-  /** False where the page draws its own way up (a topic's card), leaving the title alone. */
+  /** Kept for the pages that still pass it: the title stands alone either way, with no trail. */
   crumbs?: boolean;
 }
 
-const { title, up = { href: "/settings", label: "Settings" }, note, crumbs = true } = Astro.props;
+const { title, note } = Astro.props;
 ---
 
-{/* Where the page sits, at the title's own size and on its line: the way up is the first word,
-     muted, and names the page one level up. It stands in for a back button and puts no small text
-     above the title. */}
+{/* The page's name alone. Below 64rem the app bar's back arrow leads up to Settings. */}
 <header class="settings-head">
-  <div class="settings-crumbs">
-    {
-      crumbs && (
-        <Fragment>
-          <nav aria-label="Breadcrumb">
-            <a class="settings-up" href={up.href}>{up.label}</a>
-          </nav>
-          <Icon name="chevronRight" class="settings-crumb-gap" />
-        </Fragment>
-      )
-    }
-    <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
-  </div>
+  <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
   {note && <p class="settings-note">{note}</p>}
 </header>

@@ -57,7 +57,7 @@ test.describe("a refused settings change", () => {
     await page.clock.runFor(2000);
     await expect(page.locator("[data-live]")).toHaveText("Saved.");
     // Inside the server's gap: the change waits, and the owner leaves for Today.
-    await page.getByRole("radio", { name: "3 min" }).check();
+    await page.locator("#daily-length").selectOption("3");
     await page.clock.runFor(2000);
     await page.locator("nav").getByRole("link", { name: "Latest" }).first().click();
     await expect(page).toHaveURL(/\/$/);
@@ -70,6 +70,6 @@ test.describe("a refused settings change", () => {
 
     await page.goto("/settings/daily");
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
-    await expect(page.getByRole("radio", { name: "10 min" })).toBeChecked();
+    await expect(page.locator("#daily-length")).toHaveValue("10");
   });
 });

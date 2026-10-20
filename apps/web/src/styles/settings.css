@@ -32,11 +32,9 @@
 
 /* ------------------------------------------------------------------ a settings page's title */
 
-/* Settings > Daily. The way up is the first word, muted, at the title's size and on its line, so a
-   page needs no back button above its title. The trail is one line of text, so a long name wraps
-   word by word after it (Settings > Topics & / Sources) and never leaves the way up alone on a line. */
-.settings-crumbs {
-  display: block;
+/* The page's name stands alone, at the display size (2026-10-20: no "Settings >" before it at any
+   width; below 64rem the app bar's back arrow is the way up). */
+.settings-head > h1 {
   font-family: var(--text-display-family);
   font-size: var(--text-display-size);
   font-weight: var(--text-display-weight);
@@ -49,28 +47,7 @@
   color: var(--color-on-surface-muted);
 }
 
-.settings-crumbs > nav {
-  display: contents;
-}
-
-.settings-head .settings-crumbs > h1 {
-  display: inline;
-}
-
-/* The reset draws an svg as a block; in the trail it is a glyph in the line. */
-.settings-head .settings-crumbs > svg {
-  display: inline-block;
-}
-
-/* Below 64rem the app bar has a back arrow, so the way up would be a second one: the page's name
-   stands alone, on one line, at the same place on every sub-page. */
-@media (width < 64rem) {
-  .settings-head .settings-crumbs > nav,
-  .settings-head .settings-crumbs > .settings-crumb-gap {
-    display: none;
-  }
-}
-
+/* A topic's card draws its own way up (pages/settings/topics/[id].astro). */
 .settings-up {
   position: relative;
   border-radius: var(--radius-sm);
@@ -85,15 +62,6 @@
   position: absolute;
   inset-block: calc((100% - var(--size-touch)) / 2);
   inset-inline: 0;
-}
-
-/* Sized with the trail's type. The selector outweighs .icon's 20px, which loads later. */
-.settings-crumbs > .settings-crumb-gap {
-  inline-size: 0.75em;
-  block-size: 0.75em;
-  margin-inline: var(--space-1);
-  vertical-align: -0.05em;
-  color: var(--color-on-surface-subtle);
 }
 
 @media (hover: hover) and (pointer: fine) {

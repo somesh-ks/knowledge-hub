@@ -112,6 +112,8 @@ function mountSettings(root: HTMLElement): () => void {
   const themes = [...root.querySelectorAll<HTMLInputElement>('input[name="theme"]')];
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
+  // The index's Interface sounds row: its line says whether they are on in this browser.
+  const soundsHint = root.querySelector<HTMLElement>("[data-sounds-hint] [data-hint]");
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
   const installApp = root.querySelector<HTMLElement>("[data-install-app]");
 
@@ -125,6 +127,7 @@ function mountSettings(root: HTMLElement): () => void {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     for (const input of themes) input.checked = input.value === state.theme;
     if (sounds) sounds.checked = state.sounds;
+    if (soundsHint) soundsHint.textContent = state.sounds ? "On" : "Off";
     if (volume) {
       volume.value = state.volume;
       volume.disabled = state.volumeDisabled;

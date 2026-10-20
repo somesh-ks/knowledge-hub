@@ -1,12 +1,13 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Digest } from "@dispatch/core";
 import {
   AudioTimeline,
   audioTimelineRelPath,
+  type Digest,
   DigestId,
   digestRelPath,
   parseDigestFile,
+  podcastVoices,
   STATE_FILES,
   serializeDigestFile,
 } from "@dispatch/core";
@@ -264,9 +265,10 @@ const failed = (digestId: string, stage: AudioFailureStage, error: unknown): Dig
 });
 
 /**
- * The voice config/schedule.json gives a briefing: the weekly one for a weekly digest, the daily
- * one for any other. Undefined when the file is missing or invalid, or sets none; then the
- * SPEECHIFY_VOICE_ID of the run, or the engine's default, reads it.
+ * The voice config/schedule.json gives a briefing: the shared Podcast voice (podcastVoices, which
+ * the site's narrate route asks too, so the stored audio's names match). Undefined when the file is
+ * missing or invalid, or sets none; then the SPEECHIFY_VOICE_ID of the run, or the engine's
+ * default, reads it.
  */
 async function scheduledVoice(
   root: string,
@@ -275,7 +277,7 @@ async function scheduledVoice(
 ): Promise<string | undefined> {
   try {
     const schedule = await loadSchedule(root);
-    return (kind === "weekly" ? schedule.weekly.voice_id : schedule.voice_id) ?? undefined;
+    return podcastVoices(schedule, kind === "weekly" ? "weekly" : "daily").voice_id ?? undefined;
   } catch (error) {
     log.warn("The schedule could not be read; narrating in the default voice", {
       reason: message(error),

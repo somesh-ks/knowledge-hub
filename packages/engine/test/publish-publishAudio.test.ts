@@ -167,7 +167,7 @@ describe("publishAudio: one digest", () => {
     });
   });
 
-  it("reads a regular digest in the schedule's voice and a weekly one in the weekly voice", async () => {
+  it("reads a regular and a weekly digest in the shared voice, over a weekly one left from before", async () => {
     await writeRepoFile(
       harness.temp.root,
       "config/schedule.json",
@@ -176,7 +176,7 @@ describe("publishAudio: one digest", () => {
         hour: 7,
         cadence_days: 2,
         skip_topics: [],
-        voice_id: "daily_v",
+        voice_id: "shared_v",
         weekly: { voice_id: "weekly_v" },
       }),
     );
@@ -192,8 +192,8 @@ describe("publishAudio: one digest", () => {
         call.voiceId,
       ]),
     );
-    expect(voices.reg).toBe("daily_v");
-    expect(voices.wk).toBe("weekly_v");
+    expect(voices.reg).toBe("shared_v");
+    expect(voices.wk).toBe("shared_v");
   });
 
   it("falls back to the run's voice when the schedule sets none or is invalid", async () => {
