@@ -53,3 +53,57 @@ export function parseDownloads(text: string): Download[] {
     return [];
   }
 }
+
+/** Thrown when an episode has a turn whose file is not stored yet: a download never narrates. */
+export class NotReadyError extends Error {
+  constructor() {
+    super("not ready");
+  }
+}
+
+/** The lookup the player asks for, which a downloaded episode's page gets answered from the cache. */
+export function lookupAddress(id: string): string {
+  return `/api/narrate?digest=${encodeURIComponent(id)}`;
+}
+
+/** The word marks of one turn, at the address the player asks for. */
+export function marksAddress(id: string, segment: string): string {
+  return `/api/narrate-marks?${new URLSearchParams({ digest: id, segment })}`;
+}
+
+/** What the lookup lists for one turn: the file's address, or null when none is worked out. */
+export interface LookupSegment {
+  key: string;
+  audio?: { url?: unknown; confirmed?: unknown } | null;
+}
+
+/**
+ * The files of an episode's turns, in order, from a lookup body. Null when the body is not a
+ * lookup or any turn has no address, so a caller treats it as not ready.
+ */
+export function segmentUrls(body: unknown): { key: string; url: string }[] | null {
+  const segments = (body as { segments?: unknown } | null)?.segments;
+  if (!Array.isArray(segments) || segments.length === 0) return null;
+  const found: { key: string; url: string }[] = [];
+  for (const segment of segments as LookupSegment[]) {
+    const url = segment?.audio?.url;
+    if (typeof segment?.key !== "string" || typeof url !== "string" || url === "") return null;
+    found.push({ key: segment.key, url });
+  }
+  return found;
+}
+
+/**
+ * The lookup as saved with the files: every turn confirmed, because the download fetched each one.
+ * Offline the player then plays the addresses instead of asking /api/narrate to narrate a turn.
+ */
+export function confirmLookup(body: Record<string, unknown>): Record<string, unknown> {
+  const segments = Array.isArray(body.segments) ? body.segments : [];
+  return {
+    ...body,
+    segments: segments.map((segment: LookupSegment) => ({
+      ...segment,
+      audio: segment.audio ? { ...segment.audio, confirmed: true } : segment.audio,
+    })),
+  };
+}

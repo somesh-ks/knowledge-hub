@@ -17,7 +17,7 @@
  *     worker's. Any other audio request goes to the network as it would have.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v9";
+const VERSION = "v10";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -429,6 +429,21 @@ async function downloadedAudio(request) {
   }
 }
 
+/**
+ * The narrate lookup and word marks of a downloaded episode, when the network will not answer:
+ * the download saved them under the same address. Online they go to the network as before.
+ */
+async function downloadedApi(request) {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const cached = await cache.match(request.url);
+    if (cached) return cached;
+  } catch {
+    // Fall through to the error below.
+  }
+  return Response.error();
+}
+
 /* ------------------------------------------------------------------ routing */
 
 self.addEventListener("fetch", (event) => {
@@ -439,6 +454,14 @@ self.addEventListener("fetch", (event) => {
   // A downloaded file is answered here, from any origin, with or without a Range header.
   if (request.destination === "audio" || AUDIO_PATH.test(url.pathname)) {
     event.respondWith(downloadedAudio(request).then((answer) => answer || fetch(request)));
+    return;
+  }
+
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname === "/api/narrate" || url.pathname === "/api/narrate-marks")
+  ) {
+    event.respondWith(fetch(request).catch(() => downloadedApi(request)));
     return;
   }
 

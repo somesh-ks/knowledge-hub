@@ -55,6 +55,7 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     title={episode.title}
     path={`/e/${entry.id}`}
     kind="episode"
+    audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}
     topics={episode.request.topic_ids}
   />
 </li>
