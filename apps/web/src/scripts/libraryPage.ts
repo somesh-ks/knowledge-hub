@@ -23,6 +23,8 @@ import {
   textHasWords,
 } from "../lib/library";
 
+import { installLibraryMenu } from "./libraryMenu";
+
 const VIEW_KEY = "dispatch:library-view";
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
 const LIBRARY_URL_KEY = "dispatch:library-url";
@@ -309,4 +311,5 @@ function install(): void {
 }
 
 document.addEventListener("astro:page-load", install);
+installLibraryMenu();
 install();

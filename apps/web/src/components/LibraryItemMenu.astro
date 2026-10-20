@@ -1,0 +1,112 @@
+---
+import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** The digest id ("2026-10-07") or episode id ("ep-20261007-1930"). */
+  id: string;
+  /** The row's name, for the button's label and the share sheet. */
+  title: string;
+  /** The page the row opens, which Share points at and a download keeps. */
+  path: string;
+  kind: "briefing" | "episode";
+  /** The audio file, when the item has one: only then can it be downloaded. */
+  audio?: string;
+  /** False on a Daily or Weekly briefing: only on-demand briefings and episodes can be deleted. */
+  deletable?: boolean;
+  /** An episode's topic ids, so Regenerate starts with the ones it was made with. */
+  topics?: readonly string[];
+}
+
+const { id, title, path, kind, audio, deletable = true, topics } = Astro.props;
+const menuId = `card-menu-${id}`;
+---
+
+{/* The ⋮ at the end of a row's text, in the gallery and the list. It is the header More menu's
+     pattern (HeroMenu.astro, scripts/heroMenu.ts) with a menu per row; the items are wired by
+     scripts/libraryMenu.ts. Regenerate and Delete are the episode page's own (EpisodeActions.astro,
+     one set of dialogs for the whole Library) and a briefing's (the Generate sheet). Download is
+     only offered where the item already has an audio file. A sibling of the card's link, never inside
+     it, so a press here cannot open the card. The badge is the downloaded mark on the cover's
+     corner: always laid out, shown by [data-downloaded] on the card, so nothing moves. */}
+<span class="card-downloaded" aria-hidden="true"><Icon name="download" /></span>
+<div
+  class="card-menu"
+  style={`--card-anchor: --cm-${id}`}
+  data-library-menu
+  data-id={id}
+  data-path={path}
+  data-title={title}
+  data-audio={audio}
+  data-episode-actions=""
+  data-episode={kind === "episode" ? id : undefined}
+  data-library-briefing={kind === "briefing" ? id : undefined}
+  data-topics={topics?.join(" ")}
+  data-open-passphrase={!PASSPHRASE_REQUIRED ? OPEN_PASSPHRASE : undefined}
+>
+  <button
+    class="icon-btn card-more press"
+    type="button"
+    aria-label={`More actions for ${title}`}
+    aria-haspopup="menu"
+    popovertarget={menuId}
+    data-hero-more
+  >
+    <Icon name="moreVert" />
+  </button>
+  <div
+    class="hero-menu-list card-menu-list"
+    id={menuId}
+    popover
+    role="menu"
+    aria-label={`More actions for ${title}`}
+  >
+    {
+      audio && (
+        <button class="hero-menu-item" type="button" role="menuitem" data-menu="download">
+          Download
+        </button>
+      )
+    }
+    <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue">
+      Add to queue
+    </button>
+    {
+      kind === "episode" ? (
+        <button
+          class="hero-menu-item"
+          type="button"
+          role="menuitem"
+          data-episode-action="regenerate"
+        >
+          Regenerate
+        </button>
+      ) : (
+        <button
+          class="hero-menu-item"
+          type="button"
+          role="menuitem"
+          data-open="generate"
+          aria-haspopup="dialog"
+        >
+          Regenerate
+        </button>
+      )
+    }
+    <button class="hero-menu-item" type="button" role="menuitem" data-menu="share">
+      Share
+    </button>
+    {
+      deletable && (
+        <button
+          class="hero-menu-item hero-menu-delete"
+          type="button"
+          role="menuitem"
+          data-episode-action="delete"
+        >
+          Delete
+        </button>
+      )
+    }
+  </div>
+</div>

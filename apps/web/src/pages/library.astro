@@ -2,6 +2,7 @@
 import BriefingCard from "../components/BriefingCard.astro";
 import EmptyArt from "../components/EmptyArt.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
+import EpisodeActions from "../components/EpisodeActions.astro";
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
@@ -102,7 +103,7 @@ const items = libraryItems(entries, episodes);
               item.kind === "episode" ? (
                 <EpisodeCard entry={item.entry} priority={index < 6} />
               ) : (
-                <BriefingCard entry={item.entry} priority={index < 6} />
+                <BriefingCard entry={item.entry} priority={index < 6} menu />
               ),
             )}
           </ul>
@@ -123,6 +124,8 @@ const items = libraryItems(entries, episodes);
       )
     }
   </main>
+  {/* The dialogs Regenerate and Delete open, once for every row's menu (scripts/episodeActions.ts). */}
+  {items.length > 0 && <EpisodeActions id="library" />}
   <script>
     import "../scripts/libraryPage";
   </script>

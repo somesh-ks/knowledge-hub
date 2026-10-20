@@ -33,13 +33,18 @@ function request(path: string, overrides: Partial<FakeRequest> = {}): FakeReques
   };
 }
 
+function urlOf(key: FakeRequest | string): string {
+  if (typeof key !== "string") return key.url;
+  return key.startsWith("http") ? key : `${ORIGIN}${key}`;
+}
+
 class FakeCache {
   entries = new Map<string, Response>();
   async put(key: FakeRequest | string, response: Response) {
-    this.entries.set(typeof key === "string" ? `${ORIGIN}${key}` : key.url, response);
+    this.entries.set(urlOf(key), response);
   }
   async match(key: FakeRequest | string) {
-    return this.entries.get(typeof key === "string" ? `${ORIGIN}${key}` : key.url)?.clone();
+    return this.entries.get(urlOf(key))?.clone();
   }
   async keys() {
     return [...this.entries.keys()].map((url) => ({ url }));
@@ -150,21 +155,10 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
 }
 
 describe("service worker: requests it passes straight through", () => {
-  // Audio is never cached or touched; the API, other methods and other origins are not its business.
+  // Video, ranged page reads, the API, other methods and other origins are not its business.
   // Each request sits on a path the worker would otherwise serve (/d/, /_astro/, /covers/, a page).
   const ranged = { headers: new Headers({ Range: "bytes=0-1" }) };
   it.each([
-    [
-      "cross-origin audio",
-      request("https://abc.public.blob.vercel-storage.com/audio/2026-10-07.mp3", {
-        destination: "audio",
-      }),
-    ],
-    ["same-origin audio by extension: mp3", request("/d/x.mp3")],
-    ["same-origin audio by extension: wav", request("/_astro/audio.wav")],
-    ["same-origin audio by extension: m4a", request("/covers/a.m4a")],
-    ["same-origin audio by extension: upper-case OGG", request("/d/b.OGG")],
-    ["audio by destination", request("/d/stream", { destination: "audio" })],
     ["video by destination", request("/d/clip", { destination: "video" })],
     ["a Range request, so Safari seeking works", request("/d/2026-10-07", ranged)],
     ["a POST", request("/d/2026-10-07", { method: "POST" })],
@@ -527,5 +521,62 @@ describe("service worker: install and update", () => {
     expect(names).toContain("someone-elses-cache");
     expect(names).toContain(`dispatch-shell-${CURRENT_VERSION}`);
     expect(worker.claim).toHaveBeenCalled();
+  });
+});
+
+describe("service worker: audio the person downloaded", () => {
+  const AUDIO = "https://abc.public.blob.vercel-storage.com/audio/2026-10-07.mp3";
+  const body = "0123456789";
+  async function withDownload() {
+    const worker = load(() => new Response("network audio"));
+    const cache = await worker.caches.open("dispatch-audio-v1");
+    await cache.put(AUDIO, new Response(body, { headers: { "content-type": "audio/mpeg" } }));
+    return worker;
+  }
+  const ask = (range?: string) =>
+    request(AUDIO, {
+      destination: "audio",
+      ...(range ? { headers: new Headers({ Range: range }) } : {}),
+    });
+
+  it("answers a Range request from the saved file with 206 and Content-Range, which seeking needs", async () => {
+    const worker = await withDownload();
+    for (const [range, text, header] of [
+      ["bytes=2-5", "2345", "bytes 2-5/10"],
+      ["bytes=7-", "789", "bytes 7-9/10"],
+      ["bytes=-3", "789", "bytes 7-9/10"],
+      ["bytes=8-99", "89", "bytes 8-9/10"],
+    ] as const) {
+      const { response } = await worker.dispatchFetch(ask(range));
+      expect(response?.status).toBe(206);
+      expect(await response?.text()).toBe(text);
+      expect(response?.headers.get("content-range")).toBe(header);
+    }
+    expect(worker.fetched).toEqual([]);
+  });
+
+  it("answers the whole file without a Range header, and 416 for a range past the end", async () => {
+    const worker = await withDownload();
+    const whole = (await worker.dispatchFetch(ask())).response;
+    expect(whole?.status).toBe(200);
+    expect(await whole?.text()).toBe(body);
+    const past = (await worker.dispatchFetch(ask("bytes=50-60"))).response;
+    expect(past?.status).toBe(416);
+    expect(past?.headers.get("content-range")).toBe("bytes */10");
+  });
+
+  it("sends audio that was not downloaded to the network and keeps nothing", async () => {
+    const worker = load(() => new Response("network audio"));
+    const { response } = await worker.dispatchFetch(request("/d/2026-10-07.mp3"));
+    expect(await response?.text()).toBe("network audio");
+    expect(worker.caches.stored()).toEqual([]);
+  });
+
+  it("keeps the downloads when a new version of the worker takes over", async () => {
+    const worker = await withDownload();
+    await (await worker.caches.open("dispatch-shell-v1")).put("/x", new Response("old"));
+    await worker.lifecycle("activate");
+    expect(worker.caches.stored()).toContain(AUDIO);
+    expect(worker.caches.stored()).not.toContain(`${ORIGIN}/x`);
   });
 });
