@@ -223,9 +223,7 @@ test.describe("the profile pages", () => {
       .toBeGreaterThan(before);
   });
 
-  test("the topics are chips, each one in the podcast or left out", async ({
-    page,
-  }) => {
+  test("the topics are chips, each one in the podcast or left out", async ({ page }) => {
     await open(page, "daily");
     const chips = page.locator(".podcast-topics .filter-chip");
     // Every topic is shown, and every one can be put in or out, the general news topics too.
@@ -317,9 +315,7 @@ test.describe("saving on its own", () => {
     const sent = await mockConfig(page);
     await open(page, "weekly");
     await page.locator("#weekly-day").selectOption("5");
-    await expect
-      .poll(() => scheduleSent(sent))
-      .toEqual({ op: "schedule.set", weekly: { day: 5 } });
+    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", weekly: { day: 5 } });
     await expect(spoken(page)).toHaveText(SAVED);
   });
 
@@ -331,7 +327,9 @@ test.describe("saving on its own", () => {
     const sent = await mockConfig(page);
     await open(page, "voice");
     await choose(page, page.locator("#podcast-voice"), /Leo, male/);
-    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", voice_id: "voice-leo" });
+    await expect
+      .poll(() => scheduleSent(sent))
+      .toEqual({ op: "schedule.set", voice_id: "voice-leo" });
     await expect(spoken(page)).toHaveText(SAVED);
     await page.reload();
     await open(page, "voice");
@@ -434,7 +432,7 @@ test.describe("saved, before the build", () => {
     await page.clock.install();
     const sent = await mockConfig(page);
     const ops = [
-      { op: "schedule.set", hour: 9, weekly: { day: 1 } },
+      { op: "schedule.set", hour: 9, voice_id: "leo_2", weekly: { day: 1 } },
       { op: "topic.remove", id: "audio_interfaces" },
       { op: "source.add", url: "https://pixel.example/feed.xml", topic_ids: ["product_design"] },
     ];
@@ -454,7 +452,8 @@ test.describe("saved, before the build", () => {
       page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
     await expect(hint("Daily")).toHaveText("Every second day at 09:00");
     await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
-    await expect(hint("Topics and sources")).toHaveText("8 topics · 12 sources");
+    await expect(hint("Sources")).toHaveText("8 topics · 12 sources");
+    await expect(hint("Podcast voice")).toHaveText("Leo and Default");
     // A choice saved in the last few minutes is in the select before the next build has it.
     await expect(combo(page)).toHaveValue("claude-haiku-5-5");
 
