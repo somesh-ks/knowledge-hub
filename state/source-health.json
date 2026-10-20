@@ -3,11 +3,11 @@
   "sources": {
     "9to5google": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "9to5mac": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "abc-news": {
       "failures": 0,
@@ -15,19 +15,19 @@
     },
     "abc-news-business": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "abc-news-culture": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "abc-news-sports": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "abc-news-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "acm-pacmhci": {
       "failures": 0,
@@ -39,11 +39,11 @@
     },
     "adactio": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "adam-wathan": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "ahead-of-ai": {
       "failures": 0,
@@ -51,7 +51,7 @@
     },
     "ahmad-shadeed": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "al-jazeera": {
       "failures": 0,
@@ -59,99 +59,99 @@
     },
     "al-jazeera-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "android-authority": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "andy-bell": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "anthropic-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "ark-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "ars-technica": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "arxiv-cs-hc": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "assistant-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "astro": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "astro-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "aux-first": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "base-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bbc-business": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bbc-culture": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bbc-science": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bbc-sports": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bbc-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "better-stack-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "beyond-the-screen": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "brad-frost": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bram-us": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "brutalist-report": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bun-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "bytes": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "cbs-news": {
       "failures": 0,
@@ -159,249 +159,253 @@
     },
     "cbs-news-business": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "cbs-news-culture": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "cbs-news-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "cloudflare-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "codrops": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "cohere-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "console-dev": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "creative-bloq": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "creative-boom": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "css-tricks": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "css-weekly": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "dan-abramov": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "darkroom-engineering": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "dave-rupert": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "deepmind-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "deno-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "design-observer": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "electrek": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "emil-kowalski": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "engadget": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "espn-sports": {
-      "failures": 3
+      "failures": 4
     },
     "exa-discovery": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "figma-release-notes": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "fireship": {
-      "failures": 2,
+      "failures": 3,
       "last_ok": "2026-10-15T09:55:05.157Z"
     },
     "france-24": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "friday-checkout": {
-      "failures": 2,
+      "failures": 3,
       "last_ok": "2026-10-15T09:55:05.157Z"
     },
     "frontend-focus": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "github-engineering": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "google-ai-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "gsmarena": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "guardian-business": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "guardian-culture": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "guardian-science": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "guardian-sports": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "guardian-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "headless-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "heydesigner": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "hn-show": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "hugging-face-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "hyperplexed": {
-      "failures": 2,
-      "last_ok": "2026-10-15T09:55:05.157Z"
+      "failures": 0,
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "import-ai": {
-      "failures": 9
+      "failures": 10
     },
     "javascript-weekly": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "jhey-tompkins": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "josh-w-comeau": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "kent-c-dodds": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "kevin-powell": {
-      "failures": 2,
+      "failures": 3,
       "last_ok": "2026-10-15T09:55:05.157Z"
     },
     "last-week-in-ai": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "latent-space": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "lee-robinson": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "lenis": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "linear-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "lobsters": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "material-design-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "melt-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "meta-ai-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "mistral-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "motion": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
+    },
+    "news-ycombinator-com": {
+      "failures": 0,
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "nextjs-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "nielsen-norman-group": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "node-weekly": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "npr-business": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "npr-culture": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "npr-news": {
       "failures": 0,
@@ -409,31 +413,31 @@
     },
     "npr-science": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "npr-sports": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "npr-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "nuxt-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "one-useful-thing": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "openai-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "paco-coursey": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "pbs-newshour": {
       "failures": 0,
@@ -441,63 +445,63 @@
     },
     "pbs-newshour-culture": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "pbs-newshour-science": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "pbs-newshour-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "piccalilli": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "product-hunt": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "radix-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "rauno-freiberg": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "react-aria": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "react-status": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "remix-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "sciencedaily-science": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "shadcn-changelog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "shadcn-ui": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "sidebar-io": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "simon-willison": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "sky-news": {
       "failures": 0,
@@ -505,27 +509,27 @@
     },
     "sky-news-business": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "sky-news-world": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "smashing-magazine": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "sonner": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "stability-ai-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "storybook-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "stripe-engineering": {
       "failures": 0,
@@ -537,31 +541,31 @@
     },
     "svelte-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "tailwind-css-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "techcrunch": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "techmeme": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "the-algorithm": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "the-batch": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "the-decoder": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "the-neuron": {
       "failures": 0,
@@ -573,63 +577,63 @@
     },
     "the-verge": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "theo-t3gg": {
-      "failures": 2,
+      "failures": 3,
       "last_ok": "2026-10-15T09:55:05.157Z"
     },
     "this-week-in-react": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "tldr": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "tldr-ai": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "toms-hardware": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "toools-newsletter": {
       "failures": 0,
-      "last_ok": "2026-10-17T05:37:43.365Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "typescript-weekly": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "ui-things": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "ux-collective": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "uxplanet-org-feed": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "vaul": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "vercel-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "vite-blog": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "webkit": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     },
     "xai-blog": {
       "failures": 0,
@@ -637,7 +641,7 @@
     },
     "yankodesign-com-feed": {
       "failures": 0,
-      "last_ok": "2026-10-18T05:37:42.949Z"
+      "last_ok": "2026-10-20T05:37:35.655Z"
     }
   }
 }
