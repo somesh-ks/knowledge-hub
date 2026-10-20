@@ -242,7 +242,7 @@ async function uploadWithRetry(
  * A stream that dies midway has still synthesized (and been billed for) the characters its marks
  * covered. Count that lower bound so a retry loop cannot quietly outrun the monthly allowance.
  */
-async function recordPartialSpend(deps: PublishAudioDeps, error: unknown): Promise<void> {
+export async function recordPartialSpend(deps: PublishAudioDeps, error: unknown): Promise<void> {
   if (!(error instanceof SpeechifyError) || !error.partialCharacters) return;
   try {
     await recordUsage({ root: deps.root, now: deps.now(), characters: error.partialCharacters });

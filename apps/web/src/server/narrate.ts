@@ -23,6 +23,7 @@ import {
   segmentSpokenText,
   usageMonth,
 } from "@dispatch/engine/audio";
+import { SEGMENT_CACHE_SECONDS, turnKey } from "@dispatch/engine/segments";
 import { EPISODE_ID, parseEpisodeFile } from "../lib/episodeFile";
 import type { StreamDoc } from "../lib/liveStream";
 import type { SegmentMarks } from "../lib/segmentMarks";
@@ -134,11 +135,6 @@ export const markerKey = (id: string): string => `state/narrating-${id}.json`;
  * browser pair an old MP3 with a new timeline.
  */
 const AUDIO_CACHE_SECONDS = 60 * 60;
-/**
- * A segment's name holds the hash of its text and voice, so the words behind a URL never change and
- * the file can be kept for a month.
- */
-const SEGMENT_CACHE_SECONDS = 30 * 24 * 60 * 60;
 /** The timeline and the bookkeeping files must be current. 60 seconds is the shortest Blob allows. */
 const JSON_CACHE_SECONDS = 60;
 const JSON_FILE = { contentType: "application/json", cacheSeconds: JSON_CACHE_SECONDS } as const;
@@ -482,8 +478,8 @@ interface EpisodeScript {
   live?: boolean;
 }
 
-/** The segment key of a turn. A key is lower-case letters and digits, as every segment key is. */
-export const turnKey = (idx: number): string => `t${idx}`;
+/** The segment key of a turn, shared with the engine, which narrates a new episode ahead of time. */
+export { turnKey };
 
 /** The live copy of an episode being written, by its id; null when there is none. */
 export type LiveEpisodes = (id: string) => Promise<StreamDoc | null>;
