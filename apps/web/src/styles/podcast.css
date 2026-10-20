@@ -48,7 +48,7 @@
 
 /* The topics are a wrapped row of filter chips, with the room a row of chips has above and below. */
 .podcast-topics {
-  padding-block: var(--space-3) var(--space-2);
+  padding-block: var(--space-4) var(--space-2);
 }
 
 /* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
@@ -57,7 +57,7 @@
   display: flex;
   flex: 0 1 auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
   max-inline-size: 70%;
 }
@@ -134,7 +134,7 @@
    padding, so its 48px control sits in a 56px row as the selects do. */
 @media (min-width: 40rem) {
   .podcast-profile .rows > .settings-row[data-layout="choice"] {
-    padding-block: var(--space-1);
+    padding-block: var(--space-2);
   }
 }
 

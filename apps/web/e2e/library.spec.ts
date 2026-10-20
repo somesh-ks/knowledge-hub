@@ -614,19 +614,24 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-card]:not([hidden]) .card-match").first()).toBeVisible();
     const rows = await page.locator("[data-card]:not([hidden])").evaluateAll((cards) =>
       cards.map((card) => {
-        const link = card.querySelector(".card-link")?.getBoundingClientRect();
+        const linkElement = card.querySelector(".card-link");
+        const link = linkElement?.getBoundingClientRect();
+        const padding = linkElement
+          ? Number.parseFloat(getComputedStyle(linkElement).paddingTop)
+          : 0;
         const title = card.querySelector(".card-title")?.getBoundingClientRect();
         const cover = card.querySelector(".cover")?.getBoundingClientRect();
         const bar = card.querySelector<HTMLElement>(".card-progress");
         const box = bar && !bar.hidden ? bar.getBoundingClientRect() : null;
         return {
-          above: Math.round((title?.top ?? 0) - (link?.top ?? 0)),
+          // What sits above the title beyond the row's own padding (half-leading aside).
+          above: Math.round((title?.top ?? 0) - (link?.top ?? 0) - padding),
           barOnCover: box && cover ? box.bottom <= cover.bottom + 1 && box.top >= cover.top : null,
         };
       }),
     );
     // The row's padding is all there is above a title, with a match line or without one.
-    for (const row of rows) expect(row.above).toBeLessThanOrEqual(14);
+    for (const row of rows) expect(row.above).toBeLessThanOrEqual(2);
     expect(rows.some((row) => row.barOnCover === true)).toBe(true);
     expect(rows.every((row) => row.barOnCover !== false)).toBe(true);
   });

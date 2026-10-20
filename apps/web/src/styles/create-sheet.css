@@ -182,7 +182,7 @@ html:has(dialog[open]) .create-fab {
 /* The word folds away while scrolling down to read, and comes back at the top and on the way up. */
 .create-fab-label {
   max-width: 6rem;
-  margin-inline: var(--space-3) var(--space-1);
+  margin-inline: var(--space-2) var(--space-1);
   overflow: hidden;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -204,7 +204,7 @@ html:has(dialog[open]) .create-fab {
 @media (prefers-reduced-motion: reduce) {
   .create-fab[data-folded] .create-fab-label {
     max-width: 6rem;
-    margin-inline: var(--space-3) var(--space-1);
+    margin-inline: var(--space-2) var(--space-1);
     opacity: 1;
   }
 }
@@ -377,7 +377,7 @@ dialog.create-sheet[open]::backdrop {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-height: var(--app-bar-height);
   padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
   padding-inline: max(var(--space-1), var(--safe-left)) max(var(--space-4), var(--safe-right));
@@ -573,7 +573,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   /* A fixed height, so a long line never grows the card into the Create button above it. */
   height: var(--run-height);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
@@ -725,7 +725,7 @@ html[data-player="open"] .run-status {
 
   .run-text {
     grid-area: text;
-    padding-inline-end: var(--space-1);
+    padding-inline-end: var(--space-2);
   }
 
   /* The column has room to grow, so the whole line shows. */
@@ -748,14 +748,14 @@ html[data-player="open"] .run-status {
   .run-retry {
     grid-area: extra;
     justify-self: start;
-    margin-inline-start: calc(-1 * var(--space-3));
+    margin-inline-start: calc(-1 * var(--space-4));
   }
 
   .run-bar {
     position: relative;
     inset: auto;
     grid-area: extra;
-    margin-block-start: var(--space-3);
+    margin-block-start: var(--space-4);
     border-radius: var(--radius-round);
     height: var(--space-1);
   }

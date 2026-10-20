@@ -21,6 +21,7 @@
     "build": "npm run build -w @dispatch/web",
     "dev": "npm run dev -w @dispatch/web",
     "tokens": "tsx scripts/buildTokens.ts",
+    "design-check": "vitest run apps/web/src/styles/styles.test.ts scripts/buildTokens.test.ts",
     "glyphs": "tsx scripts/buildGlyphs.ts",
     "icons": "tsx scripts/buildIcons.ts",
     "prototype": "tsx scripts/buildPrototype.ts",

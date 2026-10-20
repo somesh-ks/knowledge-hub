@@ -83,7 +83,7 @@
    weight; 22px read as too big beside the rows (the owner, the same day). More air above than below:
    it belongs to its rows. */
 :is(.settings-view, .manage) .section-head {
-  padding-block: var(--space-8) var(--space-3);
+  padding-block: var(--space-8) var(--space-4);
   font-family: var(--text-heading-family);
   font-size: var(--font-size-title);
   font-weight: var(--text-heading-weight);
@@ -105,21 +105,22 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3) var(--space-4);
+  gap: var(--space-4);
   min-height: var(--size-touch-comfortable);
+  /* The row carries its own rhythm, so it is spaced the same in a page, a panel or a sheet. */
+  padding-block: var(--row-padding-block);
 }
 
 /* On the index a control row is as tall as a two-line link row (74px), whatever its control:
    the switch, the slider and the segments all sit in one rhythm. */
 .settings-view .rows > .settings-row {
   min-height: calc(var(--space-12) + var(--space-6) + var(--space-1));
-  padding-block: var(--space-3);
 }
 
 .settings-text {
   display: grid;
   flex: 1 1 0;
-  gap: var(--space-half);
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -162,8 +163,8 @@
 
 /* A link row among value rows is as tall as they are (a select row's padding round the target). */
 :is(.settings-view, .manage) .rows > .row-action:not(:has(.settings-hint)) {
-  min-height: calc(var(--size-touch-comfortable) + var(--space-1) * 2);
-  padding-block: var(--space-1);
+  min-height: calc(var(--size-touch-comfortable) + var(--space-2) * 2);
+  padding-block: var(--space-2);
 }
 
 :is(.settings-view, .manage) .row-action .icon {
@@ -300,7 +301,7 @@
 
 .settings-segment:has(input:checked) > span::before {
   inline-size: var(--size-icon-sm);
-  margin-inline-end: calc(var(--space-1) * 1.5);
+  margin-inline-end: var(--space-1);
   opacity: 1;
 }
 
@@ -705,7 +706,7 @@
  */
 /* A row whose value is a select is as tall as the select's target and no taller. */
 .settings-row:has(> :is(.value-select, .podcast-voice)) {
-  padding-block: var(--space-1);
+  padding-block: var(--space-2);
 }
 
 .settings-row .value-select {
@@ -721,7 +722,7 @@
   min-inline-size: 0;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
+  padding-inline: var(--space-4) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
   border-color: transparent;
   border-radius: var(--button-radius);
   color: var(--color-on-surface);

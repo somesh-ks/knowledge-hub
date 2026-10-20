@@ -7,7 +7,7 @@
 
 .card-link {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   border-radius: var(--cover-radius-hero);
   color: inherit;
   text-decoration: none;
@@ -100,7 +100,7 @@
   display: -webkit-box;
   overflow: hidden;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -209,7 +209,7 @@
 .search-field {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   height: var(--field-height);
   padding-inline: var(--space-4);
   border-radius: var(--radius-round);
@@ -291,8 +291,8 @@
      screens the row wraps rather than run off the page. The padding is room for the focus ring and
      the selects' taller targets. */
   flex-wrap: wrap;
-  row-gap: var(--space-3);
-  padding-block: var(--space-1);
+  row-gap: var(--space-4);
+  padding-block: var(--space-2);
 }
 
 /* The kind chips: one row that scrolls sideways when it does not fit, with room inside it for the
@@ -404,7 +404,7 @@
 .sort-field > select {
   height: var(--size-touch);
   margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
-  padding-inline: var(--space-3) calc(var(--space-3) + var(--space-4) + var(--field-chevron-gap));
+  padding-inline: var(--space-4) calc(var(--space-4) + var(--space-4) + var(--field-chevron-gap));
   border: 0;
   border-radius: inherit;
   background: none;
@@ -419,7 +419,7 @@
 /* The chevron is a hint at the end of the label, a step smaller than a toolbar glyph. */
 .sort-field > .icon {
   position: absolute;
-  inset-inline-end: var(--space-3);
+  inset-inline-end: var(--space-4);
   inline-size: var(--size-icon-sm);
   block-size: var(--size-icon-sm);
   pointer-events: none;
@@ -534,7 +534,7 @@
 /* A row is its own stacking context, so its press fill can sit behind its content. Its hover and
    press tile runs past the row into the gutters, so a row is never clipped (content-visibility). */
 [data-library][data-view="list"] .card {
-  --list-cover: calc(var(--size-touch) + var(--space-3));
+  --list-cover: 3.5rem;
   position: relative;
   isolation: isolate;
   content-visibility: visible;
@@ -547,7 +547,7 @@
   grid-template-rows: 1fr auto auto auto 1fr;
   gap: 0 var(--space-4);
   align-items: center;
-  padding-block: var(--space-3);
+  padding-block: var(--space-4);
 }
 
 [data-library][data-view="list"] .card-link .cover {
@@ -715,7 +715,7 @@ html:has(.library-none) {
 }
 
 .shelf-head > .btn {
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-4) * -1);
 }
 
 @property --shelf-left-mask {
@@ -736,7 +736,7 @@ html:has(.library-none) {
   margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   padding-inline: var(--page-gutter-start) var(--page-gutter-end);
   /* Room for the focus ring above and below. */
-  padding-block: var(--space-1) var(--space-2);
+  padding-block: var(--space-2);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;

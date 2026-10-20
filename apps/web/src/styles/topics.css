@@ -126,13 +126,13 @@
 /* Listen in closes the card under a line that runs its full width, edge to edge through the card's
    padding (2026-10-20). */
 .topic-card:has(.topic-card-foot) {
-  padding-block-end: var(--space-1);
+  padding-block-end: var(--space-2);
 }
 
 .topic-card-foot {
   grid-area: foot;
   margin-inline: calc(var(--space-4) * -1);
-  padding: var(--space-3) var(--space-4) 0;
+  padding: var(--space-4) var(--space-4) 0;
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
@@ -317,7 +317,7 @@
   flex: none;
   width: auto;
   min-height: calc(var(--size-touch) - var(--space-2));
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   font-size: var(--font-size-label);
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
@@ -379,6 +379,9 @@
   align-items: center;
   column-gap: var(--space-2);
   min-height: var(--source-row);
+  /* The row carries its own rhythm, so a suggestion in the Add source panel is spaced as a source
+     on the page is: outside a .rows list the suggestions had no padding and touched. */
+  padding-block: var(--row-padding-block);
   border-radius: var(--radius-md);
 }
 
@@ -389,7 +392,7 @@
   position: absolute;
   z-index: var(--z-base);
   inset-block: 0;
-  inset-inline: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+  inset-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -425,7 +428,7 @@
 .source-main {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
   min-height: var(--source-row);
 }
@@ -514,7 +517,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   min-width: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
@@ -575,7 +578,7 @@
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-2) * -1);
   border-radius: var(--radius-round);
   cursor: pointer;
   transition: background-color var(--duration-hover) var(--ease-hover);
@@ -668,7 +671,7 @@
 .source-sheet-foot {
   display: flex;
   flex: none;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
@@ -831,7 +834,7 @@
 
 .score-parts {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
   font-size: var(--font-size-label);
 }
@@ -849,7 +852,7 @@
 .score-parts dd {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
 }
 
@@ -937,7 +940,7 @@
 .source-card-head {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -1260,8 +1263,8 @@
   /* One column that may shrink below its content: otherwise the tab strip's full width sets the
      column, the filter grows past the screen and a phone zooms the whole page out (2026-10-20). */
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
-  margin-block-end: var(--space-3);
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
 }
 
 /* The index starts with its search (2026-10-20), a group's step under the title. */
@@ -1273,7 +1276,7 @@
 .filter-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .filter-field {
@@ -1347,7 +1350,7 @@
 .filter-none {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
   color: var(--color-on-surface-muted);
 }

@@ -1,18 +1,4 @@
-import { expect, test } from "./fixtures";
-
-const ROUTES = [
-  "/",
-  "/d/2026-10-07",
-  "/e/ep-20261007-1930",
-  "/library",
-  "/create",
-  "/settings",
-  "/settings/daily",
-  "/settings/weekly",
-  "/settings/topics",
-  "/settings/topics/audio_interfaces",
-  "/settings/topics/other",
-];
+import { expect, SITE_PAGES, test } from "./fixtures";
 
 /**
  * The hidden attribute is `display: none` at the lowest specificity there is, so any component rule
@@ -22,7 +8,7 @@ const ROUTES = [
 test("the hidden attribute hides everything that carries it, on every page", {
   tag: "@both",
 }, async ({ page }) => {
-  for (const route of ROUTES) {
+  for (const route of SITE_PAGES) {
     await page.goto(route);
     await page.waitForLoadState("networkidle");
     const shown = await page.evaluate(() =>

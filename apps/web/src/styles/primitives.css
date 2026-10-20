@@ -42,7 +42,7 @@
   content: "";
   position: absolute;
   inset-block: var(--space-1);
-  inset-inline: calc(var(--space-3) * -1);
+  inset-inline: calc(var(--space-4) * -1);
   z-index: var(--z-beneath);
   border-radius: var(--row-radius);
   /* The layer is the fill's own alpha, never the element's opacity: that would fade the focus ring
@@ -137,8 +137,8 @@
 
 .tabs {
   display: flex;
-  padding-inline: calc(var(--page-gutter-start) - var(--space-3))
-    calc(var(--page-gutter-end) - var(--space-3));
+  padding-inline: calc(var(--page-gutter-start) - var(--space-2))
+    calc(var(--page-gutter-end) - var(--space-2));
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-inline: var(--page-gutter-start);
@@ -192,7 +192,7 @@
   align-items: center;
   flex: none;
   height: var(--tabs-height);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -219,7 +219,7 @@
 .tab::after {
   content: "";
   position: absolute;
-  inset-inline: var(--space-3);
+  inset-inline: var(--space-2);
   inset-block-end: 0;
   height: var(--tabs-indicator-height);
   border-start-start-radius: var(--tabs-indicator-radius);
@@ -347,7 +347,7 @@
   /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
      never move: the words sit centred with half the check's room on each side, and slide over by
      that half as the check appears. */
-  padding-inline: calc(var(--space-3) + var(--space-2));
+  padding-inline: calc(var(--space-4) + var(--space-1));
   /* No outline: the transparent border keeps the size where forced colours draw one. */
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--chip-radius);
@@ -518,7 +518,7 @@
     /* Below the field whenever it fits, as the model list opens; the browser's default would pick
        the roomier side and cover the controls above. */
     position-try-order: normal;
-    margin-block: var(--space-1);
+    margin-block: var(--space-2);
     padding: var(--space-2);
     border: var(--stroke-hairline) solid var(--color-border-hairline);
     border-radius: var(--radius-md);
@@ -562,10 +562,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
+    gap: var(--space-2);
     min-block-size: var(--size-touch);
     padding-block: var(--space-2);
-    padding-inline: var(--space-3);
+    padding-inline: var(--space-4);
     border-radius: var(--row-radius);
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-medium);
@@ -574,7 +574,7 @@
   }
 
   :is(.manage-select, .sort-field, .create-select) > select option + option {
-    margin-block-start: var(--space-1);
+    margin-block-start: var(--space-2);
   }
 
   /* A group's heading starts where its options' words do, whatever side the field aligns its value
@@ -584,8 +584,8 @@
   }
 
   :is(.manage-select, .sort-field, .create-select) > select optgroup > legend {
-    padding-block: var(--space-3) var(--space-1);
-    padding-inline: var(--space-3);
+    padding-block: var(--space-4) var(--space-2);
+    padding-inline: var(--space-4);
     color: var(--color-on-surface-muted);
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-regular);

@@ -110,7 +110,7 @@ html[data-mini="visible"] main {
   gap: var(--space-2);
   min-width: var(--size-touch);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--button-radius);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -285,7 +285,7 @@ html[data-mini="visible"] main {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: start;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--banner-radius);
   background: var(--tone-bg);
@@ -329,7 +329,7 @@ html[data-mini="visible"] main {
 .banner-action {
   align-self: center;
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--control-radius-sm);
   color: var(--color-on-surface);
   font-weight: var(--font-weight-semibold);
@@ -387,7 +387,7 @@ html[data-mini="visible"] main {
 }
 
 .hero-meta {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   line-height: var(--font-leading-caption);
@@ -400,7 +400,7 @@ html[data-mini="visible"] main {
 
 .hero-hint {
   grid-column: 1 / -1;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
 }
@@ -409,7 +409,7 @@ html[data-mini="visible"] main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--cta-height);
   padding-inline: var(--space-4);
@@ -424,7 +424,7 @@ html[data-mini="visible"] main {
 .cta-main {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .cta-time {
@@ -548,9 +548,9 @@ html[data-mini="visible"] main {
   justify-content: space-between;
   gap: var(--space-4);
   min-height: var(--size-touch);
-  padding-inline: var(--space-2) var(--space-3);
-  margin-inline: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
-  width: calc(100% + var(--space-2) + var(--space-3));
+  padding-inline: var(--space-2) var(--space-4);
+  margin-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
+  width: calc(100% + var(--space-2) + var(--space-4));
   border-radius: var(--sheet-row-radius);
   text-align: start;
   font-family: var(--text-heading-family);
@@ -665,7 +665,7 @@ html[data-mini="visible"] main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-block-start: var(--space-1);
 }
 
@@ -673,7 +673,7 @@ html[data-mini="visible"] main {
   display: flex;
   flex-wrap: wrap;
   min-width: 0;
-  column-gap: var(--space-3);
+  column-gap: var(--space-4);
   font-size: var(--font-size-meta);
   line-height: var(--font-leading-caption);
   color: var(--color-on-surface-muted);
@@ -685,7 +685,7 @@ html[data-mini="visible"] main {
 }
 
 .item-summary {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   font-family: var(--text-reading-family);
   font-size: var(--text-reading-size);
   font-weight: var(--text-reading-weight);
@@ -696,7 +696,7 @@ html[data-mini="visible"] main {
 }
 
 .item-why {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   max-width: var(--layout-measure);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -776,7 +776,7 @@ html[data-mini="visible"] main {
 }
 
 .earlier .section-title {
-  margin-block-end: var(--space-3);
+  margin-block-end: var(--space-4);
 }
 
 .archive-list {
@@ -787,7 +787,7 @@ html[data-mini="visible"] main {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--archive-row-padding);
   margin-inline: calc(var(--archive-row-padding) * -1);
   border-radius: var(--archive-row-radius);
@@ -891,8 +891,8 @@ html[data-mini="visible"] main {
   justify-content: space-between;
   gap: var(--space-4);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  margin-inline: calc(var(--space-3) * -1);
+  padding-inline: var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
   border-radius: var(--sheet-row-radius);
   font-family: var(--text-heading-family);
   font-size: var(--text-heading-size);
@@ -938,7 +938,7 @@ html[data-mini="visible"] main {
 }
 
 .month-body {
-  padding-block: var(--space-1) var(--space-3);
+  padding-block: var(--space-1) var(--space-4);
 }
 
 /* ------------------------------------------------------------------ mini player */
@@ -1002,7 +1002,7 @@ html[data-mini="visible"] main {
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--mini-player-control-size);
   padding-inline-end: var(--space-2);
   border-radius: var(--mini-player-control-radius);
@@ -1418,7 +1418,7 @@ dialog.player::backdrop {
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--sheet-row-radius);
   text-align: start;
   font-weight: var(--font-weight-semibold);
@@ -1434,7 +1434,7 @@ dialog.player::backdrop {
   display: inline-block;
   width: var(--space-2);
   height: var(--space-2);
-  margin-inline-end: var(--space-3);
+  margin-inline-end: var(--space-4);
   border-radius: var(--radius-xs);
   background: var(--color-cover-accent);
 }
@@ -1692,7 +1692,7 @@ fieldset {
 .hint-card {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--banner-radius);
   background: var(--color-surface-sunken);
@@ -1717,7 +1717,7 @@ fieldset {
 .hint-card .btn {
   grid-column: 2;
   justify-self: start;
-  margin-inline-start: calc(var(--space-3) * -1);
+  margin-inline-start: calc(var(--space-4) * -1);
 }
 
 /* Fields */
@@ -1887,7 +1887,7 @@ fieldset {
     0;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: max-content;
   max-width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
   min-height: var(--toast-min-height);
@@ -1923,7 +1923,7 @@ fieldset {
 
 .toast-action {
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--control-radius-sm);
   font-weight: var(--font-weight-semibold);
   background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
@@ -1983,10 +1983,10 @@ fieldset {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
+    gap: var(--space-4);
     min-height: var(--size-touch);
-    padding-inline: var(--space-3);
-    margin-inline: calc(var(--space-3) * -1);
+    padding-inline: var(--space-4);
+    margin-inline: calc(var(--space-4) * -1);
     border-radius: var(--sheet-row-radius);
     color: var(--color-on-surface-muted);
     font-size: var(--font-size-meta);
@@ -2206,7 +2206,7 @@ fieldset {
 /* ------------------------------------------------------------------ refinements */
 
 .back-link {
-  margin-inline-start: calc(var(--space-3) * -1);
+  margin-inline-start: calc(var(--space-4) * -1);
 }
 
 .year-group > summary .icon {
@@ -2252,7 +2252,7 @@ fieldset {
 }
 
 .field + .botcheck {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
 /* Very narrow phones: the cover stacks above the date so the date keeps its size. */

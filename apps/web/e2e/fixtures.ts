@@ -87,6 +87,21 @@ export const ROUTES = [
   { name: "not found", path: "/does-not-exist" },
 ] as const;
 
+/** One page of each kind the app has, for sweeps that must hold on every page. */
+export const SITE_PAGES = [
+  "/",
+  "/d/2026-10-07",
+  "/e/ep-20261007-1930",
+  "/library",
+  "/create",
+  "/settings",
+  "/settings/daily",
+  "/settings/weekly",
+  "/settings/topics",
+  "/settings/topics/audio_interfaces",
+  "/settings/topics/other",
+];
+
 /**
  * Seeds storage before the first page of the test loads, and only then: a page saves its own state
  * as it unloads, so storage written from a page and then reloaded can be overwritten by that page.
