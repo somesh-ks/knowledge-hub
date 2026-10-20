@@ -137,8 +137,8 @@
 
 .tabs {
   display: flex;
-  padding-inline: calc(var(--page-gutter-start) - var(--space-4))
-    calc(var(--page-gutter-end) - var(--space-4));
+  padding-inline: calc(var(--page-gutter-start) - var(--space-2))
+    calc(var(--page-gutter-end) - var(--space-2));
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-inline: var(--page-gutter-start);
@@ -192,7 +192,7 @@
   align-items: center;
   flex: none;
   height: var(--tabs-height);
-  padding-inline: var(--space-4);
+  padding-inline: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -219,7 +219,7 @@
 .tab::after {
   content: "";
   position: absolute;
-  inset-inline: var(--space-4);
+  inset-inline: var(--space-2);
   inset-block-end: 0;
   height: var(--tabs-indicator-height);
   border-start-start-radius: var(--tabs-indicator-radius);
