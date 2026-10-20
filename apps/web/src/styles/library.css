@@ -337,6 +337,16 @@
   .library-bar .sort-field {
     display: none;
   }
+
+  /* The chips give up 4px a side so all three fit beside the switch on a 390px phone: 16px of side
+     room, with the check moved 4px out so it still clears the words it slides beside. */
+  .library-filters > .filter-chip {
+    padding-inline: var(--space-4);
+  }
+
+  .library-filters > .filter-chip > .icon {
+    inset-inline-start: var(--space-1);
+  }
 }
 
 @media (min-width: 40rem) {
