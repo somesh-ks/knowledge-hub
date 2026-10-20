@@ -1,4 +1,5 @@
 ---
+import { MIX_STOPS, PERSPECTIVE_STOPS, SOURCE_FORMATS } from "@dispatch/core";
 import { topicArt } from "@dispatch/cover";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
@@ -14,6 +15,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
 import { loadSourceCatalog, suggestSources } from "../../../lib/sourceCatalog";
+import { FORMAT_LABEL } from "../../../lib/sourceFilter";
 import {
   type GroupPage,
   OTHER_ID,
@@ -65,7 +67,10 @@ const { group, topic, list, choices, taken } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
-const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
+const [{ sources, topics: allTopics }, catalog] = await Promise.all([
+  loadManage(),
+  loadSourceCatalog(),
+]);
 const name = group?.name ?? topic?.name ?? "Other";
 const note = group?.note ?? topic?.description ?? "Sources not filed under a topic.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
@@ -123,6 +128,30 @@ const upsert =
 const editable = topic !== null;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
+// The Formats group: one slider for each format the topic's sources use, and for a general news topic a
+// Perspective slider. Both go as one topic.mix (managePageSave.ts joins them).
+const usedFormats = SOURCE_FORMATS.filter((format) =>
+  list.some((source) => source.format === format),
+);
+const mixStops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
+const perspectiveStops = PERSPECTIVE_STOPS.map((s) => ({ name: s.name, value: s.value }));
+// A group page keeps its one mix on the group's home topic; a topic apart keeps its own.
+const mixOwner = group ? allTopics.find((t) => t.id === group.home) : topic;
+// One format alone has nothing to be weighed against, so a page needs two before it shows sliders.
+const mixRows =
+  mixOwner && usedFormats.length > 1
+    ? usedFormats.map((format) => ({
+        id: `mix-${mixOwner.id}-${format}`,
+        label: FORMAT_LABEL[format],
+        name: `${FORMAT_LABEL[format]} in ${name}`,
+        weight: MIX_STOPS.find((s) => s.name === mixOwner.format_mix?.[format])?.factor ?? 1,
+        custom: {
+          stops: mixStops,
+          op: { op: "topic.mix", id: mixOwner.id, format_mix: {} },
+          field: `format_mix.${format}`,
+        },
+      }))
+    : [];
 // A long list shows its first SHOWN sources and a button for the rest (D103).
 const SHOWN = 7;
 const hidden = Math.max(0, list.length - SHOWN);
@@ -250,6 +279,30 @@ const facts = topic && {
                 <h2 class="section-head" id="weights-head">Topic weightage</h2>
                 <div class="rows topic-controls">
                   {weightRows.map((row) => <WeightRow {...row} />)}
+                </div>
+              </section>
+            )
+          }
+
+          {
+            (mixRows.length > 0 || (topic && general)) && (
+              <section class="topic-weights" aria-labelledby="mix-head">
+                <h2 class="section-head" id="mix-head">{mixRows.length > 0 ? "Formats" : "Perspective"}</h2>
+                <div class="rows topic-controls">
+                  {mixRows.map((row) => <WeightRow {...row} />)}
+                  {topic && general && (
+                    <WeightRow
+                      id={`perspective-${topic.id}`}
+                      label="Perspective"
+                      name={`${topic.name} perspective`}
+                      weight={topic.perspective ?? 0}
+                      custom={{
+                        stops: perspectiveStops,
+                        op: { op: "topic.mix", id: topic.id, perspective: 0 },
+                        field: "perspective",
+                      }}
+                    />
+                  )}
                 </div>
               </section>
             )

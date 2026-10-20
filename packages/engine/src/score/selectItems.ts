@@ -33,6 +33,18 @@ export const DEFAULT_SCORE_THRESHOLD = 0.4;
 /** Items taken per home section before overflow is allowed. Does not apply to Tech releases. */
 export const SECTION_TARGET_MAX = 3;
 
+/** Most stories one outlet (source) may have in a briefing. A starting value, tuned when a briefing shows it must be. */
+export const OUTLET_CAP = 2;
+
+/** The outlet a story came from: its link's host without "www.", or its source when the link is bad. */
+export function outletOf(item: Pick<Item, "url" | "source_id">): string {
+  try {
+    return new URL(item.url).hostname.replace(/^www\./, "");
+  } catch {
+    return item.source_id;
+  }
+}
+
 /** Top picks: the highest-scoring items outside Tech releases, moved out of their home section. */
 export const TOP_PICKS = 3;
 
@@ -41,6 +53,8 @@ export type DropReason =
   | "never_publish"
   | "below_threshold"
   | "over_cap"
+  /** A third story or later from one outlet (OUTLET_CAP). */
+  | "over_outlet"
   /** A Tech releases candidate beyond that section's own allowance. */
   | "over_tech_cap"
   /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
@@ -322,6 +336,7 @@ export function eligibility(
  *  1. Drop items whose most probable option is "none" or a never-publish category.
  *  2. Drop items below the score threshold, every GitHub release but the newest of its
  *     repository, and every story but the best told of one subject (sameStory.ts).
+ *     At most OUTLET_CAP stories per outlet stay, best first.
  *  3. Split what is left into two pools: Tech releases candidates, and everything else.
  *  4. Everything else: patch releases never air, and release notes take at most a tenth of the
  *     cap (at least one). Within that, take the best item of each category first, then walk by rank taking at
@@ -377,6 +392,22 @@ export function selectItems(input: SelectInput): SelectResult {
     } else ranked.push(candidate);
   }
   ranked.sort(compareCandidates);
+  // One outlet cannot fill a briefing: its best OUTLET_CAP stories stay, the rest give way. The outlet
+  // is the story's host, so one publisher's several feeds count once; a story bound for its own
+  // section (a general topic's) is outside the cap, since those sections draw on a few outlets.
+  const perOutlet = new Map<string, number>();
+  const withinCap = ranked.filter((candidate) => {
+    if (hasOwnSection(candidate)) return true;
+    const outlet = outletOf(candidate.item);
+    const count = perOutlet.get(outlet) ?? 0;
+    if (count >= OUTLET_CAP) {
+      dropped.push({ id: candidate.item.id, reason: "over_outlet", score: candidate.score });
+      return false;
+    }
+    perOutlet.set(outlet, count + 1);
+    return true;
+  });
+  ranked.splice(0, ranked.length, ...withinCap);
   const main: Candidate[] = [];
   for (const candidate of ranked) {
     if (hasOwnSection(candidate)) continue;

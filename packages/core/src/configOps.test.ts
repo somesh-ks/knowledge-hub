@@ -43,7 +43,7 @@ describe("ConfigOp: source.update", () => {
     const parsed = parseConfigOps({ op: "source.update", id: "blog" });
     expect(parsed).toMatchObject({
       success: false,
-      issues: [{ message: "set name, topic_ids, format or any of them" }],
+      issues: [{ message: "set name, topic_ids, format, lean or any of them" }],
     });
   });
 

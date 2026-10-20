@@ -1,4 +1,17 @@
-import type { Item, JudgmentEntry, Preferences, Topic } from "@dispatch/core";
+import {
+  deriveSourceFormat,
+  groupHomeId,
+  type Item,
+  type JudgmentEntry,
+  mixFactor,
+  type Preferences,
+  perspectiveFactor,
+  type Source,
+  type SourceFormat,
+  sourceFormat,
+  type Topic,
+  topicGroupOf,
+} from "@dispatch/core";
 import type { TopicFits } from "../judge/topicJudge.js";
 import { clamp01, round4 } from "./numbers.js";
 import { craftFactor, launchFactor, penaltyFactor, scoreItem } from "./scoreItem.js";
@@ -53,19 +66,61 @@ export function fitCurve(fit: number): number {
   return clamp01(fit) ** FIT_EXPONENT;
 }
 
+/** What a source adds to the score of its stories: its format, and a general source's lean. */
+export interface SourceFacts {
+  format: SourceFormat;
+  lean?: number | null | undefined;
+}
+
+/** The facts of every source, by id. */
+export function sourceFactsMap(sources: readonly Source[]): Record<string, SourceFacts> {
+  return Object.fromEntries(sources.map((s) => [s.id, { format: sourceFormat(s), lean: s.lean }]));
+}
+
+/** What a topic's mix and perspective read about one story. */
+export interface StoryFacts {
+  format?: SourceFormat | undefined;
+  /** The lean of each outlet that carried it; an unrated outlet counts as 0 (Centre). */
+  leans?: readonly number[] | undefined;
+}
+
+/**
+ * The facts of a story: its source's format (the type's rule where the source is unknown) and the
+ * lean of every outlet that carried it (`carriers`, the kept item's source first).
+ */
+export function storyFacts(
+  item: Pick<Item, "source_id" | "source_type">,
+  sources: Readonly<Record<string, SourceFacts>> | undefined,
+  carriers?: readonly string[],
+): StoryFacts {
+  const own = sources?.[item.source_id];
+  const ids = carriers && carriers.length > 0 ? carriers : [item.source_id];
+  return {
+    format: own?.format ?? deriveSourceFormat(item.source_type),
+    leans: ids.map((id) => sources?.[id]?.lean ?? 0),
+  };
+}
+
 /** What scoring needs to know about the custom topics of a run. */
 export interface TopicLayer {
   /** Enabled custom topics only. */
   topics: readonly Topic[];
   fits: TopicFits;
+  /** Source facts by id, for a topic's format mix. Absent reads every story by its source type's rule. */
+  sources?: Readonly<Record<string, SourceFacts>>;
 }
 
-/** The score one topic would give an item, or null when the topic was not judged for it. */
+/**
+ * The score one topic would give an item, or null when the topic was not judged for it. The topic's
+ * format mix multiplies the score by its source's format (Off makes it 0) and, for a general topic,
+ * the perspective by its outlets' mean lean; both come last, and the result is clamped to 0..1.
+ */
 export function topicScore(
   topic: Topic,
   fit: number | undefined,
   entry: JudgmentEntry,
   item?: Pick<Item, "signals">,
+  story?: StoryFacts,
 ): { score: number; curve: number; depth: number; penalty: number } | null {
   if (fit === undefined) return null;
   const curve = fitCurve(fit);
@@ -78,12 +133,40 @@ export function topicScore(
           ? coverageFactor(item?.signals.coverage, SINGLE_OUTLET_TOPICS.has(topic.id))
           : 1;
   const penalty = penaltyFactor(entry.flags);
+  // A topic in one of the owner's three groups is mixed by its group (applyGroupMix), once.
+  const mix = topicGroupOf(topic)
+    ? 1
+    : mixFactor(story?.format && topic.format_mix?.[story.format]);
+  const lean =
+    topic.origin === "general" ? perspectiveFactor(topic.perspective, story?.leans ?? []) : 1;
   return {
-    score: round4(clamp01(topic.weight * curve * depth * penalty)),
+    score: round4(clamp01(topic.weight * curve * depth * penalty * mix * lean)),
     curve,
     depth,
     penalty,
   };
+}
+
+/**
+ * The format mix of the owner's three groups (Design, AI, Technology): one mix per group, stored on
+ * the group's home topic. A story whose score comes from a built-in category, or from a topic in
+ * the group, is multiplied by the home mix for its source's format; Off scores it 0, which keeps it
+ * out of the group entirely, whichever category or topic scored it highest. A story outside every
+ * group is left alone (a topic apart is mixed in `topicScore`).
+ */
+export function applyGroupMix(
+  scored: ScoredItem,
+  topics: readonly Topic[],
+  sources: Readonly<Record<string, SourceFacts>> | undefined,
+): ScoredItem {
+  const winner = scored.topic?.id ?? (scored.topCategory === "none" ? null : scored.topCategory);
+  const topic = topics.find((candidate) => candidate.id === winner);
+  const group = topic && topicGroupOf(topic);
+  if (!group) return scored;
+  const format = storyFacts(scored.item, sources).format;
+  const home = groupHomeId(group, topics);
+  const factor = mixFactor(format && topics.find((t) => t.id === home)?.format_mix?.[format]);
+  return factor === 1 ? scored : { ...scored, score: round4(clamp01(scored.score * factor)) };
 }
 
 /**
@@ -102,7 +185,13 @@ export function applyTopics(scored: ScoredItem, layer: TopicLayer | undefined): 
   } | null = null;
   for (const topic of layer.topics) {
     const fit = row[topic.id];
-    const result = topicScore(topic, fit, scored.entry, scored.item);
+    const result = topicScore(
+      topic,
+      fit,
+      scored.entry,
+      scored.item,
+      storyFacts(scored.item, layer.sources),
+    );
     if (!result || fit === undefined) continue;
     // A story from a Trending outlet publishes in Trending or nowhere: general news never
     // enters another section because a built-in category happens to score it higher.

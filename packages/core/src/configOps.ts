@@ -2,7 +2,14 @@ import { z } from "zod";
 import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
-import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
+import {
+  MAX_KEYWORDS,
+  MixStop,
+  mixStopOf,
+  Perspective,
+  TOPIC_DEPTHS,
+  TOPIC_ORIGINS,
+} from "./topics.js";
 import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
 /** A like or dislike of one story, as the app sends it. */
@@ -71,6 +78,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   wins over the seed's own name and topics. An empty topic list leaves it feeding none of its
  *   own. Unknown source or topic ids are refused.
  * - source.remove: delete an added source, or hide a seed source.
+ * - topic.mix: set a topic's format mix (a stop per source format) and, for a general topic, its
+ *   perspective (-2 Left to 2 Right).
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set any of the time zone (one of SUPPORTED_TIMEZONES), the daily hour, cadence,
  *   topics left out (`skip_topics`), podcast type, length and voices, the weekly podcast (`weekly`:
@@ -118,13 +127,32 @@ export const ConfigOp = z.discriminatedUnion("op", [
       name: z.string().trim().min(1).max(SOURCE_NAME_MAX).optional(),
       topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
       format: SourceFormat.optional(),
+      /** A general source's political lean, -2 to 2; null clears it. */
+      lean: z.number().int().min(-2).max(2).nullable().optional(),
     })
     .refine(
       (value) =>
-        value.name !== undefined || value.topic_ids !== undefined || value.format !== undefined,
-      { message: "set name, topic_ids, format or any of them" },
+        value.name !== undefined ||
+        value.topic_ids !== undefined ||
+        value.format !== undefined ||
+        value.lean !== undefined,
+      { message: "set name, topic_ids, format, lean or any of them" },
     ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
+  // A topic's format mix and perspective (D-mix). Each given format takes the nearest mix stop
+  // (Normal removes it); `perspective` 0 (Even) removes it. Fields left out keep what the file holds.
+  z
+    .object({
+      op: z.literal("topic.mix"),
+      id: IdString,
+      format_mix: z
+        .record(SourceFormat, z.union([MixStop, z.number().min(0).max(1.2).transform(mixStopOf)]))
+        .optional(),
+      perspective: Perspective.optional(),
+    })
+    .refine((value) => value.format_mix !== undefined || value.perspective !== undefined, {
+      message: "set format_mix, perspective or both",
+    }),
   z.object({
     op: z.literal("weights.set"),
     weights: z

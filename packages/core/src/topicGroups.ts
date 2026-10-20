@@ -46,6 +46,21 @@ export const TOPIC_GROUPS: readonly TopicGroup[] = [
 /** Ids the groups' pages take; no topic may take one. */
 export const TOPIC_GROUP_IDS: readonly string[] = TOPIC_GROUPS.map((group) => group.id);
 
+/**
+ * The topic a group's page keeps its settings on (its format mix): the group's home, or its first
+ * member when the home is not among the topics. The page, the engine and the config ops all ask
+ * here, so a mix is saved where it is read.
+ */
+export function groupHomeId(
+  group: TopicGroup,
+  topics: readonly { id: string; section_id: string; never_publish: boolean; origin: string }[],
+): string {
+  const members = topics.filter((topic) => topicGroupOf(topic)?.id === group.id);
+  return members.some((topic) => topic.id === group.home)
+    ? group.home
+    : (members[0]?.id ?? group.home);
+}
+
 /** The group a topic belongs to, or null for one that never publishes, a general topic or one apart. */
 export function topicGroupOf(topic: {
   section_id: string;

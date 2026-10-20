@@ -25,6 +25,16 @@ config/sources.json and config/sources.user.json. Uses TYPESAFE_API_KEY.`,
     load: async () => (await import("./commands/classifyFormats.js")).run,
   },
   {
+    name: "classify-lean",
+    summary: "Ask Jev for the political lean of every general news source and write a review table",
+    help: `Usage: dispatch classify-lean [--out <dir>] [--apply <lean.json>]
+
+Asks Jev for the lean (Left, Centre-left, Centre, Centre-right, Right, or unrated) of each source
+that feeds a general news topic, and writes lean-review.md and lean.json to --out. --apply writes a
+reviewed lean.json into config/sources.json and config/sources.user.json. Uses TYPESAFE_API_KEY.`,
+    load: async () => (await import("./commands/classifyLean.js")).run,
+  },
+  {
     name: "sources",
     summary: "Import, discover and check the source registry",
     help: `Usage: dispatch sources <import|discover|check> [flags]

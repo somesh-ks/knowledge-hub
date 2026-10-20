@@ -1,4 +1,4 @@
-import { GENERAL_TOPICS, TOPIC_GROUPS, topicGroupOf } from "@dispatch/core";
+import { GENERAL_TOPICS, groupHomeId, TOPIC_GROUPS, topicGroupOf } from "@dispatch/core";
 import type { ManageSource, ManageTopic } from "./manage";
 import { sourcesSummary } from "./settingsSummary";
 import type { TopicWords } from "./sourceCatalog";
@@ -101,12 +101,11 @@ export function topicLayout(
     const members = topics.filter((topic) => topicGroupOf(topic)?.id === group.id);
     if (members.length === 0) continue;
     for (const member of members) pageOf.set(member.id, group.id);
-    const home = members.some((topic) => topic.id === group.home) ? group.home : members[0]?.id;
     groups.push({
       id: group.id,
       name: group.name,
       note: group.note,
-      home: home ?? group.home,
+      home: groupHomeId(group, topics),
       members,
     });
   }

@@ -51,6 +51,11 @@ export const Source = z.object({
   type: SourceType,
   /** Optional in the file so older configs parse; read it through `sourceFormat`, which falls back to the type's rule. */
   format: SourceFormat.optional(),
+  /**
+   * A general news source's political lean, -2 (Left) to 2 (Right); null or absent is unrated and
+   * counts as Centre. Rated once by Jev (`classify-lean`), editable in the source panel.
+   */
+  lean: z.number().int().min(-2).max(2).nullable().optional(),
   /** Human-facing page. */
   url: z.string().url(),
   /** Machine feed or API URL. Null when none was found (a scrape source). */
@@ -100,6 +105,8 @@ export const SourceOverride = z.object({
   topic_ids: z.array(IdString).optional(),
   /** Replaces the source's own format. */
   format: SourceFormat.optional(),
+  /** Replaces the source's own lean; null clears it. */
+  lean: z.number().int().min(-2).max(2).nullable().optional(),
 });
 export type SourceOverride = z.infer<typeof SourceOverride>;
 

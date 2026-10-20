@@ -374,9 +374,23 @@ test.describe("a topic's page", () => {
     await open(page, "/settings/topics/audio_interfaces");
     const slider = page.locator("[data-weight]");
     await slider.fill("3");
-    await expect(page.locator("[data-word]")).toHaveText("More");
+    await expect(page.locator(".topic-weight:has([data-weight]) [data-word]")).toHaveText("More");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.85 } }]);
+  });
+
+  test("a format slider saves itself as one topic.mix and holds after a reload", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    // Design gathers several formats; its one mix lives on the group's home topic.
+    await open(page, "/settings/topics/design");
+    const slider = page.locator("[data-mix]").first();
+    await slider.fill("3");
+    await expect(spoken(page)).toHaveText(SAVED);
+    expect(ops(sent)).toMatchObject([{ op: "topic.mix" }]);
+    await page.reload();
+    await expect(page.locator("[data-mix]").first()).toHaveValue("3");
   });
 
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({

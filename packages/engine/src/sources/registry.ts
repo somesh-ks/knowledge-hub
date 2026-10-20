@@ -95,6 +95,7 @@ function orderedSource(s: Source): Record<string, unknown> {
     name: s.name,
     type: s.type,
     ...(s.format ? { format: s.format } : {}),
+    ...(s.lean !== undefined ? { lean: s.lean } : {}),
     url: s.url,
     feed_url: s.feed_url,
     tier: s.tier,
@@ -158,6 +159,7 @@ export function mergeUserSources(file: SourcesFile, user: SourcesUserFile): Sour
         ...(override.enabled === undefined ? {} : { enabled: override.enabled }),
         ...(override.pinned === undefined ? {} : { pinned: override.pinned }),
         ...(override.format === undefined ? {} : { format: override.format }),
+        ...(override.lean === undefined ? {} : { lean: override.lean }),
       };
       if (override.topic_ids !== undefined) {
         if (override.topic_ids.length > 0) next.topic_ids = [...override.topic_ids];

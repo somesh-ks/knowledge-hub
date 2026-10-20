@@ -108,6 +108,10 @@ describe("the general news sources", () => {
         ...draft,
         failures: 0,
         format: expect.any(String),
+        // Rated once by classify-lean; the seed does not write it.
+        ...(file.sources.find((s) => s.id === draft.id)?.lean === undefined
+          ? {}
+          : { lean: file.sources.find((s) => s.id === draft.id)?.lean }),
       });
     }
   });
