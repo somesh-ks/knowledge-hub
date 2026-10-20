@@ -78,6 +78,7 @@ function install(): void {
   const emptyButton = root.querySelector<HTMLButtonElement>("[data-library-clear]");
   let emptyReset: "search" | "everything" = "search";
   if (!grid) return;
+  const sortShown = (): boolean => select?.closest(".sort-field")?.checkVisibility() ?? false;
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
   /** The full text of every card, once fetched. Until then, and if it never comes, only the card's own lines are searched. */
@@ -172,7 +173,8 @@ function install(): void {
     const query = input?.value ?? "";
     const searching = query.trim() !== "";
     if (clearText) clearText.hidden = query === "";
-    const sort = (select?.value ?? "newest") as LibrarySort;
+    // A phone offers no order (library.css hides it), so one left in a link never reorders it unseen.
+    const sort = (sortShown() ? (select?.value ?? "newest") : "newest") as LibrarySort;
     const filter = chipFilter(chips.filter((chip) => chip.checked).map((chip) => chip.value));
     // A narrowed order says so on its control, as a chosen chip does.
     select?.closest(".sort-field")?.toggleAttribute("data-active", sort !== "newest");
@@ -304,6 +306,8 @@ function install(): void {
     });
   }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
+  // Turning a phone to landscape (40rem and up) offers the order again: apply what it holds.
+  matchMedia("(width < 40rem)").addEventListener("change", apply);
 
   // Episodes this device deleted may be taken out of the page after this script has counted it.
   document.addEventListener("dispatch:library-pruned", apply);

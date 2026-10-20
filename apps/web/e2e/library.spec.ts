@@ -318,7 +318,9 @@ test.describe("library fixes", () => {
     expect(visibility).toBe("visible");
   });
 
-  test("an episode deleted on this device stays gone after a new order", async ({ page }) => {
+  test("an episode deleted on this device stays gone after a new order", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.addInitScript(() =>
       localStorage.setItem(
         "dispatch:deleted-episodes",
@@ -336,9 +338,9 @@ test.describe("library fixes", () => {
     expect(await titles(page)).toEqual([DISCUSSION]);
   });
 
-  test("keeps the search, the filter and the order in the address, and restores them", async ({
-    page,
-  }) => {
+  test("keeps the search, the filter and the order in the address, and restores them", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     await filter(page, "Daily");
@@ -358,7 +360,9 @@ test.describe("library fixes", () => {
     expect(await titles(page)).toEqual(["Monday 5 October"]);
   });
 
-  test("a filter or an order that is not the default looks chosen", async ({ page }) => {
+  test("a filter or an order that is not the default looks chosen", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const chip = show(page).locator(".filter-chip", { hasText: "Weekly" });
@@ -483,7 +487,18 @@ test.describe("library filters and order", () => {
     await expect(page.locator("[data-library-empty]")).toBeVisible();
   });
 
-  test("the sort reorders the cards, in the page as well as on screen", async ({ page }) => {
+  test("a phone offers no order, and one left in a link does not reorder the list unseen", async ({
+    page,
+  }) => {
+    await page.goto("/library?sort=oldest");
+    await ready(page);
+    await expect(page.getByRole("combobox", { name: "Sort" })).toBeHidden();
+    expect(await titles(page)).toEqual(NEWEST_FIRST);
+  });
+
+  test("the sort reorders the cards, in the page as well as on screen", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const sort = page.getByRole("combobox", { name: "Sort" });

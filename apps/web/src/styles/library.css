@@ -296,10 +296,11 @@
 }
 
 /* The kind chips: one row that scrolls sideways when it does not fit, with room inside it for the
-   focus ring and the 44px targets. On a phone they take the bar's first row, and the order and the
-   view switch the second. */
+   focus ring and the 44px targets. On a phone they share one line with the view switch, which sits
+   at its far end; there is no sort on a phone (2026-10-21). */
 .library-filters {
-  flex: 1 1 100%;
+  flex: 1 1 0;
+  min-width: 0;
   flex-wrap: nowrap;
   margin: calc(var(--space-1) * -1);
   padding: var(--space-1);
@@ -322,10 +323,20 @@
   }
 }
 
-/* On a phone the order starts its row and only the view switch sits at the far end, as in a
-   Google library; from 40rem everything is on one row with the order next to the switch. */
+/* On a phone the chips and the view switch are the bar's one line, and the order is not offered
+   (2026-10-21): the bar no longer wraps. From 40rem the order sits next to the switch. */
 .library-bar .view-switch {
   margin-inline-start: auto;
+}
+
+@media (width < 40rem) {
+  .library-bar {
+    flex-wrap: nowrap;
+  }
+
+  .library-bar .sort-field {
+    display: none;
+  }
 }
 
 @media (min-width: 40rem) {
