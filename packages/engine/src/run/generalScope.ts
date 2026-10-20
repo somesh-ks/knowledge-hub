@@ -12,7 +12,7 @@ import { readJsonIfExists } from "../curate/inputs.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { neutralEntry } from "../judge/topicOnly.js";
 import { clamp01, round4 } from "../score/numbers.js";
-import { topicScore } from "../score/scoreTopics.js";
+import { type SourceFacts, storyFacts, topicScore } from "../score/scoreTopics.js";
 import type { ScoredItem } from "../score/types.js";
 import { GeneralJudgedFile, GeneralPoolFile } from "./generalNews.js";
 
@@ -46,6 +46,8 @@ export async function generalCandidates(input: {
   poolPath: string;
   judgedPath: string;
   topics: readonly Topic[];
+  /** Source facts by id, for the topics' format mix and perspective. */
+  sources?: Readonly<Record<string, SourceFacts>>;
   publish: readonly string[];
   inPool: ReadonlySet<string>;
   seen: Readonly<Record<string, unknown>>;
@@ -70,7 +72,13 @@ export async function generalCandidates(input: {
     for (const topic of topics) {
       if (item.topic_ids?.includes(topic.id) !== true) continue;
       const fit = answer.fits[topic.id];
-      const result = topicScore(topic, fit, entry, item);
+      const result = topicScore(
+        topic,
+        fit,
+        entry,
+        item,
+        storyFacts(item, input.sources, pool.data.carriers[item.id]),
+      );
       if (result === null || fit === undefined) continue;
       if (best === null || result.score > best.score) {
         best = { topic, fit, score: result.score, depth: result.depth, penalty: result.penalty };

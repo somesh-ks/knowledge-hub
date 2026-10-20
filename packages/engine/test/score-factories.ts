@@ -28,7 +28,8 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
     url,
     canonical_url: url,
     title: `Post ${counter}`,
-    source_id: "example-blog",
+    // One source per item, so the outlet cap (OUTLET_CAP) never decides a test about something else.
+    source_id: `example-blog-${counter}`,
     source_type: "rss",
     fetched_at: "2026-10-05T05:00:00Z",
     snippet: "",

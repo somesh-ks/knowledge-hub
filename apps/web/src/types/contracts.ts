@@ -318,9 +318,19 @@ export type ConfigOp =
        */
       topic_ids?: string[];
       format?: SourceFormat;
+      /** A general source's lean, -2 to 2; null clears it. */
+      lean?: number | null;
     }
   | { op: "source.remove"; id: string }
   | { op: "weights.set"; weights: Record<string, number> }
+  | {
+      op: "topic.mix";
+      id: string;
+      /** Source format to its multiplier (0, 0.85, 1, 1.1 or 1.2); 1 is Normal and removes it. */
+      format_mix?: Record<string, number>;
+      /** A general topic's perspective, -2 (Left) to 2 (Right); 0 is Even. */
+      perspective?: number;
+    }
   | {
       op: "schedule.set";
       /** Any subset of these; a field left out keeps what the file holds. At least one is required. */

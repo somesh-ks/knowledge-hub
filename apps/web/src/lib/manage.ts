@@ -5,6 +5,7 @@ import {
   CATEGORIES,
   type Category,
   deriveSourceFormat,
+  MIX_STOPS,
   generalTopics,
   isGeneralTopicId,
   SECTION_TITLES,
@@ -46,6 +47,10 @@ export interface ManageTopic {
   section_id: string;
   never_publish: boolean;
   origin: TopicOrigin;
+  /** The stop of each source format that is not Normal (core MIX_STOPS names). */
+  format_mix?: Record<string, string>;
+  /** A general topic's perspective, -2 to 2; absent is Even. */
+  perspective?: number;
 }
 
 export interface ManageSource {
@@ -86,6 +91,8 @@ export interface ManageSource {
   search: string;
   /** Blog, news, forum and so on: the source's own, else the one its type implies. */
   format: SourceFormat;
+  /** A general source's political lean, -2 (Left) to 2 (Right); null when unrated. */
+  lean: number | null;
 }
 
 export interface ManageCandidate {
@@ -304,6 +311,25 @@ export function fallbackSections(): ManageSection[] {
   return SECTIONS.map((id, order) => ({ id, title: SECTION_TITLES[id], order }));
 }
 
+/** A lean as stored: a whole number from -2 to 2, null for unrated, undefined when absent or invalid. */
+function leanOf(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  const lean = asNumber(value);
+  return lean !== null && Number.isInteger(lean) && lean >= -2 && lean <= 2 ? lean : undefined;
+}
+
+/** A topic's format mix as stored: only known formats at a known stop. */
+function mixOf(value: unknown): Record<string, string> | undefined {
+  if (!isRecord(value)) return undefined;
+  const mix: Record<string, string> = {};
+  for (const [format, stop] of Object.entries(value)) {
+    if (asFormat(format) && MIX_STOPS.some((s) => s.name === stop && s.name !== "Normal")) {
+      mix[format] = stop as string;
+    }
+  }
+  return Object.keys(mix).length > 0 ? mix : undefined;
+}
+
 function parseTopic(value: unknown): ManageTopic | null {
   if (!isRecord(value)) return null;
   const id = asString(value.id);
@@ -322,6 +348,8 @@ function parseTopic(value: unknown): ManageTopic | null {
     keywords,
     section_id: asString(value.section_id) ?? "top",
     never_publish: asBool(value.never_publish, false),
+    ...(mixOf(value.format_mix) ? { format_mix: mixOf(value.format_mix) } : {}),
+    ...(asNumber(value.perspective) ? { perspective: asNumber(value.perspective) as number } : {}),
     origin:
       value.origin === "custom" || value.origin === "app" || value.origin === "general"
         ? value.origin
@@ -367,6 +395,7 @@ interface RawSource {
   /** Discovery quality, 0 to 1. */
   quality: number | null;
   format: SourceFormat;
+  lean: number | null;
 }
 
 /** The strings in a list, trimmed, or null when the value is not a list. */
@@ -403,6 +432,7 @@ function parseSource(value: unknown): RawSource | null {
     last_ok: asString(value.last_ok),
     quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
     format: asFormat(value.format) ?? deriveSourceFormat(asType(value.type)),
+    lean: leanOf(value.lean) ?? null,
   };
 }
 
@@ -420,6 +450,7 @@ interface Override {
   /** Wins over the source's own topics; an empty list files it under none. */
   topic_ids?: string[];
   format?: SourceFormat;
+  lean?: number | null;
 }
 
 function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<string, Override> } {
@@ -432,6 +463,7 @@ function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<str
       const name = asString(entry.name);
       const topicIds = stringList(entry.topic_ids);
       const format = asFormat(entry.format);
+      const lean = leanOf(entry.lean);
       overrides.set(id, {
         ...(typeof entry.enabled === "boolean" ? { enabled: entry.enabled } : {}),
         ...(typeof entry.pinned === "boolean" ? { pinned: entry.pinned } : {}),
@@ -439,6 +471,7 @@ function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<str
         ...(name === null ? {} : { name }),
         ...(topicIds === null ? {} : { topic_ids: topicIds }),
         ...(format === null ? {} : { format }),
+        ...(lean === undefined ? {} : { lean }),
       });
     }
   }
@@ -561,6 +594,7 @@ export function buildSources(input: {
       score_parts: rated.parts,
       search: `${name} ${host} ${source.id}`.toLowerCase(),
       format: override.format ?? source.format,
+      lean: override.lean === undefined ? source.lean : override.lean,
     });
   }
   return rows.sort(

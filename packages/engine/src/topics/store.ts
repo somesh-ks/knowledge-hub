@@ -68,6 +68,8 @@ export function serializeTopics(file: TopicsFile): string {
       never_publish: t.never_publish,
       origin: t.origin,
       depth: t.depth,
+      ...(t.format_mix ? { format_mix: t.format_mix } : {}),
+      ...(t.perspective ? { perspective: t.perspective } : {}),
     })),
   };
   return `${JSON.stringify(ordered, null, 2)}\n`;

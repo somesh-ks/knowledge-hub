@@ -971,3 +971,18 @@ describe("one release per repository", () => {
     expect(newestReleasePerRepo(candidates).kept.map((c) => c.score)).toEqual([0.7]);
   });
 });
+
+describe("the outlet cap", () => {
+  it("keeps a third story from one outlet out of the briefing, however well it scores", () => {
+    const pool = [
+      scored("design_engineering_craft", 0.9, { source_id: "loud" }),
+      scored("frontier_model_releases", 0.85, { source_id: "loud" }),
+      scored("hci_empirical_research", 0.8, { source_id: "loud" }),
+      scored("developer_tool_launches", 0.6, { source_id: "quiet" }),
+    ];
+    const result = selectItems({ scored: pool, kind: "regular", floor: 1, cap: 10, weights });
+    expect(result.selected.filter((s) => s.item.source_id === "loud")).toHaveLength(2);
+    expect(result.dropped.map((d) => d.reason)).toContain("over_outlet");
+    expect(ids(result.selected)).toContain(pool[3]?.item.id);
+  });
+});

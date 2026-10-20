@@ -7,6 +7,7 @@ import {
   MODEL_ID_PATTERN,
   PODCAST_FORMATS,
   SCHEDULE_LENGTHS,
+  SOURCE_FORMATS,
   ScheduleFile,
   scheduleZone,
 } from "@dispatch/core";
@@ -347,12 +348,21 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       if (name === null || ids === null) return null;
       // An edit that changes nothing is a mistake, not a request. An empty topic list is a change:
       // it files the source under Other.
-      if (name === undefined && ids === undefined) return null;
+      const lean =
+        value.lean === null || (typeof value.lean === "number" && Number.isInteger(value.lean) && Math.abs(value.lean) <= 2)
+          ? value.lean
+          : undefined;
+      const format = SOURCE_FORMATS.find((entry) => entry === value.format);
+      if (name === undefined && ids === undefined && lean === undefined && format === undefined) {
+        return null;
+      }
       return {
         op: "source.update",
         id: source,
         ...(name === undefined ? {} : { name }),
         ...(ids === undefined ? {} : { topic_ids: ids }),
+        ...(lean === undefined ? {} : { lean }),
+        ...(format === undefined ? {} : { format }),
       };
     }
     case "source.remove": {
@@ -403,6 +413,11 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       // Any address of the outlet is accepted and stored as its domain; what is not a host is refused.
       const domain = typeof value.domain === "string" ? blockedDomainOf(value.domain) : null;
       return domain === null ? null : { op: value.op, domain };
+    }
+    case "topic.mix": {
+      // The mix shape is core's (stops by factor), the same schema the engine applies the op with.
+      const parsed = CoreConfigOp.safeParse(value);
+      return parsed.success && parsed.data.op === "topic.mix" ? (value as ConfigOp) : null;
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

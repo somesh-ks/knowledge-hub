@@ -31,7 +31,12 @@ import {
 } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
-import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
+import {
+  applyTopics,
+  type SourceFacts,
+  sourceFactsMap,
+  type TopicLayer,
+} from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem } from "../score/types.js";
@@ -78,6 +83,8 @@ interface PassContext {
   linter: Linter;
   preferences: Preferences;
   sourceNames: Record<string, string>;
+  /** Each source's format and lean, for a topic's format mix and perspective. */
+  sourceFacts: Record<string, SourceFacts>;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -135,6 +142,7 @@ export async function writeStage(
     linter,
     preferences,
     sourceNames: sourceNameMap(sources),
+    sourceFacts: sourceFactsMap(sources),
     customTopics: activeFitTopics(topics),
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
@@ -213,7 +221,11 @@ async function writePass(
   };
   for (const id of judged.unjudged) drop(id, "judge", "no judgment");
 
-  const layer: TopicLayer = { topics: customTopics, fits: judged.topic_fits ?? {} };
+  const layer: TopicLayer = {
+    topics: customTopics,
+    fits: judged.topic_fits ?? {},
+    sources: context.sourceFacts,
+  };
   const base: ScoredItem[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
@@ -254,6 +266,7 @@ async function writePass(
       poolPath: file("general.json"),
       judgedPath: file("general-judged.json"),
       topics: context.generalTopics,
+      sources: context.sourceFacts,
       publish: onlyTopics
         ? context.generalTopics.map((topic) => topic.id).filter((id) => onlyTopics.has(id))
         : generalIdsFor(context.schedule, pass.kind, context.mode),

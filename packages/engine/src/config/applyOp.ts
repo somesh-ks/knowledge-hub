@@ -381,10 +381,12 @@ function updateSource(
       else delete added.topic_ids;
     }
     if (op.format !== undefined) added.format = op.format;
+    if (op.lean !== undefined) added.lean = op.lean;
   } else {
     next.sourcesUser.overrides[op.id] = {
       ...next.sourcesUser.overrides[op.id],
       ...(op.format === undefined ? {} : { format: op.format }),
+      ...(op.lean === undefined ? {} : { lean: op.lean }),
       ...(op.name === undefined ? {} : { name: op.name }),
       ...(topicIds === undefined ? {} : { topic_ids: topicIds }),
     };
@@ -392,7 +394,9 @@ function updateSource(
   const where = topicNames.length > 0 ? listInWords(topicNames) : "no topic";
   const rename = op.name === undefined ? null : `rename source ${tidy(before)} to ${tidy(op.name)}`;
   let summary: string;
-  if (rename === null && topicIds === undefined) summary = `set format of source ${tidy(before)}`;
+  if (rename === null && topicIds === undefined) {
+    summary = `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
+  }
   else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
@@ -431,6 +435,29 @@ function setWeights(
   }
   const count = Object.keys(op.weights).length;
   return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
+}
+
+function setMix(op: Extract<ParsedConfigOp, { op: "topic.mix" }>, bundle: ConfigBundle): OpOutcome {
+  const next = clone(bundle);
+  const topic = next.topics.topics.find((t) => t.id === op.id);
+  if (!topic) throw new ConfigOpError(`There is no topic ${op.id}.`);
+  if (op.format_mix) {
+    const mix = { ...topic.format_mix };
+    for (const [format, stop] of Object.entries(op.format_mix)) {
+      if (stop === "Normal") delete mix[format as keyof typeof mix];
+      else mix[format as keyof typeof mix] = stop;
+    }
+    if (Object.keys(mix).length > 0) topic.format_mix = mix;
+    else delete topic.format_mix;
+  }
+  if (op.perspective !== undefined) {
+    if (op.perspective !== 0 && topic.origin !== "general") {
+      throw new ConfigOpError("Only a general news topic has a perspective.");
+    }
+    if (op.perspective === 0) delete topic.perspective;
+    else topic.perspective = op.perspective;
+  }
+  return { next, summary: `set the mix of ${tidy(topic.name)}`, topic_id: topic.id };
 }
 
 /** The topics an episode leaves out, checked against the known ones, each once. */
@@ -621,6 +648,8 @@ export async function applyConfigOp(
       return removeSource(op, bundle);
     case "weights.set":
       return setWeights(op, bundle);
+    case "topic.mix":
+      return setMix(op, bundle);
     case "schedule.set":
       return setSchedule(op, bundle);
     case "topic.scope":

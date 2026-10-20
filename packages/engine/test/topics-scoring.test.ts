@@ -364,3 +364,26 @@ describe("the seed file", () => {
     expect(seed.topics.filter((topic) => topic.origin === "app")).toHaveLength(2);
   });
 });
+
+describe("format mix and perspective", () => {
+  const entry = (item: Item): JudgmentEntry => makeEntry(item, { category: "none" });
+
+  it("scores a story 0 when its source's format is Off, and leaves other formats alone", () => {
+    const item = makeItem();
+    const topic = customTopic({ format_mix: { forum: "Off" } });
+    expect(topicScore(topic, 1, entry(item), item, { format: "forum" })?.score).toBe(0);
+    const blog = topicScore(topic, 1, entry(item), item, { format: "blog" });
+    expect(blog?.score).toBe(topicScore(customTopic(), 1, entry(item), item)?.score);
+  });
+
+  it("does not move any score at Even, however the outlets lean", () => {
+    const item = makeItem();
+    const general = customTopic({ origin: "general", depth: "fit_only" });
+    const leans = { leans: [2, 2] };
+    const plain = topicScore(general, 1, entry(item), item, leans);
+    const even = topicScore({ ...general, perspective: 0 }, 1, entry(item), item, leans);
+    expect(even?.score).toBe(plain?.score);
+    const right = topicScore({ ...general, perspective: 2 }, 1, entry(item), item, leans);
+    expect(right?.score).toBeGreaterThan(plain?.score ?? 0);
+  });
+});
