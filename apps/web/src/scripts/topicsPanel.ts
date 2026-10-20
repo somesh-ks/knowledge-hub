@@ -9,7 +9,15 @@
  * the Create panel. Loaded the first time it is opened.
  */
 import type { SourceFormat } from "@dispatch/core";
-import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
+import type { HeldSource } from "../lib/sourceCatalogMatch";
+import {
+  parseSuggestedAdd,
+  problemText,
+  type SuggestedAdd,
+  topicChanged,
+  topicProblems,
+  webAddress,
+} from "../lib/topicText";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { pullToDismiss } from "./pullDismiss";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
@@ -89,8 +97,12 @@ export interface PanelHandlers {
   editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
-  /** Deletes a source, with an Undo in the toast. */
-  removeSource(id: string): void;
+  /** A suggestion's + pressed in the panel: the editor adds it to its topic like one on the page. */
+  addSuggested(button: HTMLButtonElement, suggestion: SuggestedAdd): void;
+  /** The sources the page lists, so the panel does not suggest one already there. */
+  held(): HeldSource[];
+  /** Asks to delete a source and, once confirmed, deletes it at once. True when it did. */
+  removeSource(id: string): Promise<boolean>;
 }
 
 export type PanelStart =
@@ -340,6 +352,52 @@ export function openPanel(
   let seq = 0;
   if (start.kind === "source") sourceTopic.value = start.topicId;
 
+  // The feeds that fit the topic chosen, under the address: up to ten drawn, five shown, and the rest
+  // wait hidden for the places the added ones leave (topicsEditor.ts, addSuggested).
+  const suggestList = one<HTMLElement>("[data-panel-suggested-list]");
+  let suggestSeq = 0;
+  const suggest = async (): Promise<void> => {
+    suggestSeq += 1;
+    const mine = suggestSeq;
+    suggestList.replaceChildren();
+    const topic = sourceTopic.value;
+    if (!topic) return;
+    const [view, match] = await Promise.all([
+      import("./savedView"),
+      import("../lib/sourceCatalogMatch"),
+    ]);
+    const catalog = await view.loadCatalog();
+    const template = document.querySelector<HTMLTemplateElement>("#suggested-template");
+    const item = template?.content.children[1];
+    if (mine !== suggestSeq || !catalog || !item || !panel.isConnected) return;
+    const name = sourceTopic.selectedOptions[0]?.text ?? "";
+    const offers = match.suggestSources(
+      catalog.sources,
+      [...catalog.held, ...handlers.held()],
+      { id: topic, name },
+      10,
+    );
+    suggestList.setAttribute("aria-label", `Suggested sources for ${name}`);
+    offers.forEach((offer, index) => {
+      const line = view.suggestionLine(item, offer, topic);
+      if (index >= 5) {
+        line.hidden = true;
+        line.dataset.spare = "";
+      }
+      suggestList.append(line);
+    });
+  };
+  sourceTopic.addEventListener("change", () => void suggest());
+  kinds.addEventListener("change", () => void suggest());
+  suggestList.addEventListener("click", (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>(
+      "button[data-suggested-add]",
+    );
+    const suggestion = parseSuggestedAdd(button?.dataset.suggestedAdd);
+    if (button && suggestion) handlers.addSuggested(button, suggestion);
+  });
+  if (start.kind === "source") void suggest();
+
   const addressError = one<HTMLElement>('[data-error="url"]');
   const show = (state: string, node?: HTMLElement): void => {
     area.dataset.state = state;
@@ -562,8 +620,9 @@ export function openPanel(
 
   remove.addEventListener("click", () => {
     if (start.kind !== "edit") return;
-    handlers.removeSource(start.source.id);
-    panel.close();
+    void handlers.removeSource(start.source.id).then((confirmed) => {
+      if (confirmed) panel.close();
+    });
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());

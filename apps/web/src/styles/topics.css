@@ -24,7 +24,8 @@
    the index's search, Add source beside a topic's Sources heading. One of the two at a time, so a
    name is never said twice. */
 @media (width < 64rem) {
-  .topics :is(.topics-add, .topic-sources-head > .topic-add-source) {
+  .topics
+    :is(.topics-add, .filter-row > .topic-add-source, .topic-sources-head > .topic-add-source) {
     display: none;
   }
 }
@@ -338,7 +339,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-block: var(--space-8) var(--space-1);
+  padding-block: var(--space-8) var(--space-4);
 }
 
 /* Air between the two lists: the suggestions' heading has its own space above it, and this adds
@@ -1246,11 +1247,43 @@
   padding-block-start: var(--space-6);
 }
 
-/* A source deleted in the edit panel: quiet while its Undo waits, gone once it is saved. */
-.source-row:has(> .source-remove[data-pressed="true"]) {
-  opacity: var(--opacity-disabled);
+/* A suggestion being added: a light sweeps across its row while the request goes, so the press is
+   answered where it was made and the row stays until the source is in the list. Only the
+   gradient's position moves. Reduced motion keeps the tint and drops the sweep. */
+.source-row.is-suggested[data-adding]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent) 50%,
+      transparent 70%
+    )
+    100% 0 / 250% 100% no-repeat,
+    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  animation: source-shimmer calc(var(--duration-progress) * 5) linear infinite;
 }
 
+@keyframes source-shimmer {
+  to {
+    background-position:
+      0% 0,
+      0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-row.is-suggested[data-adding]::after {
+    animation: none;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.source-row[hidden],
 .source-row[data-gone] {
   display: none;
 }
@@ -1366,4 +1399,62 @@
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* The Add source panel's suggestions for the topic chosen: the topic page's rows under a heading of
+   their own, and nothing at all when the topic has none (Other, or all added). */
+.panel-suggested {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.panel-suggested:not(:has(li:not([hidden]))) {
+  display: none;
+}
+
+.panel-suggested-head {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Formats as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
+   the choice. Chips are the filter's old look: a hairline outline, the accent when pressed. No All:
+   none pressed means everything. */
+.filter-chips {
+  display: none;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.format-chip {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--chip-height);
+  padding-inline: var(--space-3);
+  border: var(--stroke-hairline) solid var(--field-border);
+  border-radius: var(--field-radius);
+  background: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: var(--font-size-label);
+  cursor: pointer;
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+.format-chip[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-accent);
+}
+
+@media (width >= 64rem) {
+  .filter-chips {
+    display: flex;
+  }
+
+  .filter-tabs {
+    display: none;
+  }
 }

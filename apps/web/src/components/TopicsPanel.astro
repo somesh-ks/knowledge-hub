@@ -136,6 +136,12 @@ const { topics } = Astro.props;
           </div>
         </div>
         <div class="source-preview" aria-live="polite" data-source-preview data-state="idle"></div>
+        {/* The catalogue's feeds that fit the topic chosen above (topicsPanel.ts), drawn as a topic page's
+             Suggested sources are; each + adds it to that topic. Empty for Other, and the box then has nothing to show. */}
+        <div class="panel-suggested" data-panel-suggested>
+          <h3 class="panel-suggested-head">Suggested sources</h3>
+          <ul class="topic-sources" role="list" data-panel-suggested-list></ul>
+        </div>
       </div>
 
       {/* A source already in the list: its name and its topic, where it is, and what its score is made of. */}
@@ -232,6 +238,18 @@ const { topics } = Astro.props;
     </div>
   </dialog>
 </template>
+
+{/* What Delete source asks before it deletes (topicsEditor.ts, removeSource): the topic's confirm
+     dialog, worn again. It opens over the panel; Cancel returns to it. */}
+<dialog class="confirm-dialog" aria-labelledby="source-delete-title" data-source-confirm>
+  <div class="confirm-form">
+    <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
+    <div class="confirm-actions">
+      <button class="btn" type="button" data-source-cancel autofocus>Cancel</button>
+      <button class="btn confirm-delete" type="button" data-source-delete>Delete</button>
+    </div>
+  </div>
+</dialog>
 
 {/* Suggested sources for a topic added before the build gives it a page: scripts/savedView.ts ranks
      the catalogue in the browser, puts this section under the topic's row in the list and fills one

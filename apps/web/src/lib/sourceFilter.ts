@@ -31,8 +31,8 @@ export function searchText(
 
 export interface FilterState {
   q: string;
-  /** The format tab chosen; empty for All. */
-  format: string;
+  /** The formats chosen: one tab, or any chips; none is All. */
+  formats: string[];
 }
 
 export interface FilterRow {
@@ -42,27 +42,27 @@ export interface FilterRow {
 
 /** True when nothing narrows the list. */
 export function isIdle(state: FilterState): boolean {
-  return fold(state.q) === "" && state.format === "";
+  return fold(state.q) === "" && state.formats.length === 0;
 }
 
-/** Whether a row passes: every word of the query is in its text, and its format is the tab chosen. */
+/** Whether a row passes: every word of the query is in its text, and its format is one chosen (any, when none is). */
 export function passes(row: FilterRow, state: FilterState): boolean {
   const words = fold(state.q).split(" ").filter(Boolean);
   if (!words.every((word) => row.text.includes(word))) return false;
-  return state.format === "" || row.format === state.format;
+  return state.formats.length === 0 || state.formats.includes(row.format);
 }
 
-/** `?q=&format=` from a location's search string. */
+/** `?q=&format=a&format=b` from a location's search string. */
 export function readFilter(search: string): FilterState {
   const params = new URLSearchParams(search);
-  return { q: params.get("q") ?? "", format: params.get("format") ?? "" };
+  return { q: params.get("q") ?? "", formats: params.getAll("format").filter(Boolean) };
 }
 
 /** The search string for a state; empty when nothing is set. */
 export function writeFilter(state: FilterState): string {
   const params = new URLSearchParams();
   if (state.q.trim() !== "") params.set("q", state.q);
-  if (state.format !== "") params.set("format", state.format);
+  for (const format of state.formats) params.append("format", format);
   const text = params.toString();
   return text === "" ? "" : `?${text}`;
 }
