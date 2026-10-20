@@ -689,7 +689,7 @@ html:has(.library-none) {
 .shelf-head > h2 {
   font-family: var(--text-heading-family);
   font-size: var(--font-size-section);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--text-heading-weight);
   line-height: var(--text-heading-leading);
 }
 

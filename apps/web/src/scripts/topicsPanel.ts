@@ -10,6 +10,7 @@
  */
 import type { SourceFormat } from "@dispatch/core";
 import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
+import { pullToDismiss } from "./pullDismiss";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -565,6 +566,8 @@ export function openPanel(
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
+  // On a phone the full-screen panel also closes when pulled down.
+  pullToDismiss(panel, () => panel.close());
   // A press on the scrim lands on the dialog itself; everything else is inside its panel. Only a press
   // that also began on the scrim closes it: a drag out of a field ends there too.
   let fromScrim = false;

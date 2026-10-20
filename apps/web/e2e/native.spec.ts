@@ -62,7 +62,7 @@ async function serveNarration(page: Page): Promise<void> {
 }
 
 test.describe("the floating button", () => {
-  test("is Create on the Library, Play on Today, a briefing or an episode, and absent elsewhere", async ({
+  test("is Create on the Library, Play on Today, a briefing or an episode, Add on Topics and sources, and absent elsewhere", async ({
     page,
   }) => {
     // Short enough that even an episode's page scrolls its hero's Play out of view.
@@ -91,10 +91,13 @@ test.describe("the floating button", () => {
       await expect(createFab(page), path).toHaveCount(0);
       await expect(page.locator("html"), path).toHaveAttribute("data-fab", "");
     }
-    for (const path of ["/settings", "/settings/daily", "/settings/topics", "/create"]) {
+    for (const path of ["/settings", "/settings/daily", "/create"]) {
       await page.goto(path);
       await expect(page.locator(".create-fab"), path).toHaveCount(0);
     }
+    await page.goto("/settings/topics");
+    await expect(page.locator(".create-fab")).toHaveAccessibleName("Add a topic or a source");
+    await expect(page.locator("html")).toHaveAttribute("data-fab", "");
   });
 
   test("Play waits while the hero's Play is on screen, and comes and goes with it", async ({

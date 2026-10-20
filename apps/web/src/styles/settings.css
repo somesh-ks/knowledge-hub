@@ -110,16 +110,17 @@
   outline: none;
 }
 
-/* A group's name: small and in the accent, over its rows, as a settings list names its groups. The
-   page's own title is the one large thing on it. More air above than below: it belongs to its rows. */
+/* A group's name is the page's H2 (2026-10-20): the section heading role, 22px regular in the text
+   colour, a clear step under the 28 to 32px title and told apart from it by size and space alone,
+   never by weight. More air above than below: it belongs to its rows. */
 :is(.settings-view, .manage) .section-head {
   padding-block: var(--space-8) var(--space-3);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: var(--font-tracking-caption);
-  line-height: var(--font-leading-label);
-  color: var(--color-accent);
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
+  line-height: var(--text-heading-leading);
+  color: var(--color-on-surface);
 }
 
 /* The first group sits closer to the page title than the groups sit to each other. */

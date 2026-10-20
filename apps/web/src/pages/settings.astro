@@ -94,9 +94,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      {/* The Podcast section is also the model editor's root: scripts/podcastEntry.ts loads it after
-           first paint and fills the select, and autosave.ts sends a pick a moment later. */}
-      <section data-manage="podcast">
+      <section>
         <h2 class="section-head">Podcast</h2>
         <div class="rows">
           {
@@ -114,6 +112,15 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               </a>
             ))
           }
+        </div>
+      </section>
+
+      {/* Intelligence holds the model select alone, and is the model editor's root:
+           scripts/podcastEntry.ts loads it after first paint and fills the select, and autosave.ts
+           sends a pick a moment later. */}
+      <section data-manage="podcast">
+        <h2 class="section-head">Intelligence</h2>
+        <div class="rows">
           <div class="settings-row" data-models data-saved={writer.model ?? ""} data-provider={writer.provider}>
             <label class="settings-label" for="model-select">AI model</label>
             <span class="manage-select value-select">

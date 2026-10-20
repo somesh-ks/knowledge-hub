@@ -109,6 +109,7 @@
  * Sticky under the app bar, scrollable sideways, with an accent underline on the section in view.
  * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
  * Markup: <div class="tabs-bar"><nav class="tabs"><a class="tab" aria-current="true">...</a></nav></div>
+ * A filter's tabs are buttons in a tablist, the chosen one aria-selected (SourceFilter.astro).
  */
 @property --tabs-left-mask {
   syntax: "<length>";
@@ -231,27 +232,27 @@
     transform var(--duration-state) var(--ease-out);
 }
 
-.tab[aria-current="true"] {
+.tab:is([aria-current="true"], [aria-selected="true"]) {
   color: var(--color-accent);
 }
 
-.tab[aria-current="true"]::after {
+.tab:is([aria-current="true"], [aria-selected="true"])::after {
   opacity: 1;
   transform: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .tab:not([aria-current="true"]):hover {
+  .tab:not([aria-current="true"], [aria-selected="true"]):hover {
     color: var(--color-on-surface);
   }
 }
 
 /* A press shows on any pointer the way a hover does with a mouse: the label takes the full ink. */
-.tab:not([aria-current="true"]):active {
+.tab:not([aria-current="true"], [aria-selected="true"]):active {
   color: var(--color-on-surface);
 }
 
-.tab[aria-current="true"]:active {
+.tab:is([aria-current="true"], [aria-selected="true"]):active {
   color: var(--color-accent-pressed);
 }
 

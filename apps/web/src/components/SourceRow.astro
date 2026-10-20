@@ -2,7 +2,7 @@
 import { isGeneralTopicId } from "@dispatch/core";
 import type { ManageSource } from "../lib/manage";
 import { readableUrl } from "../lib/manage";
-import { FORMAT_LABEL, searchText, statusesOf } from "../lib/sourceFilter";
+import { FORMAT_LABEL, searchText } from "../lib/sourceFilter";
 import { sourceInitial } from "../lib/sourceInitial";
 import ScoreMeter from "./ScoreMeter.astro";
 
@@ -63,7 +63,6 @@ const facts = {
   data-name={source.name.toLowerCase()}
   data-text={searchText(source, shownTopic?.name ?? topicName)}
   data-format={source.format}
-  data-statuses={statusesOf(source).join(" ")}
   title={source.url ?? undefined}
 >
   <button

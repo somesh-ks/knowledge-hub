@@ -17,18 +17,22 @@
   --source-row: 4.5rem;
 }
 
-/* The list's head (D103): "9 topics" at the start and Add at the end of one line, Add the same
-   compact outline button as a topic page's Add source. */
-.topics-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-block: var(--space-6) var(--space-2);
+/* ------------------------------------------------------------------ the add action */
+
+/* Below 64rem a page's add action is the floating button (AddFab.astro), which draws itself as New
+   episode does; from 64rem there is no floating button and the page's own button shows: Add beside
+   the index's search, Add source beside a topic's Sources heading. One of the two at a time, so a
+   name is never said twice. */
+@media (width < 64rem) {
+  .topics :is(.topics-add, .topic-sources-head > .topic-add-source) {
+    display: none;
+  }
 }
 
-.topics-head > .section-head {
-  padding-block: 0;
+.add-fab {
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
 }
 
 /* ------------------------------------------------------------------ the list of topics */
@@ -77,7 +81,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "art menu"
-    "text text";
+    "text text"
+    "foot foot";
   align-items: start;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -135,14 +140,83 @@
   }
 }
 
-.topic-card + .topic-controls {
-  margin-block-start: var(--space-4);
+/* Listen in closes the card under a line that runs its full width, edge to edge through the card's
+   padding (2026-10-20). */
+.topic-card:has(.topic-card-foot) {
+  padding-block-end: var(--space-1);
+}
+
+.topic-card-foot {
+  grid-area: foot;
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4) 0;
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+@media (min-width: 40rem) {
+  .topic-card-foot {
+    margin-inline: calc(var(--space-6) * -1);
+    padding-inline: var(--space-6);
+  }
+}
+
+/* ------------------------------------------------------------------ a folded group of sliders */
+
+/* Topic weightage, Formats and Perspective (Accordion.astro): the heading is the H2 and the whole
+   line is the target, with a chevron at its end that turns as the group opens. Closed by default, so
+   the page reads as its card and its sources first. */
+.accordion-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--size-touch);
+  margin-block-start: var(--space-6);
+  border-radius: var(--row-radius);
+  cursor: pointer;
+  list-style: none;
+}
+
+.accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.topic .accordion-summary > .section-head {
+  padding-block: 0;
+}
+
+.accordion-icon {
+  flex: none;
+  color: var(--color-on-surface-subtle);
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.accordion[open] .accordion-icon {
+  rotate: 180deg;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accordion-summary:hover .accordion-icon {
+    color: var(--color-on-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accordion-icon {
+    transition: none;
+  }
+}
+
+.accordion > .topic-controls {
+  padding-block-start: var(--space-2);
 }
 
 @media (min-width: 40rem) {
   .topic-card {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "art text menu";
+    grid-template-areas:
+      "art text menu"
+      "foot foot foot";
     align-items: center;
     column-gap: var(--space-6);
     padding: var(--space-6);
@@ -758,7 +832,7 @@
 .score-card-title {
   margin: 0;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 
@@ -845,7 +919,7 @@
 .score-card-empty-title {
   margin: 0;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 
@@ -1160,20 +1234,34 @@
   flex: none;
 }
 
-/* ------------------------------------------------------------------ search and filters */
+/* ------------------------------------------------------------------ search and format tabs */
 
-/* The search field and the chips over a list of sources. Chips are flat and outlined; a chosen one
-   has the whole border in the accent, no fill change and no press scale (a label on a track). */
+/* The search field over a list of sources and, on a topic's page, a tab bar of its formats, All
+   first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20). */
 .source-filter {
   display: grid;
   gap: var(--space-3);
   margin-block-end: var(--space-3);
 }
 
+/* The index starts with its search (2026-10-20), a group's step under the title. */
+.topics:not(.topic-page) .source-filter {
+  margin-block-start: var(--space-6);
+}
+
+/* The field and, from 64rem, the page's add action at its end. */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .filter-field {
   position: relative;
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
+  min-width: 0;
 }
 
 .filter-field > .icon {
@@ -1187,50 +1275,53 @@
   padding-inline-start: calc(var(--field-padding) + var(--space-8));
 }
 
-.filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
+/* The bar sits in the filter, not on its own: the filter is what sticks (below). Its strip still
+   runs past the gutters, so a long row of formats slides off the screen's edge. */
+.filter-tabs {
+  position: static;
 }
 
-.filter-group {
-  display: contents;
-}
-
-/* A line break between the formats and the statuses, so the statuses start their own row instead
-   of wrapping mid-group on a phone (2026-10-20). */
-.filter-sep {
-  flex-basis: 100%;
-  block-size: 0;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-block-size: var(--chip-height);
-  padding-inline: var(--space-3);
-  border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
+/* A short label (All) still answers a touch across 44px. */
+.filter-tabs .tab {
+  justify-content: center;
+  min-inline-size: var(--size-touch);
+  border: 0;
   background: none;
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label);
-  transition: border-color var(--duration-hover) var(--ease-hover);
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.filter-chip[aria-pressed="true"] {
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-accent);
-}
+/* Below 64rem the field and the tabs stick under the app bar as one block on the page's surface, so
+   both stay in reach down a long list; the tabs' line closes the block. */
+@media (width < 64rem) {
+  .source-filter[data-tabs] {
+    position: sticky;
+    inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
+    z-index: calc(var(--z-header) - 1);
+    margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+    padding: var(--space-2) var(--page-gutter-end) 0 var(--page-gutter-start);
+    gap: var(--space-1);
+    background: var(--color-surface);
+  }
 
-.filter-chip:disabled {
-  opacity: var(--opacity-disabled);
-}
+  /* The block already spans the gutters; the strip keeps its own reach to the edges inside it. */
+  .source-filter[data-tabs] .filter-tabs {
+    margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  }
 
-.filter-count {
-  color: var(--color-on-surface-muted);
-  font-variant-numeric: tabular-nums;
+  .source-filter[data-tabs] .filter-none {
+    padding-block: var(--space-2);
+  }
+
+  /* An anchor or a focused row lands below the stuck block, not under it. */
+  html:has(.source-filter[data-tabs]) {
+    scroll-padding-block-start: calc(
+      var(--sticky-top) +
+      var(--field-height) +
+      var(--tabs-height) +
+      var(--space-6)
+    );
+  }
 }
 
 .filter-none {
