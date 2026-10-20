@@ -1,7 +1,7 @@
 /**
  * Search, and on a topic's page format tabs, over the source rows of the Topics & Sources index
  * (every source) or a topic's page (its own). Loaded by topicsPage.ts after the page is ready; the
- * page is whole HTML without it. The state lives in the address (?q=&format=), written with
+ * page is whole HTML without it. The state lives in the address (?q=&format=a&format=b), written with
  * replaceState so a reload, or Back to the page, finds it as it was.
  */
 import {
@@ -26,6 +26,7 @@ export function mountFilter(root: HTMLElement): void {
   const field = filter.querySelector<HTMLInputElement>("[data-filter-q]");
   const none = filter.querySelector<HTMLElement>("[data-filter-none]");
   const tabs = [...filter.querySelectorAll<HTMLButtonElement>("[data-tab]")];
+  const chips = [...filter.querySelectorAll<HTMLButtonElement>("[data-chip]")];
   // The index swaps its topic list for the flat list of sources while a search is set.
   const library = root.querySelector<HTMLElement>("[data-library]");
   const topicLists = [...root.querySelectorAll<HTMLElement>(".topics-index, .topics-more")];
@@ -44,8 +45,10 @@ export function mountFilter(root: HTMLElement): void {
   }));
 
   const state: FilterState = readFilter(location.search);
-  // A format with no tab here (an old address, or the index) narrows nothing.
-  if (!tabs.some((tab) => tab.dataset.tab === state.format)) state.format = "";
+  // A format with no chip here (an old address, or the index) narrows nothing.
+  state.formats = state.formats.filter((format) =>
+    chips.some((chip) => chip.dataset.chip === format),
+  );
   field.value = state.q;
 
   const apply = (): void => {
@@ -56,8 +59,14 @@ export function mountFilter(root: HTMLElement): void {
       el.hidden = !ok;
       if (ok) shown += 1;
     }
+    for (const chip of chips)
+      chip.setAttribute("aria-pressed", String(state.formats.includes(chip.dataset.chip ?? "")));
     for (const tab of tabs) {
-      const chosen = tab.dataset.tab === state.format;
+      // The tabs hold one: All when none is chosen, and nothing lit when the chips chose several.
+      const chosen =
+        state.formats.length === 0
+          ? tab.dataset.tab === ""
+          : state.formats[0] === tab.dataset.tab && state.formats.length === 1;
       tab.setAttribute("aria-selected", String(chosen));
       tab.tabIndex = chosen ? 0 : -1;
     }
@@ -81,7 +90,7 @@ export function mountFilter(root: HTMLElement): void {
   };
 
   const choose = (tab: HTMLButtonElement): void => {
-    state.format = tab.dataset.tab ?? "";
+    state.formats = tab.dataset.tab ? [tab.dataset.tab] : [];
     apply();
     tab.scrollIntoView({ block: "nearest", inline: "nearest" });
   };
@@ -119,13 +128,20 @@ export function mountFilter(root: HTMLElement): void {
     if (!target) return;
     if ("filterClear" in target.dataset) {
       state.q = "";
-      state.format = "";
+      state.formats = [];
       field.value = "";
       apply();
       field.focus();
       return;
     }
     if ("tab" in target.dataset) choose(target as HTMLButtonElement);
+    else if ("chip" in target.dataset) {
+      const format = target.dataset.chip ?? "";
+      state.formats = state.formats.includes(format)
+        ? state.formats.filter((chosen) => chosen !== format)
+        : [...state.formats, format];
+      apply();
+    }
   });
   apply();
 }

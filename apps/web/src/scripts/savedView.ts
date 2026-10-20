@@ -465,6 +465,32 @@ export function loadCatalog(): Promise<Catalog | null> {
   return catalog;
 }
 
+/** One suggested source's row, cloned from the template's item and filled; its + carries the add. */
+export function suggestionLine(item: Element, offer: CatalogSource, topicId: string): HTMLElement {
+  const line = item.cloneNode(true) as HTMLElement;
+  const site = offer.url ?? offer.feed_url;
+  const icon = /^https?:/.test(site) ? `https://${new URL(site).hostname}/favicon.ico` : null;
+  line.querySelector(".source-icon")?.replaceWith(iconNode(icon, offer.name));
+  (line.querySelector(".source-name") as HTMLElement).textContent = offer.name;
+  (line.querySelector(".source-host") as HTMLElement).textContent = catalogHost(offer);
+  const cadence = cadenceLabel(offer.cadence);
+  if (cadence)
+    line.querySelector(".source-meta")?.append(element("span", "source-cadence", cadence));
+  const about = line.querySelector(".source-line") as HTMLElement;
+  if (offer.about) about.append(element("span", "source-about", offer.about));
+  else about.remove();
+  const button = line.querySelector("button") as HTMLButtonElement;
+  const adding: SuggestedAdd = {
+    name: offer.name,
+    feed_url: offer.feed_url,
+    favicon_url: icon,
+    topic_id: topicId,
+  };
+  button.dataset.suggestedAdd = JSON.stringify(adding);
+  button.setAttribute("aria-label", `Add ${offer.name}`);
+  return line;
+}
+
 /**
  * The catalogue's feeds that fit a topic not built yet, under its row in the list, each with the +
  * a topic's page has: the same suggestSources the build runs, so its page offers the same ones.
@@ -484,28 +510,9 @@ export async function suggestUnder(
   const list = section.querySelector("ul");
   list?.setAttribute("aria-label", `Suggested sources for ${topic.name}`);
   for (const offer of offers) {
-    const line = item.cloneNode(true) as HTMLElement;
-    const site = offer.url ?? offer.feed_url;
-    const icon = /^https?:/.test(site) ? `https://${new URL(site).hostname}/favicon.ico` : null;
-    line.querySelector(".source-icon")?.replaceWith(iconNode(icon, offer.name));
-    (line.querySelector(".source-name") as HTMLElement).textContent = offer.name;
-    (line.querySelector(".source-host") as HTMLElement).textContent = catalogHost(offer);
-    const cadence = cadenceLabel(offer.cadence);
-    if (cadence)
-      line.querySelector(".source-meta")?.append(element("span", "source-cadence", cadence));
-    const about = line.querySelector(".source-line") as HTMLElement;
-    if (offer.about) about.append(element("span", "source-about", offer.about));
-    else about.remove();
-    const button = line.querySelector("button") as HTMLButtonElement;
-    const adding: SuggestedAdd = {
-      name: offer.name,
-      feed_url: offer.feed_url,
-      favicon_url: icon,
-      topic_id: topic.id,
-    };
-    button.dataset.suggestedAdd = JSON.stringify(adding);
-    button.setAttribute("aria-label", `Add ${offer.name}`);
+    const line = suggestionLine(item, offer, topic.id);
     list?.append(line);
+    const button = line.querySelector("button") as HTMLButtonElement;
     if (feeds.has(offer.feed_url)) showAdded(button, offer);
   }
   row.append(section);

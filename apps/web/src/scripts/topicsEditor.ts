@@ -11,6 +11,7 @@
  * The pure parts are exported and tested; the rest is wiring.
  */
 import type { SourceFormat } from "@dispatch/core";
+import type { HeldSource } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import { weightOf } from "../lib/weightStops";
 import type { ConfigOp } from "../types/contracts";
@@ -359,17 +360,25 @@ export function mountEditor(root: HTMLElement): Editor {
       done: () => {
         if (row.isConnected) return;
         placeRow(row, topic_id);
-        const list = item?.parentElement;
         const focused = !item || item.contains(document.activeElement);
-        item?.remove();
-        const spare = list?.querySelector<HTMLElement>("li[data-spare]");
-        if (spare) {
-          spare.hidden = false;
-          spare.removeAttribute("data-spare");
-        } else if (list && !list.querySelector("li")) list.closest("section")?.remove();
+        const home = item?.parentElement;
+        // Every row that offers this feed, on the page and in the panel, leaves; the next spare of each takes its place.
+        for (const other of document.querySelectorAll<HTMLButtonElement>(
+          "button[data-suggested-add]",
+        )) {
+          if (parseSuggestedAdd(other.dataset.suggestedAdd)?.feed_url !== feed_url) continue;
+          const li = other.closest("li");
+          const list = li?.parentElement;
+          li?.remove();
+          const spare = list?.querySelector<HTMLElement>("li[data-spare]");
+          if (spare) {
+            spare.hidden = false;
+            spare.removeAttribute("data-spare");
+          } else if (list && !list.querySelector("li")) list.closest("section")?.remove();
+        }
         if (focused)
           (
-            list?.querySelector<HTMLElement>("li:not([hidden]) .source-plus-btn:enabled") ??
+            home?.querySelector<HTMLElement>("li:not([hidden]) .source-plus-btn:enabled") ??
             row.querySelector<HTMLElement>(".source-edit")
           )?.focus({ preventScroll: true });
       },
@@ -538,6 +547,17 @@ export function mountEditor(root: HTMLElement): Editor {
     else hand();
   };
 
+  /** The sources the page lists, by their addresses, for the panel's suggestions to leave out. */
+  const onPage = (): HeldSource[] =>
+    [...root.querySelectorAll<HTMLElement>("[data-edit-source]")].flatMap((button) => {
+      try {
+        const { url } = JSON.parse(button.dataset.editSource ?? "{}") as { url?: string };
+        return url ? [{ host: new URL(url).hostname, url }] : [];
+      } catch {
+        return [];
+      }
+    });
+
   const openPanel = (trigger: HTMLElement): void => {
     let start: PanelStart;
     if ("editSource" in trigger.dataset) {
@@ -557,7 +577,11 @@ export function mountEditor(root: HTMLElement): Editor {
         .closest<HTMLElement>(".topic-card-menu")
         ?.querySelector<HTMLElement>("[data-hero-more]") ?? trigger;
     void import("./topicsPanel").then((module) =>
-      module.openPanel(back, { addTopic, editTopic, addSource, editSource, removeSource }, start),
+      module.openPanel(
+        back,
+        { addTopic, editTopic, addSource, editSource, removeSource, addSuggested, held: onPage },
+        start,
+      ),
     );
   };
 

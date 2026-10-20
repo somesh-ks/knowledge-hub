@@ -317,21 +317,43 @@ const facts = topic && {
 
           <div class="topic-sources-head">
             <h2 class="section-head">Sources</h2>
-            <button
-              class="btn-secondary topic-add-source"
-              type="button"
-              aria-label={`Add source to ${name}`}
-              data-add-source={addTo}
-              data-needs-js
-            >
-              <Icon name="plus" />
-              <span>Add source</span>
-            </button>
+            {/* From 64rem the button sits beside the search (SourceFilter's action); a topic with no
+                 sources has no search, so it keeps the heading's end. */}
+            {
+              list.length === 0 && (
+                <button
+                  class="btn-secondary topic-add-source"
+                  type="button"
+                  aria-label={`Add source to ${name}`}
+                  data-add-source={addTo}
+                  data-needs-js
+                >
+                  <Icon name="plus" />
+                  <span>Add source</span>
+                </button>
+              )
+            }
           </div>
           {/* The sources and their search, in one block, so the search and tabs that stick on a
                phone let go where the list ends, before Suggested sources. */}
           <div class="topic-sources-block">
-            {list.length > 0 && <SourceFilter sources={list} tabs />}
+            {
+              list.length > 0 && (
+                <SourceFilter sources={list} tabs>
+                  <button
+                    slot="action"
+                    class="btn-secondary topic-add-source"
+                    type="button"
+                    aria-label={`Add source to ${name}`}
+                    data-add-source={addTo}
+                    data-needs-js
+                  >
+                    <Icon name="plus" />
+                    <span>Add source</span>
+                  </button>
+                </SourceFilter>
+              )
+            }
             <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
               {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
             </ul>

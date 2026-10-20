@@ -161,6 +161,29 @@ test.describe("the Topics list", () => {
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveCount(1);
   });
 
+  test("@desktop a topic's formats are chips with no All, any number at once, and Add source sits beside the search", async ({
+    page,
+  }) => {
+    await page.goto(CRAFT_PAGE);
+    const chips = page.getByRole("group", { name: "Format" }).getByRole("button");
+    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveCount(0);
+    await expect(
+      page.locator(".filter-row").getByRole("button", { name: /^Add source to/ }),
+    ).toBeVisible();
+    const all = page.locator("ul[data-sources] li.source-row:visible");
+    const every = await all.count();
+    await chips.filter({ hasText: "Blog" }).click();
+    await expect(all).toHaveCount(1);
+    await chips.filter({ hasText: "News" }).click();
+    await expect(chips.filter({ hasText: "Blog" })).toHaveAttribute("aria-pressed", "true");
+    await expect(all.count()).resolves.toBeGreaterThan(1);
+    await page.reload();
+    await expect(chips.filter({ hasText: "News" })).toHaveAttribute("aria-pressed", "true");
+    await chips.filter({ hasText: "Blog" }).click();
+    await chips.filter({ hasText: "News" }).click();
+    await expect(all).toHaveCount(every);
+  });
+
   test("lists every topic in one list by name, Other last, and the panel offers them in the same order", async ({
     page,
   }) => {
@@ -534,6 +557,12 @@ test.describe("a topic's page", () => {
     await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue("audio_interfaces");
     // It adds a source to this topic: no switch to a new topic.
     await expect(sheet.getByRole("radio", { name: "Topic" })).toBeHidden();
+    // It suggests the catalogue's feeds for the topic chosen, and changes them with it.
+    await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Design" });
+    await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toBeVisible();
+    await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Other" });
+    await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toHaveCount(0);
+    await sheet.getByRole("combobox", { name: "Topic" }).selectOption("audio_interfaces");
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
     // The feed address ends in an ellipsis rather than breaking mid-word.
     await expect(sheet.locator(".source-facts-url")).toHaveCSS("white-space", "nowrap");

@@ -136,6 +136,12 @@ const { topics } = Astro.props;
           </div>
         </div>
         <div class="source-preview" aria-live="polite" data-source-preview data-state="idle"></div>
+        {/* The catalogue's feeds that fit the topic chosen above (topicsPanel.ts), drawn as a topic page's
+             Suggested sources are; each + adds it to that topic. Empty for Other, and the box then has nothing to show. */}
+        <div class="panel-suggested" data-panel-suggested>
+          <h3 class="panel-suggested-head">Suggested sources</h3>
+          <ul class="topic-sources" role="list" data-panel-suggested-list></ul>
+        </div>
       </div>
 
       {/* A source already in the list: its name and its topic, where it is, and what its score is made of. */}
