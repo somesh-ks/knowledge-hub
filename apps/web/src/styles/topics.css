@@ -1378,7 +1378,7 @@
   margin: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 /* Types as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
@@ -1394,7 +1394,7 @@
   display: inline-flex;
   align-items: center;
   min-block-size: var(--chip-height);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border: var(--stroke-hairline) solid var(--field-border);
   border-radius: var(--field-radius);
   background: none;
