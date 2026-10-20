@@ -1,0 +1,25 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** The sheet's name: an h2 whose id the dialog's aria-labelledby names. */
+  title: string;
+  titleId: string;
+  /** The data attribute the sheet's script finds its Close button by. */
+  close: "data-create-close" | "data-panel-close" | "data-dialog-close";
+  /** Any data attribute the title carries for its script, such as data-panel-title. */
+  titleData?: Record<`data-${string}`, string | boolean>;
+}
+
+const { title, titleId, close, titleData = {} } = Astro.props;
+---
+
+{/* A sheet's one header row (2026-10-20): the title at the start, Close at the end, in every sheet at
+     every width, as SheetFrame.tsx and the passphrase dialog lay out. pullDismiss.ts and
+     keyboardFit.ts find the row by .create-sheet-head. */}
+<div class="create-sheet-head">
+  <h2 class="sheet-title" id={titleId} {...titleData}>{title}</h2>
+  <button class="icon-btn press" type="button" aria-label="Close" {...{ [close]: "" }}>
+    <Icon name="close" class="icon-lg" />
+  </button>
+</div>

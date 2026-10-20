@@ -2,6 +2,7 @@
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
+import SheetHeader from "./SheetHeader.astro";
 
 interface Props {
   /** The topics a source can be filed under, in the order the page lists them. */
@@ -18,12 +19,12 @@ const { topics } = Astro.props;
      sheet on a phone and a side panel from 40rem. */}
 <template id="topics-panel-template">
   <dialog class="create-sheet regen-sheet topics-panel" aria-labelledby="topics-panel-title" data-mode="topic">
-    <div class="create-sheet-head">
-      <button class="icon-btn press" type="button" data-panel-close aria-label="Close">
-        <Icon name="close" class="icon-lg" />
-      </button>
-      <h2 class="sheet-title" id="topics-panel-title" data-panel-title>Add a topic</h2>
-    </div>
+    <SheetHeader
+      title="Add a topic"
+      titleId="topics-panel-title"
+      close="data-panel-close"
+      titleData={{ "data-panel-title": "" }}
+    />
     <div class="create-sheet-body">
       <div class="segmented-nav topics-panel-kind" role="tablist" aria-label="What to add" data-panel-kind>
         <button

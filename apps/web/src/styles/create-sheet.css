@@ -380,7 +380,8 @@ dialog.create-sheet[open]::backdrop {
   gap: var(--space-2);
   min-height: var(--app-bar-height);
   padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
-  padding-inline: max(var(--space-1), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  /* The title at the start, on the body's gutter; Close at the end, its 44px reaching the edge. */
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-1), var(--safe-right));
   background: var(--sheet-bg);
   transition: background-color var(--duration-state) var(--ease-out);
 }
@@ -391,6 +392,12 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
 
 .create-sheet-head > .sheet-title {
   min-width: 0;
+}
+
+/* Close sits at the row's end in every sheet, full screen or side (2026-10-20, SheetHeader.astro). */
+.create-sheet-head > .icon-btn {
+  flex: none;
+  margin-inline-start: auto;
 }
 
 .create-sheet-body {
@@ -494,11 +501,6 @@ dialog.create-sheet .create-submit > .btn-primary {
   .create-sheet-head {
     padding-block-start: max(var(--space-4), var(--safe-top));
     padding-inline: var(--space-8) var(--space-4);
-  }
-
-  .create-sheet-head > [data-create-close] {
-    order: 1;
-    margin-inline-start: auto;
   }
 
   .create-sheet-body {

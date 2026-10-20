@@ -1,21 +1,15 @@
 ---
 import CreateForm from "./CreateForm.astro";
-import Icon from "./Icon.astro";
+import SheetHeader from "./SheetHeader.astro";
 ---
 
 {/* The Create sheet, kept inert in a template: nothing in it is on the page, so its ids and fields
      cost nothing until scripts/createSheet.ts clones it on the first press of a Create button. A
-     full-screen dialog on a phone and a side panel on the right from 40rem. One header row: Close at
-     its start in the full-screen dialog, at its end in the side sheet (create-sheet.css orders it);
-     the form scrolls under it and its button stays at the foot of the sheet. */}
+     full-screen dialog on a phone and a side panel on the right from 40rem. One header row
+     (SheetHeader.astro): the title at its start, Close at its end; the form scrolls under it and its button stays at the foot of the sheet. */}
 <template id="create-sheet-template">
   <dialog class="create-sheet" aria-labelledby="create-sheet-title">
-    <div class="create-sheet-head">
-      <button class="icon-btn press" type="button" data-create-close aria-label="Close">
-        <Icon name="close" class="icon-lg" />
-      </button>
-      <h2 class="sheet-title" id="create-sheet-title">New episode</h2>
-    </div>
+    <SheetHeader title="New episode" titleId="create-sheet-title" close="data-create-close" />
     <div class="create-sheet-body">
       <CreateForm />
     </div>
