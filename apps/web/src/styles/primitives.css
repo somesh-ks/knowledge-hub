@@ -269,6 +269,318 @@
   }
 }
 
+/* ------------------------------------------------------------------ segmented choice */
+
+/*
+ * Selection duty (2026-10-20), as Material 3's segmented button: one pill outlined with a hairline,
+ * hairline dividers between the segments, the chosen one filled with the accent container and a
+ * check before its words, the others transparent. Radios in a fieldset, so the arrow keys, the group
+ * and its name come from the browser. Told apart from .segmented-nav at a glance: an outline, not a
+ * track, and a check, not a raised pill.
+ * Markup: <fieldset class="segmented-choice" role="radiogroup" aria-label="Length"> of
+ *   <label class="segmented-choice-item"><input type="radio" name="length" /><span>10 min</span></label>
+ */
+.segmented-choice {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  flex: 1 1 100%;
+  /* A fieldset will not shrink below its content unless told it may. */
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: var(--stroke-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-round);
+}
+
+@media (min-width: 40rem) {
+  .segmented-choice {
+    flex: 0 0 var(--settings-control-width);
+  }
+}
+
+.segmented-choice-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  /* With the outline the control is 48px tall, as tall as a select, and taller if the text grows. */
+  min-height: calc(var(--segmented-height) - var(--stroke-hairline) * 2);
+  padding-inline: var(--space-2);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+.segmented-choice-item + .segmented-choice-item {
+  border-inline-start: var(--stroke-hairline) solid var(--color-border-control);
+}
+
+.segmented-choice-item:first-of-type {
+  border-start-start-radius: var(--radius-round);
+  border-end-start-radius: var(--radius-round);
+}
+
+.segmented-choice-item:last-of-type {
+  border-start-end-radius: var(--radius-round);
+  border-end-end-radius: var(--radius-round);
+}
+
+/* The radio is the target and covers its segment. It is invisible, so the segment draws every state. */
+.segmented-choice-item input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented-choice-item:has(input:checked) {
+  background-color: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+/* A state layer of the words' colour, over the segment's own fill. No press scale on a label
+   (pressText.test.ts). */
+@media (hover: hover) and (pointer: fine) {
+  .segmented-choice-item:not(:has(input:disabled)):hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+.segmented-choice-item:not(:has(input:disabled)):active {
+  background-image: linear-gradient(
+    color-mix(in oklch, currentColor var(--state-press), transparent),
+    color-mix(in oklch, currentColor var(--state-press), transparent)
+  );
+}
+
+.segmented-choice-item:has(input:disabled) {
+  opacity: var(--opacity-disabled);
+}
+
+.segmented-choice-item:has(input:focus-visible) {
+  z-index: var(--z-raised);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+/* The check takes no room of its own: it sits outside its words, and the chosen words slide over by
+   half of its room, as a filter chip's do, so no segment and no neighbour changes size. */
+.segmented-choice-item > span {
+  position: relative;
+  /* Raised over the radio by its position: the press must still reach the radio under it. */
+  pointer-events: none;
+  transition: transform var(--duration-enter) var(--ease-out);
+}
+
+.segmented-choice-item > span::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: calc(100% + var(--space-1));
+  margin-block: auto;
+  inline-size: var(--size-icon-sm);
+  block-size: var(--size-icon-sm);
+  background: currentColor;
+  mask: var(--check-bold-mask) center / contain no-repeat;
+  opacity: 0;
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.segmented-choice-item:has(input:checked) > span {
+  transform: translateX(calc((var(--size-icon-sm) + var(--space-1)) / 2));
+}
+
+.segmented-choice-item:has(input:checked) > span::before {
+  opacity: 1;
+}
+
+/* Below 22.5rem (320px) a four-way control has no room for the check beside "15 min": the fill and
+   the colour mark the choice there, and the words do not move. */
+@media not all and (min-width: 22.5rem) {
+  .segmented-choice:has(> .segmented-choice-item:nth-of-type(4)) .segmented-choice-item > span {
+    transform: none;
+  }
+
+  .segmented-choice:has(> .segmented-choice-item:nth-of-type(4))
+    .segmented-choice-item
+    > span::before {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ segmented navigation */
+
+/*
+ * Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one
+ * raised surface pill that slides under the active label, by transform alone. The active label
+ * takes the text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves
+ * aria-selected and the roving tabindex, and answers Left, Right, Home and End.
+ * Markup: <div class="segmented-nav" role="tablist" aria-label="Show"> of
+ *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
+ *     aria-controls="a-panel">Sources</button>
+ */
+.segmented-nav {
+  --seg-n: 1;
+  --seg-i: 0;
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  flex: 1 1 100%;
+  min-width: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+}
+
+@media (min-width: 40rem) {
+  .segmented-nav {
+    flex: 0 0 var(--settings-control-width);
+  }
+}
+
+.segmented-nav:has(> .segmented-nav-tab:nth-of-type(2)) {
+  --seg-n: 2;
+}
+
+.segmented-nav:has(> .segmented-nav-tab:nth-of-type(3)) {
+  --seg-n: 3;
+}
+
+.segmented-nav:has(> .segmented-nav-tab:nth-of-type(4)) {
+  --seg-n: 4;
+}
+
+.segmented-nav:has(> .segmented-nav-tab:nth-of-type(2)[aria-selected="true"]) {
+  --seg-i: 1;
+}
+
+.segmented-nav:has(> .segmented-nav-tab:nth-of-type(3)[aria-selected="true"]) {
+  --seg-i: 2;
+}
+
+.segmented-nav:has(> .segmented-nav-tab:nth-of-type(4)[aria-selected="true"]) {
+  --seg-i: 3;
+}
+
+/* The pill is one column less the track's inset on each side; a step is one column. It slides only
+   while the control is being used, so a view read from the address never travels from the first. */
+.segmented-nav::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--segmented-padding);
+  inset-inline-start: var(--segmented-padding);
+  width: calc(100% / var(--seg-n) - var(--segmented-padding) * 2);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-raised);
+  pointer-events: none;
+  transform: translateX(calc(var(--seg-i) * (100% + var(--segmented-padding) * 2)));
+}
+
+.segmented-nav:is(:focus-within, :has(> :active))::before {
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
+/* An arrow key moves the pill at once: what a key starts is never animated (data-input, app.ts). */
+:root[data-input="keyboard"] .segmented-nav::before {
+  transition: none;
+}
+
+/* The tab is the track's full height, so its target is 48px; the pill sits inside it. */
+.segmented-nav-tab {
+  position: relative;
+  min-width: 0;
+  min-height: var(--segmented-height);
+  margin: 0;
+  padding-block: 0;
+  padding-inline: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: transparent;
+  color: var(--color-on-surface-muted);
+  font: inherit;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-hover) var(--ease-hover);
+}
+
+.segmented-nav-tab[aria-selected="true"] {
+  color: var(--color-on-surface);
+}
+
+/* The press layer is the pill's shape, inside the track's inset. No press scale on a label. */
+.segmented-nav-tab::after {
+  content: "";
+  position: absolute;
+  inset: var(--segmented-padding);
+  border-radius: var(--radius-round);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .segmented-nav-tab:not([aria-selected="true"]):hover {
+    color: var(--color-on-surface);
+  }
+}
+
+.segmented-nav-tab:active::after {
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+}
+
+.segmented-nav-tab:focus-visible {
+  z-index: var(--z-raised);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+/* The pill jumps to the chosen tab, and the check appears in place. */
+@media (prefers-reduced-motion: reduce) {
+  .segmented-nav:is(:focus-within, :has(> :active))::before,
+  .segmented-choice-item > span,
+  .segmented-choice-item > span::before {
+    transition: none;
+  }
+}
+
+/* Forced colours drops fills and shadows: the choice's chosen segment gets a highlight edge, the
+   navigation's track an edge and its active tab the highlight colour. */
+@media (forced-colors: active) {
+  .segmented-choice-item:has(input:checked) {
+    outline: var(--stroke-rail) solid Highlight;
+    outline-offset: calc(var(--stroke-rail) * -1);
+  }
+
+  .segmented-nav {
+    border: var(--stroke-hairline) solid ButtonText;
+  }
+
+  .segmented-nav::before {
+    display: none;
+  }
+
+  .segmented-nav-tab[aria-selected="true"] {
+    outline: var(--stroke-rail) solid Highlight;
+    outline-offset: calc(var(--stroke-rail) * -1);
+    color: Highlight;
+  }
+}
+
 /* ------------------------------------------------------------------ source link */
 
 /*

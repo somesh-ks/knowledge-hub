@@ -39,7 +39,8 @@ const LABEL_CONTROLS = [
   "btn-primary",
   "btn-secondary",
   "source-main",
-  "settings-segment",
+  "segmented-choice-item",
+  "segmented-nav-tab",
   "segmented",
   "filter-chip",
   "chip",
@@ -74,7 +75,6 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".create-sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
-  [".create-choice .settings-segment", "the check glyph beside its own segment label"],
   [".create-more-text", "title onto its subtitle inside one row"],
   [".episode-highlight-actions", "the chips' hit-area overhang under the highlight"],
   [".hero-text", "title onto its subtitle inside one block"],
@@ -97,7 +97,8 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".filter-chip", "a chip's inner gap"],
   [".sort-field > select::picker(select)", "the list's edge onto the label's outline"],
   [".meta-wrap", "the meta link's hit area reaching past its words"],
-  [".settings-segment", "the check glyph beside its own segment label"],
+  [".segmented-choice-item", "the check glyph beside its own segment label"],
+  [".segmented-nav", "a segmented track: the pill inset by its 4px track padding"],
   [".settings-text", "title onto its subtitle inside one row"],
   [".sheet-hint-title", "title onto its body inside one card"],
   [".toast", "the action's hit area reaching the toast's edge"],
@@ -406,6 +407,27 @@ const RULES: Rule[] = [
           })
           .map((value) => `${file}: ${value}`);
       }),
+  },
+  {
+    // Two segmented controls that read differently (2026-10-20): a choice is a radiogroup with a
+    // check, navigation is a tablist with a sliding pill. Swapping them breaks the keys, the roles
+    // and what the owner sees.
+    name: "a segmented radiogroup is the choice control, a segmented tablist the navigation one",
+    offenders: () =>
+      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) =>
+        [...readFileSync(file, "utf8").matchAll(/<[a-z]+\s[^<>]*>/g)].flatMap(([tag]) => {
+          const classes = /\bclass="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
+          const role = /\brole="([^"]*)"/.exec(tag)?.[1];
+          const choice = classes.includes("segmented-choice");
+          const nav = classes.includes("segmented-nav");
+          const wrong =
+            (choice && role !== "radiogroup") ||
+            (nav && role !== "tablist") ||
+            (role === "radiogroup" && nav) ||
+            (role === "tablist" && choice);
+          return wrong ? [`${file}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`] : [];
+        }),
+      ),
   },
 ];
 

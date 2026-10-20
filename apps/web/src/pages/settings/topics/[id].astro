@@ -251,26 +251,46 @@ const facts = topic && {
               )
             }
           </div>
-          {/* Sources or Preferences (2026-10-20): the Add panel's segmented switch. The choice is in
+          {/* Sources or Preferences (2026-10-20): the segmented navigation, as tabs. The choice is in
                the address (?view=preferences), so a reload or Back keeps it; topicsPage.ts reads it
                and keeps the address in step. */}
           {
             hasPreferences && (
-              <fieldset class="settings-choice topic-view" role="radiogroup" aria-label="Show" data-topic-view>
-                <label class="settings-segment">
-                  <input type="radio" name="topic-view" value="sources" checked />
-                  <span>Sources</span>
-                </label>
-                <label class="settings-segment">
-                  <input type="radio" name="topic-view" value="preferences" />
-                  <span>Preferences</span>
-                </label>
-              </fieldset>
+              <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view>
+                <button
+                  class="segmented-nav-tab"
+                  type="button"
+                  role="tab"
+                  id="topic-tab-sources"
+                  aria-selected="true"
+                  aria-controls="topic-pane-sources"
+                  data-value="sources"
+                >
+                  Sources
+                </button>
+                <button
+                  class="segmented-nav-tab"
+                  type="button"
+                  role="tab"
+                  id="topic-tab-preferences"
+                  aria-selected="false"
+                  aria-controls="topic-pane-preferences"
+                  tabindex="-1"
+                  data-value="preferences"
+                >
+                  Preferences
+                </button>
+              </div>
             )
           }
           {
             hasPreferences && (
-              <div class="topic-view-pane topic-view-preferences">
+              <div
+                class="topic-view-pane topic-view-preferences"
+                role="tabpanel"
+                id="topic-pane-preferences"
+                aria-labelledby="topic-tab-preferences"
+              >
                 {
                   weightRows.length > 0 && (
                     <section class="topic-weights" aria-labelledby="weights-head">
@@ -305,7 +325,11 @@ const facts = topic && {
             )
           }
 
-          <div class="topic-view-pane topic-view-sources">
+          <div
+            class="topic-view-pane topic-view-sources"
+            id="topic-pane-sources"
+            {...(hasPreferences ? { role: "tabpanel", "aria-labelledby": "topic-tab-sources" } : {})}
+          >
           <div class="topic-sources-head">
             <h2 class="section-head">Sources</h2>
             {/* From 64rem the button sits beside the search (SourceFilter's action); a topic with no

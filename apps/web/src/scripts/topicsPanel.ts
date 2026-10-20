@@ -20,6 +20,7 @@ import {
 } from "../lib/topicText";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { pullToDismiss } from "./pullDismiss";
+import { mountSegmentedNav, selectTab } from "./segmentedNav";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -252,7 +253,7 @@ export function openPanel(
 
   const one = <T extends Element>(selector: string): T => panel.querySelector(selector) as T;
   const title = one<HTMLElement>("[data-panel-title]");
-  const kinds = one<HTMLFieldSetElement>("[data-panel-kind]");
+  const kinds = one<HTMLElement>("[data-panel-kind]");
   const topicPane = one<HTMLFormElement>('[data-pane="topic"]');
   const sourcePane = one<HTMLElement>('[data-pane="source"]');
   const editPane = one<HTMLElement>('[data-pane="edit"]');
@@ -388,7 +389,6 @@ export function openPanel(
     });
   };
   sourceTopic.addEventListener("change", () => void suggest());
-  kinds.addEventListener("change", () => void suggest());
   suggestList.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>(
       "button[data-suggested-add]",
@@ -557,10 +557,10 @@ export function openPanel(
   const firstField = (): HTMLElement =>
     mode === "topic" ? (topicField("name") as HTMLElement) : mode === "source" ? address : editName;
 
-  kinds.addEventListener("change", (event) => {
-    const value = (event.target as HTMLInputElement).value;
+  mountSegmentedNav(kinds, (value) => {
     mode = value === "source" ? "source" : "topic";
     render();
+    void suggest();
   });
 
   go.addEventListener("click", () => {
@@ -672,8 +672,7 @@ export function openPanel(
   );
 
   if (mode === "source") {
-    const radio = kinds.querySelector<HTMLInputElement>('input[value="source"]');
-    if (radio) radio.checked = true;
+    selectTab(kinds, "source");
   }
   render();
   panel.showModal();
