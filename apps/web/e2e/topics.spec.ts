@@ -42,7 +42,12 @@ async function pick(page: Page, topic: string, item: string) {
   await page.getByRole("menuitem", { name: item }).click();
 }
 
-async function setup(page: Page, answers: Array<{ status: number; body: object }> = []) {
+async function setup(
+  page: Page,
+  answers: Array<{ status: number; body: object }> = [],
+  /** Holds every save's answer until it resolves, to see the page while a request is out. */
+  hold?: Promise<void>,
+) {
   const sent: Sent[] = [];
   await page.route("**/api/site-icon**", (route: Route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
@@ -50,6 +55,7 @@ async function setup(page: Page, answers: Array<{ status: number; body: object }
   await page.route("**/api/config", async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
+    await hold;
     await route.fulfill({
       status: answer.status,
       contentType: "application/json",
@@ -320,7 +326,6 @@ test.describe("the Topics list", () => {
     const queued = page.locator("[data-queued] > li");
     await expect(queued).toContainText(ADDED_TOPIC);
     await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
-    await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
     await page.clock.runFor(GAP_MS);
     await expect
       .poll(() => ops(sent))
@@ -328,7 +333,11 @@ test.describe("the Topics list", () => {
         op: "source.add",
         url: "https://motion-weekly.example/rss.xml",
         topic_ids: ["motion-design"],
+        id: expect.stringMatching(/^motion-weekly-example-/),
       });
+    // Saved, it leaves the suggestions and waits with the sources being added.
+    await expect(queued.getByRole("button", { name: /Motion Weekly/ })).toHaveCount(0);
+    await expect(page.locator("[data-added] li.source-row")).toContainText("Motion Weekly");
     await expect(spoken(page)).toHaveText(SAVED);
     const before = sent.length;
 
@@ -558,7 +567,12 @@ test.describe("a topic's page", () => {
     await box.check();
     await row.getByRole("button", { name: "Edit Newsroom Example" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
-    await expect(row).toBeHidden(AFTER_UNDO);
+    await page
+      .getByRole("dialog", { name: "Delete Newsroom Example?" })
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    await expect(row).toBeHidden();
+    await page.clock.runFor(GAP_MS);
     await expect.poll(() => ops(sent)).toContainEqual({ op: "source.remove", id: added });
   });
 
@@ -658,14 +672,31 @@ test.describe("a topic's page", () => {
   });
 
   // A source could be turned off but never deleted: no control sent source.remove, on any screen.
-  test("a source is deleted from its edit panel, after a wait with Undo", async ({ page }) => {
+  test("a source is deleted from its edit panel after a confirm, at once with no Undo, and stays gone on a reload", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/other");
+    const row = page.locator('li.source-row[data-id="quiet-motion"]');
+    const confirm = page.getByRole("dialog", { name: "Delete Quiet Motion?" });
     await page.getByRole("button", { name: "Edit Quiet Motion" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
-    await expect(toastText(page)).toHaveText("Removing Quiet Motion");
-    await expect(page.locator('li.source-row[data-id="quiet-motion"]')).toBeHidden(AFTER_UNDO);
-    expect(ops(sent)).toEqual([{ op: "source.remove", id: "quiet-motion" }]);
+    // Cancel keeps the source, and the panel it came from.
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(row).toBeVisible();
+    expect(ops(sent)).toEqual([]);
+    await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
+    await confirm.getByRole("button", { name: "Delete", exact: true }).click();
+    // Gone and sent with no wait, and no toast offering to take it back.
+    await expect(row).toBeHidden({ timeout: 1500 });
+    await expect
+      .poll(() => ops(sent), { timeout: 1500 })
+      .toEqual([{ op: "source.remove", id: "quiet-motion" }]);
+    await expect(toast(page)).toBeHidden();
+    // The build has not run: the page opened next still leaves it out.
+    await page.reload();
+    await open(page, "/settings/topics/other");
+    await expect(row).toBeHidden();
   });
 });
 
@@ -673,16 +704,10 @@ test.describe("a topic's page", () => {
 test.describe("a topic's suggested sources", () => {
   const DESIGN = "/settings/topics/design";
   const region = (page: Page) => page.getByRole("region", { name: "Suggested sources" });
-  const names = (page: Page) => region(page).locator(".source-name");
+  /** The suggestions on show; the spares wait hidden in the page. */
+  const names = (page: Page) => region(page).locator("li:not([hidden]) .source-name");
   const suggestion = (page: Page, name: string) =>
     page.locator("[data-suggested-sources] li.source-row", { hasText: name });
-  /** Where every row of both lists is on the page, to see that nothing moves. */
-  const places = (page: Page) =>
-    page
-      .locator("[data-sources] li.source-row, [data-suggested-sources] li.source-row")
-      .evaluateAll((rows) =>
-        rows.map((row) => Math.round(row.getBoundingClientRect().top + scrollY)),
-      );
 
   test("are the catalogue's feeds that fit the topic, with no score, no pill and nothing waiting", async ({
     page,
@@ -695,7 +720,7 @@ test.describe("a topic's suggested sources", () => {
     // No line explains the list: the heading says it.
     await expect(region(page).locator(".manage-quiet")).toHaveCount(0);
     // The five that fit Design and the topics it gathers best, best first. Type and Grid is a sixth,
-    // and Model Ledger, which the owner reads already, is not offered.
+    // kept hidden as the next one in, and Model Ledger, which the owner reads already, is not offered.
     await expect(names(page)).toHaveText([
       "Pixel Ledger",
       "Motion Weekly",
@@ -713,39 +738,55 @@ test.describe("a topic's suggested sources", () => {
     ).toHaveCount(0);
   });
 
-  test("+ adds the feed under the topic in one request, and the row says so without anything moving", async ({
+  test("+ adds the feed under the topic in one request; the row waits where it is, then moves to the sources and the next suggestion fills its place", async ({
     page,
   }) => {
-    const { sent } = await setup(page);
+    let release: () => void = () => {};
+    const { sent } = await setup(
+      page,
+      [],
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+    );
     await open(page, DESIGN);
-    const before = await places(page);
     const row = suggestion(page, "Motion Weekly");
+    const top = await row.evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY));
     await row.getByRole("button", { name: "Add Motion Weekly" }).click();
-    // The same button, done: a check, no longer pressable, named for what it did.
-    const done = row.getByRole("button", { name: "Added Motion Weekly" });
-    await expect(done).toBeDisabled();
-    await expect(done).toHaveClass(/is-added/);
-    await expect(row).toContainText(ADDED);
-    // The row says it, so the toast does not say it again; and the note is whole, never cut off.
+    // While the request is out the row stays put, pressed and busy, and still counts as a suggestion.
+    await expect(row.getByRole("button", { name: "Adding Motion Weekly" })).toBeDisabled();
+    await expect(row).toHaveAttribute("aria-busy", "true");
+    await expect(row).toContainText("Adding");
+    expect(await row.evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY))).toBe(
+      top,
+    );
+    await expect(page.locator("[data-sources] li.source-row")).toHaveCount(2);
+    release();
+    // Saved: it leaves the suggestions for the top of the sources, a source like the others.
+    await expect(row).toHaveCount(0);
+    const added = page.locator("[data-sources] li.source-row").first();
+    await expect(added).toContainText("Motion Weekly");
+    await expect(added).toContainText(ADDED);
+    await expect(added.getByRole("checkbox", { name: "Read Motion Weekly" })).toBeChecked();
+    // The hidden sixth takes its place, so five stay on offer.
+    await expect(names(page)).toHaveText([
+      "Pixel Ledger",
+      "Craft Bench",
+      "Agent Patterns",
+      "Interface Notes",
+      "Type and Grid",
+    ]);
+    // The row says it, so the toast does not say it again.
     await expect(toast(page)).toBeHidden();
-    const note = row.locator(".source-note");
-    expect(await note.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-    // From 40rem a three-line suggestion takes a three-line row's 88px.
-    if ((page.viewportSize()?.width ?? 0) >= 640) {
-      const other = suggestion(page, "Motion Weekly").locator("xpath=following-sibling::li[1]");
-      if ((await other.count()) > 0 && (await other.locator(".source-line").count()) > 0)
-        expect((await other.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(88);
-    }
     expect(ops(sent)).toEqual([
       {
         op: "source.add",
         url: "https://motion-weekly.example/rss.xml",
         topic_ids: ["design_engineering_craft"],
+        id: expect.stringMatching(/^motion-weekly-example-/),
       },
     ]);
-    // Every row is where it was: nothing was put above the suggestions, and the page went nowhere.
-    expect(await places(page)).toEqual(before);
-    await expect(page.locator("[data-sources] li.source-row")).toHaveCount(2);
+    await expect(page.locator("[data-sources] li.source-row")).toHaveCount(3);
   });
 
   test("a general topic is offered feeds by its name, and + files the feed under it", async ({
@@ -760,7 +801,12 @@ test.describe("a topic's suggested sources", () => {
     await expect
       .poll(() => ops(sent))
       .toEqual([
-        { op: "source.add", url: "https://headline-desk.example/rss", topic_ids: ["world"] },
+        {
+          op: "source.add",
+          url: "https://headline-desk.example/rss",
+          topic_ids: ["world"],
+          id: expect.stringMatching(/^headline-desk-example-/),
+        },
       ]);
   });
 
@@ -882,14 +928,15 @@ test.describe("a refused suggested add", () => {
     const again = row.getByRole("button", { name: "Add Motion Weekly" });
     await expect(again).toBeEnabled();
     await expect(again).not.toHaveClass(/is-added/);
-    // Pressed again, it is the same add, not a second one, and it goes through.
+    // Pressed again, it is the same add, not a second one, and it goes through: the source is listed.
     await again.click();
-    await expect(row).toContainText(ADDED);
-    const done = row.getByRole("button", { name: "Added Motion Weekly" });
-    await expect(done).toBeDisabled();
-    expect(
-      ops(sent).filter((op) => op.op === "source.add" && String(op.url).includes("motion-weekly")),
-    ).toHaveLength(2);
+    await expect(source(page, "Motion Weekly")).toContainText(ADDED);
+    await expect(row).toHaveCount(0);
+    const adds = ops(sent).filter(
+      (op) => op.op === "source.add" && String(op.url).includes("motion-weekly"),
+    );
+    expect(adds).toHaveLength(2);
+    expect(adds[1]?.id).toBe(adds[0]?.id);
   });
 
   test("a refusal left behind by reloading is not shown as saved on the next page", async ({

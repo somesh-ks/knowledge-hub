@@ -89,8 +89,8 @@ export interface PanelHandlers {
   editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
-  /** Deletes a source, with an Undo in the toast. */
-  removeSource(id: string): void;
+  /** Asks to delete a source and, once confirmed, deletes it at once. True when it did. */
+  removeSource(id: string): Promise<boolean>;
 }
 
 export type PanelStart =
@@ -562,8 +562,9 @@ export function openPanel(
 
   remove.addEventListener("click", () => {
     if (start.kind !== "edit") return;
-    handlers.removeSource(start.source.id);
-    panel.close();
+    void handlers.removeSource(start.source.id).then((confirmed) => {
+      if (confirmed) panel.close();
+    });
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());

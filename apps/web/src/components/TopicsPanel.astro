@@ -233,6 +233,18 @@ const { topics } = Astro.props;
   </dialog>
 </template>
 
+{/* What Delete source asks before it deletes (topicsEditor.ts, removeSource): the topic's confirm
+     dialog, worn again. It opens over the panel; Cancel returns to it. */}
+<dialog class="confirm-dialog" aria-labelledby="source-delete-title" data-source-confirm>
+  <div class="confirm-form">
+    <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
+    <div class="confirm-actions">
+      <button class="btn" type="button" data-source-cancel autofocus>Cancel</button>
+      <button class="btn confirm-delete" type="button" data-source-delete>Delete</button>
+    </div>
+  </div>
+</dialog>
+
 {/* Suggested sources for a topic added before the build gives it a page: scripts/savedView.ts ranks
      the catalogue in the browser, puts this section under the topic's row in the list and fills one
      row per feed, drawn as SuggestedSources.astro draws them on a topic's page. */}

@@ -90,7 +90,10 @@ export function mountEditor(root: HTMLElement): Editor {
   const removals = (): HTMLButtonElement[] =>
     [...changes.values()]
       .map(({ el }) => el)
-      .filter((el): el is HTMLButtonElement => el.matches("button[data-remove]"));
+      // A source's removal is confirmed first and sent at once, so only a topic's waits with an Undo.
+      .filter(
+        (el): el is HTMLButtonElement => el.matches("button[data-remove]") && !el.closest("li"),
+      );
   const autosave = mountAutosave(
     root,
     changes,
@@ -196,7 +199,8 @@ export function mountEditor(root: HTMLElement): Editor {
     }
   };
 
-  const addRow = (
+  /** A source row built from what is known of the source, and the line a screen reader hears its save in. */
+  const buildRow = (
     shown: {
       name: string;
       icon: string | null;
@@ -206,7 +210,7 @@ export function mountEditor(root: HTMLElement): Editor {
     },
     op: ConfigOp,
     topicId: string,
-  ): void => {
+  ): { row: HTMLElement; note: HTMLElement; key: string } => {
     added += 1;
     const key = `src${added}`;
     const row = element("li", "source-row");
@@ -275,7 +279,6 @@ export function mountEditor(root: HTMLElement): Editor {
     remove.dataset.remove = "";
     remove.dataset.name = shown.name;
     remove.dataset.label = `Delete ${shown.name}`;
-    remove.dataset.labelUndo = `Undo deleting ${shown.name}`;
     remove.dataset.op = JSON.stringify({ op: "source.remove", id });
     remove.dataset.was = "false";
     controls.push(box, remove as unknown as Control);
@@ -283,6 +286,11 @@ export function mountEditor(root: HTMLElement): Editor {
     const note = element("span", "source-announce sr-only", "Adding");
     note.setAttribute("role", "status");
     row.append(edit, main, score, check, remove, note);
+    return { row, note, key };
+  };
+
+  /** Puts a source row first in its topic's list; on the list page, or for a topic not built yet, under the list. */
+  const placeRow = (row: HTMLElement, topicId: string): void => {
     const topic = [...root.querySelectorAll<HTMLElement>(".topic")].find(
       (item) => item.dataset.id === topicId,
     );
@@ -291,44 +299,83 @@ export function mountEditor(root: HTMLElement): Editor {
       root.querySelector("[data-added]") ??
       one("[data-sources]");
     list.prepend(row);
-    row.scrollIntoView({ block: "center" });
-    changes.set(key, { op, el: note, now: "" });
   };
 
+  const addRow = (...args: Parameters<typeof buildRow>): void => {
+    const { row, note, key } = buildRow(...args);
+    placeRow(row, args[2]);
+    row.scrollIntoView({ block: "center" });
+    changes.set(key, { op: args[1], el: note, now: "" });
+  };
+
+  /** The source row and add of each suggestion pressed, by feed: a retry after a refusal sends the same add. */
+  const pressed = new Map<
+    string,
+    { row: HTMLElement; note: HTMLElement; op: ConfigOp; key: string }
+  >();
+
   /**
-   * A suggestion added from its row. The row says it is being added in the line that named its site, and then that it is, once the edit is saved (settle, in managePageSave.ts); its
-   * button shows a check where the plus was. Nothing is put in the list above or scrolled to, so the
-   * page stays as it was and the next suggestion is where the last one left it.
+   * A suggestion added from its row. The row shimmers while the request goes (data-adding), saying
+   * Adding in the line that named its site. Once the edit is saved (settle, in managePageSave.ts) the
+   * row leaves Suggested sources, a source's row takes the top of the topic's list, and the next
+   * spare suggestion (SuggestedSources.astro) takes the freed place. Nothing is scrolled to, so the
+   * page stays where it was. A refusal keeps the row, says so, and gives the plus back.
    */
   const addSuggested = (button: HTMLButtonElement, suggestion: SuggestedAdd): void => {
-    const { name, feed_url, topic_id } = suggestion;
+    const { name, feed_url, topic_id, favicon_url } = suggestion;
+    const item = button.closest<HTMLElement>("li");
     const note = element("span", "source-note", "Adding");
-    button.closest("li")?.querySelector(".source-meta")?.replaceChildren(note);
-    // One pending add per feed: the plus pressed again after a refusal sends that same one.
-    const earlier = [...changes].find(
-      ([, other]) => other.op.op === "source.add" && other.op.url === feed_url,
-    );
-    if (!earlier) added += 1;
-    const asAdded = (): void => {
-      button.disabled = true;
-      button.classList.add("is-added");
-      button.setAttribute("aria-label", `Added ${name}`);
+    item?.querySelector(".source-meta")?.replaceChildren(note);
+    let entry = pressed.get(feed_url);
+    if (!entry) {
+      const op: ConfigOp = {
+        op: "source.add",
+        url: feed_url,
+        ...(topic_id ? { topic_ids: [topic_id] } : {}),
+      };
+      // Built now so the add names the source's id; listed once it is saved.
+      const built = buildRow({ name, icon: favicon_url }, op, topic_id);
+      entry = { ...built, op };
+      pressed.set(feed_url, entry);
+    }
+    const { row, op, key } = entry;
+    const busy = (on: boolean): void => {
+      button.disabled = on;
+      button.setAttribute("aria-label", `${on ? "Adding" : "Add"} ${name}`);
+      if (item) {
+        item.toggleAttribute("data-adding", on);
+        item.setAttribute("aria-busy", String(on));
+      }
     };
-    changes.set(earlier?.[0] ?? `src${added}`, {
-      op: { op: "source.add", url: feed_url, ...(topic_id ? { topic_ids: [topic_id] } : {}) },
-      el: note,
+    changes.set(key, {
+      op,
+      // The new row's own line, which settle fills in once the add is saved.
+      el: entry.note,
       now: "",
-      // Refused or not sent: the row says so and offers the plus again, rather than keep a check.
       fail: () => {
         note.textContent = NOT_ADDED;
-        button.disabled = false;
-        button.classList.remove("is-added");
-        button.setAttribute("aria-label", `Add ${name}`);
+        busy(false);
       },
-      done: asAdded,
+      done: () => {
+        if (row.isConnected) return;
+        placeRow(row, topic_id);
+        const list = item?.parentElement;
+        const focused = !item || item.contains(document.activeElement);
+        item?.remove();
+        const spare = list?.querySelector<HTMLElement>("li[data-spare]");
+        if (spare) {
+          spare.hidden = false;
+          spare.removeAttribute("data-spare");
+        } else if (list && !list.querySelector("li")) list.closest("section")?.remove();
+        if (focused)
+          (
+            list?.querySelector<HTMLElement>("li:not([hidden]) .source-plus-btn:enabled") ??
+            row.querySelector<HTMLElement>(".source-edit")
+          )?.focus({ preventScroll: true });
+      },
     });
+    busy(true);
     autosave.now();
-    asAdded();
   };
 
   /** A source chosen by its address in the panel: a decision already made, so it goes now. */
@@ -431,13 +478,64 @@ export function mountEditor(root: HTMLElement): Editor {
     autosave.now();
   };
 
-  /** A source deleted in the panel: its row's remove control, pressed, waits with an Undo. */
-  const removeSource = (id: string): void => {
+  /**
+   * A source deleted in the panel: Delete asks first, over the panel, and says whether it was
+   * confirmed. Confirmed, the row leaves the list at once and the removal is sent now, with no wait
+   * and no Undo (a topic's removal keeps its own). The row stays gone on a reload before the build
+   * (savedView.ts reads the saved removal).
+   */
+  const removeSource = (id: string): Promise<boolean> => {
     const row = [...root.querySelectorAll<HTMLElement>("li.source-row")].find(
       (item) => item.dataset.id === id,
     );
     const button = row?.querySelector<HTMLButtonElement>("button.source-remove");
-    if (button && button.dataset.pressed !== "true") press(button);
+    const dialog = document.querySelector<HTMLDialogElement>("dialog[data-source-confirm]");
+    if (!row || !button || !dialog || button.dataset.pressed === "true")
+      return Promise.resolve(false);
+    const title = dialog.querySelector("[data-source-confirm-title]");
+    if (title) title.textContent = `Delete ${button.dataset.name ?? "source"}?`;
+    dialog.returnValue = "";
+    return new Promise((resolve) => {
+      const onClick = (event: Event): void => {
+        const choice = (event.target as Element).closest<HTMLButtonElement>("button");
+        if (choice && "sourceCancel" in choice.dataset) dialog.close("cancel");
+        else if (choice && "sourceDelete" in choice.dataset) dialog.close("delete");
+      };
+      dialog.addEventListener("click", onClick);
+      dialog.addEventListener(
+        "close",
+        () => {
+          dialog.removeEventListener("click", onClick);
+          const confirmed = dialog.returnValue === "delete";
+          if (confirmed) deleteNow(row, button);
+          resolve(confirmed);
+        },
+        { once: true },
+      );
+      dialog.showModal();
+    });
+  };
+
+  /** The row is gone before the request is: the control is recorded as pressed and sent at once. */
+  const deleteNow = (row: HTMLElement, button: HTMLButtonElement): void => {
+    button.dataset.pressed = "true";
+    row.setAttribute("data-gone", "");
+    record(button as unknown as Control);
+    autosave.now();
+    // Focus was on the row's Edit button, now hidden: it goes to the next row once the panel, which
+    // holds focus until it closes, has gone.
+    const hand = (): void => {
+      let next: HTMLElement | null = null;
+      for (const side of ["nextElementSibling", "previousElementSibling"] as const) {
+        for (let item = row[side]; item && !next; item = item[side])
+          if (!item.hasAttribute("data-gone"))
+            next = item.querySelector<HTMLElement>("button, input");
+      }
+      (next ?? document.getElementById("page-title"))?.focus({ preventScroll: true });
+    };
+    const panel = document.querySelector<HTMLDialogElement>("dialog.topics-panel");
+    if (panel?.open) panel.addEventListener("close", hand, { once: true });
+    else hand();
   };
 
   const openPanel = (trigger: HTMLElement): void => {

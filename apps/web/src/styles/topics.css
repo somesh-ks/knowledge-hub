@@ -1246,11 +1246,43 @@
   padding-block-start: var(--space-6);
 }
 
-/* A source deleted in the edit panel: quiet while its Undo waits, gone once it is saved. */
-.source-row:has(> .source-remove[data-pressed="true"]) {
-  opacity: var(--opacity-disabled);
+/* A suggestion being added: a light sweeps across its row while the request goes, so the press is
+   answered where it was made and the row stays until the source is in the list. Only the
+   gradient's position moves. Reduced motion keeps the tint and drops the sweep. */
+.source-row.is-suggested[data-adding]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent) 50%,
+      transparent 70%
+    )
+    100% 0 / 250% 100% no-repeat,
+    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  animation: source-shimmer calc(var(--duration-progress) * 5) linear infinite;
 }
 
+@keyframes source-shimmer {
+  to {
+    background-position:
+      0% 0,
+      0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-row.is-suggested[data-adding]::after {
+    animation: none;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.source-row[hidden],
 .source-row[data-gone] {
   display: none;
 }

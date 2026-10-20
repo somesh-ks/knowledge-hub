@@ -81,7 +81,7 @@ const shown = group ? { id: group.home, name: group.name } : undefined;
 // The catalogue's feeds that fit the topic and are not among the sources: all known at build time, so
 // they are in the page and need no request. Where nothing fits, the page has no such section.
 const words = suggestionWords({ group, topic });
-const suggested = words ? suggestSources(catalog, sources, words) : [];
+const suggested = words ? suggestSources(catalog, sources, words, 10) : [];
 // Where the topic plays (D69): one of the owner's three sets it for every judge topic it gathers.
 const schedule = await loadScheduleView();
 const scopeIds = group ? group.members.map((member) => member.id) : topic ? [topic.id] : [];
