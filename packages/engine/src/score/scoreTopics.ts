@@ -9,6 +9,7 @@ import {
   type SourceFormat,
   sourceFormat,
   type Topic,
+  topicGroupOf,
 } from "@dispatch/core";
 import type { TopicFits } from "../judge/topicJudge.js";
 import { clamp01, round4 } from "./numbers.js";
@@ -131,7 +132,10 @@ export function topicScore(
           ? coverageFactor(item?.signals.coverage, SINGLE_OUTLET_TOPICS.has(topic.id))
           : 1;
   const penalty = penaltyFactor(entry.flags);
-  const mix = mixFactor(story?.format && topic.format_mix?.[story.format]);
+  // A topic in one of the owner's three groups is mixed by its group (applyGroupMix), once.
+  const mix = topicGroupOf(topic)
+    ? 1
+    : mixFactor(story?.format && topic.format_mix?.[story.format]);
   const lean =
     topic.origin === "general" ? perspectiveFactor(topic.perspective, story?.leans ?? []) : 1;
   return {
@@ -140,6 +144,27 @@ export function topicScore(
     depth,
     penalty,
   };
+}
+
+/**
+ * The format mix of the owner's three groups (Design, AI, Technology): one mix per group, stored on
+ * the group's home topic. A story whose score comes from a built-in category, or from a topic in
+ * the group, is multiplied by the home mix for its source's format; Off scores it 0, which keeps it
+ * out of the group entirely, whichever category or topic scored it highest. A story outside every
+ * group is left alone (a topic apart is mixed in `topicScore`).
+ */
+export function applyGroupMix(
+  scored: ScoredItem,
+  topics: readonly Topic[],
+  sources: Readonly<Record<string, SourceFacts>> | undefined,
+): ScoredItem {
+  const winner = scored.topic?.id ?? (scored.topCategory === "none" ? null : scored.topCategory);
+  const topic = topics.find((candidate) => candidate.id === winner);
+  const group = topic && topicGroupOf(topic);
+  if (!group) return scored;
+  const format = storyFacts(scored.item, sources).format;
+  const factor = mixFactor(format && topics.find((t) => t.id === group.home)?.format_mix?.[format]);
+  return factor === 1 ? scored : { ...scored, score: round4(clamp01(scored.score * factor)) };
 }
 
 /**

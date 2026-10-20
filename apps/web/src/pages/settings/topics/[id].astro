@@ -67,7 +67,10 @@ const { group, topic, list, choices, taken } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
-const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
+const [{ sources, topics: allTopics }, catalog] = await Promise.all([
+  loadManage(),
+  loadSourceCatalog(),
+]);
 const name = group?.name ?? topic?.name ?? "Other";
 const note = group?.note ?? topic?.description ?? "Sources not filed under a topic.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
@@ -132,15 +135,17 @@ const usedFormats = SOURCE_FORMATS.filter((format) =>
 );
 const mixStops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
 const perspectiveStops = PERSPECTIVE_STOPS.map((s) => ({ name: s.name, value: s.value }));
-const mixRows = topic
+// A group page keeps its one mix on the group's home topic; a topic apart keeps its own.
+const mixOwner = group ? allTopics.find((t) => t.id === group.home) : topic;
+const mixRows = mixOwner
   ? usedFormats.map((format) => ({
-      id: `mix-${topic.id}-${format}`,
+      id: `mix-${mixOwner.id}-${format}`,
       label: FORMAT_LABEL[format],
-      name: `${FORMAT_LABEL[format]} in ${topic.name}`,
-      weight: MIX_STOPS.find((s) => s.name === topic.format_mix?.[format])?.factor ?? 1,
+      name: `${FORMAT_LABEL[format]} in ${name}`,
+      weight: MIX_STOPS.find((s) => s.name === mixOwner.format_mix?.[format])?.factor ?? 1,
       custom: {
         stops: mixStops,
-        op: { op: "topic.mix", id: topic.id, format_mix: {} },
+        op: { op: "topic.mix", id: mixOwner.id, format_mix: {} },
         field: `format_mix.${format}`,
       },
     }))
@@ -278,12 +283,12 @@ const facts = topic && {
           }
 
           {
-            topic && (mixRows.length > 0 || general) && (
+            (mixRows.length > 0 || (topic && general)) && (
               <section class="topic-weights" aria-labelledby="mix-head">
                 <h2 class="section-head" id="mix-head">{mixRows.length > 0 ? "Formats" : "Perspective"}</h2>
                 <div class="rows topic-controls">
                   {mixRows.map((row) => <WeightRow {...row} />)}
-                  {general && (
+                  {topic && general && (
                     <WeightRow
                       id={`perspective-${topic.id}`}
                       label="Perspective"

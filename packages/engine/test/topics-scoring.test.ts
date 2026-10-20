@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { clamp01, round4 } from "../src/score/numbers.js";
 import { craftFactor, penaltyFactor, scoreItem } from "../src/score/scoreItem.js";
 import {
+  applyGroupMix,
   applyTopics,
   FIT_EXPONENT,
   fitCurve,
@@ -368,7 +369,27 @@ describe("the seed file", () => {
 describe("format mix and perspective", () => {
   const entry = (item: Item): JudgmentEntry => makeEntry(item, { category: "none" });
 
-  it("scores a story 0 when its source's format is Off, and leaves other formats alone", () => {
+  it("keeps a video story out of the Design group when Video is Off, even when a built-in category scores it highest", () => {
+    const topics = seedTopicsFile(preferences.weights).topics.map((topic) =>
+      topic.id === "design" ? { ...topic, format_mix: { video: "Off" as const } } : topic,
+    );
+    const mixed = (type: "youtube" | "rss") => {
+      const item = makeItem({ source_type: type });
+      const base = scoreItem(
+        makeEntry(item, { category: "design_engineering_craft", p: 0.9 }),
+        preferences,
+        item,
+      );
+      return { base, after: applyGroupMix(base, topics, undefined) };
+    };
+    const video = mixed("youtube");
+    expect(video.base.score).toBeGreaterThan(0.4);
+    expect(video.after.score).toBe(0);
+    const blog = mixed("rss");
+    expect(blog.after.score).toBe(blog.base.score);
+  });
+
+  it("scores a story of a topic apart 0 when its source's format is Off", () => {
     const item = makeItem();
     const topic = customTopic({ format_mix: { forum: "Off" } });
     expect(topicScore(topic, 1, entry(item), item, { format: "forum" })?.score).toBe(0);

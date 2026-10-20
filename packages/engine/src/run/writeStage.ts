@@ -4,6 +4,7 @@ import {
   type Preferences,
   type ScheduleFile,
   type SourceStatsFile,
+  type Topic,
   VOICE_LIMITS,
 } from "@dispatch/core";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
@@ -32,6 +33,7 @@ import {
 import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
 import {
+  applyGroupMix,
   applyTopics,
   type SourceFacts,
   sourceFactsMap,
@@ -85,6 +87,8 @@ interface PassContext {
   sourceNames: Record<string, string>;
   /** Each source's format and lean, for a topic's format mix and perspective. */
   sourceFacts: Record<string, SourceFacts>;
+  /** Every topic, for the groups' format mix. */
+  allTopics: readonly Topic[];
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -143,6 +147,7 @@ export async function writeStage(
     preferences,
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
+    allTopics: topics.topics,
     customTopics: activeFitTopics(topics),
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
@@ -235,7 +240,14 @@ async function writePass(
       continue;
     }
     base.push(
-      withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
+      withSourceAdjustment(
+        applyGroupMix(
+          applyTopics(scoreItem(entry, preferences, item), layer),
+          context.allTopics,
+          context.sourceFacts,
+        ),
+        sourceStats,
+      ),
     );
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
