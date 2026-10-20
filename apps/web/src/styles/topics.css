@@ -12,8 +12,10 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A source is a two-line list item (name, then its site), M3's 72px. */
-.topics {
+/* A source is a two-line list item (name, then its site), M3's 72px. The row holds its own height,
+   so it keeps it outside a topics page too: the Add source panel is appended to the body
+   (2026-10-20, its suggestions touched on a phone). */
+:is(.topics, .source-row) {
   --source-row: 4.5rem;
 }
 
@@ -121,26 +123,6 @@
   margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
 }
 
-/* The way up, over the card, where the wide layout has no app bar to hold a back arrow. */
-.topic-up {
-  display: none;
-}
-
-@media (min-width: 64rem) {
-  .topic-up {
-    display: block;
-    padding-block-end: var(--space-4);
-  }
-
-  .topic-up .settings-up {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    font-size: var(--font-size-label);
-    line-height: var(--font-leading-label);
-  }
-}
-
 /* Listen in closes the card under a line that runs its full width, edge to edge through the card's
    padding (2026-10-20). */
 .topic-card:has(.topic-card-foot) {
@@ -178,54 +160,30 @@
   text-wrap: nowrap;
 }
 
-/* ------------------------------------------------------------------ a folded group of sliders */
+/* ------------------------------------------------------------------ Sources or Preferences */
 
-/* Topic weightage, Formats and Perspective (Accordion.astro): the heading is the H2 and the whole
-   line is the target, with a chevron at its end that turns as the group opens. Closed by default, so
-   the page reads as its card and its sources first. */
-.accordion-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-height: var(--size-touch);
+/* A topic's page shows its sources or its sliders, never both (2026-10-20). Each pane takes no box of
+   its own, so the rules for what is inside it hold as they did before the switch. The floating Add is
+   for sources and shows with them. Before the script, the page is its sources. */
+.topic-view {
   margin-block-start: var(--space-6);
-  border-radius: var(--row-radius);
-  cursor: pointer;
-  list-style: none;
 }
 
-.accordion-summary::-webkit-details-marker {
+.topic-view-pane {
+  display: contents;
+}
+
+.topics:not([data-view="preferences"]) .topic-view-preferences,
+.topics[data-view="preferences"] :is(.topic-view-sources, .add-fab) {
   display: none;
 }
 
-.topic .accordion-summary > .section-head {
-  padding-block: 0;
+/* Each group of sliders under its heading, as a section of a settings page. */
+.topic-weights > .section-head {
+  padding-block: var(--space-8) 0;
 }
 
-.accordion-icon {
-  flex: none;
-  color: var(--color-on-surface-subtle);
-  transition: rotate var(--duration-state) var(--ease-out);
-}
-
-.accordion[open] .accordion-icon {
-  rotate: 180deg;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .accordion-summary:hover .accordion-icon {
-    color: var(--color-on-surface);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .accordion-icon {
-    transition: none;
-  }
-}
-
-.accordion > .topic-controls {
+.topic-weights > .topic-controls {
   padding-block-start: var(--space-2);
 }
 
@@ -1406,7 +1364,7 @@
 .panel-suggested {
   display: grid;
   gap: var(--space-2);
-  margin-block-start: var(--space-4);
+  margin-block-start: var(--space-6);
 }
 
 .panel-suggested:not(:has(li:not([hidden]))) {
@@ -1420,7 +1378,7 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Formats as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
+/* Types as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
    the choice. Chips are the filter's old look: a hairline outline, the accent when pressed. No All:
    none pressed means everything. */
 .filter-chips {

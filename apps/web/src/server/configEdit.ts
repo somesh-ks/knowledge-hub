@@ -417,10 +417,11 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const domain = typeof value.domain === "string" ? blockedDomainOf(value.domain) : null;
       return domain === null ? null : { op: value.op, domain };
     }
-    case "topic.mix": {
-      // The mix shape is core's (stops by factor), the same schema the engine applies the op with.
+    case "topic.mix":
+    case "mix.set": {
+      // The shape is core's (stops by factor), the same schema the engine applies the op with.
       const parsed = CoreConfigOp.safeParse(value);
-      return parsed.success && parsed.data.op === "topic.mix" ? (value as ConfigOp) : null;
+      return parsed.success && parsed.data.op === value.op ? (value as ConfigOp) : null;
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

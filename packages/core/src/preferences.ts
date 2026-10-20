@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CATEGORIES, type Category } from "./categories.js";
+import { FormatMix } from "./topics.js";
 
 const weight = z.number().min(0).max(1);
 
@@ -10,6 +11,8 @@ export const Preferences = z.object({
   weights: z.object(
     Object.fromEntries(CATEGORIES.map((c) => [c, weight])) as Record<Category, typeof weight>,
   ),
+  /** How much each source type counts, for every topic alike; a type at Normal is absent. */
+  format_mix: FormatMix.optional(),
   preferred_keywords: z.array(z.string()),
   preferred_authors: z.array(z.string()),
   disliked_patterns: z.array(z.string()),

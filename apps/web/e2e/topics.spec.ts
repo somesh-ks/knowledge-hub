@@ -96,7 +96,7 @@ test.describe("the Topics list", () => {
   }) => {
     await setup(page);
     await open(page);
-    await expect(page.getByRole("heading", { level: 1, name: "Topics and sources" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Sources" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add a topic or a source" })).toBeVisible();
     const rows = [
       ["Design", "2 sources"],
@@ -131,7 +131,7 @@ test.describe("the Topics list", () => {
     await expect(row).toHaveCount(1);
     await row.getByRole("button", { name: "Edit Studio Notes" }).click();
     const sheet = page.getByRole("dialog", { name: "Edit source" });
-    await expect(sheet.getByRole("combobox", { name: "Format" })).toHaveValue("blog");
+    await expect(sheet.getByRole("combobox", { name: "Type" })).toHaveValue("blog");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
     // Leaving for a topic and coming Back, and a reload, find the same search.
@@ -149,7 +149,7 @@ test.describe("the Topics list", () => {
     await expect(page.getByRole("link", { name: /^Design/ })).toBeVisible();
     // A topic's page: All first, one tab at a time, kept on a reload.
     await page.goto(CRAFT_PAGE);
-    const tabs = page.getByRole("tablist", { name: "Format" }).getByRole("tab");
+    const tabs = page.getByRole("tablist", { name: "Type" }).getByRole("tab");
     await expect(tabs.first()).toHaveText("All");
     await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
     await page.getByRole("tab", { name: "Blog" }).click();
@@ -165,7 +165,7 @@ test.describe("the Topics list", () => {
     page,
   }) => {
     await page.goto(CRAFT_PAGE);
-    const chips = page.getByRole("group", { name: "Format" }).getByRole("button");
+    const chips = page.getByRole("group", { name: "Type" }).getByRole("button");
     await expect(page.getByRole("button", { name: "All", exact: true })).toHaveCount(0);
     await expect(
       page.locator(".filter-row").getByRole("button", { name: /^Add source to/ }),
@@ -225,14 +225,11 @@ test.describe("the Topics list", () => {
     ]);
   });
 
-  test("a row leads to the topic's page, whose title leads back", async ({ page }) => {
+  test("a row leads to the topic's page", async ({ page }) => {
     await setup(page);
     await open(page);
     await page.getByRole("link", { name: /^Design/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Design" })).toBeVisible();
-    const crumb = page.locator(".settings-up");
-    await expect(crumb).toHaveText("Topics and sources");
-    await expect(crumb).toHaveAttribute("href", LIST);
     await expect(source(page, "Studio Notes")).toBeVisible();
   });
 
@@ -410,30 +407,34 @@ test.describe("a topic's page", () => {
   // Design gathers the fixture's Design engineering craft and Product design (D69).
   const CRAFT = "/settings/topics/design";
 
-  test("a weight change saves itself as one weights.set, shown as its stop", async ({ page }) => {
+  test("a weight change on Preferences saves itself as one weights.set, and a reload keeps the view", async ({
+    page,
+  }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
-    await page.getByRole("heading", { name: "Topic weightage" }).click();
+    await page.getByRole("radio", { name: "Preferences" }).check();
+    await expect(page).toHaveURL(/\?view=preferences$/);
     const slider = page.locator("[data-weight]");
     await slider.fill("3");
     await expect(page.locator(".topic-weight:has([data-weight]) [data-word]")).toHaveText("More");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.85 } }]);
+    await page.reload();
+    await expect(page.getByRole("radio", { name: "Preferences" })).toBeChecked();
+    await expect(page.locator("[data-weight]")).toHaveValue("3");
   });
 
-  test("a format slider saves itself as one topic.mix and holds after a reload", async ({
+  test("a type set on Preferences goes as one mix.set for every topic and holds after a reload", async ({
     page,
   }) => {
     const { sent } = await setup(page);
-    // Design gathers several formats; its one mix lives on the group's home topic.
-    await open(page, "/settings/topics/design");
-    await page.getByRole("heading", { name: "Formats" }).click();
-    const slider = page.locator("[data-mix]").first();
-    await slider.fill("3");
+    await open(page, "/settings/preferences");
+    await expect(page.getByRole("slider")).toHaveCount(7);
+    await page.getByRole("slider", { name: "Video", exact: true }).fill("0");
     await expect(spoken(page)).toHaveText(SAVED);
-    expect(ops(sent)).toMatchObject([{ op: "topic.mix" }]);
+    expect(ops(sent)).toEqual([{ op: "mix.set", format_mix: { video: 0 } }]);
     await page.reload();
-    await expect(page.locator("[data-mix]").first()).toHaveValue("3");
+    await expect(page.getByRole("slider", { name: "Video", exact: true })).toHaveValue("0");
   });
 
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
@@ -442,9 +443,9 @@ test.describe("a topic's page", () => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const weights = page.getByRole("region", { name: "Topic weightage" });
-    // Folded until its heading is pressed.
+    // Shown on Preferences, not with the sources.
     await expect(weights.getByRole("slider")).toHaveCount(0);
-    await weights.getByRole("heading", { name: "Topic weightage" }).click();
+    await page.getByRole("radio", { name: "Preferences" }).check();
     await expect(weights.getByRole("slider")).toHaveCount(2);
     await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
       "Design engineering craft",
@@ -452,9 +453,8 @@ test.describe("a topic's page", () => {
     await weights.getByRole("slider", { name: "Product design" }).fill("1");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
-    await open(page, "/settings/topics/ai");
+    await open(page, "/settings/topics/ai?view=preferences");
     const single = page.getByRole("region", { name: "Topic weightage" });
-    await single.getByRole("heading", { name: "Topic weightage" }).click();
     await expect(single.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 

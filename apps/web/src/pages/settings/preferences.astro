@@ -1,0 +1,57 @@
+---
+import { MIX_STOPS, SOURCE_FORMATS } from "@dispatch/core";
+import ManageChrome from "../../components/ManageChrome.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import WeightRow from "../../components/WeightRow.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadManage } from "../../lib/manage";
+import { FORMAT_LABEL } from "../../lib/sourceFilter";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/topics.css";
+
+// The type mix (config/preferences.json): one for every topic, so one slider per source type here
+// rather than on each topic's page (2026-10-20). Normal is the default and is not in the file.
+const { typeMix } = await loadManage();
+const stops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
+const rows = SOURCE_FORMATS.map((format) => ({
+  id: `type-${format}`,
+  label: FORMAT_LABEL[format],
+  name: `${FORMAT_LABEL[format]} sources`,
+  weight: MIX_STOPS.find((s) => s.name === typeMix[format])?.factor ?? 1,
+  custom: { stops, op: { op: "mix.set", format_mix: {} }, field: `format_mix.${format}` },
+}));
+---
+
+<BaseLayout title="Preferences" view="settings" skipLabel="Skip to preferences">
+  <main id="main" tabindex="-1">
+    {/* The sliders that count for every topic alike. The topics editor (topicsPage.ts) records a
+         change and autosave.ts sends every slider moved in one mix.set a moment later. */}
+    <div class="manage topics preferences-page" data-topics>
+      <SettingsHead
+        title="Preferences"
+        note="How much each type of source counts, in every topic. Off keeps a type out of your briefings."
+      />
+      <noscript>
+        <p class="manage-note">Changing preferences needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">Preferences</legend>
+        <section class="topic topic-weights" aria-labelledby="types-head">
+          <h2 class="section-head" id="types-head">Source types</h2>
+          <div class="rows topic-controls">
+            {rows.map((row) => <WeightRow {...row} />)}
+          </div>
+        </section>
+      </fieldset>
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installTopicsPage } from "../../scripts/topicsPage";
+
+  installTopicsPage();
+</script>

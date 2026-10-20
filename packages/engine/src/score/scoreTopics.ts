@@ -1,6 +1,6 @@
 import {
   deriveSourceFormat,
-  groupHomeId,
+  type FormatMix,
   type Item,
   type JudgmentEntry,
   mixFactor,
@@ -10,7 +10,6 @@ import {
   type SourceFormat,
   sourceFormat,
   type Topic,
-  topicGroupOf,
 } from "@dispatch/core";
 import type { TopicFits } from "../judge/topicJudge.js";
 import { clamp01, round4 } from "./numbers.js";
@@ -77,7 +76,7 @@ export function sourceFactsMap(sources: readonly Source[]): Record<string, Sourc
   return Object.fromEntries(sources.map((s) => [s.id, { format: sourceFormat(s), lean: s.lean }]));
 }
 
-/** What a topic's mix and perspective read about one story. */
+/** What the type mix and a topic's perspective read about one story. */
 export interface StoryFacts {
   format?: SourceFormat | undefined;
   /** The lean of each outlet that carried it; an unrated outlet counts as 0 (Centre). */
@@ -106,7 +105,7 @@ export interface TopicLayer {
   /** Enabled custom topics only. */
   topics: readonly Topic[];
   fits: TopicFits;
-  /** Source facts by id, for a topic's format mix. Absent reads every story by its source type's rule. */
+  /** Source facts by id, for perspective. Absent reads every story by its source type's rule. */
   sources?: Readonly<Record<string, SourceFacts>>;
 }
 
@@ -133,14 +132,11 @@ export function topicScore(
           ? coverageFactor(item?.signals.coverage, SINGLE_OUTLET_TOPICS.has(topic.id))
           : 1;
   const penalty = penaltyFactor(entry.flags);
-  // A topic in one of the owner's three groups is mixed by its group (applyGroupMix), once.
-  const mix = topicGroupOf(topic)
-    ? 1
-    : mixFactor(story?.format && topic.format_mix?.[story.format]);
+  // The type mix is the same for every topic and is applied once, after scoring (applyFormatMix).
   const lean =
     topic.origin === "general" ? perspectiveFactor(topic.perspective, story?.leans ?? []) : 1;
   return {
-    score: round4(clamp01(topic.weight * curve * depth * penalty * mix * lean)),
+    score: round4(clamp01(topic.weight * curve * depth * penalty * lean)),
     curve,
     depth,
     penalty,
@@ -148,24 +144,17 @@ export function topicScore(
 }
 
 /**
- * The format mix of the owner's three groups (Design, AI, Technology): one mix per group, stored on
- * the group's home topic. A story whose score comes from a built-in category, or from a topic in
- * the group, is multiplied by the home mix for its source's format; Off scores it 0, which keeps it
- * out of the group entirely, whichever category or topic scored it highest. A story outside every
- * group is left alone (a topic apart is mixed in `topicScore`).
+ * The type mix (config/preferences.json), one for every topic: a story's score is multiplied by
+ * the stop of its source's format; Off scores it 0, which keeps it out whichever category or topic
+ * scored it. A format at Normal, or a story whose format is unknown, is left alone.
  */
-export function applyGroupMix(
+export function applyFormatMix(
   scored: ScoredItem,
-  topics: readonly Topic[],
+  mix: FormatMix | undefined,
   sources: Readonly<Record<string, SourceFacts>> | undefined,
 ): ScoredItem {
-  const winner = scored.topic?.id ?? (scored.topCategory === "none" ? null : scored.topCategory);
-  const topic = topics.find((candidate) => candidate.id === winner);
-  const group = topic && topicGroupOf(topic);
-  if (!group) return scored;
-  const format = storyFacts(scored.item, sources).format;
-  const home = groupHomeId(group, topics);
-  const factor = mixFactor(format && topics.find((t) => t.id === home)?.format_mix?.[format]);
+  const format = mix && storyFacts(scored.item, sources).format;
+  const factor = mixFactor(format && mix?.[format]);
   return factor === 1 ? scored : { ...scored, score: round4(clamp01(scored.score * factor)) };
 }
 

@@ -47,6 +47,8 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"source.update","id":"...","name":"...","topic_ids":["..."]}
   {"op":"source.remove","id":"..."}
   {"op":"weights.set","weights":{"topic_id":0.8}}
+  {"op":"mix.set","format_mix":{"video":"Less","forum":1.1}}
+  {"op":"topic.mix","id":"world","perspective":-1}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
   {"op":"writer.set","provider":"nebius","model":null}
   {"op":"profile.block","domain":"example.com"}

@@ -82,10 +82,15 @@ export function mountFilter(root: HTMLElement): void {
       wasIdle = idle;
     }
     if (none) none.hidden = idle || shown > 0;
+    // The topic page's view (?view=preferences) is not the filter's, and stays.
+    const params = new URLSearchParams(writeFilter(state));
+    const view = new URLSearchParams(location.search).get("view");
+    if (view) params.set("view", view);
+    const search = params.toString();
     history.replaceState(
       history.state,
       "",
-      `${location.pathname}${writeFilter(state)}${location.hash}`,
+      `${location.pathname}${search === "" ? "" : `?${search}`}${location.hash}`,
     );
   };
 

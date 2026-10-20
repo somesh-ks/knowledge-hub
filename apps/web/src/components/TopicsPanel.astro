@@ -127,7 +127,7 @@ const { topics } = Astro.props;
           </div>
         </div>
         <div class="manage-field">
-          <label for="panel-source-format">Format</label>
+          <label for="panel-source-format">Type</label>
           <div class="manage-select">
             <select class="manage-input" id="panel-source-format" name="format" data-source-format>
               {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
@@ -174,7 +174,7 @@ const { topics } = Astro.props;
           </div>
         </div>
         <div class="manage-field">
-          <label for="panel-edit-format">Format</label>
+          <label for="panel-edit-format">Type</label>
           <div class="manage-select">
             <select class="manage-input" id="panel-edit-format" name="format" data-edit-format>
               {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}

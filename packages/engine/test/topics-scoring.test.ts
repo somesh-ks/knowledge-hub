@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { clamp01, round4 } from "../src/score/numbers.js";
 import { craftFactor, penaltyFactor, scoreItem } from "../src/score/scoreItem.js";
 import {
-  applyGroupMix,
+  applyFormatMix,
   applyTopics,
   FIT_EXPONENT,
   fitCurve,
@@ -366,35 +366,41 @@ describe("the seed file", () => {
   });
 });
 
-describe("format mix and perspective", () => {
+describe("type mix and perspective", () => {
   const entry = (item: Item): JudgmentEntry => makeEntry(item, { category: "none" });
 
-  it("keeps a video story out of the Design group when Video is Off, even when a built-in category scores it highest", () => {
-    const topics = seedTopicsFile(preferences.weights).topics.map((topic) =>
-      topic.id === "design" ? { ...topic, format_mix: { video: "Off" as const } } : topic,
-    );
-    const mixed = (type: "youtube" | "rss") => {
+  // Before the one type mix, a mix lived on a topic and a story outside it kept its score.
+  it("applies the one type mix to a story of every topic: a built-in category and a custom one", () => {
+    const topic = customTopic();
+    const mix = { video: "Off", forum: "More" } as const;
+    const scoredAs = (type: "youtube" | "rss", winner: "builtin" | "custom") => {
       const item = makeItem({ source_type: type });
-      const base = scoreItem(
-        makeEntry(item, { category: "design_engineering_craft", p: 0.9 }),
-        preferences,
-        item,
-      );
-      return { base, after: applyGroupMix(base, topics, undefined) };
+      const base =
+        winner === "builtin"
+          ? scoreItem(
+              makeEntry(item, { category: "design_engineering_craft", p: 0.9 }),
+              preferences,
+              item,
+            )
+          : applyTopics(
+              scoreItem(entry(item), preferences, item),
+              layerOf([topic], { [item.id]: { [topic.id]: 1 } }),
+            );
+      return { base, after: applyFormatMix(base, mix, undefined) };
     };
-    const video = mixed("youtube");
-    expect(video.base.score).toBeGreaterThan(0.4);
-    expect(video.after.score).toBe(0);
-    const blog = mixed("rss");
-    expect(blog.after.score).toBe(blog.base.score);
-  });
-
-  it("scores a story of a topic apart 0 when its source's format is Off", () => {
+    for (const winner of ["builtin", "custom"] as const) {
+      const video = scoredAs("youtube", winner);
+      expect(video.base.score).toBeGreaterThan(0.4);
+      expect(video.after.score).toBe(0);
+      const blog = scoredAs("rss", winner);
+      expect(blog.after).toBe(blog.base);
+    }
+    const forum = { format: "forum" as const };
     const item = makeItem();
-    const topic = customTopic({ format_mix: { forum: "Off" } });
-    expect(topicScore(topic, 1, entry(item), item, { format: "forum" })?.score).toBe(0);
-    const blog = topicScore(topic, 1, entry(item), item, { format: "blog" });
-    expect(blog?.score).toBe(topicScore(customTopic(), 1, entry(item), item)?.score);
+    const base = scoreItem(entry(item), preferences, item);
+    expect(applyFormatMix({ ...base, score: 0.5 }, mix, { [item.source_id]: forum }).score).toBe(
+      0.55,
+    );
   });
 
   it("does not move any score at Even, however the outlets lean", () => {
