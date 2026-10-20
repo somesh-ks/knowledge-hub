@@ -54,7 +54,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Costs reasoned, not measured: 150 to 400 extra Jev requests a run for the general feeds (D66 to D68). closed when: a run log reports the judge's request count with general topics on.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
 
-- Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes there.
+- Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes.
 
 ## Known risks
 
