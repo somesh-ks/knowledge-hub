@@ -51,9 +51,8 @@ function mount(root: HTMLElement): void {
     if (image.complete) loaded(image);
   }
 
-  // Sources or Preferences on a topic's page (2026-10-20). The page's line under the switch set it
-  // from the address before paint; this sets it again after a client-side swap and keeps the address
-  // in step, so a reload or Back finds the same view. The filter's own parameters stay.
+  // Sources or Preferences on a topic's page (2026-10-20), read from the address and kept in it, so
+  // a reload or Back finds the same view. The filter's own parameters stay.
   const showView = (view: string): void => {
     root.dataset.view = view;
     const radio = root.querySelector<HTMLInputElement>(`input[name="topic-view"][value="${view}"]`);

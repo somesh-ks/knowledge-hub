@@ -430,11 +430,11 @@ test.describe("a topic's page", () => {
     const { sent } = await setup(page);
     await open(page, "/settings/preferences");
     await expect(page.getByRole("slider")).toHaveCount(7);
-    await page.getByRole("slider", { name: "Video sources" }).fill("0");
+    await page.getByRole("slider", { name: "Video", exact: true }).fill("0");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "mix.set", format_mix: { video: 0 } }]);
     await page.reload();
-    await expect(page.getByRole("slider", { name: "Video sources" })).toHaveValue("0");
+    await expect(page.getByRole("slider", { name: "Video", exact: true })).toHaveValue("0");
   });
 
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({

@@ -252,8 +252,8 @@ const facts = topic && {
             }
           </div>
           {/* Sources or Preferences (2026-10-20): the Add panel's segmented switch. The choice is in
-               the address (?view=preferences), so a reload or Back keeps it; the line under the
-               switch sets it before the page paints, and topicsPage.ts keeps the address in step. */}
+               the address (?view=preferences), so a reload or Back keeps it; topicsPage.ts reads it
+               and keeps the address in step. */}
           {
             hasPreferences && (
               <fieldset class="settings-choice topic-view" role="radiogroup" aria-label="Show" data-topic-view>
@@ -266,13 +266,6 @@ const facts = topic && {
                   <span>Preferences</span>
                 </label>
               </fieldset>
-              <script is:inline>{`(() => {
-                const view = new URLSearchParams(location.search).get("view") === "preferences" ? "preferences" : "sources";
-                const root = document.currentScript.closest("[data-topics]");
-                if (root) root.dataset.view = view;
-                const radio = document.querySelector('input[name="topic-view"][value="' + view + '"]');
-                if (radio) radio.checked = true;
-              })();`}</script>
             )
           }
           {
