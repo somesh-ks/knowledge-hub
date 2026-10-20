@@ -453,7 +453,27 @@ test.describe("a topic's page", () => {
     await weights.getByRole("slider", { name: "Product design" }).fill("1");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
+    // A Preferences load never shows the sources first: probed every frame from the first paint.
+    await page.addInitScript(() => {
+      const w = window as unknown as { sourcesFlashed?: boolean };
+      w.sourcesFlashed = false;
+      const shown = (selector: string) =>
+        document.querySelector(selector)?.checkVisibility({ visibilityProperty: true }) ?? false;
+      const probe = () => {
+        if (shown("[data-weight]")) return;
+        if (shown("[data-sources]")) w.sourcesFlashed = true;
+        requestAnimationFrame(probe);
+      };
+      new MutationObserver(() => {
+        if (!shown("[data-weight]") && shown("[data-sources]")) w.sourcesFlashed = true;
+      }).observe(document, { childList: true, subtree: true, attributes: true });
+      requestAnimationFrame(probe);
+    });
     await open(page, "/settings/topics/ai?view=preferences");
+    await expect(page.locator("[data-weight]")).toBeVisible();
+    expect(
+      await page.evaluate(() => (window as unknown as { sourcesFlashed: boolean }).sourcesFlashed),
+    ).toBe(false);
     const single = page.getByRole("region", { name: "Topic weightage" });
     await expect(single.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
