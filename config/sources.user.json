@@ -72,6 +72,9 @@
     }
   ],
   "overrides": {
+    "ahead-of-ai": {
+      "removed": true
+    },
     "assistant-ui": {
       "removed": true
     },
