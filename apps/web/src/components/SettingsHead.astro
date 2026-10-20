@@ -4,8 +4,6 @@ interface Props {
   title: string;
   /** One quiet line under the title: what the page is for. */
   note?: string;
-  /** Kept for the pages that still pass it: the title stands alone either way, with no trail. */
-  crumbs?: boolean;
 }
 
 const { title, note } = Astro.props;

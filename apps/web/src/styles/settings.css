@@ -47,33 +47,6 @@
   color: var(--color-on-surface-muted);
 }
 
-/* A topic's card draws its own way up (pages/settings/topics/[id].astro). */
-.settings-up {
-  position: relative;
-  border-radius: var(--radius-sm);
-  color: var(--color-on-surface-muted);
-  text-decoration: none;
-  transition: color var(--duration-hover) var(--ease-hover);
-}
-
-/* The word is shorter than a finger: the target reaches 44px tall around it. */
-.settings-up::after {
-  content: "";
-  position: absolute;
-  inset-block: calc((100% - var(--size-touch)) / 2);
-  inset-inline: 0;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .settings-up:hover {
-    color: var(--color-on-surface);
-  }
-}
-
-.settings-up:active {
-  color: var(--color-on-surface);
-}
-
 .settings-head h1:focus {
   outline: none;
 }
