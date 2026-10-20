@@ -135,6 +135,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
+| D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
 
 ---
 
@@ -1396,3 +1397,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Left for the owner: offline listening (keep the latest few recordings on the device; needs the audio host in the CSP and CORS), iOS startup images in both themes, the iOS status bar in the light theme (`black-translucent` puts white text over the light app bar; unchecked on an iPhone), and a Gallery and List morph.
 - Not verified on a device: the bars and splash after reinstalling the app (an installed app keeps its old manifest colours until Chrome updates the WebAPK), and the launch hand-off from Android's splash.
 
+## D124: named weight stops, source formats, a format mix and a perspective
+
+- Date: 2026-10-20 (the owner: "in the sources section, I want a search bar with filters (Forums, Blogs, Videos, etc.)", "the topic weightage in each topic should rather be source type weightage and left vs right news", "the topic weight names are very generic, it needs to be meaningful", "for weights - do a slider with fixed values", "the source type can be guessed by jev and prefilled as soon as I add the url", "categorize all the existing sources too")
+- Decision:
+  - The eleven judge categories keep their ids and take story-kind names (Build breakdowns, User studies, Components, Motion and CSS, Tool launches, Design essays, AI interface patterns, Model releases, Device launches, Funding and gossip, AI hype lists). A weight is one of five stops: Off 0, Less 0.5, Normal 0.7, More 0.85, Most 0.95. Off replaces the hard-coded `NEVER_PUBLISH`; `dispatch learn` moves one stop.
+  - Every source has a `format` (blog, news, forum, video, research, releases, podcast): the type's rule, then Jev (`classify-formats`, and on add within 3 s). Search and format and status chips filter the index and each topic page.
+  - Source type is added to topic weights, not swapped for them: a page's format mix (Off to Most, x0 to x1.2) multiplies the topic score; Design, AI and Technology keep one mix on their home topic.
+  - Left and right only on the five general topics: Jev rates each outlet's lean (-2 to 2), and a Perspective slider (default Even) moves a story by up to 15%, never removing one. The owner chose the slider over a Balance toggle.
+  - A briefing takes at most two stories per outlet, by the story's host, outside sections of their own.
+- Why: what a story is about (the weights) and where it comes from (the format) are different questions; replacing one with the other would score a hype list on a good blog like an essay. Numbers like 0.88 against 0.85 could not be heard in a briefing; five named stops can.
+- Rejected: a Newsletters and an Official format (folded into News and Blog); AllSides or MBFC ratings (licence, US-only coverage); a lean filter that drops stories.
+- Check: unit tests for Off, snapping, format derivation, group mix Off, perspective at Even and the outlet cap; a phone journey for search and chips, one for a format slider that holds after reload.
+- Left: the general feeds rate 17 Centre-left, 10 Centre, 3 Centre-right, 0 Right, so Right has little to favour; `curate` (agent mode) ignores the mix.

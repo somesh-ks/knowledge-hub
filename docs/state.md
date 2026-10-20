@@ -1,6 +1,6 @@
 # State
 
-Last updated 2026-10-19. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md); the old long state: `git show 91bc533:docs/state.md`.
+Last updated 2026-10-20. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md); the old long state: `git show 91bc533:docs/state.md`.
 
 ## Working
 
@@ -19,6 +19,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Not working or unverified
 
+- Sources design (D124) live: production asks Jev for a new source's format only after `npm run secrets:push` (the rule guesses until then); no run has used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - YouTube text: captions and Gemini each worked on live videos (2026-10-19), but no full run has used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - The `browser` CI job has not run on GitHub's runner. closed when: a PR touching `apps/web` shows the job green on GitHub.
 - Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
@@ -46,13 +47,12 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - An aggregator's or redirect's link to a blocked outlet is not caught (matching reads the item's own URL). closed when: matching resolves the final URL, or the owner accepts it.
 - Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source score thresholds (D55), the vote numbers (15%, 3 votes, 30 days). closed when: each is checked against the golden set or two weeks of real data.
 - P3 polish from critic rounds five to nine is listed in `git show 91bc533:docs/state.md`. closed when: the owner picks which to fix.
-- Settings logic gaps (D102): `schedule.set` with a partial `skip_topics` on a file without `general_scoped` un-skips the general topics it leaves out (the site never sends that op); `topic.enabled` is read by `createForm.ts`, `savedOverlay.ts` and `configEdit.ts` but never set false (dead branches); Edit topic sends the build's weight and keywords, not a pending weight edit. closed when: each is fixed or removed with a test.
+- Settings logic gaps (D102): a partial `skip_topics` without `general_scoped` un-skips general topics (the site never sends it); `topic.enabled` is never set false (dead branches); Edit topic sends the build's weight, not a pending edit. closed when: each is fixed or removed with a test.
 - Unverified (D106 to D109): the volume slider's 400 ms linger and hold while dragged (CSS only), the highlight's pause on a live briefing, a vote batch sent as a page unloads (a lost batch is not retried), a briefing regenerated with a topic the original run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - From the 2026-10-08 QA sweep: a refused narration (429) shows no wait time; focus on opening the player is unchecked. closed when: the 429 names its wait and a keyboard test opens the player with focus inside.
 - Costs and sizes reasoned, not measured: 150 to 400 extra Jev requests a run for the general feeds (against 165 on 2026-10-09), and the episode script's part sizes (D66 to D68). closed when: a run log reports the judge's request count with general topics on.
 - Settings switches show the track colour until the script is ready; the 6 and 7 October audio says "Dispatch". closed when: the owner calls either worth fixing.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
-- `.claude/worktrees/agent-aa3d6c40ca7009eee` could not be deleted (not a git worktree). closed when: it is gone.
 
 ## Known risks
 
