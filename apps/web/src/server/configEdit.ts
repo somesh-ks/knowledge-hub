@@ -7,8 +7,8 @@ import {
   MODEL_ID_PATTERN,
   PODCAST_FORMATS,
   SCHEDULE_LENGTHS,
-  SOURCE_FORMATS,
   ScheduleFile,
+  SOURCE_FORMATS,
   scheduleZone,
 } from "@dispatch/core";
 import { blockedDomainOf } from "../lib/blockedOutlets";
@@ -349,7 +349,10 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       // An edit that changes nothing is a mistake, not a request. An empty topic list is a change:
       // it files the source under Other.
       const lean =
-        value.lean === null || (typeof value.lean === "number" && Number.isInteger(value.lean) && Math.abs(value.lean) <= 2)
+        value.lean === null ||
+        (typeof value.lean === "number" &&
+          Number.isInteger(value.lean) &&
+          Math.abs(value.lean) <= 2)
           ? value.lean
           : undefined;
       const format = SOURCE_FORMATS.find((entry) => entry === value.format);

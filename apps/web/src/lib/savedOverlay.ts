@@ -201,6 +201,10 @@ export function savedControl(
     } else if (op.op === "weights.set" && saved.op === "weights.set" && outer === "weights") {
       const value = saved.weights[inner];
       if (typeof value === "number") found = String(value);
+    } else if (op.op === "topic.mix" && saved.op === "topic.mix" && saved.id === op.id) {
+      // A mix slider takes the last saved factor (or perspective) for its format.
+      const value = outer === "perspective" ? saved.perspective : saved.format_mix?.[inner];
+      if (typeof value === "number") found = String(value);
     } else if (
       op.op === "topic.upsert" &&
       saved.op === "topic.upsert" &&

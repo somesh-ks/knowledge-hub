@@ -1,4 +1,5 @@
 ---
+import { isGeneralTopicId } from "@dispatch/core";
 import type { ManageSource } from "../lib/manage";
 import { readableUrl } from "../lib/manage";
 import { FORMAT_LABEL, searchText, statusesOf } from "../lib/sourceFilter";
@@ -42,6 +43,9 @@ const facts = {
   label: source.score_label,
   parts: source.score_parts,
   format: source.format,
+  /** A general news source can be rated; "" is unrated. */
+  general: source.topic_ids.some((id) => isGeneralTopicId(id)),
+  lean: source.lean === null ? "" : String(source.lean),
 };
 ---
 

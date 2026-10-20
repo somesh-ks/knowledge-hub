@@ -53,7 +53,7 @@ function mount(root: HTMLElement): void {
 
   root.addEventListener("input", (event) => {
     const target = event.target as HTMLInputElement;
-    if (target.matches("[data-weight]")) {
+    if (target.matches("[data-weight], [data-mix]")) {
       // The fill and the stop's name follow the thumb; recording the change waits for the editor.
       drawStop(target);
     }

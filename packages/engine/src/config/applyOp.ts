@@ -396,8 +396,7 @@ function updateSource(
   let summary: string;
   if (rename === null && topicIds === undefined) {
     summary = `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
-  }
-  else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
+  } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
   return { next, summary };

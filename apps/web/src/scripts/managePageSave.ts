@@ -107,6 +107,8 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
   const weights: Record<string, number> = {};
   const weightKeys: string[] = [];
   const edits: Step[] = [];
+  /** Every mix slider of a topic goes in one topic.mix. */
+  const mixes = new Map<string, Step>();
   const removals: Step[] = [];
   for (const [key, { op, el, with: extra }] of changes) {
     if (op.op === "topic.upsert") {
@@ -116,7 +118,18 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
         ?.querySelector<HTMLInputElement>("[data-weight]");
       if (slider) op.topic.weight = weightOf(slider);
     }
-    if (op.op === "weights.set") {
+    if (op.op === "topic.mix") {
+      const step = mixes.get(op.id);
+      if (step && step.op.op === "topic.mix") {
+        step.op.format_mix = { ...step.op.format_mix, ...op.format_mix };
+        if (op.perspective !== undefined) step.op.perspective = op.perspective;
+        step.keys.push(key);
+      } else {
+        const joined: Step = { op: { ...op }, keys: [key] };
+        mixes.set(op.id, joined);
+        edits.push(joined);
+      }
+    } else if (op.op === "weights.set") {
       Object.assign(weights, op.weights);
       weightKeys.push(key);
     } else {

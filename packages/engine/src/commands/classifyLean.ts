@@ -6,8 +6,8 @@ import { GENERAL_TOPICS, type Source } from "@dispatch/core";
 import { choice } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
-import { createJevClient } from "../judge/jevClient.js";
 import { DEFAULT_JEV_MODEL } from "../judge/jev.js";
+import { createJevClient } from "../judge/jevClient.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { withRetry } from "../llm/retry.js";
 import {
@@ -131,7 +131,9 @@ export const run: CommandRun = async (argv, ctx) => {
     const out = resolve(values.out ?? join(tmpdir(), "dispatch-lean-review"));
     await mkdir(out, { recursive: true });
     const name = (lean: number | null): string =>
-      lean === null ? "unrated" : (["Left", "Centre-left", "Centre", "Centre-right", "Right"][lean + 2] ?? "");
+      lean === null
+        ? "unrated"
+        : (["Left", "Centre-left", "Centre", "Centre-right", "Right"][lean + 2] ?? "");
     const lines = [
       "| Source | Topics | Lean | Note |",
       "| :--- | :--- | :--- | :--- |",
@@ -148,7 +150,9 @@ export const run: CommandRun = async (argv, ctx) => {
     );
     process.stdout.write(`${head}Wrote ${join(out, "lean-review.md")} and lean.json\n`);
     if (failures.length > 0)
-      process.stdout.write(`Jev failures: ${redact(failures.slice(0, 3).join("; "), secretsFromEnv(ctx.env))}\n`);
+      process.stdout.write(
+        `Jev failures: ${redact(failures.slice(0, 3).join("; "), secretsFromEnv(ctx.env))}\n`,
+      );
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -176,6 +176,20 @@ const { topics } = Astro.props;
             <Icon name="chevronDown" />
           </div>
         </div>
+        <div class="manage-field" data-edit-lean-field hidden>
+          <label for="panel-edit-lean">Political lean</label>
+          <div class="manage-select">
+            <select class="manage-input" id="panel-edit-lean" name="lean" data-edit-lean>
+              <option value="">Unrated</option>
+              <option value="-2">Left</option>
+              <option value="-1">Centre-left</option>
+              <option value="0">Centre</option>
+              <option value="1">Centre-right</option>
+              <option value="2">Right</option>
+            </select>
+            <Icon name="chevronDown" />
+          </div>
+        </div>
         <div class="edit-address">
           <span class="edit-address-label">Address</span>
           <a class="edit-address-link" href="" target="_blank" rel="noopener noreferrer" data-edit-open>

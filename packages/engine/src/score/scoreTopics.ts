@@ -132,7 +132,8 @@ export function topicScore(
           : 1;
   const penalty = penaltyFactor(entry.flags);
   const mix = mixFactor(story?.format && topic.format_mix?.[story.format]);
-  const lean = topic.origin === "general" ? perspectiveFactor(topic.perspective, story?.leans ?? []) : 1;
+  const lean =
+    topic.origin === "general" ? perspectiveFactor(topic.perspective, story?.leans ?? []) : 1;
   return {
     score: round4(clamp01(topic.weight * curve * depth * penalty * mix * lean)),
     curve,
