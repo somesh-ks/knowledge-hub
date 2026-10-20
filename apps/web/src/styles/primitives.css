@@ -347,7 +347,7 @@
   /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
      never move: the words sit centred with half the check's room on each side, and slide over by
      that half as the check appears. */
-  padding-inline: calc(var(--space-4) + var(--space-2));
+  padding-inline: calc(var(--space-4) + var(--space-1));
   /* No outline: the transparent border keeps the size where forced colours draw one. */
   border: var(--stroke-hairline) solid transparent;
   border-radius: var(--chip-radius);
