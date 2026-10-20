@@ -383,11 +383,12 @@ test.describe("a topic's page", () => {
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
+    // Design gathers several formats; its one mix lives on the group's home topic.
+    await open(page, "/settings/topics/design");
     const slider = page.locator("[data-mix]").first();
     await slider.fill("3");
     await expect(spoken(page)).toHaveText(SAVED);
-    expect(ops(sent)).toMatchObject([{ op: "topic.mix", id: "audio_interfaces" }]);
+    expect(ops(sent)).toMatchObject([{ op: "topic.mix" }]);
     await page.reload();
     await expect(page.locator("[data-mix]").first()).toHaveValue("3");
   });

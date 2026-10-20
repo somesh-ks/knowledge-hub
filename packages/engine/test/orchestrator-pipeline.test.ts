@@ -885,7 +885,7 @@ describe("tech releases in a published run", () => {
         ".cache/run/2026-10-07/written.json",
       );
       const reasons = written.dropped.map((d) => d.reason);
-      expect(reasons.filter((reason) => reason.startsWith("over_tech_cap"))).toHaveLength(1);
+      expect(reasons.filter((reason) => reason.startsWith("over_tech_cap"))).toHaveLength(2);
       expect(reasons.filter((reason) => reason.startsWith("below_threshold"))).toHaveLength(1);
       expect(reasons.some((reason) => reason.startsWith("over_cap"))).toBe(false);
 

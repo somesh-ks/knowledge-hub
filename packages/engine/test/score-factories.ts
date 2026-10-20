@@ -22,7 +22,8 @@ let counter = 0;
 
 export function makeItem(overrides: Partial<Item> = {}): Item {
   counter += 1;
-  const url = overrides.url ?? `https://example.com/post-${counter}`;
+  // One host per item, so the outlet cap (OUTLET_CAP, by host) never decides a test about something else.
+  const url = overrides.url ?? `https://outlet-${counter}.example/post-${counter}`;
   return Item.parse({
     id: itemId(url),
     url,

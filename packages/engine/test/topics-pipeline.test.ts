@@ -141,7 +141,7 @@ describe("a run with a custom topic", () => {
 
       const digest: Digest = await readDigest(repo.root, DIGEST_PATH);
       const own = digest.items.filter((item) => item.section === "quantum");
-      expect(own).toHaveLength(1);
+      expect(own).toHaveLength(5);
       expect(own.every((item) => item.category === "quantum_computing")).toBe(true);
       expect(
         digest.items
@@ -166,7 +166,7 @@ describe("a run with a custom topic", () => {
       expect(stats.sources["blog-a"]).toMatchObject({ window_start: "2026-10-07" });
       expect(stats.sources["blog-a"]?.judged).toBeGreaterThanOrEqual(7);
       expect(stats.sources["blog-a"]?.passed).toBeGreaterThanOrEqual(5);
-      expect(stats.sources["blog-a"]?.published).toBeGreaterThanOrEqual(2);
+      expect(stats.sources["blog-a"]?.published).toBeGreaterThanOrEqual(5);
       const changed = git(repo.root, "show", "--name-only", "--format=", "HEAD")
         .split("\n")
         .filter(Boolean);

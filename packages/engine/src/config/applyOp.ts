@@ -1,5 +1,6 @@
 import {
   GENERAL_TOPICS,
+  groupHomeId,
   isBuiltinCategory,
   isBuiltinSection,
   MAX_CUSTOM_TOPICS,
@@ -14,6 +15,7 @@ import {
   type Topic,
   type TopicsFile,
   TopicsFile as TopicsSchema,
+  topicGroupOf,
   topicIdFromName,
   type WriterFile,
   withGeneralScope,
@@ -440,6 +442,12 @@ function setMix(op: Extract<ParsedConfigOp, { op: "topic.mix" }>, bundle: Config
   const next = clone(bundle);
   const topic = next.topics.topics.find((t) => t.id === op.id);
   if (!topic) throw new ConfigOpError(`There is no topic ${op.id}.`);
+  // A grouped topic's stories take the group's mix, kept on its home topic; a mix set elsewhere
+  // would be saved and never read.
+  const group = topicGroupOf(topic);
+  if (op.format_mix && group && groupHomeId(group, next.topics.topics) !== topic.id) {
+    throw new ConfigOpError(`Set the formats on the ${group.name} page.`);
+  }
   if (op.format_mix) {
     const mix = { ...topic.format_mix };
     for (const [format, stop] of Object.entries(op.format_mix)) {

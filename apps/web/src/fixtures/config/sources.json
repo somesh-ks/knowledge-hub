@@ -75,7 +75,8 @@
       "category_hint": "product_design",
       "enabled": true,
       "failures": 0,
-      "options": {}
+      "options": {},
+      "format": "news"
     },
     {
       "id": "meridian-wire",

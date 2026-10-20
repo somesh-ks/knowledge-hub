@@ -1,5 +1,6 @@
 import {
   deriveSourceFormat,
+  groupHomeId,
   type Item,
   type JudgmentEntry,
   mixFactor,
@@ -163,7 +164,8 @@ export function applyGroupMix(
   const group = topic && topicGroupOf(topic);
   if (!group) return scored;
   const format = storyFacts(scored.item, sources).format;
-  const factor = mixFactor(format && topics.find((t) => t.id === group.home)?.format_mix?.[format]);
+  const home = groupHomeId(group, topics);
+  const factor = mixFactor(format && topics.find((t) => t.id === home)?.format_mix?.[format]);
   return factor === 1 ? scored : { ...scored, score: round4(clamp01(scored.score * factor)) };
 }
 
