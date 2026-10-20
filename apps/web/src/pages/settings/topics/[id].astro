@@ -1,7 +1,6 @@
 ---
-import { MIX_STOPS, PERSPECTIVE_STOPS, SOURCE_FORMATS } from "@dispatch/core";
+import { PERSPECTIVE_STOPS } from "@dispatch/core";
 import { topicArt } from "@dispatch/cover";
-import Accordion from "../../../components/Accordion.astro";
 import AddFab from "../../../components/AddFab.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
@@ -17,7 +16,6 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
 import { loadSourceCatalog, suggestSources } from "../../../lib/sourceCatalog";
-import { FORMAT_LABEL } from "../../../lib/sourceFilter";
 import {
   type GroupPage,
   OTHER_ID,
@@ -69,7 +67,7 @@ const { group, topic, list, choices, taken } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
-const [{ sources, topics: allTopics }, catalog] = await Promise.all([
+const [{ sources }, catalog] = await Promise.all([
   loadManage(),
   loadSourceCatalog(),
 ]);
@@ -142,30 +140,10 @@ const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
 // A lean set before then stays visible where it applies, so it can be seen and set back to Even.
 const perspective =
   topic !== null && general && (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
-// The Formats group: one slider for each format the topic's sources use. Formats and Perspective are
-// two groups on the page and go as one topic.mix (managePageSave.ts joins them).
-const usedFormats = SOURCE_FORMATS.filter((format) =>
-  list.some((source) => source.format === format),
-);
-const mixStops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
 const perspectiveStops = PERSPECTIVE_STOPS.map((s) => ({ name: s.name, value: s.value }));
-// A group page keeps its one mix on the group's home topic; a topic apart keeps its own.
-const mixOwner = group ? allTopics.find((t) => t.id === group.home) : topic;
-// One format alone has nothing to be weighed against, so a page needs two before it shows sliders.
-const mixRows =
-  mixOwner && usedFormats.length > 1
-    ? usedFormats.map((format) => ({
-        id: `mix-${mixOwner.id}-${format}`,
-        label: FORMAT_LABEL[format],
-        name: `${FORMAT_LABEL[format]} in ${name}`,
-        weight: MIX_STOPS.find((s) => s.name === mixOwner.format_mix?.[format])?.factor ?? 1,
-        custom: {
-          stops: mixStops,
-          op: { op: "topic.mix", id: mixOwner.id, format_mix: {} },
-          field: `format_mix.${format}`,
-        },
-      }))
-    : [];
+// The type mix is one for every topic, on the Preferences page. A page with sliders splits into
+// Sources and Preferences (2026-10-20); one with none (Other, most general topics) is its sources.
+const hasPreferences = weightRows.length > 0 || perspective;
 // A long list shows its first SHOWN sources and a button for the rest (D103).
 const SHOWN = 7;
 const hidden = Math.max(0, list.length - SHOWN);
@@ -184,8 +162,8 @@ const facts = topic && {
 
 <BaseLayout title={name} view="settings" skipLabel={`Skip to ${name}`}>
   <main id="main" tabindex="-1">
-    {/* A topic's page: its summary card, how much it counts (collapsed groups of sliders), and its
-         sources. A topic is always on and
+    {/* A topic's page: its summary card, then its sources or how much it counts (the Preferences
+         view's sliders). A topic is always on and
          available to every podcast, so there is no switch. The controls carry the edit they stand for
          (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later. */}
     <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
@@ -200,13 +178,6 @@ const facts = topic && {
                menu with Edit and, for a topic of the owner's own, Delete, and under a full-width line
                Listen in, the podcasts it plays in (2026-10-20). The menu is the app's
                popover menu (HeroMenu.astro, heroMenu.ts). */}
-          {/* From 64rem there is no app bar above the page, so the way up is a line over the card. */}
-          <nav class="topic-up" aria-label="Breadcrumb">
-            <a class="settings-up" href="/settings/topics">
-              <Icon name="chevronLeft" />
-              <span>Topics and sources</span>
-            </a>
-          </nav>
           <div class="topic-card">
             <div class="topic-card-art" set:html={art} />
             <div class="topic-card-text">
@@ -283,38 +254,68 @@ const facts = topic && {
               )
             }
           </div>
+          {/* Sources or Preferences (2026-10-20): the Add panel's segmented switch. The choice is in
+               the address (?view=preferences), so a reload or Back keeps it; the line under the
+               switch sets it before the page paints, and topicsPage.ts keeps the address in step. */}
           {
-            weightRows.length > 0 && (
-              <Accordion id="weights" title="Topic weightage">
-                {weightRows.map((row) => <WeightRow {...row} />)}
-              </Accordion>
+            hasPreferences && (
+              <fieldset class="settings-choice topic-view" role="radiogroup" aria-label="Show" data-topic-view>
+                <label class="settings-segment">
+                  <input type="radio" name="topic-view" value="sources" checked />
+                  <span>Sources</span>
+                </label>
+                <label class="settings-segment">
+                  <input type="radio" name="topic-view" value="preferences" />
+                  <span>Preferences</span>
+                </label>
+              </fieldset>
+              <script is:inline>{`(() => {
+                const view = new URLSearchParams(location.search).get("view") === "preferences" ? "preferences" : "sources";
+                const root = document.currentScript.closest("[data-topics]");
+                if (root) root.dataset.view = view;
+                const radio = document.querySelector('input[name="topic-view"][value="' + view + '"]');
+                if (radio) radio.checked = true;
+              })();`}</script>
             )
           }
           {
-            mixRows.length > 0 && (
-              <Accordion id="mix" title="Formats">
-                {mixRows.map((row) => <WeightRow {...row} />)}
-              </Accordion>
-            )
-          }
-          {
-            perspective && topic && (
-              <Accordion id="perspective" title="Perspective">
-                <WeightRow
-                  id={`perspective-${topic.id}`}
-                  label="Perspective"
-                  name={`${topic.name} perspective`}
-                  weight={topic.perspective ?? 0}
-                  custom={{
-                    stops: perspectiveStops,
-                    op: { op: "topic.mix", id: topic.id, perspective: 0 },
-                    field: "perspective",
-                  }}
-                />
-              </Accordion>
+            hasPreferences && (
+              <div class="topic-view-pane topic-view-preferences">
+                {
+                  weightRows.length > 0 && (
+                    <section class="topic-weights" aria-labelledby="weights-head">
+                      <h2 class="section-head" id="weights-head">Topic weightage</h2>
+                      <div class="rows topic-controls">
+                        {weightRows.map((row) => <WeightRow {...row} />)}
+                      </div>
+                    </section>
+                  )
+                }
+                {
+                  perspective && topic && (
+                    <section class="topic-weights" aria-labelledby="perspective-head">
+                      <h2 class="section-head" id="perspective-head">Perspective</h2>
+                      <div class="rows topic-controls">
+                        <WeightRow
+                          id={`perspective-${topic.id}`}
+                          label="Perspective"
+                          name={`${topic.name} perspective`}
+                          weight={topic.perspective ?? 0}
+                          custom={{
+                            stops: perspectiveStops,
+                            op: { op: "topic.mix", id: topic.id, perspective: 0 },
+                            field: "perspective",
+                          }}
+                        />
+                      </div>
+                    </section>
+                  )
+                }
+              </div>
             )
           }
 
+          <div class="topic-view-pane topic-view-sources">
           <div class="topic-sources-head">
             <h2 class="section-head">Sources</h2>
             {/* From 64rem the button sits beside the search (SourceFilter's action); a topic with no
@@ -375,6 +376,7 @@ const facts = topic && {
           </div>
 
           <SuggestedSources offers={suggested} name={name} topicId={addTo} />
+          </div>
           <p class="manage-quiet topic-gone" tabindex="-1">Removed.</p>
         </div>
       </fieldset>

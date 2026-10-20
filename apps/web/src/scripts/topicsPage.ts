@@ -51,8 +51,28 @@ function mount(root: HTMLElement): void {
     if (image.complete) loaded(image);
   }
 
+  // Sources or Preferences on a topic's page (2026-10-20). The page's line under the switch set it
+  // from the address before paint; this sets it again after a client-side swap and keeps the address
+  // in step, so a reload or Back finds the same view. The filter's own parameters stay.
+  const showView = (view: string): void => {
+    root.dataset.view = view;
+    const radio = root.querySelector<HTMLInputElement>(`input[name="topic-view"][value="${view}"]`);
+    if (radio) radio.checked = true;
+  };
+  if (root.querySelector("[data-topic-view]")) {
+    showView(new URLSearchParams(location.search).get("view") === "preferences" ? "preferences" : "sources");
+  }
+
   root.addEventListener("input", (event) => {
     const target = event.target as HTMLInputElement;
+    if (target.name === "topic-view") {
+      showView(target.value);
+      const url = new URL(location.href);
+      if (target.value === "preferences") url.searchParams.set("view", "preferences");
+      else url.searchParams.delete("view");
+      history.replaceState(history.state, "", url);
+      return;
+    }
     if (target.matches("[data-weight], [data-mix]")) {
       // The fill and the stop's name follow the thumb; recording the change waits for the editor.
       drawStop(target);

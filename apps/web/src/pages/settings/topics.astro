@@ -75,7 +75,7 @@ const libraryRows = [...library.values()].sort((a, b) =>
 const choices = topicChoicesOf(layout);
 ---
 
-<BaseLayout title="Topics and sources" view="settings" skipLabel="Skip to topics and sources">
+<BaseLayout title="Sources" view="settings" skipLabel="Skip to sources">
   <main id="main" tabindex="-1">
     {/* One row per topic, each leading to its own page (topics/[id].astro) with its switch, its
          weight and its sources. Here: a search over every source, and Add, which opens one panel for
@@ -87,7 +87,7 @@ const choices = topicChoicesOf(layout);
       data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
       data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
-      <SettingsHead title="Topics and sources" />
+      <SettingsHead title="Sources" />
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>

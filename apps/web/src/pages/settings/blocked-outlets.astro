@@ -22,7 +22,7 @@ const domains = await loadBlockedDomains();
     <div class="manage blocked" data-blocked data-domains={JSON.stringify(domains)}>
       <SettingsHead
         title="Blocked outlets"
-        up={{ href: "/settings/topics", label: "Topics and sources" }}
+        up={{ href: "/settings/topics", label: "Sources" }}
         note="A blocked outlet is left out of every briefing and episode from the next one made, including stories found by search. Blocking a domain blocks its subdomains."
       />
       <noscript>
