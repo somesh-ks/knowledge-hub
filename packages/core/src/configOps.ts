@@ -146,7 +146,10 @@ export const ConfigOp = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("mix.set"),
     format_mix: z
-      .partialRecord(SourceFormat, z.union([MixStop, z.number().min(0).max(1.2).transform(mixStopOf)]))
+      .partialRecord(
+        SourceFormat,
+        z.union([MixStop, z.number().min(0).max(1.2).transform(mixStopOf)]),
+      )
       .refine((value) => Object.keys(value).length > 0, "give at least one type"),
   }),
   z.object({
