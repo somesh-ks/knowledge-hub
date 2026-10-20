@@ -510,7 +510,7 @@ describe("GET /api/narrate", () => {
     const firstUrl = async (context: Setup, id: string) =>
       lookupBody(await lookup(context, id)).segments[0]?.audio?.url;
 
-    it("uses the daily voice for a daily briefing and the weekly voice for a weekly one", async () => {
+    it("reads a daily and a weekly briefing in the shared voice, as the engine does", async () => {
       const weekly = makeDigest({ id: WEEKLY_ID, kind: "weekly" });
       const context = withSchedule(schedule, {
         env: { SPEECHIFY_VOICE_ID: "env_v" },
@@ -522,7 +522,7 @@ describe("GET /api/narrate", () => {
       const key = segmentPath(
         WEEKLY_ID,
         "intro",
-        segmentHash(segmentOf(weekly, "intro").text, "weekly_v", MODEL),
+        segmentHash(segmentOf(weekly, "intro").text, "daily_v", MODEL),
       );
       expect(week).toBe(`${FAKE_BLOB_HOST}/${key}`);
     });

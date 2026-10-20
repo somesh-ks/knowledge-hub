@@ -3,10 +3,28 @@ import {
   ConfigOp,
   DEFAULT_SCHEDULE,
   effectiveSkipTopics,
+  podcastVoices,
   ScheduleChange,
   ScheduleFile,
   withGeneralScope,
 } from "./index.js";
+
+describe("podcastVoices", () => {
+  // The bug: Weekly and Catch up kept reading their own old voices after the owner chose one pair
+  // for every podcast, so the site and the engine named stored audio for different voices.
+  it("gives weekly and Create episodes the shared pair, their own voices only while it is unset", () => {
+    const old = ScheduleFile.parse({
+      ...DEFAULT_SCHEDULE,
+      weekly: { voice_id: "old_w", voice_id_b: "old_wb" },
+      custom: { voice_id: "old_c" },
+    });
+    expect(podcastVoices(old, "weekly")).toEqual({ voice_id: "old_w", voice_id_b: "old_wb" });
+    const shared = { ...old, voice_id: "ada_1", voice_id_b: "leo_2" };
+    for (const profile of ["daily", "weekly", "custom"] as const) {
+      expect(podcastVoices(shared, profile)).toEqual({ voice_id: "ada_1", voice_id_b: "leo_2" });
+    }
+  });
+});
 
 describe("ScheduleFile", () => {
   it("accepts the defaults and a list of topics left out", () => {

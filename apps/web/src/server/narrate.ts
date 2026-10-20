@@ -3,6 +3,7 @@ import {
   type Digest,
   DigestId,
   parseDigestFile,
+  podcastVoices,
   ScheduleFile,
 } from "@dispatch/core";
 import {
@@ -188,8 +189,8 @@ export interface DigestSource {
 }
 
 /**
- * The voice the schedule gives a briefing: the weekly one for a weekly digest (its id ends in
- * "-weekly"), the daily one otherwise. Undefined when the schedule is missing, unreadable or sets
+ * The voice the schedule gives a briefing: the shared Podcast voice, which a weekly digest (its id
+ * ends in "-weekly") or a daily one reads the same way the engine does (podcastVoices). Undefined when the schedule is missing, unreadable or sets
  * none, and the server's voice applies. The schedule is part of the build, so this asks no one.
  */
 async function scheduledVoice(source: DigestSource, id: string): Promise<string | undefined> {
@@ -198,7 +199,7 @@ async function scheduledVoice(source: DigestSource, id: string): Promise<string 
     const parsed = ScheduleFile.safeParse(await source.readSchedule?.());
     if (!parsed.success) return undefined;
     return (
-      (id.endsWith("-weekly") ? parsed.data.weekly.voice_id : parsed.data.voice_id) ?? undefined
+      podcastVoices(parsed.data, id.endsWith("-weekly") ? "weekly" : "daily").voice_id ?? undefined
     );
   } catch {
     return undefined;

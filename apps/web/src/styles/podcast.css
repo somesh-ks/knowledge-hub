@@ -35,21 +35,10 @@
   }
 }
 
-/* Off, the weekly podcast is one switch: its other groups wait until it is on, and a line under the
-   switch says so. */
-.manage:has(#weekly-enabled:not(:checked)) .podcast-profile > .podcast-section,
-.manage:not(:has(#weekly-enabled:not(:checked))) [data-off] {
-  display: none;
-}
-
 /* The groups of a scheduled podcast, one under the other. Each group's name carries the space above
    it (settings.css), so the groups are told apart by air and not by lines. */
 .podcast-profile {
   display: grid;
-}
-
-.podcast-enable {
-  padding-block-start: var(--space-2);
 }
 
 /* A quiet line under a group's name or its rows. */

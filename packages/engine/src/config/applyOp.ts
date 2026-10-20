@@ -511,6 +511,13 @@ function setSchedule(
   if (op.custom?.skip_topics !== undefined) {
     next.schedule.custom.skip_topics = skippedTopics(op.custom.skip_topics, next);
   }
+  // The top-level pair is every podcast's voice (podcastVoices): saving it clears a weekly or Create
+  // voice left from before, so Default there means Default everywhere.
+  for (const key of ["voice_id", "voice_id_b"] as const) {
+    if (op[key] === undefined) continue;
+    if (op.weekly?.[key] === undefined) next.schedule.weekly[key] = null;
+    if (op.custom?.[key] === undefined) next.schedule.custom[key] = null;
+  }
   const parts: string[] = [];
   if (op.timezone !== undefined) {
     parts.push(`set time zone to ${op.timezone}`);

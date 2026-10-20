@@ -160,6 +160,25 @@ export function withGeneralScope(schedule: ScheduleFile): ScheduleFile {
   };
 }
 
+/** Which podcast a voice is wanted for: the daily or weekly one, or one made in the Create panel. */
+export type PodcastProfile = "daily" | "weekly" | "custom";
+
+/**
+ * The two voices a podcast is read in. The top-level pair is set once, on the Podcast voice page,
+ * for every podcast. A weekly or Create voice saved before the pair was shared stands in only while
+ * the shared one is unset (the site and the engine both ask this, so stored audio keeps its name).
+ */
+export function podcastVoices(
+  schedule: Pick<ScheduleFile, "voice_id" | "voice_id_b" | "weekly" | "custom">,
+  profile: PodcastProfile,
+): { voice_id: string | null; voice_id_b: string | null } {
+  const own = profile === "weekly" ? schedule.weekly : profile === "custom" ? schedule.custom : schedule;
+  return {
+    voice_id: schedule.voice_id ?? own.voice_id,
+    voice_id_b: schedule.voice_id_b ?? own.voice_id_b,
+  };
+}
+
 /** The complete settings of the schedule file, without its version. */
 export const ScheduleSettings = z.object({
   timezone: z.string().min(1).max(100),

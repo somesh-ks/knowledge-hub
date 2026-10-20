@@ -44,22 +44,17 @@ const PAGES = {
       skipTopics: schedule.skipTopics,
       format: schedule.format,
       lengthMinutes: schedule.lengthMinutes,
-      voiceId: schedule.voiceId,
-      voiceIdB: schedule.voiceIdB,
     },
   },
   weekly: {
     title: "Weekly Podcast",
     values: {
       timezone: schedule.timezone,
-      enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
       skipTopics: schedule.weekly.skip_topics,
       format: schedule.weekly.format,
       lengthMinutes: schedule.weekly.length_minutes,
-      voiceId: schedule.weekly.voice_id,
-      voiceIdB: schedule.weekly.voice_id_b,
     },
   },
 } as const;
@@ -69,8 +64,7 @@ const { title, values } = PAGES[profile];
 <BaseLayout title={title} view="settings" skipLabel={`Skip to the ${title} settings`}>
   <main id="main" tabindex="-1">
     {/* Static HTML with the saved values written in. scripts/podcastPage.ts records a change and
-         autosave.ts sends it a moment later; the voice list loads into the rows, which are as tall
-         as the real ones. */}
+         autosave.ts sends it a moment later. The voices are on the Podcast voice page. */}
     <div class="manage" data-manage="podcast">
       <SettingsHead title={title} />
       <noscript>
