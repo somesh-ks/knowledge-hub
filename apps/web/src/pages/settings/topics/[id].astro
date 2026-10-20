@@ -141,9 +141,7 @@ const weightRows =
 const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
 // A lean set before then stays visible where it applies, so it can be seen and set back to Even.
 const perspective =
-  topic !== null &&
-  general &&
-  (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
+  topic !== null && general && (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
 // The Formats group: one slider for each format the topic's sources use. Formats and Perspective are
 // two groups on the page and go as one topic.mix (managePageSave.ts joins them).
 const usedFormats = SOURCE_FORMATS.filter((format) =>
