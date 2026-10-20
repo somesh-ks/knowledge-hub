@@ -23,3 +23,13 @@ Parallel workers, each in its own worktree on a branch from `integration`, each 
 - Episode pre-narration's first live run, after the `podcast.yml` change (a separate PR the owner merges by hand) lands. Owner action: set the GitHub variable `SPEECHIFY_VOICE_ID_B` to match Vercel's.
 - `?view=preferences` may flash Sources on load.
 - The weekly model check (Mondays 08:52 Europe/Stockholm) was created without connectors; its first run shows whether it can browse and open PRs.
+
+## Parked
+
+Open items moved here from `state.md` to keep it within its budget, unchanged. Each still stands until its condition holds.
+
+- Unit flake: the sound peak check failed once. closed when: 10 gates in a row pass.
+- P3 polish from critic rounds 5 to 9 is in `git show 91bc533:docs/state.md`. closed when: the owner picks which to fix.
+- From the 2026-10-08 QA sweep: a refused narration (429) shows no wait time; focus on opening the player is unchecked. closed when: the 429 names its wait and a keyboard test opens the player with focus inside.
+- Costs and sizes reasoned, not measured: 150 to 400 extra Jev requests a run for the general feeds (against 165 on 2026-10-09), and the episode script's part sizes (D66 to D68). closed when: a run log reports the judge's request count with general topics on.
+- Settings switches show the track colour until the script is ready; the 6 and 7 October audio says "Dispatch". closed when: the owner rules on each.

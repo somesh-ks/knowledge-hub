@@ -10,7 +10,7 @@ Last updated 2026-10-21. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run (commits for 2026-10-17, 18-weekly and 20); episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Deploy: the Vercel GitHub integration deploys `main`. CI on Linux: typecheck, lint, unit tests, site build, gitleaks, and the `browser` job (both suites) for changes to the site, core or tokens. Owner and Dependabot PRs auto-merge.
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (`dispatch-verify` and `dispatch-worker` in `.claude/agents/`), `/close-session`, a read-only Bash hook, 4 concurrent agents at depth 1. Untested: the per-call `effort` override, `omitClaudeMd`, `researcher`'s Firecrawl tools, `ui-critic`. Biome skips `config/` and `state/`.
+- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (`dispatch-verify`, `dispatch-worker` in `.claude/agents/`), `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
 
 ## Tests
 
@@ -53,6 +53,8 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Unverified (D106 to D109): the volume slider's 400 ms linger and hold while dragged (CSS only), the highlight's pause on a live briefing, a vote batch sent as a page unloads (a lost batch is not retried), a briefing regenerated with a topic the original run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - Costs reasoned, not measured: 150 to 400 extra Jev requests a run for the general feeds (D66 to D68). closed when: a run log reports the judge's request count with general topics on.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
+
+- Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes there.
 
 ## Known risks
 
