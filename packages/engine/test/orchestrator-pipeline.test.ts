@@ -102,7 +102,7 @@ describe("published run", () => {
         audio: null,
         generated_at: WED.toISOString(),
       });
-      expect(digest.items).toHaveLength(8);
+      expect(digest.items).toHaveLength(6);
       expect(digest.items.filter((item) => item.section === "top")).toHaveLength(3);
       for (const item of digest.items) {
         expect(item).not.toHaveProperty("why");
@@ -885,7 +885,7 @@ describe("tech releases in a published run", () => {
         ".cache/run/2026-10-07/written.json",
       );
       const reasons = written.dropped.map((d) => d.reason);
-      expect(reasons.filter((reason) => reason.startsWith("over_tech_cap"))).toHaveLength(2);
+      expect(reasons.filter((reason) => reason.startsWith("over_tech_cap"))).toHaveLength(1);
       expect(reasons.filter((reason) => reason.startsWith("below_threshold"))).toHaveLength(1);
       expect(reasons.some((reason) => reason.startsWith("over_cap"))).toBe(false);
 

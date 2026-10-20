@@ -374,7 +374,7 @@ test.describe("a topic's page", () => {
     await open(page, "/settings/topics/audio_interfaces");
     const slider = page.locator("[data-weight]");
     await slider.fill("3");
-    await expect(page.locator("[data-word]")).toHaveText("More");
+    await expect(page.locator(".topic-weight:has([data-weight]) [data-word]")).toHaveText("More");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.85 } }]);
   });

@@ -21,6 +21,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - A sized pass sends the judge 2.4 candidates per story it writes (178 for a 15-minute weekly, 60 for a 5-minute daily) and writes 85% spares up to 80 stories. The narration-limit cut waits until the spares are trimmed to the length.
 - Writing, grounding and validation drop about 45% of candidates.
 - General topics: Science takes a clearly on-topic story from one outlet (D120); the other general topics need two. General feeds are judged by Jev each run for the feeds' scores and never reach a briefing as such (D66); a general section gets two stories outside the briefing's cap; the weekly ceiling is 600 judged items.
+- Mix and lean (sub-project 3 of the sources design): a topic's `format_mix` (Off, Less 0.85, Normal 1, More 1.1, Most 1.2 by source format; Normal omitted) multiplies its score after weight x fit, Off excludes the story; a general topic's `perspective` (-2 to 2, Even omitted) scales a story by up to 15% by its outlets' mean `lean` (unrated is Centre). A briefing holds at most two stories per outlet (`OUTLET_CAP`, `over_outlet`). `dispatch classify-lean` rates general sources with Jev for review; both are edited by `topic.mix` and `source.update`.
 
 ### Sources and scores
 - A YouTube channel is added from a `/channel/UC...` address, a `@handle` or a `/c/` name (the id comes from the address, then YouTube's resolver, then the page); a video address is refused with a message. A social media page with no feed is refused, as Firecrawl cannot read it.

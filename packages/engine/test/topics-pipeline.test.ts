@@ -166,7 +166,7 @@ describe("a run with a custom topic", () => {
       expect(stats.sources["blog-a"]).toMatchObject({ window_start: "2026-10-07" });
       expect(stats.sources["blog-a"]?.judged).toBeGreaterThanOrEqual(7);
       expect(stats.sources["blog-a"]?.passed).toBeGreaterThanOrEqual(5);
-      expect(stats.sources["blog-a"]?.published).toBeGreaterThanOrEqual(5);
+      expect(stats.sources["blog-a"]?.published).toBeGreaterThanOrEqual(2);
       const changed = git(repo.root, "show", "--name-only", "--format=", "HEAD")
         .split("\n")
         .filter(Boolean);
