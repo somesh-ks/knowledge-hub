@@ -2751,7 +2751,7 @@
   }
 }
 
-@media (max-width: 63.9375rem) and (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) and (max-width: 63.9375rem) {
   .player .player-collapse:hover:not(:active) {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
