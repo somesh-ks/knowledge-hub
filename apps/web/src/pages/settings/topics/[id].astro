@@ -67,10 +67,7 @@ const { group, topic, list, choices, taken } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
-const [{ sources }, catalog] = await Promise.all([
-  loadManage(),
-  loadSourceCatalog(),
-]);
+const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = group?.name ?? topic?.name ?? "Other";
 const note = group?.note ?? topic?.description ?? "Sources not filed under a topic.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when

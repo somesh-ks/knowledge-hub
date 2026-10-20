@@ -60,7 +60,11 @@ function mount(root: HTMLElement): void {
     if (radio) radio.checked = true;
   };
   if (root.querySelector("[data-topic-view]")) {
-    showView(new URLSearchParams(location.search).get("view") === "preferences" ? "preferences" : "sources");
+    showView(
+      new URLSearchParams(location.search).get("view") === "preferences"
+        ? "preferences"
+        : "sources",
+    );
   }
 
   root.addEventListener("input", (event) => {

@@ -64,7 +64,7 @@ const shownTabs = tabs && formats.length > 1;
   }
   {
     shownTabs && (
-      <div class="filter-chips" role="group" aria-label="Format">
+      <div class="filter-chips" role="group" aria-label="Type">
         {formats.map((chip) => (
           <button class="format-chip" type="button" aria-pressed="false" data-chip={chip.format}>
             {chip.label}

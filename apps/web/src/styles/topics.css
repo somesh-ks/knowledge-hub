@@ -12,8 +12,10 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A source is a two-line list item (name, then its site), M3's 72px. */
-.topics {
+/* A source is a two-line list item (name, then its site), M3's 72px. The row holds its own height,
+   so it keeps it outside a topics page too: the Add source panel is appended to the body
+   (2026-10-20, its suggestions touched on a phone). */
+:is(.topics, .source-row) {
   --source-row: 4.5rem;
 }
 
@@ -1362,7 +1364,7 @@
 .panel-suggested {
   display: grid;
   gap: var(--space-2);
-  margin-block-start: var(--space-4);
+  margin-block-start: var(--space-6);
 }
 
 .panel-suggested:not(:has(li:not([hidden]))) {
@@ -1376,7 +1378,7 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Formats as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
+/* Types as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
    the choice. Chips are the filter's old look: a hairline outline, the accent when pressed. No All:
    none pressed means everything. */
 .filter-chips {

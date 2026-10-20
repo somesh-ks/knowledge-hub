@@ -53,7 +53,7 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
     help: `Usage:
   dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
                                                       source.add, source.set, source.remove, weights.set,
-                                                      schedule.set
+                                                      mix.set, topic.mix, schedule.set
   dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
 
 Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json,
