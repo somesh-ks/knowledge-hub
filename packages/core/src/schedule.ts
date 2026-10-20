@@ -172,7 +172,8 @@ export function podcastVoices(
   schedule: Pick<ScheduleFile, "voice_id" | "voice_id_b" | "weekly" | "custom">,
   profile: PodcastProfile,
 ): { voice_id: string | null; voice_id_b: string | null } {
-  const own = profile === "weekly" ? schedule.weekly : profile === "custom" ? schedule.custom : schedule;
+  const own =
+    profile === "weekly" ? schedule.weekly : profile === "custom" ? schedule.custom : schedule;
   return {
     voice_id: schedule.voice_id ?? own.voice_id,
     voice_id_b: schedule.voice_id_b ?? own.voice_id_b,

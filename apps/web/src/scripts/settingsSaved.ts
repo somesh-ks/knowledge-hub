@@ -103,7 +103,8 @@ export function overlayIndex(root: ParentNode, ops: readonly ConfigOp[]): boolea
         }),
       ) || shown;
   if (voice)
-    shown = say(voice, voicesSummary(now["daily.voice"] ?? "", now["daily.voice_b"] ?? "")) || shown;
+    shown =
+      say(voice, voicesSummary(now["daily.voice"] ?? "", now["daily.voice_b"] ?? "")) || shown;
 
   const topics = row(root, "topics");
   if (topics) {

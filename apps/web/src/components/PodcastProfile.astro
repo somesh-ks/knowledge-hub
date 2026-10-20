@@ -42,7 +42,6 @@ const zones = SUPPORTED_TIMEZONES.map((zone) => ({
 // A topic is in the podcast unless every topic it stands for is on the skip list.
 const inScope = (ids: readonly string[]): boolean =>
   !ids.every((topic) => values.skipTopics.includes(topic));
-
 ---
 
 <div class="podcast-profile" data-profile={id}>

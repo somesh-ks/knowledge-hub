@@ -12,11 +12,13 @@ function stored(page: Page): Promise<Record<string, unknown>> {
 }
 
 /** Opens the page and waits until its script has filled the controls in. */
-async function openSettings(page: Page): Promise<void> {
-  await page.goto("/settings");
+async function openSettings(page: Page, path = "/settings"): Promise<void> {
+  await page.goto(path);
   await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
 }
 
+/** The Interface sounds page, where the switch and the volume live. */
+const SOUNDS = "/settings/sounds";
 const theme = (page: Page) => page.getByRole("radiogroup", { name: "Theme" });
 const sounds = (page: Page) => page.getByRole("switch", { name: "Interface sounds", exact: true });
 const volume = (page: Page) => page.getByRole("slider", { name: "Volume" });
@@ -78,7 +80,7 @@ test.describe("settings page", () => {
   test("turning interface sounds off disables the volume, and back on enables it", async ({
     page,
   }) => {
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(sounds(page)).toBeChecked();
     await expect(volume(page)).toBeEnabled();
 
@@ -100,7 +102,7 @@ test.describe("settings page", () => {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
   });
@@ -108,7 +110,7 @@ test.describe("settings page", () => {
   test("sets the volume from the keyboard, fills the track to match and persists it", async ({
     page,
   }) => {
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(volume(page)).toHaveValue("0.8");
     await expect(volume(page)).toHaveAttribute("aria-valuetext", "80%");
     await volume(page).focus();
@@ -150,6 +152,9 @@ test.describe("settings page", () => {
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
+    await expect(page.getByRole("link", { name: /^Interface sounds/ })).toContainText("Off");
+    await page.getByRole("link", { name: /^Interface sounds/ }).click();
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
     await expect(volume(page)).toHaveValue("0.35");
@@ -173,8 +178,6 @@ test.describe("settings page", () => {
 
     await theme(page).getByRole("radio", { name: "Light" }).check();
     await expect.poll(async () => (await stored(page)).theme).toBe("light");
-    await sounds(page).click();
-    await expect(volume(page)).toBeDisabled();
   });
 });
 
@@ -214,7 +217,7 @@ test.describe("settings page, axe", () => {
     await openSettings(page);
     await expectNoViolationsInEitherScheme(page);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(volume(page)).toBeDisabled();
     await expectNoViolationsInEitherScheme(page);
   });
