@@ -44,7 +44,12 @@ const EXEMPT = [
 ];
 
 const PAGES = [
-  ...new Set([...ROUTES.map((route) => route.path), ...SITE_PAGES, "/settings/topics/design"]),
+  ...new Set([
+    ...ROUTES.map((route) => route.path),
+    ...SITE_PAGES,
+    "/settings/topics/design",
+    "/settings/topics/design?view=preferences",
+  ]),
 ];
 
 /** Every visible element's spacing that is off the 4px grid, as `selector property value`. */
@@ -128,6 +133,16 @@ test.describe("the 8pt spacing system", () => {
     await page.getByRole("button", { name: "More actions" }).click();
     await expect(page.getByRole("menu", { name: "More actions" })).toBeVisible();
     expect.soft(await offGrid(page), "the More actions menu").toEqual([]);
+
+    // A Library row's More actions menu, and the player's queue sheet raised.
+    await page.goto("/library");
+    await hydrated(page);
+    await page
+      .getByRole("button", { name: /^More actions for / })
+      .first()
+      .click();
+    await expect(page.getByRole("menu").first()).toBeVisible();
+    expect.soft(await offGrid(page), "a Library row's menu").toEqual([]);
 
     // The Add source panel with the topic's suggested sources.
     await page.goto("/settings/topics/design");
