@@ -81,6 +81,9 @@
     "cohere-blog": {
       "removed": true
     },
+    "the-decoder": {
+      "removed": true
+    },
     "the-neuron": {
       "enabled": true
     }
