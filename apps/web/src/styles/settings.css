@@ -110,16 +110,17 @@
   outline: none;
 }
 
-/* A group's name is the page's H2 (2026-10-20): the section heading role, 22px regular in the text
-   colour, a clear step under the 28 to 32px title and told apart from it by size and space alone,
-   never by weight. More air above than below: it belongs to its rows. */
+/* A group's name is the page's H2 (2026-10-20): 18px rising to 20px, regular, in the text colour, a
+   clear step under the 28 to 32px title and told apart from it by size and space alone, never by
+   weight; 22px read as too big beside the rows (the owner, the same day). More air above than below:
+   it belongs to its rows. */
 :is(.settings-view, .manage) .section-head {
   padding-block: var(--space-8) var(--space-3);
   font-family: var(--text-heading-family);
-  font-size: var(--text-heading-size);
+  font-size: var(--font-size-title);
   font-weight: var(--text-heading-weight);
-  letter-spacing: var(--text-heading-tracking);
-  line-height: var(--text-heading-leading);
+  letter-spacing: var(--font-tracking-title);
+  line-height: var(--font-leading-title);
   color: var(--color-on-surface);
 }
 

@@ -13,7 +13,7 @@ export const LIBRARY_FILTERS: ReadonlyArray<{ id: LibraryFilter; label: string }
   { id: "all", label: "All" },
   { id: "daily", label: "Daily" },
   { id: "weekly", label: "Weekly" },
-  { id: "custom", label: "Custom" },
+  { id: "custom", label: "Catch up" },
 ];
 
 /**

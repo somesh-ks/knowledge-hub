@@ -10,6 +10,7 @@
  */
 import type { SourceFormat } from "@dispatch/core";
 import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
+import { fitAboveKeyboard } from "./keyboardFit";
 import { pullToDismiss } from "./pullDismiss";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
@@ -568,6 +569,8 @@ export function openPanel(
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
   // On a phone the full-screen panel also closes when pulled down.
   pullToDismiss(panel, () => panel.close());
+  // On a phone the full-screen panel ends where the keyboard begins, so the screen never pans.
+  const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(panel) : () => {};
   // A press on the scrim lands on the dialog itself; everything else is inside its panel. Only a press
   // that also began on the scrim closes it: a drag out of a field ends there too.
   let fromScrim = false;
@@ -595,6 +598,7 @@ export function openPanel(
     () => {
       clearTimeout(timer);
       seq += 1;
+      unfit();
       if (trigger?.isConnected) trigger.focus();
       // It slides out as the Create panel does, then goes. Only its transitions are waited on: a
       // loading card's shimmer never ends.
@@ -616,5 +620,7 @@ export function openPanel(
   panel.showModal();
   // Adding starts with typing, so the first field takes focus. Editing starts with reading, so the
   // panel keeps the browser's own first focus, and a phone's keyboard does not cover what is there.
-  if (mode === "topic" || mode === "source") firstField().focus();
+  // The panel is still sliding up from below the screen: a plain focus would scroll to reach the
+  // field mid-slide, and the page jumped as the keyboard came up.
+  if (mode === "topic" || mode === "source") firstField().focus({ preventScroll: true });
 }

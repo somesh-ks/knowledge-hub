@@ -22,6 +22,10 @@
 
 The gate; the topics, podcast, settings, hidden, rhythm, layout and a11y browser specs (one Linux-only snapshot miss, below); screenshots at 390x844 and 1526x782; a scripted CDP touch pull that closed the panel and a short one that did not.
 
+## The owner's phone pass
+
+On a phone the Design page was zoomed out: its seven format tabs set the filter's grid column, so the filter, then the page, grew past the screen (the fixtures have three tabs, so no suite saw it). The fix is `minmax(0, 1fr)`; checked by adding tabs to the fixture page in a probe, not by a test, as the fixtures cannot hold seven formats on one page. Also: smaller H2s, one-line Listen in, Catch up for On Demand and Custom, and the add panel kept above the keyboard.
+
 ## Not verified
 
-The pull on a real phone (iOS rubber-banding in a full-screen dialog), the sticky search and tabs under a hiding app bar on a real phone, and the dark theme of the card's line.
+The keyboard fit on Android and iOS, the pull on a real phone (iOS rubber-banding in a full-screen dialog), the sticky search and tabs under a hiding app bar on a real phone, and the dark theme of the card's line.

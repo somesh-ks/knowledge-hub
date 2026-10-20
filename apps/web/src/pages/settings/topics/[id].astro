@@ -88,8 +88,8 @@ const scopeIds = group ? group.members.map((member) => member.id) : topic ? [top
 const SCOPES = [
   { key: "daily", label: "Daily", skipped: schedule.skipTopics },
   { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
-  // On Demand: episodes made on request (the `custom` profile).
-  { key: "custom", label: "On Demand", skipped: schedule.custom.skip_topics },
+  // Catch up: episodes made on request (the `custom` profile).
+  { key: "custom", label: "Catch up", skipped: schedule.custom.skip_topics },
 ] as const;
 const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
