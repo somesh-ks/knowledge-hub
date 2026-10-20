@@ -10,7 +10,7 @@ interface Props {
   /** The page the row opens, which Share points at and a download keeps. */
   path: string;
   kind: "briefing" | "episode";
-  /** The audio file, when the item has one: only then can it be downloaded. */
+  /** The audio file, or an episode's lookup of its turns' files: only then can it be downloaded. */
   audio?: string;
   /** False on a Daily or Weekly briefing: only on-demand briefings and episodes can be deleted. */
   deletable?: boolean;

@@ -5,6 +5,7 @@
  * its keys and its placement are the header More menu's (heroMenu.ts). Which rows are downloaded is
  * read from Cache Storage on load and after every change.
  */
+import { NotReadyError } from "../lib/downloads";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
 import { shareLink } from "./shareLink";
@@ -43,7 +44,7 @@ export async function syncDownloads(): Promise<void> {
 }
 
 async function toggleDownload(root: HTMLElement): Promise<void> {
-  const { id = "", audio = "", path = "" } = root.dataset;
+  const { id = "", audio = "", path = "", episode } = root.dataset;
   const card = root.closest<HTMLElement>("[data-card]");
   if (!id || !audio || card?.hasAttribute("data-downloading")) return;
   const library = await import("./libraryDownloads");
@@ -54,11 +55,18 @@ async function toggleDownload(root: HTMLElement): Promise<void> {
     } else {
       card?.setAttribute("data-downloading", "");
       toast("Downloading");
-      await library.download({ id, audio, page: path });
+      await library.download({
+        id,
+        audio,
+        page: path,
+        kind: episode ? "episode" : "briefing",
+      });
       toast("Downloaded for offline listening", "success");
     }
-  } catch {
-    toast("Could not download. Check your connection and try again.", "error");
+  } catch (error) {
+    // A turn without its file yet: a download never spends narration to make it.
+    if (error instanceof NotReadyError) toast("Not ready offline yet");
+    else toast("Could not download. Check your connection and try again.", "error");
   } finally {
     card?.removeAttribute("data-downloading");
     await syncDownloads();

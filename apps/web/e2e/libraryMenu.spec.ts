@@ -81,3 +81,80 @@ test("a downloaded briefing opens offline and its audio is answered from the sav
   expect(answer.size).toBe(10);
   await context.setOffline(false);
 });
+
+const EPISODE_ID = "ep-20261007-1930";
+
+test.describe("an episode download", () => {
+  // The turn not stored yet is a 404 the page logs; it is the case under test.
+  test.use({ allowNetworkErrors: true });
+
+  test("a downloaded episode plays offline from its saved turns, and one with a turn not stored yet says so and saves nothing", async ({
+    page,
+    context,
+  }) => {
+    const turns = ["t0", "t1"].map((key) => ({
+      key,
+      item_id: null,
+      characters: 10,
+      audio: {
+        url: `/audio/${EPISODE_ID}/seg/${key}.abc.mp3`,
+        duration_ms: 1000,
+        confirmed: false,
+      },
+    }));
+    let missing = true;
+    let offline = false;
+    await context.route("**/api/narrate?digest=*", (route) =>
+      offline
+        ? route.abort()
+        : route.fulfill({
+            json: {
+              status: 200,
+              audio: null,
+              timeline: null,
+              segments: turns,
+              ms_per_character: 50,
+            },
+          }),
+    );
+    await context.route("**/api/narrate-marks?*", (route) =>
+      route.fulfill({ json: { words: [] } }),
+    );
+    await context.route("**/audio/*/seg/*.mp3", (route) =>
+      missing && route.request().url().includes("t1")
+        ? route.fulfill({ status: 404 })
+        : route.fulfill({ body: Buffer.alloc(64, 1), contentType: "audio/mpeg" }),
+    );
+    await page.goto("/library");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+
+    await openMenu(page, EPISODE_ID);
+    await row(page, EPISODE_ID).getByRole("menuitem", { name: "Download" }).click();
+    await expect(page.getByText("Not ready offline yet")).toBeVisible();
+    await expect(row(page, EPISODE_ID)).not.toHaveAttribute("data-downloaded", "");
+
+    missing = false;
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+    await openMenu(page, EPISODE_ID);
+    await row(page, EPISODE_ID).getByRole("menuitem", { name: "Download" }).click();
+    await expect(row(page, EPISODE_ID)).toHaveAttribute("data-downloaded", "");
+
+    offline = true;
+    await context.setOffline(true);
+    await page.goto(`/e/${EPISODE_ID}`);
+    const lookup = await page.evaluate(async (id) => {
+      const res = await fetch(`/api/narrate?digest=${id}`);
+      const body = await res.json();
+      const file = await fetch(body.segments[1].audio.url, { headers: { Range: "bytes=0-9" } });
+      return {
+        confirmed: body.segments.every((s: { audio: { confirmed: boolean } }) => s.audio.confirmed),
+        file: file.status,
+      };
+    }, EPISODE_ID);
+    expect(lookup).toEqual({ confirmed: true, file: 206 });
+    await context.setOffline(false);
+  });
+});

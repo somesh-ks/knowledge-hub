@@ -8,9 +8,14 @@ import {
   AUDIO_CACHE,
   addDownload,
   addressesOf,
+  confirmLookup,
   type Download,
+  lookupAddress,
   MANIFEST_KEY,
+  marksAddress,
+  NotReadyError,
   parseDownloads,
+  segmentUrls,
 } from "../lib/downloads";
 
 /** How long the worker gets to save the page's scripts before the download counts as done. */
@@ -58,11 +63,86 @@ export interface DownloadRequest {
   id: string;
   audio: string;
   page: string;
+  /** An episode's audio is one file per turn, found through the lookup the player uses. */
+  kind?: "briefing" | "episode";
+}
+
+/**
+ * Saves an episode: its lookup (every turn marked as stored), each turn's file and word marks, its
+ * page and covers. A turn whose file is not stored is NotReadyError; nothing is narrated for it.
+ */
+async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<void> {
+  const address = lookupAddress(request.id);
+  const lookup = await fetch(address, { headers: { accept: "application/json" } });
+  if (!lookup.ok) throw new Error(`lookup ${lookup.status}`);
+  const body = (await lookup.json()) as Record<string, unknown>;
+  const turns = segmentUrls(body);
+  if (!turns) throw new NotReadyError();
+  const page = await fetch(request.page);
+  if (!page.ok) throw new Error(`page ${page.status}`);
+
+  const files: Response[] = [];
+  for (const turn of turns) {
+    const file = await fetch(turn.url);
+    if (file.status === 404) throw new NotReadyError();
+    if (!file.ok) throw new Error(`audio ${file.status}`);
+    files.push(file);
+  }
+
+  const saved: string[] = [];
+  const keep = async (key: string, response: Response): Promise<void> => {
+    await cache.put(key, response);
+    saved.push(key);
+  };
+  try {
+    for (const [index, turn] of turns.entries()) {
+      const file = files[index] as Response;
+      await keep(
+        turn.url,
+        new Response(await file.blob(), {
+          headers: { "content-type": file.headers.get("content-type") || "audio/mpeg" },
+        }),
+      );
+      // Marks are optional (a turn narrated before they were kept has none): the page estimates.
+      const marks = await fetch(marksAddress(request.id, turn.key)).catch(() => null);
+      if (marks?.ok) await keep(marksAddress(request.id, turn.key), marks);
+    }
+    for (const extra of [`/covers/${request.id}-512.webp`, `/covers/${request.id}-1024.webp`]) {
+      const cover = await fetch(extra).catch(() => null);
+      if (cover?.ok) await keep(extra, cover);
+    }
+    await keep(request.page, page);
+    await keep(
+      address,
+      new Response(JSON.stringify(confirmLookup(body)), {
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    // The entry's `audio` is the lookup and its extras every other address, so remove drops them all.
+    const { list, evicted } = addDownload(await readDownloads(), {
+      id: request.id,
+      audio: address,
+      page: request.page,
+      extras: saved.filter((key) => key !== request.page && key !== address),
+    });
+    for (const old of evicted) {
+      for (const key of addressesOf(old)) await cache.delete(key);
+    }
+    await writeDownloads(cache, list);
+  } catch (error) {
+    for (const key of saved) await cache.delete(key).catch(() => false);
+    throw error;
+  }
 }
 
 /** Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. */
 export async function download(request: DownloadRequest): Promise<void> {
   const cache = await caches.open(AUDIO_CACHE);
+  if (request.kind === "episode") {
+    await downloadEpisode(cache, request);
+    await warmPage(request.page);
+    return;
+  }
   const audio = await fetch(request.audio);
   if (!audio.ok) throw new Error(`audio ${audio.status}`);
   const page = await fetch(request.page);
