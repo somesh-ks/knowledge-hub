@@ -1,24 +1,19 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { EpisodeId, episodeRelPath, readEpisodeScript, STATE_FILES } from "@dispatch/core";
+import { EpisodeId, episodeRelPath, STATE_FILES } from "@dispatch/core";
 import { checkBudget, describeRefusal, loadUsage, recordUsage } from "../audio/budget.js";
 import {
-  DEFAULT_SECOND_VOICE,
   deriveSegmentMarks,
+  type EpisodePlan,
+  type EpisodeVoiceEnv,
+  type PlannedSegment,
+  planEpisodeNarration,
   SEGMENT_CACHE_SECONDS,
-  segmentHash,
   segmentMarksPath,
-  segmentPath,
   segmentPrefix,
-  turnKey,
 } from "../audio/segmentStore.js";
 import type { SpeechMark, SynthesisRequest } from "../audio/speechify.js";
-import {
-  DEFAULT_MODEL,
-  DEFAULT_OUTPUT_FORMAT,
-  DEFAULT_VOICE_ID,
-  isMarksUnavailable,
-} from "../audio/speechify.js";
+import { DEFAULT_MODEL, DEFAULT_OUTPUT_FORMAT, isMarksUnavailable } from "../audio/speechify.js";
 import type { BlobClient } from "./blob.js";
 import type { DigestAudioOutcome, PublishAudioDeps, PublishAudioResult } from "./publishAudio.js";
 import { recordPartialSpend } from "./publishAudio.js";
@@ -36,53 +31,6 @@ import { recordPartialSpend } from "./publishAudio.js";
 export const EPISODE_WINDOW_DAYS = 3;
 
 const DAY_MS = 86_400_000;
-
-/** The voices that read an episode's hosts, from the environment the site's narrate route has. */
-export interface EpisodeVoiceEnv {
-  SPEECHIFY_VOICE_ID?: string | undefined;
-  SPEECHIFY_VOICE_ID_B?: string | undefined;
-}
-
-export interface PlannedSegment {
-  key: string;
-  text: string;
-  voice: string;
-  path: string;
-}
-
-export interface EpisodePlan {
-  id: string;
-  segments: PlannedSegment[];
-}
-
-const blank = (value: string | undefined): string | undefined => value?.trim() || undefined;
-
-/**
- * Every turn of an episode file with the voice that reads it and where its audio lives, worked out
- * as the site's lookup does (hostVoices in apps/web/src/server/narrate.ts): the request's voices,
- * else the environment's, else the defaults. The workflow cannot tell an unset variable from an
- * empty one, so an empty SPEECHIFY_VOICE_ID_B reads as unset (the second default voice).
- */
-export function planEpisodeNarration(fileText: string, env: EpisodeVoiceEnv): EpisodePlan {
-  const script = readEpisodeScript(fileText);
-  const id = EpisodeId.parse(script.id);
-  if (script.turns.length === 0) throw new Error(`Episode ${id} has no turns`);
-  const a = script.voice_id ?? blank(env.SPEECHIFY_VOICE_ID) ?? DEFAULT_VOICE_ID;
-  const b = script.voice_id_b ?? blank(env.SPEECHIFY_VOICE_ID_B) ?? DEFAULT_SECOND_VOICE;
-  return {
-    id,
-    segments: script.turns.map((turn) => {
-      const key = turnKey(turn.idx);
-      const voice = turn.speaker === "b" ? b : a;
-      return {
-        key,
-        text: turn.text,
-        voice,
-        path: segmentPath(id, key, segmentHash(turn.text, voice, DEFAULT_MODEL)),
-      };
-    }),
-  };
-}
 
 /** The ids of every episode file under Podcasts/YYYY/MM/, newest first. */
 export async function listEpisodeIds(root: string): Promise<string[]> {

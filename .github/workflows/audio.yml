@@ -48,6 +48,9 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
+          # The second host of a discussion episode, as the site has it, so a turn narrated here is
+          # stored under the name the site looks for. Unset reads as the default second voice.
+          SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
           DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
           DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import type { SpeechMark } from "../audio/speechify.js";
+import { EpisodeId, readEpisodeScript } from "@dispatch/core";
+import { DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
 
 /**
  * Where a narrated segment lives, shared by the site's /api/narrate (which narrates a segment on
@@ -129,4 +130,51 @@ export function deriveSegmentMarks(text: string, marks: readonly SpeechMark[]): 
     latest = mark.start_ms;
   }
   return sorted;
+}
+
+/** The voices that read an episode's hosts, from the environment the site's narrate route has. */
+export interface EpisodeVoiceEnv {
+  SPEECHIFY_VOICE_ID?: string | undefined;
+  SPEECHIFY_VOICE_ID_B?: string | undefined;
+}
+
+export interface PlannedSegment {
+  key: string;
+  text: string;
+  voice: string;
+  path: string;
+}
+
+export interface EpisodePlan {
+  id: string;
+  segments: PlannedSegment[];
+}
+
+const blank = (value: string | undefined): string | undefined => value?.trim() || undefined;
+
+/**
+ * Every turn of an episode file with the voice that reads it and where its audio lives, worked out
+ * as the site's lookup does (hostVoices in apps/web/src/server/narrate.ts): the request's voices,
+ * else the environment's, else the defaults. The workflow cannot tell an unset variable from an
+ * empty one, so an empty SPEECHIFY_VOICE_ID_B reads as unset (the second default voice).
+ */
+export function planEpisodeNarration(fileText: string, env: EpisodeVoiceEnv): EpisodePlan {
+  const script = readEpisodeScript(fileText);
+  const id = EpisodeId.parse(script.id);
+  if (script.turns.length === 0) throw new Error(`Episode ${id} has no turns`);
+  const a = script.voice_id ?? blank(env.SPEECHIFY_VOICE_ID) ?? DEFAULT_VOICE_ID;
+  const b = script.voice_id_b ?? blank(env.SPEECHIFY_VOICE_ID_B) ?? DEFAULT_SECOND_VOICE;
+  return {
+    id,
+    segments: script.turns.map((turn) => {
+      const key = turnKey(turn.idx);
+      const voice = turn.speaker === "b" ? b : a;
+      return {
+        key,
+        text: turn.text,
+        voice,
+        path: segmentPath(id, key, segmentHash(turn.text, voice, DEFAULT_MODEL)),
+      };
+    }),
+  };
 }
