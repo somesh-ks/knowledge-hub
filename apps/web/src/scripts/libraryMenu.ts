@@ -108,6 +108,11 @@ export function installLibraryMenu(): void {
     if (item && item.getAttribute("aria-disabled") !== "true") void onPick(item);
   });
 
-  document.addEventListener("astro:page-load", () => void syncDownloads());
-  void syncDownloads();
+  // The menus answer from here on (the browser suite waits for it).
+  const ready = (): void => {
+    document.querySelector("[data-library]")?.setAttribute("data-menus-ready", "");
+    void syncDownloads();
+  };
+  document.addEventListener("astro:page-load", ready);
+  ready();
 }

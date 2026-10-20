@@ -13,7 +13,8 @@ const OFFLINE_ID = "offline-reason";
 
 function sync(): void {
   // The Library holds one menu per row; a page has one.
-  for (const root of document.querySelectorAll<HTMLElement>("[data-episode-actions]")) syncRoot(root);
+  for (const root of document.querySelectorAll<HTMLElement>("[data-episode-actions]"))
+    syncRoot(root);
 }
 
 function syncRoot(root: HTMLElement): void {

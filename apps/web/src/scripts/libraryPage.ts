@@ -23,7 +23,7 @@ import {
   textHasWords,
 } from "../lib/library";
 
-import { installLibraryMenu } from "./libraryMenu";
+import { whenIdle } from "./idle";
 
 const VIEW_KEY = "dispatch:library-view";
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
@@ -311,5 +311,20 @@ function install(): void {
 }
 
 document.addEventListener("astro:page-load", install);
-installLibraryMenu();
+
+// The row menus' code (keys, Download, Share, the dialogs) is not the page's first load: it comes at
+// idle, or at the first touch of a row's menu, whichever is first. A pick takes longer than that.
+let menuLoaded = false;
+function loadMenus(): void {
+  if (menuLoaded) return;
+  menuLoaded = true;
+  void import("./libraryMenu").then((menu) => menu.installLibraryMenu());
+}
+whenIdle(loadMenus);
+document.addEventListener("pointerdown", (event) => {
+  if ((event.target as Element).closest?.("[data-library-menu]")) loadMenus();
+});
+document.addEventListener("focusin", (event) => {
+  if ((event.target as Element).closest?.("[data-library-menu]")) loadMenus();
+});
 install();

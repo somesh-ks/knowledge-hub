@@ -84,7 +84,10 @@ export async function download(request: DownloadRequest): Promise<void> {
         saved.push(extra);
       }
     }
-    const { list, evicted } = addDownload(await readDownloads(), { ...request, extras: saved.slice(2) });
+    const { list, evicted } = addDownload(await readDownloads(), {
+      ...request,
+      extras: saved.slice(2),
+    });
     for (const old of evicted) {
       for (const address of addressesOf(old)) await cache.delete(address);
     }

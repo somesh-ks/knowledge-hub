@@ -2,7 +2,10 @@
  * Share a link: the system share sheet where there is one, a copy to the clipboard where there is
  * not. Returns what happened so the caller can say so ("copied" is the one that needs a word).
  */
-export async function shareLink(title: string, address: string): Promise<"shared" | "copied" | "none"> {
+export async function shareLink(
+  title: string,
+  address: string,
+): Promise<"shared" | "copied" | "none"> {
   const url = new URL(address, location.href).href;
   if (navigator.share) {
     try {

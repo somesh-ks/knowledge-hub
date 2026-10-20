@@ -141,7 +141,7 @@ self.addEventListener("message", (event) => {
       fetch(data.path)
         .then((response) => (response.ok ? warmAssets(response) : undefined))
         .catch(() => undefined)
-        .then(() => port && port.postMessage("done")),
+        .then(() => port?.postMessage("done")),
     );
   }
 });
@@ -395,11 +395,17 @@ async function fromDownload(cached, rangeHeader) {
   const type = cached.headers.get("content-type") || "audio/mpeg";
   const base = { "content-type": type, "accept-ranges": "bytes" };
   if (!rangeHeader) {
-    return new Response(blob, { status: 200, headers: { ...base, "content-length": String(blob.size) } });
+    return new Response(blob, {
+      status: 200,
+      headers: { ...base, "content-length": String(blob.size) },
+    });
   }
   const range = parseRange(rangeHeader, blob.size);
   if (!range) {
-    return new Response(null, { status: 416, headers: { ...base, "content-range": `bytes */${blob.size}` } });
+    return new Response(null, {
+      status: 416,
+      headers: { ...base, "content-range": `bytes */${blob.size}` },
+    });
   }
   const [start, end] = range;
   return new Response(blob.slice(start, end + 1), {
