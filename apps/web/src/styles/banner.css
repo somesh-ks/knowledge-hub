@@ -6,7 +6,7 @@
 .banner {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--radius-lg);
   background: var(--tone-bg);
@@ -56,7 +56,7 @@
 }
 
 .banner-body {
-  margin-block-start: var(--space-half);
+  margin-block-start: var(--space-1);
   line-height: var(--font-leading-body);
 }
 

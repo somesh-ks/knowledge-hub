@@ -365,7 +365,7 @@
     inset-block-start: max(var(--space-2), var(--safe-top));
     inset-inline-start: max(var(--space-2), var(--safe-left));
     z-index: var(--z-toast);
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-2) var(--space-4);
     border-radius: var(--button-radius);
     background: var(--color-surface-inverse);
     color: var(--color-on-surface-inverse);

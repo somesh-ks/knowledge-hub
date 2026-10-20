@@ -26,8 +26,8 @@
   display: block;
   width: 100%;
   min-height: calc(var(--field-height) * 3);
-  margin-block: var(--space-3) 0;
-  padding-block: var(--space-3);
+  margin-block: var(--space-4) 0;
+  padding-block: var(--space-4);
   font-family: inherit;
   line-height: var(--font-leading-body);
   /* It grows with its words where the browser can (field-sizing); a corner grip would sit on the
@@ -39,7 +39,7 @@
 
 /* Shown only near the limit, a quiet line under the field with air above it. */
 .regen-count {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -139,14 +139,14 @@ dialog.confirm-dialog:focus-visible {
 
 .confirm-form {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .confirm-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
 /* Red only here, once the person has asked to delete. */

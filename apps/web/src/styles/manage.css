@@ -92,7 +92,7 @@
   flex: none;
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
-  margin-block-start: var(--space-half);
+  block-size: 1lh;
 }
 
 .manage-input {
@@ -189,7 +189,7 @@ textarea.manage-input {
 .manage-pick {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
   cursor: pointer;
@@ -217,7 +217,7 @@ textarea.manage-input {
 .manage-main {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--size-touch);
 }
 
@@ -279,7 +279,7 @@ textarea.manage-input {
 
 /* The icon buttons sit flush with the gutter at the end of the row. */
 .manage-main > .icon-btn:last-child {
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 .manage-pin[aria-pressed="true"] {
@@ -307,7 +307,7 @@ textarea.manage-input {
 .manage-weight {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-block-start: var(--space-2);
 }
 
@@ -328,7 +328,7 @@ textarea.manage-input {
 
 /* A suggestion's button shows Add, or Added once it is picked. */
 .manage-suggest {
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-4) * -1);
 }
 
 .manage-suggest .icon:last-of-type,
@@ -367,7 +367,7 @@ textarea.manage-input {
 /* While it shows, the page keeps room for the toast under its last control, and focus scrolling
    stops above it, so the control just changed can always be moved clear of it (autosave.ts). */
 html:has(.manage-bar:popover-open) {
-  --page-end: calc(var(--space-12) + var(--size-touch) + var(--space-1) * 2 + var(--space-3));
+  --page-end: calc(var(--space-12) + var(--size-touch) + var(--space-1) * 2 + var(--space-4));
   scroll-padding-block-end: calc(
     var(--bottom-nav-height) +
     var(--dock-room) +
@@ -431,7 +431,7 @@ html:has(.manage-bar:popover-open) {
 .manage-check {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--size-touch);
   font-size: var(--font-size-label);
   cursor: pointer;
@@ -486,7 +486,7 @@ html:has(.manage-bar:popover-open) {
 }
 
 .manage-add > summary {
-  margin-inline-start: calc(var(--space-3) * -1);
+  margin-inline-start: calc(var(--space-4) * -1);
 }
 
 /* ------------------------------------------------------------------ selects and pick lists */
@@ -565,7 +565,7 @@ select.manage-input:focus-visible {
 .daily-panel .manage-pick {
   align-items: flex-start;
   min-height: var(--size-touch);
-  padding-block: var(--space-3);
+  padding-block: var(--space-4);
 }
 
 /* The box sits on the first line of the label, whether the row has one line or two. */

@@ -48,7 +48,7 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
+  padding-inline: var(--space-4) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
   text-align: end;
@@ -177,7 +177,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: var(--space-2);
   padding-inline: var(--space-4);
   block-size: var(--field-height);
@@ -238,7 +238,7 @@
 .picker-note {
   flex: none;
   margin: 0;
-  padding: var(--space-1) var(--space-4) var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
@@ -248,9 +248,9 @@
   display: grid;
   flex: 1 1 auto;
   align-content: start;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-block-size: 0;
-  padding: var(--space-1) var(--space-2) var(--space-2);
+  padding: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -260,10 +260,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--size-icon);
   align-items: center;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   min-block-size: var(--size-touch);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   cursor: pointer;
   user-select: none;
@@ -311,7 +311,7 @@
 
 .picker-empty {
   margin: 0;
-  padding: var(--space-3);
+  padding: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-body);
 }

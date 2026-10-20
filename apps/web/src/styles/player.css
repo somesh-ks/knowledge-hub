@@ -510,7 +510,7 @@
 .player-section-title {
   margin: 0;
   padding-block: var(--space-2) 0;
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -529,7 +529,7 @@
 .player-fallback {
   display: grid;
   justify-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding-block: var(--space-8);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -783,7 +783,7 @@
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--mini-player-control-size);
   padding-inline-end: var(--space-2);
   border-radius: var(--mini-player-control-radius);
@@ -874,16 +874,18 @@
  * from the edge).
  */
 .dock-seek {
+  /* The thumb's own size, 12px: a dimension of the control, not a space between things. */
+  --range-thumb: 0.75rem;
   position: absolute;
   /* Drawn along the bar's top edge and first in the markup: the first Tab stop, ahead of the rows
      that the bar's reading flow orders. */
   reading-order: -1;
   /* Half a thumb in from each edge, so the thumb and its ring at 0 and 100 percent are not cut. */
-  inset-inline: calc(var(--space-3) / 2);
+  inset-inline: calc(var(--range-thumb) / 2);
   inset-block-start: 0;
   z-index: var(--z-raised);
   display: none;
-  width: calc(100% - var(--space-3));
+  width: calc(100% - var(--range-thumb));
   height: var(--space-4);
   margin: 0;
   padding: 0;
@@ -905,9 +907,9 @@
 }
 
 .dock-seek::-webkit-slider-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
-  margin-block-start: calc(var(--mini-player-progress-height) - var(--space-3) / 2);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-block-start: calc(var(--mini-player-progress-height) - var(--range-thumb) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -917,8 +919,8 @@
 }
 
 .dock-seek::-moz-range-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -997,6 +999,7 @@
 }
 
 .dock-volume-level {
+  --range-thumb: 0.75rem;
   width: 6rem;
   height: var(--size-touch);
   margin: 0;
@@ -1030,9 +1033,9 @@
 }
 
 .dock-volume-level::-webkit-slider-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
-  margin-block-start: calc((var(--scrubber-track) - var(--space-3)) / 2);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-block-start: calc((var(--scrubber-track) - var(--range-thumb)) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -1040,8 +1043,8 @@
 }
 
 .dock-volume-level::-moz-range-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -1237,7 +1240,7 @@
 
   .dock-text {
     transform: translate3d(
-      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
+      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-4))),
       0,
       0
     );
@@ -1599,7 +1602,7 @@
 .scrubber-times {
   display: flex;
   justify-content: space-between;
-  margin-block-start: calc(var(--space-3) * -1);
+  margin-block-start: calc(var(--space-2) * -1);
   pointer-events: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -1613,7 +1616,7 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  row-gap: var(--space-3);
+  row-gap: var(--space-4);
   padding-block: var(--space-4) var(--space-2);
 }
 
@@ -1728,9 +1731,9 @@
 .speed-btn {
   display: grid;
   place-items: center;
-  min-width: calc(5ch + var(--space-3) * 2);
+  min-width: calc(5ch + var(--space-2) * 2);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   border-radius: var(--button-radius);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
@@ -1776,13 +1779,13 @@
   --panel-center: 50vw;
   --panel-width: 16rem;
   --panel-left: clamp(
-    var(--space-3),
+    var(--space-4),
     var(--panel-center) -
     var(--panel-width) /
     2,
     100vw -
     var(--panel-width) -
-    var(--space-3)
+    var(--space-4)
   );
   --panel-scale: var(--scale-enter);
   --color-focus-gap: var(--color-surface-overlay);
@@ -1934,7 +1937,7 @@
 .speed-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .speed-preset {
@@ -1994,8 +1997,8 @@
   display: grid;
   gap: var(--space-1);
   width: 100%;
-  padding-block: var(--space-3);
-  padding-inline: var(--space-3);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
@@ -2073,7 +2076,7 @@
 .script-word[data-spoken] {
   --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
   background: var(--spoken-fill);
-  box-shadow: 0 0 0 var(--space-half) var(--spoken-fill);
+  box-shadow: 0 0 0 0.125rem var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
   transition: none;
 }
@@ -2149,7 +2152,7 @@
   position: sticky;
   inset-block-end: max(var(--space-4), calc(var(--safe-bottom) + var(--space-2)));
   display: block;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   margin-inline: auto;
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
@@ -2503,7 +2506,7 @@
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--button-radius);
   color: var(--color-accent);
   /* The story's size, so the block under the title keeps to two type sizes. */
@@ -2534,8 +2537,8 @@
 
 /* A section's name: quiet text in sentence case over its rows, as a list's heading is elsewhere. */
 .story-group-title {
-  padding-block: var(--space-4) var(--space-1);
-  padding-inline: var(--space-3);
+  padding-block: var(--space-4) var(--space-2);
+  padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-medium);
@@ -2554,11 +2557,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
@@ -2651,7 +2654,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-block-end: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--radius-lg);
@@ -2704,12 +2707,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   background: var(--color-surface-container);
   text-align: start;
