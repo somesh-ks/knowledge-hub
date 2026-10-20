@@ -160,6 +160,23 @@
   }
 }
 
+/* Listen in keeps one line in the card (2026-10-20): its label and value never wrap, and the value
+   is a step quieter, at the label size and regular weight, so "Weekly and Catch up" fits a phone.
+   This outweighs multiselect.css's phone rule that lets a long value take a second line elsewhere. */
+.topic-card-foot.settings-row {
+  flex-wrap: nowrap;
+}
+
+.topic-card-foot .multiselect-trigger {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+}
+
+.topic-card-foot .multiselect-trigger .multiselect-value {
+  white-space: nowrap;
+  text-wrap: nowrap;
+}
+
 /* ------------------------------------------------------------------ a folded group of sliders */
 
 /* Topic weightage, Formats and Perspective (Accordion.astro): the heading is the H2 and the whole
@@ -712,6 +729,15 @@
 
 /* Topic or Source, under the title: the segmented control of Settings, across the panel. It never
    grows along the sheet's column, at any width (it swelled to a 350px oval on phones). */
+/* On a phone the panel fills the screen above the keyboard and no further (keyboardFit.ts writes the
+   two lengths), so its head stays at the top while a field is typed in (2026-10-20). */
+@media (width < 40rem) {
+  dialog.create-sheet.topics-panel {
+    inset-block: var(--keyboard-top, 0px) auto;
+    height: calc(100dvh - var(--keyboard, 0px) - var(--keyboard-top, 0px));
+  }
+}
+
 .topics-panel-kind {
   flex: none;
   margin-block-start: var(--space-4);
@@ -1240,6 +1266,9 @@
    first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20). */
 .source-filter {
   display: grid;
+  /* One column that may shrink below its content: otherwise the tab strip's full width sets the
+     column, the filter grows past the screen and a phone zooms the whole page out (2026-10-20). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   margin-block-end: var(--space-3);
 }

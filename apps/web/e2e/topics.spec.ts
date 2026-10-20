@@ -437,7 +437,7 @@ test.describe("a topic's page", () => {
     const list = page.getByRole("listbox", { name: "Listen in" });
     await expect(list).toBeVisible();
     await list.getByRole("option", { name: "Daily" }).click();
-    await expect(field).toHaveText("Weekly and On Demand");
+    await expect(field).toHaveText("Weekly and Catch up");
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
     await expect(field).toBeFocused();
@@ -832,7 +832,7 @@ test.describe("editing a topic", () => {
     await sheet.getByRole("button", { name: /^Listen in/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
     await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText(
-      "Daily and On Demand",
+      "Daily and Catch up",
     );
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();

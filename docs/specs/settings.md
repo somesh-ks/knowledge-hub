@@ -5,7 +5,7 @@ Schedule, topics and sources, model, autosave and the edit gap, blocked outlets.
 ## Requirements
 
 ### Structure
-- Settings is two levels (D51): an index and one page per job. Sections, 22px regular H2s (D125): Podcast (Daily, Weekly, Topics and sources, with summaries), Intelligence (the model), Sound, Appearance, About. Copy: Listen in, Topic weightage, Configure, Primary and Secondary voice (D103). No heading is bold (D125).
+- Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Topics and sources, with summaries), Intelligence (the model), Sound, Appearance, About. Copy: Listen in, Topic weightage, Configure, Primary and Secondary voice (D103). No heading is bold (D125).
 - Page titles are breadcrumbs ("Settings › Daily Podcast", D125) from 64rem; below it the title stands alone and the app bar's arrow leads up. Destination titles are 22px from 64rem (D87, D89).
 - No Custom page: `/settings/custom` goes to `/create`; `custom` in `config/schedule.json` is what the Create panel starts from. Old addresses redirect (`astro.config.mjs`).
 - Form fields have a 3:1 outline. Dividers sit inside content. Every select opens one drawn list set in `primitives.css` through `appearance: base-select` (Chromium 135+, Safari 27; native lists elsewhere), below its field when it fits. Time zone and voices use searchable pickers (D101).
@@ -20,7 +20,7 @@ Schedule, topics and sources, model, autosave and the edit gap, blocked outlets.
 
 ### Topics and sources
 - Topics & Sources is a search, Add (D125) and the topics by name, Other last, one page each (D69): Design, AI and Technology gather the judge topics, then the owner's and the five general topics. Built-in groups have no More menu (`TOPIC_GROUPS`).
-- A topic's page has a card (art from `topicArt.ts`, name, what counts, a More menu with Edit and, for the owner's topics, Delete; Listen in: Daily, Weekly, On Demand), no switch (D102), folded Topic weightage, Formats and Perspective, and its sources, each name opening the row's editor (D83). Sources past seven fold (D103).
+- A topic's page has a card (art from `topicArt.ts`, name, what counts, a More menu with Edit and, for the owner's topics, Delete; Listen in: Daily, Weekly, Catch up), no switch (D102), folded Topic weightage, Formats and Perspective, and its sources, each name opening the row's editor (D83). Sources past seven fold (D103).
 - Weights are fixed-stop sliders: Off 0 (never published), Less 0.5, Normal 0.7, More 0.85, Most 0.95, named beside it. A page whose sources use two formats or more has a Formats slider per format; a group keeps one mix on its home topic (`groupHomeId`). World and Business have Perspective, Left to Right (D124, D125).
 - Search filters the index's sources as a flat list and a topic's (lifting the fold); a topic's format tabs (All first, two formats or more) narrow too and stick with it below 64rem. State in the URL (D125). Format is on each source: the type's rule fills it when one is added, then Jev within 3 s (D124).
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71).

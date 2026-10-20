@@ -19,7 +19,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109; histor
 - An episode page shows Highlights with links, not the script: a briefing's summary where the story is in one, else what the hosts said without segues and questions.
 
 ### Library list
-- Three single-select filter chips by kind: Daily, Weekly, Custom (everything made on request). None ticked means all.
+- Three single-select filter chips by kind: Daily, Weekly, Catch up (everything made on request, D125). None ticked means all.
 - A card has one facts line: kind, then contents, then length ("Daily · 12 stories · 8 min", "Discussion · 5 min").
 - Search finds a date in any form and searches inside episode scripts. Search, filter and order stay in the address.
 - A recording heard to its end says Played (D78).
