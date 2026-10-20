@@ -22,10 +22,19 @@ function playerIsOpen(): boolean {
 import { readDigestData } from "./digestData";
 import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
 import { attachMediaSession } from "./mediaSession";
+import { directionBetween, navigateTo } from "./navigation";
 import { shouldToggleOnPageSpace } from "./playerKeys";
 import { playerSheet } from "./playerSheet";
 import { createPlayerStore } from "./playerStore";
 import type { PlayerStore } from "./playerTypes";
+import {
+  createPlayQueue,
+  isQueueId,
+  type PlayQueue,
+  QUEUE_ADD_EVENT,
+  QUEUE_CHANGED_EVENT,
+  queueItemUrl,
+} from "./playQueue";
 import { getPreferences, rememberRate } from "./preferences";
 import { createReaderSync, type ReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
@@ -90,6 +99,34 @@ export function playBriefingOnArrival(digestId: string): void {
   getPlayerStore().playWhenPageLoads(digestId);
 }
 
+let queue: PlayQueue | null = null;
+
+/** The listener's queue (playQueue.ts). Every change is told to the page as dispatch:queue-changed. */
+export function getPlayQueue(): PlayQueue {
+  queue ??= createPlayQueue({
+    storage: safeLocalStorage(),
+    getCurrentId: () => getPlayerStore().getState().track?.digest.id ?? null,
+    onChange: (ids) => {
+      document.dispatchEvent(new CustomEvent(QUEUE_CHANGED_EVENT, { detail: { ids: [...ids] } }));
+    },
+  });
+  return queue;
+}
+
+/**
+ * Plays a queued item (or any briefing or episode) now: off the queue, then the road Up next takes.
+ * The item's page brings its data; the store plays it on arrival, on the audio element the browser
+ * already trusts. The player goes down first, as before every navigation.
+ */
+export function playQueueItem(id: string): void {
+  const current = getPlayerStore().getState().track?.digest.id ?? null;
+  getPlayQueue().remove(id);
+  playBriefingOnArrival(id);
+  void playerSheet
+    .collapse()
+    .then(() => navigateTo(queueItemUrl(id), { direction: directionBetween(current, id) }));
+}
+
 export function getPlayerStore(): PlayerStore {
   store ??= createPlayerStore({
     createAudio: getPlayerAudio,
@@ -129,12 +166,18 @@ function toggleOnSpace(playerStore: PlayerStore): (event: KeyboardEvent) => void
   return (event) => {
     const state = playerStore.getState();
     const loaded = state.hasStarted && Boolean(state.track?.digest.audio);
+    // Before anything has played, a briefing or episode page's own Play is what Space presses, so
+    // a recording with no audio yet is narrated as a tap would narrate it.
+    const pagePlay = loaded
+      ? null
+      : document.querySelector<HTMLElement>("[data-play-digest]:not([aria-disabled='true'])");
     const target = event.target instanceof Element ? event.target : null;
-    if (!shouldToggleOnPageSpace(event, target, { loaded, overlayOpen: otherOverlayOpen() }))
-      return;
+    const context = { loaded: loaded || pagePlay !== null, overlayOpen: otherOverlayOpen() };
+    if (!shouldToggleOnPageSpace(event, target, context)) return;
     // Only when it acts: otherwise Space stays the page's scroll key.
     event.preventDefault();
-    playerStore.toggle();
+    if (pagePlay) pagePlay.click();
+    else playerStore.toggle();
   };
 }
 
@@ -163,6 +206,27 @@ export function startPlayerRuntime(): () => void {
     if (status === "loading") return;
     if (starting && status === "playing") announce(starting);
     starting = null;
+  });
+  const playQueue = getPlayQueue();
+  // The Library's card menu adds to the queue with an event, so it needs none of the player's code.
+  const onQueueAdd = (event: Event): void => {
+    const id: unknown = (event as CustomEvent<{ id?: unknown }>).detail?.id;
+    if (isQueueId(id)) playQueue.add(id);
+  };
+  // What starts is no longer to come, however it was started.
+  let startedId: string | null = null;
+  const offQueueState = playerStore.subscribe(({ track }) => {
+    const id = track?.digest.id ?? null;
+    if (id === startedId) return;
+    startedId = id;
+    if (id) playQueue.started(id);
+  });
+  const offQueueEnd = playerStore.onEvent((event) => {
+    if (event.type !== "ended") return;
+    // The listener chose what comes next, so it starts by itself. With nothing queued, Up next only
+    // offers the previous briefing.
+    const next = playQueue.shift(playerStore.getState().track?.digest.id ?? null);
+    if (next) playQueueItem(next);
   });
   const offEvent = playerStore.onEvent((event) => {
     const message = announcementForEvent(event, playerStore.getState().track, {
@@ -247,6 +311,7 @@ export function startPlayerRuntime(): () => void {
   document.addEventListener("astro:before-preparation", onBeforeNavigation);
   document.addEventListener("astro:after-swap", onAfterSwap);
   document.addEventListener("keydown", onSpace);
+  document.addEventListener(QUEUE_ADD_EVENT, onQueueAdd);
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
   // The island usually hydrates after the first astro:page-load has already fired.
@@ -259,6 +324,9 @@ export function startPlayerRuntime(): () => void {
     document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);
     document.removeEventListener("keydown", onSpace);
+    document.removeEventListener(QUEUE_ADD_EVENT, onQueueAdd);
+    offQueueState();
+    offQueueEnd();
     window.removeEventListener("online", onOnline);
     window.removeEventListener("offline", onOffline);
     offEvent();

@@ -2729,6 +2729,212 @@
   font-size: var(--font-size-meta);
 }
 
+/* ------------------------------------------------------------------ the collapse chevron */
+
+/* Below 64rem the close button is a chevron at the top left of the open player (owner, 2026-10-20):
+   a 44px icon button whose glyph lines up with the page's left edge, centred in the room above the
+   art that the handle once took (D111), so the art does not move. The rule above still hides it
+   from 64rem until the keyboard reaches it. */
+@media (max-width: 63.9375rem) {
+  .player .player-collapse {
+    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+    padding: 0;
+    background: transparent;
+    color: var(--color-on-surface-muted);
+    translate: none;
+    clip-path: none;
+  }
+
+  .player .player-collapse:active {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  }
+}
+
+@media (max-width: 63.9375rem) and (hover: hover) and (pointer: fine) {
+  .player .player-collapse:hover:not(:active) {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ the queue */
+
+/* What plays next, held at the foot of the open player while something is queued. A pull up on it
+   raises the queue; it takes no native pan. */
+.player-queue-peek {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--size-touch-comfortable);
+  margin-block-start: var(--space-4);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
+  text-align: start;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-queue-peek-title {
+  overflow: hidden;
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The one chevron there is, turned to point the way the queue comes from. */
+.player-queue-peek-glyph {
+  flex: none;
+  rotate: 180deg;
+}
+
+/* The queue sheet, over the whole open player. --queue-p (0 down, 1 up) is written by QueueSheet.tsx
+   from the player's spring; it moves only by transform. */
+.player-queue-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--safe-top) max(var(--space-4), var(--safe-bottom));
+  padding-inline: max(var(--player-padding), var(--safe-left))
+    max(var(--player-padding), var(--safe-right));
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  pointer-events: auto;
+  transform: translate3d(0, calc((1 - var(--queue-p, 0)) * 100%), 0);
+  visibility: hidden;
+}
+
+.player[data-queue] .player-queue-sheet {
+  visibility: visible;
+}
+
+/* Under the rising sheet the cover shrinks out, as YouTube Music's does. */
+.player[data-queue] .player-cover-slot {
+  opacity: calc(1 - var(--queue-p, 0));
+  transform: scale(calc(1 - 0.25 * var(--queue-p, 0)));
+}
+
+/* The playing recording, docked small at the top. A pull down on it lowers the sheet. */
+.player-queue-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.player-queue-dock,
+.player-queue-row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--size-touch-comfortable);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-2);
+  border-radius: var(--row-radius);
+  text-align: start;
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-queue-dock .player-upnext-text,
+.player-queue-row .player-upnext-text,
+.player-queue-peek .player-upnext-text {
+  min-width: 0;
+}
+
+.player-queue-dock .player-upnext-date,
+.player-queue-row .player-upnext-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-queue-thumb {
+  flex: none;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.player-queue-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.player-queue-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-queue-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--row-radius);
+  background: var(--color-surface);
+}
+
+/* The row being dragged rides over its neighbours on the container tone, with no shadow. */
+.player-queue-item[data-dragging] {
+  z-index: var(--z-raised);
+  background: var(--color-surface-container);
+}
+
+.player-queue-handle {
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.player-queue-item[data-dragging] .player-queue-handle {
+  cursor: grabbing;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-peek:hover,
+  .player-queue-row:hover,
+  .player-queue-dock:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.player-queue-peek:active,
+.player-queue-row:active,
+.player-queue-dock:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
 
 /* Two columns with a finger: the cover takes what the window's height leaves the rest of the left
