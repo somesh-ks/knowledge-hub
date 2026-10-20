@@ -13,7 +13,7 @@
   "voice_id": null,
   "voice_id_b": null,
   "weekly": {
-    "enabled": true,
+    "enabled": false,
     "day": 0,
     "hour": 7,
     "skip_topics": [
