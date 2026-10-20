@@ -63,7 +63,9 @@ test.describe("a refused settings change", () => {
     await expect(page).toHaveURL(/\/$/);
     await page.clock.runFor(10_000);
     await expect.poll(() => sent.length).toBe(2);
-    const told = page.getByRole("alert").filter({ hasText: "Your change to Daily was not saved." });
+    const told = page
+      .getByRole("alert")
+      .filter({ hasText: "Your change to Daily Podcast was not saved." });
     await expect(told).toBeVisible();
 
     await page.goto("/settings/daily");

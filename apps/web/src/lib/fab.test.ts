@@ -12,6 +12,13 @@ describe("which floating button a page shows", () => {
     }
   });
 
+  it("offers Add on Topics and sources and on a topic's page, and not on Blocked outlets", () => {
+    for (const path of ["/settings/topics", "/settings/topics/design", "/settings/topics/other"]) {
+      expect(fabFor({ path, playable: false }), path).toBe("add");
+    }
+    expect(fabFor({ path: "/settings/blocked-outlets", playable: false })).toBeNull();
+  });
+
   it("shows none on a page with nothing to play and nothing to make", () => {
     // Today before the first briefing has nothing to play, and Create lives in the Library.
     for (const path of ["/", "/settings", "/settings/daily", "/create", "/offline", "/404"]) {

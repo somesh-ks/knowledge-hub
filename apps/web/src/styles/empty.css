@@ -67,7 +67,7 @@ main > .empty {
 .empty[data-compact] .empty-title {
   margin-block-start: var(--space-4);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-body);
 }
 

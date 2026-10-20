@@ -111,13 +111,14 @@ test.describe("the Topics list", () => {
     await expect(page.getByText("Top picks")).toHaveCount(0);
   });
 
-  test("a search and a format chip narrow every source to a flat list, and a reload or Back keeps them", async ({
+  test("a search narrows every source to a flat list, a topic's format tab narrows its own, and a reload or Back keeps them", async ({
     page,
   }) => {
     await setup(page);
     await open(page);
+    // The index is a search and nothing else: no format or status filters.
+    await expect(page.getByRole("tab")).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Search sources" }).fill("studio");
-    await page.getByRole("button", { name: /^Blog/ }).click();
     // The topic list gives way to the sources that match, which open and edit as on a topic page.
     await expect(page.getByRole("link", { name: /^Design/ })).toBeHidden();
     const row = page.locator("li.source-row:visible");
@@ -127,16 +128,12 @@ test.describe("the Topics list", () => {
     await expect(sheet.getByRole("combobox", { name: "Format" })).toHaveValue("blog");
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
-    // Leaving for a topic and coming Back, and a reload, find the same search and chip.
+    // Leaving for a topic and coming Back, and a reload, find the same search.
     await page.goto(CRAFT_PAGE);
     await page.goBack();
     for (const again of [false, true]) {
       if (again) await page.reload();
       await expect(page.getByRole("searchbox", { name: "Search sources" })).toHaveValue("studio");
-      await expect(page.getByRole("button", { name: /^Blog/ })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
       await expect(page.locator("li.source-row:visible")).toHaveCount(1);
     }
     // Nothing matching says so and offers Clear, which brings the topics back.
@@ -144,6 +141,18 @@ test.describe("the Topics list", () => {
     await expect(page.getByText("No sources match.")).toBeVisible();
     await page.getByRole("button", { name: "Clear" }).click();
     await expect(page.getByRole("link", { name: /^Design/ })).toBeVisible();
+    // A topic's page: All first, one tab at a time, kept on a reload.
+    await page.goto(CRAFT_PAGE);
+    const tabs = page.getByRole("tablist", { name: "Format" }).getByRole("tab");
+    await expect(tabs.first()).toHaveText("All");
+    await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("tab", { name: "Blog" }).click();
+    await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveText([
+      /Studio Notes/,
+    ]);
+    await page.reload();
+    await expect(page.getByRole("tab", { name: "Blog" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveCount(1);
   });
 
   test("lists every topic in one list by name, Other last, and the panel offers them in the same order", async ({
@@ -372,6 +381,7 @@ test.describe("a topic's page", () => {
   test("a weight change saves itself as one weights.set, shown as its stop", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
+    await page.getByRole("heading", { name: "Topic weightage" }).click();
     const slider = page.locator("[data-weight]");
     await slider.fill("3");
     await expect(page.locator(".topic-weight:has([data-weight]) [data-word]")).toHaveText("More");
@@ -385,6 +395,7 @@ test.describe("a topic's page", () => {
     const { sent } = await setup(page);
     // Design gathers several formats; its one mix lives on the group's home topic.
     await open(page, "/settings/topics/design");
+    await page.getByRole("heading", { name: "Formats" }).click();
     const slider = page.locator("[data-mix]").first();
     await slider.fill("3");
     await expect(spoken(page)).toHaveText(SAVED);
@@ -399,6 +410,9 @@ test.describe("a topic's page", () => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
     const weights = page.getByRole("region", { name: "Topic weightage" });
+    // Folded until its heading is pressed.
+    await expect(weights.getByRole("slider")).toHaveCount(0);
+    await weights.getByRole("heading", { name: "Topic weightage" }).click();
     await expect(weights.getByRole("slider")).toHaveCount(2);
     await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
       "Design engineering craft",
@@ -407,8 +421,9 @@ test.describe("a topic's page", () => {
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
     await open(page, "/settings/topics/ai");
-    await expect(page.getByRole("region", { name: "Topic weightage" })).toHaveCount(0);
-    await expect(page.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
+    const single = page.getByRole("region", { name: "Topic weightage" });
+    await single.getByRole("heading", { name: "Topic weightage" }).click();
+    await expect(single.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 
   test("Listen in is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
@@ -422,7 +437,7 @@ test.describe("a topic's page", () => {
     const list = page.getByRole("listbox", { name: "Listen in" });
     await expect(list).toBeVisible();
     await list.getByRole("option", { name: "Daily" }).click();
-    await expect(field).toHaveText("Weekly and Custom");
+    await expect(field).toHaveText("Weekly and On Demand");
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
     await expect(field).toBeFocused();
@@ -816,7 +831,9 @@ test.describe("editing a topic", () => {
     await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText("All podcasts");
     await sheet.getByRole("button", { name: /^Listen in/ }).click();
     await sheet.getByRole("option", { name: "Weekly" }).click();
-    await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText("Daily and Custom");
+    await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText(
+      "Daily and On Demand",
+    );
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();

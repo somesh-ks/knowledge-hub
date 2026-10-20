@@ -1,0 +1,29 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** What a press adds, for a screen reader ("Add a topic or a source"). */
+  label: string;
+  /** The topic a new source goes under; left out, the panel opens on a new topic. */
+  source?: string;
+}
+
+const { label, source } = Astro.props;
+---
+
+{/* A page's add action below 64rem, as Android draws a screen's primary action: the shape, place and
+     folding of the New episode button (create-sheet.css, fabScroll.ts), the plus and "Add". From
+     64rem the same action is a button in the page itself, beside the search (2026-10-20). The topics
+     editor opens the panel from it as from any Add (data-add-topic or data-add-source). */}
+<button
+  class="create-fab add-fab"
+  type="button"
+  aria-label={label}
+  data-add-topic={source === undefined ? "" : undefined}
+  data-add-source={source}
+  data-sound="open"
+  data-needs-js
+>
+  <Icon name="plus" class="icon-lg" />
+  <span class="create-fab-label" aria-hidden="true">Add</span>
+</button>

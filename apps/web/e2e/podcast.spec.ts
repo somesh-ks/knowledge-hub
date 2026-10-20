@@ -89,8 +89,8 @@ test.describe("the Settings index", () => {
   test("a row leads to its page, whose title says where it sits", async ({ page }) => {
     await page.goto("/settings");
     await page.getByRole("link", { name: /^Daily/ }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Daily" })).toBeVisible();
-    await expect(page).toHaveTitle("Daily, Singularity");
+    await expect(page.getByRole("heading", { level: 1, name: "Daily Podcast" })).toBeVisible();
+    await expect(page).toHaveTitle("Daily Podcast, Singularity");
     const crumb = page.locator(".settings-up");
     await expect(crumb).toHaveText("Settings");
     await expect(crumb).toHaveAttribute("href", "/settings");

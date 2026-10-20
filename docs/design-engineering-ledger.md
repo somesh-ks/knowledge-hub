@@ -381,7 +381,8 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Voices are auditioned in place (D105); the owner also asked for preview in the New episode form (2026-10-12).
 - **Lists.**
   - Lists come first with their counts; add forms sit in `<details>`; repeated hints and the Generate row went (2026-10-08).
-  - "N topics" heads the list with a mid-size Add on the same row; a topic shows seven sources, then "Show N more" (2026-10-13).
+  - "N topics" heads the list with a mid-size Add on the same row; a topic shows seven sources, then "Show N more" (2026-10-13). Reversed by D125: no count, no filters, a floating Add on a phone and an Add at the end of the search row from 64rem.
+  - Headings: never bold, anywhere; Settings group heads are 22px regular H2s, apart from the title by size and space only (D125). A topic's sliders fold into Topic weightage, Formats and Perspective groups; its formats are tabs, All first; Listen in sits in the card (D125).
   - Daily and Weekly share one component, so a change lands on both (2026-10-13).
   - Topics are always available: no locked or disabled choices. A locked chip at opacity 0.32 read at about 1.5:1 (2026-10-12).
   - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).

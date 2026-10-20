@@ -1,71 +1,66 @@
 ---
 import type { ManageSource } from "../lib/manage";
-import { FORMAT_LABEL, STATUS_LABEL, type StatusKey, statusesOf } from "../lib/sourceFilter";
+import { FORMAT_LABEL } from "../lib/sourceFilter";
 import Icon from "./Icon.astro";
 
 interface Props {
   /** Every source the filter covers: the page's own list, or all of them on the index. */
   sources: ManageSource[];
+  /** A tab bar of the formats the sources use, All first (a topic's page). The index has none. */
+  tabs?: boolean;
 }
 
-const { sources } = Astro.props;
+const { sources, tabs = false } = Astro.props;
 const formats = Object.entries(FORMAT_LABEL)
-  .map(([format, label]) => ({
-    format,
-    label,
-    count: sources.filter((source) => source.format === format).length,
-  }))
-  .filter((chip) => chip.count > 0);
-const statuses = (Object.keys(STATUS_LABEL) as StatusKey[]).map((key) => ({
-  key,
-  label: STATUS_LABEL[key],
-  count: sources.filter((source) => statusesOf(source).includes(key)).length,
-}));
+  .filter(([format]) => sources.some((source) => source.format === format))
+  .map(([format, label]) => ({ format, label }));
+// One format has nothing to tell apart: All would show the same list.
+const shownTabs = tabs && formats.length > 1;
 ---
 
-{/* One search field and two groups of chips over a list of source rows (sourceFilter.ts reads
-     their data-text, data-format and data-statuses). Chips in a group add up (any of them), the
-     groups and the words narrow. A chip that would leave nothing is dimmed and cannot be pressed.
+{/* One search field over a list of source rows, and on a topic's page a tab bar of formats, All
+     first (sourceFilter.ts reads the rows' data-text and data-format). One tab at a time; the words
+     narrow within it. Below 64rem the field and the tabs stick under the app bar together.
      Whole static HTML without the script: the list simply stays unfiltered. */}
-<div class="source-filter" data-filter data-needs-js>
-  <div class="filter-field">
-    <Icon name="search" />
-    <input
-      class="manage-input"
-      type="search"
-      name="q"
-      placeholder="Search sources"
-      aria-label="Search sources"
-      autocomplete="off"
-      autocapitalize="off"
-      spellcheck="false"
-      enterkeyhint="search"
-      data-filter-q
-    />
-  </div>
-  <div class="filter-chips">
-    <div class="filter-group" role="group" aria-label="Format">
-      {
-        formats.map((chip) => (
-          <button class="filter-chip" type="button" aria-pressed="false" data-chip="format" data-value={chip.format}>
-            <span>{chip.label}</span>
-            <span class="filter-count" data-count>{chip.count}</span>
-          </button>
-        ))
-      }
+<div class="source-filter" data-filter data-tabs={shownTabs ? "" : undefined} data-needs-js>
+  <div class="filter-row">
+    <div class="filter-field">
+      <Icon name="search" />
+      <input
+        class="manage-input"
+        type="search"
+        name="q"
+        placeholder="Search sources"
+        aria-label="Search sources"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        enterkeyhint="search"
+        data-filter-q
+      />
     </div>
-    <span class="filter-sep" aria-hidden="true"></span>
-    <div class="filter-group" role="group" aria-label="Status">
-      {
-        statuses.map((chip) => (
-          <button class="filter-chip" type="button" aria-pressed="false" data-chip="status" data-value={chip.key}>
-            <span>{chip.label}</span>
-            <span class="filter-count" data-count>{chip.count}</span>
-          </button>
-        ))
-      }
-    </div>
+    {/* The page's add action beside the field, where the wide layout has no floating button. */}
+    <slot name="action" />
   </div>
+  {
+    shownTabs && (
+      <div class="tabs-bar filter-tabs">
+        <div class="tabs" role="tablist" aria-label="Format">
+          {[{ format: "", label: "All" }, ...formats].map((tab) => (
+            <button
+              class="tab"
+              type="button"
+              role="tab"
+              aria-selected={tab.format === "" ? "true" : "false"}
+              data-tab={tab.format}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
   <p class="filter-none" role="status" hidden data-filter-none>
     <span>No sources match.</span>
     <button class="btn" type="button" data-filter-clear>Clear</button>

@@ -1,6 +1,8 @@
 ---
 import { MIX_STOPS, PERSPECTIVE_STOPS, SOURCE_FORMATS } from "@dispatch/core";
 import { topicArt } from "@dispatch/cover";
+import Accordion from "../../../components/Accordion.astro";
+import AddFab from "../../../components/AddFab.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
@@ -86,8 +88,8 @@ const scopeIds = group ? group.members.map((member) => member.id) : topic ? [top
 const SCOPES = [
   { key: "daily", label: "Daily", skipped: schedule.skipTopics },
   { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
-  // Custom: episodes made on request, by the name the Library's filter gives them.
-  { key: "custom", label: "Custom", skipped: schedule.custom.skip_topics },
+  // On Demand: episodes made on request (the `custom` profile).
+  { key: "custom", label: "On Demand", skipped: schedule.custom.skip_topics },
 ] as const;
 const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
@@ -96,7 +98,7 @@ const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
 // How much each judge topic a group gathers counts (D69), by name. A group of one shows a plain
 // Weight row, as a topic of the owner's does; the member that shares the group's name reads as
 // the group in general, so Design's own row is not "Design" under Design.
-const weightRows = (group?.members ?? [])
+const memberRows = (group?.members ?? [])
   .map((member) => ({
     id: member.id,
     label:
@@ -124,12 +126,24 @@ const upsert =
       section_id: topic.section_id,
     },
   });
-// A topic at Off keeps its page: its slider is how it comes back.
-const editable = topic !== null;
+// Every page takes a new source, filed under the topic (a group's under its home topic).
+const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
-// The Formats group: one slider for each format the topic's sources use, and for a general news topic a
-// Perspective slider. Both go as one topic.mix (managePageSave.ts joins them).
+// Every weight the page sets, in one Topic weightage group on every topic that has one (2026-10-20):
+// a group's per member, or a topic's own.
+const weightRows =
+  topic && !general
+    ? [{ id: topic.id, label: "Weight", name: topic.name, weight: topic.weight }]
+    : memberRows;
+// Left to right is a question for political coverage: world affairs and business, not sport, science
+// or culture (2026-10-20).
+const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
+// A lean set before then stays visible where it applies, so it can be seen and set back to Even.
+const perspective =
+  topic !== null && general && (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
+// The Formats group: one slider for each format the topic's sources use. Formats and Perspective are
+// two groups on the page and go as one topic.mix (managePageSave.ts joins them).
 const usedFormats = SOURCE_FORMATS.filter((format) =>
   list.some((source) => source.format === format),
 );
@@ -170,7 +184,8 @@ const facts = topic && {
 
 <BaseLayout title={name} view="settings" skipLabel={`Skip to ${name}`}>
   <main id="main" tabindex="-1">
-    {/* A topic's page: its summary card, how much it counts, and its sources. A topic is always on and
+    {/* A topic's page: its summary card, how much it counts (collapsed groups of sliders), and its
+         sources. A topic is always on and
          available to every podcast, so there is no switch. The controls carry the edit they stand for
          (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later. */}
     <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
@@ -181,8 +196,9 @@ const facts = topic && {
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{name}</legend>
         <div class="topic" data-id={topic?.id ?? ""} data-topic>
-          {/* The summary card: the topic's generated picture, its name and what counts as it, and a
-               More menu with Edit and, for a topic of the owner's own, Delete. The menu is the app's
+          {/* The summary card: the topic's generated picture, its name and what counts as it, a More
+               menu with Edit and, for a topic of the owner's own, Delete, and under a full-width line
+               Listen in, the podcasts it plays in (2026-10-20). The menu is the app's
                popover menu (HeroMenu.astro, heroMenu.ts). */}
           {/* From 64rem there is no app bar above the page, so the way up is a line over the card. */}
           <nav class="topic-up" aria-label="Breadcrumb">
@@ -244,13 +260,9 @@ const facts = topic && {
                 </div>
               )
             }
-          </div>
-          {
-            (group || (editable && topic)) && (
-              <div class="rows topic-controls">
-                {/* Where the topic plays (D69), and how much it counts. A general news topic is ranked
-                     by how many outlets carry a story, so it has no weight. */}
-                <div class="settings-row topic-scope">
+            {
+              (group || topic) && (
+                <div class="topic-card-foot settings-row topic-scope">
                   <div class="settings-text">
                     <span class="settings-label" id="scope-label">Listen in</span>
                   </div>
@@ -268,90 +280,84 @@ const facts = topic && {
                     }))}
                   />
                 </div>
-                {topic && !general && <WeightRow id={topic.id} label="Weight" name={topic.name} weight={topic.weight} />}
-                {weightRows.length === 1 && weightRows.map((row) => <WeightRow {...row} />)}
-              </div>
+              )
+            }
+          </div>
+          {
+            weightRows.length > 0 && (
+              <Accordion id="weights" title="Topic weightage">
+                {weightRows.map((row) => <WeightRow {...row} />)}
+              </Accordion>
             )
           }
           {
-            weightRows.length > 1 && (
-              <section class="topic-weights" aria-labelledby="weights-head">
-                <h2 class="section-head" id="weights-head">Topic weightage</h2>
-                <div class="rows topic-controls">
-                  {weightRows.map((row) => <WeightRow {...row} />)}
-                </div>
-              </section>
+            mixRows.length > 0 && (
+              <Accordion id="mix" title="Formats">
+                {mixRows.map((row) => <WeightRow {...row} />)}
+              </Accordion>
             )
           }
-
           {
-            (mixRows.length > 0 || (topic && general)) && (
-              <section class="topic-weights" aria-labelledby="mix-head">
-                <h2 class="section-head" id="mix-head">{mixRows.length > 0 ? "Formats" : "Perspective"}</h2>
-                <div class="rows topic-controls">
-                  {mixRows.map((row) => <WeightRow {...row} />)}
-                  {topic && general && (
-                    <WeightRow
-                      id={`perspective-${topic.id}`}
-                      label="Perspective"
-                      name={`${topic.name} perspective`}
-                      weight={topic.perspective ?? 0}
-                      custom={{
-                        stops: perspectiveStops,
-                        op: { op: "topic.mix", id: topic.id, perspective: 0 },
-                        field: "perspective",
-                      }}
-                    />
-                  )}
-                </div>
-              </section>
+            perspective && topic && (
+              <Accordion id="perspective" title="Perspective">
+                <WeightRow
+                  id={`perspective-${topic.id}`}
+                  label="Perspective"
+                  name={`${topic.name} perspective`}
+                  weight={topic.perspective ?? 0}
+                  custom={{
+                    stops: perspectiveStops,
+                    op: { op: "topic.mix", id: topic.id, perspective: 0 },
+                    field: "perspective",
+                  }}
+                />
+              </Accordion>
             )
           }
 
           <div class="topic-sources-head">
             <h2 class="section-head">Sources</h2>
+            <button
+              class="btn-secondary topic-add-source"
+              type="button"
+              aria-label={`Add source to ${name}`}
+              data-add-source={addTo}
+              data-needs-js
+            >
+              <Icon name="plus" />
+              <span>Add source</span>
+            </button>
+          </div>
+          {/* The sources and their search, in one block, so the search and tabs that stick on a
+               phone let go where the list ends, before Suggested sources. */}
+          <div class="topic-sources-block">
+            {list.length > 0 && <SourceFilter sources={list} tabs />}
+            <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
+              {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
+            </ul>
             {
-              (topic === null || editable) && (
-                <button
-                  class="btn-secondary topic-add-source"
-                  type="button"
-                  aria-label={`Add source to ${name}`}
-                  data-add-source={group?.home ?? topic?.id ?? ""}
-                  data-needs-js
-                >
-                  <Icon name="plus" />
-                  <span>Add source</span>
+              hidden > 0 && (
+                <button class="btn topic-show-all" type="button" data-show-all>
+                  {`Show ${hidden} more`}
                 </button>
               )
             }
-          </div>
-          {list.length > 0 && <SourceFilter sources={list} />}
-          <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
-            {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
-          </ul>
-          {
-            hidden > 0 && (
-              <button class="btn topic-show-all" type="button" data-show-all>
-                {`Show ${hidden} more`}
-              </button>
-            )
-          }
-          {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
-          <div class="topic-empty empty" data-compact>
-            <EmptyArt art="library" size="compact" />
-            <p class="empty-title">No sources yet</p>
-            <p class="empty-body">
-              {topic === null || editable
-                ? `Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`
-                : "Sources filed under this topic are listed here."}
-            </p>
+            {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
+            <div class="topic-empty empty" data-compact>
+              <EmptyArt art="library" size="compact" />
+              <p class="empty-title">No sources yet</p>
+              <p class="empty-body">
+                {`Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`}
+              </p>
+            </div>
           </div>
 
-          <SuggestedSources offers={suggested} name={name} topicId={group?.home ?? topic?.id ?? ""} />
+          <SuggestedSources offers={suggested} name={name} topicId={addTo} />
           <p class="manage-quiet topic-gone" tabindex="-1">Removed.</p>
         </div>
       </fieldset>
 
+      <AddFab label={`Add source to ${name}`} source={addTo} />
       <ManageChrome />
       <TopicsPanel topics={choices} />
       {

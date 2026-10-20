@@ -245,12 +245,12 @@
   --text-display-leading: var(--font-leading-display);
   --text-lead-family: var(--font-ui);
   --text-lead-size: var(--font-size-lead);
-  --text-lead-weight: var(--font-weight-medium);
+  --text-lead-weight: var(--font-weight-regular);
   --text-lead-tracking: var(--font-tracking-lead);
   --text-lead-leading: var(--font-leading-lead);
   --text-title-family: var(--font-ui);
   --text-title-size: var(--font-size-title);
-  --text-title-weight: var(--font-weight-medium);
+  --text-title-weight: var(--font-weight-regular);
   --text-title-tracking: var(--font-tracking-title);
   --text-title-leading: var(--font-leading-title);
   --text-heading-family: var(--font-ui);

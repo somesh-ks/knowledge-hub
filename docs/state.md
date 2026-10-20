@@ -21,6 +21,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 - Sources design (D124) live: production asks Jev for a new source's format only after `npm run secrets:push` (the rule guesses until then); no run has used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - YouTube text: captions and Gemini each worked on live videos (2026-10-19), but no full run has used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
+- D125: pull to close, sticky tabs. closed when: both work on a phone.
 - The `browser` CI job has not run on GitHub's runner. closed when: a PR touching `apps/web` shows the job green on GitHub.
 - Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120): a live run with spares and a one-outlet Science story. closed when: a committed digest has a Science story from one outlet and airs within 10% of its length.
@@ -41,17 +42,17 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - A 15 minute episode falls short (71% general, 45% owner topics on a 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - The first press on a cold audio device blocks about 200 ms (`new AudioContext()` in `packages/sound`). closed when: the owner decides whether to change that package's first rule.
 - The daily Type is saved but not applied (narration reads the digest in one voice). closed when: the owner decides on a podcast step in `audio.yml` or drops the field.
-- Unit flake: the sound peak check failed under load and passed on rerun. closed when: 10 consecutive full gates pass with it.
+- Unit flake: the sound peak check failed once. closed when: 10 full gates in a row pass.
 - With a mouse a story chip grows 11px from idle to played (it reserves "Play again"). closed when: the chip keeps one width in a browser assertion.
 - On a 360x740 phone the sticky Generate bar covers More options on `/create` at rest. closed when: axe reports no obscured target there.
 - An aggregator's or redirect's link to a blocked outlet is not caught (matching reads the item's own URL). closed when: matching resolves the final URL, or the owner accepts it.
 - Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source score thresholds (D55), the vote numbers (15%, 3 votes, 30 days). closed when: each is checked against the golden set or two weeks of real data.
-- P3 polish from critic rounds five to nine is listed in `git show 91bc533:docs/state.md`. closed when: the owner picks which to fix.
+- P3 polish from critic rounds five to nine is in `git show 91bc533:docs/state.md`. closed when: the owner picks which to fix.
 - Settings logic gaps (D102): a partial `skip_topics` without `general_scoped` un-skips general topics (the site never sends it); `topic.enabled` is never set false (dead branches); Edit topic sends the build's weight, not a pending edit. closed when: each is fixed or removed with a test.
 - Unverified (D106 to D109): the volume slider's 400 ms linger and hold while dragged (CSS only), the highlight's pause on a live briefing, a vote batch sent as a page unloads (a lost batch is not retried), a briefing regenerated with a topic the original run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - From the 2026-10-08 QA sweep: a refused narration (429) shows no wait time; focus on opening the player is unchecked. closed when: the 429 names its wait and a keyboard test opens the player with focus inside.
 - Costs and sizes reasoned, not measured: 150 to 400 extra Jev requests a run for the general feeds (against 165 on 2026-10-09), and the episode script's part sizes (D66 to D68). closed when: a run log reports the judge's request count with general topics on.
-- Settings switches show the track colour until the script is ready; the 6 and 7 October audio says "Dispatch". closed when: the owner calls either worth fixing.
+- Settings switches show the track colour until the script is ready; the 6 and 7 October audio says "Dispatch". closed when: the owner rules on each.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
 
 ## Known risks
