@@ -786,3 +786,64 @@ html:has(.library-none) {
 .shelf > .card:focus-within {
   content-visibility: visible;
 }
+
+/* ------------------------------------------------------------------ a row's menu */
+
+/* The ⋮ at the end of a row's text (components/LibraryItemMenu.astro), beside the card's link and
+   never inside it. The title and the quiet line reserve its room whether or not the button shows, so
+   nothing on a row moves when it appears. The button sits on the row's last line in the gallery and
+   in the middle of the row in the list. */
+.card {
+  position: relative;
+}
+
+.card:has(> .card-menu) .card-title,
+.card:has(> .card-menu) .card-sub,
+.card:has(> .card-menu) .card-match {
+  padding-inline-end: calc(var(--size-touch) - var(--space-2));
+}
+
+/* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
+   the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on one
+   line, never two. */
+@container (max-width: 12rem) {
+  .card:has(> .card-menu) .card-count {
+    display: none;
+  }
+}
+
+.card-menu {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+
+.card-more {
+  anchor-name: var(--card-anchor);
+}
+
+/* Under its own row's button, as a story's menu hangs under its own (story-controls.css). */
+.hero-menu-list.card-menu-list {
+  position-anchor: var(--card-anchor);
+  margin-inline-end: var(--space-2);
+}
+
+[data-library][data-view="list"] .card-menu {
+  inset-block: 0;
+  inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+  display: grid;
+  align-items: center;
+}
+
+/* Downloaded: a filled check circle at the start of the quiet line, put there once by
+   scripts/libraryMenu.ts, so it takes room only while it is shown. */
+.card-downloaded {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-accent);
+}
+
+.card-downloaded .icon {
+  width: 1rem;
+  height: 1rem;
+}
