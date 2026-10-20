@@ -513,7 +513,7 @@
   padding-inline: var(--space-4);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .segmented-legend {
@@ -841,7 +841,7 @@
 .dock-title {
   overflow: hidden;
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2541,7 +2541,7 @@
   padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .story-rows {

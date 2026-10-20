@@ -100,7 +100,7 @@
   display: -webkit-box;
   overflow: hidden;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

@@ -187,7 +187,7 @@
   padding-inline: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 /* ------------------------------------------------------------------ fields and actions */
@@ -425,7 +425,7 @@ textarea.sheet-input {
 }
 
 .sheet-banner-title {
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 /* Quieter than the title, and drawn toward the tint it sits on rather than toward grey. */
@@ -569,7 +569,7 @@ textarea.sheet-input {
 
 .sheet-hint-title {
   margin-block-end: var(--space-1);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .sheet-hint-body {
