@@ -27,9 +27,11 @@ const menuId = `card-menu-${id}`;
      scripts/libraryMenu.ts. Regenerate and Delete are the episode page's own (EpisodeActions.astro,
      one set of dialogs for the whole Library) and a briefing's (the Generate sheet). Download is
      only offered where the item already has an audio file. A sibling of the card's link, never inside
-     it, so a press here cannot open the card. The badge is the downloaded mark on the cover's
-     corner: always laid out, shown by [data-downloaded] on the card, so nothing moves. */}
-<span class="card-downloaded" aria-hidden="true"><Icon name="download" /></span>
+     it, so a press here cannot open the card. The template is the downloaded mark, which
+     scripts/libraryMenu.ts puts at the start of the quiet line while the item is downloaded. */}
+<template data-downloaded-mark>
+  <span class="card-downloaded"><Icon name="checkCircle" /><span class="sr-only">Downloaded</span></span>
+</template>
 <div
   class="card-menu"
   style={`--card-anchor: --cm-${id}`}

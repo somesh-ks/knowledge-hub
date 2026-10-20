@@ -835,40 +835,15 @@ html:has(.library-none) {
   align-items: center;
 }
 
-/* Downloaded: a small mark on the cover's corner, laid out whether or not it shows, so it takes no
-   room from the row. */
+/* Downloaded: a filled check circle at the start of the quiet line, put there once by
+   scripts/libraryMenu.ts, so it takes room only while it is shown. */
 .card-downloaded {
-  position: absolute;
-  inset-block-start: var(--space-2);
-  inset-inline-start: var(--space-2);
-  z-index: var(--z-raised);
-  display: none;
-  place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: var(--radius-round);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  pointer-events: none;
+  display: inline-flex;
+  flex: none;
+  color: var(--color-accent);
 }
 
 .card-downloaded .icon {
-  width: 0.75rem;
-  height: 0.75rem;
-}
-
-.card[data-downloaded] > .card-downloaded {
-  display: grid;
-}
-
-[data-library][data-view="list"] .card-downloaded {
-  inset-block-start: calc(var(--space-3) + var(--space-1));
-  inset-inline-start: var(--space-1);
   width: 1rem;
   height: 1rem;
-}
-
-[data-library][data-view="list"] .card-downloaded .icon {
-  width: 0.5rem;
-  height: 0.5rem;
 }

@@ -19,6 +19,15 @@ function toast(message: string, kind?: "success" | "error"): void {
 
 function setDownloaded(root: HTMLElement, on: boolean): void {
   root.closest<HTMLElement>("[data-card]")?.toggleAttribute("data-downloaded", on);
+  const sub = root.closest("[data-card]")?.querySelector(".card-sub");
+  const marked = sub?.querySelector(".card-downloaded");
+  if (!on) marked?.remove();
+  else if (sub && !marked) {
+    const mark = root
+      .closest("[data-card]")
+      ?.querySelector<HTMLTemplateElement>("template[data-downloaded-mark]");
+    if (mark) sub.prepend(mark.content.cloneNode(true));
+  }
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
   if (item) item.textContent = on ? "Remove download" : "Download";
 }
