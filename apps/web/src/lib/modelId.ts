@@ -21,19 +21,19 @@ export const CLAUDE_MODELS: ReadonlyArray<{ id: string; label: string; hint: str
 
 /**
  * The Nebius models Settings offers by name, as its Top models, best writer first. Each id is the
- * routing key of a public endpoint on tokenfactory.nebius.com/endpoints, checked on 2026-10-11, and
- * the order is EQ-Bench's longform writing score on that day, the nearest public measure of a
- * script. Nebius retires models (Qwen3-32B left on 2026-08-31, D24), so the page drops an id the
- * live list no longer has (topModels in modelRank.ts), and a pick that fails at run time falls
- * through to the environment's model (D46). Refresh the list when the group runs short.
+ * routing key of a public endpoint on tokenfactory.nebius.com/endpoints, and the order is EQ-Bench's
+ * longform writing score, the nearest public measure of a script, both checked on 2026-10-21. Kimi
+ * models are never offered, by the owner's word on 2026-10-21 (EXCLUDED_MODELS in modelRank.ts). A
+ * weekly scheduled check proposes a refresh of this list. Nebius retires models (Qwen3-32B left on
+ * 2026-08-31, D24), so the page drops an id the live list no longer has (topModels in
+ * modelRank.ts), and a pick that fails at run time falls through to the environment's model (D46).
  */
 export const NEBIUS_TOP: ReadonlyArray<{ id: string; label: string }> = [
   { id: "zai-org/GLM-5.3", label: "GLM-5.3" },
-  { id: "moonshotai/Kimi-K3", label: "Kimi K3" },
-  { id: "moonshotai/Kimi-K2.6", label: "Kimi K2.6" },
+  { id: "zai-org/GLM-5.2", label: "GLM-5.2" },
   { id: "deepseek-ai/DeepSeek-V4-Pro-0813", label: "DeepSeek V4 Pro 0813" },
   { id: "deepseek-ai/DeepSeek-V4.1-Flash", label: "DeepSeek V4.1 Flash" },
-  { id: "Qwen/Qwen3.5-397B-A17B", label: "Qwen3.5 397B" },
+  { id: "zai-org/GLM-5.1", label: "GLM-5.1" },
 ];
 
 /**

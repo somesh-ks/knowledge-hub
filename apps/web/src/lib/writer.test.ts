@@ -88,7 +88,7 @@ describe("loadWriterView", () => {
   });
 
   it("calls a top model by the name the model list uses", () => {
-    expect(writerLabel("moonshotai/Kimi-K3")).toBe("Kimi K3");
+    expect(writerLabel("deepseek-ai/DeepSeek-V4.1-Flash")).toBe("DeepSeek V4.1 Flash");
     expect(writerLabel("deepseek-ai/DeepSeek-V4-Pro-0813")).toBe("DeepSeek V4 Pro 0813");
   });
 });

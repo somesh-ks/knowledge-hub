@@ -34,7 +34,7 @@ test.describe("a refused settings change", () => {
     const root = page.locator("[data-manage]");
     await expect(root).toHaveAttribute("data-loaded", "");
     const combo = page.getByRole("combobox", { name: "AI model" });
-    await combo.selectOption({ label: "Kimi K3" });
+    await combo.selectOption({ label: "DeepSeek V4.1 Flash" });
     await expect(toastText(page)).toHaveText(
       "The server crashed before it could answer. Not saved yet.",
     );

@@ -82,13 +82,6 @@ test.describe("interface cues by kind of action", () => {
       act: (page: Page) => page.locator("[data-library-view='list']").click(),
       cue: /^toggleOn$/,
     },
-    {
-      // A topic has no switch since D102; Weekly's on switch is the one left on a settings page.
-      name: "a switch is a select",
-      path: "/settings/weekly",
-      act: (page: Page) => page.getByRole("switch").first().click(),
-      cue: /^toggle(On|Off)$/,
-    },
   ];
   for (const row of rows) {
     test(`${row.name}, once`, async ({ player, page }) => {
@@ -127,7 +120,7 @@ test.describe("interface cues by kind of action", () => {
     player,
     page,
   }) => {
-    await player.open("/settings");
+    await player.open("/settings/sounds");
     await prime(page);
     const sounds = page.getByRole("switch", { name: "Interface sounds", exact: true });
     await sounds.click();

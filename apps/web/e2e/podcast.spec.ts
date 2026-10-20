@@ -585,7 +585,8 @@ test.describe("the model select on Settings", () => {
       "Claude Sonnet 5.5",
       "Claude Haiku 5.5",
     ]);
-    await expect(grouped(page, "Nebius")).toHaveText(["GLM-5.3", "Kimi K3"]);
+    // Nebius still serves Kimi K3; the owner never wants it offered (2026-10-21).
+    await expect(grouped(page, "Nebius")).toHaveText(["GLM-5.3", "DeepSeek V4.1 Flash"]);
     await expect(options(page)).toHaveCount(5);
     await expect(toast(page)).toBeHidden();
   });
@@ -594,12 +595,12 @@ test.describe("the model select on Settings", () => {
     const sent = await mockConfig(page);
     await openSettings(page);
     // A top model is picked by its short name and saved by its id, as any live pick is.
-    await combo(page).selectOption({ label: "Kimi K3" });
+    await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
     await expect(spoken(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toContainEqual({
       op: "writer.set",
       provider: "nebius",
-      model: "moonshotai/Kimi-K3",
+      model: "deepseek-ai/DeepSeek-V4.1-Flash",
     });
   });
 

@@ -49,7 +49,7 @@ describe("shortlist", () => {
   it("puts large current models first and small or old ones out", () => {
     expect(picked).toContain("deepseek-ai/DeepSeek-V3.2");
     expect(picked).toContain("Qwen/Qwen3-235B-A22B-Instruct-2507");
-    expect(picked).toContain("moonshotai/Kimi-K2-Instruct");
+    expect(picked).not.toContain("moonshotai/Kimi-K2-Instruct");
     expect(picked).not.toContain("meta-llama/Meta-Llama-3.1-8B-Instruct");
     expect(picked).not.toContain("openai/gpt-oss-20b");
   });
@@ -72,7 +72,7 @@ describe("shortlist", () => {
 });
 
 describe("topModels", () => {
-  const CURATED = ["zai-org/GLM-5.3", "moonshotai/Kimi-K3", "deepseek-ai/DeepSeek-V4-Pro-0813"];
+  const CURATED = ["zai-org/GLM-5.3", "zai-org/GLM-5.2", "deepseek-ai/DeepSeek-V4-Pro-0813"];
 
   it("offers every curated id, in order, without a live list", () => {
     expect(topModels(null, CURATED)).toEqual(CURATED);
@@ -93,9 +93,9 @@ describe("topModels", () => {
   it("matches ids exactly, so an id offered is one Nebius lists as spelled", () => {
     const live = [
       { id: "zai-org/glm-5.3", context_length: null },
-      { id: "moonshotai/Kimi-K3", context_length: null },
+      { id: "zai-org/GLM-5.2", context_length: null },
     ];
-    expect(topModels(live, CURATED)).toEqual(["moonshotai/Kimi-K3"]);
+    expect(topModels(live, CURATED)).toEqual(["zai-org/GLM-5.2"]);
   });
 
   it("falls back to the shortlist when no curated id is left", () => {

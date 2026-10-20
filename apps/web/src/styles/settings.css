@@ -785,3 +785,9 @@
 .settings-view .rows > * + *::before {
   content: none;
 }
+
+/* The Theme select draws no value until settingsPage.ts has set the stored one (data-ready), so a
+   stored Dark never shows the first option, System, for a frame. Its size is there from the start. */
+.settings-view:not([data-ready]) .theme-select > select {
+  color: transparent;
+}

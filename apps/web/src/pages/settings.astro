@@ -174,20 +174,17 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       <section>
         <h2 class="section-head">Appearance</h2>
         <div class="rows">
-          <div class="settings-row" data-layout="choice">
-            <div class="settings-text">
-              <span class="settings-label" id="settings-theme-label">Theme</span>
-            </div>
-            <fieldset class="settings-choice" role="radiogroup" aria-labelledby="settings-theme-label">
-              {
-                THEME_PREFERENCES.map((theme) => (
-                  <label class="settings-segment">
-                    <input type="radio" name="theme" value={theme} />
-                    <span>{THEME_LABELS[theme]}</span>
-                  </label>
-                ))
-              }
-            </fieldset>
+          {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
+               settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
+               Dark never shows System first. */}
+          <div class="settings-row">
+            <label class="settings-label" for="settings-theme">Theme</label>
+            <span class="manage-select value-select theme-select">
+              <select class="manage-input" id="settings-theme" name="theme" autocomplete="off">
+                {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </div>
         </div>
       </section>
