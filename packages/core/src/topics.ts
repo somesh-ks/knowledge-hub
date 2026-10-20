@@ -8,10 +8,10 @@ import {
   IdString,
   isBuiltinCategory,
   isBuiltinSection,
-  NEVER_PUBLISH,
   SECTION_TITLES,
   SECTIONS,
   SectionId,
+  snapWeight,
   TRENDING_TOPIC_ID,
 } from "./categories.js";
 import { GENERAL_TOPICS, type GeneralTopicId, isGeneralTopicId } from "./generalTopics.js";
@@ -192,72 +192,61 @@ export const BUILTIN_SECTIONS: readonly TopicSection[] = SECTIONS.map((id, order
   order,
 }));
 
-/** Name, description and depth of each built-in category. Weights come from the preferences. */
+/** Name, one-line hint (kept as the description) and depth of each built-in category. Weights come from the preferences. */
 const BUILTIN_META: Record<Category, { name: string; description: string; depth: TopicDepth }> = {
   design_engineering_craft: {
-    name: "Design engineering craft",
-    description:
-      "How an interface detail was built: implementation technique, craft process or a worked teardown of a polished UI.",
+    name: "Build breakdowns",
+    description: "How a detail was made, with code",
     depth: "craft",
   },
   hci_empirical_research: {
-    name: "HCI research",
-    description:
-      "Human-computer interaction research with a method and results: user studies, experiments and papers on interaction techniques.",
+    name: "User studies",
+    description: "Research with a method and results",
     depth: "craft",
   },
   ui_component_primitives: {
-    name: "UI components and primitives",
-    description:
-      "Accessible building blocks and component libraries such as dialog, popover, drawer, combobox and design tokens, including their releases.",
+    name: "Components",
+    description: "Dialogs, popovers, component libraries",
     depth: "craft",
   },
   ai_ux_interaction_patterns: {
-    name: "AI interaction patterns",
-    description:
-      "Interface and interaction patterns for AI products: chat and agent interfaces, streaming, correction, interruption and generative UI.",
+    name: "AI interface patterns",
+    description: "Chat, agents, streaming UI",
     depth: "craft",
   },
   css_canvas_motion_techniques: {
-    name: "CSS, canvas and motion",
-    description:
-      "Concrete techniques in CSS, SVG, canvas, WebGL, shaders or animation, with code or a demo.",
+    name: "Motion and CSS",
+    description: "Techniques with a demo",
     depth: "craft",
   },
   frontier_model_releases: {
-    name: "Frontier model releases",
-    description:
-      "A release, model card, benchmark result or technical report for a frontier AI model.",
+    name: "Model releases",
+    description: "Model cards, benchmarks, reports",
     depth: "craft",
   },
   developer_tool_launches: {
-    name: "Developer tool launches",
-    description:
-      "A launch or major release of a developer tool, framework, library, editor, CLI or platform feature.",
+    name: "Tool launches",
+    description: "New frameworks, editors, CLIs",
     depth: "craft",
   },
   taste_and_design_philosophy: {
-    name: "Taste and design philosophy",
-    description:
-      "Essays and talks about taste, craft, design principles and how to think about designing and building interfaces.",
+    name: "Design essays",
+    description: "Taste, principles, how to think",
     depth: "craft",
   },
   venture_capital_and_gossip: {
-    name: "Venture capital and gossip",
-    description:
-      "Funding rounds, valuations, acquisitions, investor commentary and industry gossip.",
+    name: "Funding and gossip",
+    description: "Rounds, valuations, acquisitions",
     depth: "fit_only",
   },
   generic_ai_hype_listicles: {
-    name: "Generic AI hype",
-    description:
-      "Top-N tool lists, productivity promises and marketing language with no specific technique or finding.",
+    name: "AI hype lists",
+    description: "Top-10 tools, no technique",
     depth: "fit_only",
   },
   consumer_tech_releases: {
-    name: "Consumer tech releases",
-    description:
-      "Consumer technology releases and the news around them: phones, laptops, wearables, chips, operating systems and the rules that shape them.",
+    name: "Device launches",
+    description: "Phones, laptops, chips, OS updates",
     depth: "launch",
   },
 };
@@ -267,15 +256,16 @@ export function builtinTopics(weights: Readonly<Record<Category, number>>): Topi
   return CATEGORIES.map((id): Topic => {
     const meta = BUILTIN_META[id];
     const section = homeSection(id, "rss");
+    const weight = snapWeight(weights[id]);
     return {
       id,
       name: meta.name,
       description: meta.description,
-      weight: weights[id],
+      weight,
       enabled: true,
       keywords: [],
       section_id: section ?? "top",
-      never_publish: NEVER_PUBLISH.includes(id),
+      never_publish: weight === 0,
       origin: "builtin",
       depth: meta.depth,
     };
@@ -393,7 +383,8 @@ export function resolveTopics(
     // (D39) reaches a topics.json written before it.
     return {
       ...topic,
-      weight: preferences.weights[topic.id],
+      weight: snapWeight(preferences.weights[topic.id]),
+      never_publish: snapWeight(preferences.weights[topic.id]) === 0,
       section_id: seed.get(topic.id)?.section_id ?? topic.section_id,
     };
   });
@@ -460,6 +451,12 @@ export function homeSectionFor(
   const topic = topics?.topics.find((candidate) => candidate.id === id);
   if (!topic || topic.never_publish) return null;
   return publishSection(topic);
+}
+
+/** True when a built-in category sits at Off (weight 0) in the topics a run works from. */
+export function categoryIsOff(topics: TopicsFile | null | undefined, id: string): boolean {
+  const topic = topics?.topics.find((candidate) => candidate.id === id);
+  return topic?.origin === "builtin" && (topic.weight <= 0 || topic.never_publish);
 }
 
 /**

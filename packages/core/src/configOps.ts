@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IdString, SectionId } from "./categories.js";
+import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
 import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
@@ -30,7 +30,8 @@ export const MAX_VOTES_PER_OP = 50;
 export const OpenInput = VoteInput.omit({ value: true });
 export const MAX_OPENS_PER_OP = 50;
 
-const weight = z.number().min(0).max(1);
+/** Any number from 0 to 1 is read as the nearest of the five weight stops. */
+const weight = z.number().min(0).max(1).transform(snapWeight);
 
 /**
  * A topic as the app submits it. Only `name` and `description` are required: the id comes from

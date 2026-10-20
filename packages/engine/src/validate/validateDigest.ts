@@ -1,4 +1,5 @@
 import {
+  categoryIsOff,
   Digest,
   type Digest as DigestType,
   digestSections,
@@ -9,7 +10,6 @@ import {
   type Item,
   isBuiltinCategory,
   isRetiredSection,
-  NEVER_PUBLISH,
   type Source,
   TECH_SECTION,
   type TopicsFile,
@@ -242,10 +242,7 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
     const customTopic = isBuiltinCategory(item.category)
       ? undefined
       : context.topics?.topics.find((topic) => topic.id === item.category);
-    if (
-      (isBuiltinCategory(item.category) && NEVER_PUBLISH.includes(item.category)) ||
-      customTopic?.never_publish
-    ) {
+    if (categoryIsOff(context.topics, item.category) || customTopic?.never_publish) {
       add("error", "never_publish", `The category ${item.category} never publishes.`, item.id);
     }
     if (!isBuiltinCategory(item.category) && context.topics && !customTopic) {

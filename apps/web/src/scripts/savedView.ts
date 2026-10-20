@@ -34,6 +34,7 @@ import {
   type TopicWords,
 } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
+import { drawStop, stopFor, weightOf } from "../lib/weightStops";
 import type { ConfigOp } from "../types/contracts";
 import { ADDED_SOURCE, ADDED_TOPIC, HELD_EVENT, type Held, type Pending } from "./managePageSave";
 import { element, iconNode } from "./topicsView";
@@ -203,15 +204,6 @@ function syncChoice(input: HTMLInputElement): void {
     );
 }
 
-/** A slider's fill and readout follow its value, as topicsPage.ts draws them while it moves. */
-function drawWeight(slider: HTMLInputElement): void {
-  const share = Number(slider.value);
-  slider.style.setProperty("--range-fill", `${share * 100}%`);
-  slider.setAttribute("aria-valuetext", `${Math.round(share * 100)}%`);
-  const output = slider.nextElementSibling;
-  if (output) output.textContent = `${Math.round(share * 100)}%`;
-}
-
 const byId = <T extends HTMLElement>(root: ParentNode, selector: string, id: string): T | null =>
   [...root.querySelectorAll<T>(selector)].find((node) => node.dataset.id === id) ?? null;
 
@@ -234,10 +226,11 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
     const value = savedControl(ops, op, control.dataset.field ?? "");
     if (value === undefined) continue;
     if (control.type === "range") {
-      if (Number(control.value) === Number(value)) continue;
-      control.defaultValue = value;
-      control.value = value;
-      drawWeight(control);
+      if (weightOf(control) === Number(value)) continue;
+      const place = String(stopFor(control, Number(value)));
+      control.defaultValue = place;
+      control.value = place;
+      drawStop(control);
     } else {
       const on = value === "true";
       if (control.checked === on) continue;

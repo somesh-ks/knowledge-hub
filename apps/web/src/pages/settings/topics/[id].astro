@@ -100,6 +100,7 @@ const weightRows = (group?.members ?? [])
         : member.name === group?.name
           ? `${member.name} in general`
           : member.name,
+    name: member.name,
     weight: member.weight,
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
@@ -118,7 +119,8 @@ const upsert =
       section_id: topic.section_id,
     },
   });
-const editable = topic !== null && !topic.never_publish;
+// A topic at Off keeps its page: its slider is how it comes back.
+const editable = topic !== null;
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
 // A long list shows its first SHOWN sources and a button for the rest (D103).
@@ -237,7 +239,7 @@ const facts = topic && {
                     }))}
                   />
                 </div>
-                {topic && !general && <WeightRow id={topic.id} label="Weight" weight={topic.weight} />}
+                {topic && !general && <WeightRow id={topic.id} label="Weight" name={topic.name} weight={topic.weight} />}
                 {weightRows.length === 1 && weightRows.map((row) => <WeightRow {...row} />)}
               </div>
             )
@@ -252,7 +254,6 @@ const facts = topic && {
               </section>
             )
           }
-          {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}
 
           <div class="topic-sources-head">
             <h2 class="section-head">Sources</h2>

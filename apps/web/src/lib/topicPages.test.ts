@@ -4,7 +4,6 @@ import {
   byName,
   generalOf,
   OTHER_ID,
-  percent,
   sourcesByTopic,
   suggestionWords,
   topicChoicesOf,
@@ -17,7 +16,6 @@ const topic = (over: Partial<ManageTopic> = {}): ManageTopic => ({
   name: "Design",
   description: "Design.",
   weight: 0.5,
-  step: 2,
   enabled: true,
   keywords: [],
   section_id: "design",
@@ -28,13 +26,6 @@ const topic = (over: Partial<ManageTopic> = {}): ManageTopic => ({
 
 const source = (id: string, topic_id: string | null, score: number | null): ManageSource =>
   ({ id, name: id, host: `${id}.example`, enabled: true, topic_id, score }) as ManageSource;
-
-describe("percent", () => {
-  it("shows a stored weight at the slider's step", () => {
-    expect(percent(0.5)).toBe("50%");
-    expect(percent(0.333)).toBe("35%");
-  });
-});
 
 describe("sourcesByTopic", () => {
   it("lists each topic's sources best first, and the rest under Other", () => {

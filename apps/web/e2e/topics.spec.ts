@@ -283,7 +283,7 @@ test.describe("the Topics list", () => {
           id: "motion-design",
           name: "Motion design",
           description: "Animation and motion in interfaces.",
-          weight: 0.5,
+          weight: 0.7,
           enabled: true,
           keywords: [],
           section_id: "motion-design",
@@ -369,16 +369,14 @@ test.describe("a topic's page", () => {
   // Design gathers the fixture's Design engineering craft and Product design (D69).
   const CRAFT = "/settings/topics/design";
 
-  test("a weight change saves itself as one weights.set, shown as a percentage", async ({
-    page,
-  }) => {
+  test("a weight change saves itself as one weights.set, shown as its stop", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
     const slider = page.locator("[data-weight]");
-    await slider.fill("0.6");
-    await expect(page.locator("[data-word]")).toHaveText("60%");
+    await slider.fill("3");
+    await expect(page.locator("[data-word]")).toHaveText("More");
     await expect(spoken(page)).toHaveText(SAVED);
-    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.6 } }]);
+    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.85 } }]);
   });
 
   test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
@@ -391,7 +389,7 @@ test.describe("a topic's page", () => {
     await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
       "Design engineering craft",
     );
-    await weights.getByRole("slider", { name: "Product design" }).fill("0.5");
+    await weights.getByRole("slider", { name: "Product design" }).fill("1");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
     await open(page, "/settings/topics/ai");
@@ -786,7 +784,7 @@ test.describe("editing a topic", () => {
             description: "Interface work on players, voice and sound.",
             keywords: ["audio", "voice", "player"],
             enabled: true,
-            weight: 0.75,
+            weight: 0.7,
           },
         },
       ]);

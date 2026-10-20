@@ -203,13 +203,12 @@ describe("topic.upsert", () => {
       },
     });
     expect(code).toBe(0);
-    expect(report.summary).toBe("rename topic Design engineering craft to UI craft");
+    expect(report.summary).toBe("rename topic Build breakdowns to UI craft");
     const topics = await repo.readJson<TopicsFile>("config/topics.json");
     const builtin = topics.topics.find((t) => t.id === "design_engineering_craft");
     expect(builtin).toMatchObject({
       name: "UI craft",
-      description:
-        "How an interface detail was built: implementation technique, craft process or a worked teardown of a polished UI.",
+      description: "How a detail was made, with code",
       weight: 0.5,
       keywords: ["springs"],
       never_publish: false,
@@ -280,15 +279,15 @@ describe("weights.set", () => {
     await apply(QUANTUM);
     const { code, report } = await apply({
       op: "weights.set",
-      weights: { quantum_computing: 0.3, taste_and_design_philosophy: 0.4 },
+      weights: { quantum_computing: 0.5, taste_and_design_philosophy: 0.85 },
     });
     expect(code).toBe(0);
     expect(report.summary).toBe("set 2 topic weights");
     const prefs = await repo.readJson<Preferences>("config/preferences.json");
-    expect(prefs.weights.taste_and_design_philosophy).toBe(0.4);
+    expect(prefs.weights.taste_and_design_philosophy).toBe(0.85);
     const topics = await repo.readJson<TopicsFile>("config/topics.json");
-    expect(topics.topics.find((t) => t.id === "quantum_computing")?.weight).toBe(0.3);
-    expect(topics.topics.find((t) => t.id === "taste_and_design_philosophy")?.weight).toBe(0.4);
+    expect(topics.topics.find((t) => t.id === "quantum_computing")?.weight).toBe(0.5);
+    expect(topics.topics.find((t) => t.id === "taste_and_design_philosophy")?.weight).toBe(0.85);
   });
 });
 
@@ -310,7 +309,7 @@ describe("topic.scope", () => {
     const general = ["world", "business", "science", "culture", "sports"];
     let result = await apply({ op: "topic.scope", ids: craft, daily: false, custom: false });
     expect(result.code).toBe(0);
-    expect(result.report.summary).toBe("set where Design engineering craft plays");
+    expect(result.report.summary).toBe("set where Build breakdowns plays");
     expect(await lists()).toEqual([[...general, ...craft], general, craft]);
     // Another page built before that change adds its own topic without undoing the first.
     result = await apply({ op: "topic.scope", ids: ["frontier_model_releases"], daily: false });
@@ -776,7 +775,7 @@ describe("source ops", () => {
       topic_ids: ["design_engineering_craft", "quantum_computing", "design_engineering_craft"],
     });
     expect(moved.report.summary).toBe(
-      "move source New Weekly to Design engineering craft and Quantum computing",
+      "move source New Weekly to Build breakdowns and Quantum computing",
     );
     user = await loadUserSources(repo.root);
     expect(user.added[0]?.topic_ids).toEqual(["design_engineering_craft", "quantum_computing"]);

@@ -23,5 +23,5 @@ export const Preferences = z.object({
 });
 export type Preferences = z.infer<typeof Preferences>;
 
-/** Bounds enforced by `dispatch learn --apply`. */
-export const LEARN_LIMITS = { perWeight: 0.05, perCall: 0.15 } as const;
+/** Bounds enforced by `dispatch learn --apply`: each weight moves one whole stop, at most this many per call. */
+export const LEARN_LIMITS = { maxMoves: 3 } as const;

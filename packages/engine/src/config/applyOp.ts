@@ -136,6 +136,7 @@ function upsertTopic(
       : `set weight of ${tidy(existing.name)}`;
     existing.name = input.name;
     existing.weight = input.weight;
+    existing.never_publish = input.weight === 0;
     existing.keywords = input.keywords;
     if (isBuiltinCategory(existing.id)) next.preferences.weights[existing.id] = input.weight;
     return { next, summary, topic_id: id, new_topic: false };
@@ -425,6 +426,7 @@ function setWeights(
     const topic = next.topics.topics.find((t) => t.id === id);
     if (!topic) throw new ConfigOpError(`There is no topic ${id}.`);
     topic.weight = weight;
+    if (topic.origin === "builtin") topic.never_publish = weight === 0;
     if (topic.origin === "builtin" && isBuiltinCategory(id)) next.preferences.weights[id] = weight;
   }
   const count = Object.keys(op.weights).length;

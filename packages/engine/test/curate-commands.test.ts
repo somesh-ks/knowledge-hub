@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { JudgmentsFile, parseDigestFile } from "@dispatch/core";
+import { JudgmentsFile, parseDigestFile, seedTopicsFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeCurateCommand } from "../src/commands/curate.js";
 import { makeRenderCommand } from "../src/commands/render.js";
@@ -24,6 +24,7 @@ import {
   writeRunFile,
 } from "./curate-helpers.js";
 import { buildFixtureDigest, COVER, makeFixture } from "./render-factories.js";
+import { plainPreferences } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const RUN = "2026-10-07-regular";
@@ -392,6 +393,11 @@ describe("dispatch curate: agent mode", () => {
 
   it("rejects ids outside the pool, banned vocabulary and never-publish categories, and leaves the file alone", async () => {
     const pool = await seedPool(5);
+    await mkdir(join(tr.root, "config"), { recursive: true });
+    await writeFile(
+      join(tr.root, "config", "topics.json"),
+      JSON.stringify(seedTopicsFile(plainPreferences().weights)),
+    );
     const items = agentItems(pool);
     items[0] = { ...items[0], id: "ffffffffffff" } as (typeof items)[number];
     items[1] = { ...items[1], headline: "An incredible release!" } as (typeof items)[number];

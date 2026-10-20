@@ -8,8 +8,8 @@ import {
   isBuiltinCategory,
   isBuiltinSection,
   isGeneralTopicId,
-  NEVER_PUBLISH,
   SECTIONS,
+  snapWeight,
   TECH_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
@@ -293,6 +293,7 @@ export type Eligibility =
 export function eligibility(
   scored: ScoredItem,
   threshold: number = DEFAULT_SCORE_THRESHOLD,
+  weights?: Readonly<Partial<Record<Category, number>>>,
 ): Eligibility {
   if (scored.topic) {
     // A custom topic won: it names the category, the section and whether the story may publish.
@@ -307,7 +308,9 @@ export function eligibility(
   }
   const category = scored.topCategory;
   if (category === "none") return { eligible: false, reason: "no_category" };
-  if (NEVER_PUBLISH.includes(category)) return { eligible: false, reason: "never_publish" };
+  if (snapWeight(weights?.[category] ?? scored.categoryWeight ?? 1) === 0) {
+    return { eligible: false, reason: "never_publish" };
+  }
   const home = homeSection(category, scored.item.source_type);
   if (home === null) return { eligible: false, reason: "never_publish" };
   if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };
@@ -342,7 +345,7 @@ export function selectItems(input: SelectInput): SelectResult {
   const candidates: Candidate[] = [];
 
   for (const scored of input.scored) {
-    const verdict = eligibility(scored, threshold);
+    const verdict = eligibility(scored, threshold, input.weights);
     if (verdict.eligible) {
       if (
         input.skipTopics?.includes(verdict.candidate.category) ||

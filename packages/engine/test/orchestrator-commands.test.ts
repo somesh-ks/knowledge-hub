@@ -575,7 +575,7 @@ describe("dispatch learn --commit", () => {
     const { code } = await apply(["--commit"]);
     expect(code).toBe(0);
     expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
-      "chore(prefs): weight css_canvas_motion_techniques: 0.88 to 0.93",
+      "chore(prefs): weight css_canvas_motion_techniques: 0.88 to 0.95",
     );
     expect(git(repo.root, "log", "-1", "--format=%b")).toContain("Input: more motion techniques");
     expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toBe(

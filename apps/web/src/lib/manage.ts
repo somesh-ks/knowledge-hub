@@ -1,12 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  builtinTopics,
   CATEGORIES,
+  type Category,
   deriveSourceFormat,
   generalTopics,
-  homeSection,
   isGeneralTopicId,
-  NEVER_PUBLISH,
   SECTION_TITLES,
   SECTIONS,
   SOURCE_FORMATS,
@@ -41,8 +41,6 @@ export interface ManageTopic {
   description: string;
   /** 0 to 1, as stored. */
   weight: number;
-  /** Where `weight` sits on the five-step control, 0 to 4. */
-  step: number;
   enabled: boolean;
   keywords: string[];
   section_id: string;
@@ -110,20 +108,6 @@ export interface ManageData {
 }
 
 // -------------------------------------------------------------------------------- words and numbers
-
-export const WEIGHT_STEPS = ["Less", "A bit less", "Normal", "A bit more", "More"] as const;
-export const WEIGHT_STEP_MAX = WEIGHT_STEPS.length - 1;
-
-/** The nearest of the five steps for a stored weight. */
-export function weightToStep(weight: number): number {
-  const step = Math.round(Math.min(1, Math.max(0, weight)) * WEIGHT_STEP_MAX);
-  return Number.isFinite(step) ? step : Math.round(WEIGHT_STEP_MAX / 2);
-}
-
-/** The stored weight for a step. The page's script uses the same sum. */
-export function stepToWeight(step: number): number {
-  return Math.min(WEIGHT_STEP_MAX, Math.max(0, step)) / WEIGHT_STEP_MAX;
-}
 
 /** A host without its leading "www.", or an empty string when the address is not a web address. */
 export function hostOf(address: string | null | undefined): string {
@@ -263,22 +247,6 @@ export function humanize(id: string): string {
 
 // ------------------------------------------------------------------------------------------ topics
 
-/** What each built-in category means, for the page that lists them before the engine's file exists. */
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  design_engineering_craft: "How an interface detail was built, with the technique shown.",
-  hci_empirical_research: "Interaction research with a method and results.",
-  ui_component_primitives: "Accessible components, primitives and design tokens.",
-  ai_ux_interaction_patterns: "Interface patterns for chat, agents and generative UI.",
-  css_canvas_motion_techniques: "CSS, canvas, shader and animation techniques with a demo.",
-  frontier_model_releases: "Releases, model cards and benchmarks for frontier AI models.",
-  developer_tool_launches:
-    "Launches of tools, frameworks and libraries a design engineer might use.",
-  taste_and_design_philosophy: "Essays and talks on taste, craft and design principles.",
-  venture_capital_and_gossip: "Funding rounds, valuations and industry gossip.",
-  generic_ai_hype_listicles: "Generic AI hype and top-ten tool lists.",
-  consumer_tech_releases: "Phones, laptops, wearables and the software that ships on them.",
-};
-
 function readWeights(preferences: unknown): Record<string, number> {
   const weights = isRecord(preferences) && isRecord(preferences.weights) ? preferences.weights : {};
   const result: Record<string, number> = {};
@@ -291,22 +259,21 @@ function readWeights(preferences: unknown): Record<string, number> {
 
 /** The built-in topics, from the categories the engine already judges by and the stored weights. */
 export function fallbackTopics(preferences: unknown): ManageTopic[] {
-  const weights = readWeights(preferences);
-  return CATEGORIES.map((id) => {
-    const weight = weights[id] ?? 0.5;
-    return {
+  const stored = readWeights(preferences);
+  const weights = Object.fromEntries(CATEGORIES.map((id) => [id, stored[id] ?? 0.7]));
+  return builtinTopics(weights as Record<Category, number>).map(
+    ({ id, name, description, weight, enabled, section_id, never_publish }): ManageTopic => ({
       id,
-      name: humanize(id),
-      description: CATEGORY_DESCRIPTIONS[id] ?? "",
+      name,
+      description,
       weight,
-      step: weightToStep(weight),
-      enabled: true,
+      enabled,
       keywords: [],
-      section_id: homeSection(id, "rss") ?? "top",
-      never_publish: NEVER_PUBLISH.includes(id),
+      section_id,
+      never_publish,
       origin: "builtin",
-    };
-  });
+    }),
+  );
 }
 
 /**
@@ -323,7 +290,6 @@ export function withGeneralTopics(topics: readonly ManageTopic[]): ManageTopic[]
         name: topic.name,
         description: topic.description,
         weight: topic.weight,
-        step: weightToStep(topic.weight),
         enabled: topic.enabled,
         keywords: [...topic.keywords],
         section_id: topic.section_id,
@@ -352,7 +318,6 @@ function parseTopic(value: unknown): ManageTopic | null {
     name,
     description: asString(value.description) ?? "",
     weight,
-    step: weightToStep(weight),
     enabled: asBool(value.enabled, true),
     keywords,
     section_id: asString(value.section_id) ?? "top",

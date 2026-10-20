@@ -98,7 +98,7 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     summary: "Apply a bounded preference patch",
     help: `Usage:
   dispatch learn --schema                          Print the JSON Schema of a preferences patch
-  dispatch learn --apply <patch.json> [--dry-run]  Apply a patch within the bounds (0.05 per weight, 0.15 total)
+  dispatch learn --apply <patch.json> [--dry-run]  Apply a patch within the bounds (one stop per weight, three weights)
   dispatch learn --apply <patch.json> --commit [--no-push]
                                                    Also commit config/preferences.json as
                                                    chore(prefs): <summary> and push. Refuses on a

@@ -5,7 +5,7 @@ import { DESIGN_TOPIC_ID, TECH_CATEGORY } from "./categories.js";
  * the judge's finer topics by the briefing section they publish to, so the eleven built-in
  * categories, the app's Design topic and any custom topic in those sections stay the judge's
  * questions underneath while a person sees three. `home` is where a source added to the group is
- * filed. A topic that never publishes, Trending and a custom topic with its own section belong to
+ * filed. A custom topic that never publishes, Trending and a custom topic with its own section belong to
  * none.
  */
 export interface TopicGroup {
@@ -52,6 +52,8 @@ export function topicGroupOf(topic: {
   never_publish: boolean;
   origin: string;
 }): TopicGroup | null {
-  if (topic.never_publish || topic.origin === "general") return null;
+  // A built-in topic at Off keeps its page, so it can be turned on again.
+  if ((topic.never_publish && topic.origin !== "builtin") || topic.origin === "general")
+    return null;
   return TOPIC_GROUPS.find((group) => group.sections.includes(topic.section_id)) ?? null;
 }

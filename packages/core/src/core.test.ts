@@ -140,7 +140,8 @@ describe("paths and sections", () => {
     expect(homeSection("developer_tool_launches", "rss")).toBe("ui-craft");
     // A video goes where its category goes; "watch" no longer receives stories.
     expect(homeSection("design_engineering_craft", "youtube")).toBe("ui-craft");
-    expect(homeSection("venture_capital_and_gossip", "rss")).toBeNull();
+    // Off, not a missing home, keeps a category out of a briefing.
+    expect(homeSection("venture_capital_and_gossip", "rss")).toBe("ai");
   });
 });
 

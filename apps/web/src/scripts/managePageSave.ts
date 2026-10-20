@@ -9,6 +9,7 @@ import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { clearPendingChoice, readPendingChoice, writePendingChoice } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
+import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 
 const KEY = "dispatch:narrate-passphrase";
@@ -113,7 +114,7 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
       const slider = el
         .closest("li, [data-topic]")
         ?.querySelector<HTMLInputElement>("[data-weight]");
-      if (slider) op.topic.weight = Number(slider.value);
+      if (slider) op.topic.weight = weightOf(slider);
     }
     if (op.op === "weights.set") {
       Object.assign(weights, op.weights);

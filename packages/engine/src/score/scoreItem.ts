@@ -153,5 +153,6 @@ export function scoreItem(entry: JudgmentEntry, preferences: Preferences, item: 
   const score = round4(
     clamp01(breakdown.taste * breakdown.craftFactor * breakdown.penaltyFactor + breakdown.bonus),
   );
-  return { item, entry, score, topCategory: top, breakdown };
+  const categoryWeight = top === "none" ? undefined : preferences.weights[top];
+  return { item, entry, score, topCategory: top, breakdown, categoryWeight };
 }
