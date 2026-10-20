@@ -142,6 +142,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
+| D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
 
 ---
 
@@ -1483,3 +1484,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the list was a snapshot of a market that moves weekly; a person reading it should not have to remember to refresh it.
 - Revisit if: the check's sessions cannot browse or open PRs. It was created without connectors; the owner recreates it from claude.ai with GitHub and Firecrawl connected.
 - Check: the model tests cover the exclusion and the five.
+
+## D131: an 8pt spacing system, held by design checks
+
+- Date: 2026-10-21 (the owner: "I don't know why you keep committing spacing problems in the UI, is it a rule or design system problem? I want to use a 8 point spacing system", "Keep 4px exceptions for granular control, but mostly 8px spacing", "Add tests or a linter to have a design system compliance check")
+- Decision: the space scale is 4, 8, 16, 24, 32, 48, 64 and 96px; the 12px and 2px steps are gone (about 240 values moved: 12px became 16 between separate things and 8 inside one control). 4px is allowed only in the selectors `ALLOWED_4PX` names in `apps/web/src/styles/styles.test.ts`, each with a reason (an icon beside its label, a title onto its subtitle, a chip's or button's inner gap, a hit-area or focus offset, an optical nudge). A list row carries its own padding, so it is spaced the same in a page, a panel or a sheet. Headings are never medium or bold. `npm run design-check` runs the static rules (the 8pt grid, regular headings, no inline style that bypasses the tokens) with the token tests in seconds; `e2e/designSystem.spec.ts` reads the computed spacing of every element on every page and in the open player, the Add source panel and a Library menu, and fails off the 4px grid without pinning any value. AGENTS.md makes both a step of any UI change.
+- Why: the old scale offered 2, 4 and 12px beside the 8pt steps, so each new surface picked whatever looked right in its own context, and spacing applied by a parent selector vanished when a row moved into a panel (the cramped suggested sources). No test read spacing at all.
+- Rejected: dropping 4px entirely (small controls read loose); pinning measured gaps in browser tests (AGENTS.md forbids pinned geometry; the grid invariant catches the class of bug without it).
+- Check: each static rule was shown red on a probe; the sweep passes on every page, both widths.
+
