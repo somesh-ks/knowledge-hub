@@ -1,12 +1,12 @@
 # Player
 
-What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D101, D102, D107, D111; history: docs/history/.
+What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D101, D102, D107, D111, D126; history: docs/history/.
 
 ## Requirements
 
 ### Surface and bar
 - The player is one surface from the bottom bar to a full page. The whole bar opens it; a drag, the bar, Back or Escape close it. Back closes the open player instead of leaving the page.
-- The dock has no chevron (D102); a "Close the player" button shows only on keyboard focus, at every width. The open player has no drag handle, and its top corners are square at every point of its travel; the art keeps the room the handle took (D111). Bottom sheets have no grabber and square corners.
+- The dock has no chevron (D102). A "Close the player" chevron sits top left of the open player below 64rem (D126); from 64rem it shows only on keyboard focus. The open player has no drag handle, and its top corners are square at every point of its travel; the art keeps the room the handle took (D111). Bottom sheets have no grabber and square corners.
 - The bar and the navigation are one tonal block (D86). The player is held by its bottom edge and is `100dvh` tall, so the bar, navigation and floating button move with the address bar as one.
 - The app bar's Back goes back one entry.
 - Below 64rem the bottom navigation slides away with the pull and stays above the rising page until gone; the bar's cover grows into the page's cover on the same progress (none from 64rem or under reduced motion; `core/coverMorph.ts`).
@@ -22,7 +22,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The speed opens a slider from 0.5x to 2x in steps of 0.05, in a modal dialog (under the pill on a phone, above it with a mouse), with presets 1x, 1.25x, 1.5x and 2x. Any step is remembered; Settings has no default-speed row.
 - The desktop bar's line has a notch at the playhead. Timeline markers are one small dot per story.
 - The scrubber's time bubble and the bar's times hold still while the slider moves: each sits over a hidden copy of the widest time it can show, and the bubble moves in whole device pixels.
-- Space plays and pauses from anywhere once the bar is there. The first Play on a page with no audio starts by itself. Nothing is said under the play chip before audio exists.
+- Space plays and pauses on briefing and episode pages once the bar is there, unless focus is in a field, menu, dialog or slider (`playerKeys.ts`, D126); the hero's three-dots menu does not take focus when it closes from a tap elsewhere (`heroMenu.ts`). The first Play on a page with no audio starts by itself. Nothing is said under the play chip before audio exists.
 - The player's switch is sticky on a phone.
 
 ### Stories and transcript
@@ -30,6 +30,11 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - A briefing's transcript is what the host says of each story (headline over words, from the digest's spoken version), with the same follow and word light as an episode's.
 - Stories are timed rows that start the story; previous and next step between them (D85, D90). The rundown before story 1 is no story: Next goes to story 1, Previous to 0:00. A move made with the controls never scrolls the page (D92).
 - The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. The spoken word lights without lag. The highlight pauses while the host speaks words the page does not show (D107).
+
+### Queue and Up next (D126)
+- A play queue of ids (`dispatch:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`dispatch:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by drag handle or arrow keys and can be removed.
+- While something is queued, a peek strip "Up next" at the bottom of the open player pulls up into a queue sheet (`QueueSheet`) with a docked now-playing row.
+- Scenario: WHEN a recording has ended THEN Stories and Transcript hide and only Up next shows: the queue, or the previous briefing when the queue is empty, which is offered and never started by itself.
 
 ### Failure and memory
 - A failure is told once, in the line under the title, and nothing below it moves.
@@ -44,6 +49,8 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - `apps/web/src/player` (surface, bar, scrubber, transcript, speed)
 - `apps/web/src/player/core/coverMorph.ts`
 - `apps/web/src/player/core/resume.ts`
+- `apps/web/src/player/core/playQueue.ts`
+- `apps/web/src/player/UpNext.tsx`, `QueueSheet.tsx`
 - `apps/web/src/player/core/playerSheet.ts`
 - `apps/web/src/styles/player.css`
 - `apps/web/src/components/StoryControls.astro`

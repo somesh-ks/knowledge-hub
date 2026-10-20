@@ -137,6 +137,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card; pull down to close the source panel | active; amends D73, D123, D124 |
+| D126 | The player has a play queue (Library menu adds, drag and keyboard reorder, autoplay of the next item), a peek strip "Up next" that pulls up into a queue sheet, a collapse chevron on a phone, and Space that plays and pauses on briefing and episode pages; after an item ends only Up next shows | active; amends D102, D111 |
+| D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
+| D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
+| D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
+| D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 
 ---
 
@@ -1427,3 +1432,54 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Then (2026-10-20, the owner on a phone: "the subsection headings and the accordion titles are too big", "the tabs are not scrollable", "I want it in a single line", "on-demand can be renamed to catch up everywhere", "a weird jump in the full screen modal ... with the Android phone keyboard visible"): H2s are 18 to 20px (the title size), not 22px. The filter's grid column takes `minmax(0, 1fr)`, so seven format tabs scroll in their strip instead of widening the page, which Chrome had zoomed out. Listen in is one line at the label size in the card. Custom and On Demand are "Catch up" in Listen in, the add panel and the Library filter. The add panel focuses its first field without scrolling while it slides, and on a phone ends where the keyboard begins (`keyboardFit.ts`: the VirtualKeyboard API's overlay in Chrome, the visual viewport in Safari).
 - Check: the topics journey covers search, a format tab and their reload; the weight and format specs open their groups first; `fabFor` routes Add; a scripted touch pull closed the panel and a short one did not (not a test: touch gestures are not in the suites).
 
+## D126: a play queue, an Up next peek, a collapse chevron, Space
+
+- Date: 2026-10-21 (the owner: a chevron to close the player, Space to play and pause, "the YouTube Music pattern" for the queue)
+- Decision:
+  - A queue of briefing and episode ids lives in localStorage (`dispatch:queue`, `core/playQueue.ts`). The Library menu adds through the `dispatch:queue-add` event. When an item ends the first queued one starts: the listener chose it. Rows reorder by drag handle or arrow keys and can be removed.
+  - A peek strip "Up next" sits at the bottom of the open player and pulls up into a queue sheet with a docked now-playing row. Once an item has ended, Stories and Transcript hide and only Up next shows: the queue, or the previous briefing when the queue is empty, which is offered and never started by itself.
+  - Below 64rem a chevron at the top left closes the open player; from 64rem it still shows only on keyboard focus (D102 kept there).
+  - Space plays and pauses on briefing and episode pages unless focus is in a field, menu, dialog or slider. The three-dots menu (`heroMenu.ts`) no longer takes focus back when it closes from a tap elsewhere, which had made the next Space reopen it.
+- Why: a listener who does not know the page pulls down saw no way out on a phone; hearing the next thing without a tap is what a queue is for. Autoplay is limited to what the listener queued.
+- Rejected: autoplaying the previous briefing; a queue page apart from the player.
+- Check: unit tests for the queue and the Space rule; the first-play browser spec adds to the queue. Drag and pull gestures are not in the suites.
+
+## D127: a Library row menu, downloads, a one-line phone toolbar
+
+- Date: 2026-10-21 (the owner's Library backlog)
+- Decision:
+  - Every Library row has a three-dots menu: Download or Remove download, Add to queue, Regenerate, Share (`navigator.share`, else copy with "Link copied"), Delete where the page allows it.
+  - Download keeps the audio (a briefing's file; an episode's every pre-narrated turn, its marks and the `/api/narrate` lookup) and the page, covers and scripts in Cache Storage `dispatch-audio-v1`, at most 10, the oldest evicted. The service worker (v10) answers Range requests (206, 416) and offline API lookups from it. An episode with a turn not stored says "Not ready offline yet". A downloaded row shows a filled check-circle and a hidden "Downloaded" at the start of its subtitle. `connect-src` allows `https://*.public.blob.vercel-storage.com`.
+  - On a phone the Library has no sort (a sort in a link is ignored there); the Daily, Weekly and Catch up chips (16px side padding below 40rem, scrolling at 360px) and the view switch share one line.
+- Why: offline listening was the owner's open call in D123; a menu per row puts the actions where the item is.
+- Rejected: downloads in the browser's HTTP cache (evicted without notice); a Settings page for downloads.
+- Check: service worker unit tests for ranges and the narrate fallback. Revisit if: the Blob host's CORS refuses the audio fetch on a real phone.
+
+## D128: episodes are pre-narrated
+
+- Date: 2026-10-21
+- Decision: `dispatch publish` also narrates recent `Podcasts/` episodes that lack stored turns (`packages/engine/src/publish/publishEpisodes.ts`). Segments are named `audio/<ep-id>/seg/t<idx>.<sha256(voice\nmodel\ntext)[:12]>.mp3` with a `.marks.json` beside each; the naming is shared by `audio/segmentStore.ts` and `core/episodeScript.ts`. `podcast.yml` calls `audio.yml` after an episode commit (a workflow change, shipped in a separate PR the owner merges by hand). It counts against the monthly Speechify budget, not the site's three a day. Briefings were already pre-narrated by `audio.yml` after each run.
+- Why: Download and offline Play need every turn stored; a first Play should not wait on synthesis.
+- Check: engine unit tests for the naming and the skip of stored turns. Owner action: set the GitHub variable `SPEECHIFY_VOICE_ID_B` to match Vercel if Vercel sets it, or the hash differs and the page narrates again.
+
+## D129: Settings restructured
+
+- Date: 2026-10-21 (the owner's backlog)
+- Decision:
+  - Index sections: Podcast (Daily, Weekly, Sources, Preferences), Intelligence (AI model), Sound (Podcast voice, Interface sounds, each a page: `/settings/voice`, `/settings/sounds`), Appearance (Theme, a select with no value drawn until the stored one is set), About. No breadcrumbs anywhere: titles stand alone and phones keep the app bar's arrow; a topic page has no "‹ Sources" link.
+  - Daily and Weekly: no Configure row, Format and Length are selects, no voice rows, and Weekly has no switch (the engine still reads `weekly.enabled`, which is true).
+  - One voice pair (`voice_id`, `voice_id_b` at the top of `config/schedule.json`, `podcastVoices()`) serves Daily, Weekly and Catch up; the old per-podcast voices apply only while it is unset. New episode keeps a per-request voice that defaults to the pair.
+  - "Topics and sources" is "Sources" (page title too). A topic page has a Sources or Preferences switch (`?view=preferences`; Other has none). Preferences holds Topic weightage and, on World and Business or a topic with a saved lean, Perspective. "Format" is "Type" in copy. Catch up names on-request episodes everywhere.
+  - One global type mix: `format_mix` in `config/preferences.json`, op `mix.set`, edited on `/settings/preferences` (seven sliders, Off, Less, Normal, More, Most, default Normal) and applied to every story by `applyFormatMix`. `topic.mix` carries perspective only; per-topic mixes are no longer read.
+  - Sources page: a fire icon for Latest; deleting a source is a confirm dialog then immediate removal, no Undo; a suggested add shimmers, then moves into Sources and the next suggestion fills its place (10 rendered, 5 shown); desktop type chips with no All and multi-select, phone tabs with All, sticky with the search below 64rem; Add source beside the search from 64rem; the Add panel lists suggestions for its chosen topic.
+- Why: one mix and one voice pair replaced settings the owner never wanted to repeat per page; a type mix per topic was a control with too many places to set. Breadcrumbs repeated what the title and the app bar already said.
+- Rejected: keeping per-topic mixes beside the global one; a Weekly switch (the owner never turns it off).
+- Check: unit tests for `mix.set`, `applyFormatMix` and `podcastVoices`; the topics journey. Revisit if: the `?view=preferences` flash of Sources on load bothers the owner.
+
+## D130: no Kimi, a benchmark-ranked five, a weekly check
+
+- Date: 2026-10-21 (the owner: Kimi models are never offered)
+- Decision: `EXCLUDED_MODELS` (`apps/web/src/lib/modelRank.ts`) removes the Kimi models. The Nebius top five (`NEBIUS_TOP`, `lib/modelId.ts`) follow EQ-Bench longform on 2026-10-21: GLM-5.3, GLM-5.2, DeepSeek V4 Pro 0813, DeepSeek V4.1 Flash, GLM-5.1. A scheduled check every Monday 08:52 Europe/Stockholm, in a fresh cloud session, re-ranks for the podcast use case (faithfulness first, then long-form spoken prose, instruction following and long context, then price), runs the repo's eval bakeoff when `NEBIUS_API_KEY` is there, and opens a PR labelled `review` when the list changes.
+- Why: the list was a snapshot of a market that moves weekly; a person reading it should not have to remember to refresh it.
+- Revisit if: the check's sessions cannot browse or open PRs. It was created without connectors; the owner recreates it from claude.ai with GitHub and Firecrawl connected.
+- Check: the model tests cover the exclusion and the five.

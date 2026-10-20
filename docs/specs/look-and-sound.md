@@ -1,15 +1,16 @@
 # Look and sound
 
-Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D31, D48, D54, D72, D73, D86, D96, D101, D110, D122; history: docs/history/.
+Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D31, D48, D54, D72, D73, D86, D96, D101, D110, D122, D125, D129; history: docs/history/.
 
 ## Requirements
 
 ### Visual language
 - The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons and chips, 12px rows, no outline except on text fields.
-- Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings 22px regular (D73).
+- Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a rounded hover and press tile clear of the hairlines (`.row-action`). Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
 - Scroll edge fade masks on tabs and shelf; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
 - Dropdowns share one chevron gap.
+- Latest's navigation icon is a fire (outline, filled when current) (D129). Theme is a select in Appearance and draws no value until the stored one is set, so the page never flashes the default (D129).
 
 ### Covers and the header light
 - Covers dated 2026-10 or later are drawn monthly (D110, `packages/cover/src/season.ts`, `MONTHLY_FROM`): one colour scheme a month; Daily and Weekly with set layouts (the weekly shows its ISO week number and Monday to Sunday range); On demand and episodes as a round plate on a matte; every draw held to 4.5:1 for type and 3:1 for form in code. Earlier covers keep mixed palettes.
