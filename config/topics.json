@@ -160,11 +160,11 @@
       "id": "generic_ai_hype_listicles",
       "name": "AI hype lists",
       "description": "Top-10 tools, no technique",
-      "weight": 0,
+      "weight": 0.7,
       "enabled": true,
       "keywords": [],
       "section_id": "ai",
-      "never_publish": true,
+      "never_publish": false,
       "origin": "builtin",
       "depth": "fit_only"
     },
