@@ -74,6 +74,9 @@
   "overrides": {
     "assistant-ui": {
       "removed": true
+    },
+    "aux-first": {
+      "removed": true
     }
   }
 }
