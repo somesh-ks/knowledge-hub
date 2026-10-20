@@ -210,6 +210,8 @@ function mergeExisting(draft: Source, existing: Source | undefined): Source {
   if (existing.last_ok) merged.last_ok = existing.last_ok;
   // The format is not in sources.md: it is classified once and kept across regeneration.
   if (existing.format) merged.format = existing.format;
+  // The lean is rated once (classify-lean) and kept the same way.
+  if (existing.lean !== undefined) merged.lean = existing.lean;
   return merged;
 }
 

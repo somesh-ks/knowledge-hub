@@ -836,7 +836,7 @@ describe("source ops", () => {
     expect((await apply({ op: "source.update", id: "alpha", topic_ids: ["nope"] })).code).toBe(1);
     expect(repo.errors.join("\n")).toContain("There is no topic nope.");
     expect((await apply({ op: "source.update", id: "alpha" })).code).toBe(1);
-    expect(repo.errors.join("\n")).toContain("set name, topic_ids, format or any of them");
+    expect(repo.errors.join("\n")).toContain("set name, topic_ids, format, lean or any of them");
     expect(repo.dirty()).toEqual([]);
   });
 

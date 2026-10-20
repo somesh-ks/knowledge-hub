@@ -19,7 +19,7 @@ function stats(judged: number, passed: number, id = "example-blog"): SourceStats
 }
 
 function scored(score: number): ScoredItem {
-  const item = makeItem();
+  const item = makeItem({ source_id: "example-blog" });
   return {
     item,
     entry: makeEntry(item),
