@@ -523,6 +523,13 @@ describe("service worker: audio the person downloaded", () => {
     const worker = load(() => new Response("network audio"));
     const cache = await worker.caches.open("dispatch-audio-v1");
     await cache.put(AUDIO, new Response(body, { headers: { "content-type": "audio/mpeg" } }));
+    // The page tells the worker its downloads changed; the worker reads them before answering.
+    const done: Promise<unknown>[] = [];
+    worker.handlers.get("message")?.({
+      data: { type: "DOWNLOADS_CHANGED" },
+      waitUntil: (promise: Promise<unknown>) => done.push(promise),
+    });
+    await Promise.all(done);
     return worker;
   }
   const ask = (range?: string) =>
@@ -557,10 +564,13 @@ describe("service worker: audio the person downloaded", () => {
     expect(past?.headers.get("content-range")).toBe("bytes */10");
   });
 
-  it("sends audio that was not downloaded to the network and keeps nothing", async () => {
+  // Bug it prevents: every seek of a stream the person never downloaded paid a cache lookup and a
+  // worker-proxied fetch on the playback path (the review of 2026-10-21).
+  it("leaves audio that was not downloaded to the network, unanswered, and keeps nothing", async () => {
     const worker = load(() => new Response("network audio"));
     const { response } = await worker.dispatchFetch(request("/d/2026-10-07.mp3"));
-    expect(await response?.text()).toBe("network audio");
+    expect(response).toBeUndefined();
+    expect(worker.fetched).toEqual([]);
     expect(worker.caches.stored()).toEqual([]);
   });
 

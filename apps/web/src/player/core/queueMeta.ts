@@ -52,9 +52,3 @@ export function loadQueueMeta(id: string): Promise<QueueMeta | null> {
   asked.set(id, request);
   return request;
 }
-
-/** Remembers what the player already knows about an item, so its row needs no fetch. */
-export function rememberQueueMeta(data: PlayerDigestData): void {
-  known.set(data.id, metaOf(data));
-  asked.set(data.id, Promise.resolve(known.get(data.id) ?? null));
-}

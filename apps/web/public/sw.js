@@ -17,7 +17,7 @@
  *     worker's. Any other audio request goes to the network as it would have.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v10";
+const VERSION = "v11";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -131,9 +131,31 @@ self.addEventListener("install", (event) => {
   event.waitUntil(precacheShell());
 });
 
+/**
+ * The addresses of downloaded files, in memory, so the fetch handler can tell at once whether a
+ * request is one it should answer: an audio read the person never downloaded goes straight to the
+ * network, as before downloads existed, with no cache lookup on the playback path. Filled when the
+ * worker starts and again whenever the page says the downloads changed.
+ */
+const downloaded = new Set();
+
+async function refreshDownloaded() {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const keys = await cache.keys();
+    downloaded.clear();
+    for (const key of keys) downloaded.add(key.url);
+  } catch {
+    // Storage blocked: nothing is downloaded, and every request goes to the network.
+  }
+}
+
+refreshDownloaded();
+
 self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "SKIP_WAITING") self.skipWaiting();
+  if (data.type === "DOWNLOADS_CHANGED") event.waitUntil(refreshDownloaded());
   // A download asks for the page's scripts and styles to be saved too, and hears when they are.
   if (data.type === "WARM_PAGE" && typeof data.path === "string" && data.path.startsWith("/")) {
     const port = event.ports && event.ports[0];
@@ -451,8 +473,13 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
-  // A downloaded file is answered here, from any origin, with or without a Range header.
-  if (request.destination === "audio" || AUDIO_PATH.test(url.pathname)) {
+  // A downloaded file is answered here, from any origin, with or without a Range header. Offline
+  // the worker also looks (its list may not be read yet after a restart); online, audio that was
+  // never downloaded is left alone.
+  if (
+    (request.destination === "audio" || AUDIO_PATH.test(url.pathname)) &&
+    (downloaded.has(request.url) || self.navigator?.onLine === false)
+  ) {
     event.respondWith(downloadedAudio(request).then((answer) => answer || fetch(request)));
     return;
   }

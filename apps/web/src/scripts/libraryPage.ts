@@ -78,7 +78,11 @@ function install(): void {
   const emptyButton = root.querySelector<HTMLButtonElement>("[data-library-clear]");
   let emptyReset: "search" | "everything" = "search";
   if (!grid) return;
-  const sortShown = (): boolean => select?.closest(".sort-field")?.checkVisibility() ?? false;
+  // Whether the order is offered here (library.css hides it on a phone). getComputedStyle, not
+  // checkVisibility(), which Safari only has from 17.4.
+  const sortField = select?.closest<HTMLElement>(".sort-field") ?? null;
+  const sortShown = (): boolean =>
+    sortField !== null && getComputedStyle(sortField).display !== "none";
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
   /** The full text of every card, once fetched. Until then, and if it never comes, only the card's own lines are searched. */
@@ -306,8 +310,13 @@ function install(): void {
     });
   }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
-  // Turning a phone to landscape (40rem and up) offers the order again: apply what it holds.
-  matchMedia("(width < 40rem)").addEventListener("change", apply);
+  // Turning a phone to landscape (40rem and up) offers the order again: apply what it holds. The
+  // listener goes with the page, so visits do not pile up listeners on detached pages.
+  const wide = matchMedia("(width < 40rem)");
+  wide.addEventListener("change", apply);
+  document.addEventListener("astro:before-swap", () => wide.removeEventListener("change", apply), {
+    once: true,
+  });
 
   // Episodes this device deleted may be taken out of the page after this script has counted it.
   document.addEventListener("dispatch:library-pruned", apply);

@@ -76,7 +76,8 @@ export function queueItemUrl(id: string): string {
 
 export interface PlayQueue {
   getIds(): readonly string[];
-  add(id: string): void;
+  /** Appends `id`; false when it was refused (queued already, or the item playing now). */
+  add(id: string): boolean;
   remove(id: string): void;
   /** Moves a queued item to another place in the order. */
   move(from: number, to: number): void;
@@ -116,7 +117,11 @@ export function createPlayQueue(options: {
 
   return {
     getIds: () => ids,
-    add: (id) => set(addToQueue(ids, id, options.getCurrentId())),
+    add(id) {
+      const before = ids.length;
+      set(addToQueue(ids, id, options.getCurrentId()));
+      return ids.length > before;
+    },
     remove: (id) => set(removeFromQueue(ids, id)),
     move: (from, to) => set(moveInQueue(ids, from, to)),
     started: (id) => set(removeFromQueue(ids, id)),

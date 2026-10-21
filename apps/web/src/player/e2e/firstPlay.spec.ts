@@ -57,6 +57,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
       for (const id of ["ep-20261007-1930", "2026-10-05"])
         document.dispatchEvent(new CustomEvent("dispatch:queue-add", { detail: { id } }));
     });
+    // Opening a queued item's page loads it, idle: it must stay in the queue until it plays.
+    await player.open("/d/2026-10-05");
+    expect(await page.evaluate(() => localStorage.getItem("dispatch:queue"))).toBe(
+      '["ep-20261007-1930","2026-10-05"]',
+    );
+    await player.open();
     await player.play();
     await player.openPlayer();
     // Reordered by its handle's keys, in the raised queue: the briefing now comes first.

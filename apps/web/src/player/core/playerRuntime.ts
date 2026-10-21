@@ -105,7 +105,12 @@ let queue: PlayQueue | null = null;
 export function getPlayQueue(): PlayQueue {
   queue ??= createPlayQueue({
     storage: safeLocalStorage(),
-    getCurrentId: () => getPlayerStore().getState().track?.digest.id ?? null,
+    // Only an item that has started counts as now playing: one a page merely loaded, idle, can
+    // still be queued.
+    getCurrentId: () => {
+      const state = getPlayerStore().getState();
+      return state.hasStarted ? (state.track?.digest.id ?? null) : null;
+    },
     onChange: (ids) => {
       document.dispatchEvent(new CustomEvent(QUEUE_CHANGED_EVENT, { detail: { ids: [...ids] } }));
     },
@@ -210,14 +215,16 @@ export function startPlayerRuntime(): () => void {
   const playQueue = getPlayQueue();
   // The Library's card menu adds to the queue with an event, so it needs none of the player's code.
   const onQueueAdd = (event: Event): void => {
-    const id: unknown = (event as CustomEvent<{ id?: unknown }>).detail?.id;
-    if (isQueueId(id)) playQueue.add(id);
+    const detail = (event as CustomEvent<{ id?: unknown; added?: boolean }>).detail;
+    // The menu reads `added` once the event returns, so its toast says what happened.
+    if (detail && isQueueId(detail.id)) detail.added = playQueue.add(detail.id);
   };
-  // What starts is no longer to come, however it was started.
+  // What starts playing is no longer to come, however it was started. A page that only loads an
+  // item, idle, leaves it in the queue (an item opened from the Library stays queued).
   let startedId: string | null = null;
-  const offQueueState = playerStore.subscribe(({ track }) => {
+  const offQueueState = playerStore.subscribe(({ track, status }) => {
     const id = track?.digest.id ?? null;
-    if (id === startedId) return;
+    if (status !== "playing" || id === startedId) return;
     startedId = id;
     if (id) playQueue.started(id);
   });

@@ -37,6 +37,8 @@ async function writeDownloads(cache: Cache, list: Download[]): Promise<void> {
     MANIFEST_KEY,
     new Response(JSON.stringify(list), { headers: { "content-type": "application/json" } }),
   );
+  // The worker keeps the downloaded addresses in memory, to step in only for them (sw.js).
+  navigator.serviceWorker?.controller?.postMessage({ type: "DOWNLOADS_CHANGED" });
 }
 
 /** Asks the worker to save the scripts the page needs offline, and waits for its answer. */
@@ -71,6 +73,24 @@ export interface DownloadRequest {
  * Saves an episode: its lookup (every turn marked as stored), each turn's file and word marks, its
  * page and covers. A turn whose file is not stored is NotReadyError; nothing is narrated for it.
  */
+/** `map` over `items` with at most `limit` calls in flight, results in the items' order. */
+async function mapLimit<T, R>(
+  items: readonly T[],
+  limit: number,
+  map: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await map(items[index] as T);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<void> {
   const address = lookupAddress(request.id);
   const lookup = await fetch(address, { headers: { accept: "application/json" } });
@@ -81,13 +101,17 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
   const page = await fetch(request.page);
   if (!page.ok) throw new Error(`page ${page.status}`);
 
-  const files: Response[] = [];
-  for (const turn of turns) {
+  // Four at a time: a 40-turn episode was 80 round trips one after another.
+  const files = await mapLimit(turns, 4, async (turn) => {
     const file = await fetch(turn.url);
     if (file.status === 404) throw new NotReadyError();
     if (!file.ok) throw new Error(`audio ${file.status}`);
-    files.push(file);
-  }
+    return file;
+  });
+  // Marks are optional (a turn narrated before they were kept has none): the page estimates.
+  const marks = await mapLimit(turns, 4, (turn) =>
+    fetch(marksAddress(request.id, turn.key)).catch(() => null),
+  );
 
   const saved: string[] = [];
   const keep = async (key: string, response: Response): Promise<void> => {
@@ -103,9 +127,8 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
           headers: { "content-type": file.headers.get("content-type") || "audio/mpeg" },
         }),
       );
-      // Marks are optional (a turn narrated before they were kept has none): the page estimates.
-      const marks = await fetch(marksAddress(request.id, turn.key)).catch(() => null);
-      if (marks?.ok) await keep(marksAddress(request.id, turn.key), marks);
+      const mark = marks[index];
+      if (mark?.ok) await keep(marksAddress(request.id, turn.key), mark);
     }
     for (const extra of [`/covers/${request.id}-512.webp`, `/covers/${request.id}-1024.webp`]) {
       const cover = await fetch(extra).catch(() => null);
