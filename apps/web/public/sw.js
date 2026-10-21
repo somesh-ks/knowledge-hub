@@ -484,9 +484,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // A downloaded episode's lookup and marks: the network first, the saved copy when it fails. Only
+  // for what was downloaded (or offline): every other lookup goes straight to the network.
   if (
     url.origin === self.location.origin &&
-    (url.pathname === "/api/narrate" || url.pathname === "/api/narrate-marks")
+    (url.pathname === "/api/narrate" || url.pathname === "/api/narrate-marks") &&
+    (downloaded.has(request.url) || self.navigator?.onLine === false)
   ) {
     event.respondWith(fetch(request).catch(() => downloadedApi(request)));
     return;

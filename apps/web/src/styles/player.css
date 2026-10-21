@@ -1616,7 +1616,9 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  row-gap: var(--space-4);
+  /* The speed pill belongs to the transport above it: one control's inner step, 8px. At 16px the
+     two-column player overflowed a 1024x768 window by 4px (2026-10-21). */
+  row-gap: var(--space-2);
   padding-block: var(--space-4) var(--space-2);
 }
 

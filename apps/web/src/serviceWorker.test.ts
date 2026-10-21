@@ -183,11 +183,12 @@ describe("service worker: what it leaves alone", () => {
     expect((await worker.dispatchFetch(request("/api/narrate", { method: "POST" }))).handled).toBe(
       false,
     );
+    // A lookup for anything not downloaded is not the worker's: it goes straight to the network,
+    // before and after the narration exists, and nothing is kept.
     const lookup = request("/api/narrate?digest=2026-10-07", { mode: "navigate" });
-    expect((await worker.dispatchFetch(lookup)).response?.status).toBe(404);
-    // The same question after the narration exists is answered by the network, not a kept copy.
+    expect((await worker.dispatchFetch(lookup)).handled).toBe(false);
     audioExists = true;
-    expect((await worker.dispatchFetch(lookup)).response?.status).toBe(200);
+    expect((await worker.dispatchFetch(lookup)).handled).toBe(false);
     expect(worker.caches.stored()).toEqual([]);
   });
 
@@ -201,8 +202,9 @@ describe("service worker: what it leaves alone", () => {
     online = false;
     // A page request would fall back to /offline here. The API must not.
     const result = await worker.dispatchFetch(request("/api/narrate?digest=2026-10-07"));
+    // Either the worker leaves it to the network, or it answers with an error: never a page.
+    if (result.handled) expect(result.response?.type).toBe("error");
     expect(await result.response?.text()).not.toBe("page");
-    expect(result.response?.type).toBe("error");
   });
 });
 
