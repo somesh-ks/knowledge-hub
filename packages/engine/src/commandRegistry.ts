@@ -169,6 +169,20 @@ next_regular_due, due_now, latest_digest, audio, sources, budget }.`,
     load: async () => (await import("./commands/status.js")).run,
   },
   {
+    name: "health",
+    summary: "Faults in runs, narration, data, cost and the live site; exits 1 on a fault",
+    help: `Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--json]
+
+Checks the last run's outcome and the next due date, narration for the last week, that every digest
+and state file parses, a thin or unverified newest briefing, model fallbacks in the last run, the
+cost ledger's last 24 hours against --ceiling-usd (default 5) and the Speechify allowance. Online
+(the default; --offline skips it) it asks the live site (default https://news.someshks.work) for its
+pages, headers, /api/podcast, /latest.json against the newest digest, and the newest narration
+file. With --json prints { version: 1, now, ok, findings: [{ code, aspect, severity, message }],
+passed }. Exits 1 when any finding is a fault.`,
+    load: async () => (await import("./commands/health.js")).run,
+  },
+  {
     name: "doctor",
     summary: "Check the setup: Node, git, config, state, key names, and with --online the services",
     help: `Usage: dispatch doctor [--online] [--json]
