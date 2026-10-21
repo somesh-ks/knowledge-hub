@@ -279,7 +279,16 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const enabled = typeof topic.enabled === "boolean" ? topic.enabled : null;
       const words = keywords(topic.keywords);
       const sectionId = id(topic.section_id);
+      const emoji =
+        topic.emoji === undefined
+          ? undefined
+          : typeof topic.emoji === "string" &&
+              topic.emoji.trim() !== "" &&
+              topic.emoji.trim().length <= 16
+            ? topic.emoji.trim()
+            : null;
       if (
+        emoji === null ||
         topicId === null ||
         name === null ||
         description === null ||
@@ -300,6 +309,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           enabled,
           keywords: words,
           section_id: sectionId,
+          ...(emoji === undefined ? {} : { emoji }),
         },
       };
     }

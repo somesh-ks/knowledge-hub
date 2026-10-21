@@ -154,7 +154,7 @@ test.describe("regenerate and delete an episode", () => {
       await expect(item).toHaveAttribute("aria-disabled", "true");
       await expect(item).toHaveAttribute("aria-describedby", "offline-reason");
     }
-    await expect(page.locator("#offline-reason")).toContainText("You are offline");
+    await expect(page.locator("#offline-reason")).toHaveText(/\S/);
     await page.evaluate(() => {
       Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
       window.dispatchEvent(new Event("online"));

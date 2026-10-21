@@ -97,6 +97,14 @@ describe("parseConfigOp", () => {
     });
   });
 
+  it("carries a topic's emoji through, and rejects one that is empty or too long", () => {
+    const parsed = parseConfigOp({ op: "topic.upsert", topic: { ...topic, emoji: " 🎞️ " } });
+    expect(parsed).toMatchObject({ topic: { emoji: "🎞️" } });
+    for (const emoji of ["", "x".repeat(17), 7]) {
+      expect(parseConfigOp({ op: "topic.upsert", topic: { ...topic, emoji } })).toBeNull();
+    }
+  });
+
   it("trims names and descriptions", () => {
     const parsed = parseConfigOp({
       op: "topic.upsert",

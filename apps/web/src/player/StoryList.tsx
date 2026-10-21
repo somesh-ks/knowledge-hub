@@ -38,12 +38,15 @@ export default function StoryList({ turns }: { turns: readonly PlayerTurn[] }) {
   const grouped = shown.length > 1;
   const reading = timed && live ? items.find((item) => item.index === state.itemIndex) : undefined;
   // Before story 1 no story is open, and the rundown's turns are the transcript. Until the narration
-  // is laid out nothing places a story, so the script is read whole.
+  // is laid out nothing places a story: the script is read whole only when there are no chapter rows
+  // to show, so the rows never sit under a copy of what they hold.
   const range =
     turns.length === 0
       ? null
       : !timed
-        ? { from: 0, to: turns.length }
+        ? items.length === 0
+          ? { from: 0, to: turns.length }
+          : null
         : !live
           ? null
           : transcriptRange(turns, reading ? reading.id : state.itemIndex < 0 ? null : "");
