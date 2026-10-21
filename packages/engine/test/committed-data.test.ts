@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   JudgmentsFile,
   LastRunFile,
+  ModelRouting,
   Preferences,
   ScheduleFile,
   SeenFile,
@@ -10,7 +11,6 @@ import {
   SourceStatsFile,
   SourcesFile,
   TopicJudgmentsFile,
-  ModelRouting,
   TopicsFile,
   UsageFile,
 } from "@dispatch/core";

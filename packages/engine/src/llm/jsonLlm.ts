@@ -76,7 +76,9 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
       now() + RETRY_WINDOW_TIMEOUTS * options.timeoutMs,
     );
     for (;;) {
-      options.budget.check(estimateTokensForChars(totalChars(messages) + system.length) + maxTokens);
+      options.budget.check(
+        estimateTokensForChars(totalChars(messages) + system.length) + maxTokens,
+      );
       try {
         const reply = await withRetry(
           () => {
@@ -129,9 +131,12 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
         };
       } catch (error) {
         if (structured && schemaRejected(error)) {
-          options.log?.warn(`${request.label}: model rejected the response schema; asking in the prompt`, {
-            model: options.model,
-          });
+          options.log?.warn(
+            `${request.label}: model rejected the response schema; asking in the prompt`,
+            {
+              model: options.model,
+            },
+          );
           structured = false;
           continue;
         }

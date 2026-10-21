@@ -49,12 +49,7 @@ import {
   ratesOf,
   thresholdSweep,
 } from "./compare.js";
-import {
-  groundingTable,
-  percent,
-  sweepTable,
-  topRules,
-} from "./report.js";
+import { groundingTable, percent, sweepTable, topRules } from "./report.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 

@@ -127,11 +127,16 @@ export async function resolveFamilies(options: {
     let ids: string[] | null = null;
     if (key) {
       try {
-        ids = await (provider === "anthropic" ? listAnthropic(key, doFetch) : listGemini(key, doFetch));
+        ids = await (provider === "anthropic"
+          ? listAnthropic(key, doFetch)
+          : listGemini(key, doFetch));
       } catch (error) {
-        log.warn(`Could not list ${provider} models; using the pinned ids from config/models.json`, {
-          reason: error instanceof Error ? error.message.slice(0, 120) : "unknown",
-        });
+        log.warn(
+          `Could not list ${provider} models; using the pinned ids from config/models.json`,
+          {
+            reason: error instanceof Error ? error.message.slice(0, 120) : "unknown",
+          },
+        );
       }
     }
     listed.set(provider, ids);

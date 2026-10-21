@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BudgetExceededError, LlmOutputError } from "../src/llm/errors.js";
 import { enforceVoice } from "../src/write/enforceVoice.js";
-import {
-  cleanField,
-  LlmWriter,
-  WRITER_BATCH_SIZE,
-} from "../src/write/llmWriter.js";
+import { cleanField, LlmWriter, WRITER_BATCH_SIZE } from "../src/write/llmWriter.js";
 import {
   rewriteSystemPrompt,
   voiceBrief,
@@ -303,9 +299,9 @@ describe("LlmWriter.rewrite", () => {
     const broke = new FakeLlm(() => {
       throw new BudgetExceededError(1, 1, 1);
     });
-    await expect(
-      new LlmWriter({ llm: broke, voice }).rewrite(request(m)),
-    ).rejects.toBeInstanceOf(BudgetExceededError);
+    await expect(new LlmWriter({ llm: broke, voice }).rewrite(request(m))).rejects.toBeInstanceOf(
+      BudgetExceededError,
+    );
   });
 
   it("returns null for an empty rewrite", async () => {

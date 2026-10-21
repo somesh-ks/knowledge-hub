@@ -30,7 +30,11 @@ const request = {
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const claude = (stop_reason: string, text = '{"ok":true}') =>
-  json({ stop_reason, content: [{ type: "text", text }], usage: { input_tokens: 5, output_tokens: 3 } });
+  json({
+    stop_reason,
+    content: [{ type: "text", text }],
+    usage: { input_tokens: 5, output_tokens: 3 },
+  });
 const gemini = (text = '{"ok":true}') =>
   json({
     candidates: [{ finishReason: "STOP", content: { parts: [{ text }] } }],
@@ -83,16 +87,24 @@ describe("the model chain", () => {
     await expect(down.router.callModel("story_writer", request)).rejects.toThrow(
       /claude-sonnet-5-5 \(server_error\), gemini-3.8-flash \(server_error\)/,
     );
-    const bad = setup((url) => (url.includes("anthropic") ? claude("end_turn", "not json") : gemini()));
-    expect((await bad.router.callModel("story_writer", request)).served.family).toBe("gemini-flash");
+    const bad = setup((url) =>
+      url.includes("anthropic") ? claude("end_turn", "not json") : gemini(),
+    );
+    expect((await bad.router.callModel("story_writer", request)).served.family).toBe(
+      "gemini-flash",
+    );
   });
 
   it("never sends temperature, top_p, top_k or budget_tokens, and asks Claude for effort and a schema format", async () => {
-    const { router, calls } = setup((url) => (url.includes("anthropic") ? claude("end_turn") : gemini()));
+    const { router, calls } = setup((url) =>
+      url.includes("anthropic") ? claude("end_turn") : gemini(),
+    );
     await router.callModel("story_writer", request);
     const sent = calls.map((c) => JSON.stringify(c.body));
     for (const text of sent) expect(text).not.toMatch(/temperature|top_p|top_k|budget_tokens/);
-    const body = calls[0]?.body as { output_config?: { effort?: string; format?: { type?: string } } };
+    const body = calls[0]?.body as {
+      output_config?: { effort?: string; format?: { type?: string } };
+    };
     expect(body.output_config?.effort).toBe("medium");
     expect(body.output_config?.format?.type).toBe("json_schema");
   });
@@ -126,8 +138,18 @@ describe("the newest model of a family", () => {
       log: captureLog().log,
       fetch: async (url) =>
         String(url).includes("anthropic")
-          ? json({ data: [{ id: "claude-sonnet-5-5" }, { id: "claude-sonnet-5-7" }], has_more: false })
-          : json({ models: [{ name: "models/gemini-3.8-flash", supportedGenerationMethods: ["generateContent"] }] }),
+          ? json({
+              data: [{ id: "claude-sonnet-5-5" }, { id: "claude-sonnet-5-7" }],
+              has_more: false,
+            })
+          : json({
+              models: [
+                {
+                  name: "models/gemini-3.8-flash",
+                  supportedGenerationMethods: ["generateContent"],
+                },
+              ],
+            }),
     });
     expect(listed["claude-sonnet"]).toMatchObject({ id: "claude-sonnet-5-7", source: "listed" });
     const { log, lines } = captureLog();

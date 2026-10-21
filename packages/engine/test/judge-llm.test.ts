@@ -217,10 +217,7 @@ describe("LlmJudge", () => {
       const full = answerAll(request) as { items: Array<{ id: string }> };
       return { items: [full.items[0], { ...(full.items[0] as object), id: "ffffffffffff" }] };
     });
-    const entries = await new LlmJudge({ llm, onFailure: (f) => failures.push(f) }).judge([
-      a,
-      b,
-    ]);
+    const entries = await new LlmJudge({ llm, onFailure: (f) => failures.push(f) }).judge([a, b]);
     expect(entries.map((e) => e.item_id)).toEqual([a.id]);
     expect(failures).toEqual([
       { itemId: b.id, reason: "The model returned no judgment for this item." },

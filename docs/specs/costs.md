@@ -10,7 +10,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 - Prices live in `config/prices.json` only: per provider and product (`*` for any), a USD rate per N units, `as_of`, `confirmed` and a note. USD is units times that rate. A unit with no rate adds nothing and sets `unpriced`. Every entry is `confirmed: false` until the owner checks it against the provider's page; the Costs page lists them.
 
 ### What is measured
-- Measured from the response: Anthropic and Nebius input and output tokens (`meterChat`, `createAnthropicChatApi`), Gemini transcription tokens (`usageMetadata`), Speechify characters (the engine's `recordUsage`, what the monthly budget counts; the site's usage document, which charges ahead and pessimistically, so Play narration is marked `estimated`).
+- Measured from the response: Anthropic and Gemini input and output tokens (`llm/modelRouter.ts`, per resolved model id; `usageMetadata`), Speechify characters (the engine's `recordUsage`, what the monthly budget counts; the site's usage document, which charges ahead and pessimistically, so Play narration is marked `estimated`).
 - Counted by us: Jev and Exa requests (one each; Exa page contents are not billed here), Firecrawl credits (one per request; the response's credit use is not read, so `estimated`).
 - Alexandria (product `alexandria`): credits from the response (`creditsCost`); a call that does not report them, or fails, is counted at the capability's stated price and the record is `estimated`.
 - Not tracked: Vercel Blob operations, Vercel function time, GitHub Actions minutes, Exa contents, the podcast's Exa feed fetches.

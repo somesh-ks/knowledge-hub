@@ -7,7 +7,6 @@
 import { SUPPORTED_TIMEZONES, scheduleZone, TIME_ZONE } from "@dispatch/core/time";
 import { hourLabel, WEEKDAYS } from "./nextRun";
 
-
 export const CADENCES = [
   { days: 1, label: "Every day" },
   { days: 2, label: "Every second day" },

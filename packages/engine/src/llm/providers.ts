@@ -165,7 +165,13 @@ interface GeminiBody {
   };
 }
 
-const GEMINI_REFUSALS = new Set(["SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION"]);
+const GEMINI_REFUSALS = new Set([
+  "SAFETY",
+  "PROHIBITED_CONTENT",
+  "BLOCKLIST",
+  "SPII",
+  "RECITATION",
+]);
 
 /**
  * The Gemini generateContent REST endpoint. JSON comes back through `responseMimeType`; the schema

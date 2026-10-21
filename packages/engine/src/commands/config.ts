@@ -81,8 +81,8 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
 
 async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
-  const [topics, schedule, sourcesUser, registry, queries, candidates, profile] =
-    await Promise.all([
+  const [topics, schedule, sourcesUser, registry, queries, candidates, profile] = await Promise.all(
+    [
       loadTopics(root, preferences),
       loadSchedule(root),
       loadUserSources(root),
@@ -90,7 +90,8 @@ async function readBundle(root: string): Promise<ConfigBundle> {
       loadQueries(root),
       readSourceCandidates(root),
       createFileProfileStore(root).read(OWNER_ID),
-    ]);
+    ],
+  );
   return {
     topics,
     preferences,

@@ -14,10 +14,7 @@ import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferen
 import "../styles/settings.css";
 import "../styles/manage.css";
 
-const [schedule, manage] = await Promise.all([
-  loadScheduleView(),
-  loadManage(),
-]);
+const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
 // The topics a person sees (D69): the owner's three, any of their own apart from those, and the
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);

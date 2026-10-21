@@ -1,10 +1,7 @@
 import {
-  ANTHROPIC_MODEL_ID_PATTERN,
   ConfigOp as CoreConfigOp,
   DEFAULT_SCHEDULE,
-  isAnthropicModel,
   isSupportedTimeZone,
-  MODEL_ID_PATTERN,
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,

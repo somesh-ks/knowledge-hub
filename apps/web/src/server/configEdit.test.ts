@@ -292,47 +292,6 @@ describe("parseConfigOp: profile ops", () => {
   });
 });
 
-describe("parseConfigOp: writer.set", () => {
-  const writer: ConfigOp = {
-    op: "writer.set",
-    provider: "nebius",
-    model: "meta-llama/Llama-3.3-70B-Instruct",
-  };
-
-  it("accepts a model id or null, and rebuilds the edit from its parts", () => {
-    expect(parseConfigOp(writer)).toEqual(writer);
-    expect(parseConfigOp({ ...writer, model: null })).toEqual({ ...writer, model: null });
-    expect(parseConfigOp({ ...writer, extra: 1 })).toEqual(writer);
-  });
-
-  it("accepts a claude- id on Anthropic and nothing else there", () => {
-    // Whether Anthropic lists the model is checked after the passphrase (handleConfig).
-    for (const model of ["claude-sonnet-5-5", "claude-opus-9"]) {
-      const op: ConfigOp = { op: "writer.set", provider: "anthropic", model };
-      expect(parseConfigOp(op)).toEqual(op);
-    }
-    for (const model of [null, "claude opus", "meta-llama/Llama-3.3-70B-Instruct"]) {
-      expect(parseConfigOp({ ...writer, provider: "anthropic", model })).toBeNull();
-    }
-    expect(parseConfigOp({ ...writer, model: "claude-sonnet-5-5" })).toBeNull();
-  });
-
-  it("refuses another provider, an odd id and a missing model", () => {
-    for (const bad of [
-      { ...writer, provider: "other" },
-      { ...writer, provider: undefined },
-      { ...writer, model: "has space" },
-      { ...writer, model: "" },
-      { ...writer, model: "a".repeat(121) },
-      { ...writer, model: 7 },
-      { ...writer, model: undefined },
-      { ...writer, model: "x\ny" },
-    ]) {
-      expect(parseConfigOp(bad), JSON.stringify(bad)).toBeNull();
-    }
-  });
-});
-
 describe("parseConfigOp: schedule.set", () => {
   const schedule: ConfigOp = {
     op: "schedule.set",
@@ -538,28 +497,6 @@ describe("handleConfig", () => {
     const result = await handleConfig(input(body({ op: "source.add", url: "ftp://x.test" })), deps);
     expect(result.status).toBe(400);
     expect(verify).not.toHaveBeenCalled();
-  });
-
-  // The bug: a Claude model Anthropic does not serve is saved, and every run falls back; or the
-  // built-in two cannot be saved while Anthropic is down.
-  it("saves a Claude model past the built-in two only when Anthropic lists it", async () => {
-    const pick = (model: string): ConfigOp => ({ op: "writer.set", provider: "anthropic", model });
-    const run = async (op: ConfigOp, anthropic: number) => {
-      const { deps, github } = setup();
-      github.on(RUNS, { json: { workflow_runs: [] } });
-      github.on(DISPATCH, { json: { workflow_run_id: 7 } });
-      const fetch: ConfigDeps["fetch"] = async (url, init) =>
-        String(url).startsWith("https://api.anthropic.com/")
-          ? new Response(JSON.stringify({ data: [{ id: "claude-opus-6" }] }), { status: anthropic })
-          : github.fetch(url, init);
-      deps.fetch = fetch;
-      deps.env = { ...deps.env, ANTHROPIC_API_KEY: "key-123456789" };
-      return (await handleConfig(input(body(op)), deps)).status;
-    };
-    expect(await run(pick("claude-opus-6"), 200)).toBe(202);
-    expect(await run(pick("claude-opus-9"), 200)).toBe(400);
-    expect(await run(pick("claude-opus-6"), 500)).toBe(503);
-    expect(await run(pick("claude-haiku-5-5"), 500)).toBe(202);
   });
 
   it("answers 401 with a constant extra delay for a wrong passphrase", async () => {

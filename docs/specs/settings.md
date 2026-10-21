@@ -28,7 +28,7 @@ Schedule, sources, preferences, voices, model, autosave and the edit gap, blocke
 - `GET /api/source-preview` is behind an SSRF guard.
 
 ### Model
-- One AI model select, alone in the Intelligence section (D46, D113, D106, D125): the writer's provider (Nebius or Anthropic) and model, a plain dropdown with no Default row. Top models: the newest Claude Opus, Sonnet and Haiku and the five top Nebius writers (D58, `NEBIUS_TOP`, `lib/modelId.ts`); All models: every live model. Claude Sonnet 5.5 is the default and Nebius starts on GLM-5.3. No Kimi models (D130). The saved model is always an option; an id cannot be typed.
+- No model select: models follow `config/models.json` (engine spec). A read-only Models card is not built.
 
 ### Autosave and the edit gap
 - Changes save themselves (`apps/web/src/scripts/autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. No toast while saving or once saved. The toast is for a failure (reason and Retry), an Undo, or the time refused. A removal waits 5 s with Undo.
