@@ -2631,8 +2631,42 @@
    is everywhere in the app. The title keeps its weight, because a heavier one wraps differently and
    would move every row below it each time the story changes. */
 .story-row[aria-current="true"] {
-  background: var(--color-accent-container);
   color: var(--color-on-accent-container);
+}
+
+/* The story and its transcript are one card: the open item carries the fill and the radius, and the
+   row and the turns under it sit on it without a fill of their own, so there is no second card and
+   no seam between them. The transcript is set at the meta size under the headline's reading size. */
+.story-rows > [data-open] {
+  background: var(--color-accent-container);
+  border-radius: var(--row-radius);
+}
+
+.story-rows > [data-open] .script-turn {
+  padding-block: var(--space-2);
+}
+
+.story-rows > [data-open] .player-script {
+  padding-block-end: var(--space-2);
+}
+
+.story-rows > [data-open] .script-turns .script-turn .script-text {
+  color: var(--color-on-accent-container);
+  font-size: var(--font-size-meta);
+  line-height: var(--font-leading-body);
+}
+
+.story-rows
+  > [data-open]
+  .script-turns[data-following]
+  .script-turn:not([data-said], [aria-current="true"])
+  .script-text {
+  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+}
+
+/* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
+.story-rows > [data-open] .script-turns .script-turn .script-speaker {
+  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
 }
 
 .story-row[aria-current="true"] .story-row-time {
@@ -2645,11 +2679,12 @@
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 
-  .story-row[aria-current="true"]:hover {
+  .story-row[aria-current="true"]:hover,
+  .story-rows > [data-open] .script-turn:not([aria-disabled="true"]):hover {
     background: color-mix(
       in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
+      var(--color-on-accent-container) var(--state-hover),
+      transparent
     );
   }
 
@@ -2675,12 +2710,9 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-.story-row[aria-current="true"]:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+.story-row[aria-current="true"]:active,
+.story-rows > [data-open] .script-turn:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-accent-container) var(--state-press), transparent);
 }
 
 .player-upnext-row:active {
