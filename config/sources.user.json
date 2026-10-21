@@ -72,14 +72,32 @@
     }
   ],
   "overrides": {
+    "ahead-of-ai": {
+      "removed": true
+    },
     "assistant-ui": {
       "removed": true
     },
     "aux-first": {
       "removed": true
     },
+    "beyond-the-screen": {
+      "removed": true
+    },
     "cohere-blog": {
       "removed": true
+    },
+    "import-ai": {
+      "removed": true
+    },
+    "one-useful-thing": {
+      "removed": true
+    },
+    "the-decoder": {
+      "removed": true
+    },
+    "the-neuron": {
+      "enabled": true
     }
   }
 }
