@@ -1,6 +1,7 @@
 ---
 import type { IconName } from "../lib/icons";
 import { getSite } from "../lib/site";
+import { buildDay } from "../lib/buildDay";
 import BrandMark from "./BrandMark.astro";
 import Icon from "./Icon.astro";
 
@@ -81,4 +82,6 @@ const destinations: Array<{
       })
     }
   </ul>
+  {/* The build's day, at the foot of the side column; a phone shows it on Settings instead. */}
+  <p class="app-nav-updated">Last updated {buildDay()}</p>
 </nav>

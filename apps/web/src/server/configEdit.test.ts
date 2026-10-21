@@ -350,10 +350,12 @@ describe("parseConfigOp: schedule.set", () => {
     expect(parseConfigOp({ ...schedule, extra: 1 })).toEqual(schedule);
   });
 
-  it("carries a podcast format and length, and refuses ones that do not exist", () => {
-    const full: ConfigOp = { ...schedule, format: "discussion", length_minutes: 15 };
+  it("carries a length and the weekly format, and refuses ones that do not exist", () => {
+    const full: ConfigOp = { ...schedule, length_minutes: 15, weekly: { format: "discussion" } };
     expect(parseConfigOp(full)).toEqual(full);
-    expect(parseConfigOp({ ...schedule, format: "song" })).toBeNull();
+    expect(parseConfigOp({ ...schedule, weekly: { format: "song" } })).toBeNull();
+    // The daily podcast has no type: a saved or queued top-level one is read past.
+    expect(parseConfigOp({ ...schedule, format: "discussion" })).toEqual(schedule);
     expect(parseConfigOp({ ...schedule, length_minutes: 7 })).toBeNull();
   });
 

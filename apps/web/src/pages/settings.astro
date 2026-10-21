@@ -2,6 +2,8 @@
 import Icon from "../components/Icon.astro";
 import ManageChrome from "../components/ManageChrome.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { buildDay } from "../lib/buildDay";
+import { APP_VERSION } from "../lib/changelog";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
 import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
@@ -83,13 +85,7 @@ const SOUND = [
   { href: "/settings/sounds", label: "Interface sounds", hint: "On", data: { "sounds-hint": "" } },
 ];
 
-// The day this build was made, which is what changes when the site does.
-const updated = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Stockholm",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-}).format(new Date());
+const updated = buildDay();
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "System",
@@ -112,7 +108,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       <section>
         <h2 class="section-head">Podcast</h2>
-        <div class="rows">
+        <div class="rows card-group">
           {
             PODCAST.map((row) => (
               <a
@@ -136,7 +132,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
            sends a pick a moment later. */}
       <section data-manage="podcast">
         <h2 class="section-head">Intelligence</h2>
-        <div class="rows">
+        <div class="rows card-group">
           <div class="settings-row" data-models data-saved={writer.model ?? ""} data-provider={writer.provider}>
             <label class="settings-label" for="model-select">AI model</label>
             <span class="manage-select value-select">
@@ -152,7 +148,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       <section>
         <h2 class="section-head">Sound</h2>
-        <div class="rows">
+        <div class="rows card-group">
           {
             SOUND.map((row) => (
               <a
@@ -173,7 +169,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       <section>
         <h2 class="section-head">Appearance</h2>
-        <div class="rows">
+        <div class="rows card-group">
           {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
                settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
                Dark never shows System first. */}
@@ -191,11 +187,19 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 
       <section>
         <h2 class="section-head">About</h2>
-        <p class="settings-about">
-          Singularity is a hobby project by Somesh Kesarla Suresh. It picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
-        </p>
-        <div class="rows">
-          <div class="settings-row">
+        <div class="rows card-group">
+          <p class="settings-about">
+            Singularity is a hobby project by Somesh. It was created to help people cut through the noise and get high value news: it picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
+          </p>
+          <a class="row-action" href="/settings/about">
+            <span class="settings-text">
+              <span class="settings-label">Change log</span>
+              <span class="settings-hint">Version {APP_VERSION}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          {/* From 64rem the date sits at the foot of the side column (AppNav), so it shows here on a phone alone. */}
+          <div class="settings-row settings-updated">
             <span class="settings-label">Last updated</span>
             <span class="settings-hint">{updated}</span>
           </div>
@@ -206,7 +210,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
            the section starts hidden and the script shows it where it applies. */}
       {/* Chrome and Edge on Android hand the page an install prompt; the row shows only while one is held. */}
       <section data-install-app hidden>
-        <div class="rows">
+        <div class="rows card-group card-group-accent">
           <div class="settings-row">
             <div class="settings-text">
               <span class="settings-label">Install Singularity</span>
@@ -218,7 +222,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section data-install-hint hidden>
-        <div class="rows">
+        <div class="rows card-group card-group-accent">
           <div class="settings-row">
             <div class="settings-text">
               <span class="settings-label">Add Singularity to your Home Screen</span>

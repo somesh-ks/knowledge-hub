@@ -65,13 +65,12 @@ describe("ScheduleFile", () => {
     expect(ScheduleChange.safeParse({}).success).toBe(true);
   });
 
-  it("fills a readout of 10 minutes into a file written before format and length existed", () => {
+  it("fills 10 minutes into a file written before length existed, and reads past an old daily format", () => {
     const old = { version: 1, hour: 9, cadence_days: 3 };
-    expect(ScheduleFile.parse(old)).toMatchObject({
-      ...old,
-      format: "readout",
-      length_minutes: 10,
-    });
+    expect(ScheduleFile.parse(old)).toMatchObject({ ...old, length_minutes: 10 });
+    // The daily podcast has no type any more; a file that still holds one must parse without it.
+    const parsed = ScheduleFile.parse({ ...old, format: "discussion" });
+    expect(parsed).not.toHaveProperty("format");
   });
 
   it("fills the weekly and custom defaults into an old file, the weekly hour from the daily one", () => {
@@ -129,14 +128,10 @@ describe("ScheduleFile", () => {
     );
   });
 
-  it("accepts every format and length and refuses others", () => {
-    for (const format of ["readout", "discussion", "headlines"]) {
-      expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, format }).success).toBe(true);
-    }
+  it("accepts every length and refuses others", () => {
     for (const length_minutes of [3, 5, 10, 15]) {
       expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, length_minutes }).success).toBe(true);
     }
-    expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, format: "song" }).success).toBe(false);
     expect(ScheduleFile.safeParse({ ...DEFAULT_SCHEDULE, length_minutes: 7 }).success).toBe(false);
   });
 
@@ -150,10 +145,10 @@ describe("ScheduleFile", () => {
     expect(ConfigOp.safeParse({ op: "schedule.set", weekly: { day: 9 } }).success).toBe(false);
   });
 
-  it("lets the schedule.set op leave format and length out", () => {
+  it("lets the schedule.set op leave length out", () => {
     const set = { op: "schedule.set", hour: 9, cadence_days: 1, skip_topics: [] };
     expect(ConfigOp.safeParse(set).success).toBe(true);
-    expect(ConfigOp.safeParse({ ...set, format: "headlines", length_minutes: 5 }).success).toBe(
+    expect(ConfigOp.safeParse({ ...set, length_minutes: 5 }).success).toBe(
       true,
     );
     expect(ConfigOp.safeParse({ ...set, length_minutes: 4 }).success).toBe(false);

@@ -345,8 +345,6 @@ export type ConfigOp =
       cadence_days?: 1 | 2 | 3 | 7;
       /** Topic ids the daily briefing leaves out. */
       skip_topics?: string[];
-      /** Podcast type of the daily briefing. */
-      format?: PodcastRequest["format"];
       /** Minutes the daily podcast runs. */
       length_minutes?: PodcastRequest["length_minutes"];
       /** Speechify voice ids of the daily podcast; null means the engine's default. */

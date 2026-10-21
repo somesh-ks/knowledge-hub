@@ -154,11 +154,10 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#daily-timezone-native")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.locator("#daily-length")).toHaveValue("10");
-    await expect(page.locator("#daily-format")).toHaveValue("readout");
+    // The daily podcast has no type to set; Weekly keeps its Format.
+    await expect(page.locator("#daily-format")).toHaveCount(0);
     // The voices are one pair for every podcast, on the Podcast voice page.
     await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
-    // Headlines is no longer offered.
-    await expect(page.locator("#daily-format option[value=headlines]")).toHaveCount(0);
   });
 
   test("Weekly is always on: it has no switch and its schedule shows", async ({ page }) => {
@@ -289,7 +288,6 @@ test.describe("saving on its own", () => {
     await page.locator("#daily-hour").selectOption("9");
     await page.locator("#daily-cadence").selectOption("1");
     await page.locator("#daily-length").selectOption("15");
-    await page.locator("#daily-format").selectOption("discussion");
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({
@@ -297,7 +295,6 @@ test.describe("saving on its own", () => {
         hour: 9,
         cadence_days: 1,
         length_minutes: 15,
-        format: "discussion",
       });
     await expect(spoken(page)).toHaveText(SAVED);
     // Never more requests than changes, and each sends only what changed.

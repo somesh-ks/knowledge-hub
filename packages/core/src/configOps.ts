@@ -83,7 +83,7 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   config/preferences.json. Formats left out keep their stop; Normal removes one.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set any of the time zone (one of SUPPORTED_TIMEZONES), the daily hour, cadence,
- *   topics left out (`skip_topics`), podcast type, length and voices, the weekly podcast (`weekly`:
+ *   topics left out (`skip_topics`), length and voices, the weekly podcast (`weekly`:
  *   on/off, day, hour, topics left out, type, length, voices) and the Create panel defaults
  *   (`custom`), in config/schedule.json, in one write. Fields left out keep what the file holds.
  *   Unknown topic ids and zones outside the list are refused.

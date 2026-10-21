@@ -5,7 +5,6 @@ import {
   isAnthropicModel,
   isSupportedTimeZone,
   MODEL_ID_PATTERN,
-  PODCAST_FORMATS,
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
@@ -225,11 +224,6 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
   const skip = skipOf(value.skip_topics);
   if (skip === false) return null;
   if (skip !== undefined) op.skip_topics = skip;
-  if (value.format !== undefined) {
-    const format = PODCAST_FORMATS.find((entry) => entry === value.format);
-    if (format === undefined) return null;
-    op.format = format;
-  }
   if (value.length_minutes !== undefined) {
     const length = lengthOf(value.length_minutes);
     if (length === null) return null;

@@ -1036,3 +1036,37 @@
     background: HighlightText;
   }
 }
+
+/* ------------------------------------------------------------------ card group (2026-10-21) */
+
+/* A group of settings rows in one rounded container on the container tone, as Material 3 groups an
+   Android settings screen: the group is told apart from the page by tone alone, never by a shadow or
+   a line. Put the class on the .rows list itself; the rows keep their own padding, so the container's
+   inner room is the first and last row's. Its rows sit 16px in from its edge, and a row's hover tile
+   keeps clear of the corners. */
+.card-group {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+/* A card sits on the container tone, so a chip or a field that used it needs one step up. */
+.card-group .filter-chip {
+  --chip-bg: var(--color-surface-raised);
+}
+
+/* Inside a card the dividers, where a page draws them, start and end at the card's content edge. */
+.card-group > * + *::before {
+  inset-inline: 0;
+}
+
+/* A card of one note (the install card): an accent tone says it is an offer, not a setting. */
+.card-group-accent {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+.card-group-accent .settings-hint {
+  color: inherit;
+  opacity: 0.8;
+}

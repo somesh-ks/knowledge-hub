@@ -40,7 +40,7 @@ const rows = SOURCE_FORMATS.map((format) => ({
         <legend class="sr-only">Preferences</legend>
         <section class="topic topic-weights" aria-labelledby="types-head">
           <h2 class="section-head" id="types-head">Source types</h2>
-          <div class="rows topic-controls">
+          <div class="rows topic-controls card-group">
             {rows.map((row) => <WeightRow {...row} />)}
           </div>
         </section>
