@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { hostOf, needsVoiceList, readHostNames, readVoiceIds, transcriptNames } from "../lib/hosts";
 import type { SegmentWordMark } from "../lib/segmentMarks";
 import type { PlayerTurn } from "../types/contracts";
 import { loadVoiceCatalogue, type VoiceCatalogue } from "./core/hostVoices";
 import { getPlayerStore } from "./core/playerRuntime";
+import { playerSheet } from "./core/playerSheet";
 import {
   currentTurnIndex,
   estimateWordStarts,
@@ -111,9 +112,17 @@ export default function ScriptView({
   // The segment being played, whose marks are wanted even while its lead-in is spoken.
   const playing = state.hasStarted && !failed ? currentTurnIndex(turns, time) : -1;
 
+  // The story list stays mounted while the player is closed: marks are asked for only while it is
+  // open, so a Play from the page fetches none.
+  const open = useSyncExternalStore(
+    playerSheet.subscribe,
+    () => playerSheet.getSnapshot().open,
+    () => false,
+  );
+
   // The turn being spoken and the next: their marks, once each, on demand. A miss keeps the estimate.
   useEffect(() => {
-    if (playing < 0 || !digestId) return;
+    if (!open || playing < 0 || !digestId) return;
     let live = true;
     for (const turn of turns.slice(playing, playing + 2)) {
       if (turn.start_ms === null) continue;
@@ -128,7 +137,7 @@ export default function ScriptView({
     return () => {
       live = false;
     };
-  }, [playing, digestId, turns]);
+  }, [open, playing, digestId, turns]);
 
   // The spoken word, at frame rate, without a render: one attribute moves from word to word.
   useEffect(() => {
