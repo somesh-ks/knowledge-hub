@@ -65,9 +65,36 @@ test("a downloaded briefing opens offline and its audio is answered from the sav
   await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
   const audio = await row(page, AUDIO_ID).locator("[data-library-menu]").getAttribute("data-audio");
 
+  // The media cache keeps only the latest covers (and the player may never have drawn this one):
+  // a download stands on what it saved.
+  await page.evaluate(async () => {
+    for (const name of await caches.keys()) if (name.includes("media")) await caches.delete(name);
+  });
   await context.setOffline(true);
+  // Offline does not always reach the worker's own requests here (it does on CI): covers fail as
+  // they would on a phone.
+  await context.route("**/covers/**", (route) => route.abort());
   await page.goto(`/d/${AUDIO_ID}`);
   await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
+  // Every cover the page may show for this item (each theme, the player's 1024 included) answers
+  // offline: a download once saved only the covers the page does not show.
+  const covers = await page.evaluate(async (id) => {
+    const urls = new Set<string>();
+    for (const image of document.querySelectorAll<HTMLImageElement>(`img[srcset*="${id}"]`))
+      for (const part of image.srcset.split(",")) urls.add(part.trim().split(/\s+/)[0] ?? "");
+    const statuses = await Promise.all(
+      [...urls].map((url) =>
+        // Past the browser's HTTP cache, which a phone may have emptied: the worker must answer.
+        fetch(url, { cache: "no-store" }).then(
+          (res) => res.status,
+          () => 0,
+        ),
+      ),
+    );
+    return [...urls].map((url, index) => `${statuses[index]} ${url}`);
+  }, AUDIO_ID);
+  expect(covers.some((line) => line.includes("1024"))).toBe(true);
+  expect(covers.filter((line) => !line.startsWith("200 "))).toEqual([]);
   const answer = await page.evaluate(async (url) => {
     const res = await fetch(url, { headers: { Range: "bytes=10-19" } });
     return {

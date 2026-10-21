@@ -61,6 +61,16 @@ export class NotReadyError extends Error {
   }
 }
 
+/**
+ * An item's covers: the page's, drawn for each theme (lib/covers.ts themedCoverSrc), and the
+ * player's and lock screen's, as authored. A theme switch offline still finds its cover.
+ */
+export function coverAddresses(id: string): string[] {
+  return ["", "/light", "/dark"].flatMap((mode) =>
+    [512, 1024].map((size) => `/covers${mode}/${id}-${size}.webp`),
+  );
+}
+
 /** The lookup the player asks for, which a downloaded episode's page gets answered from the cache. */
 export function lookupAddress(id: string): string {
   return `/api/narrate?digest=${encodeURIComponent(id)}`;

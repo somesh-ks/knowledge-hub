@@ -9,6 +9,7 @@ import {
   addDownload,
   addressesOf,
   confirmLookup,
+  coverAddresses,
   type Download,
   lookupAddress,
   MANIFEST_KEY,
@@ -130,7 +131,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       const mark = marks[index];
       if (mark?.ok) await keep(marksAddress(request.id, turn.key), mark);
     }
-    for (const extra of [`/covers/${request.id}-512.webp`, `/covers/${request.id}-1024.webp`]) {
+    for (const extra of coverAddresses(request.id)) {
       const cover = await fetch(extra).catch(() => null);
       if (cover?.ok) await keep(extra, cover);
     }
@@ -170,7 +171,7 @@ export async function download(request: DownloadRequest): Promise<void> {
   if (!audio.ok) throw new Error(`audio ${audio.status}`);
   const page = await fetch(request.page);
   if (!page.ok) throw new Error(`page ${page.status}`);
-  const extras = [`/covers/${request.id}-512.webp`, `/covers/${request.id}-1024.webp`];
+  const extras = coverAddresses(request.id);
   const saved: string[] = [request.audio, request.page];
   try {
     await cache.put(

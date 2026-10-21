@@ -21,6 +21,10 @@ Final review of the combined branch, before the PR:
 - The service worker had put itself in front of every audio read and narrate lookup to serve downloads; it now steps in only for downloaded addresses (held in memory) or offline. The 19 player journeys this broke were the alarm: their page-level mocks stopped seeing requests.
 - The Library used `checkVisibility` (Safari 17.4 and later only); `secrets:push` never sent the second voice; the voice page hid that Weekly keeps its old voice until a shared pair is chosen.
 - Two workers began from main instead of the integration branch (the spacing pass among them); the design checks then listed exactly the stylesheets the stale base had missed. The 8pt pass also made source rows 104px and pushed the two-column player 4px past a 1024x768 window; both fixed.
+- The topic delete confirm moved into the lazy editor: the review fixes had put the settings and topic pages 7 bytes over the 109 KB first-load budget (now 108.9 KB, 92 bytes spare).
+
+CI on the PR:
+- A downloaded briefing offline missed its themed covers: Download saved only the plain pair, and the page and player draw `/covers/light|dark/`. It passed here because Playwright's offline did not reach the worker's own fetches in this container (an uncached cover still came back 200); CI's Chromium did. The test now empties the media cache and aborts cover requests through `context.route`.
 
 ## Unverified
 
