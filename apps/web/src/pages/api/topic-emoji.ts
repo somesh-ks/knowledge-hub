@@ -1,4 +1,4 @@
-import { fallbackEmoji } from "@dispatch/core";
+import { fallbackEmoji, placeEmoji } from "@dispatch/core";
 import { createEmojiPicker } from "@dispatch/engine/source-preview";
 import type { APIRoute } from "astro";
 import { toResponse } from "../../server/http";
@@ -6,7 +6,8 @@ import { toResponse } from "../../server/http";
 export const prerender = false;
 
 // Jev picks the emoji when the server has a key (TYPESAFE_API_KEY on Vercel); without one, or when
-// it cannot answer, the name's fixed fallback does. The answer is always one emoji.
+// it cannot answer, the name's fixed fallback does; a name that holds a place gets its flag with no
+// call. The answer is always one emoji.
 const picker = process.env.TYPESAFE_API_KEY
   ? createEmojiPicker(process.env.TYPESAFE_API_KEY)
   : null;
@@ -25,7 +26,7 @@ export const GET: APIRoute = async ({ url }) => {
   if (name === "") return toResponse({ status: 400, body: { error: "name_required" } });
   const description = (url.searchParams.get("description") ?? "").slice(0, 400);
   const emoji =
-    picker && mayAskJev(Date.now())
+    picker && !placeEmoji(name) && mayAskJev(Date.now())
       ? await picker.pick({ name, description })
       : fallbackEmoji(name);
   return toResponse({ status: 200, body: { emoji } });
