@@ -1050,9 +1050,19 @@
   background: var(--color-surface-container);
 }
 
-/* A card sits on the container tone, so a chip or a field that used it needs one step up. */
-.card-group .filter-chip {
-  --chip-bg: var(--color-surface-raised);
+/* A card sits on the container tone, so an unticked chip in it needs one step up to show. */
+.card-group .filter-chip:not(:has(input:checked)) {
+  background: var(--color-surface-raised);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-raised),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
 }
 
 /* Inside a card the dividers, where a page draws them, start and end at the card's content edge. */

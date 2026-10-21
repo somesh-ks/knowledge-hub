@@ -148,9 +148,7 @@ describe("ScheduleFile", () => {
   it("lets the schedule.set op leave length out", () => {
     const set = { op: "schedule.set", hour: 9, cadence_days: 1, skip_topics: [] };
     expect(ConfigOp.safeParse(set).success).toBe(true);
-    expect(ConfigOp.safeParse({ ...set, length_minutes: 5 }).success).toBe(
-      true,
-    );
+    expect(ConfigOp.safeParse({ ...set, length_minutes: 5 }).success).toBe(true);
     expect(ConfigOp.safeParse({ ...set, length_minutes: 4 }).success).toBe(false);
   });
 });
