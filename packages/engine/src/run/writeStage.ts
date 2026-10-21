@@ -7,6 +7,7 @@ import {
   type Topic,
   VOICE_LIMITS,
 } from "@dispatch/core";
+import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
@@ -18,7 +19,7 @@ import {
 } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.js";
-import type { ExtractedText } from "../extract/extractText.js";
+import { type ExtractedText, MIN_ACCEPT_CHARS } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
@@ -429,7 +430,7 @@ async function writePass(
   // A finalist with no readable source cannot be written, so it drops.
   const extracted = await mapConcurrent(chosen.selected, EXTRACT_CONCURRENCY, async (sel) => ({
     sel,
-    text: await extractSafely(runtime, sel.item),
+    text: await enrichThin(runtime, sel.item, await extractSafely(runtime, sel.item)),
   }));
   const materials = new Map<string, SourceMaterial>();
   const methods = new Map<string, string>();
@@ -540,5 +541,29 @@ async function extractSafely(runtime: ApiRuntime, item: Item): Promise<Extracted
     return await runtime.extract(item);
   } catch {
     return null;
+  }
+}
+
+/**
+ * A finalist whose text is still thin after every free and paid read gets sourced facts from
+ * Alexandria, labelled with their provider, appended to its source text (so the grounding check
+ * reads them too). Facts alone stand in for a story that would be dropped when they are long
+ * enough to write from. Any failure leaves the text as it was.
+ */
+export async function enrichThin(
+  runtime: Pick<ApiRuntime, "enrich">,
+  item: Item,
+  text: ExtractedText | null,
+): Promise<ExtractedText | null> {
+  if (!runtime.enrich || !isThinText(text?.text)) return text;
+  try {
+    const facts = await runtime.enrich(item);
+    if (!facts) return text;
+    if (text) return { ...text, text: `${text.text}\n\n${facts}` };
+    return facts.length >= MIN_ACCEPT_CHARS
+      ? { text: facts, method: "alexandria", truncated: false }
+      : null;
+  } catch {
+    return text;
   }
 }

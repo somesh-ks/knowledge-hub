@@ -1,6 +1,11 @@
 import { join } from "node:path";
 import type { Item } from "@dispatch/core";
 import { requireKey } from "@dispatch/core";
+import {
+  type Alexandria,
+  createAlexandria,
+  loadAlexandriaConfig,
+} from "../alexandria/alexandria.js";
 import { type CommandContext, secretsFromEnv } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { extractFullText } from "../extract/extractText.js";
@@ -61,6 +66,8 @@ export interface ApiRuntime {
   /** Jev's check of candidates against the owner's taste (profile/tasteFit.ts). Null without a Jev key. */
   tasteFitter?: TasteFitter | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
+  /** Sourced facts from Firecrawl Alexandria for a thin finalist; absent without a Firecrawl key. */
+  enrich?: ((item: Item) => Promise<string | null>) | undefined;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
   /** Spend so far, for the report. */
@@ -142,8 +149,30 @@ export function createApiRuntime(
   const scrape = env.FIRECRAWL_API_KEY
     ? createFirecrawlScrape({ apiKey: env.FIRECRAWL_API_KEY, guard: spend?.guard })
     : null;
+  let alexandria: Promise<Alexandria> | null = null;
+  const enrich = env.FIRECRAWL_API_KEY
+    ? async (item: Item): Promise<string | null> => {
+        const apiKey = env.FIRECRAWL_API_KEY as string;
+        alexandria ??= loadAlexandriaConfig(ctx.root).then((config) =>
+          createAlexandria({
+            apiKey,
+            config,
+            guard: spend?.guard,
+            onCredits: (credits, estimated) =>
+              spend?.meter.addUnits(
+                "firecrawl",
+                "alexandria",
+                estimated ? "credits_estimated" : "credits",
+                credits,
+              ),
+          }),
+        );
+        return (await alexandria).factsFor(item);
+      }
+    : undefined;
   return {
     judge,
+    enrich,
     writer: new NebiusWriter({ llm, voice, log, secrets }),
     grounder,
     topicJudge,

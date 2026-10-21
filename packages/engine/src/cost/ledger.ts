@@ -160,6 +160,14 @@ export function callsFromSpend(
     call.units[unit] = (call.units[unit] ?? 0) + n;
     grouped.set(id, call);
   }
+  // Alexandria credits the response did not report are counted at the capability's stated price:
+  // they join the measured ones in one record, marked estimated.
+  const alexandria = grouped.get("firecrawl|alexandria");
+  if (alexandria?.units.credits_estimated) {
+    alexandria.units.credits = (alexandria.units.credits ?? 0) + alexandria.units.credits_estimated;
+    delete alexandria.units.credits_estimated;
+    alexandria.estimated = true;
+  }
   calls.push(...grouped.values());
   const requests = (name: string): number => spend.requests[name] ?? 0;
   const add = (

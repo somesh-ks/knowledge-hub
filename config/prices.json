@@ -52,6 +52,14 @@
       "note": "About 83 USD per 100,000 credits on a standard plan. Credits are requests counted by us at 1 each, not read from the response."
     },
     {
+      "provider": "firecrawl",
+      "product": "alexandria",
+      "units": { "credits": { "usd": 0.00083, "per": 1 } },
+      "as_of": "2026-10-21",
+      "confirmed": false,
+      "note": "Alexandria capabilities bill 1 to 30 credits a call at the plan's credit rate. Credits come from the response (creditsCost) when it reports them, else the capability's stated price, marked estimated. Discovery is free."
+    },
+    {
       "provider": "exa",
       "product": "*",
       "units": { "requests": { "usd": 0.005, "per": 1 } },

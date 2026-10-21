@@ -12,6 +12,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 ### What is measured
 - Measured from the response: Anthropic and Nebius input and output tokens (`meterChat`, `createAnthropicChatApi`), Gemini transcription tokens (`usageMetadata`), Speechify characters (the engine's `recordUsage`, what the monthly budget counts; the site's usage document, which charges ahead and pessimistically, so Play narration is marked `estimated`).
 - Counted by us: Jev and Exa requests (one each; Exa page contents are not billed here), Firecrawl credits (one per request; the response's credit use is not read, so `estimated`).
+- Alexandria (product `alexandria`): credits from the response (`creditsCost`); a call that does not report them, or fails, is counted at the capability's stated price and the record is `estimated`.
 - Not tracked: Vercel Blob operations, Vercel function time, GitHub Actions minutes, Exa contents, the podcast's Exa feed fetches.
 - A run's counts travel through `.cache/run/spend.json` (`requests` and `units`) and are priced once, at the commit stage (`recordRunCosts`), under the run's first pass kind. A ledger failure never fails a run.
 
