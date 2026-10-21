@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "topics": {
+    "india": {
+      "candidates": [
+        {
+          "entries": 0,
+          "feed_url": "https://www.asianstudies.org/feed",
+          "id": "asianstudies-org",
+          "name": "asianstudies.org",
+          "parts": null,
+          "q": null,
+          "reason": "the feed could not be read (HTTP 403)",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://www.asianstudies.org/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "britannica-com",
+          "name": "britannica.com",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://www.britannica.com/"
+        },
+        {
+          "entries": 0,
+          "feed_url": "https://csames.illinois.edu/rss.xml",
+          "id": "csames-illinois-edu",
+          "name": "csames.illinois.edu",
+          "parts": null,
+          "q": null,
+          "reason": "nothing published in the last 30 days",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://csames.illinois.edu/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "culturalfoods-commons-gc-cuny-edu",
+          "name": "culturalfoods.commons.gc.cuny.edu",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://culturalfoods.commons.gc.cuny.edu/"
+        },
+        {
+          "entries": 0,
+          "feed_url": "https://www.doi.org/index.xml",
+          "id": "doi-org",
+          "name": "doi.org",
+          "parts": null,
+          "q": null,
+          "reason": "nothing published in the last 30 days",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://doi.org/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "india-gov-in",
+          "name": "india.gov.in",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://www.india.gov.in/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "indianculture-gov-in",
+          "name": "indianculture.gov.in",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://www.indianculture.gov.in/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "kids-britannica-com",
+          "name": "kids.britannica.com",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://kids.britannica.com/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "knowindia-gov-in",
+          "name": "knowindia.gov.in",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://knowindia.gov.in/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "link-springer-com",
+          "name": "link.springer.com",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://link.springer.com/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "reuters-com",
+          "name": "reuters.com",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://www.reuters.com/"
+        },
+        {
+          "entries": 0,
+          "feed_url": null,
+          "id": "theworldfactbook-org",
+          "name": "theworldfactbook.org",
+          "parts": null,
+          "q": null,
+          "reason": "no feed found",
+          "recent_entries": 0,
+          "status": "rejected",
+          "url": "https://theworldfactbook.org/"
+        }
+      ],
+      "queries": [
+        "India",
+        "Indian culture and cuisine",
+        "blog or newsletter about India"
+      ],
+      "suggested_at": "2026-10-21T22:01:01.836Z"
+    }
+  }
+}

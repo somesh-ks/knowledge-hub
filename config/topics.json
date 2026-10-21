@@ -45,6 +45,11 @@
       "id": "watch",
       "title": "Watch and listen",
       "order": 8
+    },
+    {
+      "id": "india",
+      "title": "India",
+      "order": 9
     }
   ],
   "topics": [
@@ -263,6 +268,18 @@
       "never_publish": false,
       "origin": "general",
       "depth": "coverage"
+    },
+    {
+      "id": "india",
+      "name": "India",
+      "description": "Indian culture and cuisine",
+      "weight": 0.7,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "india",
+      "never_publish": false,
+      "origin": "custom",
+      "depth": "fit_only"
     }
   ]
 }
