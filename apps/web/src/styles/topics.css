@@ -316,6 +316,12 @@
   margin-block-start: var(--space-8);
 }
 
+/* Under the tabs with nothing else on its line (the heading is for screen readers), the row gives
+   up its room, so the search sits a tab bar's step under the tabs. */
+.topic .topic-sources-head[data-quiet]:not(:has(> button)) {
+  padding-block: var(--space-6) 0;
+}
+
 .topic .topic-sources-head > .section-head {
   padding-block: 0;
 }
@@ -388,10 +394,10 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   column-gap: var(--space-2);
+  /* The row carries its own rhythm: M3's 72px two-line item, as tall in the Add source panel as on
+     the page (outside a .rows list the suggestions once touched). Padding on top of it made a row
+     104px (2026-10-21). */
   min-height: var(--source-row);
-  /* The row carries its own rhythm, so a suggestion in the Add source panel is spaced as a source
-     on the page is: outside a .rows list the suggestions had no padding and touched. */
-  padding-block: var(--row-padding-block);
   border-radius: var(--radius-md);
 }
 
