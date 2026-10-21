@@ -184,7 +184,9 @@
   background: var(--color-surface);
 }
 
-.topic-panel .topic-sources-block .topic-suggested {
+/* Suggested sources follow the sources block inside the card, so the card's divider replaces the
+   page's 32px of air (`.topic .topic-suggested`); `.topic` keeps this above that rule. */
+.topic .topic-panel .topic-suggested {
   margin-block-start: var(--space-4);
   padding-block-start: var(--space-2);
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
