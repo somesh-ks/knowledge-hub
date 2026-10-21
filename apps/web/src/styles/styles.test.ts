@@ -145,10 +145,6 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
     "sheets/GenerateSheet.tsx",
     "a glyph-set path that needs the shared .icon class the island Icon lacks",
   ],
-  [
-    "pages/library.astro",
-    "view-switch glyphs the glyph set lacks (tokens/glyphs.json is not this work's)",
-  ],
 ];
 
 const SHARED_CONTROL_SHEETS = ["buttons.css", "primitives.css"];
