@@ -551,6 +551,16 @@
   padding-block: var(--row-padding-block);
 }
 
+/* A label row that introduces the paragraph under it (About's Author) is not a control row: no
+   control-row height, and the paragraph follows one row gap below (2026-10-21, the audit's About). */
+.card-group > .settings-row:has(+ .settings-about) {
+  min-height: 0;
+}
+
+.card-group > .settings-row + .settings-about {
+  padding-block-start: 0;
+}
+
 /* From 64rem "Last updated" lives at the foot of the side column (AppNav); a phone keeps it here. */
 @media (min-width: 64rem) {
   .settings-updated {
