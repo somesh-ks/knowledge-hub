@@ -2,6 +2,7 @@
 import { sourceIdOf } from "../lib/sourceIds";
 import { HEADLINE_MAX } from "../lib/storyVotes";
 import Icon from "./Icon.astro";
+import MenuSheet from "./MenuSheet.astro";
 import "../styles/story-controls.css";
 
 interface Props {
@@ -71,17 +72,11 @@ const menuId = `story-menu-${id}`;
         >
           <Icon name="moreVert" />
         </button>
-        <div
-          class="hero-menu-list story-menu-list"
-          id={menuId}
-          popover
-          role="menu"
-          aria-label={`Story options: ${headline}`}
-        >
+        <MenuSheet id={menuId} title={headline} class="story-menu-list">
           <button class="hero-menu-item" type="button" role="menuitem" data-block>
-            Stop hearing from {outlet}
+            <Icon name="blocked" />Stop hearing from {outlet}
           </button>
-        </div>
+        </MenuSheet>
       </div>
     )
   }
