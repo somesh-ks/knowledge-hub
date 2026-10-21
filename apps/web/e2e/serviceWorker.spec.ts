@@ -173,7 +173,9 @@ test.describe("service worker", () => {
     // The deploy: every page names a new build, and so does /build.json (e2e/staticServer.mjs).
     const deploy = "next-deploy";
     const ship = () =>
-      context.addCookies([{ name: "test-build", value: deploy, url: new URL("/", page.url()).href }]);
+      context.addCookies([
+        { name: "test-build", value: deploy, url: new URL("/", page.url()).href },
+      ]);
     const build = () =>
       page.evaluate(
         () => document.querySelector('meta[name="dispatch-build"]')?.getAttribute("content") ?? "",
