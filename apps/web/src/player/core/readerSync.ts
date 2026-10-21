@@ -29,7 +29,6 @@
  * Writes go through one animation-frame writer.
  */
 
-import { AUDIO_CACHE } from "../../lib/downloads";
 import type { PlayerDigestData } from "../../types/contracts";
 import { showCardProgress } from "./cardProgress";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
@@ -120,7 +119,8 @@ export function createReaderSync(
     savedChecked = url;
     savedAudio = null;
     if (typeof caches === "undefined") return;
-    caches.match(url, { cacheName: AUDIO_CACHE }).then(
+    // Only a download (lib/downloads.ts) caches audio, so any cache holding it is that one.
+    caches.match(url).then(
       (hit) => {
         if (hit && savedChecked === url) {
           savedAudio = url;
@@ -251,7 +251,7 @@ export function createReaderSync(
       // Narration is made from the network and audio is not cached unless downloaded, so offline a
       // chip that would have to fetch it cannot work. One that holds loaded audio still pauses and
       // resumes, and one whose file was downloaded plays from the saved copy.
-      if (audio) checkSaved(audio.url);
+      if (audio && !navigator.onLine) checkSaved(audio.url);
       const saved = audio !== null && savedAudio === audio.url;
       writeChip(
         chip,
