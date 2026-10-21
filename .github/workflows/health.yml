@@ -1,0 +1,99 @@
+name: health
+
+# Once a day, `dispatch health` checks the last runs, narration, the digests and state, the cost
+# ledger and the live site (docs/engineering/hardening.md). A fault opens one issue labelled
+# `health`, or updates it; a green run closes it. When a fault first appears (no open issue yet) it
+# heals once: a failed or missed briefing starts one scheduled run, missing narration starts one
+# audio run. While the issue stays open nothing is retried again, so a fault never loops.
+
+on:
+  schedule:
+    - cron: "41 9 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+
+      - name: Check
+        shell: bash
+        env:
+          SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
+          CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+        run: |
+          set -uo pipefail
+          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          echo "exit=${PIPESTATUS[0]}"
+          jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json"
+
+      - name: Report and heal
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/health.json"
+          # A check that crashed is a fault of its own, reported like the others.
+          jq -e '.findings' "$report" >/dev/null 2>&1 ||
+            echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"dispatch health did not finish; see the run log."}]}' > "$report"
+          ok=$(jq -r '.ok' "$report")
+          codes=$(jq -r '[.findings[] | select(.severity == "fault") | .code] | unique | join(" ")' "$report")
+          gh label create health --color B60205 --description "Daily health check" --force >/dev/null
+          issue=$(gh issue list --label health --state open --limit 1 --json number --jq '.[0].number // empty')
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          if [ "$ok" = "true" ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --comment "Green again on $(date -u +%F) ([run]($run_url))."
+            fi
+            exit 0
+          fi
+
+          healed=""
+          if [ -z "$issue" ]; then
+            # The fault is new: heal once. A run that is already queued or running is left alone.
+            busy=$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')
+            if [[ " $codes " == *" run_failed "* || " $codes " == *" run_overdue "* ]] && [ "$busy" = "0" ]; then
+              gh workflow run run.yml -f mode=scheduled && healed="${healed}- Started one scheduled run.\n"
+            fi
+            if [[ " $codes " == *" audio_missing "* ]]; then
+              gh workflow run audio.yml && healed="${healed}- Started one audio run.\n"
+            fi
+          fi
+
+          {
+            echo "Health check on $(date -u +%F): **faults** ([run]($run_url))."
+            echo
+            jq -r '.findings[] | "- \(.severity) [\(.aspect)] `\(.code)`: \(.message)"' "$report"
+            if [ -n "$healed" ]; then echo; echo "Self-healing (once):"; printf "%b" "$healed"; fi
+            echo
+            echo "Reproduce with the engine's health command; see docs/engineering/hardening.md."
+          } > "$RUNNER_TEMP/body.md"
+
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh issue create --title "Health: ${codes}" --label health --body-file "$RUNNER_TEMP/body.md"
+          fi
