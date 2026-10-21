@@ -13,7 +13,6 @@ const PIXEL = Buffer.from(
 );
 const SAVED = "Saved.";
 const ADDED = "Added. Read from the next update.";
-const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 interface Sent {
   passphrase: string;
@@ -271,10 +270,18 @@ test.describe("the Topics list", () => {
     ]);
   });
 
-  test("a new topic is added in one press and waits in the list, saved, until the build gives it a page", async ({
+  test("a new topic is a row at once, saved once with Jev's emoji, and opens its page before the build", async ({
     page,
   }) => {
     const { sent } = await setup(page);
+    let answer: () => void = () => {};
+    const jev = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    await page.route("**/api/topic-emoji**", async (route: Route) => {
+      await jev;
+      await route.fulfill({ status: 200, contentType: "application/json", body: '{"emoji":"🧪"}' });
+    });
     await open(page);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
@@ -297,18 +304,23 @@ test.describe("the Topics list", () => {
       .fill("Animation and motion in interfaces.");
     await add.click();
     await expect(sheet).toBeHidden();
-    // The site is static: the topic's page exists after the next build, so the list keeps it.
+    // Listed at once as a row like the others, in its place by name, with a guessed emoji (D142).
     await expect(page).toHaveURL(LIST);
-    const queued = page.locator("[data-queued] > li");
-    await expect(queued).toContainText("Motion design");
-    // It is sent at once, so there is no Cancel that would only pretend to drop it.
-    await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
-    await expect(queued).toContainText(ADDED_TOPIC);
-    await expect(queued.locator("[data-act=cancel]")).toHaveCount(0);
-    // Its suggested sources show at once, ranked in the browser as its page will rank them.
-    const suggested = queued.getByRole("list", { name: "Suggested sources for Motion design" });
-    await expect(suggested.getByRole("button", { name: "Add Motion Weekly" })).toBeVisible();
-    expect(sent).toHaveLength(1);
+    const row = page.locator(".topics-index > a.row-action", { hasText: "Motion design" });
+    await expect(row).toContainText("No sources yet");
+    const names = await page
+      .locator(".topics-index > a.row-action .settings-label")
+      .allTextContents();
+    expect(names).toEqual(
+      [...names].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })),
+    );
+    await expect(row.locator(".topic-emoji")).not.toHaveText("");
+    await expect(row.locator(".topic-emoji")).not.toHaveText("🧪");
+    // Its one save waits for Jev's emoji, which then takes the guess's place.
+    expect(sent).toHaveLength(0);
+    answer();
+    await expect(row.locator(".topic-emoji")).toHaveText("🧪");
+    await expect.poll(() => sent.length).toBe(1);
     expect(ops(sent)).toEqual([
       {
         op: "topic.upsert",
@@ -320,13 +332,25 @@ test.describe("the Topics list", () => {
           enabled: true,
           keywords: [],
           section_id: "motion-design",
-          emoji: "🎨",
+          emoji: "🧪",
         },
       },
     ]);
+    // Suggested sources are a topic page's, never the list's.
+    await expect(page.getByRole("heading", { name: "Suggested sources" })).toHaveCount(0);
+    // Its row opens its page before the build, drawn as a built topic's, with its suggestions.
+    await row.click();
+    await expect(page).toHaveURL(/\/settings\/topics\/new\?id=motion-design$/);
+    await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+    await expect(page.locator("#page-title")).toHaveText("Motion design");
+    await expect(page.getByText("No sources yet")).toBeVisible();
+    const suggested = page.getByRole("list", { name: "Suggested sources for Motion design" });
+    await expect(suggested.getByRole("button", { name: "Add Motion Weekly" })).toBeVisible();
+    await expect(page.getByText("__shell_")).toHaveCount(0);
+    expect(sent).toHaveLength(1);
   });
 
-  test("a new topic's suggested source adds under it, and both stay listed on a reload before the build", async ({
+  test("a new topic's page before the build adds a suggested source, and both stay on a reload", async ({
     page,
   }) => {
     await page.clock.install();
@@ -342,9 +366,11 @@ test.describe("the Topics list", () => {
       .getByLabel("What should count as this topic")
       .fill("Animation and motion in interfaces.");
     await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
-    const queued = page.locator("[data-queued] > li");
-    await expect(queued).toContainText(ADDED_TOPIC);
-    await queued.getByRole("button", { name: "Add Motion Weekly" }).click();
+    // Opened at once, whether or not its save has gone yet.
+    await page.locator(".topics-index > a.row-action", { hasText: "Motion design" }).click();
+    await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+    await expect(page.locator("#page-title")).toHaveText("Motion design");
+    await page.getByRole("button", { name: "Add Motion Weekly" }).click();
     await page.clock.runFor(GAP_MS);
     await expect
       .poll(() => ops(sent))
@@ -354,18 +380,19 @@ test.describe("the Topics list", () => {
         topic_ids: ["motion-design"],
         id: expect.stringMatching(/^motion-weekly-example-/),
       });
-    // Saved, it leaves the suggestions and waits with the sources being added.
-    await expect(queued.getByRole("button", { name: /Motion Weekly/ })).toHaveCount(0);
-    await expect(page.locator("[data-added] li.source-row")).toContainText("Motion Weekly");
+    expect(ops(sent).filter((op) => op.op === "topic.upsert")).toHaveLength(1);
     await expect(spoken(page)).toHaveText(SAVED);
     const before = sent.length;
 
     await page.reload();
+    await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+    await expect(page.locator("#page-title")).toHaveText("Motion design");
+    await expect(page.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    // The list counts the source it will have once the build lands.
     await open(page);
-    await expect(page.locator("[data-saved-note]")).toHaveCount(0);
-    await expect(queued).toContainText("Motion design");
-    await expect(queued).toContainText(ADDED_TOPIC);
-    await expect(queued.getByRole("button", { name: "Added Motion Weekly" })).toBeDisabled();
+    await expect(
+      page.locator(".topics-index > a.row-action", { hasText: "Motion design" }),
+    ).toContainText("1 source");
     await page.clock.runFor(GAP_MS);
     expect(sent.length).toBe(before);
   });
@@ -636,6 +663,9 @@ test.describe("a topic's page", () => {
       .getByRole("button", { name: "Delete" })
       .click();
     await expect(toastText(page)).toHaveText("Removing Audio interfaces");
+    // Gone from the page at once, before its request goes (D142).
+    await expect(page.locator(".topic-gone")).toBeVisible();
+    expect(ops(sent)).toEqual([]);
     await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
     await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
@@ -719,7 +749,7 @@ test.describe("a topic's page", () => {
   });
 
   // A source could be turned off but never deleted: no control sent source.remove, on any screen.
-  test("a source is deleted from its edit panel after a confirm, at once with no Undo, and stays gone on a reload", async ({
+  test("a source is deleted from its edit panel after a confirm, gone at once with Undo, and stays gone on a reload", async ({
     page,
   }) => {
     const { sent } = await setup(page);
@@ -734,12 +764,19 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([]);
     await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
     await confirm.getByRole("button", { name: "Delete", exact: true }).click();
-    // Gone and sent with no wait, and no toast offering to take it back.
+    // Gone at once; the removal waits behind the scenes with Undo in the toast (D142).
+    await expect(row).toBeHidden({ timeout: 1500 });
+    await expect(toastText(page)).toHaveText("Removing Quiet Motion");
+    await toast(page).getByRole("button", { name: "Undo" }).click();
+    await expect(row).toBeVisible();
+    expect(ops(sent)).toEqual([]);
+    await page.getByRole("button", { name: "Edit Quiet Motion" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
+    await confirm.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(row).toBeHidden({ timeout: 1500 });
     await expect
-      .poll(() => ops(sent), { timeout: 1500 })
+      .poll(() => ops(sent), AFTER_UNDO)
       .toEqual([{ op: "source.remove", id: "quiet-motion" }]);
-    await expect(toast(page)).toBeHidden();
     // The build has not run: the page opened next still leaves it out.
     await page.reload();
     await open(page, "/settings/topics/other");

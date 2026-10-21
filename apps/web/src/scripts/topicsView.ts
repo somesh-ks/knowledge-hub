@@ -86,7 +86,7 @@ export function scoreNode(label: string): HTMLElement {
 export { element };
 
 /** Where a topic not built yet opens: one page the build makes for every such topic (D142). */
-export const NEW_TOPIC_PAGE = "/settings/topics/new/";
+export const NEW_TOPIC_PAGE = "/settings/topics/new";
 
 /**
  * A topic not built yet as a row of the Sources list, drawn as a built row is (it copies one), in its
