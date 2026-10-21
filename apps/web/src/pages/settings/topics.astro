@@ -63,11 +63,11 @@ const spots = Object.fromEntries(
   ),
 );
 // Every source once, by name, under the page it is filed on: the flat list the search shows. The
-// sources no topic page shows (the Other list) are not offered here (2026-10-21).
+// sources no topic page shows (the Other list) are included: the Other row is hidden, so the search is
+// the one way to reach them to switch one off or delete it.
 const pageNames = new Map(rows.map((row) => [row.id, row.name] as const));
 const library = new Map<string, { source: (typeof sources)[number]; page: string }>();
 for (const [page, list] of layout.sources) {
-  if (page === OTHER_ID) continue;
   for (const source of list) library.set(source.id, { source, page });
 }
 const libraryRows = [...library.values()].sort((a, b) =>

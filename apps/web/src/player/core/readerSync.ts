@@ -114,16 +114,21 @@ export function createReaderSync(
    *  offline, so its chip is not shut. Read from Cache Storage, which the page cannot ask at once. */
   let savedAudio: string | null = null;
   let savedChecked: string | null = null;
+  let savedCheckedAt = Number.NEGATIVE_INFINITY;
   function checkSaved(url: string): void {
-    if (savedChecked === url) return;
+    // A download can be removed later (Library), so a finished answer is asked again every few seconds.
+    const now = Date.now();
+    if (savedChecked === url && now - savedCheckedAt < 3000) return;
     savedChecked = url;
-    savedAudio = null;
+    savedCheckedAt = now;
     if (typeof caches === "undefined") return;
     // Only a download (lib/downloads.ts) caches audio, so any cache holding it is that one.
     caches.match(url).then(
       (hit) => {
-        if (hit && savedChecked === url) {
-          savedAudio = url;
+        if (savedChecked !== url) return;
+        const next = hit ? url : null;
+        if (next !== savedAudio) {
+          savedAudio = next;
           scheduleWrite();
         }
       },

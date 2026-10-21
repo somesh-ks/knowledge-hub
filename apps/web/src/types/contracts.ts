@@ -302,6 +302,8 @@ export type ConfigOp =
         enabled: boolean;
         keywords: string[];
         section_id: string;
+        /** One emoji for the topic's row, 1 to 16 characters. */
+        emoji?: string;
       };
     }
   | { op: "topic.remove"; id: string }

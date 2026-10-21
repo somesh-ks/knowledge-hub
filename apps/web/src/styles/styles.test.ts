@@ -110,7 +110,6 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".score", "the meter beside its own label"],
   [".source-card-score", "the meter beside its own label"],
   [".source-plus-btn", "the button's hit area and its press layer's inset"],
-  [".source-filter[data-tabs]", "a segmented track: the gap matches its 4px track padding"],
   [".manage-bar:popover-open", "a bar's inset sum: the 4px inset doubled, landing on the grid"],
 ];
 

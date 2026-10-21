@@ -6,7 +6,7 @@
 export async function pickEmoji(
   name: string,
   description: string,
-  ms = 2500,
+  ms = 4500,
 ): Promise<string | undefined> {
   try {
     const query = new URLSearchParams({ name, description });

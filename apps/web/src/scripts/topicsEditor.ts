@@ -152,9 +152,6 @@ export function mountEditor(root: HTMLElement): Editor {
    * then, and leaving this one would drop the request on its way (and any passphrase it asks for).
    */
   const addTopic = async (topic: NewTopic): Promise<void> => {
-    // Jev picks the topic's emoji (the same Jev that places a source's format) within 2.5 s; after
-    // that, or with no answer, the name's fixed fallback stands (core topicEmoji).
-    const emoji = await pickEmoji(topic.name, topic.description);
     // A topic still waiting to be saved holds its id.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
@@ -179,12 +176,32 @@ export function mountEditor(root: HTMLElement): Editor {
           keywords: topic.keywords,
           // A new topic gets a section of its own, titled after it.
           section_id: id,
-          ...(emoji ? { emoji } : {}),
         },
       },
       scope,
     );
     autosave.now();
+    // Jev picks the topic's emoji (the same Jev that places a source's format) after the topic is
+    // saved, so waiting on Jev never loses it; with no answer the name's fixed fallback stands
+    // (core topicEmoji). The pick goes as a follow-up update.
+    void pickEmoji(topic.name, topic.description).then((emoji) => {
+      if (!emoji) return;
+      const op: ConfigOp = {
+        op: "topic.upsert",
+        topic: {
+          id,
+          name: topic.name,
+          description: topic.description,
+          weight: 0.7,
+          enabled: true,
+          keywords: topic.keywords,
+          section_id: id,
+          emoji,
+        },
+      };
+      changes.set(`topic-emoji:${id}`, { op, el: row, now: JSON.stringify(op) });
+      autosave.now();
+    });
     // Its suggested sources at once, ranked in the browser as the build ranks them for its page.
     void import("./savedView").then((view) =>
       view.suggestUnder(row, { id, name: topic.name, description: topic.description }),
