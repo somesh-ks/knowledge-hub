@@ -94,7 +94,7 @@ export interface TopicEdit extends NewTopic {
 }
 
 export interface PanelHandlers {
-  addTopic(topic: NewTopic): void;
+  addTopic(topic: NewTopic): void | Promise<void>;
   editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;

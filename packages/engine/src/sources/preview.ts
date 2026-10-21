@@ -400,3 +400,4 @@ export async function previewSource(url: string, deps: PreviewDeps): Promise<Sou
 }
 
 export { createFormatClassifier } from "./classifyFormat.js";
+export { createEmojiPicker, EmojiPicker } from "./pickEmoji.js";

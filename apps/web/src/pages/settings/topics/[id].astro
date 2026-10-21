@@ -48,6 +48,8 @@ export async function getStaticPaths() {
       params: { id: topic.id },
       props: { group: null, topic, list: list(topic.id), choices, taken },
     })),
+    // Other has no row on the Sources list (2026-10-21) but keeps its page, reached by address, so
+    // the sources no topic shows can still be read and removed.
     {
       params: { id: OTHER_ID },
       props: { group: null, topic: null, list: list(OTHER_ID), choices, taken },
@@ -254,6 +256,8 @@ const facts = topic && {
           {/* Sources or Preferences (2026-10-20): the segmented navigation, as tabs. The choice is in
                the address (?view=preferences), so a reload or Back keeps it; topicsPage.ts reads it
                and keeps the address in step. */}
+          {/* One card holds the switch and what it shows: the Android settings pattern (2026-10-21). */}
+          <div class="topic-panel">
           {
             hasPreferences && (
               <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
@@ -356,7 +360,7 @@ const facts = topic && {
           <div class="topic-sources-block">
             {
               list.length > 0 && (
-                <SourceFilter sources={list} tabs>
+                <SourceFilter sources={list} chips>
                   <button
                     slot="action"
                     class="btn-secondary topic-add-source"
@@ -392,6 +396,7 @@ const facts = topic && {
           </div>
 
           <SuggestedSources offers={suggested} name={name} topicId={addTo} />
+          </div>
           </div>
           <p class="manage-quiet topic-gone" tabindex="-1">Removed.</p>
         </div>

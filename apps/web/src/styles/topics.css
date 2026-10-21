@@ -165,8 +165,63 @@
 /* A topic's page shows its sources or its sliders, never both (2026-10-20). Each pane takes no box of
    its own, so the rules for what is inside it hold as they did before the switch. The floating Add is
    for sources and shows with them. Before the script, the page is its sources. */
+/* The switch and what it shows sit in one card, as an Android settings screen groups a section
+   (2026-10-21), a step further from the topic card than the rows are from each other. The switch's
+   track is the page's own surface, so it reads against the card. */
+.topic-panel {
+  margin-block-start: var(--space-8);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+/* On the card's fill the switch's track, the field, the Add button and the chips take the page's own
+   surface, so they read against the card. */
+.topic-panel > .topic-view,
+.topic-panel .search-field,
+.topic-panel .filter-row > .topic-add-source,
+.topic-panel .filter-chip:not(:has(input:checked)) {
+  background: var(--color-surface);
+}
+
+.topic-panel .topic-sources-block .topic-suggested {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-2);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
 .topic-view {
-  margin-block-start: var(--space-6);
+  margin-block-start: 0;
+}
+
+/* A topic's emoji at the start of its row on the Sources page: a fixed box, so names line up. */
+.topic-emoji {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-icon-lg);
+  font-size: var(--font-size-title);
+  line-height: 1;
+}
+
+/* Blocked sources: the skip mark in the danger colour and a line above the group, so the outlets
+   the owner shut out are told apart from the topics they listen to (2026-10-21). */
+.topics-more {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.topic-blocked-mark {
+  color: var(--color-danger);
+}
+
+/* Outweighs the row's quiet, pulled-out chevron rule (.topics .row-action .icon). */
+.topics .row-action .topic-blocked-mark > .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  margin: 0;
+  color: var(--color-danger);
 }
 
 .topic-view-pane {
@@ -1219,11 +1274,6 @@
   margin-block-start: var(--space-2);
 }
 
-/* The Blocked outlets row under the topics (D103 list), set apart from them by air. */
-.topics-more {
-  padding-block-start: var(--space-6);
-}
-
 /* A suggestion being added: a light sweeps across its row while the request goes, so the press is
    answered where it was made and the row stays until the source is in the list. Only the
    gradient's position moves. Reduced motion keeps the tint and drops the sweep. */
@@ -1295,69 +1345,58 @@
   gap: var(--space-2);
 }
 
+/* The field is the Library's (.search-field, library.css), in a column that may shrink. */
 .filter-field {
-  position: relative;
-  display: flex;
   flex: 1 1 auto;
-  align-items: center;
   min-width: 0;
 }
 
-.filter-field > .icon {
-  position: absolute;
-  inset-inline-start: var(--field-padding);
-  color: var(--color-on-surface-muted);
-  pointer-events: none;
+/* Add source and Add match the field's height and shape (2026-10-21): the same pill, the same tonal
+   fill, so the row reads as one bar. Outweighs the outline button (.topic-add-source) below. */
+.filter-row > .topic-add-source {
+  min-height: var(--field-height);
+  padding-inline: var(--space-6);
+  border-color: transparent;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
 }
 
-.filter-field > .manage-input {
-  padding-inline-start: calc(var(--field-padding) + var(--space-8));
+@media (hover: hover) and (pointer: fine) {
+  .filter-row > .topic-add-source:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
 }
 
-/* The bar sits in the filter, not on its own: the filter is what sticks (below). Its strip still
-   runs past the gutters, so a long row of formats slides off the screen's edge. */
-.filter-tabs {
-  position: static;
+.filter-row > .topic-add-source::after {
+  inset-block: 0;
 }
 
-/* A short label (All) still answers a touch across 44px. */
-.filter-tabs .tab {
-  justify-content: center;
-  min-inline-size: var(--size-touch);
-  border: 0;
-  background: none;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-/* Below 64rem the field and the tabs stick under the app bar as one block on the page's surface, so
-   both stay in reach down a long list; the tabs' line closes the block. */
+/* Below 64rem the field and the chips stick under the app bar as one block, so both stay in reach
+   down a long list. Inside the topic card the block takes the card's fill and runs to its edges. */
 @media (width < 64rem) {
-  .source-filter[data-tabs] {
+  .source-filter[data-chips] {
     position: sticky;
     inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
     z-index: calc(var(--z-header) - 1);
-    margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
-    padding: var(--space-2) var(--page-gutter-end) 0 var(--page-gutter-start);
-    gap: var(--space-1);
-    background: var(--color-surface);
+    margin-inline: calc(var(--space-4) * -1);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-surface-container);
   }
 
-  /* The block already spans the gutters; the strip keeps its own reach to the edges inside it. */
-  .source-filter[data-tabs] .filter-tabs {
-    margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
-  }
-
-  .source-filter[data-tabs] .filter-none {
+  .source-filter[data-chips] .filter-none {
     padding-block: var(--space-2);
   }
 
   /* An anchor or a focused row lands below the stuck block, not under it. */
-  html:has(.source-filter[data-tabs]) {
+  html:has(.source-filter[data-chips]) {
     scroll-padding-block-start: calc(
       var(--sticky-top) +
       var(--field-height) +
-      var(--tabs-height) +
+      var(--chip-height) +
       var(--space-6)
     );
   }
@@ -1395,43 +1434,4 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
-}
-
-/* Types as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
-   the choice. Chips are the filter's old look: a hairline outline, the accent when pressed. No All:
-   none pressed means everything. */
-.filter-chips {
-  display: none;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.format-chip {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: var(--chip-height);
-  padding-inline: var(--space-4);
-  border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
-  background: none;
-  color: var(--color-on-surface);
-  font: inherit;
-  font-size: var(--font-size-label);
-  cursor: pointer;
-  transition: border-color var(--duration-hover) var(--ease-hover);
-}
-
-.format-chip[aria-pressed="true"] {
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-accent);
-}
-
-@media (width >= 64rem) {
-  .filter-chips {
-    display: flex;
-  }
-
-  .filter-tabs {
-    display: none;
-  }
 }

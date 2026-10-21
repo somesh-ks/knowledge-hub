@@ -206,6 +206,8 @@ function upsertTopic(
     origin: "custom",
     depth: input.depth,
   };
+  const emoji = input.emoji ?? existing?.emoji;
+  if (emoji !== undefined) topic.emoji = emoji;
   const wasNew = existing === undefined;
   // Queries follow the wording: written once for a new topic, and again when the wording changed.
   const reworded =

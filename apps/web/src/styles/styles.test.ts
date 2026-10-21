@@ -79,6 +79,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".episode-highlight-actions", "the chips' hit-area overhang under the highlight"],
   [".hero-text", "title onto its subtitle inside one block"],
   [".library-filters", "room for the chips' focus ring inside the scroller"],
+  [".filter-chips-scroll", "room for the chips' focus ring inside the scroller"],
   ['[data-view="list"] .card-link::after', "the row's press layer, inset as a hit area"],
   [".card-match", "title onto its subtitle inside one row"],
   [".card-sub", "title onto its subtitle inside one row"],
@@ -428,6 +429,54 @@ const RULES: Rule[] = [
           return wrong ? [`${file}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`] : [];
         }),
       ),
+  },
+  {
+    // Prevents the 2026-10-21 drift: Sources and the topic page each drew an outlined search box and
+    // their own outlined format chips while the Library had the pill and the tonal chip. One field
+    // and one chip: a new page that needs search or filters wears the Library's.
+    name: "a search input sits in the shared .search-field, a filter chip is the shared .filter-chip",
+    offenders: () => [
+      ...filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) => {
+        const markup = readFileSync(file, "utf8");
+        const search = /type="search"|type=\{?["']search["']/.test(markup);
+        return search && !/class(?:Name)?="[^"]*\bsearch-field\b/.test(markup)
+          ? [`${file}: a search input outside .search-field`]
+          : [];
+      }),
+      ...filesUnder(SRC, [".astro", ".tsx", ".ts"]).flatMap((file) =>
+        [
+          ...readFileSync(file, "utf8").matchAll(
+            /class(?:Name)?="[^"]*\b((?!filter-)[a-z]+-chip)\b/g,
+          ),
+        ].map(([, name]) => `${file}: .${name}, a second chip style`),
+      ),
+      ...ownCss().flatMap(([file, css]) =>
+        [...css.matchAll(/\.((?!filter-)[a-z]+-chip)\b(?!-)/g)].map(
+          ([, name]) => `${file}: .${name}, a second chip style`,
+        ),
+      ),
+    ],
+  },
+  {
+    // Prevents the segmented navigation's old drop shadow (2026-10-21): the design is flat, so
+    // depth is for surfaces that float over the page (a menu, a sheet, a cover), never a control.
+    // Allowed: no shadow, an inset line or a ring drawn with a spread (`0 0 0`, `inset`, a hairline
+    // under an edge), and the named floating tokens. A blurred shadow of any other kind, such as
+    // --shadow-raised, fails.
+    name: "has no box-shadow that lifts a control: shadows are for floating surfaces",
+    offenders: () => {
+      const floating =
+        /^(none|inset\b.*|0 0 0 .*|0 calc\(.*\) 0 .*|var\(--(?:shadow-(?:popover|floating|sheet)|cover-shadow|sheet-shadow)\))$/;
+      return ownCss().flatMap(([file, css]) =>
+        [...css.matchAll(/box-shadow\s*:\s*([^;{}]+);/g)].flatMap(([, raw = ""]) => {
+          const value = raw.replace(/\s+/g, " ").trim();
+          const layers = value.split(/,(?![^(]*\))/).map((layer) => layer.trim());
+          return layers.every((layer) => floating.test(layer))
+            ? []
+            : [`${file}: box-shadow: ${value}`];
+        }),
+      );
+    },
   },
 ];
 

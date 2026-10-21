@@ -1,5 +1,5 @@
 /**
- * Search, and on a topic's page format tabs, over the source rows of the Topics & Sources index
+ * Search, and on a topic's page format chips, over the source rows of the Topics & Sources index
  * (every source) or a topic's page (its own). Loaded by topicsPage.ts after the page is ready; the
  * page is whole HTML without it. The state lives in the address (?q=&format=a&format=b), written with
  * replaceState so a reload, or Back to the page, finds it as it was.
@@ -25,8 +25,8 @@ export function mountFilter(root: HTMLElement): void {
   filter.dataset.mounted = "";
   const field = filter.querySelector<HTMLInputElement>("[data-filter-q]");
   const none = filter.querySelector<HTMLElement>("[data-filter-none]");
-  const tabs = [...filter.querySelectorAll<HTMLButtonElement>("[data-tab]")];
-  const chips = [...filter.querySelectorAll<HTMLButtonElement>("[data-chip]")];
+  const clearText = filter.querySelector<HTMLButtonElement>("[data-filter-clear-text]");
+  const chips = [...filter.querySelectorAll<HTMLInputElement>("input[data-chip]")];
   // The index swaps its topic list for the flat list of sources while a search is set.
   const library = root.querySelector<HTMLElement>("[data-library]");
   const topicLists = [...root.querySelectorAll<HTMLElement>(".topics-index, .topics-more")];
@@ -59,17 +59,8 @@ export function mountFilter(root: HTMLElement): void {
       el.hidden = !ok;
       if (ok) shown += 1;
     }
-    for (const chip of chips)
-      chip.setAttribute("aria-pressed", String(state.formats.includes(chip.dataset.chip ?? "")));
-    for (const tab of tabs) {
-      // The tabs hold one: All when none is chosen, and nothing lit when the chips chose several.
-      const chosen =
-        state.formats.length === 0
-          ? tab.dataset.tab === ""
-          : state.formats[0] === tab.dataset.tab && state.formats.length === 1;
-      tab.setAttribute("aria-selected", String(chosen));
-      tab.tabIndex = chosen ? 0 : -1;
-    }
+    for (const chip of chips) chip.checked = state.formats.includes(chip.dataset.chip ?? "");
+    if (clearText) clearText.hidden = state.q === "";
     // The index shows its topics until something narrows the list; a topic's page lifts its fold.
     if (library) {
       library.hidden = idle;
@@ -94,12 +85,6 @@ export function mountFilter(root: HTMLElement): void {
     );
   };
 
-  const choose = (tab: HTMLButtonElement): void => {
-    state.formats = tab.dataset.tab ? [tab.dataset.tab] : [];
-    apply();
-    tab.scrollIntoView({ block: "nearest", inline: "nearest" });
-  };
-
   field.addEventListener("input", () => {
     state.q = field.value;
     apply();
@@ -108,29 +93,16 @@ export function mountFilter(root: HTMLElement): void {
   field.addEventListener("keydown", (event) => {
     if (event.key === "Enter") event.preventDefault();
   });
-  // The tabs are one stop: the arrows, Home and End move between them, as a tab list does.
-  filter.addEventListener("keydown", (event) => {
-    const at = tabs.indexOf(event.target as HTMLButtonElement);
-    if (at < 0) return;
-    const to =
-      event.key === "ArrowRight"
-        ? (at + 1) % tabs.length
-        : event.key === "ArrowLeft"
-          ? (at - 1 + tabs.length) % tabs.length
-          : event.key === "Home"
-            ? 0
-            : event.key === "End"
-              ? tabs.length - 1
-              : -1;
-    const next = tabs[to];
-    if (!next) return;
-    event.preventDefault();
-    choose(next);
-    next.focus();
-  });
   filter.addEventListener("click", (event) => {
     const target = (event.target as Element).closest("button");
     if (!target) return;
+    if ("filterClearText" in target.dataset) {
+      state.q = "";
+      field.value = "";
+      apply();
+      field.focus();
+      return;
+    }
     if ("filterClear" in target.dataset) {
       state.q = "";
       state.formats = [];
@@ -139,14 +111,15 @@ export function mountFilter(root: HTMLElement): void {
       field.focus();
       return;
     }
-    if ("tab" in target.dataset) choose(target as HTMLButtonElement);
-    else if ("chip" in target.dataset) {
-      const format = target.dataset.chip ?? "";
-      state.formats = state.formats.includes(format)
-        ? state.formats.filter((chosen) => chosen !== format)
-        : [...state.formats, format];
-      apply();
-    }
+  });
+  filter.addEventListener("change", (event) => {
+    const chip = event.target as HTMLInputElement;
+    if (!("chip" in chip.dataset)) return;
+    const format = chip.dataset.chip ?? "";
+    state.formats = chip.checked
+      ? [...state.formats.filter((chosen) => chosen !== format), format]
+      : state.formats.filter((chosen) => chosen !== format);
+    apply();
   });
   apply();
 }

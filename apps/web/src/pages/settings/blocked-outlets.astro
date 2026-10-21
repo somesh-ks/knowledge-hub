@@ -14,22 +14,22 @@ import "../../styles/blocked.css";
 const domains = await loadBlockedDomains();
 ---
 
-<BaseLayout title="Blocked outlets" view="settings" skipLabel="Skip to blocked outlets">
+<BaseLayout title="Blocked sources" view="settings" skipLabel="Skip to blocked sources">
   <main id="main" tabindex="-1">
     {/* One field to block an outlet and the list of those blocked, each with a remove control.
          blockedPage.ts records a change; autosave.ts sends an addition a moment later and a removal
          after five seconds with Undo in the toast. */}
     <div class="manage blocked" data-blocked data-domains={JSON.stringify(domains)}>
       <SettingsHead
-        title="Blocked outlets"
+        title="Blocked sources"
         note="A blocked outlet is left out of every briefing and episode from the next one made, including stories found by search. Blocking a domain blocks its subdomains."
       />
       <noscript>
-        <p class="manage-note">Changing blocked outlets needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Changing blocked sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
-        <legend class="sr-only">Blocked outlets</legend>
+        <legend class="sr-only">Blocked sources</legend>
         <form class="blocked-add manage-field" novalidate data-add data-needs-js>
           <label for="blocked-input">Block an outlet</label>
           <div class="blocked-add-row">
@@ -95,7 +95,7 @@ const domains = await loadBlockedDomains();
         {/* Shown by blocked.css while the list has no row. */}
         <div class="blocked-empty empty" data-compact>
           <EmptyArt art="library" size="compact" />
-          <p class="empty-title">No blocked outlets</p>
+          <p class="empty-title">No blocked sources</p>
           <p class="empty-body">Type a domain above, or paste the address of any page on the outlet.</p>
         </div>
       </fieldset>
