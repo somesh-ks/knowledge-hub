@@ -65,11 +65,3 @@ jobs:
           DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
           DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
         run: npm run --silent dispatch -- podcast --request "$REQUEST"
-
-  # Narrates the new episode turn by turn into the files the site plays from, so its first Play
-  # starts from stored audio. A separate job: the episode is already committed, so a failure here
-  # never undoes it, and the next audio run (or Play) narrates what is missing.
-  audio:
-    needs: podcast
-    uses: ./.github/workflows/audio.yml
-    secrets: inherit
