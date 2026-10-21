@@ -22,7 +22,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - YouTube text: captions and Gemini each worked on live videos (2026-10-19), but no full run has used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Queue (D126) gestures: the handle drag, the Up next pull-up, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
-- Episode pre-narration (D128): no live run yet; the `podcast.yml` call to `audio.yml` ships in a separate PR the owner merges by hand, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: after that merge a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
+- Episode pre-narration (D128): no live run yet; `podcast.yml` calls `audio.yml` since #183, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - `?view=preferences` (D129) may flash Sources on load. closed when: a reload on a phone shows no Sources frame first.
 - The weekly model check (D130, Mondays 08:52 Stockholm) was created without connectors. closed when: its first run opens a `review` PR or reports no change, or the owner recreates it with GitHub and Firecrawl connected.
 - D125: pull to close, sticky tabs, keyboard fit. closed when: each works on a phone.
@@ -71,6 +71,6 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 2. Parked by the owner (2026-10-14): no island eager at first load (cut 1 in [first-load-js.md](engineering/first-load-js.md), about 73 KB). Do not build it until asked.
 3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow checkout in workflows; first-load cuts in [first-load-js.md](engineering/first-load-js.md) within the 109 KB budget (D112).
 4. Finer episode stages (the podcast command in phases, a workflow change); Firecrawl filling a gap in Design, AI or Technology for an episode (`podcast.yml` has no Firecrawl key; a workflow change).
-5. Merge the `podcast.yml` PR and set `SPEECHIFY_VOICE_ID_B`. One iPhone pass and one Android pass against the checklist above.
+5. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`). One iPhone pass and one Android pass against the checklist above.
 6. Calibrate the Jev thresholds on the golden set (`eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path; one generated briefing to see Design and Trending, then tune the Trending threshold.
 7. Tests left by the D99 cuts, only if they cost less than they save: `gate-decideRun` DST cases, `voice-lint`, the `heldSave` and `readerContract` tables, the Library filter table.
