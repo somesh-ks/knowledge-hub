@@ -156,6 +156,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 | D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
 | D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
+| D145 | Network-first page loads; a build check on return | amends D47 |
 
 ---
 
@@ -1595,3 +1596,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: below 40rem every sheet built from `SheetHeader` or `.sheet-head` (the ⋮ menu sheets, the Library card sheet, the Create sheet, Add source and topic panels, the rewrite panel, the passphrase sheet) shares `scripts/pullDismiss.ts`: a pull from the header, or from the content once scrolled to its top, moves the sheet; a release past a quarter of its height or a flick closes it, a shorter pull springs back; a dialog closes on a tap on its scrim, a popover by light dismiss. Reduced motion skips the follow, not the close. The Close button is visually hidden on a phone (sr-only styles, still focusable); Escape works as before. From 40rem the close controls are as D132 left them. The React sheets (Base UI Drawer) already swiped and closed on the scrim, so they only lose the visible Close. The grabber stays removed (D106).
 - Why: a visible X on a phone is a reach and a second way to do what a swipe does.
 - Amends: D132 (one header with Close at the end, now visible from 40rem only).
+
+## D145: a deploy reaches the screen on the next page load or return to the app
+
+- Date: 2026-10-21 (the owner's phone kept the old Stories layout after #185 was live)
+- Decision: the service worker (v13) answers every page load, briefings included, from the network first with the 3 s fallback to the saved copy; briefings are no longer stale-while-revalidate. Each page carries `<meta name="dispatch-build">` and `/build.json` (no-store) names the build (the commit on Vercel). An app that comes back to the front asks `/build.json` at most once a minute and reloads once per build when the two differ and nothing plays. `dispatch health` faults `site_update` when `/sw.js` is cacheable or `/build.json` does not name a build.
+- Why: a briefing's words never change, but its page does with each deploy, and a saved copy names the old stylesheets the shell cache still holds; an installed app resumed for days never navigates at all.
+- Amends: D47 (saved copies answer moves inside the app, not page loads).

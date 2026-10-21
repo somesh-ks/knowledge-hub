@@ -47,7 +47,10 @@ beforeEach(async () => {
     3,
   );
   // A story the writer left as a stub: it parses, and reads as nothing.
-  newest.items[1] = { ...newest.items[1], summary: "To follow." };
+  newest.items[1] = {
+    ...(newest.items[1] as (typeof newest.items)[number]),
+    summary: "To follow.",
+  };
   await put(digestRelPath(yesterday.id), serializeDigestFile(yesterday));
   await put(digestRelPath(newest.id), serializeDigestFile(newest));
   await put(digestRelPath("2026-10-16"), "---\nnot: a digest\n---\n");

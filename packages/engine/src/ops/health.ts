@@ -164,7 +164,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       warn(
         "story_short",
         "quality",
-        `${digest.id} has ${stubs.length} stories under ${SHORT_STORY_WORDS} words: ${stubs.map((item) => item.title).join("; ")}.`,
+        `${digest.id} has ${stubs.length} stories under ${SHORT_STORY_WORDS} words: ${stubs.map((item) => item.headline).join("; ")}.`,
       );
     }
   }

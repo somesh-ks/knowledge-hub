@@ -1,13 +1,13 @@
 # Navigation and offline
 
-Service worker, saved copies, PWA, launch screen, offline. What it does now. Reasons: D47, D97, D98, D99, D102, D123, D127; history: docs/history/.
+Service worker, saved copies, PWA, launch screen, offline. What it does now. Reasons: D47, D97, D98, D99, D102, D123, D127, D145; history: docs/history/.
 
 ## Requirements
 
 ### Moves between pages
 - Moves between Latest, Library, Create and Settings are answered from a copy the service worker saved in the last ten minutes and swapped at once (D47). Measured on production (2026-10-09, medians): the page arrives in 2 ms (was 26), is on screen in 32 ms (was 70) and fully drawn in 132 ms (was 407).
 - The current destination is marked the moment it is pressed.
-- The service worker uses navigation preload and checks for an update on return. A page that changed behind a saved copy refreshes quietly; a new `/latest.json` makes saved pages old.
+- The service worker uses navigation preload and checks for an update on return. Every page load, a briefing's included, goes to the network first (3 s, then the saved copy); a page that changed behind a saved copy refreshes quietly; a new `/latest.json` makes saved pages old. An app that comes back to the front compares its page's `dispatch-build` with `/build.json` and reloads once, when nothing plays (D145).
 - One top rhythm across the four destinations, held to 1px by `e2e/rhythm.spec.ts`. The view transition overlay lets the pointer through, so the cursor does not flicker over a link.
 - Every page names the modules it loads at start in modulepreload links (a build step; `checkBundle` fails a page that loads one without a link) (D112). Modules a press needs are fetched at idle, never on the press. The player surface's motion loads after first paint behind a facade that holds early calls. The bundle budget is 130 KB (D141).
 

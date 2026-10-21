@@ -19,6 +19,9 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | Two pushes in one instant (2026-10-21 episode delete) | the push answer | `commitAndPush` now reads a ref-lock race as a rejection and rebases (every engine push uses it) |
 | A cache entry the browser broke | the worker's strategy rejects | `sw.js` (v12) answers from the network and rebuilds its caches once |
 | A stop waiting on a device for weeks | `splitStaleBlocks` | dropped after 7 days with a toast |
+| A deploy that never reaches an open or installed app (2026-10-21, D145) | `site_update` (`/sw.js` cacheable, `/build.json` missing); the `serviceWorker.spec.ts` deploy journey | page loads go to the network first (sw.js v13); an app back at the front reloads once to a newer build |
+| A stub story (a summary of a few words) | warning `story_short` (under a third of the writer's minimum) | none: rewrite or regenerate |
+| A critical advisory in what ships | CI `secrets` job: `npm audit --omit=dev --audit-level=critical` | Dependabot PRs |
 | Client errors and CSP violations on a phone | `/api/report` logs `[client-fault]` lines (path only, 30 a minute per instance) | none: read the Vercel log |
 
 The self-healing never loops: a retry happens only when no `health` issue is open, so the second
@@ -84,3 +87,23 @@ one axe pass of the home page in `health.yml` with Playwright (medium; adds a br
 audio). Added: every digest and state file must parse, daily. Gap: Podcasts/ files and
 `config/` are not parsed by `health`; `doctor` checks config. Recommend: fold `doctor`'s offline
 config checks into `health` (small).
+
+## Coverage by aspect, round 2
+
+Each aspect's detector, where it runs and what heals. Health findings carry `aspect` and `code`, so
+`health.yml` keeps one issue for all of them; the heals are per code (see the table above).
+
+| Aspect | Detector | Runs in | Self-heal | Gap |
+| --- | --- | --- | --- | --- |
+| Reliability | `run_failed`, `run_overdue`, `audio_missing`, `audio_unreachable`, the push answer | `health.yml` daily; every engine push | one run, one `audio.yml`, rebase and retry | a run that dies before Commit; Vercel Cron unverified (D61) |
+| Availability | `site_down`, `site_api` (`/api/podcast` 405), `site_stale`, `site_update` | `health.yml`; `smoke.yml` after each deploy | none: alert only, a redeploy is the owner's | function 5xx rates and latency (Vercel dashboard only) |
+| Stale client | `site_update`; build compare on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, one reload per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
+| Performance | `checkBundle` (D141, 130 KB) | CI build | none | **no real-user LCP, INP or CLS**: send them through `/api/report` at page hide, sampled, and have `health` read them (needs a log store: Vercel logs are not queryable from `health`) |
+| Quality | `digest_thin`, `digest_unverified`, `model_fallback`, `source_failing`, `story_short` | `health.yml` | none: a thin or stub briefing is the owner's to regenerate | an episode (Podcasts/) is not checked; a briefing short of its length; word marks missing |
+| Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; per-instance limits reset on a cold start |
+| Cost | `cost_over_ceiling`, `speech_budget`, the per-call caps | `health.yml`; every call | the caps stop the next call | Vercel-side Speechify spend has its own counter |
+| Data integrity | `digest_invalid`, `state_invalid`, the write guard | `health.yml`; every commit | none: the guard should refuse it | Podcasts/ and `config/` not parsed by `health` |
+| Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life | quota eviction of downloads is not detected |
+
+Next by value: real-user Web Vitals (the budget now has room), `config/` and Podcasts/ parsed by
+`health`, and a `failure()` step in `run.yml` that records a failed run.

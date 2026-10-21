@@ -20,6 +20,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 - Sources design (D124) live: production asks Jev for a new source's format only after `npm run secrets:push` (the rule guesses until then); no run has used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - YouTube text: captions and Gemini each worked on live videos (2026-10-19), but no full run has used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
+- D145 and health round 2 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app picks up a deploy and `health.yml` passes.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run yet; `podcast.yml` calls `audio.yml` since #183, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
@@ -62,9 +63,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - With the passphrase off (D41), anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
-- `podcast.yml` and `config.yml` push to `main` beside `run.yml`; a push that loses GitHub's ref-lock race now rebases and retries (D139).
 - A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
-- Two browser suites at once share `apps/web/dist` and give false failures.
 
 ## Next
 
