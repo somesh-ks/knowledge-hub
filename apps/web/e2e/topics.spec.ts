@@ -52,6 +52,10 @@ async function setup(
   await page.route("**/api/site-icon**", (route: Route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
   );
+  // Jev's pick of a new topic's emoji; the static test server has no such route.
+  await page.route("**/api/topic-emoji**", (route: Route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: '{"emoji":"🎨"}' }),
+  );
   await page.route("**/api/config", async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
@@ -103,8 +107,6 @@ test.describe("the Topics list", () => {
       ["AI", "1 source"],
       ["Technology", "No sources yet"],
       ["Audio interfaces", "1 source"],
-      // Other counts the way every row does: one of its two sources is switched off.
-      ["Other", "1 of 2 sources on"],
       ["World", "2 of 3 sources on"],
       ["Science", "1 source"],
       ["Sports", "No sources yet"],
@@ -115,15 +117,17 @@ test.describe("the Topics list", () => {
     await expect(page.locator("li.source-row:visible")).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: "Show sources with score" })).toHaveCount(0);
     await expect(page.getByText("Top picks")).toHaveCount(0);
+    // No Other list (2026-10-21).
+    await expect(page.getByRole("link", { name: /^Other/ })).toHaveCount(0);
   });
 
-  test("a search narrows every source to a flat list, a topic's format tab narrows its own, and a reload or Back keeps them", async ({
+  test("a search narrows every source to a flat list, a topic's format chip narrows its own, and a reload or Back keeps them", async ({
     page,
   }) => {
     await setup(page);
     await open(page);
     // The index is a search and nothing else: no format or status filters.
-    await expect(page.getByRole("tab")).toHaveCount(0);
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Search sources" }).fill("studio");
     // The topic list gives way to the sources that match, which open and edit as on a topic page.
     await expect(page.getByRole("link", { name: /^Design/ })).toBeHidden();
@@ -145,19 +149,16 @@ test.describe("the Topics list", () => {
     // Nothing matching says so and offers Clear, which brings the topics back.
     await page.getByRole("searchbox", { name: "Search sources" }).fill("zzzz");
     await expect(page.getByText("No sources match.")).toBeVisible();
-    await page.getByRole("button", { name: "Clear" }).click();
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(page.getByRole("link", { name: /^Design/ })).toBeVisible();
-    // A topic's page: All first, one tab at a time, kept on a reload.
+    // A topic's page: a format chip narrows its list and is kept on a reload.
     await page.goto(CRAFT_PAGE);
-    const tabs = page.getByRole("tablist", { name: "Type" }).getByRole("tab");
-    await expect(tabs.first()).toHaveText("All");
-    await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
-    await page.getByRole("tab", { name: "Blog" }).click();
+    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveText([
       /Studio Notes/,
     ]);
     await page.reload();
-    await expect(page.getByRole("tab", { name: "Blog" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("checkbox", { name: "Blog" })).toBeChecked();
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveCount(1);
   });
 
@@ -165,26 +166,25 @@ test.describe("the Topics list", () => {
     page,
   }) => {
     await page.goto(CRAFT_PAGE);
-    const chips = page.getByRole("group", { name: "Type" }).getByRole("button");
     await expect(page.getByRole("button", { name: "All", exact: true })).toHaveCount(0);
     await expect(
       page.locator(".filter-row").getByRole("button", { name: /^Add source to/ }),
     ).toBeVisible();
     const all = page.locator("ul[data-sources] li.source-row:visible");
     const every = await all.count();
-    await chips.filter({ hasText: "Blog" }).click();
+    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
     await expect(all).toHaveCount(1);
-    await chips.filter({ hasText: "News" }).click();
-    await expect(chips.filter({ hasText: "Blog" })).toHaveAttribute("aria-pressed", "true");
+    await page.locator("label.filter-chip", { hasText: "News" }).click();
+    await expect(page.getByRole("checkbox", { name: "Blog" })).toBeChecked();
     await expect(all.count()).resolves.toBeGreaterThan(1);
     await page.reload();
-    await expect(chips.filter({ hasText: "News" })).toHaveAttribute("aria-pressed", "true");
-    await chips.filter({ hasText: "Blog" }).click();
-    await chips.filter({ hasText: "News" }).click();
+    await expect(page.getByRole("checkbox", { name: "News" })).toBeChecked();
+    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
+    await page.locator("label.filter-chip", { hasText: "News" }).click();
     await expect(all).toHaveCount(every);
   });
 
-  test("lists every topic in one list by name, Other last, and the panel offers them in the same order", async ({
+  test("lists every topic in one list by name, with no Other, and the panel offers them in the same order", async ({
     page,
   }) => {
     await setup(page);
@@ -200,7 +200,6 @@ test.describe("the Topics list", () => {
       "Sports",
       "Technology",
       "World",
-      "Other",
     ]);
     await expect(page.getByRole("heading", { level: 2, name: "General news" })).toHaveCount(0);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
@@ -221,7 +220,6 @@ test.describe("the Topics list", () => {
       "Sports",
       "Technology",
       "World",
-      "Other",
     ]);
   });
 
@@ -322,6 +320,7 @@ test.describe("the Topics list", () => {
           enabled: true,
           keywords: [],
           section_id: "motion-design",
+          emoji: "🎨",
         },
       },
     ]);
@@ -542,19 +541,6 @@ test.describe("a topic's page", () => {
       .toEqual([{ op: "source.update", id: "studio-notes", name: "Studio Notes Weekly" }]);
   });
 
-  test("moving a source to another topic says where it goes after the build", async ({ page }) => {
-    const { sent } = await setup(page);
-    await open(page, CRAFT);
-    await source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" }).click();
-    const sheet = page.getByRole("dialog", { name: "Edit source" });
-    await sheet.getByRole("combobox", { name: "Topic" }).selectOption("");
-    await sheet.getByRole("button", { name: "Save" }).click();
-    await expect(source(page, "Studio Notes")).toContainText("Moves to Other in about a minute.");
-    await expect
-      .poll(() => ops(sent))
-      .toEqual([{ op: "source.update", id: "studio-notes", topic_ids: [] }]);
-  });
-
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
     page,
   }) => {
@@ -592,7 +578,7 @@ test.describe("a topic's page", () => {
     // It suggests the catalogue's feeds for the topic chosen, and changes them with it.
     await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Design" });
     await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toBeVisible();
-    await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Other" });
+    await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Sports" });
     await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toHaveCount(0);
     await sheet.getByRole("combobox", { name: "Topic" }).selectOption("audio_interfaces");
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");

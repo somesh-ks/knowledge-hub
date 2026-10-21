@@ -175,7 +175,12 @@
   background: var(--color-surface-container);
 }
 
-.topic-panel > .topic-view {
+/* On the card's fill the switch's track, the field, the Add button and the chips take the page's own
+   surface, so they read against the card. */
+.topic-panel > .topic-view,
+.topic-panel .search-field,
+.topic-panel .filter-row > .topic-add-source,
+.topic-panel .filter-chip:not(:has(input:checked)) {
   background: var(--color-surface);
 }
 

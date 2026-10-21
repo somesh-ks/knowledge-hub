@@ -48,6 +48,12 @@ export async function getStaticPaths() {
       params: { id: topic.id },
       props: { group: null, topic, list: list(topic.id), choices, taken },
     })),
+    // Other has no row on the Sources list (2026-10-21) but keeps its page, reached by address, so
+    // the sources no topic shows can still be read and removed.
+    {
+      params: { id: OTHER_ID },
+      props: { group: null, topic: null, list: list(OTHER_ID), choices, taken },
+    },
   ];
 }
 
