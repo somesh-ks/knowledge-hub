@@ -220,8 +220,13 @@
     background: var(--color-accent-hover);
   }
 
+  /* The state layer alone: the glyph does not move under the finger (owner, 2026-10-21). */
   .cover-play:active {
-    scale: var(--scale-press);
+    background: color-mix(
+      in oklch,
+      var(--color-accent-hover),
+      var(--color-on-accent) var(--state-press)
+    );
   }
 }
 
