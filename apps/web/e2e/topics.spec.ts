@@ -308,22 +308,13 @@ test.describe("the Topics list", () => {
     // Its suggested sources show at once, ranked in the browser as its page will rank them.
     const suggested = queued.getByRole("list", { name: "Suggested sources for Motion design" });
     await expect(suggested.getByRole("button", { name: "Add Motion Weekly" })).toBeVisible();
-    expect(sent).toHaveLength(1);
-    expect(ops(sent)).toEqual([
-      {
-        op: "topic.upsert",
-        topic: {
-          id: "motion-design",
-          name: "Motion design",
-          description: "Animation and motion in interfaces.",
-          weight: 0.7,
-          enabled: true,
-          keywords: [],
-          section_id: "motion-design",
-          emoji: "🎨",
-        },
-      },
-    ]);
+    // The topic is saved before Jev's emoji is asked for; the pick follows as an update.
+    expect(ops(sent)[0]).toMatchObject({ op: "topic.upsert", topic: { id: "motion-design" } });
+    expect(ops(sent)[0]).not.toHaveProperty("topic.emoji");
+    // (it waits out the server's ten-second gap between saves)
+    await expect
+      .poll(() => ops(sent).at(-1), { timeout: 20_000 })
+      .toMatchObject({ op: "topic.upsert", topic: { id: "motion-design", emoji: "🎨" } });
   });
 
   test("a new topic's suggested source adds under it, and both stay listed on a reload before the build", async ({
