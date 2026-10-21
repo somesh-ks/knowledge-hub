@@ -135,13 +135,14 @@ test.describe("layout at real window sizes", () => {
       // Not 1: a minimal scroll lands on a whole pixel while the row sits on a fraction of one, so
       // a quarter of a pixel of a fully reachable row can fall outside the clip.
       await expect(last).toBeInViewport({ ratio: 0.99 });
-      // And it stays there: the list must not shift when the story being read changes.
-      const before = await last.boundingBox();
+      // The open story's transcript moves with the story, so rows below it do; the tabs above the list
+      // must hold still when the story being read changes.
+      const tabs = player.dialog.getByRole("tab").first();
+      const before = await tabs.boundingBox();
       const story = page.locator("[data-item-id][data-state='current']");
       const reading = await story.getAttribute("data-item-id");
       await expect(story).not.toHaveAttribute("data-item-id", reading ?? "");
-      const after = await last.boundingBox();
-      // A fraction of a pixel is the scroll settling; a re-wrapped title moved rows by six.
+      const after = await tabs.boundingBox();
       expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
     });
   }
