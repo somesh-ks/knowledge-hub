@@ -2148,6 +2148,8 @@
 /* Said where a view has nothing to show, so a tab is never an empty page. */
 .player-empty {
   padding-block: var(--space-6);
+  /* The Stories rows' own inset, so the words start where theirs do (2026-10-21). */
+  padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-body);
 }

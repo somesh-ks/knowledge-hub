@@ -73,7 +73,7 @@
    looks, and the Add topic form sits among 16px rows. */
 .manage-field > label {
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 

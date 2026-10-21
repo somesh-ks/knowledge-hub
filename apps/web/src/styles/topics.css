@@ -245,11 +245,11 @@
 
 /* Each group of sliders under its heading, as a section of a settings page. */
 .topic-weights > .section-head {
-  padding-block: var(--space-8) 0;
+  padding-block: var(--space-8) var(--space-4);
 }
 
 .topic-weights > .topic-controls {
-  padding-block-start: var(--space-2);
+  padding-block-start: 0;
 }
 
 @media (min-width: 40rem) {
@@ -789,11 +789,18 @@
   padding-block: var(--space-4);
 }
 
-/* The panel's selects are tonal, as every select and chip is: the container's fill, no outline (a
+/* Every field in the panel is tonal, as every select and chip is: the container's fill, no outline (a
    transparent edge keeps the size, and forced colours draw it), a state layer under the pointer. The
-   text fields keep their outline: that is what says they take typing. */
+   text fields were outlined while the selects were filled; one style now (owner, 2026-10-21). A
+   focused or failed text field keeps its accent or danger edge. */
 .topics-panel select.manage-input,
-.topics-panel .multiselect-trigger {
+.topics-panel .multiselect-trigger,
+.topics-panel
+  :is(input, textarea).manage-input:not(
+    :focus-visible,
+    [readonly],
+    [aria-invalid]:not([aria-invalid="false"])
+  ) {
   border-color: transparent;
   border-radius: var(--field-radius);
   background: var(--color-surface-container);
@@ -802,7 +809,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .topics-panel select.manage-input:hover,
-  .topics-panel .multiselect-trigger:hover {
+  .topics-panel .multiselect-trigger:hover,
+  .topics-panel
+    :is(input, textarea).manage-input:not(
+      :focus-visible,
+      [readonly],
+      [aria-invalid]:not([aria-invalid="false"])
+    ):hover {
     border-color: transparent;
     background: color-mix(
       in oklch,

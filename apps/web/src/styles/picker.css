@@ -356,15 +356,12 @@
   position: relative;
 }
 
-/* A voice with no sample, or a list not in yet: the button stays in its place, dimmed, not pressable. */
+/* A voice with no sample, or a list not in yet: the button stays in its place and keeps its colours,
+   only quieter, not pressable. A grey glyph on a disc as dark as the card read as broken in the dark
+   theme (2026-10-21). It shows what a press does next: play, or pause while the sample plays. */
 .podcast-sample:disabled {
-  color: var(--color-on-surface-disabled);
+  opacity: 0.6;
   cursor: default;
-}
-
-/* It shows what a press does next: play, or pause while the sample plays. */
-.podcast-sample:disabled::before {
-  background: var(--color-surface-container);
 }
 
 .podcast-sample[aria-pressed="true"] .sample-play,
