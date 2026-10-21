@@ -178,6 +178,7 @@ async function processEpisode(
   }
 
   deps.log.info(`Synthesizing ${id}`, { characters: requested, segments: missing.length });
+  const ledger = { runId: id, kind: "on_demand" as const, product: deps.model ?? DEFAULT_MODEL };
   let characters = 0;
   let durationMs = 0;
   let firstUrl = "";
@@ -187,7 +188,7 @@ async function processEpisode(
     try {
       narration = await narrateSegment(deps, segment);
     } catch (error) {
-      await recordPartialSpend(deps, error);
+      await recordPartialSpend(deps, error, ledger);
       return failed(id, "synthesis")(error);
     }
     try {
@@ -195,6 +196,7 @@ async function processEpisode(
         root: deps.root,
         now: deps.now(),
         characters: narration.billableCharacters,
+        ledger,
       });
     } catch (error) {
       return failed(id, "write")(error);

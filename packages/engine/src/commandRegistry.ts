@@ -148,6 +148,18 @@ episode Markdown to a path outside the repository. It cannot be combined with --
     load: async () => (await import("./commands/podcast.js")).run,
   },
   {
+    name: "costs",
+    summary:
+      "Total the cost ledger by day, week or month, grouped, with per-run and per-user averages",
+    help: `Usage: dispatch costs [--period day|week|month] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+                      [--by provider|kind|timezone|user|product|scope] [--tz <zone>] [--json]
+
+Reads state/costs-*.json (written by run, publish and podcast) and prices from config/prices.json.
+Days are counted in --tz (default: the schedule's zone). Offline. Narration on Play is read by the
+Settings page from the site's usage store, not here.`,
+    load: async () => (await import("./commands/costs.js")).run,
+  },
+  {
     name: "status",
     summary: "Last runs, next due date, audio, failing sources and budget (offline)",
     help: `Usage: dispatch status [--json]

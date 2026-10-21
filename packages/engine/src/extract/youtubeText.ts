@@ -117,7 +117,13 @@ export async function fetchCaptions(id: string, fetchImpl: typeof fetch): Promis
 /** Gemini reads the public video by id; nothing is downloaded here. Cost is bounded by the caps above. */
 export async function transcribeWithGemini(
   id: string,
-  opts: { apiKey: string; model: string; fetchImpl: typeof fetch },
+  opts: {
+    apiKey: string;
+    model: string;
+    fetchImpl: typeof fetch;
+    /** The token counts the response reports, for the cost ledger. */
+    onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void;
+  },
 ): Promise<string | null> {
   const response = await opts.fetchImpl(
     `${GEMINI_BASE}${encodeURIComponent(opts.model)}:generateContent`,
@@ -147,7 +153,12 @@ export async function transcribeWithGemini(
   if (!response.ok) throw new Error(`Gemini answered HTTP ${response.status}`);
   const json = (await response.json()) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
   };
+  opts.onUsage?.({
+    inputTokens: json.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: json.usageMetadata?.candidatesTokenCount ?? 0,
+  });
   const text = (json.candidates?.[0]?.content?.parts ?? [])
     .map((p) => p.text ?? "")
     .join("")
@@ -174,6 +185,7 @@ export interface VideoTextDeps {
   cachePath: string;
   maxTranscriptions?: number;
   log?: Logger;
+  onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void;
 }
 
 async function readCache(path: string): Promise<Cache> {
@@ -220,6 +232,7 @@ export function createVideoText(
           apiKey: deps.apiKey,
           model: deps.model ?? DEFAULT_TRANSCRIBE_MODEL,
           fetchImpl,
+          onUsage: deps.onUsage,
         });
         if (text && text.length >= MIN_TRANSCRIPT_CHARS) found = { text, method: "transcription" };
       } catch (error) {

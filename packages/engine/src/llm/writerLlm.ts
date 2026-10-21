@@ -1,7 +1,7 @@
 import { type Env, requireKey, resolveWriterModels } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { loadWriterChoice } from "../writer/store.js";
-import { createAnthropicLlm } from "./anthropicClient.js";
+import { type AnthropicLlmOptions, createAnthropicLlm } from "./anthropicClient.js";
 import { withModelChain } from "./failoverClient.js";
 import { type ChatApi, createNebiusLlm } from "./nebiusClient.js";
 import type { RetryOptions } from "./retry.js";
@@ -16,6 +16,8 @@ export interface WriterLlmOptions {
   log: Logger;
   /** Counts each Anthropic request, retries included. */
   onAnthropicRequest?: () => void;
+  /** The token counts of each answered Anthropic request. */
+  onAnthropicUsage?: AnthropicLlmOptions["onUsage"];
   /** Replaces the global fetch for Anthropic calls; tests only. */
   anthropicFetch?: typeof fetch;
   /** Overrides the Nebius retry policy (its backoff waits); tests only. */
@@ -54,6 +56,7 @@ export function createWriterLlm(options: WriterLlmOptions): LlmClient {
         log,
         fetch: options.anthropicFetch,
         onRequest: options.onAnthropicRequest,
+        onUsage: options.onAnthropicUsage,
       }),
     );
   }

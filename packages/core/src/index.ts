@@ -1,6 +1,7 @@
 export * from "./audio.js";
 export * from "./categories.js";
 export * from "./configOps.js";
+export * from "./costs.js";
 export * from "./digest.js";
 export * from "./digestFile.js";
 export * from "./env.js";

@@ -14,8 +14,8 @@ import {
 } from "./podcast-fixtures.js";
 
 describe("the podcast allowlist", () => {
-  it("allows Podcasts/ and nothing else", () => {
-    expect(ALLOWLISTS.podcast).toEqual(["Podcasts/"]);
+  it("allows Podcasts/ and the cost ledger and nothing else", () => {
+    expect(ALLOWLISTS.podcast).toEqual(["Podcasts/", "state/costs-*.json"]);
     expect(isPathAllowed("Podcasts/2026/10/ep-20261008-0913.md", ALLOWLISTS.podcast)).toBe(true);
     for (const path of [
       "Digests/2026/10/2026-10-08.md",

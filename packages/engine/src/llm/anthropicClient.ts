@@ -52,6 +52,8 @@ export interface AnthropicChatApiOptions {
   fetch?: typeof fetch;
   /** Counts each request, retries included. */
   onRequest?: () => void;
+  /** The token counts of each answered request, for the cost ledger. */
+  onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
 }
 
 /**
@@ -113,6 +115,11 @@ export function createAnthropicChatApi(options: AnthropicChatApiOptions): ChatAp
         .join("");
       const input = json.usage?.input_tokens;
       const output = json.usage?.output_tokens;
+      options.onUsage?.({
+        model: String(body.model ?? "unknown"),
+        inputTokens: input ?? 0,
+        outputTokens: output ?? 0,
+      });
       return {
         choices: [{ message: { content: text } }],
         usage:
@@ -135,6 +142,7 @@ export interface AnthropicLlmOptions {
   log?: Logger;
   fetch?: typeof fetch;
   onRequest?: () => void;
+  onUsage?: AnthropicChatApiOptions["onUsage"];
 }
 
 /** LlmClient on the Anthropic Messages API, with the Nebius client's retries and validation. */
@@ -143,6 +151,7 @@ export function createAnthropicLlm(options: AnthropicLlmOptions): LlmClient {
     apiKey: requireKey(options.env, "ANTHROPIC_API_KEY"),
     fetch: options.fetch,
     onRequest: options.onRequest,
+    onUsage: options.onUsage,
   });
   return createNebiusLlm({
     api,

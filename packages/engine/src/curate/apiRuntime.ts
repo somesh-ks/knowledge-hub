@@ -5,7 +5,11 @@ import { type CommandContext, secretsFromEnv } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { extractFullText } from "../extract/extractText.js";
 import { createFirecrawlScrape } from "../extract/firecrawlScrape.js";
-import { createVideoText, withVideoText } from "../extract/youtubeText.js";
+import {
+  createVideoText,
+  DEFAULT_TRANSCRIBE_MODEL,
+  withVideoText,
+} from "../extract/youtubeText.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import { CombinedJudge } from "../judge/combinedJudge.js";
 import { FallbackJudge } from "../judge/fallbackJudge.js";
@@ -96,6 +100,12 @@ export function createApiRuntime(
     budget,
     log,
     onAnthropicRequest: spend ? () => spend.meter.add("anthropic") : undefined,
+    onAnthropicUsage: spend
+      ? (usage) => {
+          spend.meter.addUnits("anthropic", usage.model, "input_tokens", usage.inputTokens);
+          spend.meter.addUnits("anthropic", usage.model, "output_tokens", usage.outputTokens);
+        }
+      : undefined,
   });
 
   const nebiusJudge = new NebiusJudge({ llm, log, onFailure, secrets });
@@ -148,6 +158,14 @@ export function createApiRuntime(
         model: env.GEMINI_TRANSCRIBE_MODEL,
         cachePath: join(ctx.root, "state", "video-text.json"),
         log,
+        onUsage: spend
+          ? (usage) => {
+              const model = env.GEMINI_TRANSCRIBE_MODEL ?? DEFAULT_TRANSCRIBE_MODEL;
+              spend.meter.add("gemini");
+              spend.meter.addUnits("gemini", model, "input_tokens", usage.inputTokens);
+              spend.meter.addUnits("gemini", model, "output_tokens", usage.outputTokens);
+            }
+          : undefined,
       }),
     ),
     judgeFailures,
