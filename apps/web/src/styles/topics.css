@@ -184,7 +184,9 @@
   background: var(--color-surface);
 }
 
-.topic-panel .topic-sources-block .topic-suggested {
+/* Suggested sources follow the sources block inside the card, so the card's divider replaces the
+   page's 32px of air (`.topic .topic-suggested`); `.topic` keeps this above that rule. */
+.topic .topic-panel .topic-suggested {
   margin-block-start: var(--space-4);
   padding-block-start: var(--space-2);
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
@@ -1313,7 +1315,7 @@
     )
     100% 0 / 250% 100% no-repeat,
     color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
-  animation: source-shimmer calc(var(--duration-progress) * 5) linear infinite;
+  animation: source-shimmer calc(var(--duration-progress) * 5) var(--ease-linear) infinite;
 }
 
 @keyframes source-shimmer {

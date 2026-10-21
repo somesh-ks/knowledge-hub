@@ -1,7 +1,6 @@
 ---
 import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { CHANGELOG, releaseDay } from "../../lib/changelog";
 import "../../styles/settings.css";
 
 const title = "About";
@@ -9,7 +8,6 @@ const title = "About";
 
 <BaseLayout title={title} view="settings" skipLabel="Skip to the about page">
   <main id="main" tabindex="-1">
-    {/* Static: the versions are lib/changelog.ts, newest first. */}
     <div class="settings-view" data-settings>
       <SettingsHead title={title} />
       <section>
@@ -23,23 +21,6 @@ const title = "About";
             Created to help people cut through the noise and get high value news: it picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
           </p>
         </div>
-      </section>
-      <section>
-        <h2 class="section-head">Change log</h2>
-        <p class="settings-note">What changed in Singularity, version by version.</p>
-      <ol class="changelog" role="list">
-        {
-          CHANGELOG.map((release) => (
-            <li class="changelog-entry">
-              <div class="changelog-head">
-                <h2 class="changelog-version">Version {release.version}</h2>
-                <time class="settings-hint" datetime={release.date}>{releaseDay(release.date)}</time>
-              </div>
-              <p class="settings-about">{release.description}</p>
-            </li>
-          ))
-        }
-      </ol>
       </section>
     </div>
   </main>

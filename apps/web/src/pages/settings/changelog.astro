@@ -1,0 +1,31 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { CHANGELOG, releaseDay } from "../../lib/changelog";
+import "../../styles/settings.css";
+
+const title = "Change log";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the change log">
+  <main id="main" tabindex="-1">
+    {/* Static: the versions are lib/changelog.ts, newest first. */}
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} />
+      <p class="settings-note">What changed in Singularity, version by version.</p>
+      <ol class="changelog" role="list">
+        {
+          CHANGELOG.map((release) => (
+            <li class="changelog-entry">
+              <div class="changelog-head">
+                <h2 class="changelog-version">Version {release.version}</h2>
+                <time class="settings-hint" datetime={release.date}>{releaseDay(release.date)}</time>
+              </div>
+              <p class="settings-about">{release.description}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </main>
+</BaseLayout>

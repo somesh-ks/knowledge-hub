@@ -671,7 +671,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   background: var(--color-accent);
   transform: scaleX(var(--run-to, 0));
   transform-origin: left center;
-  transition: transform var(--run-span, var(--duration-state)) linear;
+  transition: transform var(--run-span, var(--duration-state)) var(--ease-linear);
 }
 
 .run-card:dir(rtl) .run-fill {
