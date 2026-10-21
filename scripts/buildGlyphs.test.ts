@@ -1,4 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildPageRegistry,
@@ -22,7 +24,7 @@ function withGlyph(name: string, glyph: Partial<GlyphDocument["glyphs"][string]>
   return {
     ...doc,
     glyphs: {
-      [name]: { symbol: "x", targets: ["page"], d: "M0 0h24Z", ...glyph },
+      [name]: { phosphor: "x", weight: "regular", targets: ["page"], d: "M0 0h24Z", ...glyph },
     },
   };
 }
@@ -42,9 +44,9 @@ describe("glyph source", () => {
     for (const name of ["today", "library", "settings"]) {
       const outline = doc.glyphs[name];
       const filled = doc.glyphs[`${name}Fill`];
-      expect(outline?.fill ?? false, name).toBe(false);
-      expect(Boolean(filled?.fill || filled?.drawn), `${name}Fill`).toBe(true);
-      expect(filled?.symbol).toBe(outline?.symbol);
+      expect(outline?.weight, name).toBe("regular");
+      expect(filled?.weight, `${name}Fill`).toBe("fill");
+      expect(filled?.phosphor).toBe(outline?.phosphor);
       expect(filled?.d).not.toBe(outline?.d);
     }
   });
@@ -55,8 +57,8 @@ describe("glyph source", () => {
 
   it("names what is wrong with a bad glyph", () => {
     expect(validateGlyphs(withGlyph("Bad-Name", {}))).toEqual(["Bad-Name: name is not camelCase"]);
-    expect(validateGlyphs(withGlyph("ok", { symbol: "Play Arrow" }))).toEqual([
-      'ok: symbol "Play Arrow"',
+    expect(validateGlyphs(withGlyph("ok", { phosphor: "Play Arrow" }))).toEqual([
+      "ok: no Phosphor name",
     ]);
     expect(validateGlyphs(withGlyph("ok", { targets: [] }))).toEqual(["ok: no target"]);
     expect(validateGlyphs(withGlyph("ok", { d: "" }))).toEqual([
@@ -77,19 +79,26 @@ describe("pathFromSvg", () => {
   });
 
   it("finds the regular, the fill and the bold weight inside the package", () => {
-    expect(symbolFile({ symbol: "caret-down" })).toBe("assets/regular/caret-down.svg");
-    expect(symbolFile({ symbol: "play", fill: true })).toBe("assets/fill/play-fill.svg");
-    expect(symbolFile({ symbol: "plus", bold: true })).toBe("assets/bold/plus-bold.svg");
+    expect(symbolFile({ phosphor: "caret-down", weight: "regular" })).toBe(
+      "assets/regular/caret-down.svg",
+    );
+    expect(symbolFile({ phosphor: "play", weight: "fill" })).toBe("assets/fill/play-fill.svg");
+    expect(symbolFile({ phosphor: "plus", weight: "bold" })).toBe("assets/bold/plus-bold.svg");
   });
 
-  it("keeps a drawn glyph's reason, and refuses one without a reason or with a Phosphor weight", () => {
-    expect(
-      Object.values(doc.glyphs).filter((glyph) => glyph.drawn),
-      "owner 2026-10-21: only real Phosphor paths",
-    ).toEqual([]);
-    expect(validateGlyphs(withGlyph("dots", { drawn: "why" }))).toEqual([]);
-    expect(validateGlyphs(withGlyph("dots", { drawn: " " }))).not.toEqual([]);
-    expect(validateGlyphs(withGlyph("dots", { drawn: "why", bold: true }))).not.toEqual([]);
+  it("a hand-drawn icon drifts from the library: every path is the Phosphor package's SVG for its name and weight", () => {
+    const root = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../node_modules/@phosphor-icons/core",
+    );
+    const drifted = Object.entries(doc.glyphs)
+      .filter(
+        ([, glyph]) =>
+          pathFromSvg(readFileSync(resolve(root, symbolFile(glyph)), "utf8")) !== glyph.d,
+      )
+      .map(([name]) => name);
+    expect(drifted, "owner 2026-10-21: only real Phosphor paths").toEqual([]);
+    expect(validateGlyphs(withGlyph("x", { phosphor: "" }))).not.toEqual([]);
   });
 
   it("refuses a file with no path or with several", () => {
