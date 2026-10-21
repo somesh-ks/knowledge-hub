@@ -16,6 +16,12 @@ Parallel workers, each in its own worktree on a branch from `integration`, each 
 - The Add source panel's rows were cramped; fixing them one by one led to the 8pt spacing system (its own decision).
 - Space reopened the three-dots menu, because the menu took focus back when it closed from a tap elsewhere.
 
+Final review of the combined branch, before the PR:
+- A queued item dropped off the queue when its page was merely opened (the page loads it idle); it now leaves only when it plays. A player journey shows it red without the fix.
+- The service worker had put itself in front of every audio read and narrate lookup to serve downloads; it now steps in only for downloaded addresses (held in memory) or offline. The 19 player journeys this broke were the alarm: their page-level mocks stopped seeing requests.
+- The Library used `checkVisibility` (Safari 17.4 and later only); `secrets:push` never sent the second voice; the voice page hid that Weekly keeps its old voice until a shared pair is chosen.
+- Two workers began from main instead of the integration branch (the spacing pass among them); the design checks then listed exactly the stylesheets the stale base had missed. The 8pt pass also made source rows 104px and pushed the two-column player 4px past a 1024x768 window; both fixed.
+
 ## Unverified
 
 - Download and offline Play on a real phone, against the Blob host's CORS.
