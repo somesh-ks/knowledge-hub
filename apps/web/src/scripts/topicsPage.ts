@@ -81,10 +81,7 @@ function mount(root: HTMLElement): void {
     forward(event);
   });
 
-  // Delete asks first (D103): the menu's Delete opens the confirm dialog, and only its Delete
-  // presses the menu item for the editor. Keep topic, the undo, goes straight through.
-  const confirm = root.querySelector<HTMLDialogElement>("[data-topic-confirm]");
-  let deleting: HTMLButtonElement | null = null;
+  // Delete asks first (D103): the editor opens the confirm dialog (confirmTopic, topicsEditor.ts).
   root.addEventListener("click", (event) => {
     const button = (event.target as Element).closest("button");
     // The view's tabs are the page's own (mountSegmentedNav); the editor has nothing to do for them.
@@ -92,22 +89,6 @@ function mount(root: HTMLElement): void {
     if ("showAll" in button.dataset) {
       button.previousElementSibling?.setAttribute("data-all", "");
       button.hidden = true;
-      return;
-    }
-    if (confirm && "confirm" in button.dataset && button.dataset.pressed !== "true") {
-      deleting = button;
-      confirm.showModal();
-      return;
-    }
-    if ("confirmCancel" in button.dataset) {
-      confirm?.close();
-      return;
-    }
-    if ("confirmDelete" in button.dataset) {
-      confirm?.close();
-      const target = deleting;
-      if (target)
-        void load().then((loaded) => loaded.handle({ type: "click", target } as unknown as Event));
       return;
     }
     forward(event);

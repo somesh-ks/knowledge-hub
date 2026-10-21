@@ -587,6 +587,40 @@ export function mountEditor(root: HTMLElement): Editor {
 
   // -------------------------------------------------------------------------------- the events
 
+  const toggle = (button: HTMLButtonElement): void => {
+    const control = button as unknown as Control;
+    const pressed = !held(control);
+    control.dataset.pressed = String(pressed);
+    const label = pressed ? control.dataset.labelUndo : control.dataset.label;
+    if (label) control.setAttribute("aria-label", label);
+    update(control);
+  };
+
+  /** A topic's Delete asks first (D103); Keep topic, the undo, goes straight through. */
+  const confirmTopic = (button: HTMLButtonElement): void => {
+    const dialog = root.querySelector<HTMLDialogElement>("[data-topic-confirm]");
+    if (!dialog) {
+      toggle(button);
+      return;
+    }
+    dialog.returnValue = "";
+    const onClick = (event: Event): void => {
+      const choice = (event.target as Element).closest<HTMLButtonElement>("button");
+      if (choice && "confirmCancel" in choice.dataset) dialog.close("cancel");
+      else if (choice && "confirmDelete" in choice.dataset) dialog.close("delete");
+    };
+    dialog.addEventListener("click", onClick);
+    dialog.addEventListener(
+      "close",
+      () => {
+        dialog.removeEventListener("click", onClick);
+        if (dialog.returnValue === "delete") toggle(button);
+      },
+      { once: true },
+    );
+    dialog.showModal();
+  };
+
   const press = (button: HTMLButtonElement): void => {
     if (
       "addSource" in button.dataset ||
@@ -599,12 +633,8 @@ export function mountEditor(root: HTMLElement): Editor {
       const suggestion = parseSuggestedAdd(button.dataset.suggestedAdd);
       if (suggestion) addSuggested(button, suggestion);
     } else if (button.dataset.op) {
-      const control = button as unknown as Control;
-      const pressed = !held(control);
-      control.dataset.pressed = String(pressed);
-      const label = pressed ? control.dataset.labelUndo : control.dataset.label;
-      if (label) control.setAttribute("aria-label", label);
-      update(control);
+      if ("confirm" in button.dataset && button.dataset.pressed !== "true") confirmTopic(button);
+      else toggle(button);
     }
   };
 
