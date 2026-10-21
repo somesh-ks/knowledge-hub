@@ -162,7 +162,7 @@
   padding-inline-start: var(--space-2);
 }
 
-/* On a phone a sheet has no visible Close (owner, 2026-10-21, D145): it is pulled down or tapped away.
+/* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
    The button stays for a keyboard and a screen reader, as the .sr-only utility. Doubled class so
    it outranks the shared .icon-btn sizing wherever that loads. */
 @media (width < 40rem) {
