@@ -83,7 +83,10 @@ describe("pathFromSvg", () => {
   });
 
   it("keeps a drawn glyph's reason, and refuses one without a reason or with a Phosphor weight", () => {
-    expect(doc.glyphs.moreVert?.drawn).toMatch(/\S/);
+    expect(
+      Object.values(doc.glyphs).filter((glyph) => glyph.drawn),
+      "owner 2026-10-21: only real Phosphor paths",
+    ).toEqual([]);
     expect(validateGlyphs(withGlyph("dots", { drawn: "why" }))).toEqual([]);
     expect(validateGlyphs(withGlyph("dots", { drawn: " " }))).not.toEqual([]);
     expect(validateGlyphs(withGlyph("dots", { drawn: "why", bold: true }))).not.toEqual([]);
