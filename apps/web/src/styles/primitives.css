@@ -1076,7 +1076,11 @@
   color: var(--color-on-accent-container);
 }
 
-.card-group-accent .settings-hint {
+.card-group-accent :is(.settings-hint, .btn) {
   color: inherit;
-  opacity: 0.8;
+}
+
+/* The muted ink fails 4.5 to 1 on the container tone; a quiet value in a card takes the full ink. */
+.card-group .settings-row[data-models] .value-select > select.manage-input {
+  color: var(--color-on-surface);
 }
