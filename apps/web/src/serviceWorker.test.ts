@@ -251,25 +251,14 @@ describe("service worker: caching strategies", () => {
     expect(worker.fetched).toEqual([`${ORIGIN}/_astro/app.abc.css`]);
   });
 
-  it("serves a digest page stale while it revalidates", async () => {
+  // A briefing's saved page names the old deploy's stylesheets: answered first, it showed the old layout.
+  it.each(["/", "/d/2026-10-07"])("goes to the network first for a load of %s", async (path) => {
     let version = 1;
     const worker = load(() => new Response(`page v${version}`));
-    const first = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await first.response?.text()).toBe("page v1");
+    await worker.dispatchFetch(request(path, { mode: "navigate" }));
     version = 2;
-    const second = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await second.response?.text()).toBe("page v1");
-    const third = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await third.response?.text()).toBe("page v2");
-  });
-
-  it("goes to the network first for the home page", async () => {
-    let version = 1;
-    const worker = load(() => new Response(`home v${version}`));
-    await worker.dispatchFetch(request("/", { mode: "navigate" }));
-    version = 2;
-    const next = await worker.dispatchFetch(request("/", { mode: "navigate" }));
-    expect(await next.response?.text()).toBe("home v2");
+    const next = await worker.dispatchFetch(request(path, { mode: "navigate" }));
+    expect(await next.response?.text()).toBe("page v2");
   });
 
   // A preload the worker ignores is a second request for the same page and a console warning.

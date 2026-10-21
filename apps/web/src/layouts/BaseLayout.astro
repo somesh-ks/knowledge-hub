@@ -10,6 +10,7 @@ import PlayFab, { type PageAudio } from "../components/PlayFab.astro";
 import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
+import { BUILD_ID } from "../lib/buildId";
 import { fabFor } from "../lib/fab";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
@@ -127,6 +128,7 @@ const back =
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
     <meta name="description" content={description} />
+    <meta name="dispatch-build" content={BUILD_ID} />
     <title>{pageTitle}</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

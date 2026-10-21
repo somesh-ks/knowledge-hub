@@ -148,7 +148,7 @@ test.describe("service worker", () => {
     });
   });
 
-  test("serves a saved digest page while it checks for a newer one", async ({ page, context }) => {
+  test("serves a saved digest page offline", async ({ page, context }) => {
     await page.goto("/d/2026-10-05");
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.reload();
@@ -157,6 +157,46 @@ test.describe("service worker", () => {
     await page.goto("/d/2026-10-05");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Monday 5 October");
     await context.setOffline(false);
+  });
+
+  // 2026-10-21: the owner's phone kept a saved briefing's old HTML, and the old stylesheets it names,
+  // after a deploy had changed both. A deploy must show on the next visit, and on an installed
+  // app's return to the front without one.
+  test("shows a deploy on the next visit to a saved briefing and when the app comes back", async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/d/2026-10-05");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    // The deploy: every page names a new build, and so does /build.json (e2e/staticServer.mjs).
+    const deploy = "next-deploy";
+    const ship = () =>
+      context.addCookies([{ name: "test-build", value: deploy, url: new URL("/", page.url()).href }]);
+    const build = () =>
+      page.evaluate(
+        () => document.querySelector('meta[name="dispatch-build"]')?.getAttribute("content") ?? "",
+      );
+    await ship();
+    await page.goto("/");
+    await page.goto("/d/2026-10-05");
+    expect(await build()).toBe(deploy);
+    // An installed app comes back to the front with the page it left, a build behind the site.
+    await context.clearCookies();
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    expect(await build()).not.toBe(deploy);
+    await ship();
+    // The return to the front, told again until the page listens (it does once the worker registers).
+    await expect
+      .poll(async () => {
+        await page
+          .evaluate(() => document.dispatchEvent(new Event("visibilitychange")))
+          .catch(() => {});
+        return build().catch(() => "");
+      })
+      .toBe(deploy);
   });
 
   test("serves the manifest with its icons", async ({ page, request }) => {

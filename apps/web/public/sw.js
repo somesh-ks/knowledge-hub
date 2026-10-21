@@ -3,10 +3,11 @@
  * available offline and nothing else.
  *
  *   - Precaches the shell (the home page and /offline) with their stylesheet, fonts and scripts.
- *   - Digest pages: stale-while-revalidate. A digest never changes once published, so the cached copy
- *     is right and the refresh in the background only matters for a correction.
- *   - Home, the library and /latest.json change whenever a briefing lands, so a page load goes to the
- *     network first and falls back to the cache after a short wait. A stale "today" would be a wrong answer.
+ *   - Every page load, a briefing's included, goes to the network first and falls back to the cache
+ *     after a short wait. Home, the library and /latest.json change whenever a briefing lands, and a
+ *     briefing's words never change but its page does with every deploy: a saved copy names the old
+ *     build's stylesheets and scripts, which the shell cache still holds, so a briefing answered from
+ *     the cache showed the old layout after a deploy (2026-10-21, the Stories tab on the owner's phone).
  *   - A move inside the app (the client router's fetch, or a prefetch) is answered at once from a copy
  *     saved in the last few minutes and checked against the network behind it. If the page changed, the
  *     page on screen is told. When /latest.json changes, every saved page counts as old again.
@@ -21,7 +22,7 @@
  *     (healed below). A network failure alone never deletes a saved page.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v12";
+const VERSION = "v13";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -534,8 +535,6 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.startsWith("/_astro/")) {
     event.respondWith(healed(event, cacheFirst(event, SHELL_CACHE)));
-  } else if (url.pathname.startsWith("/d/")) {
-    event.respondWith(healed(event, staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES)));
   } else if (url.pathname === LATEST_PATH) {
     // One entry under the bare path, whatever the query: a copy per query string would never match
     // the one before it (so the check for a new briefing never fired) and would push real pages out.

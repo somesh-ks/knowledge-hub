@@ -133,6 +133,21 @@ export function startServer({ root, port }) {
       return;
     }
     const file = resolveFile(pathname);
+    // A deploy, for one browser context only: its `test-build` cookie renames the build in every
+    // page and in /build.json, the way a new deploy would. Playwright's routes never see a request
+    // the service worker makes, and the test is about what the worker serves.
+    const deploy = /(?:^|;\s*)test-build=([\w-]+)/.exec(request.headers.cookie ?? "")?.[1];
+    if (file && deploy && /\.(html|json)$/.test(file) && request.method === "GET") {
+      const body = readFileSync(file, "utf8")
+        .replace(/(<meta name="dispatch-build" content=")[^"]*"/, `$1${deploy}"`)
+        .replace(/^\{"build":"[^"]*"\}/, `{"build":"${deploy}"}`);
+      response.writeHead(200, {
+        "Content-Type": TYPES[extname(file)] ?? "application/octet-stream",
+        ...headersFor(pathname),
+      });
+      response.end(body);
+      return;
+    }
     if (file) {
       send(request, response, file, 200);
       return;
