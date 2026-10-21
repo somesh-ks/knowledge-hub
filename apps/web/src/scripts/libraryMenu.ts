@@ -30,7 +30,8 @@ function setDownloaded(root: HTMLElement, on: boolean): void {
     if (mark) sub.prepend(mark.content.cloneNode(true));
   }
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
-  if (item) item.textContent = on ? "Remove download" : "Download";
+  const label = item?.querySelector("[data-menu-label]");
+  if (label) label.textContent = on ? "Remove download" : "Download";
 }
 
 /** Marks the rows whose files are saved on this device. */
@@ -123,6 +124,12 @@ export function installLibraryMenu(): void {
     },
     true,
   );
+
+  // The sheet's Close (the header of a phone's menu).
+  document.addEventListener("click", (event) => {
+    const close = (event.target as Element).closest?.("[data-menu-close]");
+    close?.closest<HTMLElement>("[popover]")?.hidePopover();
+  });
 
   document.addEventListener("click", (event) => {
     const item = (event.target as Element).closest?.<HTMLElement>(`${ROOT} [data-menu]`);

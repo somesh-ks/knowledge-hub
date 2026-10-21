@@ -44,6 +44,36 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
+test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const card = row(page, AUDIO_ID);
+  const more = card.locator("[data-hero-more]");
+  const boxes = async () =>
+    Promise.all(
+      [card, card.locator(".card-title"), more.locator("svg")].map((n) => n.boundingBox()),
+    );
+  const rest = await boxes();
+  const dots = (await more.boundingBox()) as {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  await page.mouse.move(dots.x + dots.width / 2, dots.y + dots.height / 2);
+  await page.mouse.down();
+  // Past the press's transition: a scale would have settled by now.
+  await page.waitForTimeout(300);
+  expect(await boxes()).toEqual(rest);
+  await page.mouse.up();
+  // The dots sit at the card's top right.
+  const cardBox = rest[0] as { x: number; y: number; width: number };
+  expect(dots.y - cardBox.y).toBeLessThan(16);
+  expect(cardBox.x + cardBox.width - (dots.x + dots.width)).toBeLessThan(16);
+});
+
 test.describe("a briefing download", () => {
   // Offline, a cover the download did not save fails to load; the player's art is not under test.
   test.use({ allowNetworkErrors: true });

@@ -1,6 +1,7 @@
 ---
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
+import SheetHeader from "./SheetHeader.astro";
 
 interface Props {
   /** The digest id ("2026-10-07") or episode id ("ep-20261007-1930"). */
@@ -60,18 +61,20 @@ const menuId = `card-menu-${id}`;
     class="hero-menu-list card-menu-list"
     id={menuId}
     popover
-    role="menu"
-    aria-label={`More actions for ${title}`}
   >
+    {/* A phone shows this popover as a bottom sheet with this header (library.css); from 40rem the
+         header is hidden and it is the popover menu under the button. */}
+    <SheetHeader title={title} titleId={`${menuId}-title`} close="data-menu-close" />
+    <div class="card-menu-items" role="menu" aria-label={`More actions for ${title}`}>
     {
       audio && (
         <button class="hero-menu-item" type="button" role="menuitem" data-menu="download">
-          Download
+          <Icon name="download" /><span data-menu-label>Download</span>
         </button>
       )
     }
     <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue">
-      Add to queue
+      <Icon name="queueAdd" />Add to queue
     </button>
     {
       kind === "episode" ? (
@@ -81,7 +84,7 @@ const menuId = `card-menu-${id}`;
           role="menuitem"
           data-episode-action="regenerate"
         >
-          Regenerate
+          <Icon name="refresh" />Regenerate
         </button>
       ) : (
         <button
@@ -91,12 +94,12 @@ const menuId = `card-menu-${id}`;
           data-open="generate"
           aria-haspopup="dialog"
         >
-          Regenerate
+          <Icon name="refresh" />Regenerate
         </button>
       )
     }
     <button class="hero-menu-item" type="button" role="menuitem" data-menu="share">
-      Share
+      <Icon name="shareArrow" />Share
     </button>
     {
       deletable && (
@@ -106,9 +109,10 @@ const menuId = `card-menu-${id}`;
           role="menuitem"
           data-episode-action="delete"
         >
-          Delete
+          <Icon name="trash" />Delete
         </button>
       )
     }
+    </div>
   </div>
 </div>

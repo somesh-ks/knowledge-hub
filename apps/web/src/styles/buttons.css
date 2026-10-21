@@ -72,14 +72,14 @@
    moves (owner, 2026-10-21; .press in foundations is layered, so this unlayered rule wins). Label
    buttons and nav tabs keep their own press. */
 :is(
-    .icon-btn,
-    .view-btn,
-    .search-clear,
-    .source-plus-btn,
-    .toast-dismiss,
-    .dock-btn,
-    .transport-btn
-  ):active {
+  .icon-btn,
+  .view-btn,
+  .search-clear,
+  .source-plus-btn,
+  .toast-dismiss,
+  .dock-btn,
+  .transport-btn
+):active {
   transform: none;
 }
 
