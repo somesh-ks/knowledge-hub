@@ -25,7 +25,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
 
   function onHandlePointerDown(event: PointerEvent<HTMLElement>, index: number): void {
     if (event.button !== 0 || !event.isPrimary) return;
-    // The handle's own gesture: never the player page's dismissal or the queue sheet's pull.
+    // The handle's own gesture: never the player page's dismissal.
     event.stopPropagation();
     event.preventDefault();
     const items = [...(listRef.current?.querySelectorAll<HTMLElement>(".player-queue-item") ?? [])];

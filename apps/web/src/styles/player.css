@@ -2050,6 +2050,22 @@
   line-height: var(--font-leading-label);
 }
 
+/* Inside the Stories list the story's own row, in the accent container above, already names the story
+   and marks it as the one being read: its turns carry no second fill and no second headline. The
+   word being said keeps its fill, and the turns still to come stay muted. */
+.story-list .script-turn[aria-current="true"] {
+  background: transparent;
+}
+
+.story-list .script-turn[aria-current="true"] :is(.script-text, .script-speaker),
+.story-list .script-turn[aria-current="true"][data-tone] .script-speaker {
+  color: var(--color-on-surface);
+}
+
+.story-list .script-story {
+  display: none;
+}
+
 .script-text {
   color: var(--color-on-surface);
   font-size: var(--font-size-reading);
