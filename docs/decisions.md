@@ -144,6 +144,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
+| D133 | The second owner round: Up next is a player tab beside Stories (transcript only under the playing story; full-bleed tabs on a phone, the navigation control on a desktop); Settings in tonal card groups with About and a change log; one search field and one chip style everywhere, held by style rules; a flat navigation control; topic emoji from Jev; Other hidden; no Daily type; a Library bottom sheet on phones; plain outline icons | active; amends D126, D127, D129, D132 |
+| D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
+| D135 | No batch API for the scheduled runs | active |
 
 ---
 
@@ -1500,4 +1503,24 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: `.segmented-choice` (a radiogroup: one outlined pill split by hairlines, the chosen segment in the accent container with a check) is for picking a value: the New episode form's Length, Look back, Format and Tone. `.segmented-nav` (a tablist: a tonal track with a raised pill that slides under the active label, no check, arrow keys) is for switching what shows below: a topic page's Sources and Preferences, and the add panel's Topic and Source. A style rule keeps radiogroup markup on the first and tablist markup on the second. `SheetHeader.astro` gives New episode, Add or Edit source and Regenerate one header: the title at the start and Close at the end, as the bottom sheets already were; focus order follows.
 - Why: one look for two jobs made a view switch read as a setting, and three copies of a sheet header had drifted from the bottom sheets' layout.
 - Check: the style rule was shown red first; the topics, create and episode actions specs cover both controls and the headers.
+
+## D133: the second owner round of 2026-10-21
+
+- Date: 2026-10-21 (the owner: "the up next logic is a bit shady and flaky", "club stories and transcript to one", "the tab line is full bleed only on mobile, on desktop a segmented selector"; "different sections of the settings can be put in different cards"; "this style should be consistent everywhere, make sure there is an established linter"; "we have a flat design concept, so no shadow"; "each topic can have an icon or an emoji, use Jev to decide"; "drop daily type setting if nothing uses it"; "on mobile I should get a bottom sheet"; "simple outline ones and not have inner details")
+- Decision: the full player has two views, Stories (each story a chapter row; the playing one shows its transcript under it) and Up next (the queue, or the previous briefing), as full-bleed tabs below 64rem and `.segmented-nav` above; the peek strip and pull-up sheet of D126 are gone, and an item's end opens Up next. Settings groups its rows in tonal `.card-group` cards; /settings/about holds the author, the purpose and a change log (`lib/changelog.ts`). Sources and topic pages use the Library's `.search-field` and `.filter-chip`; `styles.test.ts` fails a second search or chip style and any shadow that lifts a control. `.segmented-nav` is flat: the active pill is the accent container. Shipped topics have fixed emoji; an added topic asks Jev (`/api/topic-emoji`) with a fallback. Other is hidden from lists and pickers (its one source, Exa discovery, keeps running: the owner chose to hide, not delete). The Daily has no type; a stored top-level `format` is ignored. The Library row menu is a bottom sheet on a phone, with an icon per item. Icons are plain outlines; icon buttons never move on press.
+- Why: the pull-up was hard to hit and fought the page's scroll; settings read as one long list; three search and chip styles had drifted apart with nothing to stop the next one.
+- Check: the queue journey in `firstPlay.spec.ts`, the stillness test in `libraryMenu.spec.ts`, the offline Play journey, and the new style rules were each shown red first.
+
+## D134: no scheduled model check
+
+- Date: 2026-10-21 (the owner: "I don't know what is this Monday model check. It shouldn't be connected to my Claude.ai account. If it is useful to this project, if not, then it can be removed")
+- Decision: the claude.ai scheduled task of D130 is deleted and not replaced. The Settings model select still lists Nebius's live models; `NEBIUS_TOP` is refreshed by hand when a writer change is wanted.
+- Why: a weekly cloud session on the owner's account to re-rank five entries costs more than a list that rarely changes, and it lived outside the repo.
+- Revisit if: a better writer goes unnoticed for a month.
+
+## D135: no batch API for the scheduled runs
+
+- Date: 2026-10-21 (the owner: "using batched requests on the Anthropic API if it'll be useful, but you need to time it well")
+- Decision: not built. The scheduled writer is Anthropic Sonnet (`config/writer.json`), but only the first writing pass is independent; grounding, rewrites and the script wait on it, all inside one job that must be listenable at 07:00. Batching would split the run into submit, wait and resume with a deadline fallback, for about $12 a month at today's volume (estimated, no token logs yet).
+- Revisit if: volume grows about tenfold, the owner accepts an earlier start, or the cost ledger shows the writer as the main spend.
 
