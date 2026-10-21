@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   type Digest,
-  digestRelPath,
   parseDigestFile,
   type Source,
   seedTopicsFile,
@@ -424,7 +423,7 @@ describe("validateDigest", () => {
   it.each(["2026-10-06", "2026-10-07"])(
     "raises no summary minimum against the committed digest %s, written in the older voice",
     (id) => {
-      const text = readFileSync(join(REPO_ROOT, digestRelPath(id)), "utf8");
+      const text = readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`), "utf8");
       const digest = parseDigestFile(text);
       const report = validateDigest(digest, { linter });
       const messages = report.issues.map((i) => i.message).join("\n");
