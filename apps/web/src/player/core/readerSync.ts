@@ -29,6 +29,7 @@
  * Writes go through one animation-frame writer.
  */
 
+import { AUDIO_CACHE } from "../../lib/downloads";
 import type { PlayerDigestData } from "../../types/contracts";
 import { showCardProgress } from "./cardProgress";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
@@ -110,6 +111,25 @@ export function createReaderSync(
   let pendingNarrate: string | null = null;
   /** Which stories were heard: the ones passed by playing on, not by a jump (readerMath.ts). */
   const tracker = createHeardTracker();
+  /** The page's audio file is saved on this device (Library > Download): the worker answers it
+   *  offline, so its chip is not shut. Read from Cache Storage, which the page cannot ask at once. */
+  let savedAudio: string | null = null;
+  let savedChecked: string | null = null;
+  function checkSaved(url: string): void {
+    if (savedChecked === url) return;
+    savedChecked = url;
+    savedAudio = null;
+    if (typeof caches === "undefined") return;
+    caches.match(url, { cacheName: AUDIO_CACHE }).then(
+      (hit) => {
+        if (hit && savedChecked === url) {
+          savedAudio = url;
+          scheduleWrite();
+        }
+      },
+      () => undefined,
+    );
+  }
   /** The story the playhead was in before the last move, for the page to follow from. */
   let followFrom = -1;
 
@@ -228,12 +248,15 @@ export function createReaderSync(
           )
         : // What the device remembers, against the page's estimate (the minutes its card says).
           rememberedChip(rememberedFor(page), Number(chip.dataset.minutes) * 60, noun);
-      // Audio is never cached and narration is made from the network, so offline a chip that would
-      // have to fetch it cannot work. One that holds loaded audio still pauses and resumes.
+      // Narration is made from the network and audio is not cached unless downloaded, so offline a
+      // chip that would have to fetch it cannot work. One that holds loaded audio still pauses and
+      // resumes, and one whose file was downloaded plays from the saved copy.
+      if (audio) checkSaved(audio.url);
+      const saved = audio !== null && savedAudio === audio.url;
       writeChip(
         chip,
         view,
-        !navigator.onLine && view.state !== "current" && view.state !== "preparing",
+        !navigator.onLine && !saved && view.state !== "current" && view.state !== "preparing",
       );
     }
     if (!audio) return;

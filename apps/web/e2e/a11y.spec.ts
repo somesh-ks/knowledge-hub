@@ -50,9 +50,8 @@ test.describe("axe, banners and live states", () => {
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     const banner = page.locator('[data-banner="offline"]');
     await expect(banner).toBeVisible();
-    await expect(banner.locator(".banner-body")).toContainText(
-      "Audio and new episodes need a connection.",
-    );
+    await expect(banner).toContainText("You are offline");
+    await expect(banner.locator(".banner-body")).toHaveCount(0);
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("aria-disabled", "true");
     await expect(page.locator("[data-play-item]").first()).toBeHidden();
     // New episode needs the network: it is disabled, and a press opens no sheet.
