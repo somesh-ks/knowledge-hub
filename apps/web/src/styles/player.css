@@ -1460,7 +1460,8 @@
     contain: size;
   }
 
-  .player-list > :is(.player-script, .story-list) {
+  .player-panel > .story-list {
+    position: relative;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -2125,28 +2126,83 @@
   font-size: var(--font-size-body);
 }
 
-/* Stories and the transcript: always the two tabs of the list, past the top margin the list keeps. */
-.segmented-group.player-views {
+/*
+ * The list's two views, Stories and Up next, are a tablist in .segmented-nav's markup
+ * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
+ * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
+ * the status bar's room as the page scrolls), the tabs share the width, a hairline runs under them
+ * and a bar in the accent slides under the chosen one. Same buttons, same arrow keys; only the
+ * look differs, so nothing here restyles .segmented-nav itself.
+ */
+.segmented-nav.player-tabs {
+  flex: none;
   margin-block-end: var(--space-4);
 }
 
-/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
-   the page and move the switch from under the finger. Only one column: from 64rem the list is a
-   column exactly as tall as the page, and this would push its end under the bar, past its fade. */
+.player-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.player-panel > .story-list {
+  flex: 1 1 auto;
+}
+
 @media (max-width: 63.9375rem) {
-  .player-list:has(.player-views) {
+  /* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
+     the page and move the tabs from under the finger. Only one column: from 64rem the list is a
+     column exactly as tall as the page, and this would push its end under the bar, past its fade. */
+  .player-list {
     min-height: 100cqb;
   }
 
-  /* The switch stays under the status bar's room while the page scrolls, on the page's own colour so
-     the words passing under it do not show. Its gap is padding, so the colour covers it too. */
-  .segmented-group.player-views {
+  /* Stays under the status bar's room while the page scrolls, on the page's own colour so the words
+     passing under it do not show. */
+  .segmented-nav.player-tabs {
+    --tab-bar: calc(var(--stroke-rail) * 1.5);
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
+    flex: none;
+    margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
+      calc(max(var(--player-padding), var(--safe-right)) * -1);
     margin-block-end: 0;
-    padding-block-end: var(--space-4);
+    border-radius: 0;
     background: var(--color-surface);
+    box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  }
+
+  /* The pill becomes the bar under the chosen tab: one column wide, at the foot of the line. */
+  .segmented-nav.player-tabs::before {
+    inset-block: auto 0;
+    inset-inline-start: 0;
+    width: calc(100% / var(--seg-n));
+    height: var(--tab-bar);
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    background: var(--color-accent);
+    box-shadow: none;
+    transform: translateX(calc(var(--seg-i) * 100%));
+  }
+
+  .player-tabs .segmented-nav-tab {
+    min-height: var(--tabs-height);
+    border-radius: 0;
+  }
+
+  /* The press layer covers the whole tab, in the page's ink. */
+  .player-tabs .segmented-nav-tab::after {
+    inset: 0;
+  }
+
+  .player-tabs .segmented-nav-tab:focus-visible {
+    border-radius: var(--radius-sm);
+  }
+
+  /* The list's own room under the tab line. */
+  .player-panel {
+    padding-block-start: var(--space-4);
   }
 }
 
@@ -2292,7 +2348,7 @@
   }
 
   /* Over the list, not in it: inside the scroller the fade would take the button with it. */
-  .player-script > .script-back {
+  .story-list > .script-back {
     position: absolute;
     inset-block-start: auto;
     inset-block-end: var(--space-4);
@@ -2454,50 +2510,6 @@
       color-mix(in oklch, currentColor var(--state-hover), transparent)
     );
   }
-}
-
-/*
- * The same radios as tabs (Chapters, Transcript): text on the page with a hairline under the row,
- * and a bar under the chosen one that slides between them as the thumb does. No track, no raised
- * segment, no ring around the choice; the chosen label is in full ink and the bar is the accent.
- */
-.segmented.segmented-tabs {
-  --segmented-padding: 0px;
-  border-radius: 0;
-  background: none;
-  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
-}
-
-.segmented-tabs label {
-  min-height: var(--tabs-height);
-  border-radius: 0;
-}
-
-/* The ring is rounded and drawn inside the tab, as the app's other rings are. */
-.segmented-tabs label:has(input:focus-visible) {
-  border-radius: var(--radius-sm);
-  outline-offset: calc(var(--stroke-ring) * -1);
-}
-
-/* As tabs the chosen label is the page's full ink; the bar under it carries the accent. */
-.segmented-tabs label:has(input:checked) {
-  color: var(--color-on-surface);
-}
-
-.segmented-tabs::before {
-  inset-block: auto 0;
-  height: calc(var(--stroke-rail) * 1.5);
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-  background: var(--color-accent);
-  box-shadow: none;
-}
-
-/* A tab's state layers cover the whole tab, in the page's ink. */
-.segmented-tabs label:active {
-  background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
-    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
-  );
 }
 
 /* ------------------------------------------------------------------ source, stories, notice, up next */
@@ -2701,10 +2713,6 @@
   background: color-mix(in oklch, var(--tone) var(--state-press), transparent);
 }
 
-.player-upnext {
-  margin-block-end: var(--space-6);
-}
-
 .player-upnext-row {
   display: flex;
   align-items: center;
@@ -2765,84 +2773,8 @@
 
 /* ------------------------------------------------------------------ the queue */
 
-/* What plays next, held at the foot of the open player while something is queued. A pull up on it
-   raises the queue; it takes no native pan. */
-.player-queue-peek {
-  position: sticky;
-  inset-block-end: 0;
-  z-index: var(--z-raised);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  width: 100%;
-  min-height: var(--size-touch-comfortable);
-  margin-block-start: var(--space-4);
-  padding-block: var(--space-2);
-  padding-inline: var(--space-4);
-  border-radius: var(--row-radius);
-  background: var(--color-surface-container);
-  text-align: start;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  transition: background-color var(--duration-press-in) var(--ease-out);
-}
-
-.player-queue-peek-title {
-  overflow: hidden;
-  font-weight: var(--font-weight-regular);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The one chevron there is, turned to point the way the queue comes from. */
-.player-queue-peek-glyph {
-  flex: none;
-  rotate: 180deg;
-}
-
-/* The queue sheet, over the whole open player. --queue-p (0 down, 1 up) is written by QueueSheet.tsx
-   from the player's spring; it moves only by transform. */
-.player-queue-sheet {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-raised);
-  display: flex;
-  flex-direction: column;
-  padding-block: var(--safe-top) max(var(--space-4), var(--safe-bottom));
-  padding-inline: max(var(--player-padding), var(--safe-left))
-    max(var(--player-padding), var(--safe-right));
-  background: var(--color-surface);
-  color: var(--color-on-surface);
-  pointer-events: auto;
-  transform: translate3d(0, calc((1 - var(--queue-p, 0)) * 100%), 0);
-  visibility: hidden;
-}
-
-.player[data-queue] .player-queue-sheet {
-  visibility: visible;
-}
-
-/* Under the rising sheet the cover shrinks out, as YouTube Music's does. */
-.player[data-queue] .player-cover-slot {
-  opacity: calc(1 - var(--queue-p, 0));
-  transform: scale(calc(1 - 0.25 * var(--queue-p, 0)));
-}
-
-/* The playing recording, docked small at the top. A pull down on it lowers the sheet. */
-.player-queue-head {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-2);
-  padding-block: var(--space-4);
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.player-queue-dock,
+/* The queue (the Up next view): a row is the item's thumbnail and title, with a remove button and a
+   drag handle after it. */
 .player-queue-row {
   display: flex;
   flex: 1;
@@ -2857,13 +2789,10 @@
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
-.player-queue-dock .player-upnext-text,
-.player-queue-row .player-upnext-text,
-.player-queue-peek .player-upnext-text {
+.player-queue-row .player-upnext-text {
   min-width: 0;
 }
 
-.player-queue-dock .player-upnext-date,
 .player-queue-row .player-upnext-date {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2879,17 +2808,10 @@
   background: var(--color-surface-sunken);
 }
 
-.player-queue-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
 .player-queue-list {
   display: grid;
   gap: var(--space-2);
-  margin: var(--space-4) 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -2919,9 +2841,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .player-queue-peek:hover,
-  .player-queue-row:hover,
-  .player-queue-dock:hover {
+  .player-queue-row:hover {
     background: color-mix(
       in oklch,
       var(--color-surface-container),
@@ -2930,9 +2850,7 @@
   }
 }
 
-.player-queue-peek:active,
-.player-queue-row:active,
-.player-queue-dock:active {
+.player-queue-row:active {
   background: color-mix(
     in oklch,
     var(--color-surface-container),
