@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleReport, REPORTS_PER_MINUTE } from "./report";
+import { handleReport, readCapped, REPORTS_PER_MINUTE } from "./report";
 
 describe("handleReport", () => {
   // A page stuck in an error loop must not fill the function log, and a token in a page's query
@@ -26,5 +26,20 @@ describe("handleReport", () => {
     now += 60_000;
     handleReport(body, deps, limiter);
     expect(lines).toHaveLength(REPORTS_PER_MINUTE + 1);
+  });
+
+  // A body past the cap must stop being read at the cap, not be buffered whole first.
+  it("stops reading a body at the byte cap", async () => {
+    let pulled = 0;
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new Uint8Array(1_000));
+      },
+    });
+    expect(await readCapped(endless, 4_096)).toBeNull();
+    expect(pulled).toBeLessThan(10);
+    const small = new Response('{"kind":"error"}').body;
+    expect(await readCapped(small, 4_096)).toBe('{"kind":"error"}');
   });
 });

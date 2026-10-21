@@ -7,9 +7,15 @@ import { bundledCostRecords, bundledPrices } from "../../server/costSource";
 import { costBody, narrationRecords, parseCostQuery } from "../../server/costs";
 import { toResponse } from "../../server/http";
 import { parseState, usageKey } from "../../server/narrationState";
+import { newLimiter, takeSlot } from "../../server/rateLimit";
 
 // Runs on demand: the report reads the narrate function's usage documents from Blob.
 export const prerender = false;
+
+// The route is open on purpose (the owner's passphrase is off site-wide, D41) and each answer reads
+// Blob, so an instance answers at most this many a minute; past it the answer is 429.
+const REPORTS_PER_MINUTE = 30;
+const asked = newLimiter();
 
 const OIDC_HEADER = "x-vercel-oidc-token";
 const log = (message: string): void => console.error(`[api/costs] ${message}`);
@@ -35,20 +41,28 @@ async function siteRecords(
       7,
     ),
   );
-  const records: CostRecord[] = [];
-  for (const month of months) {
-    try {
-      const stored = await readFresh(store, usageKey(month));
-      if (stored) records.push(...narrationRecords(parseState(stored.text, month), prices));
-    } catch (error) {
-      log(`${month}: ${error instanceof Error ? error.message : "unreadable"}`);
-      return null;
-    }
+  try {
+    const documents = await Promise.all(
+      [...months].map(async (month) => {
+        const stored = await readFresh(store, usageKey(month));
+        return stored ? narrationRecords(parseState(stored.text, month), prices) : [];
+      }),
+    );
+    return documents.flat();
+  } catch (error) {
+    log(`usage: ${error instanceof Error ? error.message : "unreadable"}`);
+    return null;
   }
-  return records;
 }
 
 export const GET: APIRoute = async ({ request, url }) => {
+  if (!takeSlot(asked, REPORTS_PER_MINUTE, Date.now())) {
+    return toResponse({
+      status: 429,
+      body: { error: "rate_limited" },
+      headers: { "Retry-After": "60" },
+    });
+  }
   const query = parseCostQuery(url.searchParams);
   const prices = bundledPrices();
   if (!query || !prices) {

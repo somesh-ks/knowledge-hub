@@ -76,8 +76,10 @@ describe("Alexandria facts for a thin finalist", () => {
     expect(merged?.text).toContain("short teaser");
     expect(merged?.text).toContain("Alexandria facts");
 
-    // Facts never replace text: a story with none stays dropped.
-    expect(await enrichThin({ enrich: async () => "f".repeat(300) }, item, null)).toBeNull();
+    // Facts never replace text: a story with none stays dropped, and is not paid for.
+    const paid = vi.fn(async () => "f".repeat(300));
+    expect(await enrichThin({ enrich: paid }, item, null)).toBeNull();
+    expect(paid).not.toHaveBeenCalled();
   });
 
   it("leaves the story as it was when the call fails or finds nothing", async () => {

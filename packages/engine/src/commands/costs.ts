@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { buildReport, type GroupBy, type Period } from "@dispatch/core";
+import { buildReport, GROUPS, type GroupBy, PERIODS, type Period } from "@dispatch/core";
 import type { CommandRun } from "../context.js";
 import { loadAllCosts } from "../cost/ledger.js";
 import { formatCostReport } from "../cost/report.js";
@@ -7,8 +7,6 @@ import { loadScheduleZone } from "../schedule/store.js";
 
 const USAGE =
   "Usage: dispatch costs [--period day|week|month] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--by provider|kind|timezone|user|product|scope] [--tz <zone>] [--json]";
-const PERIODS = ["day", "week", "month"];
-const GROUPS = ["provider", "kind", "timezone", "user", "product", "scope"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** `dispatch costs`: the cost ledger totalled by period, grouped, with per-run and per-user averages. */
@@ -22,8 +20,8 @@ export const run: CommandRun = async (argv, ctx) => {
   }
   const { period = "day", from, to, by, tz } = values;
   if (
-    !PERIODS.includes(period) ||
-    (by !== undefined && !GROUPS.includes(by)) ||
+    !(PERIODS as readonly string[]).includes(period) ||
+    (by !== undefined && !(GROUPS as readonly string[]).includes(by)) ||
     (from !== undefined && !DATE.test(from)) ||
     (to !== undefined && !DATE.test(to))
   ) {

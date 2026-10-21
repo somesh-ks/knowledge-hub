@@ -2,8 +2,10 @@ import {
   buildReport,
   type CostRecord,
   dateInZone,
+  GROUPS,
   type GroupBy,
   mergeRecords,
+  PERIODS,
   OWNER_USER,
   type Period,
   type PriceTable,
@@ -67,16 +69,6 @@ export interface CostBody {
   unconfirmed: string[];
   report: Report;
 }
-
-export const PERIODS: readonly Period[] = ["day", "week", "month"];
-export const GROUPS: readonly GroupBy[] = [
-  "provider",
-  "kind",
-  "timezone",
-  "user",
-  "product",
-  "scope",
-];
 
 export function parseCostQuery(params: URLSearchParams): CostQuery | null {
   const period = (params.get("period") ?? "day") as Period;

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Logger } from "../context.js";
 import { DeadlineExceededError, errorStatus, LlmOutputError, ModelRefusalError } from "./errors.js";
 import { parseModelJson } from "./parseModelJson.js";
-import type { ModelApi } from "./providers.js";
+import { type ModelApi, THINKING_HEADROOM } from "./providers.js";
 import { type RetryOptions, withRetry } from "./retry.js";
 import { estimateTokens, estimateTokensForChars, type TokenBudget } from "./tokenBudget.js";
 import type { ChatMessage, JsonRequest, JsonResult, LlmClient, LlmUsage } from "./types.js";
@@ -75,9 +75,11 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
       request.deadlineAt ?? Number.POSITIVE_INFINITY,
       now() + RETRY_WINDOW_TIMEOUTS * options.timeoutMs,
     );
+    // The Anthropic request adds the thinking headroom to max_tokens, and that is billed as output.
+    const requested = maxTokens + (options.api.provider === "anthropic" ? THINKING_HEADROOM : 0);
     for (;;) {
       options.budget.check(
-        estimateTokensForChars(totalChars(messages) + system.length) + maxTokens,
+        estimateTokensForChars(totalChars(messages) + system.length) + requested,
       );
       try {
         const reply = await withRetry(

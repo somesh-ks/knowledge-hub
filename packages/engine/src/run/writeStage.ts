@@ -555,12 +555,12 @@ export async function enrichThin(
   item: Item,
   text: ExtractedText | null,
 ): Promise<ExtractedText | null> {
-  if (!runtime.enrich || !isThinText(text?.text)) return text;
+  // Facts only enrich text that was read, so a story with none is never paid for.
+  if (!text || !runtime.enrich || !isThinText(text.text)) return text;
   try {
     const facts = await runtime.enrich(item);
     if (!facts) return text;
-    // Facts only enrich text that was read; they never stand in for a story with none.
-    return text ? { ...text, text: `${text.text}\n\n${facts}` } : text;
+    return { ...text, text: `${text.text}\n\n${facts}` };
   } catch {
     return text;
   }

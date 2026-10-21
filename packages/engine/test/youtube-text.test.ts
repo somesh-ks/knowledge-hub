@@ -82,4 +82,41 @@ describe("YouTube video text", () => {
     expect((await extract(described))?.method).toBe("snippet");
     expect(general).not.toHaveBeenCalled();
   });
+
+  it("counts every paid transcription attempt against the cap, and stops at a short answer", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "video-text-"));
+    const gemini = { calls: 0, reply: (): string | null => null };
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      if (String(input).includes("/youtubei/v1/player")) {
+        return Response.json({ captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } } });
+      }
+      gemini.calls += 1;
+      return Response.json({ candidates: [{ content: { parts: [{ text: gemini.reply() }] } }] });
+    }) as typeof fetch;
+    const make = (maxTranscriptions: number) =>
+      createVideoText({
+        apiKey: "k",
+        models: async () => ["a", "b"],
+        cachePath: join(dir, `${maxTranscriptions}.json`),
+        fetchImpl,
+        maxTranscriptions,
+      });
+    const other = (id: string) =>
+      makeItem({ url: `https://www.youtube.com/watch?v=${id}`, source_type: "youtube" });
+
+    // A short answer was paid for: the second model is not tried.
+    gemini.reply = () => "too short";
+    expect(await make(5)(other("aaaaaaaaaaa"))).toBeNull();
+    expect(gemini.calls).toBe(1);
+
+    // Both models fail on the first video; the cap of two is spent, so the next video costs nothing.
+    gemini.calls = 0;
+    gemini.reply = () => {
+      throw new Error("down");
+    };
+    const capped = make(2);
+    await capped(other("bbbbbbbbbbb"));
+    await capped(other("ccccccccccc"));
+    expect(gemini.calls).toBe(2);
+  });
 });

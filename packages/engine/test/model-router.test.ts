@@ -41,7 +41,10 @@ const gemini = (text = '{"ok":true}') =>
     usageMetadata: { promptTokenCount: 4, candidatesTokenCount: 2 },
   });
 
-function setup(handler: (url: string, body: Record<string, unknown>) => Response) {
+function setup(
+  handler: (url: string, body: Record<string, unknown>) => Response,
+  options: { budget?: number; keys?: Record<string, string> } = {},
+) {
   const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
   const fetchFake: typeof fetch = async (url, init) => {
     const body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
@@ -49,7 +52,7 @@ function setup(handler: (url: string, body: Record<string, unknown>) => Response
     return handler(String(url), body);
   };
   const { log, lines } = captureLog();
-  const env = loadEnv({ ANTHROPIC_API_KEY: "a", GEMINI_API_KEY: "g" });
+  const env = loadEnv(options.keys ?? { ANTHROPIC_API_KEY: "a", GEMINI_API_KEY: "g" });
   const fallbacks: string[] = [];
   const router = createModelRouter({
     routing,
@@ -58,7 +61,7 @@ function setup(handler: (url: string, body: Record<string, unknown>) => Response
       "gemini-flash": { family: "gemini-flash", id: "gemini-3.8-flash", source: "fallback" },
     }),
     env,
-    budget: new TokenBudget(100_000),
+    budget: new TokenBudget(options.budget ?? 100_000),
     log,
     fetch: fetchFake,
     retry: { ...NO_WAIT, retries: 0 },
@@ -93,6 +96,26 @@ describe("the model chain", () => {
     expect((await bad.router.callModel("story_writer", request)).served.family).toBe(
       "gemini-flash",
     );
+  });
+
+  // The Anthropic request sends max_tokens plus the thinking headroom, billed as output: a budget
+  // that fits the bare allowance but not the request must stop the call before it is paid for.
+  it("checks the token budget against the Claude request's real size", async () => {
+    const { router, calls } = setup(() => claude("end_turn"), { budget: 5_000 });
+    await expect(
+      router.callModel("story_writer", { ...request, maxTokens: 800 }),
+    ).rejects.toThrow(/budget/i);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("does not count a fallback to a model whose provider has no key", async () => {
+    const { router, lines, fallbacks } = setup(() => json({}, 500), {
+      keys: { ANTHROPIC_API_KEY: "a" },
+    });
+    await expect(router.callModel("story_writer", request)).rejects.toThrow(/claude-sonnet-5-5/);
+    expect(fallbacks).toEqual([]);
+    const warn = lines.find((l) => /falling back/i.test(l.message));
+    expect(JSON.stringify(warn)).toContain('"to":null');
   });
 
   it("never sends temperature, top_p, top_k or budget_tokens, and asks Claude for effort and a schema format", async () => {

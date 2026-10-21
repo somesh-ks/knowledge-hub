@@ -174,9 +174,11 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
         lastError = error;
         const reason = failureReason(error);
         failed.push({ family: entry.family, model, kind: reason.kind });
-        const next = chain
-          .slice(chain.indexOf(entry) + 1)
-          .find((e) => e.family !== "jev" && resolved[e.family]);
+        // The next model that will actually be tried: resolved, and its provider has a key.
+        const next = chain.slice(chain.indexOf(entry) + 1).find((e) => {
+          const provider = providerOf(e.family);
+          return e.family !== "jev" && resolved[e.family] && provider && apiFor(provider);
+        });
         log.warn("A model failed; falling back to the next one in the chain", {
           step,
           from: model,

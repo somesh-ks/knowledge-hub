@@ -226,9 +226,11 @@ export function createVideoText(
       deps.log?.debug("Captions failed", { itemId: item.id, reason: String(error).slice(0, 120) });
     }
     const models = !found && deps.apiKey && deps.models ? await deps.models() : [];
-    if (!found && deps.apiKey && models.length > 0 && transcriptions < limit) {
-      transcriptions += 1;
+    if (!found && deps.apiKey && models.length > 0) {
       for (const [index, model] of models.entries()) {
+        // Every paid attempt counts against the cap, not every video.
+        if (transcriptions >= limit) break;
+        transcriptions += 1;
         try {
           const text = await transcribeWithGemini(id, {
             apiKey: deps.apiKey,
@@ -238,8 +240,9 @@ export function createVideoText(
           });
           if (text && text.length >= MIN_TRANSCRIPT_CHARS) {
             found = { text, method: "transcription" };
-            break;
           }
+          // An answer that came back is paid for: a short one does not buy a second model's try.
+          break;
         } catch (error) {
           // The message carries the status only, never the key. Never a silent fallback.
           deps.log?.warn("Transcription failed", {

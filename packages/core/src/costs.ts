@@ -125,8 +125,10 @@ export function priceUnits(
 
 // ---- Reports ----------------------------------------------------------------------------------
 
-export type Period = "day" | "week" | "month";
-export type GroupBy = "provider" | "kind" | "timezone" | "user" | "product" | "scope";
+export const PERIODS = ["day", "week", "month"] as const;
+export type Period = (typeof PERIODS)[number];
+export const GROUPS = ["provider", "kind", "timezone", "user", "product", "scope"] as const;
+export type GroupBy = (typeof GROUPS)[number];
 
 /** The calendar date of an instant in an IANA zone, YYYY-MM-DD. DST is the zone's own. */
 export function dateInZone(iso: string, timeZone: string): string {

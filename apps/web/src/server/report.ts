@@ -1,4 +1,5 @@
 import type { ApiResult } from "./http";
+import { newLimiter, takeSlot, type WindowLimiter } from "./rateLimit";
 
 /**
  * POST /api/report: a page's uncaught error, unhandled rejection or Content-Security-Policy
@@ -18,13 +19,32 @@ export interface ReportDeps {
   now: () => number;
 }
 
-export interface ReportLimiter {
-  windowStart: number;
-  count: number;
-}
+const shared = newLimiter();
 
-/** One per function instance: a cold start resets it, which is fine for a flood guard. */
-const shared: ReportLimiter = { windowStart: 0, count: 0 };
+/**
+ * The body as text, or null once it passes `maxBytes`: the stream is cancelled at the cap, so a
+ * large upload is never buffered whole.
+ */
+export async function readCapped(
+  body: ReadableStream<Uint8Array> | null,
+  maxBytes: number,
+): Promise<string | null> {
+  if (!body) return "";
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return text + decoder.decode();
+    received += value.byteLength;
+    if (received > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
 
 /** The path of a URL (or the text itself when it is not one), without query or fragment. */
 export function pathOnly(value: unknown): string {
@@ -44,14 +64,9 @@ const text = (value: unknown): string =>
 export function handleReport(
   body: string,
   deps: ReportDeps,
-  limiter: ReportLimiter = shared,
+  limiter: WindowLimiter = shared,
 ): ApiResult<null | { error: string }> {
-  const now = deps.now();
-  if (now - limiter.windowStart >= 60_000) {
-    limiter.windowStart = now;
-    limiter.count = 0;
-  }
-  if (limiter.count >= REPORTS_PER_MINUTE) return { status: 204, body: null };
+  if (!takeSlot(limiter, REPORTS_PER_MINUTE, deps.now())) return { status: 204, body: null };
   if (body.length > MAX_REPORT_CHARS) return { status: 413, body: { error: "too_large" } };
   let data: Record<string, unknown>;
   try {
@@ -62,7 +77,6 @@ export function handleReport(
   if (typeof data !== "object" || data === null || !KINDS.has(data.kind as string)) {
     return { status: 400, body: { error: "invalid_report" } };
   }
-  limiter.count += 1;
   const line = {
     kind: data.kind,
     page: pathOnly(data.page),

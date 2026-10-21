@@ -2,6 +2,7 @@ import { fallbackEmoji } from "@dispatch/core";
 import { createEmojiPicker } from "@dispatch/engine/source-preview";
 import type { APIRoute } from "astro";
 import { toResponse } from "../../server/http";
+import { newLimiter, takeSlot } from "../../server/rateLimit";
 
 export const prerender = false;
 
@@ -14,18 +15,14 @@ const picker = process.env.TYPESAFE_API_KEY
 // The route is open (D41) and each answer from Jev is a paid request, so an instance asks Jev at most
 // this often a minute; past it the fixed fallback answers, which costs nothing.
 const JEV_PER_MINUTE = 20;
-const asked = { since: 0, count: 0 };
-const mayAskJev = (now: number): boolean => {
-  if (now - asked.since >= 60_000) Object.assign(asked, { since: now, count: 0 });
-  return asked.count++ < JEV_PER_MINUTE;
-};
+const asked = newLimiter();
 
 export const GET: APIRoute = async ({ url }) => {
   const name = (url.searchParams.get("name") ?? "").trim().slice(0, 60);
   if (name === "") return toResponse({ status: 400, body: { error: "name_required" } });
   const description = (url.searchParams.get("description") ?? "").slice(0, 400);
   const emoji =
-    picker && mayAskJev(Date.now())
+    picker && takeSlot(asked, JEV_PER_MINUTE, Date.now())
       ? await picker.pick({ name, description })
       : fallbackEmoji(name);
   return toResponse({ status: 200, body: { emoji } });

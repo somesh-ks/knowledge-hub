@@ -1,15 +1,17 @@
 import type { APIRoute } from "astro";
 import { toResponse } from "../../server/http";
-import { handleReport, MAX_REPORT_CHARS } from "../../server/report";
+import { handleReport, MAX_REPORT_CHARS, readCapped } from "../../server/report";
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_REPORT_CHARS) {
-    return toResponse({ status: 413, body: { error: "too_large" } });
-  }
-  const result = handleReport(await request.text(), {
+  // A body with no length, or past the cap, is refused; the stream is read to the cap and no further.
+  const length = request.headers.get("content-length");
+  const declared = length === null ? Number.NaN : Number(length);
+  const body =
+    declared <= MAX_REPORT_CHARS ? await readCapped(request.body, MAX_REPORT_CHARS) : null;
+  if (body === null) return toResponse({ status: 413, body: { error: "too_large" } });
+  const result = handleReport(body, {
     log: (line) => console.error(line),
     now: Date.now,
   });
