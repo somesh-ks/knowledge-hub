@@ -353,7 +353,6 @@ describe("schedule.set", () => {
       hour: 9,
       cadence_days: 3,
       skip_topics: [],
-      format: "readout",
       length_minutes: 10,
       voice_id: null,
       voice_id_b: null,
@@ -410,16 +409,12 @@ describe("schedule.set", () => {
     });
   });
 
-  it("saves the podcast format and length, and keeps them when a later edit leaves them out", async () => {
-    await apply({ ...SET, format: "headlines", length_minutes: 5 });
-    expect(await repo.readJson("config/schedule.json")).toMatchObject({
-      format: "headlines",
-      length_minutes: 5,
-    });
+  it("saves the podcast length, and keeps it when a later edit leaves it out", async () => {
+    await apply({ ...SET, length_minutes: 5 });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({ length_minutes: 5 });
     await apply({ ...SET, hour: 10 });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
       hour: 10,
-      format: "headlines",
       length_minutes: 5,
     });
   });

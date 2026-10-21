@@ -81,7 +81,6 @@ describe("savedFields", () => {
     "daily.length": "5",
     "daily.voice": "",
     "daily.voice_b": "",
-    "daily.format": "readout",
   };
 
   it("lays each schedule edit over what the page was built with", () => {
@@ -92,7 +91,6 @@ describe("savedFields", () => {
         cadence_days: 3,
         voice_id: "ava",
         voice_id_b: "leo",
-        format: "discussion",
       },
     ];
     expect(savedFields(baked, ops)).toEqual({
@@ -100,7 +98,6 @@ describe("savedFields", () => {
       "daily.cadence": "3",
       "daily.voice": "ava",
       "daily.voice_b": "leo",
-      "daily.format": "discussion",
     });
   });
 
