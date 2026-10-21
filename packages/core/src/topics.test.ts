@@ -263,7 +263,9 @@ describe("digest sections", () => {
   it.each(["2026-10-06", "2026-10-07"])(
     "keeps the committed digest %s parsing with its built-in sections",
     (id) => {
-      const digest = parseDigestFile(readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`), "utf8"));
+      const digest = parseDigestFile(
+        readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`), "utf8"),
+      );
       expect(digest.section_titles).toBeUndefined();
       const ids = digestSections(digest).map((section) => section.id);
       expect(ids.length).toBeGreaterThan(0);

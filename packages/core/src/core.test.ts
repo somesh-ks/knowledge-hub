@@ -204,7 +204,10 @@ describe("digests committed before the four-beat voice", () => {
   it.each(["2026-10-06", "2026-10-07"])(
     "parses the frozen copy of digest %s, which carries a why line on every item",
     (id) => {
-      const text = readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`), "utf8");
+      const text = readFileSync(
+        join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`),
+        "utf8",
+      );
       const digest = parseDigestFile(text);
       expect(digest.id).toBe(id);
       expect(digest.items.length).toBeGreaterThanOrEqual(3);
