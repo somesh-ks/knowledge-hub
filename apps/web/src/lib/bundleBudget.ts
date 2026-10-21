@@ -22,8 +22,11 @@ import { gzipSync } from "node:zlib";
  * (3.5 KB on every page). The heaviest page was then Topics at 105.7 KB. A ceiling 40 KB above the
  * code let a page grow by a third before anything failed; at 3 KB a feature that adds first-load
  * code has to take it off somewhere or load it lazily.
+ * Raised to 130 KB on 2026-10-21 at the owner's request (D141): the heaviest page sat at 109.0 KB
+ * after the hardening's fault reporter, so every further feature needed a cut first. Still a
+ * ceiling, not a target.
  */
-export const FIRST_LOAD_BUDGET_BYTES = 109 * 1024;
+export const FIRST_LOAD_BUDGET_BYTES = 130 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */

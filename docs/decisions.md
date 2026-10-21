@@ -152,6 +152,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
 | D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
+| D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 
 ---
 
@@ -1560,4 +1561,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-21 (the owner: "everything ui related ... must respect design system. implement either a hook/linter/audit pass"; "why drift to other icons when we have an icon library")
 - Decision: `npm run design-check` holds tokens-only colour, type and easing, no raw SVG outside the Icon components, shared classes for every control (a reasoned allowlist that only shrinks), the 8pt grid, flat surfaces and regular headings. A PostToolUse hook runs it after any edit under `apps/web/src` or `tokens`. The `design-audit` agent screenshots a UI change before its PR. Icons come from `@phosphor-icons/core` through `npm run glyphs`, and a test fails on any path that differs from the package.
 - Why: icons had been redrawn by hand because nothing tied the glyph file to the library, and every check before ran only when someone remembered.
+
+## D141: a 130 KB first-load budget
+
+- Date: 2026-10-21 (the owner: "Increase bundle size to 130kb")
+- Decision: `FIRST_LOAD_BUDGET_BYTES` is 130 KB of gzipped JavaScript per page (from 109 KB, D112). `checkBundle` still fails any page above it; the heaviest page is 109.0 KB.
+- Why: at 109 KB every feature that adds first-load code needed a cut first; the fault reporter and the player's tabs had used the last bytes.
+- Cost: about 21 KB of headroom is roughly a fifth more script to fetch and parse on a slow phone before the page answers, if it is all used.
+- Revisit if: the heaviest page passes 120 KB, or INP or LCP on a real phone gets worse.
 

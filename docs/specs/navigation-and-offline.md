@@ -9,7 +9,7 @@ Service worker, saved copies, PWA, launch screen, offline. What it does now. Rea
 - The current destination is marked the moment it is pressed.
 - The service worker uses navigation preload and checks for an update on return. A page that changed behind a saved copy refreshes quietly; a new `/latest.json` makes saved pages old.
 - One top rhythm across the four destinations, held to 1px by `e2e/rhythm.spec.ts`. The view transition overlay lets the pointer through, so the cursor does not flicker over a link.
-- Every page names the modules it loads at start in modulepreload links (a build step; `checkBundle` fails a page that loads one without a link) (D112). Modules a press needs are fetched at idle, never on the press. The player surface's motion loads after first paint behind a facade that holds early calls. The bundle budget is 109 KB.
+- Every page names the modules it loads at start in modulepreload links (a build step; `checkBundle` fails a page that loads one without a link) (D112). Modules a press needs are fetched at idle, never on the press. The player surface's motion loads after first paint behind a facade that holds early calls. The bundle budget is 130 KB (D141).
 
 ### Offline
 - The worker keeps every file a page fetches (cache v10, six levels deep), so a settings page opened offline in a later session still has its editor (D97). The offline shell is pruned and includes /library.
