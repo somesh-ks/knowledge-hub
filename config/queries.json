@@ -50,16 +50,6 @@
       "id": "consumer-device-regulation-or-ruling",
       "query": "consumer device regulation or ruling",
       "category_hint": "consumer_tech_releases"
-    },
-    {
-      "id": "india-latest",
-      "query": "India",
-      "topic_id": "india"
-    },
-    {
-      "id": "india-analysis",
-      "query": "Indian culture and cuisine",
-      "topic_id": "india"
     }
   ]
 }
