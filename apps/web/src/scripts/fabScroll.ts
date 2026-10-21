@@ -11,9 +11,21 @@ export const FOLD_STEP_PX = 8;
 /** Near the top of a page the button is always extended. */
 export const FOLD_TOP_PX = 48;
 
-/** Whether the button is folded after a scroll from `from` to `to`, or null to leave it as it is. */
-export function foldedAfter(from: number, to: number): boolean | null {
+/**
+ * Whether the page is scrolled to its end. On a phone the URL bar collapsing or expanding there
+ * changes the viewport's height and clamps scrollY: an upward step that is not the person's.
+ */
+export function atScrollEnd(): boolean {
+  return window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+}
+
+/**
+ * Whether the button is folded after a scroll from `from` to `to`, or null to leave it as it is.
+ * `atEnd`: `to` is the end of the page, where an upward step is the viewport resizing, not a reveal.
+ */
+export function foldedAfter(from: number, to: number, atEnd = false): boolean | null {
   if (to <= FOLD_TOP_PX) return false;
+  if (atEnd && to < from) return null;
   if (Math.abs(to - from) < FOLD_STEP_PX) return null;
   return to > from;
 }
@@ -28,8 +40,12 @@ export function installFabScroll(): void {
   const update = (): void => {
     queued = false;
     const now = window.scrollY;
-    const folded = foldedAfter(last, now);
-    if (folded === null) return;
+    const atEnd = atScrollEnd();
+    const folded = foldedAfter(last, now, atEnd);
+    if (folded === null) {
+      if (atEnd && now < last) last = now;
+      return;
+    }
     last = now;
     document.querySelector<HTMLElement>(".create-fab")?.toggleAttribute("data-folded", folded);
   };
@@ -42,6 +58,10 @@ export function installFabScroll(): void {
     },
     { passive: true },
   );
+  // The viewport's height changed (the URL bar): measure the next scroll from where the page is now.
+  window.addEventListener("resize", () => {
+    last = window.scrollY;
+  });
   // A new page starts at its top with the button extended; the next scroll measures from there.
   document.addEventListener("astro:page-load", () => {
     last = window.scrollY;
