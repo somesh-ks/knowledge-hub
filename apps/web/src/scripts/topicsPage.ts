@@ -10,7 +10,6 @@ import { drawStop } from "../lib/weightStops";
 import { installHeroMenu } from "./heroMenu";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
-import { mountSegmentedNav, selectTab } from "./segmentedNav";
 
 type Editor = { handle(event: Event): void };
 
@@ -53,24 +52,23 @@ function mount(root: HTMLElement): void {
   }
 
   // Sources or Preferences on a topic's page (2026-10-20), read from the address and kept in it, so
-  // a reload or Back finds the same view. The filter's own parameters stay.
-  const showView = (view: string): void => {
-    root.dataset.view = view;
-  };
+  // a reload or Back finds the same view (data-param, segmentedNav.ts).
   const tabs = root.querySelector<HTMLElement>("[data-topic-view]");
   if (tabs) {
     const view =
       new URLSearchParams(location.search).get("view") === "preferences"
         ? "preferences"
         : "sources";
-    selectTab(tabs, view);
-    showView(view);
-    mountSegmentedNav(tabs, (chosen) => {
-      showView(chosen);
-      const url = new URL(location.href);
-      if (chosen === "preferences") url.searchParams.set("view", "preferences");
-      else url.searchParams.delete("view");
-      history.replaceState(history.state, "", url);
+    root.dataset.view = view;
+    // The tabs show the view at once; their keys and presses (segmentedNav.ts) follow in a moment,
+    // outside the first load's budget.
+    for (const tab of tabs.children)
+      tab.ariaSelected = String(tab.getAttribute("data-value") === view);
+    void import("./segmentedNav").then((module) => {
+      module.selectTab(tabs, view);
+      module.mountSegmentedNav(tabs, (chosen) => {
+        root.dataset.view = chosen;
+      });
     });
   }
 
