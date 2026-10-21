@@ -205,7 +205,7 @@ test.describe("the Topics list", () => {
     await expect(page.getByRole("heading", { level: 2, name: "General news" })).toHaveCount(0);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a topic" });
-    await sheet.getByRole("radio", { name: "Source" }).check();
+    await sheet.getByRole("tab", { name: "Source" }).click();
     const options = await page
       .getByRole("dialog", { name: "Add a source" })
       .getByRole("combobox", { name: "Topic" })
@@ -240,7 +240,7 @@ test.describe("the Topics list", () => {
     await open(page);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
     await expect(page.getByRole("dialog", { name: "Add a topic" })).toBeVisible();
-    await page.getByRole("radio", { name: "Source" }).check();
+    await page.getByRole("tab", { name: "Source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet).toBeVisible();
     const add = sheet.getByRole("button", { name: "Add source", exact: true });
@@ -412,7 +412,7 @@ test.describe("a topic's page", () => {
   }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/topics/audio_interfaces");
-    await page.getByRole("radio", { name: "Preferences" }).check();
+    await page.getByRole("tab", { name: "Preferences" }).click();
     await expect(page).toHaveURL(/\?view=preferences$/);
     const slider = page.locator("[data-weight]");
     await slider.fill("3");
@@ -420,8 +420,20 @@ test.describe("a topic's page", () => {
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.85 } }]);
     await page.reload();
-    await expect(page.getByRole("radio", { name: "Preferences" })).toBeChecked();
+    await expect(page.getByRole("tab", { name: "Preferences" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await expect(page.locator("[data-weight]")).toHaveValue("3");
+    // The view is a tablist: Home goes back to Sources, and the address follows.
+    await page.getByRole("tab", { name: "Preferences" }).press("Home");
+    await expect(page.getByRole("tab", { name: "Sources" })).toBeFocused();
+    await expect(page.getByRole("tab", { name: "Sources" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page).not.toHaveURL(/view=/);
+    await expect(page.getByRole("tabpanel", { name: "Sources" })).toBeVisible();
   });
 
   test("a type set on Preferences goes as one mix.set for every topic and holds after a reload", async ({
@@ -445,7 +457,7 @@ test.describe("a topic's page", () => {
     const weights = page.getByRole("region", { name: "Topic weightage" });
     // Shown on Preferences, not with the sources.
     await expect(weights.getByRole("slider")).toHaveCount(0);
-    await page.getByRole("radio", { name: "Preferences" }).check();
+    await page.getByRole("tab", { name: "Preferences" }).click();
     await expect(weights.getByRole("slider")).toHaveCount(2);
     await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
       "Design engineering craft",
@@ -453,7 +465,27 @@ test.describe("a topic's page", () => {
     await weights.getByRole("slider", { name: "Product design" }).fill("1");
     await expect(spoken(page)).toHaveText(SAVED);
     expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
+    // A Preferences load never shows the sources first: probed every frame from the first paint.
+    await page.addInitScript(() => {
+      const w = window as unknown as { sourcesFlashed?: boolean };
+      w.sourcesFlashed = false;
+      const shown = (selector: string) =>
+        document.querySelector(selector)?.checkVisibility({ visibilityProperty: true }) ?? false;
+      const probe = () => {
+        if (shown("[data-weight]")) return;
+        if (shown("[data-sources]")) w.sourcesFlashed = true;
+        requestAnimationFrame(probe);
+      };
+      new MutationObserver(() => {
+        if (!shown("[data-weight]") && shown("[data-sources]")) w.sourcesFlashed = true;
+      }).observe(document, { childList: true, subtree: true, attributes: true });
+      requestAnimationFrame(probe);
+    });
     await open(page, "/settings/topics/ai?view=preferences");
+    await expect(page.locator("[data-weight]")).toBeVisible();
+    expect(
+      await page.evaluate(() => (window as unknown as { sourcesFlashed: boolean }).sourcesFlashed),
+    ).toBe(false);
     const single = page.getByRole("region", { name: "Topic weightage" });
     await expect(single.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
@@ -487,7 +519,7 @@ test.describe("a topic's page", () => {
     await source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" }).click();
     const sheet = page.getByRole("dialog", { name: "Edit source" });
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByRole("radiogroup", { name: "What to add" })).toBeHidden();
+    await expect(sheet.getByRole("tablist", { name: "What to add" })).toBeHidden();
     const name = sheet.getByRole("textbox", { name: "Name" });
     await expect(name).toHaveValue("Studio Notes");
     // Editing starts with reading: focus stays in the panel, off the field, so no keyboard comes up.
@@ -556,7 +588,7 @@ test.describe("a topic's page", () => {
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue("audio_interfaces");
     // It adds a source to this topic: no switch to a new topic.
-    await expect(sheet.getByRole("radio", { name: "Topic" })).toBeHidden();
+    await expect(sheet.getByRole("tab", { name: "Topic" })).toBeHidden();
     // It suggests the catalogue's feeds for the topic chosen, and changes them with it.
     await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Design" });
     await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toBeVisible();
@@ -867,7 +899,7 @@ test.describe("editing a topic", () => {
     await pick(page, "Audio interfaces", "Edit topic Audio interfaces");
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
     const form = sheet.getByRole("form", { name: "Edit topic" });
-    await expect(sheet.getByRole("radiogroup", { name: "What to add" })).toBeHidden();
+    await expect(sheet.getByRole("tablist", { name: "What to add" })).toBeHidden();
     const name = form.getByLabel("Name");
     await expect(name).toHaveValue("Audio interfaces");
     await expect(name).not.toBeFocused();
@@ -1009,7 +1041,7 @@ test.describe("a refused lookup", () => {
     );
     await open(page);
     await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    await page.getByRole("radio", { name: "Source" }).check();
+    await page.getByRole("tab", { name: "Source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("nothing.example");
     await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
@@ -1045,7 +1077,7 @@ test("a long feed address never widens the Add source panel past the screen", as
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page);
   await page.getByRole("button", { name: "Add a topic or a source" }).click();
-  await page.getByRole("radio", { name: "Source" }).check();
+  await page.getByRole("tab", { name: "Source" }).click();
   const sheet = page.getByRole("dialog", { name: "Add a source" });
   await sheet.getByLabel("Site or feed address").fill("newsroom.example");
   await expect(sheet.getByText("A newsroom with a name")).toBeVisible();

@@ -178,6 +178,16 @@
   display: none;
 }
 
+/* Until topicsPage.ts has read ?view= and set data-view, neither pane shows, so a Preferences load
+   never flashes the sources first (2026-10-20). The sources keep their room meanwhile, as
+   .manage:not([data-ready]) keeps the controls', so nothing moves. Without a script the page is its
+   sources, as before. */
+@media (scripting: enabled) {
+  .topics:has([data-topic-view]):not([data-view]) :is(.topic-view-pane, .add-fab) {
+    visibility: hidden;
+  }
+}
+
 /* Each group of sliders under its heading, as a section of a settings page. */
 .topic-weights > .section-head {
   padding-block: var(--space-8) 0;

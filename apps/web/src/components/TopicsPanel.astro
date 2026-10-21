@@ -2,6 +2,7 @@
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
+import SheetHeader from "./SheetHeader.astro";
 
 interface Props {
   /** The topics a source can be filed under, in the order the page lists them. */
@@ -18,28 +19,43 @@ const { topics } = Astro.props;
      sheet on a phone and a side panel from 40rem. */}
 <template id="topics-panel-template">
   <dialog class="create-sheet regen-sheet topics-panel" aria-labelledby="topics-panel-title" data-mode="topic">
-    <div class="create-sheet-head">
-      <button class="icon-btn press" type="button" data-panel-close aria-label="Close">
-        <Icon name="close" class="icon-lg" />
-      </button>
-      <h2 class="sheet-title" id="topics-panel-title" data-panel-title>Add a topic</h2>
-    </div>
+    <SheetHeader
+      title="Add a topic"
+      titleId="topics-panel-title"
+      close="data-panel-close"
+      titleData={{ "data-panel-title": "" }}
+    />
     <div class="create-sheet-body">
-      <fieldset class="settings-choice topics-panel-kind" role="radiogroup" aria-label="What to add" data-panel-kind>
-        <label class="settings-segment">
-          <input type="radio" name="topics-panel-kind" value="topic" checked />
-          <span>Topic</span>
-        </label>
-        <label class="settings-segment">
-          <input type="radio" name="topics-panel-kind" value="source" />
-          <span>Source</span>
-        </label>
-      </fieldset>
+      <div class="segmented-nav topics-panel-kind" role="tablist" aria-label="What to add" data-panel-kind>
+        <button
+          class="segmented-nav-tab"
+          type="button"
+          role="tab"
+          id="topics-panel-tab-topic"
+          aria-selected="true"
+          aria-controls="topics-panel-pane-topic"
+          data-value="topic"
+        >
+          Topic
+        </button>
+        <button
+          class="segmented-nav-tab"
+          type="button"
+          role="tab"
+          id="topics-panel-tab-source"
+          aria-selected="false"
+          aria-controls="topics-panel-pane-source"
+          tabindex="-1"
+          data-value="source"
+        >
+          Source
+        </button>
+      </div>
 
       {/* A topic: its name, what counts and where it plays (D71); its page then suggests sources.
            Adding starts it empty; editing starts it filled, and a built-in topic keeps what counts,
            as fixed questions judge it. */}
-      <form class="manage-form topics-pane" data-pane="topic" aria-label="Add a topic" novalidate>
+      <form class="manage-form topics-pane" id="topics-panel-pane-topic" data-pane="topic" aria-label="Add a topic" novalidate>
         <div class="topics-step">
           <p class="manage-quiet" data-fixed-note hidden>
             The app judges this topic by questions of its own, so what counts stays as it is. Its name
@@ -95,7 +111,7 @@ const { topics } = Astro.props;
       </form>
 
       {/* A source by its address: looked up as you type, then filed under a topic. */}
-      <div class="manage-form source-form topics-pane" data-pane="source" hidden>
+      <div class="manage-form source-form topics-pane" id="topics-panel-pane-source" data-pane="source" hidden>
         <div class="manage-field">
           <label for="panel-source-url">Site or feed address</label>
           <input

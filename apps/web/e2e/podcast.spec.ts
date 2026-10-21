@@ -91,7 +91,40 @@ test.describe("the Settings index", () => {
     await page.getByRole("link", { name: /^Daily/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Daily Podcast" })).toBeVisible();
     await expect(page).toHaveTitle("Daily Podcast, Singularity");
-    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toHaveCount(0);
+  });
+
+  test("no settings page has a breadcrumb or a way up above its title @desktop", async ({
+    page,
+  }) => {
+    const ROUTES = [
+      "/settings",
+      "/settings/daily",
+      "/settings/weekly",
+      "/settings/voice",
+      "/settings/sounds",
+      "/settings/preferences",
+      "/settings/topics",
+      "/settings/topics/design",
+      "/settings/topics/design?view=preferences",
+      "/settings/blocked-outlets",
+    ];
+    for (const path of ROUTES) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Breadcrumb" }), path).toHaveCount(0);
+      // A link in the page before its title, leading to a page above this one.
+      const up = await page.evaluate(() => {
+        const title = document.querySelector("main h1");
+        if (!title) return [];
+        const here = location.pathname.replace(/\/$/, "");
+        return [...document.querySelectorAll<HTMLAnchorElement>("main a[href]")]
+          .filter((link) => link.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING)
+          .filter((link) => link.checkVisibility())
+          .map((link) => new URL(link.href).pathname.replace(/\/$/, ""))
+          .filter((path) => path !== here && here.startsWith(`${path}/`));
+      });
+      expect(up, path).toEqual([]);
+    }
   });
 
   test("the addresses of the old pages still land somewhere sensible", async ({ page }) => {

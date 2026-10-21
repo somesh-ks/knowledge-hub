@@ -1,7 +1,7 @@
 /*
- * The settings page: groups of rows in the shared row grammar (primitives.css), and three native
- * controls drawn from tokens: a segmented choice (radios), a switch (a checkbox) and a slider (a
- * range). No cards. Imported by pages/settings.astro, after the layout's stylesheets.
+ * The settings page: groups of rows in the shared row grammar (primitives.css), and two native
+ * controls drawn from tokens: a switch (a checkbox) and a slider (a range); the segmented controls
+ * are primitives.css's. No cards. Imported by pages/settings.astro, after the layout's stylesheets.
  *
  * These rules are .settings-*. The .setting-* rules in sheets.css belong to the old settings sheet.
  *
@@ -45,33 +45,6 @@
 /* With Sounds off, Volume is unused: its label goes quiet with its slider. */
 .settings-row:has(.settings-range:disabled) > .settings-label {
   color: var(--color-on-surface-muted);
-}
-
-/* A topic's card draws its own way up (pages/settings/topics/[id].astro). */
-.settings-up {
-  position: relative;
-  border-radius: var(--radius-sm);
-  color: var(--color-on-surface-muted);
-  text-decoration: none;
-  transition: color var(--duration-hover) var(--ease-hover);
-}
-
-/* The word is shorter than a finger: the target reaches 44px tall around it. */
-.settings-up::after {
-  content: "";
-  position: absolute;
-  inset-block: calc((100% - var(--size-touch)) / 2);
-  inset-inline: 0;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .settings-up:hover {
-    color: var(--color-on-surface);
-  }
-}
-
-.settings-up:active {
-  color: var(--color-on-surface);
 }
 
 .settings-head h1:focus {
@@ -189,211 +162,6 @@
 /* Groups are spaced by their heads' own air alone, the same 32px as on every settings page. */
 .settings-view > section + section {
   margin-block-start: 0;
-}
-
-/* ------------------------------------------------------------------ segmented choice */
-
-/*
- * Radios in a fieldset, so the arrow keys, the group and its name come from the browser.
- * Markup: <fieldset class="settings-choice" role="radiogroup"> of
- *   <label class="settings-segment"><input type="radio" /><span>Light</span></label>
- */
-.settings-choice {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  flex: 1 1 100%;
-  /* A fieldset will not shrink below its content unless told it may. */
-  min-width: 0;
-  margin: 0;
-  padding: var(--segmented-padding);
-  border: 0;
-  /* A pill with pill segments, as Create's choices and the player's segmented control are. */
-  border-radius: var(--radius-round);
-  background: var(--color-surface-container);
-}
-
-@media (min-width: 40rem) {
-  .settings-choice {
-    flex: 0 0 var(--settings-control-width);
-  }
-}
-
-/* In a sheet the body is a column: a segmented control there keeps its own height, never the
-   column's spare room. */
-.create-sheet-body > .settings-choice {
-  flex: none;
-}
-
-.settings-segment {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-width: 0;
-  /* With the track's padding this makes the control 48px tall, as tall as a select, and taller if
-     the text grows. */
-  min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--radius-round);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  white-space: nowrap;
-  transition:
-    background-color var(--duration-hover) var(--ease-hover),
-    box-shadow var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover);
-}
-
-/* The radio is the target. It covers its segment and the track's padding above and below, which
-   makes the target the track's full height. It is invisible, so the segment draws every state. */
-.settings-segment input {
-  position: absolute;
-  inset-block: calc(var(--segmented-padding) * -1);
-  inset-inline: 0;
-  width: 100%;
-  height: calc(100% + var(--segmented-padding) * 2);
-  margin: 0;
-  appearance: none;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.settings-segment:has(input:checked) {
-  color: var(--color-on-accent-container);
-}
-
-/* An unchosen segment answers the pointer with a state layer of its own words' colour. */
-@media (hover: hover) and (pointer: fine) {
-  .settings-segment:not(:has(input:checked, input:disabled)):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
-  }
-}
-
-.settings-segment:not(:has(input:checked, input:disabled)):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
-}
-
-.settings-segment:has(input:disabled) {
-  opacity: var(--opacity-disabled);
-}
-
-/* The check comes in beside the words of the chosen segment. The words stay centred in their column,
-   so the check takes room only inside the segment and no neighbour moves. */
-.settings-segment > span {
-  display: inline-flex;
-  align-items: center;
-}
-
-.settings-segment > span::before {
-  content: "";
-  flex: none;
-  inline-size: 0;
-  block-size: var(--space-4);
-  background: currentColor;
-  mask: var(--check-bold-mask) center / contain no-repeat;
-  opacity: 0;
-  transition:
-    inline-size var(--duration-enter) var(--ease-out),
-    margin-inline-end var(--duration-enter) var(--ease-out),
-    opacity var(--duration-state) var(--ease-out);
-}
-
-.settings-segment:has(input:checked) > span::before {
-  inline-size: var(--size-icon-sm);
-  margin-inline-end: var(--space-1);
-  opacity: 1;
-}
-
-/*
- * One raised thumb, ringed so the choice never depends on colour alone, slides under the labels. The
- * segments are equal columns, so its width is one column and its place is a multiple of that width:
- * --seg-n is how many segments there are and --seg-i the checked one, both read from the markup.
- * It slides only while the control is being used, so a stored choice that arrives with the page
- * never travels from the first segment.
- */
-.settings-choice {
-  --seg-n: 1;
-  --seg-i: 0;
-  position: relative;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(2)) {
-  --seg-n: 2;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(3)) {
-  --seg-n: 3;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(4)) {
-  --seg-n: 4;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(5)) {
-  --seg-n: 5;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(2) input:checked) {
-  --seg-i: 1;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(3) input:checked) {
-  --seg-i: 2;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(4) input:checked) {
-  --seg-i: 3;
-}
-
-.settings-choice:has(.settings-segment:nth-of-type(5) input:checked) {
-  --seg-i: 4;
-}
-
-.settings-choice::before {
-  content: "";
-  position: absolute;
-  inset-block: var(--segmented-padding);
-  inset-inline-start: var(--segmented-padding);
-  width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--radius-round);
-  /* The choice is tonal, not outlined: the accent container, its own words and a check, so it is a
-     shape and a colour and never a colour alone. */
-  background: var(--color-accent-container);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(calc(var(--seg-i) * 100%));
-}
-
-.settings-choice:has(input:checked)::before {
-  opacity: 1;
-}
-
-.settings-choice:is(:focus-within, :has(.settings-segment:active))::before {
-  transition: transform var(--duration-state) var(--ease-out);
-}
-
-/* An arrow key moves the thumb at once: what a key starts is never animated (data-input, app.ts). */
-:root[data-input="keyboard"] .settings-choice::before {
-  transition: none;
-}
-
-/* The ring belongs on the segment: an invisible input cannot show one. */
-.settings-segment:has(input:focus-visible) {
-  z-index: var(--z-raised);
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-/* No press scale here, or anywhere a label sits on a track (segments, chips, tabs): scaling text on a
-   press makes it smaller and draws its weight differently for a moment. Pressing shows as a state
-   layer on the segment, over the thumb when it has one, never on the size of the words.
-   pressText.test.ts holds the rule. */
-.settings-segment:active {
-  background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent),
-    color-mix(in oklch, var(--color-on-surface) 10%, transparent)
-  );
 }
 
 /* ------------------------------------------------------------------ switch */
@@ -552,10 +320,6 @@
 /* ------------------------------------------------------------------ hover and pressed */
 
 @media (hover: hover) and (pointer: fine) {
-  .settings-segment:not(:has(input:checked)):hover {
-    color: var(--color-on-surface);
-  }
-
   .settings-switch:hover {
     background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
   }
@@ -616,34 +380,14 @@
   .settings-switch::before {
     transition-property: background-color, opacity;
   }
-
-  /* The segmented thumb jumps to the chosen segment, and its check appears in place. */
-  .settings-choice::before,
-  .settings-choice:is(:focus-within, :has(.settings-segment:active))::before,
-  .settings-segment > span::before {
-    transition: none;
-  }
 }
 
 /*
- * Forced colours drops fills and shadows, so each state gets an edge or a system colour: the chosen
- * segment a highlight border, the switch an outline and a thumb that turns to the highlight when on,
+ * Forced colours drops fills and shadows, so each state gets an edge or a system colour: the
+ * switch an outline and a thumb that turns to the highlight when on,
  * the slider a highlight fill on a text-coloured track.
  */
 @media (forced-colors: active) {
-  .settings-choice {
-    border: var(--stroke-hairline) solid ButtonText;
-  }
-
-  .settings-segment:has(input:checked) {
-    border: var(--stroke-rail) solid Highlight;
-  }
-
-  /* The chosen segment carries its own border here, so the thumb is not drawn. */
-  .settings-choice::before {
-    display: none;
-  }
-
   .settings-switch {
     border: var(--stroke-rail) solid ButtonText;
   }
