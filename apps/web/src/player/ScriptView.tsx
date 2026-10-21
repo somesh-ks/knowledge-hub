@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { hostOf, needsVoiceList, readHostNames, readVoiceIds, transcriptNames } from "../lib/hosts";
 import type { SegmentWordMark } from "../lib/segmentMarks";
 import type { PlayerTurn } from "../types/contracts";
@@ -13,6 +14,7 @@ import {
   spokenPosition,
   turnEndMs,
 } from "./core/scriptMath";
+import type { TurnRange } from "./core/storyTranscript";
 import { usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
 import { useRovingFocus } from "./hooks/useRovingFocus";
 
@@ -34,11 +36,15 @@ function oneColumnFollows(root: HTMLElement | null): boolean {
 
 export default function ScriptView({
   turns,
-  titleHidden = false,
+  range,
+  backHost,
 }: {
-  /** The turns to read: an episode's script, or a briefing's stories (core/storyTurns.ts). */
+  /** All the turns: an episode's script, or a briefing's stories (core/storyTurns.ts). */
   turns: readonly PlayerTurn[];
-  titleHidden?: boolean;
+  /** The ones shown: the story being read. Indices stay the script's own, so the voice's place does too. */
+  range: TurnRange;
+  /** Where "Back to now" goes: over the whole story list, not in the one story's column. */
+  backHost: HTMLElement | null;
 }) {
   const state = usePlayerState();
   // A render each second, and after a seek while paused. The turn itself is read from the playhead,
@@ -184,7 +190,7 @@ export default function ScriptView({
     // Under reduced motion it jumps: a scripted glide is movement the person asked not to see.
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const behavior = still ? "instant" : "smooth";
-    const list = rootRef.current?.querySelector<HTMLElement>(".list-scroll");
+    const list = rootRef.current?.closest<HTMLElement>(".list-scroll");
     if (column && node && list) {
       // Only the list moves: scrollIntoView would scroll the page too, where the left column
       // is taller than a short window (a tablet held sideways).
@@ -255,75 +261,72 @@ export default function ScriptView({
   useRovingFocus(rootRef, ".script-turn", turns.length > 0);
 
   if (turns.length === 0) return null;
+  const back = away ? (
+    <button
+      className="script-back"
+      type="button"
+      onClick={() => {
+        pausedUntil.current = 0;
+        // The button goes away with this press; keyboard focus moves to the turn it points at.
+        rootRef.current
+          ?.querySelector<HTMLElement>(`[data-turn="${current}"]`)
+          ?.focus({ preventScroll: true });
+        setAway(false);
+        if (current >= 0) reveal(current);
+      }}
+    >
+      Back to now
+    </button>
+  ) : null;
   return (
-    <section className="player-script" ref={rootRef} aria-labelledby="player-script-title">
-      <h3 className={titleHidden ? "sr-only" : "player-section-title"} id="player-script-title">
-        Transcript
-      </h3>
-      <div className="list-scroll">
-        <ol className="script-turns" data-following={current >= 0 ? "" : undefined}>
-          {turns.map((turn, index) => {
-            const host = hostOf(turn.speaker, names);
-            // A name goes where the speaker changes: a second turn from the same voice just continues.
-            const named = host.name !== null && turns[index - 1]?.speaker !== turn.speaker;
-            return (
-              <li key={turn.key}>
-                <button
-                  className="script-turn"
-                  type="button"
-                  data-turn={index}
-                  data-tone={host.tone}
-                  data-said={current >= 0 && index < current ? "" : undefined}
-                  aria-current={index === current ? "true" : undefined}
-                  aria-disabled={turn.start_ms === null ? "true" : undefined}
-                  onClick={(event) => {
-                    if (turn.start_ms === null) return;
-                    pausedUntil.current = 0;
-                    // A tap on a word plays from that word; anywhere else in the turn, from its start.
-                    const word = (event.target as Element).closest<HTMLElement>("[data-word]");
-                    const at = word ? words[index]?.starts?.[Number(word.dataset.word)] : undefined;
-                    getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
-                  }}
-                >
-                  {turn.title ? (
-                    <span className="script-speaker script-story">{turn.title}</span>
-                  ) : named ? (
-                    <span className="script-speaker">{host.name}</span>
-                  ) : null}
-                  <span className="script-text">
-                    {words[index]?.list.map((word, at) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder
-                      <span key={at}>
-                        {at > 0 ? " " : null}
-                        <span className="script-word" data-word={at}>
-                          {word}
-                        </span>
+    <section className="player-script" ref={rootRef} aria-label="Transcript">
+      <ol className="script-turns" data-following={current >= 0 ? "" : undefined}>
+        {turns.map((turn, index) => {
+          if (index < range.from || index >= range.to) return null;
+          const host = hostOf(turn.speaker, names);
+          // A name goes where the speaker changes: a second turn from the same voice just continues.
+          const named = host.name !== null && turns[index - 1]?.speaker !== turn.speaker;
+          return (
+            <li key={turn.key}>
+              <button
+                className="script-turn"
+                type="button"
+                data-turn={index}
+                data-tone={host.tone}
+                data-said={current >= 0 && index < current ? "" : undefined}
+                aria-current={index === current ? "true" : undefined}
+                aria-disabled={turn.start_ms === null ? "true" : undefined}
+                onClick={(event) => {
+                  if (turn.start_ms === null) return;
+                  pausedUntil.current = 0;
+                  // A tap on a word plays from that word; anywhere else in the turn, from its start.
+                  const word = (event.target as Element).closest<HTMLElement>("[data-word]");
+                  const at = word ? words[index]?.starts?.[Number(word.dataset.word)] : undefined;
+                  getPlayerStore().seekTo(Math.round(at ?? turn.start_ms));
+                }}
+              >
+                {turn.title ? (
+                  <span className="script-speaker script-story">{turn.title}</span>
+                ) : named ? (
+                  <span className="script-speaker">{host.name}</span>
+                ) : null}
+                <span className="script-text">
+                  {words[index]?.list.map((word, at) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a turn's words never reorder
+                    <span key={at}>
+                      {at > 0 ? " " : null}
+                      <span className="script-word" data-word={at}>
+                        {word}
                       </span>
-                    ))}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-      {away ? (
-        <button
-          className="script-back"
-          type="button"
-          onClick={() => {
-            pausedUntil.current = 0;
-            // The button goes away with this press; keyboard focus moves to the turn it points at.
-            rootRef.current
-              ?.querySelector<HTMLElement>(`[data-turn="${current}"]`)
-              ?.focus({ preventScroll: true });
-            setAway(false);
-            if (current >= 0) reveal(current);
-          }}
-        >
-          Back to now
-        </button>
-      ) : null}
+                    </span>
+                  ))}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      {backHost && back ? createPortal(back, backHost) : back}
     </section>
   );
 }

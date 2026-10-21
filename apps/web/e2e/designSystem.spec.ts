@@ -134,7 +134,7 @@ test.describe("the 8pt spacing system", () => {
     await expect(page.getByRole("menu", { name: "More actions" })).toBeVisible();
     expect.soft(await offGrid(page), "the More actions menu").toEqual([]);
 
-    // A Library row's More actions menu, and the player's queue sheet raised.
+    // A Library row's More actions menu.
     await page.goto("/library");
     await hydrated(page);
     await page
