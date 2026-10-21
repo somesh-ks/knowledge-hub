@@ -116,7 +116,7 @@ interface PassContext {
 
 /**
  * Score and select from the judge's answers, extract full text for the finalists, write the
- * headline and summary with the Nebius writer, and give each failing field one rewrite. Fewer
+ * headline and summary with the routed writer, and give each failing field one rewrite. Fewer
  * than three survivors is the "nothing" outcome, never padded; an extraction or writing outage
  * fails the stage instead. Items already chosen for an earlier pass of the same run are withheld,
  * so the weekly digest never repeats the regular one published minutes before it.

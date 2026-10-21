@@ -129,7 +129,6 @@ export interface RunSpendInput {
 
 const STAGE: Record<string, string> = {
   anthropic: "write",
-  nebius: "llm",
   gemini: "extract",
   typesafe: "judge",
   exa: "fetch",
@@ -138,7 +137,7 @@ const STAGE: Record<string, string> = {
 
 /**
  * The paid calls of one run's spend: token units as the providers reported them (Anthropic,
- * Nebius, Gemini), and request counts for the services that bill per request (Jev, Exa) or per
+ * Gemini), and request counts for the services that bill per request (Jev, Exa) or per
  * credit (Firecrawl, counted at one credit a request, so marked estimated).
  */
 export function callsFromSpend(

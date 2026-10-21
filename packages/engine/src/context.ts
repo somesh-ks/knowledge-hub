@@ -36,7 +36,8 @@ export function redact(text: string, secrets: readonly string[]): string {
 export function secretsFromEnv(env: Env): string[] {
   const keys = [
     env.TYPESAFE_API_KEY,
-    env.NEBIUS_API_KEY,
+    env.ANTHROPIC_API_KEY,
+    env.GEMINI_API_KEY,
     env.EXA_API_KEY,
     env.FIRECRAWL_API_KEY,
     env.SPEECHIFY_API_KEY,

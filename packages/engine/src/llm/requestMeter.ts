@@ -1,7 +1,6 @@
 import { EXA_BASE_URL } from "../fetch/exa.js";
 import type { HttpClient } from "../http.js";
 import type { JevClientLike } from "../judge/jev.js";
-import type { ChatApi } from "./nebiusClient.js";
 
 /** The key of one reported unit in the meter and in the run's spend file. */
 export const unitKey = (provider: string, product: string, unit: string): string =>
@@ -82,20 +81,6 @@ export function meterExa(http: HttpClient, meter: RequestMeter): HttpClient {
     postJson(url, body, options) {
       count(url);
       return http.postJson(url, body, options);
-    },
-  };
-}
-
-/** A Nebius chat API that counts every request, retries included. */
-export function meterChat(api: ChatApi, meter: RequestMeter): ChatApi {
-  return {
-    async createChatCompletion(body, options) {
-      meter.add("nebius");
-      const response = await api.createChatCompletion(body, options);
-      const model = typeof body.model === "string" ? body.model : "unknown";
-      meter.addUnits("nebius", model, "input_tokens", response.usage?.prompt_tokens ?? 0);
-      meter.addUnits("nebius", model, "output_tokens", response.usage?.completion_tokens ?? 0);
-      return response;
     },
   };
 }

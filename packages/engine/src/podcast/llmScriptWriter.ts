@@ -13,9 +13,6 @@ import {
 } from "./prompt.js";
 import type { ScriptInput, ScriptWriter, TurnRewrite } from "./types.js";
 
-/** Spoken prose needs a little more freedom than a summary, but facts stay tied to the source. */
-export const SCRIPT_TEMPERATURE = 0.4;
-const REWRITE_TEMPERATURE = 0.2;
 const REWRITE_MAX_TOKENS = 400;
 /** Per-turn JSON overhead and the model's own slack, on top of the speech itself. */
 const SCRIPT_TOKEN_OVERHEAD = 600;
@@ -36,21 +33,21 @@ export type ScriptReply = z.infer<typeof ScriptReply>;
 
 const RewriteReply = z.object({ text: z.string() });
 
-export interface NebiusScriptWriterOptions {
+export interface LlmScriptWriterOptions {
   llm: LlmClient;
   log?: Logger;
   secrets?: readonly string[];
 }
 
 /**
- * ScriptWriter over a Nebius model, in the same shape as NebiusWriter: stories reach the model
+ * ScriptWriter over the routed script models, in the same shape as LlmWriter: stories reach the model
  * only inside random boundary markers, the client validates the reply against a schema, and the
  * spend guard's error always propagates.
  */
-export class NebiusScriptWriter implements ScriptWriter {
-  private readonly options: NebiusScriptWriterOptions;
+export class LlmScriptWriter implements ScriptWriter {
+  private readonly options: LlmScriptWriterOptions;
 
-  constructor(options: NebiusScriptWriterOptions) {
+  constructor(options: LlmScriptWriterOptions) {
     this.options = options;
   }
 
@@ -66,7 +63,7 @@ export class NebiusScriptWriter implements ScriptWriter {
         { role: "system", content: scriptSystemPrompt(input, boundary) },
         { role: "user", content: scriptUserMessage(input, boundary, problems) },
       ],
-      temperature: SCRIPT_TEMPERATURE,
+      step: "podcast_script",
       maxTokens,
       label: "podcast_script",
       ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
@@ -87,7 +84,7 @@ export class NebiusScriptWriter implements ScriptWriter {
         },
         { role: "user", content: scriptUserMessage(input, boundary, []) },
       ],
-      temperature: SCRIPT_TEMPERATURE,
+      step: "podcast_opening",
       maxTokens: OPENING_MAX_TOKENS,
       label: "podcast_opening",
       ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
@@ -105,7 +102,7 @@ export class NebiusScriptWriter implements ScriptWriter {
           { role: "system", content: rewriteSystemPrompt(boundary) },
           { role: "user", content: rewriteUserMessage(input, boundary) },
         ],
-        temperature: REWRITE_TEMPERATURE,
+        step: "podcast_rewrite",
         maxTokens: REWRITE_MAX_TOKENS,
         label: "podcast_rewrite",
       });

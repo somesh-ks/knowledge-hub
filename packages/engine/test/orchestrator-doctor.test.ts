@@ -5,24 +5,19 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeDoctorCommand } from "../src/commands/doctor.js";
 import type { GitResult, GitRunner } from "../src/git/runGit.js";
 import type { DoctorDeps, DoctorReport } from "../src/ops/doctor.js";
-import { similarModels } from "../src/ops/doctor.js";
 import type { BlobClient } from "../src/publish/blob.js";
 import { captureStdout, makeContext } from "./curate-helpers.js";
 import { json, sourcesFile } from "./orchestrator-fixtures.js";
-import { FIXTURE_CONFIG } from "./score-factories.js";
+import { FIXTURE_CONFIG, REPO_ROOT } from "./score-factories.js";
 
 const SECRETS = {
   TYPESAFE_API_KEY: "ts-secret-111111111111",
-  NEBIUS_API_KEY: "nb-secret-222222222222",
+  ANTHROPIC_API_KEY: "an-secret-222222222222",
   EXA_API_KEY: "exa-secret-333333333333",
   FIRECRAWL_API_KEY: "fc-secret-444444444444",
   SPEECHIFY_API_KEY: "sp-secret-555555555555",
   BLOB_READ_WRITE_TOKEN: "blob-secret-666666666666",
   VERCEL_TOKEN: "vc-secret-777777777777",
-};
-const MODELS = {
-  DISPATCH_MODEL: "Qwen/Qwen3-235B-A22B-Instruct-2507",
-  DISPATCH_FALLBACK_MODEL: "openai/gpt-oss-120b",
 };
 
 let root: string;
@@ -32,6 +27,7 @@ beforeEach(async () => {
     await mkdir(dirname(join(root, file)), { recursive: true });
     await cp(join(FIXTURE_CONFIG, basename(file)), join(root, file));
   }
+  await cp(join(REPO_ROOT, "config/models.json"), join(root, "config/models.json"));
   await writeFile(join(root, "config/sources.json"), json(sourcesFile()), "utf8");
   await writeFile(
     join(root, "config/queries.json"),
@@ -61,8 +57,7 @@ function reply(status: number, body: unknown): Response {
 }
 
 const GOOD_ROUTES: Record<string, () => Response> = {
-  "https://api.tokenfactory.nebius.com/v1/models": () =>
-    reply(200, { data: [{ id: MODELS.DISPATCH_MODEL }, { id: MODELS.DISPATCH_FALLBACK_MODEL }] }),
+  "https://api.anthropic.com/v1/models?limit=1": () => reply(200, { data: [] }),
   "https://api.exa.ai/search": () => reply(200, { results: [] }),
   "https://api.firecrawl.dev/v2/team/credit-usage": () =>
     reply(200, { success: true, data: { remainingCredits: 950 } }),
@@ -211,9 +206,9 @@ describe("doctor: offline", () => {
 
   it("lists key names as set or missing and never prints a value", async () => {
     const { report, stdout } = await doctor([], {
-      env: { NEBIUS_API_KEY: SECRETS.NEBIUS_API_KEY, EXA_API_KEY: SECRETS.EXA_API_KEY },
+      env: { ANTHROPIC_API_KEY: SECRETS.ANTHROPIC_API_KEY, EXA_API_KEY: SECRETS.EXA_API_KEY },
     });
-    expect(check(report, "key.NEBIUS_API_KEY")).toMatchObject({ status: "ok", summary: "set" });
+    expect(check(report, "key.ANTHROPIC_API_KEY")).toMatchObject({ status: "ok", summary: "set" });
     expect(check(report, "key.TYPESAFE_API_KEY").status).toBe("warn");
     expect(check(report, "key.TYPESAFE_API_KEY").hint).toContain("unverified");
     expect(check(report, "key.COMPOSIO_API_KEY")).toMatchObject({
@@ -221,37 +216,6 @@ describe("doctor: offline", () => {
       summary: "not set (optional)",
     });
     for (const value of Object.values(SECRETS)) expect(stdout).not.toContain(value);
-  });
-
-  it("reports a missing Anthropic key only when the writer is on Anthropic", async () => {
-    await writeFile(
-      join(root, "config/writer.json"),
-      '{"version":1,"provider":"nebius","model":null}\n',
-      "utf8",
-    );
-    const off = await doctor([]);
-    expect(off.report?.checks.some((c) => c.id === "key.ANTHROPIC_API_KEY")).toBe(false);
-    await writeFile(
-      join(root, "config/writer.json"),
-      '{"version":1,"provider":"anthropic","model":"claude-haiku-5-5"}\n',
-      "utf8",
-    );
-    const missing = await doctor([]);
-    expect(check(missing.report, "key.ANTHROPIC_API_KEY")).toMatchObject({ status: "warn" });
-    const set = await doctor([], { env: { ANTHROPIC_API_KEY: "an-secret-888888888888" } });
-    expect(check(set.report, "key.ANTHROPIC_API_KEY")).toMatchObject({ status: "ok" });
-    expect(set.stdout).not.toContain("an-secret-888888888888");
-  });
-
-  it("checks that the model ids are set", async () => {
-    const missing = await doctor([]);
-    expect(check(missing.report, "model.DISPATCH_MODEL")).toMatchObject({ status: "warn" });
-    expect(check(missing.report, "model.DISPATCH_MODEL").hint).toContain("dispatch models");
-    const set = await doctor([], { env: MODELS });
-    expect(check(set.report, "model.DISPATCH_MODEL")).toMatchObject({
-      status: "ok",
-      summary: `set (${MODELS.DISPATCH_MODEL})`,
-    });
   });
 
   it("prints ok, warn and fail with fix hints as text, and totals", async () => {
@@ -265,7 +229,7 @@ describe("doctor: offline", () => {
 
   it("makes no network request without --online", async () => {
     const net = fakeFetch();
-    await doctor([], { env: { ...SECRETS, ...MODELS }, deps: { fetchImpl: net.fetchImpl } });
+    await doctor([], { env: { ...SECRETS }, deps: { fetchImpl: net.fetchImpl } });
     expect(net.calls).toEqual([]);
   });
 
@@ -275,7 +239,7 @@ describe("doctor: offline", () => {
 });
 
 describe("doctor: --online", () => {
-  const env = { ...SECRETS, ...MODELS };
+  const env = { ...SECRETS };
 
   it("passes every service check when the services answer", async () => {
     const net = fakeFetch();
@@ -285,9 +249,7 @@ describe("doctor: --online", () => {
     });
     expect(code).toBe(0);
     expect(report?.online).toBe(true);
-    expect(check(report, "online.nebius").summary).toContain("2 models listed");
-    expect(check(report, "online.model.DISPATCH_MODEL").status).toBe("ok");
-    expect(check(report, "online.model.DISPATCH_FALLBACK_MODEL").status).toBe("ok");
+    expect(check(report, "online.anthropic").status).toBe("ok");
     expect(check(report, "online.jev").status).toBe("ok");
     expect(check(report, "online.exa").status).toBe("ok");
     expect(check(report, "online.firecrawl").summary).toBe("950 credits left");
@@ -329,15 +291,15 @@ describe("doctor: --online", () => {
   it("sends each key only to its own service and never prints one", async () => {
     const net = fakeFetch();
     const { stdout } = await doctor(["--online"], { env, deps: { fetchImpl: net.fetchImpl } });
-    const nebius = net.calls.find((c) => c.url.includes("nebius"));
-    expect(nebius?.headers.authorization).toBe(`Bearer ${SECRETS.NEBIUS_API_KEY}`);
+    const anthropic = net.calls.find((c) => c.url.includes("anthropic"));
+    expect(anthropic?.headers["x-api-key"]).toBe(SECRETS.ANTHROPIC_API_KEY);
     expect(net.calls.find((c) => c.url.includes("exa.ai"))?.headers["x-api-key"]).toBe(
       SECRETS.EXA_API_KEY,
     );
     for (const call of net.calls) {
       for (const [name, value] of Object.entries(SECRETS)) {
-        const owner = call.url.includes("nebius")
-          ? "NEBIUS"
+        const owner = call.url.includes("anthropic")
+          ? "ANTHROPIC"
           : call.url.includes("exa")
             ? "EXA"
             : call.url.includes("firecrawl")
@@ -351,50 +313,23 @@ describe("doctor: --online", () => {
     for (const value of Object.values(SECRETS)) expect(stdout).not.toContain(value);
   });
 
-  it("fails when DISPATCH_MODEL left the serverless tier, and suggests the family", async () => {
-    const { code, report } = await doctor(["--online"], {
-      env: { ...env, DISPATCH_MODEL: "Qwen/Qwen3-32B" },
-    });
-    expect(code).toBe(1);
-    const failed = check(report, "online.model.DISPATCH_MODEL");
-    expect(failed.status).toBe("fail");
-    expect(failed.summary).toContain("Qwen/Qwen3-32B is not in the live model list");
-    expect(failed.hint).toContain("dispatch models");
-    expect(failed.hint).toContain("Qwen/Qwen3-235B-A22B-Instruct-2507");
-    expect(check(report, "online.model.DISPATCH_FALLBACK_MODEL").status).toBe("ok");
-  });
-
-  it("fails on a retired fallback id independently of the primary", async () => {
-    const { report } = await doctor(["--online"], {
-      env: { ...env, DISPATCH_FALLBACK_MODEL: "meta-llama/Llama-3.1-405B" },
-    });
-    expect(check(report, "online.model.DISPATCH_FALLBACK_MODEL").status).toBe("fail");
-    expect(check(report, "online.model.DISPATCH_MODEL").status).toBe("ok");
-  });
-
-  it("warns about unset model ids instead of failing", async () => {
-    const { code, report } = await doctor(["--online"], { env: SECRETS });
-    expect(code).toBe(0);
-    expect(check(report, "online.model.DISPATCH_MODEL").status).toBe("warn");
-  });
-
   it("fails a rejected key without echoing it", async () => {
     const net = fakeFetch({
       ...GOOD_ROUTES,
-      "https://api.tokenfactory.nebius.com/v1/models": () =>
-        reply(401, { error: SECRETS.NEBIUS_API_KEY }),
+      "https://api.anthropic.com/v1/models?limit=1": () =>
+        reply(401, { error: SECRETS.ANTHROPIC_API_KEY }),
     });
     const { code, report, stdout } = await doctor(["--online"], {
       env,
       deps: { fetchImpl: net.fetchImpl },
     });
     expect(code).toBe(1);
-    expect(check(report, "online.nebius")).toMatchObject({
+    expect(check(report, "online.anthropic")).toMatchObject({
       status: "fail",
-      summary: "Nebius rejected the key (HTTP 401)",
+      summary: "Anthropic rejected the key (HTTP 401)",
     });
-    expect(check(report, "online.nebius").hint).toContain("NEBIUS_API_KEY");
-    expect(stdout).not.toContain(SECRETS.NEBIUS_API_KEY);
+    expect(check(report, "online.anthropic").hint).toContain("ANTHROPIC_API_KEY");
+    expect(stdout).not.toContain(SECRETS.ANTHROPIC_API_KEY);
   });
 
   it("warns, not fails, when a service is rate limited or down", async () => {
@@ -438,7 +373,7 @@ describe("doctor: --online", () => {
       deps: { fetchImpl: hang, timeoutMs: 20 },
     });
     expect(code).toBe(1);
-    expect(check(report, "online.nebius").summary).toContain("timed out after 20 ms");
+    expect(check(report, "online.anthropic").summary).toContain("timed out after 20 ms");
   });
 
   it("checks Jev with a trivial question, and maps its errors", async () => {
@@ -535,7 +470,7 @@ describe("doctor: --online", () => {
     expect(code).toBe(0);
     expect(net.calls).toEqual([]);
     for (const id of [
-      "online.nebius",
+      "online.anthropic",
       "online.jev",
       "online.exa",
       "online.firecrawl",
@@ -552,21 +487,5 @@ describe("doctor: --online", () => {
     const counted = { ok: 0, warn: 0, fail: 0 };
     for (const c of report?.checks ?? []) counted[c.status] += 1;
     expect(report?.totals).toEqual(counted);
-  });
-});
-
-describe("similarModels", () => {
-  const ids = [
-    "Qwen/Qwen3-235B-A22B-Instruct-2507",
-    "openai/gpt-oss-120b",
-    "meta-llama/Llama-3.3-70B-Instruct",
-  ];
-
-  it("suggests ids from the same family", () => {
-    expect(similarModels("Qwen/Qwen3-32B", ids)).toEqual(["Qwen/Qwen3-235B-A22B-Instruct-2507"]);
-  });
-
-  it("suggests nothing for a family it cannot recognise", () => {
-    expect(similarModels("x/ab", ids)).toEqual([]);
   });
 });

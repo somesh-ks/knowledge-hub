@@ -14,7 +14,7 @@ const SpendFile = z.object({
   version: z.literal(1),
   /** The plan's `created_at`; a file from another run is ignored. */
   run: z.string(),
-  /** Jev, Nebius and Exa requests. */
+  /** Jev, Exa and model-fallback counts. */
   requests: z.record(z.string(), count),
   /** Tokens and other units the providers reported, by `provider|product|unit`. */
   units: z.record(z.string(), z.number().nonnegative()).optional(),
@@ -37,7 +37,7 @@ export type SpendTotals = Pick<
 
 /**
  * Paid requests of one run, across stages that may be separate processes. The meter counts Jev,
- * Nebius and Exa where they leave the process; the guard counts Firecrawl and enforces its
+ * Exa where they leave the process; the guard counts Firecrawl and enforces its
  * ceiling. Each stage calls `begin` first and `save` last (also on failure), so the commit stage
  * can report the whole run.
  */

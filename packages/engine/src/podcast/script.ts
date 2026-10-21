@@ -4,7 +4,7 @@ import { BudgetExceededError, describeError } from "../llm/errors.js";
 import type { Taste } from "../profile/tasteNote.js";
 import { checkTurns } from "./check.js";
 import { charCount, fitToBudget, mergeNeighbours } from "./fit.js";
-import { ScriptReply } from "./nebiusScriptWriter.js";
+import { ScriptReply } from "./llmScriptWriter.js";
 import {
   partChars,
   reachableChars,

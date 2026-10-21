@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "families": {
+    "jev": { "fallback_id": "jev-1.14.0" },
+    "claude-sonnet": { "fallback_id": "claude-sonnet-5-5" },
+    "claude-haiku": { "fallback_id": "claude-haiku-5-5" },
+    "gemini-flash": { "fallback_id": "gemini-3.8-flash" },
+    "gemini-flash-lite": { "fallback_id": "gemini-3.5-flash-lite" }
+  },
+  "steps": {
+    "judge": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "claude-haiku", "effort": "low", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
+    "taste_fit": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "claude-haiku", "effort": "low", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
+    "source_format": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "claude-haiku", "effort": "low", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
+    "topic_emoji": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "claude-haiku", "effort": "low", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
+    "grounding": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "gemini-flash", "timeout_ms": 60000 }, { "family": "claude-haiku", "effort": "low", "timeout_ms": 60000 }] },
+    "story_writer": { "chain": [{ "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
+    "story_rewrite": { "chain": [{ "family": "claude-sonnet", "effort": "low", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
+    "podcast_script": { "chain": [{ "family": "claude-sonnet", "effort": "high", "timeout_ms": 240000 }, { "family": "gemini-flash", "timeout_ms": 240000 }] },
+    "podcast_opening": { "chain": [{ "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
+    "podcast_rewrite": { "chain": [{ "family": "claude-sonnet", "effort": "low", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
+    "transcription": { "chain": [{ "family": "gemini-flash-lite", "timeout_ms": 180000 }, { "family": "gemini-flash", "timeout_ms": 180000 }] },
+    "fact_extraction": { "chain": [{ "family": "claude-haiku", "effort": "low", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] }
+  }
+}

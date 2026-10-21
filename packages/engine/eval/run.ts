@@ -1,47 +1,38 @@
 #!/usr/bin/env tsx
 /**
  * Golden-set evaluation for the curation half of the engine. It runs on demand only: it calls
- * TypeSafe Jev and Nebius Token Factory with your keys, so it never runs in CI or in the unit
- * tests (the pure comparison logic in compare.ts is what the tests cover).
+ * TypeSafe Jev and the routed Claude or Gemini models with your keys, so it never runs in CI or in
+ * the unit tests (the pure comparison logic in compare.ts is what the tests cover).
  *
- *   npx tsx packages/engine/eval/run.ts [--only judges,grounding,bakeoff] [--models a,b]
- *                                       [--thinking <spec>] [--json]
+ *   npx tsx packages/engine/eval/run.ts [--only judges,grounding] [--json]
  *
  * Needs, in the environment or in .env:
- *   judges     TYPESAFE_API_KEY for Jev, NEBIUS_API_KEY and DISPATCH_MODEL for the fallback judge.
+ *   judges     TYPESAFE_API_KEY for Jev, ANTHROPIC_API_KEY or GEMINI_API_KEY for the fallback judge.
  *              With both, the two are compared. With one, that judge is scored alone.
  *   grounding  TYPESAFE_API_KEY. Sweeps the grounding threshold over eval/golden/grounding.json.
- *   bakeoff    NEBIUS_API_KEY and models from --models (default DISPATCH_MODEL and
- *              DISPATCH_FALLBACK_MODEL). Scores voice-lint pass rate on eval/golden/pool.json.
  *
- * Spend is small (a few cents), and the Nebius token guard (MAX_TOKENS_PER_RUN) applies per model.
- * Use the output to set DEFAULT_SCORE_THRESHOLD, DEFAULT_GROUNDING_THRESHOLD and DISPATCH_MODEL.
+ * Spend is small (a few cents). Use the output to set DEFAULT_SCORE_THRESHOLD and
+ * DEFAULT_GROUNDING_THRESHOLD.
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
-import { type Env, type JudgmentEntry, loadEnv, repoRoot } from "@dispatch/core";
+import { type Env, type JudgmentEntry, loadEnv, loadModelRouting, repoRoot } from "@dispatch/core";
 import { type Logger, secretsFromEnv } from "../src/context.js";
 import { loadPreferences } from "../src/curate/inputs.js";
 import { JevJudge } from "../src/judge/jev.js";
 import { createJevClient } from "../src/judge/jevClient.js";
-import { NebiusJudge } from "../src/judge/nebiusJudge.js";
+import { LlmJudge } from "../src/judge/llmJudge.js";
 import type { Judge, JudgeFailure } from "../src/judge/types.js";
 import { describeError } from "../src/llm/errors.js";
-import { createNebiusLlm } from "../src/llm/nebiusClient.js";
-import { createOpenAiChatApi } from "../src/llm/openAiChatApi.js";
-import { parseThinkingOff } from "../src/llm/thinking.js";
+import { resolveFamilies } from "../src/llm/modelResolver.js";
+import { createModelRouter } from "../src/llm/modelRouter.js";
 import { TokenBudget } from "../src/llm/tokenBudget.js";
 import { scoreItem } from "../src/score/scoreItem.js";
 import { DEFAULT_SCORE_THRESHOLD } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { JevGrounder } from "../src/validate/grounding.js";
-import { createLinter, VOICE_FIELDS } from "../src/voice/lint.js";
-import { loadVoice } from "../src/voice/voice.js";
-import { enforceVoice } from "../src/write/enforceVoice.js";
-import { NebiusWriter } from "../src/write/nebiusWriter.js";
-import type { SourceMaterial, WrittenItem } from "../src/write/types.js";
 import {
   bestGroundingRow,
   bestSweepRow,
@@ -57,12 +48,8 @@ import {
   parseGroundingCases,
   ratesOf,
   thresholdSweep,
-  type VoiceSample,
-  voiceReport,
 } from "./compare.js";
 import {
-  type BakeoffRow,
-  bakeoffTable,
   groundingTable,
   percent,
   sweepTable,
@@ -110,17 +97,19 @@ async function runJudges(env: Env, golden: GoldenEntry[], root: string): Promise
       failures,
     });
   }
-  if (env.NEBIUS_API_KEY && env.DISPATCH_MODEL) {
+  if (env.ANTHROPIC_API_KEY || env.GEMINI_API_KEY) {
     const failures: JudgeFailure[] = [];
-    const llm = createNebiusLlm({
-      api: createOpenAiChatApi(env),
-      model: env.DISPATCH_MODEL,
+    const routing = loadModelRouting(root);
+    const llm = createModelRouter({
+      routing,
+      resolve: () => resolveFamilies({ routing, env, log: quiet }),
+      env,
       budget: new TokenBudget(env.MAX_TOKENS_PER_RUN),
       log: quiet,
-    });
+    }).llmFor("judge");
     judges.push({
-      label: "nebius",
-      judge: new NebiusJudge({ llm, onFailure: onFailure(failures), log: quiet, secrets }),
+      label: "llm",
+      judge: new LlmJudge({ llm, onFailure: onFailure(failures), log: quiet, secrets }),
       failures,
     });
   }
@@ -162,11 +151,11 @@ async function runJudges(env: Env, golden: GoldenEntry[], root: string): Promise
     data[label] = { answered: entries.length, failures, atDefault, category, sweep, best };
   }
   const jev = scoredBy.get("jev");
-  const nebius = scoredBy.get("nebius");
-  if (jev && nebius) {
-    const agreement = judgeAgreement(jev, nebius);
+  const llmScores = scoredBy.get("llm");
+  if (jev && llmScores) {
+    const agreement = judgeAgreement(jev, llmScores);
     text.push(
-      `## Agreement, Jev against the Nebius fallback`,
+      `## Agreement, Jev against the routed fallback judge`,
       `compared ${agreement.compared}: same category ${percent(agreement.category)}, same keep or drop ${percent(agreement.keep)}`,
       "",
     );
@@ -207,131 +196,18 @@ async function runGrounding(env: Env, golden: GoldenEntry[]): Promise<Section | 
   };
 }
 
-/** Fields the writer produces for each item: the headline and the summary. */
-const WRITER_FIELD_COUNT = 2;
-
-async function runBakeoff(
-  env: Env,
-  golden: GoldenEntry[],
-  models: string[],
-  thinkingSpec: string | undefined,
-  root: string,
-): Promise<Section | null> {
-  if (!env.NEBIUS_API_KEY || models.length === 0) return null;
-  const voice = await loadVoice(root);
-  const linter = createLinter(voice);
-  const withText = golden.filter((g) => g.expected.keep && g.source_text);
-  const materials: SourceMaterial[] = withText.map((g) => ({
-    id: g.id,
-    title: g.title,
-    source: g.source_id,
-    ...(g.author ? { author: g.author } : {}),
-    category: g.expected.category as SourceMaterial["category"],
-    text: g.source_text as string,
-  }));
-  const byId = new Map(materials.map((m) => [m.id, m]));
-  const grounder = env.TYPESAFE_API_KEY
-    ? new JevGrounder({ client: createJevClient(env), log: quiet, secrets })
-    : null;
-  const rows: BakeoffRow[] = [];
-  const notes: string[] = [];
-
-  // The writer produces a headline and a summary; a field an item lacks is not counted.
-  const sampleOf = (item: WrittenItem): VoiceSample => {
-    const checked = VOICE_FIELDS.flatMap((field) => {
-      const text = item[field];
-      return text === undefined ? [] : [linter.lint(field, text)];
-    });
-    return {
-      id: item.id,
-      rules: checked.flat().map((v) => v.rule),
-      fields: checked.length,
-      failingFields: checked.filter((violations) => violations.length > 0).length,
-    };
-  };
-
-  for (const model of models) {
-    const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
-    const llm = createNebiusLlm({
-      api: createOpenAiChatApi(env),
-      model,
-      budget,
-      thinkingOff: parseThinkingOff(thinkingSpec),
-      log: quiet,
-    });
-    const writer = new NebiusWriter({ llm, voice, log: quiet, secrets });
-    const result = await writer.write(materials);
-    const firstPass = voiceReport(result.written.map(sampleOf));
-    const outcome = await enforceVoice({
-      written: result.written,
-      materials: byId,
-      writer,
-      linter,
-    });
-    const afterRewrite = voiceReport([
-      ...outcome.passed.map((p) => sampleOf(p.item)),
-      ...outcome.dropped.map((d) => ({
-        id: d.id,
-        rules: d.violations.map((v) => v.rule),
-        fields: WRITER_FIELD_COUNT,
-        failingFields: 1,
-      })),
-    ]);
-    let grounded: number | null = null;
-    if (grounder) {
-      let supported = 0;
-      let total = 0;
-      for (const item of result.written) {
-        const verdict = await grounder.ground({
-          id: item.id,
-          summary: item.summary,
-          ...(item.why ? { why: item.why } : {}),
-          sourceText: byId.get(item.id)?.text ?? "",
-        });
-        for (const s of verdict.sentences) {
-          total += 1;
-          if (s.status === "supported") supported += 1;
-        }
-      }
-      grounded = total === 0 ? 0 : supported / total;
-    }
-    rows.push({
-      model,
-      jsonFailures: result.failed.length,
-      written: result.written.length,
-      firstPass,
-      afterRewrite,
-      grounded,
-      tokens: budget.used,
-    });
-    notes.push(`${model}: most common lint breaks on the first pass: ${topRules(firstPass)}`);
-  }
-  return {
-    name: "bakeoff",
-    text: [
-      `## Writer bake-off (${materials.length} golden items, one with an injected instruction in its source)`,
-      bakeoffTable(rows),
-      ...notes,
-      "",
-    ],
-    data: { rows },
-  };
-}
-
 export async function main(argv: string[]): Promise<number> {
   const { values } = parseArgs({
     args: argv,
     options: {
       only: { type: "string" },
-      models: { type: "string" },
-      thinking: { type: "string" },
       json: { type: "boolean" },
       help: { type: "boolean" },
     },
   });
   if (values.help) {
     console.log(
-      "Usage: npx tsx packages/engine/eval/run.ts [--only judges,grounding,bakeoff] [--models a,b] [--thinking <spec>] [--json]\nRuns on demand with real keys; see the header of this file.",
+      "Usage: npx tsx packages/engine/eval/run.ts [--only judges,grounding] [--thinking <spec>] [--json]\nRuns on demand with real keys; see the header of this file.",
     );
     return 0;
   }
@@ -344,19 +220,12 @@ export async function main(argv: string[]): Promise<number> {
   const env = loadEnv();
   secrets = secretsFromEnv(env);
   const golden = await readGolden("pool.json", parseGolden);
-  const only = new Set((values.only ?? "judges,grounding,bakeoff").split(",").map((s) => s.trim()));
-  const models = (
-    values.models ?? [env.DISPATCH_MODEL, env.DISPATCH_FALLBACK_MODEL].filter(Boolean).join(",")
-  )
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const only = new Set((values.only ?? "judges,grounding").split(",").map((s) => s.trim()));
 
   const sections: Section[] = [];
   const attempts: Array<[string, () => Promise<Section | null>]> = [
     ["judges", () => runJudges(env, golden, root)],
     ["grounding", () => runGrounding(env, golden)],
-    ["bakeoff", () => runBakeoff(env, golden, models, values.thinking, root)],
   ];
   for (const [name, attempt] of attempts) {
     if (!only.has(name)) continue;
@@ -366,7 +235,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   if (sections.length === 0) {
     console.error(
-      "Nothing ran. Set TYPESAFE_API_KEY and/or NEBIUS_API_KEY and DISPATCH_MODEL (see .env.example).",
+      "Nothing ran. Set TYPESAFE_API_KEY and/or ANTHROPIC_API_KEY or GEMINI_API_KEY (see .env.example).",
     );
     return 1;
   }

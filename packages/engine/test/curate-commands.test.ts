@@ -59,7 +59,7 @@ function factoryFor(
       grounder: options.grounded === false ? null : keywordGrounder,
       extract: async (item) => longText(item),
       judgeFailures: [],
-      usage: () => ({ nebiusTokens: 1234, nebiusTokenLimit: 400_000 }),
+      usage: () => ({ tokens: 1234, tokenLimit: 400_000 }),
     }),
   };
 }
@@ -97,10 +97,10 @@ describe("dispatch curate: api mode", () => {
     ).toHaveLength(6);
     const report = (await readJson(runPath("curate-report.json"))) as {
       counts: { final: number };
-      usage: { nebiusTokens: number };
+      usage: { tokens: number };
     };
     expect(report.counts.final).toBe(6);
-    expect(report.usage.nebiusTokens).toBe(1234);
+    expect(report.usage.tokens).toBe(1234);
   });
 
   it("never writes a key or fetched text to any output file", async () => {
@@ -235,24 +235,13 @@ describe("dispatch curate: errors", () => {
     ).toBe(true);
   });
 
-  it("fails clearly when NEBIUS_API_KEY is missing, without printing any value", async () => {
-    await seedPool(5);
-    const { ctx, logs } = makeContext(tr.root, {
-      env: { TYPESAFE_API_KEY: "tsk-secret-9876543210" },
-    });
-    expect(await cmd([], ctx)).toBe(1);
-    const text = JSON.stringify(logs);
-    expect(text).toContain("NEBIUS_API_KEY is not set");
-    expect(text).not.toContain("tsk-secret-9876543210");
-  });
-
-  it("fails clearly when DISPATCH_MODEL is missing, using the real runtime", async () => {
+  it("fails clearly when no model key is set, using the real runtime, without printing any value", async () => {
     await seedPool(5);
     const real = makeCurateCommand();
-    const { ctx, logs } = makeContext(tr.root, { env: { NEBIUS_API_KEY: SECRET } });
+    const { ctx, logs } = makeContext(tr.root, { env: { TYPESAFE_API_KEY: SECRET } });
     expect(await real([], ctx)).toBe(1);
     const text = JSON.stringify(logs);
-    expect(text).toContain("DISPATCH_MODEL is not set");
+    expect(text).toContain("ANTHROPIC_API_KEY or GEMINI_API_KEY");
     expect(text).not.toContain(SECRET);
   });
 

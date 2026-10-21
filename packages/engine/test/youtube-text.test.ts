@@ -38,12 +38,12 @@ describe("YouTube video text", () => {
   it("reads captions first, transcribes only without them, and never repeats a video", async () => {
     const cachePath = join(mkdtempSync(join(tmpdir(), "video-text-")), "video-text.json");
     const withCaptions = fakeNet({ captions: true });
-    const first = createVideoText({ apiKey: "k", cachePath, fetchImpl: withCaptions.fn });
+    const first = createVideoText({ apiKey: "k", models: async () => ["m"], cachePath, fetchImpl: withCaptions.fn });
     expect((await first(video))?.method).toBe("captions");
     expect(withCaptions.calls).not.toContain("gemini");
 
     const again = fakeNet({ captions: true });
-    const second = createVideoText({ apiKey: "k", cachePath, fetchImpl: again.fn });
+    const second = createVideoText({ apiKey: "k", models: async () => ["m"], cachePath, fetchImpl: again.fn });
     expect((await second(video))?.method).toBe("captions");
     expect(again.calls).toEqual([]);
 
@@ -52,7 +52,7 @@ describe("YouTube video text", () => {
       url: "https://www.youtube.com/watch?v=zzzzzzzzzzz",
       source_type: "youtube",
     });
-    const third = createVideoText({ apiKey: "k", cachePath, fetchImpl: none.fn });
+    const third = createVideoText({ apiKey: "k", models: async () => ["m"], cachePath, fetchImpl: none.fn });
     expect((await third(other))?.method).toBe("transcription");
     expect(none.calls).toContain("gemini");
   });

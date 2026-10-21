@@ -27,7 +27,6 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
 import { readSourceCandidates } from "../state/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
-import { loadWriterForEdit, serializeWriter } from "../writer/store.js";
 
 const USAGE = `Usage: dispatch config <command>
 
@@ -50,7 +49,6 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"mix.set","format_mix":{"video":"Less","forum":1.1}}
   {"op":"topic.mix","id":"world","perspective":-1}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
-  {"op":"writer.set","provider":"nebius","model":null}
   {"op":"profile.block","domain":"example.com"}
   {"op":"profile.unblock","domain":"example.com"}`;
 
@@ -83,11 +81,10 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
 
 async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
-  const [topics, schedule, writer, sourcesUser, registry, queries, candidates, profile] =
+  const [topics, schedule, sourcesUser, registry, queries, candidates, profile] =
     await Promise.all([
       loadTopics(root, preferences),
       loadSchedule(root),
-      loadWriterForEdit(root),
       loadUserSources(root),
       loadSources(root),
       loadQueries(root),
@@ -98,7 +95,6 @@ async function readBundle(root: string): Promise<ConfigBundle> {
     topics,
     preferences,
     schedule,
-    writer,
     sourcesUser,
     registry,
     queries,
@@ -113,7 +109,6 @@ function renderBundle(bundle: ConfigBundle): Record<string, string> {
     [CONFIG_FILES.topics]: serializeTopics(bundle.topics),
     [CONFIG_FILES.preferences]: serializePreferences(bundle.preferences),
     [CONFIG_FILES.schedule]: serializeSchedule(bundle.schedule),
-    [CONFIG_FILES.writer]: serializeWriter(bundle.writer),
     [CONFIG_FILES.sourcesUser]: serializeUserSources(SourcesUserFile.parse(bundle.sourcesUser)),
     [profilePath(bundle.profile.user_id)]: serializeProfile(bundle.profile),
     [QUERIES_PATH]: serializeQueries(bundle.queries),

@@ -25,8 +25,6 @@ import type {
 
 /** Items per request, so one bad source cannot sink the whole run. */
 export const WRITER_BATCH_SIZE = 4;
-/** Low temperature keeps summaries close to the source. */
-export const WRITER_TEMPERATURE = 0.2;
 const WRITER_CONCURRENCY = 4;
 /**
  * Output allowance per written item and per rewritten field. A headline plus an 80-word summary
@@ -88,7 +86,7 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return out;
 }
 
-export interface NebiusWriterOptions {
+export interface LlmWriterOptions {
   llm: LlmClient;
   voice: VoiceConfig;
   log?: Logger;
@@ -96,14 +94,14 @@ export interface NebiusWriterOptions {
 }
 
 /**
- * Writer over a Nebius model. Source text is wrapped in random per-request boundary markers and
+ * Writer over the routed story models. Source text is wrapped in random per-request boundary markers and
  * the model is told it is data to summarize, never instructions. Output is schema-validated by
  * the client; facts come from the source text only.
  */
-export class NebiusWriter implements Writer {
-  private readonly options: NebiusWriterOptions;
+export class LlmWriter implements Writer {
+  private readonly options: LlmWriterOptions;
 
-  constructor(options: NebiusWriterOptions) {
+  constructor(options: LlmWriterOptions) {
     this.options = options;
   }
 
@@ -144,7 +142,7 @@ export class NebiusWriter implements Writer {
           { role: "system", content: writerSystemPrompt(this.options.voice, boundary) },
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
         ],
-        temperature: WRITER_TEMPERATURE,
+        step: "story_writer",
         maxTokens: WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD,
         label: "writer",
       });
@@ -184,7 +182,7 @@ export class NebiusWriter implements Writer {
           { role: "system", content: rewriteSystemPrompt(this.options.voice, boundary) },
           { role: "user", content: rewriteUserMessage(request, boundary) },
         ],
-        temperature: WRITER_TEMPERATURE,
+        step: "story_rewrite",
         maxTokens: REWRITE_MAX_TOKENS,
         label: "rewrite",
       });

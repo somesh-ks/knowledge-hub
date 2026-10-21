@@ -15,7 +15,7 @@ import {
   FLAG_DEFINITIONS,
   LAUNCH_LEVELS,
   LAUNCH_MAX_LEVEL,
-  NEBIUS_QUESTIONS_HASH,
+  LLM_QUESTIONS_HASH,
 } from "./questions.js";
 import { judgeState } from "./state.js";
 import type { Judge, JudgeFailure } from "./types.js";
@@ -36,8 +36,8 @@ const JudgeAnswer = z.object({
 });
 
 /** Reply schema of the fallback judge. Fully required fields, so strict structured output accepts it. */
-export const NebiusJudgeOutput = z.object({ items: z.array(JudgeAnswer) });
-export type NebiusJudgeAnswer = z.infer<typeof JudgeAnswer>;
+export const LlmJudgeOutput = z.object({ items: z.array(JudgeAnswer) });
+export type LlmJudgeAnswer = z.infer<typeof JudgeAnswer>;
 
 /**
  * A language model cannot report calibrated probabilities, so its category answer is turned into
@@ -69,8 +69,8 @@ export function categoryProbsFromAnswer(
   return probs;
 }
 
-export function entryFromNebiusAnswer(
-  answer: NebiusJudgeAnswer,
+export function entryFromLlmAnswer(
+  answer: LlmJudgeAnswer,
   context: { model: string; questionsHash: string; now: Date },
 ): JudgmentEntry {
   const level = Math.min(CRAFT_MAX_LEVEL, Math.max(0, Math.round(answer.craft_level)));
@@ -126,9 +126,9 @@ function systemPrompt(boundary: string): string {
   ].join("\n");
 }
 
-export interface NebiusJudgeOptions {
+export interface LlmJudgeOptions {
   llm: LlmClient;
-  /** Items per request. Nebius starts at 60 requests per minute, so batching keeps 60 items to a dozen calls. */
+  /** Items per request. Batching keeps 60 items to a dozen calls. */
   batchSize?: number;
   concurrency?: number;
   now?: () => Date;
@@ -147,21 +147,21 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 }
 
 /**
- * Fallback judge: the Nebius writer model answers the same questions as strict JSON. Clearly
- * lower trust than Jev (coarse, uncalibrated probabilities), so its entries carry a `nebius:`
+ * Fallback judge: the routed Haiku or Flash-Lite model answers the same questions as strict JSON. Clearly
+ * lower trust than Jev (coarse, uncalibrated probabilities), so its entries carry a `llm:`
  * model prefix and the orchestrator logs whenever it is used.
  */
-export class NebiusJudge implements Judge {
-  readonly name = "nebius";
-  readonly questionsHash = NEBIUS_QUESTIONS_HASH;
-  private readonly options: NebiusJudgeOptions;
+export class LlmJudge implements Judge {
+  readonly name = "llm";
+  readonly questionsHash = LLM_QUESTIONS_HASH;
+  private readonly options: LlmJudgeOptions;
 
-  constructor(options: NebiusJudgeOptions) {
+  constructor(options: LlmJudgeOptions) {
     this.options = options;
   }
 
   get model(): string {
-    return `nebius:${this.options.llm.model}`;
+    return `llm:${this.options.llm.model}`;
   }
 
   async judge(items: Item[]): Promise<JudgmentEntry[]> {
@@ -196,7 +196,7 @@ export class NebiusJudge implements Judge {
     ];
     try {
       const { value } = await this.options.llm.completeJson({
-        schema: NebiusJudgeOutput,
+        schema: LlmJudgeOutput,
         schemaName: "judgments",
         messages,
         maxTokens: 240 * batch.length + 200,
@@ -209,7 +209,7 @@ export class NebiusJudge implements Judge {
         if (!wanted.has(answer.id) || entries.has(answer.id)) continue;
         entries.set(
           answer.id,
-          entryFromNebiusAnswer(answer, {
+          entryFromLlmAnswer(answer, {
             model: this.model,
             questionsHash: this.questionsHash,
             now,

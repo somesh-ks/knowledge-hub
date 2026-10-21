@@ -75,7 +75,7 @@ sources with a missing API key skip. Agent mode starts here (see \`dispatch run 
     help: `Usage: dispatch curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>]
                        [--out <dir>] [--run <id>] [--since <iso>] [--threshold <0-1>]
 
-api mode needs NEBIUS_API_KEY and DISPATCH_MODEL and spends tokens. agent mode writes
+api mode needs ANTHROPIC_API_KEY or GEMINI_API_KEY (models follow config/models.json) and spends tokens. agent mode writes
 selection-schema.json, then validates the agent-selection.json a Claude Code session wrote.`,
     load: async () => (await import("./commands/curate.js")).run,
   },
@@ -136,8 +136,8 @@ host_names are the two hosts' names in a discussion, which the site picks from t
 genders; absent means a gender-neutral pair. The episode stores the names a discussion was
 written with, and a readout names no host. An episode already stored as headlines
 still plays and can be regenerated. Topic ids are sections or categories as they
-appear in published digests. Reads Digests/ only (no fetching), makes one writer call on Nebius
-(needs NEBIUS_API_KEY and DISPATCH_MODEL, spends tokens), writes Podcasts/YYYY/MM/<id>.md and
+appear in published digests. Reads Digests/ only (no fetching), makes one writer call on the routed podcast models
+(needs ANTHROPIC_API_KEY or GEMINI_API_KEY, spends tokens), writes Podcasts/YYYY/MM/<id>.md and
 commits it as feat(podcast) through the write guard. The last line printed is the episode id.
 
 --dry-run runs the whole pipeline with the real writer (it spends tokens) but writes nothing under
@@ -174,8 +174,8 @@ next_regular_due, due_now, latest_digest, audio, sources, budget }.`,
     help: `Usage: dispatch doctor [--online] [--json]
 
 Offline checks cover Node 24 or newer, git, the repository, config and state files, which key
-NAMES are set (never values) and the model ids. --online adds authenticated requests: Nebius
-/v1/models must list DISPATCH_MODEL and DISPATCH_FALLBACK_MODEL, Jev answers a trivial question,
+NAMES are set (never values) and config/models.json. --online adds authenticated requests: the
+Anthropic and Gemini model lists answer, Jev answers a trivial question,
 Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice
 id and Vercel Blob accepts a list call. Each check prints ok, warn or fail with a fix hint;
 exit 1 when any check fails.`,
@@ -193,11 +193,11 @@ listed on stderr. Uses the network, and Firecrawl when FIRECRAWL_API_KEY is set.
   },
   {
     name: "models",
-    summary: "List the Nebius text models available to your key",
-    help: `Usage: dispatch models [--all] [--limit <n>] [--json]
+    summary: "Show the model routing and the model each family resolves to",
+    help: `Usage: dispatch models [--json]
 
-Lists id and context length from GET /v1/models, to pick DISPATCH_MODEL for the bake-off.
-Embedding, image and rerank models are hidden unless --all. Output is capped (default 60).`,
+Reads config/models.json and, with keys, lists the providers' models to show the newest id each
+family resolves to (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite only).`,
     load: async () => (await import("./commands/models.js")).run,
   },
   {
@@ -212,9 +212,9 @@ locales starting with "en". Output is capped (default 40).`,
   {
     name: "eval",
     summary: "Golden-set evaluation of judges, grounding and writer models (uses keys and money)",
-    help: `Usage: dispatch eval --yes [--only judges,grounding,bakeoff] [--models a,b] [--thinking <spec>] [--json]
+    help: `Usage: dispatch eval --yes [--only judges,grounding] [--json]
 
-Calls TypeSafe Jev and Nebius Token Factory with your keys and costs a few cents per run. It
+Calls TypeSafe Jev and the routed Claude and Gemini models with your keys and costs a few cents per run. It
 never runs in CI. Without --yes it prints this notice and exits 2.`,
     load: async () => (await import("./commands/eval.js")).run,
   },

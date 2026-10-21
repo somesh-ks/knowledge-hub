@@ -10,7 +10,6 @@ import {
   TOPIC_DEPTHS,
   TOPIC_ORIGINS,
 } from "./topics.js";
-import { WriterSettingsShape, writerModelProblem } from "./writer.js";
 
 /** A like or dislike of one story, as the app sends it. */
 export const VoteInput = z.object({
@@ -89,8 +88,6 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   on/off, day, hour, topics left out, type, length, voices) and the Create panel defaults
  *   (`custom`), in config/schedule.json, in one write. Fields left out keep what the file holds.
  *   Unknown topic ids and zones outside the list are refused.
- * - writer.set: set the writer's provider and model in config/writer.json. A null model means
- *   the engine's own DISPATCH_MODEL.
  * - profile.block / profile.unblock: add or remove a domain in the owner's blocklist
  *   (config/profiles/owner.json). A blocked domain and its subdomains never reach a briefing or an
  *   episode. A URL or `www.` form is accepted and reduced to the domain.
@@ -185,12 +182,6 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
       { message: "set at least one scope" },
     ),
-  z
-    .object({ op: z.literal("writer.set"), ...WriterSettingsShape.shape })
-    .superRefine((value, ctx) => {
-      const problem = writerModelProblem(value.provider, value.model);
-      if (problem) ctx.addIssue({ code: "custom", path: ["model"], message: problem });
-    }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),

@@ -29,7 +29,7 @@ export function mostlyFailed(failed: number, total: number): boolean {
 }
 
 /**
- * Judge every pass's pool with Jev, falling back to the Nebius judge for items Jev cannot answer.
+ * Judge every pass's pool with Jev, falling back to the routed fallback judge for items Jev cannot answer.
  * The cache starts from state/judgments.json plus anything an earlier attempt saved in the run
  * cache; the merged result goes to `.cache/run/judgments.json` and reaches state/ only at commit,
  * so a failed run changes nothing committed. When most of a pool goes unjudged (both judges down)
