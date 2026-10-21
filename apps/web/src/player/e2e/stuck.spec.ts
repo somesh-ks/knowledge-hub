@@ -43,7 +43,7 @@ async function finishRunBehindThePlayer(page: Page, player: PlayerPage): Promise
   await enterPassphrase(dialog);
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await page.clock.runFor(3_100);
-  await player.finger.press(dialog.getByRole("button", { name: "Close", exact: true }).first());
+  await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 }
 
