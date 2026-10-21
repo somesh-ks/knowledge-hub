@@ -36,7 +36,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `TYPESAFE_API_KEY` | console.typesafe.ai |
 | `EXA_API_KEY` | Exa dashboard |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard |
-| `GEMINI_API_KEY` | Google AI Studio (optional: YouTube transcription) |
+| `GEMINI_API_KEY` | Google AI Studio (optional: YouTube transcription, topic emoji backup on Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
@@ -247,7 +247,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `TYPESAFE_API_KEY` | console.typesafe.ai | Jev judge and grounding check |
 | `EXA_API_KEY` | Exa dashboard | Discovery |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction |
-| `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback |
+| `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
 | `GITHUB_DISPATCH_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
