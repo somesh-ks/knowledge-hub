@@ -8,6 +8,7 @@ allowed-tools:
   - Write
   - Grep
   - Glob
+  - Agent
   - Bash(git status:*)
   - Bash(git diff --stat:*)
   - Bash(git log:*)
@@ -25,6 +26,7 @@ Follows "Keeping the record" in `AGENTS.md`. Each fact lives in one place; link 
 5. `docs/learnings.md`: one line per failure or gotcha, under its area heading. Grep first; skip duplicates. Delete a gotcha that code, a check or `AGENTS.md` now enforces.
 6. `docs/history/`: one note named `YYYY-MM-DD-<topic>.md`, only the why behind the change. Match the format in `docs/history/README.md`.
 7. Run `node scripts/docsCheck.mjs` and fix what it reports.
-8. Do not touch `Digests/` or `state/`. Do not commit.
+8. If the session changed UI (`apps/web/src`, the tokens), confirm the `design-audit` agent ran on the diff; if not, run it now and list what it reports under unverified.
+9. Do not touch `Digests/` or `state/`. Do not commit.
 
 Return a list of the files changed, one line each, and anything unverified.

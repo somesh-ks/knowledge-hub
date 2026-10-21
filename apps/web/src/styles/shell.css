@@ -191,7 +191,7 @@ html[data-mini="visible"] main {
 @supports (animation-timeline: scroll()) {
   .app-bar::after {
     animation-name: app-bar-line;
-    animation-timing-function: linear;
+    animation-timing-function: var(--ease-linear);
     animation-fill-mode: both;
     animation-timeline: scroll(root);
     animation-range: 0 var(--space-4);

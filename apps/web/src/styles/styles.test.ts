@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -112,6 +112,90 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".source-plus-btn", "the button's hit area and its press layer's inset"],
   [".source-filter[data-tabs]", "a segmented track: the gap matches its 4px track padding"],
   [".manage-bar:popover-open", "a bar's inset sum: the 4px inset doubled, landing on the grid"],
+];
+
+/** Hand-written source (markup and script) the design rules read: no tests, fixtures or test kits. */
+const sourceFiles = () =>
+  filesUnder(SRC, [".astro", ".tsx", ".ts"]).filter(
+    (file) => !/\.(?:test|spec)\.tsx?$|[\\/](?:fixtures|testing)[\\/]|testing\.ts$/.test(file),
+  );
+
+const posix = (file: string) => relative(SRC, file).replaceAll("\\", "/");
+
+/** Source files that may hold a colour literal, each with why it is not a painted design colour. */
+const RAW_COLOR_ALLOWED: [file: string, reason: string][] = [
+  ["scripts/ambientTint.ts", "#808080 is the neutral fallback of the cover-sampling maths"],
+  ["scripts/ambientPalette.ts", "#808080 is the neutral fallback of the cover-sampling maths"],
+  ["player/core/chapterMask.ts", "#000 is a CSS mask: only its alpha matters, it paints nothing"],
+];
+
+/** Easings defined outside tokens.css, as "file name". */
+const LOCAL_EASES: [file: string, reason: string][] = [
+  ["player.css --ease-in-out-sine", "the cover glow's breathing sine curve; no token is a sine"],
+];
+
+/** Files that may hold an inline <svg>: the Icon components, the mark, the art and named one-offs. */
+const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
+  ["components/Icon.astro", "the Icon component"],
+  ["player/ui/Icon.tsx", "the island Icon component"],
+  ["player/ui/LazyIcon.tsx", "the lazy island Icon component"],
+  ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
+  ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
+  [
+    "sheets/GenerateSheet.tsx",
+    "a glyph-set path that needs the shared .icon class the island Icon lacks",
+  ],
+];
+
+const SHARED_CONTROL_SHEETS = ["buttons.css", "primitives.css"];
+
+/** The shared control classes, defined in buttons.css and primitives.css. */
+const SHARED_CONTROLS = [
+  "btn",
+  "btn-primary",
+  "btn-secondary",
+  "icon-btn",
+  "chip",
+  "filter-chip",
+  "tab",
+  "segmented-choice-item",
+  "segmented-nav-tab",
+];
+
+/** Controls styled in their own sheet or built bespoke, each with why they are not a shared one. */
+const BESPOKE_CONTROLS: [name: string, reason: string][] = [
+  [
+    "create-fab",
+    "the extended floating create button (D133); its own size, label and sheet origin",
+  ],
+  ["play-fab", "the floating play button of a story, a circle over a cover"],
+  ["add-fab", "the Topics floating add button"],
+  ["view-btn", "the Library's gallery/list switch: two icon segments"],
+  ["dock-btn", "the player dock's icon buttons, sized to the dock"],
+  ["dock-open", "the dock's whole-bar button that opens the player"],
+  ["transport-btn", "the player transport: play, skip and seek on the player's own scale"],
+  ["transport-skip", "the player transport's skip variant"],
+  ["speed-btn", "the player's speed popover trigger"],
+  ["speed-preset", "a speed option in the player's popover"],
+  ["source-plus-btn", "the sources list's inline add control"],
+  ["source-edit", "a text action on a source row"],
+  ["source-remove", "a text action on a source row"],
+  ["cover-play", "the cover's play overlay"],
+  ["podcast-sample", "the podcast voice sample row control"],
+  ["hero-menu-item", "a row of the hero's popover menu"],
+  ["hero-menu-delete", "the menu's destructive row"],
+  ["topic-delete", "the topic page's destructive menu row"],
+  ["toast-action", "a toast's text action"],
+  ["toast-dismiss", "a toast's close control"],
+  ["multiselect-trigger", "the multi-select's field-like trigger"],
+  ["search-clear", "the clear control inside .search-field"],
+  ["player-notice-action", "a text action in the player's notice"],
+  ["player-fallback-action", "a text action in the player's fallback card"],
+  ["player-queue-row", "a queue row: a row-sized button, not a control face"],
+  ["player-upnext-row", "an Up next row: a row-sized button, not a control face"],
+  ["story-row", "a story row in the player's list"],
+  ["script-back", "the transcript's back-to-playing control"],
+  ["script-turn", "a transcript turn that seeks on tap"],
 ];
 
 /** A selector fragment as a whole name: `.aside` matches `.aside:hover`, not `.aside-x`. */
@@ -477,6 +561,131 @@ const RULES: Rule[] = [
         }),
       );
     },
+  },
+  {
+    // Prevents colour drifting out of the token files through markup or script: a hex or rgb()
+    // literal in a component or island ships a colour that dark mode, forced-colors and the
+    // contrast checks never see. Colour comes from a token, through a class.
+    name: "source files hold no colour literal: colour comes from the tokens",
+    offenders: () =>
+      sourceFiles().flatMap((file) => {
+        if (RAW_COLOR_ALLOWED.some(([allowed]) => allowed === posix(file))) return [];
+        const match = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|oklab|oklch)\(/.exec(
+          readFileSync(file, "utf8"),
+        );
+        return match ? [`${posix(file)}: ${match[0]}`] : [];
+      }),
+  },
+  {
+    // Prevents a one-off weight, family or shorthand: type is set by the --font-* tokens (and the
+    // --text-* roles), so a raw `font-weight: 500` is a third style nobody can change in one place.
+    name: "font weight and family come from tokens, never a raw value",
+    offenders: () =>
+      // fonts.css is generated: it declares the faces themselves.
+      ownCss()
+        .filter(([file]) => file !== "fonts.css")
+        .flatMap(([file, css]) =>
+          rulesOf(css).flatMap(([selector, body]) =>
+            declarationsOf(body)
+              .filter(([property, value]) => {
+                const own = value.replace(/var\([^()]*(?:\([^()]*\)[^()]*)*\)/g, "token");
+                if (property === "font-weight") return !/^(?:token|inherit|initial)$/.test(own);
+                if (property === "font-family") return !/^(?:token|inherit)$/.test(own);
+                if (property === "font") return own !== "inherit";
+                return false;
+              })
+              .map(([property, value]) => `${file}: ${selector} { ${property}: ${value} }`),
+          ),
+        ),
+  },
+  {
+    // Prevents motion that ignores the curve tokens: a literal cubic-bezier(), a named ease or a
+    // bare `linear` in an own stylesheet is a curve the motion review never sees. Use var(--ease-*).
+    name: "easing curves come from the --ease tokens, never a literal curve",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([, body]) =>
+          declarationsOf(body)
+            .filter(([property, value]) => {
+              if (!/^(?:transition|animation)(?:-timing-function)?$/.test(property)) return false;
+              const own = value.replace(/var\([^()]*(?:\([^()]*\)[^()]*)*\)/g, "token");
+              return /cubic-bezier\(|\blinear\b|\bease(?:-in|-out|-in-out)?\b|steps\(/.test(own);
+            })
+            .map(([property, value]) => `${file}: ${property}: ${value}`),
+        ),
+      ),
+  },
+  {
+    // Prevents a curve defined beside a component instead of in tokens.css.
+    name: "an --ease custom property is defined only in tokens.css, bar the named exceptions",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        [...css.matchAll(/(--ease-[\w-]+)\s*:/g)]
+          .filter(([, name]) => !LOCAL_EASES.some(([allowed]) => allowed === `${file} ${name}`))
+          .map(([, name]) => `${file}: ${name}`),
+      ),
+  },
+  {
+    // Prevents icons drawn outside the glyph set: a pasted <path> is a stroke weight, a size and a
+    // style the set (Phosphor regular, tokens/glyphs.json) does not control. Icons go through the
+    // Icon component; the files allowed are the Icon components themselves and named artwork.
+    name: "no raw <svg> or <path> in components: icons go through the Icon component",
+    offenders: () =>
+      filesUnder(SRC, [".astro", ".tsx"])
+        .filter((file) => !RAW_SVG_ALLOWED.some(([allowed]) => allowed === posix(file)))
+        .filter((file) => /<svg\b|<path\b/.test(readFileSync(file, "utf8")))
+        .map((file) => `${posix(file)}: a raw <svg>`),
+  },
+  {
+    // Prevents script painting: a script may place and move things (width, top, transform), but a
+    // colour, type, spacing or border set from script skips the token scale and the stylesheets.
+    name: "script sets no design value on an element's style: geometry only",
+    offenders: () =>
+      sourceFiles().flatMap((file) =>
+        [
+          ...readFileSync(file, "utf8").matchAll(
+            /\.style\.(color|background\w*|font\w*|padding\w*|margin\w*|border\w*|boxShadow|outline\w*|letterSpacing|lineHeight|zIndex|transition\w*|animation\w*|opacity)\s*=/g,
+          ),
+        ].map(([match]) => `${posix(file)}: ${match}`),
+      ),
+  },
+  {
+    // Prevents a second button, chip or pill style: a new control needs the shared .btn, .icon-btn,
+    // .chip or .filter-chip classes. A control-named class styled outside buttons.css and
+    // primitives.css must be one of the named bespoke ones, each with why.
+    name: "a control-named class is styled in buttons.css or primitives.css, or is a named bespoke one",
+    offenders: () =>
+      ownCss()
+        .filter(([file]) => !SHARED_CONTROL_SHEETS.includes(file))
+        .flatMap(([file, css]) =>
+          rulesOf(css).flatMap(([selector]) =>
+            [...selector.matchAll(/\.([a-z0-9-]*-(?:btn|button|fab|chip|pill|toggle))\b(?!-)/g)]
+              .map(([, name = ""]) => name)
+              .filter(
+                (name) =>
+                  !SHARED_CONTROLS.includes(name) &&
+                  !BESPOKE_CONTROLS.some(([allowed]) => allowed === name),
+              )
+              .map((name) => `${file}: .${name}`),
+          ),
+        ),
+  },
+  {
+    // Prevents an unstyled or one-off button in markup: every <button> carries a shared control
+    // class or a named bespoke one, so it inherits the press, focus and hit-area rules.
+    name: "every <button> wears a shared control class or a named bespoke one",
+    offenders: () =>
+      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) =>
+        [...readFileSync(file, "utf8").matchAll(/<button\b[^>]*>/g)].flatMap(([tag]) => {
+          if (/class(?:Name)?=\{|class:list/.test(tag)) return [];
+          const classes = /class(?:Name)?="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
+          const known = classes.some(
+            (name) =>
+              SHARED_CONTROLS.includes(name) || BESPOKE_CONTROLS.some(([al]) => al === name),
+          );
+          return known ? [] : [`${posix(file)}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`];
+        }),
+      ),
   },
 ];
 
