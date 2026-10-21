@@ -154,6 +154,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
+| D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
 
 ---
 
@@ -1579,3 +1580,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: the page before the build shows the generic art of its stand-in, not the topic's own, until the build. A topic opened from another device before the build is not on that device's list (the overlay is per browser, as D79's is).
 - Rejected: an on-demand server route for the topic page (a function call on every visit to it, and the site is otherwise static); lowering the server gap (it is the flood guard, and the queue already hides it); a follow-up upsert for Jev's emoji (two commits and a ten-second wait).
 - Amends: D79 (a new topic is a row and has a page before the build; its suggestions are on that page).
+
+## D143: a code review before every merge
+
+- Date: 2026-10-21 (the owner: "Code review before every merge is mandatory", after #185 and #186 merged with no review)
+- Decision: every PR is opened with the `review` label. `claude-code-review.yml` reviews it and `automerge.yml` skips it, so it merges by hand once the review has landed and its blocking findings are fixed. A large change also gets the `/code-review` skill on the branch before the PR.
+- Why: two large PRs auto-merged on green CI with no review, and the review run afterwards on the merged diff found real bugs (a broken import, cost records that overwrote each other, a paid call on empty text).
+- Cost: no PR merges itself any more; each waits for a review run and a hand merge.
