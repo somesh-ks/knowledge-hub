@@ -1,11 +1,10 @@
 import { join } from "node:path";
-import { type Env, Preferences, STATE_FILES } from "@dispatch/core";
+import { type Env, loadModelRouting, Preferences, STATE_FILES } from "@dispatch/core";
 import { z } from "zod";
 import { loadQueries } from "../fetch/queries.js";
 import type { GitRunner } from "../git/runGit.js";
 import { parseSources } from "../sources/registry.js";
 import { parseVoice } from "../voice/voice.js";
-import { loadWriterChoice } from "../writer/store.js";
 import {
   type Check,
   type DoctorDeps,
@@ -215,12 +214,17 @@ const KEYS: readonly KeySpec[] = [
   {
     name: "TYPESAFE_API_KEY",
     missing:
-      "Jev is off: the Nebius fallback judge answers and digests are unverified. Get a key at console.typesafe.ai.",
+      "Jev is off: the Haiku or Flash-Lite fallback judge answers and digests are unverified. Get a key at console.typesafe.ai.",
   },
   {
-    name: "NEBIUS_API_KEY",
+    name: "ANTHROPIC_API_KEY",
     missing:
-      "The API curator cannot run (agent mode still works). Create a key in the Nebius Token Factory console.",
+      "The story and script writers (Claude Sonnet) and the Haiku fallbacks are off; Gemini Flash writes instead. Create a key in the Anthropic console.",
+  },
+  {
+    name: "GEMINI_API_KEY",
+    missing:
+      "YouTube transcription and the Gemini fallbacks are off. Create a key in Google AI Studio.",
   },
   {
     name: "EXA_API_KEY",
@@ -252,8 +256,7 @@ const KEYS: readonly KeySpec[] = [
   },
 ];
 
-function keyChecks(env: Env, choice: { provider: string; model: string | null } | null): Check[] {
-  const settingsModel = choice?.model ?? null;
+function keyChecks(env: Env, root: string): Check[] {
   const checks = KEYS.map((key): Check => {
     const set = env[key.name] !== undefined;
     if (set) return ok(`key.${key.name}`, "set");
@@ -261,32 +264,18 @@ function keyChecks(env: Env, choice: { provider: string; model: string | null } 
       ? ok(`key.${key.name}`, "not set (optional)")
       : warn(`key.${key.name}`, "not set", key.missing);
   });
-  const model = (name: "DISPATCH_MODEL" | "DISPATCH_FALLBACK_MODEL", consequence: string): Check =>
-    env[name] === undefined
-      ? warn(
-          `model.${name}`,
-          "not set",
-          `${consequence} Run \`dispatch models\` to pick one, then set ${name} in .env.`,
-        )
-      : ok(`model.${name}`, `set (${env[name]})`);
-  if (choice?.provider === "anthropic") {
+  try {
+    const routing = loadModelRouting(root);
+    checks.push(ok("models.routing", `${Object.keys(routing.steps).length} steps routed`));
+  } catch (error) {
     checks.push(
-      env.ANTHROPIC_API_KEY === undefined
-        ? warn(
-            "key.ANTHROPIC_API_KEY",
-            "not set",
-            "The writer is on Anthropic but has no key, so every call falls through to the Nebius models. Add ANTHROPIC_API_KEY to .env and run npm run secrets:push.",
-          )
-        : ok("key.ANTHROPIC_API_KEY", "set"),
+      fail(
+        "models.routing",
+        error instanceof Error ? error.message.slice(0, 200) : "config/models.json cannot be read",
+        "Fix config/models.json: only jev, claude-sonnet, claude-haiku, gemini-flash and gemini-flash-lite are allowed.",
+      ),
     );
   }
-  checks.push(
-    settingsModel === null
-      ? ok("model.source", "the environment (DISPATCH_MODEL); Settings is on Automatic")
-      : ok("model.source", `Settings (${settingsModel}); the environment models are the fallback`),
-    model("DISPATCH_MODEL", "The writer cannot run."),
-    model("DISPATCH_FALLBACK_MODEL", "There is no failover if the primary id is retired."),
-  );
   return checks;
 }
 
@@ -301,6 +290,6 @@ export async function offlineChecks(
     ...(await gitChecks(root, deps.git)),
     ...(await configChecks(root)),
     ...(await stateChecks(root)),
-    ...keyChecks(env, loadWriterChoice(root)),
+    ...keyChecks(env, root),
   ];
 }

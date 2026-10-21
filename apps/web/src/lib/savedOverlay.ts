@@ -72,8 +72,7 @@ export function addSaved(
   now: number,
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
-  const own = ops.filter((op) => op.op !== "writer.set");
-  return own.length > 0 ? [...kept, { at: now, ops: own }] : kept;
+  return ops.length > 0 ? [...kept, { at: now, ops: [...ops] }] : kept;
 }
 
 /**
@@ -87,19 +86,6 @@ export function withPending(
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
   return ops.length > 0 ? [...kept, { at: now, ops: [...ops], pending: true }] : kept;
-}
-
-type WriterChoice = Pick<Extract<ConfigOp, { op: "writer.set" }>, "provider" | "model">;
-
-/**
- * The writer choice still on its way among `ops` (only a pending entry keeps a writer.set), the
- * latest one, or null when none is.
- */
-export function heldWriter(ops: readonly ConfigOp[]): WriterChoice | null {
-  let found: WriterChoice | null = null;
-  for (const op of ops)
-    if (op.op === "writer.set") found = { provider: op.provider, model: op.model };
-  return found;
 }
 
 /** Whether any edit shown is still on its way, so the page says Saving rather than Saved. */

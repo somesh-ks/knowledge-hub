@@ -1,4 +1,4 @@
-import { type Env, ModelsReply } from "@dispatch/core";
+import type { Env } from "@dispatch/core";
 import { noul } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { redact } from "../context.js";
@@ -80,83 +80,36 @@ function skipped(id: string, keyName: string): Check {
   );
 }
 
-/** Ids that share the start of `wanted`'s family, to suggest a replacement for a retired id. */
-export function similarModels(wanted: string, ids: readonly string[]): string[] {
-  const family = (wanted.split("/").pop() ?? wanted).toLowerCase().split(/[-_.]/)[0] ?? "";
-  if (family.length < 3) return [];
-  return ids.filter((id) => id.toLowerCase().includes(family)).slice(0, 4);
-}
-
-function joinUrl(base: string, path: string): string {
-  return `${base.endsWith("/") ? base : `${base}/`}${path}`;
-}
-
-async function nebiusChecks(
-  env: Env,
+/** Lists a provider's models: proves the key and the network, as the run's resolver needs them. */
+async function listCheck(
+  id: string,
+  service: string,
+  keyName: "ANTHROPIC_API_KEY" | "GEMINI_API_KEY",
   deps: DoctorDeps,
+  env: Env,
   secrets: readonly string[],
-  settingsModel: string | null,
-): Promise<Check[]> {
-  const key = env.NEBIUS_API_KEY;
-  if (key === undefined) {
-    return [skipped("online.nebius", "NEBIUS_API_KEY")];
-  }
-  let result: Probe;
+): Promise<Check> {
+  const key = env[keyName];
+  if (key === undefined) return skipped(id, keyName);
+  const anthropic = keyName === "ANTHROPIC_API_KEY";
   try {
-    result = await probe(deps, secrets, joinUrl(env.NEBIUS_BASE_URL, "models"), {
-      headers: { authorization: `Bearer ${key}` },
-    });
-  } catch (error) {
-    return [unreachable("online.nebius", "Nebius", error)];
-  }
-  if (result.status !== 200) {
-    return [httpProblem("online.nebius", "Nebius", result.status, "NEBIUS_API_KEY")];
-  }
-  const parsed = ModelsReply.safeParse(result.body);
-  if (!parsed.success) {
-    return [
-      fail(
-        "online.nebius",
-        "Nebius answered an unexpected shape from /models",
-        "Check NEBIUS_BASE_URL.",
-      ),
-    ];
-  }
-  const ids = parsed.data.data.map((model) => model.id);
-  const checks: Check[] = [ok("online.nebius", `key accepted, ${ids.length} models listed`)];
-  // Nebius retires ids (Qwen3-32B left the serverless tier on 2026-08-31), so each id is checked.
-  for (const name of ["DISPATCH_MODEL", "DISPATCH_FALLBACK_MODEL"] as const) {
-    const wanted = env[name];
-    const id = `online.model.${name}`;
-    if (wanted === undefined) {
-      checks.push(warn(id, "skipped, not set", `Set ${name} in .env, then run doctor again.`));
-    } else if (ids.includes(wanted)) {
-      checks.push(ok(id, `${wanted} is listed`));
-    } else {
-      const near = similarModels(wanted, ids);
-      checks.push(
-        fail(
-          id,
-          `${wanted} is not in the live model list`,
-          `Run \`dispatch models\` and update ${name} in .env${near.length > 0 ? `; similar: ${near.join(", ")}` : ""}.`,
-        ),
-      );
-    }
-  }
-  if (settingsModel !== null) {
-    // A Settings model that left the list is not an error: every run falls through to the
-    // environment models.
-    checks.push(
-      ids.includes(settingsModel)
-        ? ok("online.model.settings", `${settingsModel} (chosen in Settings) is listed`)
-        : warn(
-            "online.model.settings",
-            `${settingsModel} (chosen in Settings) is not in the live model list`,
-            "Runs fall back to DISPATCH_MODEL. Choose another model in Settings.",
-          ),
+    const result = await probe(
+      deps,
+      secrets,
+      anthropic
+        ? "https://api.anthropic.com/v1/models?limit=1"
+        : "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1",
+      {
+        headers: anthropic
+          ? { "x-api-key": key, "anthropic-version": "2023-06-01" }
+          : { "x-goog-api-key": key },
+      },
     );
+    if (result.status !== 200) return httpProblem(id, service, result.status, keyName);
+    return ok(id, "key accepted, models can be listed");
+  } catch (error) {
+    return unreachable(id, service, error);
   }
-  return checks;
 }
 
 async function jevCheck(env: Env, deps: DoctorDeps, secrets: readonly string[]): Promise<Check> {
@@ -358,10 +311,10 @@ export async function onlineChecks(
   env: Env,
   deps: DoctorDeps,
   secrets: readonly string[],
-  settingsModel: string | null = null,
 ): Promise<Check[]> {
-  const [nebius, jev, exa, firecrawl, speechify, blob, vercel] = await Promise.all([
-    nebiusChecks(env, deps, secrets, settingsModel),
+  const [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel] = await Promise.all([
+    listCheck("online.anthropic", "Anthropic", "ANTHROPIC_API_KEY", deps, env, secrets),
+    listCheck("online.gemini", "Gemini", "GEMINI_API_KEY", deps, env, secrets),
     jevCheck(env, deps, secrets),
     exaCheck(env, deps, secrets),
     firecrawlCheck(env, deps, secrets),
@@ -369,5 +322,5 @@ export async function onlineChecks(
     blobCheck(env, deps, secrets),
     vercelTokenCheck(env, deps, secrets),
   ]);
-  return [...nebius, jev, exa, firecrawl, speechify, blob, vercel];
+  return [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel];
 }

@@ -209,6 +209,20 @@ describe("service worker: what it leaves alone", () => {
 });
 
 describe("service worker: caching strategies", () => {
+  // A cache entry the browser broke made every load of the file fail, online, until the worker changed.
+  it("answers from the network when a cache read throws, and rebuilds its caches", async () => {
+    const worker = load();
+    await worker.dispatchFetch(request("/_astro/app.abc.css"));
+    const name = `dispatch-shell-${CURRENT_VERSION}`;
+    const broken = await worker.caches.open(name);
+    worker.caches.match = async () => {
+      throw new Error("corrupt entry");
+    };
+    const answer = await worker.dispatchFetch(request("/_astro/app.abc.css"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(name)).not.toBe(broken);
+  });
+
   it("serves hashed assets cache first", async () => {
     const worker = load();
     await worker.dispatchFetch(request("/_astro/app.abc.css"));

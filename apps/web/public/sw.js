@@ -15,9 +15,12 @@
  *     file is answered from the cache with correct Range handling (206 and Content-Range), which
  *     Safari needs, and the cache survives a version bump: a download is the person's, not the
  *     worker's. Any other audio request goes to the network as it would have.
+ *   - A strategy that throws (a cache entry the browser corrupted or evicted mid-read) never breaks
+ *     the page: the request goes to the network and, when that answers, the worker's own caches are
+ *     dropped and the shell saved again, once per worker life (healed below).
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v11";
+const VERSION = "v12";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -468,6 +471,28 @@ async function downloadedApi(request) {
 
 /* ------------------------------------------------------------------ routing */
 
+/**
+ * A strategy that rejects (a broken cache, not the network: the network is asked again here) is
+ * answered from the network. If the network answers, the cache was at fault, so the versioned caches
+ * are dropped and the shell is saved again, once per worker life. Downloads (AUDIO_CACHE) are kept.
+ */
+let healing = false;
+function healed(event, answer) {
+  return answer.catch(async (error) => {
+    const response = await fetch(event.request);
+    if (!healing) {
+      healing = true;
+      console.warn("[sw] cache read failed; rebuilding the caches", error);
+      event.waitUntil(
+        Promise.all([SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE].map((name) => caches.delete(name)))
+          .then(precacheShell)
+          .catch(() => {}),
+      );
+    }
+    return response;
+  });
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -502,23 +527,31 @@ self.addEventListener("fetch", (event) => {
   if (AUDIO_PATH.test(url.pathname) || url.pathname.startsWith("/api/")) return;
 
   if (url.pathname.startsWith("/_astro/")) {
-    event.respondWith(cacheFirst(event, SHELL_CACHE));
+    event.respondWith(healed(event, cacheFirst(event, SHELL_CACHE)));
   } else if (url.pathname.startsWith("/d/")) {
-    event.respondWith(staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES));
+    event.respondWith(healed(event, staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES)));
   } else if (url.pathname === LATEST_PATH) {
     // One entry under the bare path, whatever the query: a copy per query string would never match
     // the one before it (so the check for a new briefing never fired) and would push real pages out.
     event.respondWith(
-      networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+      healed(
+        event,
+        networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+      ),
     );
   } else if (isPage(request)) {
     // A page load waits for the network. The client router's fetch and a prefetch do not have to.
     event.respondWith(
-      request.mode === "navigate" ? networkFirst(event, PAGES_CACHE, MAX_PAGES) : inAppPage(event),
+      healed(
+        event,
+        request.mode === "navigate"
+          ? networkFirst(event, PAGES_CACHE, MAX_PAGES)
+          : inAppPage(event),
+      ),
     );
   } else if (url.pathname.startsWith("/covers/")) {
-    event.respondWith(staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA));
+    event.respondWith(healed(event, staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA)));
   } else if (SHELL_FILES.includes(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(event, SHELL_CACHE));
+    event.respondWith(healed(event, staleWhileRevalidate(event, SHELL_CACHE)));
   }
 });

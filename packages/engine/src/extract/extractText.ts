@@ -21,7 +21,8 @@ export type ExtractMethod =
   | "readability"
   | "scrape"
   | "captions"
-  | "transcription";
+  | "transcription"
+  | "alexandria";
 
 export interface ExtractedText {
   /** Plain text, at most about 10,000 characters, cut at a paragraph boundary. */

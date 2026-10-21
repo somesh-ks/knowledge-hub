@@ -22,6 +22,8 @@ const PLACEHOLDERS: Record<string, string[]> = {
     "2026-10-01",
     "--dry-run",
   ],
+  // Offline here: the contract run must not reach the live site.
+  '"$CEILING"': ["5", "--offline"],
   '"$DELETE_ID"': ["2026-10-01"],
   '"$FEEDBACK"': ["Shorter summaries"],
   '"$TOPICS"': ["ai,design"],

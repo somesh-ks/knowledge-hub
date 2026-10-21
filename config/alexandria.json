@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "run_credit_cap": 30,
+  "story_credit_cap": 10,
+  "timeout_ms": 20000,
+  "max_records": 5,
+  "max_chars": 1500
+}

@@ -1,5 +1,4 @@
 import type { Page, Route } from "@playwright/test";
-import { NEBIUS_TOP } from "../src/lib/modelId";
 import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
@@ -58,12 +57,6 @@ const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 /** A save that went through shows no toast; a screen reader hears it. */
 const spoken = (page: Page) => page.locator("[data-live]");
-const combo = (page: Page) => page.getByRole("combobox", { name: "AI model" });
-/** The model select's options, or those under one heading: "Claude" or "Nebius". */
-const options = (page: Page) => combo(page).getByRole("option");
-const grouped = (page: Page, name: string) =>
-  combo(page).locator(`optgroup[label="${name}"] option`);
-
 const SAVED = "Saved.";
 
 test.describe("the Settings index", () => {
@@ -469,13 +462,6 @@ test.describe("saved, before the build", () => {
     const now = Date.now();
     await seedStorage(page, {
       local: { [KEY]: JSON.stringify([{ at: now, ops }]) },
-      session: {
-        "dispatch:writer-pending": JSON.stringify({
-          provider: "anthropic",
-          model: "claude-haiku-5-5",
-          timestamp: now,
-        }),
-      },
     });
     await page.goto("/settings");
     const hint = (name: string) =>
@@ -484,8 +470,6 @@ test.describe("saved, before the build", () => {
     await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
     await expect(hint("Sources")).toHaveText("8 topics · 12 sources");
     await expect(hint("Podcast voice")).toHaveText("Leo and Default");
-    // A choice saved in the last few minutes is in the select before the next build has it.
-    await expect(combo(page)).toHaveValue("claude-haiku-5-5");
 
     await page.goto("/settings/topics");
     await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
@@ -603,96 +587,6 @@ test.describe("a change made offline", () => {
   });
 });
 
-test.describe("the model select on Settings", () => {
-  test("lists Claude's three families and the top Nebius models the live list has", async ({
-    page,
-  }) => {
-    await openSettings(page);
-    await expect(combo(page)).toHaveValue("zai-org/GLM-5.3");
-    // The fixture lists serve two of the top models; the others are left out.
-    await expect(grouped(page, "Claude")).toHaveText([
-      "Claude Opus 5.5",
-      "Claude Sonnet 5.5",
-      "Claude Haiku 5.5",
-    ]);
-    // Nebius still serves Kimi K3; the owner never wants it offered (2026-10-21).
-    await expect(grouped(page, "Nebius")).toHaveText(["GLM-5.3", "DeepSeek V4.1 Flash"]);
-    await expect(options(page)).toHaveCount(5);
-    await expect(toast(page)).toBeHidden();
-  });
-
-  test("a Nebius pick saves itself with its provider", async ({ page }) => {
-    const sent = await mockConfig(page);
-    await openSettings(page);
-    // A top model is picked by its short name and saved by its id, as any live pick is.
-    await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(opsOf(sent)).toContainEqual({
-      op: "writer.set",
-      provider: "nebius",
-      model: "deepseek-ai/DeepSeek-V4.1-Flash",
-    });
-  });
-
-  test("offers the newest of each Claude family Anthropic lists, and saves a pick as Anthropic", async ({
-    page,
-  }) => {
-    const sent = await mockConfig(page);
-    await page.route("**/api/models?provider=anthropic", (route) =>
-      route.fulfill({
-        contentType: "application/json",
-        body: JSON.stringify({
-          provider: "anthropic",
-          models: [
-            { id: "claude-opus-6", label: "Claude Opus 6" },
-            { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
-            { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
-            { id: "claude-haiku-5-5", label: "Claude Haiku 5.5" },
-          ],
-        }),
-      }),
-    );
-    await openSettings(page);
-    await expect(grouped(page, "Claude")).toHaveText([
-      "Claude Opus 6",
-      "Claude Sonnet 5.5",
-      "Claude Haiku 5.5",
-    ]);
-    await combo(page).selectOption({ label: "Claude Opus 6" });
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(opsOf(sent)).toEqual([
-      { op: "writer.set", provider: "anthropic", model: "claude-opus-6" },
-    ]);
-  });
-
-  test("keeps a saved model the lists do not offer, flagged, and caps Nebius at five", async ({
-    page,
-  }) => {
-    // Nebius's list with all six curated models, and the saved one retired.
-    const models = NEBIUS_TOP.map(({ id }) => ({ id, context_length: 262144 }));
-    await page.route("**/api/models", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ provider: "nebius", models }),
-      }),
-    );
-    await seedStorage(page, {
-      session: {
-        "dispatch:writer-pending": JSON.stringify({
-          provider: "nebius",
-          model: "old/Gone-7B",
-          timestamp: Date.now(),
-        }),
-      },
-    });
-    await openSettings(page);
-    await expect(grouped(page, "Nebius")).toHaveCount(5);
-    await expect(combo(page)).toHaveValue("old/Gone-7B");
-    await expect(combo(page).locator("option:checked")).toHaveText("Gone-7B (current)");
-  });
-});
-
 test.describe("offline", () => {
   test.use({ allowNetworkErrors: true });
 
@@ -704,24 +598,6 @@ test.describe("offline", () => {
         body: JSON.stringify({ error: "unavailable" }),
       }),
     );
-
-  test("without the model list the first five top models are offered, and a pick saves itself", async ({
-    page,
-  }) => {
-    await unavailable(page);
-    const sent = await mockConfig(page);
-    await openSettings(page);
-    await expect(combo(page)).toHaveValue("zai-org/GLM-5.3");
-    await expect(grouped(page, "Nebius")).toHaveText(
-      NEBIUS_TOP.slice(0, 5).map((model) => model.label),
-    );
-    await expect(grouped(page, "Claude")).toHaveCount(3);
-    await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(opsOf(sent)).toEqual([
-      { op: "writer.set", provider: "nebius", model: "deepseek-ai/DeepSeek-V4.1-Flash" },
-    ]);
-  });
 });
 
 test("read with scripts off", async ({ browser, baseURL }) => {
@@ -750,13 +626,6 @@ test.describe("axe", () => {
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
     await expect(spoken(page)).toHaveText(SAVED);
-    await expectNoViolationsInEitherScheme(page);
-  });
-
-  test("none with the model list open in its groups", async ({ page }) => {
-    await openSettings(page);
-    await combo(page).click();
-    await expect(grouped(page, "Claude").first()).toBeVisible();
     await expectNoViolationsInEitherScheme(page);
   });
 });

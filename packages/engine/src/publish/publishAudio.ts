@@ -13,7 +13,13 @@ import {
 } from "@dispatch/core";
 import { writeJsonAtomic, writeTextAtomic } from "../audio/atomicFile.js";
 import type { BudgetRefusal } from "../audio/budget.js";
-import { checkBudget, describeRefusal, loadUsage, recordUsage } from "../audio/budget.js";
+import {
+  checkBudget,
+  describeRefusal,
+  loadUsage,
+  type RecordUsageInput,
+  recordUsage,
+} from "../audio/budget.js";
 import type { Mp3OutputFormat, SpeechMark, SpeechSynthesizer } from "../audio/speechify.js";
 import {
   DEFAULT_MODEL,
@@ -26,6 +32,7 @@ import type { SpokenText } from "../audio/spokenText.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
 import type { Logger } from "../context.js";
+import { costKindOf } from "../cost/ledger.js";
 import { loadSchedule } from "../schedule/store.js";
 import type { BlobClient, PruneResult } from "./blob.js";
 import { pruneAudio, uploadAudio } from "./blob.js";
@@ -243,10 +250,19 @@ async function uploadWithRetry(
  * A stream that dies midway has still synthesized (and been billed for) the characters its marks
  * covered. Count that lower bound so a retry loop cannot quietly outrun the monthly allowance.
  */
-export async function recordPartialSpend(deps: PublishAudioDeps, error: unknown): Promise<void> {
+export async function recordPartialSpend(
+  deps: PublishAudioDeps,
+  error: unknown,
+  ledger?: RecordUsageInput["ledger"],
+): Promise<void> {
   if (!(error instanceof SpeechifyError) || !error.partialCharacters) return;
   try {
-    await recordUsage({ root: deps.root, now: deps.now(), characters: error.partialCharacters });
+    await recordUsage({
+      root: deps.root,
+      now: deps.now(),
+      characters: error.partialCharacters,
+      ledger,
+    });
   } catch (recordError) {
     deps.log.warn("Could not record the partial spend of a failed stream", {
       reason: message(recordError),
@@ -330,6 +346,7 @@ async function processDigest(
   const voice = (await scheduledVoice(root, digest.kind, log)) ?? deps.voiceId ?? DEFAULT_VOICE_ID;
   const model = deps.model ?? DEFAULT_MODEL;
   log.info(`Synthesizing ${digestId}`, { characters: spoken.text.length });
+  const ledger = { runId: digestId, kind: costKindOf(digest.kind), product: model };
 
   let narration: Narration;
   try {
@@ -341,14 +358,19 @@ async function processDigest(
       deps.outputFormat ?? DEFAULT_OUTPUT_FORMAT,
     );
   } catch (error) {
-    await recordPartialSpend(deps, error);
+    await recordPartialSpend(deps, error, ledger);
     return failed(digestId, "synthesis", error);
   }
 
   // Record the spend before anything that can fail: the characters are billed whether or not the
   // upload below succeeds, and the next run must see them.
   try {
-    await recordUsage({ root, now: deps.now(), characters: narration.billableCharacters });
+    await recordUsage({
+      root,
+      now: deps.now(),
+      characters: narration.billableCharacters,
+      ledger,
+    });
   } catch (error) {
     return failed(digestId, "write", error);
   }

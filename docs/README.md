@@ -12,6 +12,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
+| [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
 | [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |
 | [reference/sources-reference.md](reference/sources-reference.md) | Sources outside the pipeline, and rejected candidates | Before adding a source |

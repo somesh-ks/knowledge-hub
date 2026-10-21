@@ -15,7 +15,6 @@ import {
   type TopicsFile,
   TopicsFile as TopicsSchema,
   topicIdFromName,
-  type WriterFile,
   withGeneralScope,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
@@ -37,7 +36,6 @@ export interface ConfigBundle {
   topics: TopicsFile;
   preferences: Preferences;
   schedule: ScheduleFile;
-  writer: WriterFile;
   sourcesUser: SourcesUserFile;
   /** The merged registry, read only: used to find ids and pages that already exist. */
   registry: SourcesFile;
@@ -568,19 +566,6 @@ function definedOnly<T extends object>(value: T | undefined): Partial<T> {
   ) as Partial<T>;
 }
 
-function setWriter(
-  op: Extract<ParsedConfigOp, { op: "writer.set" }>,
-  bundle: ConfigBundle,
-): OpOutcome {
-  const next = clone(bundle);
-  next.writer = { version: 1, provider: op.provider, model: op.model };
-  return {
-    next,
-    summary:
-      op.model === null ? "set the writer to automatic" : `set the writer to ${tidy(op.model)}`,
-  };
-}
-
 function blockDomain(
   op: Extract<ParsedConfigOp, { op: "profile.block" }>,
   bundle: ConfigBundle,
@@ -669,8 +654,6 @@ export async function applyConfigOp(
       return setSchedule(op, bundle);
     case "topic.scope":
       return setScope(op, bundle);
-    case "writer.set":
-      return setWriter(op, bundle);
     case "profile.block":
       return blockDomain(op, bundle);
     case "profile.vote":

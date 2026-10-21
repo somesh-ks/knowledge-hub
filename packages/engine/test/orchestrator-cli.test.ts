@@ -220,16 +220,16 @@ describe("runCli: running a command", () => {
       MAX_TOKENS_PER_RUN: "1000",
     });
     expect(result.ctx?.env.MAX_TOKENS_PER_RUN).toBe(1000);
-    expect(result.ctx?.env.NEBIUS_BASE_URL).toBe("https://api.tokenfactory.nebius.com/v1/");
+    expect(result.ctx?.env.SPEECHIFY_VOICE_ID).toBe("geffen_32");
   });
 
   it("exits 1 with the variable name, not its value, for a bad environment", async () => {
     const result = await cli(["stub", "--root", dir], async () => 0, {
-      NEBIUS_BASE_URL: "not a url",
+      MAX_TOKENS_PER_RUN: "not a number",
     });
     expect(result.code).toBe(1);
-    expect(result.err).toContain("NEBIUS_BASE_URL");
-    expect(result.err).not.toContain("not a url");
+    expect(result.err).toContain("MAX_TOKENS_PER_RUN");
+    expect(result.err).not.toContain("not a number");
   });
 });
 
@@ -240,7 +240,7 @@ describe("runCli: failures never leak or dump a stack", () => {
       async () => {
         throw new Error(`request failed with key ${SECRET}\n    at somewhere (file.ts:1:1)`);
       },
-      { NEBIUS_API_KEY: SECRET },
+      { ANTHROPIC_API_KEY: SECRET },
     );
     expect(result.code).toBe(1);
     expect(result.err).toBe("dispatch: stub failed: request failed with key [redacted]\n");
@@ -268,7 +268,7 @@ describe("runCli: failures never leak or dump a stack", () => {
         ctx.log.warn(`calling with ${SECRET}`);
         return 0;
       },
-      { NEBIUS_API_KEY: SECRET },
+      { ANTHROPIC_API_KEY: SECRET },
     );
     expect(result.err).toContain("warn: calling with [redacted]");
     expect(result.err).not.toContain(SECRET);

@@ -385,12 +385,6 @@ export type ConfigOp =
       weekly?: boolean;
       custom?: boolean;
     }
-  | {
-      op: "writer.set";
-      provider: "nebius" | "anthropic";
-      /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
-      model: string | null;
-    }
   /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
   | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;
 

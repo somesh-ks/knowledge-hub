@@ -5,8 +5,6 @@ import type { Logger } from "../context.js";
 import type { ExtractedText } from "./extractText.js";
 import { MAX_TEXT_CHARS, truncateAtParagraph } from "./truncate.js";
 
-/** The newest Gemini Flash-Lite with audio input as of 2026-10-19 (models.dev); override with GEMINI_TRANSCRIBE_MODEL. */
-export const DEFAULT_TRANSCRIBE_MODEL = "gemini-3.5-flash-lite";
 /** Only the first 30 minutes of a video are transcribed: at low media resolution that is cents. */
 export const MAX_TRANSCRIBE_SECONDS = 1_800;
 /** Gemini transcriptions per run. Captions are free and uncapped. */
@@ -117,7 +115,13 @@ export async function fetchCaptions(id: string, fetchImpl: typeof fetch): Promis
 /** Gemini reads the public video by id; nothing is downloaded here. Cost is bounded by the caps above. */
 export async function transcribeWithGemini(
   id: string,
-  opts: { apiKey: string; model: string; fetchImpl: typeof fetch },
+  opts: {
+    apiKey: string;
+    model: string;
+    fetchImpl: typeof fetch;
+    /** The token counts the response reports, for the cost ledger. */
+    onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
+  },
 ): Promise<string | null> {
   const response = await opts.fetchImpl(
     `${GEMINI_BASE}${encodeURIComponent(opts.model)}:generateContent`,
@@ -147,7 +151,13 @@ export async function transcribeWithGemini(
   if (!response.ok) throw new Error(`Gemini answered HTTP ${response.status}`);
   const json = (await response.json()) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
   };
+  opts.onUsage?.({
+    model: opts.model,
+    inputTokens: json.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: json.usageMetadata?.candidatesTokenCount ?? 0,
+  });
   const text = (json.candidates?.[0]?.content?.parts ?? [])
     .map((p) => p.text ?? "")
     .join("")
@@ -168,12 +178,14 @@ function withNewest(cache: Cache, id: string, entry: Cache[string]): Cache {
 export interface VideoTextDeps {
   /** Omit to skip transcription; captions still work. */
   apiKey?: string | undefined;
-  model?: string | undefined;
+  /** Gemini model ids in the order the transcription step tries them (config/models.json). */
+  models?: (() => Promise<readonly string[]>) | undefined;
   fetchImpl?: typeof fetch;
   /** JSON file (state/video-text.json) holding finished transcripts, so a video is never fetched or transcribed twice. */
   cachePath: string;
   maxTranscriptions?: number;
   log?: Logger;
+  onUsage?: (usage: { model: string; inputTokens: number; outputTokens: number }) => void;
 }
 
 async function readCache(path: string): Promise<Cache> {
@@ -213,21 +225,30 @@ export function createVideoText(
     } catch (error) {
       deps.log?.debug("Captions failed", { itemId: item.id, reason: String(error).slice(0, 120) });
     }
-    if (!found && deps.apiKey && transcriptions < limit) {
+    const models = !found && deps.apiKey && deps.models ? await deps.models() : [];
+    if (!found && deps.apiKey && models.length > 0 && transcriptions < limit) {
       transcriptions += 1;
-      try {
-        const text = await transcribeWithGemini(id, {
-          apiKey: deps.apiKey,
-          model: deps.model ?? DEFAULT_TRANSCRIBE_MODEL,
-          fetchImpl,
-        });
-        if (text && text.length >= MIN_TRANSCRIPT_CHARS) found = { text, method: "transcription" };
-      } catch (error) {
-        // The message carries the status only, never the key.
-        deps.log?.warn("Transcription failed", {
-          itemId: item.id,
-          reason: String(error).slice(0, 120),
-        });
+      for (const [index, model] of models.entries()) {
+        try {
+          const text = await transcribeWithGemini(id, {
+            apiKey: deps.apiKey,
+            model,
+            fetchImpl,
+            onUsage: deps.onUsage,
+          });
+          if (text && text.length >= MIN_TRANSCRIPT_CHARS) {
+            found = { text, method: "transcription" };
+            break;
+          }
+        } catch (error) {
+          // The message carries the status only, never the key. Never a silent fallback.
+          deps.log?.warn("Transcription failed", {
+            itemId: item.id,
+            model,
+            next: models[index + 1] ?? null,
+            reason: String(error).slice(0, 120),
+          });
+        }
       }
     }
     if (!found) return null;

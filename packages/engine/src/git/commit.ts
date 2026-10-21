@@ -37,8 +37,13 @@ export const DEFAULT_PUSH_RETRIES = 3;
 const CONVENTIONAL =
   /^(?:feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(?:\([a-z0-9._/-]+\))?!?: \S/;
 
-/** Push output that means "someone else pushed first", the only case a rebase can fix. */
-const NON_FAST_FORWARD = /non-fast-forward|fetch first|Updates were rejected|\[rejected\]/i;
+/**
+ * Push output that means "someone else pushed first", the only case a rebase can fix. Two pushes in
+ * the same instant make GitHub refuse the loser with a ref-lock race ("[remote rejected] ... cannot
+ * lock ref" or "incorrect old value"), which a rebase fixes too (2026-10-21, an episode delete).
+ */
+const NON_FAST_FORWARD =
+  /non-fast-forward|fetch first|Updates were rejected|\[rejected\]|cannot lock ref|incorrect old value provided/i;
 
 export interface CommitAndPushInput {
   root: string;

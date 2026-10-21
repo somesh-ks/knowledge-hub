@@ -14,7 +14,9 @@ import {
   pressedOf,
   recordOpen,
   SEND_AFTER_MS,
+  STALE_BLOCK_MS,
   type StoryRef,
+  splitStaleBlocks,
 } from "./storyVotes";
 
 const story = (id: string): StoryRef => ({
@@ -97,5 +99,22 @@ describe("story votes", () => {
       votes = votes.filter((op) => !ops.includes(op));
     }
     expect(carried.size).toBe(120);
+  });
+  // A stop kept on a device that came back after weeks offline went out weeks late, silently.
+  it("drops a stop that waited past a week and dates an undated one now", () => {
+    const now = 10 * STALE_BLOCK_MS;
+    const { fresh, stale } = splitStaleBlocks(
+      [
+        { domain: "old.example", outlet: "Old", at: now - STALE_BLOCK_MS - 1 },
+        { domain: "new.example", outlet: "New", at: now - 1000 },
+        { domain: "undated.example", outlet: "Undated" },
+      ],
+      now,
+    );
+    expect(stale.map((block) => block.domain)).toEqual(["old.example"]);
+    expect(fresh).toEqual([
+      { domain: "new.example", outlet: "New", at: now - 1000 },
+      { domain: "undated.example", outlet: "Undated", at: now },
+    ]);
   });
 });
