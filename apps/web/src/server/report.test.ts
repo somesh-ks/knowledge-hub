@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleReport, readCapped, REPORTS_PER_MINUTE } from "./report";
+import { handleReport, REPORTS_PER_MINUTE, readCapped } from "./report";
 
 describe("handleReport", () => {
   // A page stuck in an error loop must not fill the function log, and a token in a page's query

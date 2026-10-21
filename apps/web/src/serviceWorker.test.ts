@@ -223,6 +223,26 @@ describe("service worker: caching strategies", () => {
     expect(await worker.caches.open(name)).not.toBe(broken);
   });
 
+  // A dropped connection on an uncached asset once emptied the shell, pages and media caches: the
+  // saved briefings the person reads offline went with it.
+  it("keeps every saved page when a network blip rejects a strategy and the retry answers", async () => {
+    let blip = false;
+    const worker = load(() => {
+      if (blip) {
+        blip = false;
+        throw new TypeError("network blip");
+      }
+      return new Response("body");
+    });
+    await worker.dispatchFetch(request("/d/2026-10-07"));
+    const pages = await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`);
+    blip = true;
+    const answer = await worker.dispatchFetch(request("/_astro/uncached.abc.js"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`)).toBe(pages);
+    expect(await pages.match("/d/2026-10-07")).toBeDefined();
+  });
+
   it("serves hashed assets cache first", async () => {
     const worker = load();
     await worker.dispatchFetch(request("/_astro/app.abc.css"));

@@ -16,8 +16,9 @@
  *     Safari needs, and the cache survives a version bump: a download is the person's, not the
  *     worker's. Any other audio request goes to the network as it would have.
  *   - A strategy that throws (a cache entry the browser corrupted or evicted mid-read) never breaks
- *     the page: the request goes to the network and, when that answers, the worker's own caches are
- *     dropped and the shell saved again, once per worker life (healed below).
+ *     the page: the request goes to the network and, when that answers and a cache read really does
+ *     throw, the worker's own caches are dropped and the shell saved again, once per worker life
+ *     (healed below). A network failure alone never deletes a saved page.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
 const VERSION = "v12";
@@ -472,15 +473,20 @@ async function downloadedApi(request) {
 /* ------------------------------------------------------------------ routing */
 
 /**
- * A strategy that rejects (a broken cache, not the network: the network is asked again here) is
- * answered from the network. If the network answers, the cache was at fault, so the versioned caches
- * are dropped and the shell is saved again, once per worker life. Downloads (AUDIO_CACHE) are kept.
+ * A strategy that rejects is answered from the network. It rejects for a broken cache or for a
+ * network blip, and only a cache read that itself throws now proves the first, so only then are the
+ * versioned caches dropped and the shell saved again, once per worker life. A blip on an uncached
+ * asset leaves every saved page alone. Downloads (AUDIO_CACHE) are kept.
  */
 let healing = false;
 function healed(event, answer) {
   return answer.catch(async (error) => {
     const response = await fetch(event.request);
-    if (!healing) {
+    const readable = await caches.match(event.request).then(
+      () => true,
+      () => false,
+    );
+    if (!readable && !healing) {
       healing = true;
       console.warn("[sw] cache read failed; rebuilding the caches", error);
       event.waitUntil(

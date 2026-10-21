@@ -102,9 +102,9 @@ describe("the model chain", () => {
   // that fits the bare allowance but not the request must stop the call before it is paid for.
   it("checks the token budget against the Claude request's real size", async () => {
     const { router, calls } = setup(() => claude("end_turn"), { budget: 5_000 });
-    await expect(
-      router.callModel("story_writer", { ...request, maxTokens: 800 }),
-    ).rejects.toThrow(/budget/i);
+    await expect(router.callModel("story_writer", { ...request, maxTokens: 800 })).rejects.toThrow(
+      /budget/i,
+    );
     expect(calls).toHaveLength(0);
   });
 

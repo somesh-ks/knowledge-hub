@@ -88,7 +88,9 @@ describe("YouTube video text", () => {
     const gemini = { calls: 0, reply: (): string | null => null };
     const fetchImpl = (async (input: RequestInfo | URL) => {
       if (String(input).includes("/youtubei/v1/player")) {
-        return Response.json({ captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } } });
+        return Response.json({
+          captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } },
+        });
       }
       gemini.calls += 1;
       return Response.json({ candidates: [{ content: { parts: [{ text: gemini.reply() }] } }] });
