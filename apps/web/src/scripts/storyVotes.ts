@@ -38,6 +38,7 @@ import {
   pressedOf,
   recordOpen,
   type StoryRef,
+  splitStaleBlocks,
   stopFailure,
   VOTES_KEY,
   type VoteOp,
@@ -327,7 +328,7 @@ function commitBlock(entry: Block): void {
   window.clearTimeout(entry.timer);
   blocks.delete(entry.host);
   messages.set(entry.host, entry.message);
-  saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet }]);
+  saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet, at: Date.now() }]);
   void send(false);
 }
 
@@ -396,7 +397,7 @@ function leave(): void {
     window.clearTimeout(entry.timer);
     blocks.delete(entry.host);
     messages.set(entry.host, entry.message);
-    saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet }]);
+    saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet, at: Date.now() }]);
   }
   void send(true);
 }
@@ -406,4 +407,15 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", leave);
 document.addEventListener("astro:before-preparation", leave);
+// A stop that waited more than a week (a device long offline) is dropped, and the reader is told.
+{
+  const { fresh, stale } = splitStaleBlocks(outbox(), Date.now());
+  if (stale.length > 0 || fresh.some((block, i) => block.at !== outbox()[i]?.at)) saveOutbox(fresh);
+  for (const { outlet } of stale) {
+    toast({
+      message: `Did not stop ${outlet}: the request waited more than a week. Stop it again if you still want to.`,
+      kind: "error",
+    });
+  }
+}
 schedule();
