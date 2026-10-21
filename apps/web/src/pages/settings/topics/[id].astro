@@ -1,7 +1,8 @@
 ---
-import { PERSPECTIVE_STOPS } from "@dispatch/core";
+import { PERSPECTIVE_STOPS, topicEmoji } from "@dispatch/core";
 import { topicArt } from "@dispatch/cover";
 import AddFab from "../../../components/AddFab.astro";
+import EmojiPicker from "../../../components/EmojiPicker.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
@@ -204,7 +205,25 @@ const facts = topic && {
                Listen in, the podcasts it plays in (2026-10-20). The menu is the app's
                popover menu (HeroMenu.astro, heroMenu.ts). */}
           <div class="topic-card">
-            <div class="topic-card-art" set:html={art} />
+            <div class="topic-card-lead">
+              <div class="topic-card-art" set:html={art} />
+              {/* The topic's emoji (2026-10-21): a button at the picture's corner that opens the
+                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. */}
+              {
+                topic && (
+                  <button
+                    class="icon-btn press topic-emoji-pick"
+                    type="button"
+                    aria-label={`Change emoji for ${name}`}
+                    aria-haspopup="dialog"
+                    aria-controls="emoji-picker"
+                    data-change-emoji
+                    data-needs-js
+                  >{topicEmoji(topic)}</button>
+                )
+              }
+            </div>
+            {topic && <EmojiPicker id="emoji-picker" />}
             <div class="topic-card-text">
               <SettingsHead title={name} note={note} />
             </div>

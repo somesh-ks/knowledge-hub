@@ -3,7 +3,8 @@
  * own popover. The listeners sit on the document, so they outlive a client-side navigation that
  * swaps the menu for another page's. Loaded by the briefing and episode pages.
  */
-const LIST = ".hero-menu-list";
+// The emoji picker (data-picker) is the same popover but its own: its keys, focus and Close are emojiPicker.ts.
+const LIST = ".hero-menu-list:not([data-picker])";
 
 const itemsOf = (list: Element): HTMLElement[] =>
   Array.from(list.querySelectorAll<HTMLElement>('[role="menuitem"]'));

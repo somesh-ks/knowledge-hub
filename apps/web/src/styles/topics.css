@@ -94,7 +94,6 @@
 }
 
 .topic-card-art {
-  grid-area: art;
   width: var(--cover-size-hero);
   height: var(--cover-size-hero);
   overflow: hidden;
@@ -1464,4 +1463,121 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
+}
+
+/* The topic's emoji at the picture's corner (2026-10-21): a 44px button over the picture that opens
+   the emoji picker. The picture keeps its size; the lead only gives the button a corner to sit in. */
+.topic-card-lead {
+  position: relative;
+  grid-area: art;
+  justify-self: start;
+}
+
+.topic-card-lead .topic-emoji-pick {
+  position: absolute;
+  inset-block-end: var(--space-2);
+  inset-inline-end: var(--space-2);
+  anchor-name: --emoji-pick;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  font-size: var(--font-size-title);
+  line-height: 1;
+}
+
+/* The emoji picker: the More menu's popover (hero.css, .menu-sheet) holding a search field and the
+   emoji by category. From 40rem it hangs under the emoji button, start edges level; the phone's
+   bottom sheet is taller and rides above the keyboard (keyboardFit.ts writes --keyboard). The extra
+   class beats the menu's own rules, which it reuses for the surface, the slide and the scrim. */
+.hero-menu-list.emoji-picker {
+  --emoji-bg: var(--color-surface-overlay);
+  inset-inline: var(--menu-left, 0) auto;
+  flex-direction: column;
+  width: min(22rem, calc(100vw - var(--space-8)));
+  height: min(28rem, 70dvh);
+  padding: 0;
+}
+
+@supports (top: anchor(bottom)) {
+  .hero-menu-list.emoji-picker {
+    position-anchor: --emoji-pick;
+    inset-inline: anchor(left) auto;
+  }
+}
+
+.hero-menu-list.emoji-picker:popover-open {
+  display: flex;
+}
+
+@media (width < 40rem) {
+  .hero-menu-list.menu-sheet.emoji-picker,
+  .hero-menu-list.menu-sheet.emoji-picker:popover-open {
+    --emoji-bg: var(--sheet-bg);
+    inset: auto 0 var(--keyboard, 0px) 0;
+    width: min(100%, var(--layout-column));
+    height: min(36rem, calc(100dvh - var(--keyboard, 0px) - var(--space-16)));
+    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+  }
+}
+
+.emoji-search {
+  flex: none;
+  margin: var(--space-2);
+}
+
+.emoji-body {
+  flex: 1;
+  min-height: 0;
+  padding-inline: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* A category's name stays at the top while its emoji scroll under it. */
+.emoji-label {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-raised);
+  margin: 0;
+  padding-block: var(--space-2);
+  background: var(--emoji-bg);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-touch), 1fr));
+}
+
+.emoji-cell {
+  display: grid;
+  place-items: center;
+  min-height: var(--size-touch);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-title);
+  line-height: 1;
+}
+
+.emoji-cell[aria-current="true"] {
+  background: var(--color-surface-container);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
+}
+
+.emoji-cell:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+  box-shadow: none;
+}
+
+.emoji-note {
+  margin: 0;
+  padding: var(--space-4) var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
 }

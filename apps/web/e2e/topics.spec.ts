@@ -950,6 +950,32 @@ test.describe("editing a topic", () => {
     expect(ops(sent)).toHaveLength(1);
   });
 
+  test("the emoji button opens a picker that is searched by keyword and keys, and a pick is one save carrying the emoji", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    const button = page.getByRole("button", { name: "Change emoji for Audio interfaces" });
+    const before = await button.textContent();
+    await button.click();
+    const picker = page.getByRole("dialog", { name: /emoji/i });
+    await expect(picker).toBeVisible();
+    // The list comes with the first open, not with the page.
+    const search = picker.getByRole("searchbox");
+    await search.fill("rocket");
+    await expect(picker.locator(".emoji-cell").first()).toHaveAttribute("data-emoji", "🚀");
+    await search.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(picker).toBeHidden();
+    await expect(button).toHaveText("🚀");
+    await expect(button).not.toHaveText(before ?? "");
+    await expect(button).toBeFocused();
+    await expect
+      .poll(() => ops(sent))
+      .toMatchObject([{ op: "topic.upsert", topic: { id: "audio_interfaces", emoji: "🚀" } }]);
+    expect(ops(sent)).toHaveLength(1);
+  });
+
   test("a new topic sets its scope as it is added, in the same request", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page);
