@@ -322,6 +322,8 @@ export function fillShell(root: HTMLElement, ops = readSaved()): boolean {
     });
     trigger.dataset.topicBase = JSON.stringify({ op: "topic.upsert", topic });
   }
+  const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
+  if (pick) pick.textContent = topicEmoji({ id, name: topic.name, emoji: topic.emoji });
   root.dataset.taken = `${root.dataset.taken ?? ""} ${id}`;
   root.dataset.filled = "";
   const pane = root.querySelector<HTMLElement>("#topic-pane-sources");
@@ -389,8 +391,24 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
     row.textContent = topic.name;
     shown = true;
   }
+  const mark = root.querySelector(`a.row-action[href="/settings/topics/${id}"] .topic-emoji`);
+  if (mark && topic.emoji && mark.textContent !== topic.emoji) {
+    mark.textContent = topic.emoji;
+    shown = true;
+  }
   const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
   if (!byId(root, "[data-topic]", id) || !trigger) return shown;
+  // A saved emoji shows on the list's row and on the topic's page, and its next edit keeps it.
+  const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
+  if (topic.emoji && pick && pick.textContent !== topic.emoji) {
+    pick.textContent = topic.emoji;
+    const base = JSON.parse(trigger.dataset.topicBase ?? "{}");
+    trigger.dataset.topicBase = JSON.stringify({
+      ...base,
+      topic: { ...base.topic, emoji: topic.emoji },
+    });
+    shown = true;
+  }
   const facts = JSON.parse(trigger.dataset.editTopic ?? "{}") as Partial<Upsert>;
   if (facts.id !== id || (facts.name === topic.name && facts.description === topic.description))
     return shown;
@@ -399,6 +417,7 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   trigger.setAttribute("aria-label", `Edit topic ${name}`);
   const title = document.getElementById("page-title");
   if (title) title.textContent = name;
+  pick?.setAttribute("aria-label", `Change emoji for ${name}`);
   const note = root.querySelector(".settings-note");
   if (note) note.textContent = description;
   // A later edit sends the topic with these details, not the ones it was built with.

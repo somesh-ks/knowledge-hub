@@ -189,7 +189,8 @@ export function mountEditor(root: HTMLElement): Editor {
     row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
     autosave.now();
     void pickEmoji(topic.name, topic.description).then((emoji) => {
-      if (emoji) {
+      // Not over an emoji the owner has chosen meanwhile.
+      if (emoji && op.topic.emoji === guess) {
         op.topic.emoji = emoji;
         const shown = row.querySelector(".topic-emoji");
         if (shown) shown.textContent = emoji;
@@ -494,9 +495,42 @@ export function mountEditor(root: HTMLElement): Editor {
     trigger.dataset.editTopic = JSON.stringify({ ...facts, ...edit });
     const title = document.getElementById("page-title");
     if (title) title.textContent = edit.name;
+    root
+      .querySelector("[data-change-emoji]")
+      ?.setAttribute("aria-label", `Change emoji for ${edit.name}`);
     const note = root.querySelector(".settings-note");
     if (note) note.textContent = edit.description;
     autosave.now();
+  };
+
+  /**
+   * The topic's emoji from the picker, shown at once and sent now through the same edit as Edit topic
+   * (one topic.upsert; a second pick or edit coalesces with it). A topic whose own add has not gone
+   * yet carries the pick in that add too.
+   */
+  const setEmoji = (button: HTMLElement, emoji: string): void => {
+    const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
+    if (!trigger) return;
+    type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
+    const built = JSON.parse(trigger.dataset.topicBase ?? "{}") as Upsert;
+    const topic = { ...built.topic, emoji, enabled: true };
+    trigger.dataset.topicBase = JSON.stringify({ ...built, topic });
+    for (const { op } of changes.values())
+      if (op.op === "topic.upsert" && op.topic.id === topic.id) op.topic.emoji = emoji;
+    const op: Upsert = { op: "topic.upsert", topic };
+    changes.set(`topic-edit:${topic.id}`, { op, el: trigger, now: JSON.stringify(op) });
+    button.textContent = emoji;
+    autosave.now();
+  };
+
+  /** The emoji button: opens the picker (emojiPicker.ts, loaded now). */
+  const changeEmoji = (button: HTMLElement): void => {
+    const name = document.getElementById("page-title")?.textContent ?? "";
+    void import("./emojiPicker").then((module) =>
+      module.openEmojiPicker(button, name, button.textContent?.trim() ?? "", (emoji) =>
+        setEmoji(button, emoji),
+      ),
+    );
   };
 
   /**
@@ -652,6 +686,7 @@ export function mountEditor(root: HTMLElement): Editor {
       "editTopic" in button.dataset
     )
       openPanel(button);
+    else if ("changeEmoji" in button.dataset) changeEmoji(button);
     else if ("suggestedAdd" in button.dataset) {
       const suggestion = parseSuggestedAdd(button.dataset.suggestedAdd);
       if (suggestion) addSuggested(button, suggestion);
