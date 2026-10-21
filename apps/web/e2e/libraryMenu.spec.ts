@@ -44,69 +44,132 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
-test("a downloaded briefing opens offline and its audio is answered from the saved file, Range included", async ({
+test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph", async ({
   page,
-  context,
 }) => {
   await page.goto("/library");
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.reload();
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
-
-  await openMenu(page, AUDIO_ID);
-  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
-  await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
-  await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toContainText(
-    "Downloaded",
-  );
-
-  // Still marked after a reload: the state comes from Cache Storage, not from the page.
-  await page.reload();
-  await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
-  const audio = await row(page, AUDIO_ID).locator("[data-library-menu]").getAttribute("data-audio");
-
-  // The media cache keeps only the latest covers (and the player may never have drawn this one):
-  // a download stands on what it saved.
-  await page.evaluate(async () => {
-    for (const name of await caches.keys()) if (name.includes("media")) await caches.delete(name);
-  });
-  await context.setOffline(true);
-  // Offline does not always reach the worker's own requests here (it does on CI): covers fail as
-  // they would on a phone.
-  await context.route("**/covers/**", (route) => route.abort());
-  await page.goto(`/d/${AUDIO_ID}`);
-  await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
-  // Every cover the page may show for this item (each theme, the player's 1024 included) answers
-  // offline: a download once saved only the covers the page does not show.
-  const covers = await page.evaluate(async (id) => {
-    const urls = new Set<string>();
-    for (const image of document.querySelectorAll<HTMLImageElement>(`img[srcset*="${id}"]`))
-      for (const part of image.srcset.split(",")) urls.add(part.trim().split(/\s+/)[0] ?? "");
-    const statuses = await Promise.all(
-      [...urls].map((url) =>
-        // Past the browser's HTTP cache, which a phone may have emptied: the worker must answer.
-        fetch(url, { cache: "no-store" }).then(
-          (res) => res.status,
-          () => 0,
-        ),
-      ),
+  const card = row(page, AUDIO_ID);
+  const more = card.locator("[data-hero-more]");
+  const boxes = async () =>
+    Promise.all(
+      [card, card.locator(".card-title"), more.locator("svg")].map((n) => n.boundingBox()),
     );
-    return [...urls].map((url, index) => `${statuses[index]} ${url}`);
-  }, AUDIO_ID);
-  expect(covers.some((line) => line.includes("1024"))).toBe(true);
-  expect(covers.filter((line) => !line.startsWith("200 "))).toEqual([]);
-  const answer = await page.evaluate(async (url) => {
-    const res = await fetch(url, { headers: { Range: "bytes=10-19" } });
-    return {
-      status: res.status,
-      range: res.headers.get("content-range"),
-      size: (await res.arrayBuffer()).byteLength,
-    };
-  }, audio ?? "");
-  expect(answer.status).toBe(206);
-  expect(answer.range).toMatch(/^bytes 10-19\//);
-  expect(answer.size).toBe(10);
-  await context.setOffline(false);
+  const rest = await boxes();
+  const dots = (await more.boundingBox()) as {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  await page.mouse.move(dots.x + dots.width / 2, dots.y + dots.height / 2);
+  await page.mouse.down();
+  // Past the press's transition: a scale would have settled by now.
+  await page.waitForTimeout(300);
+  expect(await boxes()).toEqual(rest);
+  await page.mouse.up();
+  // The dots sit at the card's top right.
+  const cardBox = rest[0] as { x: number; y: number; width: number };
+  expect(dots.y - cardBox.y).toBeLessThan(16);
+  expect(cardBox.x + cardBox.width - (dots.x + dots.width)).toBeLessThan(16);
+});
+
+test.describe("a briefing download", () => {
+  // Offline, a cover the download did not save fails to load; the player's art is not under test.
+  test.use({ allowNetworkErrors: true });
+
+  test("a downloaded briefing opens offline and its audio is answered from the saved file, Range included", async ({
+    page,
+    context,
+  }) => {
+    await page.addInitScript(() => {
+      // The player's audio element is never in the page: take hold of the one it makes.
+      const Original = window.Audio;
+      window.Audio = class extends Original {
+        constructor(src?: string) {
+          super(src);
+          Object.assign(window, { played: this });
+        }
+      } as typeof Audio;
+    });
+    await page.goto("/library");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+
+    await openMenu(page, AUDIO_ID);
+    await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
+    await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toContainText(
+      "Downloaded",
+    );
+
+    // Still marked after a reload: the state comes from Cache Storage, not from the page.
+    await page.reload();
+    await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+    const audio = await row(page, AUDIO_ID)
+      .locator("[data-library-menu]")
+      .getAttribute("data-audio");
+
+    // The media cache keeps only the latest covers (and the player may never have drawn this one):
+    // a download stands on what it saved.
+    await page.evaluate(async () => {
+      for (const name of await caches.keys()) if (name.includes("media")) await caches.delete(name);
+    });
+    await context.setOffline(true);
+    // Offline does not always reach the worker's own requests here (it does on CI): covers fail as
+    // they would on a phone.
+    await context.route("**/covers/**", (route) => route.abort());
+    if (audio)
+      await context.route(`**${new URL(audio, "http://x").pathname}`, (route) => route.abort());
+    await page.goto(`/d/${AUDIO_ID}`);
+    await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
+    // Every cover the page may show for this item (each theme, the player's 1024 included) answers
+    // offline: a download once saved only the covers the page does not show.
+    const covers = await page.evaluate(async (id) => {
+      const urls = new Set<string>();
+      for (const image of document.querySelectorAll<HTMLImageElement>(`img[srcset*="${id}"]`))
+        for (const part of image.srcset.split(",")) urls.add(part.trim().split(/\s+/)[0] ?? "");
+      const statuses = await Promise.all(
+        [...urls].map((url) =>
+          // Past the browser's HTTP cache, which a phone may have emptied: the worker must answer.
+          fetch(url, { cache: "no-store" }).then(
+            (res) => res.status,
+            () => 0,
+          ),
+        ),
+      );
+      return [...urls].map((url, index) => `${statuses[index]} ${url}`);
+    }, AUDIO_ID);
+    expect(covers.some((line) => line.includes("1024"))).toBe(true);
+    expect(covers.filter((line) => !line.startsWith("200 "))).toEqual([]);
+    const answer = await page.evaluate(async (url) => {
+      const res = await fetch(url, { headers: { Range: "bytes=10-19" } });
+      return {
+        status: res.status,
+        range: res.headers.get("content-range"),
+        size: (await res.arrayBuffer()).byteLength,
+      };
+    }, audio ?? "");
+    expect(answer.status).toBe(206);
+    expect(answer.range).toMatch(/^bytes 10-19\//);
+    expect(answer.size).toBe(10);
+
+    // Pressing Play offline plays the saved file: the chip is not shut for want of a connection
+    // (it was, whatever the device held).
+    const chip = page.locator("[data-play-digest]").first();
+    await expect(chip).not.toHaveAttribute("aria-disabled", "true");
+    await chip.click();
+    await expect(chip).toHaveAttribute("data-playing", "true");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { played?: HTMLMediaElement }).played?.currentTime ?? 0,
+        ),
+      )
+      .toBeGreaterThan(0.3);
+    await context.setOffline(false);
+  });
 });
 
 const EPISODE_ID = "ep-20261007-1930";

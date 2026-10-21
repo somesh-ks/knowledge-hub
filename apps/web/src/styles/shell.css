@@ -289,6 +289,11 @@ html[data-mini="visible"] main {
   display: none;
 }
 
+/* Only the side column has room for it (from 64rem, below). */
+.app-nav-updated {
+  display: none;
+}
+
 .app-nav-list {
   display: grid;
   grid-auto-flow: column;
@@ -467,6 +472,18 @@ html[data-mini="visible"] main {
     padding-inline-end: var(--space-2);
     /* Air under the wordmark, so the brand and the menus read as two groups. */
     margin-block-end: var(--space-6);
+  }
+
+  /* The foot of the column, level with the navigation's icons, clear of the player bar under it. */
+  .app-nav-updated {
+    display: block;
+    margin-block: auto var(--dock-room);
+    padding-inline: var(--space-4);
+    /* One line: the date wrapped under "Last updated" (2026-10-21). */
+    white-space: nowrap;
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-label);
+    line-height: var(--font-leading-caption);
   }
 
   .app-nav-list {

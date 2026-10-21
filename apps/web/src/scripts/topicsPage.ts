@@ -7,7 +7,6 @@
 
 import { hasSaved } from "../lib/savedKey";
 import { drawStop } from "../lib/weightStops";
-import { installHeroMenu } from "./heroMenu";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
 
@@ -112,8 +111,9 @@ function mount(root: HTMLElement): void {
 
 export function installTopicsPage(): void {
   installMultiSelect();
-  // The topic card's More menu is the briefing page's popover menu.
-  installHeroMenu();
+  // The topic card's More menu is the briefing page's popover menu. The popover opens without it;
+  // its placement fallback and light dismiss come at idle, outside the first load's budget.
+  warmWhenIdle(() => import("./heroMenu").then((module) => module.installHeroMenu()));
   const sync = (): void => {
     const root = document.querySelector<HTMLElement>("[data-topics]");
     if (root && root.dataset.ready === undefined) mount(root);

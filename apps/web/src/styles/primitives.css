@@ -425,8 +425,10 @@
 
 /*
  * Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one
- * raised surface pill that slides under the active label, by transform alone. The active label
- * takes the text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves
+ * pill in the accent container that slides under the active label, by transform alone. The design
+ * is flat, so the pill is told apart by colour, not by a shadow (2026-10-21); the choice control is
+ * told apart by its outline and check. The active label takes the pill's text colour, the others
+ * stay muted. Buttons in a tablist: segmentedNav.ts moves
  * aria-selected and the roving tabindex, and answers Left, Right, Home and End.
  * Markup: <div class="segmented-nav" role="tablist" aria-label="Show"> of
  *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
@@ -484,8 +486,7 @@
   inset-inline-start: var(--segmented-padding);
   width: calc(100% / var(--seg-n) - var(--segmented-padding) * 2);
   border-radius: var(--radius-round);
-  background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-raised);
+  background: var(--color-accent-container);
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * (100% + var(--segmented-padding) * 2)));
 }
@@ -521,7 +522,7 @@
 }
 
 .segmented-nav-tab[aria-selected="true"] {
-  color: var(--color-on-surface);
+  color: var(--color-on-accent-container);
 }
 
 /* The press layer is the pill's shape, inside the track's inset. No press scale on a label. */
@@ -648,6 +649,25 @@
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* A row of chips that scrolls sideways when it does not fit, with room inside it for the focus ring
+   and the 44px targets: Sources and a topic's page use it as the Library's kind chips do. */
+.filter-chips-scroll {
+  flex-wrap: nowrap;
+  margin: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.filter-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chips-scroll > .filter-chip {
+  flex: none;
 }
 
 .filter-chip {
@@ -1035,4 +1055,52 @@
     forced-color-adjust: none;
     background: HighlightText;
   }
+}
+
+/* ------------------------------------------------------------------ card group (2026-10-21) */
+
+/* A group of settings rows in one rounded container on the container tone, as Material 3 groups an
+   Android settings screen: the group is told apart from the page by tone alone, never by a shadow or
+   a line. Put the class on the .rows list itself; the rows keep their own padding, so the container's
+   inner room is the first and last row's. Its rows sit 16px in from its edge, and a row's hover tile
+   keeps clear of the corners. */
+.card-group {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+/* A card sits on the container tone, so an unticked chip in it needs one step up to show. */
+.card-group .filter-chip:not(:has(input:checked)) {
+  background: var(--color-surface-raised);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-raised),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+/* Inside a card the dividers, where a page draws them, start and end at the card's content edge. */
+.card-group > * + *::before {
+  inset-inline: 0;
+}
+
+/* A card of one note (the install card): an accent tone says it is an offer, not a setting. */
+.card-group-accent {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+.card-group-accent :is(.settings-hint, .btn) {
+  color: inherit;
+}
+
+/* The muted ink fails 4.5 to 1 on the container tone; a quiet value in a card takes the full ink. */
+.card-group .settings-row[data-models] .value-select > select.manage-input {
+  color: var(--color-on-surface);
 }

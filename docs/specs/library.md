@@ -29,9 +29,12 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 ### Row menu and downloads (D127)
 - Each row has a three-dots menu (`LibraryItemMenu.astro`, `libraryMenu.ts`): Download or Remove download, Add to queue, Regenerate, Share (`navigator.share`, else the link is copied and "Link copied" shows), and Delete where the page allows it.
 - Download stores the audio (a briefing's file; an episode's every pre-narrated turn, its marks and its `/api/narrate` lookup), the page, covers and scripts in Cache Storage `dispatch-audio-v1`, at most 10, oldest evicted (`lib/downloads.ts`, `libraryDownloads.ts`). An episode with a turn not stored says "Not ready offline yet".
+- The three dots sit at the card's top right (a surface disc over the art) and do not move on press; no icon button scales or moves its glyph on press. On a phone the menu is a bottom sheet (SheetHeader and a scrim); from 40rem it is the popover. Every item has an outline icon (Share is the arrow).
+- A downloaded briefing's Play chip works offline: it is shut offline only when its audio is not saved (`readerSync.ts` reads `dispatch-audio-v1`).
 - A downloaded row shows a filled check-circle, with "Downloaded" hidden at the start of its subtitle.
 
 ### Floating button
+- A toast sits at the bottom above the bar and the floating button rises by its height while it shows (`--fab-lift`).
 - On a phone the floating button is New episode on the Library alone (D60), extended (plus and words) at the top and while scrolling up, folded while scrolling down.
 - Today, older briefings and episodes hold Play there ("Play · 5 min"), only once the hero's Play has scrolled away (D77), and it steps aside once the bar holds it (D59, D60). A Today with no briefing has none.
 - Pressing the tab of the page you are on scrolls it to the top.

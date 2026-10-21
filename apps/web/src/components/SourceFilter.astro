@@ -6,71 +6,58 @@ import Icon from "./Icon.astro";
 interface Props {
   /** Every source the filter covers: the page's own list, or all of them on the index. */
   sources: ManageSource[];
-  /** A tab bar of the formats the sources use, All first (a topic's page). The index has none. */
-  tabs?: boolean;
+  /** Chips for the formats the sources use (a topic's page). The index has none. */
+  chips?: boolean;
 }
 
-const { sources, tabs = false } = Astro.props;
+const { sources, chips = false } = Astro.props;
 const formats = Object.entries(FORMAT_LABEL)
   .filter(([format]) => sources.some((source) => source.format === format))
   .map(([format, label]) => ({ format, label }));
-// One format has nothing to tell apart: All would show the same list.
-const shownTabs = tabs && formats.length > 1;
+// One format has nothing to tell apart: no chip would change the list.
+const shownChips = chips && formats.length > 1;
 ---
 
-{/* One search field over a list of source rows, and on a topic's page the formats: a tab bar, All
-     first, below 64rem (one at a time, sticking with the field), and from 64rem chips with no All, any
-     number chosen and none meaning everything. Both are drawn and one shows; they read and write one
-     state (sourceFilter.ts reads the rows' data-text and data-format).
+{/* One search field over a list of source rows and, on a topic's page, the formats as chips. Both are
+     the Library's (primitives.css: .search-field, .filter-chip), so a search and a chip look the same
+     on every page (2026-10-21). Any number of chips may be chosen and none means everything. The state
+     is read and written by sourceFilter.ts from the rows' data-text and data-format.
      Whole static HTML without the script: the list simply stays unfiltered. */}
-<div class="source-filter" data-filter data-tabs={shownTabs ? "" : undefined} data-needs-js>
+<div class="source-filter" data-filter data-chips={shownChips ? "" : undefined} data-needs-js>
   <div class="filter-row">
-    <div class="filter-field">
-      <Icon name="search" />
-      <input
-        class="manage-input"
-        type="search"
-        name="q"
-        placeholder="Search sources"
-        aria-label="Search sources"
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        enterkeyhint="search"
-        data-filter-q
-      />
+    <div class="search-wrap filter-field">
+      <label class="search-field">
+        <Icon name="search" />
+        <span class="sr-only">Search sources</span>
+        <input
+          type="search"
+          name="q"
+          placeholder="Search sources"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          enterkeyhint="search"
+          data-filter-q
+        />
+      </label>
+      <button class="search-clear press press-subtle" type="button" aria-label="Clear text" data-filter-clear-text hidden>
+        <Icon name="close" />
+      </button>
     </div>
     {/* The page's add action beside the field, where the wide layout has no floating button. */}
     <slot name="action" />
   </div>
   {
-    shownTabs && (
-      <div class="tabs-bar filter-tabs">
-        <div class="tabs" role="tablist" aria-label="Type">
-          {[{ format: "", label: "All" }, ...formats].map((tab) => (
-            <button
-              class="tab"
-              type="button"
-              role="tab"
-              aria-selected={tab.format === "" ? "true" : "false"}
-              data-tab={tab.format}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
-  {
-    shownTabs && (
-      <div class="filter-chips" role="group" aria-label="Type">
+    shownChips && (
+      <fieldset class="filter-chips filter-chips-scroll" aria-label="Type">
         {formats.map((chip) => (
-          <button class="format-chip" type="button" aria-pressed="false" data-chip={chip.format}>
-            {chip.label}
-          </button>
+          <label class="filter-chip">
+            <input type="checkbox" name="type" value={chip.format} data-chip={chip.format} />
+            <Icon name="check" class="filter-chip-check" />
+            <span>{chip.label}</span>
+          </label>
         ))}
-      </div>
+      </fieldset>
     )
   }
   <p class="filter-none" role="status" hidden data-filter-none>

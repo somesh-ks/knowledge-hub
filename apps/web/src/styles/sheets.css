@@ -669,11 +669,10 @@ html[data-mini="visible"] .toast {
 
 /*
  * Below 64rem the open player slides the bottom bar away, and its own bar comes down onto the safe
- * area: a toast clears only that. Otherwise the run line and, above it, the floating button stack
- * over the bottom bar (create-sheet.css). A toast sits 16px above the higher of the two that shows:
- * the run line alone where there is no button (no data-fab, BaseLayout.astro) or it is hidden (a
- * sheet is open, or the hero's own Play is on screen: the same condition that hides it in
- * create-sheet.css), neither while the player is open.
+ * area: a toast clears only that. Otherwise it sits 16px above the run line, at the bottom as a
+ * Material snackbar does. The floating button rises by the toast's height while one shows
+ * (--fab-lift, create-sheet.css), as it does under Android's CoordinatorLayout, and settles back
+ * when the toast leaves.
  */
 @media (width < 64rem) {
   html[data-player="open"] .toast {
@@ -684,11 +683,8 @@ html[data-mini="visible"] .toast {
     --toast-lift: var(--run-room);
   }
 
-  html[data-fab]:not([data-player="open"]):not(:has(dialog[open])):not(
-      :has(.hero-actions):not([data-hero-away])
-    )
-    .toast {
-    --toast-lift: calc(var(--run-room) + var(--space-4) + var(--fab-size));
+  html:has(.toast:popover-open) {
+    --fab-lift: calc(var(--size-touch) + var(--space-1) * 2 + var(--space-2));
   }
 }
 

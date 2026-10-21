@@ -206,6 +206,8 @@ function upsertTopic(
     origin: "custom",
     depth: input.depth,
   };
+  const emoji = input.emoji ?? existing?.emoji;
+  if (emoji !== undefined) topic.emoji = emoji;
   const wasNew = existing === undefined;
   // Queries follow the wording: written once for a new topic, and again when the wording changed.
   const reworded =
@@ -498,7 +500,6 @@ function setSchedule(
     hour,
     cadence_days: cadence,
     skip_topics: skip,
-    format: op.format ?? current.format,
     length_minutes: op.length_minutes ?? current.length_minutes,
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,

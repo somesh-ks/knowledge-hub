@@ -49,6 +49,8 @@ export interface ManageTopic {
   origin: TopicOrigin;
   /** A general topic's perspective, -2 to 2; absent is Even. */
   perspective?: number;
+  /** The emoji beside a topic of the owner's own, as Jev chose it when it was added. */
+  emoji?: string;
 }
 
 export interface ManageSource {
@@ -348,6 +350,7 @@ function parseTopic(value: unknown): ManageTopic | null {
     keywords,
     section_id: asString(value.section_id) ?? "top",
     never_publish: asBool(value.never_publish, false),
+    ...(asString(value.emoji) ? { emoji: asString(value.emoji) as string } : {}),
     ...(asNumber(value.perspective) ? { perspective: asNumber(value.perspective) as number } : {}),
     origin:
       value.origin === "custom" || value.origin === "app" || value.origin === "general"

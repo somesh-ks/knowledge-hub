@@ -137,7 +137,6 @@ const { topics } = Astro.props;
           <div class="manage-select">
             <select class="manage-input" id="panel-source-topic" name="topic" data-source-topic>
               {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
-              <option value="" selected>Other</option>
             </select>
             <Icon name="chevronDown" />
           </div>
@@ -184,7 +183,6 @@ const { topics } = Astro.props;
           <div class="manage-select">
             <select class="manage-input" id="panel-edit-topic" name="topic" data-edit-topic>
               {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
-              <option value="">Other</option>
             </select>
             <Icon name="chevronDown" />
           </div>

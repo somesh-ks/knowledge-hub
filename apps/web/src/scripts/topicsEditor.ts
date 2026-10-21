@@ -11,6 +11,7 @@
  * The pure parts are exported and tested; the rest is wiring.
  */
 import type { SourceFormat } from "@dispatch/core";
+import { pickEmoji } from "../lib/pickEmoji";
 import type { HeldSource } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import { weightOf } from "../lib/weightStops";
@@ -150,7 +151,10 @@ export function mountEditor(root: HTMLElement): Editor {
    * until the build gives it a page: the site is static, so a page for it does not exist before
    * then, and leaving this one would drop the request on its way (and any passphrase it asks for).
    */
-  const addTopic = (topic: NewTopic): void => {
+  const addTopic = async (topic: NewTopic): Promise<void> => {
+    // Jev picks the topic's emoji (the same Jev that places a source's format) within 2.5 s; after
+    // that, or with no answer, the name's fixed fallback stands (core topicEmoji).
+    const emoji = await pickEmoji(topic.name, topic.description);
     // A topic still waiting to be saved holds its id.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
@@ -175,6 +179,7 @@ export function mountEditor(root: HTMLElement): Editor {
           keywords: topic.keywords,
           // A new topic gets a section of its own, titled after it.
           section_id: id,
+          ...(emoji ? { emoji } : {}),
         },
       },
       scope,

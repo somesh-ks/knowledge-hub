@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IdString } from "./categories.js";
 import { GENERAL_TOPICS } from "./generalTopics.js";
-import { PodcastFormat, VoiceId } from "./podcast.js";
+import { VoiceId } from "./podcast.js";
 import { isSupportedTimeZone } from "./time.js";
 
 /** Days between scheduled briefings the owner can pick: every day, second day, third day, weekly. */
@@ -79,9 +79,11 @@ export const DEFAULT_CUSTOM: CustomDefaults = {
  * Shape of config/schedule.json. `hour` is a whole hour in `timezone`. `skip_topics` lists the
  * topics the daily briefing leaves out (the weekly one has its own); empty covers them all. A file
  * from before topics could be left out (it had `sections`, always null in use) reads as empty.
- * `format`, `length_minutes`, `voice_id` and `voice_id_b` shape the daily podcast; `weekly` the
+ * `length_minutes`, `voice_id` and `voice_id_b` shape the daily podcast; `weekly` the
  * weekly one; `custom` the defaults of the Create panel. A file written before any of these
- * existed parses with the defaults, and a partial `weekly` or `custom` is filled in.
+ * existed parses with the defaults, and a partial `weekly` or `custom` is filled in. A top-level
+ * `format` from an older file is read past and dropped: the daily podcast has no type to set (narration
+ * reads the digest in one voice).
  */
 export const ScheduleFile = z
   .object({
@@ -90,7 +92,6 @@ export const ScheduleFile = z
     hour: z.number().int().min(0).max(23),
     cadence_days: CadenceDays,
     skip_topics: SkipTopics.default([]),
-    format: PodcastFormat.default("readout"),
     length_minutes: ScheduleLengthMinutes.default(10),
     voice_id: VoiceId.default(null),
     voice_id_b: VoiceId.default(null),
@@ -124,7 +125,6 @@ export const DEFAULT_SCHEDULE: ScheduleFile = {
   hour: 7,
   cadence_days: 2,
   skip_topics: [],
-  format: "readout",
   length_minutes: 10,
   voice_id: null,
   voice_id_b: null,
@@ -186,7 +186,6 @@ export const ScheduleSettings = z.object({
   hour: z.number().int().min(0).max(23),
   cadence_days: CadenceDays,
   skip_topics: SkipTopics,
-  format: PodcastFormat,
   length_minutes: ScheduleLengthMinutes,
   voice_id: VoiceId,
   voice_id_b: VoiceId,
@@ -202,7 +201,6 @@ export const ScheduleChange = z.object({
   hour: ScheduleSettings.shape.hour.optional(),
   cadence_days: CadenceDays.optional(),
   skip_topics: ScheduleSettings.shape.skip_topics.optional(),
-  format: PodcastFormat.optional(),
   length_minutes: ScheduleLengthMinutes.optional(),
   voice_id: VoiceId.optional(),
   voice_id_b: VoiceId.optional(),

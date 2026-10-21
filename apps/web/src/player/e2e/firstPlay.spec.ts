@@ -65,10 +65,19 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.open();
     await player.play();
     await player.openPlayer();
-    // Reordered by its handle's keys, in the raised queue: the briefing now comes first.
-    await player.dialog.getByRole("button", { name: /^Up next/ }).click();
+    // The story tapped opens its transcript under its row; every other story stays a chapter row.
+    const stories = player.dialog.getByRole("tabpanel").locator("button.story-row");
+    await stories.nth(1).click();
+    await expect(stories.nth(1)).toHaveAttribute("aria-current", "true");
+    const transcript = player.dialog.getByRole("region", { name: "Transcript" });
+    await expect(transcript.locator("[data-turn]")).toHaveCount(1);
+    // Up next is the other view: reordered by its handle keys, the briefing now comes first.
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
     await page.getByRole("button", { name: /^Move .*, 2 of 2$/ }).focus();
     await page.keyboard.press("ArrowUp");
+    // Back on Stories the open story is still the one being read.
+    await player.dialog.getByRole("tab", { name: "Stories" }).click();
+    await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     await page.reload();
     await player.play();
     await player.openPlayer();

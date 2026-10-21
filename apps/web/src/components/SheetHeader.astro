@@ -6,7 +6,7 @@ interface Props {
   title: string;
   titleId: string;
   /** The data attribute the sheet's script finds its Close button by. */
-  close: "data-create-close" | "data-panel-close" | "data-dialog-close";
+  close: "data-create-close" | "data-panel-close" | "data-dialog-close" | "data-menu-close";
   /** Any data attribute the title carries for its script, such as data-panel-title. */
   titleData?: Record<`data-${string}`, string | boolean>;
 }

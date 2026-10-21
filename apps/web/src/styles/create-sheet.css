@@ -81,7 +81,7 @@
 
 /* ------------------------------------------------------------------ the floating button */
 
-/* On the root, so the toast (sheets.css) can keep clear of the button. */
+/* On the root, so other chrome can size against the button. */
 :root {
   --fab-size: 3.5rem;
 }
@@ -95,6 +95,7 @@
     var(--bottom-nav-height) +
     var(--dock-room) +
     var(--run-room) +
+    var(--fab-lift, 0px) +
     var(--space-4)
   );
   z-index: var(--z-header);
@@ -106,10 +107,10 @@
   min-width: var(--fab-size);
   height: var(--fab-size);
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
-  border: var(--stroke-hairline) solid transparent;
+  /* Flat: a hairline and a tonal step lift it off the page, no shadow (owner, 2026-10-21). */
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-accent-container-high);
-  box-shadow: var(--shadow-floating);
   color: var(--color-on-accent-container-high);
   text-decoration: none;
   /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
@@ -121,13 +122,6 @@
     background-color var(--duration-hover) var(--ease-hover),
     visibility 0s,
     inset-block-end var(--duration-enter) var(--ease-out);
-}
-
-/* The ring's gap stays round the button; the button's own shadow sits under it. */
-.create-fab:focus-visible {
-  box-shadow:
-    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
-    var(--shadow-floating);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -273,8 +267,7 @@ html:has(dialog[open]) .create-fab {
    for the open player. It comes back once the bar holds something else. */
 /* It is a second face of the hero's Play, so while that is on screen it waits: two Play buttons
    at once say the same thing twice. briefingPage.ts sets data-hero-away once the hero's Play has
-   scrolled out of view, and the button comes in; scrolling back up to it sends the button away.
-   A toast is lifted over the button only while it shows (sheets.css repeats this condition). */
+   scrolled out of view, and the button comes in; scrolling back up to it sends the button away. */
 html:not([data-fab]) .play-fab,
 html:has(.hero-actions):not([data-hero-away]) .play-fab {
   visibility: hidden;

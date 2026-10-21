@@ -38,7 +38,7 @@ const VOICES = [
     <div class="manage" data-manage="podcast">
       <SettingsHead
         title={title}
-        note="Daily, Weekly and Catch up episodes are read in these voices. A discussion's second host reads in the secondary voice."
+        note="Daily, Weekly and Catch up episodes are read in these voices."
       />
       {weeklyKeepsOld && (
         <p class="settings-note" data-weekly-keeps-old>
@@ -53,7 +53,7 @@ const VOICES = [
         <legend class="sr-only">{title}</legend>
         <div class="daily-panel" data-panel>
           <div class="podcast-profile" data-profile="voice">
-            <div class="rows">
+            <div class="rows card-group">
               {
                 VOICES.map((voice) => (
                   <div class="settings-row" data-voice-row={voice.key}>
@@ -86,7 +86,7 @@ const VOICES = [
                         aria-pressed="false"
                         aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
                       >
-                        <Icon name="play" class="sample-play" />
+                        <Icon name="playOutline" class="sample-play" />
                         <Icon name="pause" class="sample-pause" />
                       </button>
                     </div>

@@ -536,3 +536,69 @@
 .settings-view:not([data-ready]) .theme-select > select {
   color: transparent;
 }
+
+/* ------------------------------------------------------------------ cards (2026-10-21) */
+
+/* The groups are cards (.card-group, primitives.css): the head sits above its card, and the install
+   offer, which has no head, stands apart from the card above it. */
+.settings-view > section[data-install-app],
+.settings-view > section[data-install-hint] {
+  margin-block-start: var(--space-8);
+}
+
+/* An about paragraph is the first row of its card, so it takes a row's padding and no more. */
+.card-group > .settings-about {
+  padding-block: var(--row-padding-block);
+}
+
+/* A label row that introduces the paragraph under it (About's Author) is not a control row: no
+   control-row height, and the paragraph follows one row gap below (2026-10-21, the audit's About). */
+.card-group > .settings-row:has(+ .settings-about) {
+  min-height: 0;
+}
+
+.card-group > .settings-row + .settings-about {
+  padding-block-start: 0;
+}
+
+/* From 64rem "Last updated" lives at the foot of the side column (AppNav); a phone keeps it here. */
+@media (min-width: 64rem) {
+  .settings-updated {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ the change log */
+
+.changelog {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-4) 0;
+}
+
+.changelog-entry {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+.changelog-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.changelog-version {
+  font-family: var(--text-heading-family);
+  font-size: var(--font-size-title);
+  font-weight: var(--text-heading-weight);
+  line-height: var(--font-leading-title);
+}
+
+.changelog-entry > .settings-about {
+  padding: 0;
+}

@@ -23,18 +23,18 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The desktop bar's line has a notch at the playhead. Timeline markers are one small dot per story.
 - The scrubber's time bubble and the bar's times hold still while the slider moves: each sits over a hidden copy of the widest time it can show, and the bubble moves in whole device pixels.
 - Space plays and pauses on briefing and episode pages once the bar is there, unless focus is in a field, menu, dialog or slider (`playerKeys.ts`, D126); the hero's three-dots menu does not take focus when it closes from a tap elsewhere (`heroMenu.ts`). The first Play on a page with no audio starts by itself. Nothing is said under the play chip before audio exists.
-- The player's switch is sticky on a phone.
+- The player's two views (below) are a tablist. Below 64rem it is a full-bleed tab line like YouTube Music's (tabs share the width, a hairline under the row, an accent bar under the chosen tab) that stays under the status bar's room while the page scrolls; from 64rem it is the navigation segmented control (`.segmented-nav`, D132) above the list's column. Same markup either way (`ui/PlayerTabs.tsx`).
 
 ### Stories and transcript
-- Every recording has a Stories / Transcript switch (D101).
-- A briefing's transcript is what the host says of each story (headline over words, from the digest's spoken version), with the same follow and word light as an episode's.
+- The Stories view merges the chapters and the transcript. The story being read is open: its transcript (headline in its row, the host's words under it) shows with the same follow and word light as an episode's. Every other story is a chapter row that starts that story when tapped, and the transcript moves to it. Before story 1 an episode's rundown shows its transcript above the rows. A recording whose narration is not laid out yet shows its script whole (`StoryList`, `core/storyTranscript.ts`).
+- A briefing's transcript is what the host says of each story (from the digest's spoken version).
 - Stories are timed rows that start the story; previous and next step between them (D85, D90). The rundown before story 1 is no story: Next goes to story 1, Previous to 0:00. A move made with the controls never scrolls the page (D92).
-- The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. The spoken word lights without lag. The highlight pauses while the host speaks words the page does not show (D107).
+- The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. The spoken word lights without lag. The highlight pauses while the host speaks words the page does not show (D107). "Back to now" is drawn over the whole list.
 
 ### Queue and Up next (D126)
 - A play queue of ids (`dispatch:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`dispatch:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by drag handle or arrow keys and can be removed.
-- While something is queued, a peek strip "Up next" at the bottom of the open player pulls up into a queue sheet (`QueueSheet`) with a docked now-playing row.
-- Scenario: WHEN a recording has ended THEN Stories and Transcript hide and only Up next shows: the queue, or the previous briefing when the queue is empty, which is offered and never started by itself.
+- Up next is the second view of the player's list, on a phone and on a wide screen: the queue, or the previous briefing when the queue is empty. There is no peek strip and no pull-up queue sheet.
+- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. The previous briefing is offered and never started by itself.
 
 ### Failure and memory
 - A failure is told once, in the line under the title, and nothing below it moves.

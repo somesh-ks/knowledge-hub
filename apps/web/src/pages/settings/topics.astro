@@ -1,4 +1,5 @@
 ---
+import { topicEmoji } from "@dispatch/core";
 import AddFab from "../../components/AddFab.astro";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
@@ -40,6 +41,7 @@ const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
+    emoji: topicEmoji(group),
     hint: topicSummary(null, ...counts(group.id)),
     members: group.members.map((member) => member.id),
     never: undefined,
@@ -47,6 +49,7 @@ const rows = [
   ...[...layout.own, ...layout.general].map((topic) => ({
     id: topic.id,
     name: topic.name,
+    emoji: topicEmoji(topic),
     hint: topicSummary(topic, ...counts(topic.id)),
     members: [topic.id],
     never: topic.never_publish ? "" : undefined,
@@ -59,14 +62,12 @@ const spots = Object.fromEntries(
     list.map((source) => [source.id, { page, on: source.enabled }]),
   ),
 );
-const others = layout.sources.get(OTHER_ID) ?? [];
-// Every source once, by name, under the page it is filed on: the flat list the search shows.
-const pageNames = new Map([
-  ...rows.map((row) => [row.id, row.name] as const),
-  [OTHER_ID, "Other"] as const,
-]);
+// Every source once, by name, under the page it is filed on: the flat list the search shows. The
+// sources no topic page shows (the Other list) are not offered here (2026-10-21).
+const pageNames = new Map(rows.map((row) => [row.id, row.name] as const));
 const library = new Map<string, { source: (typeof sources)[number]; page: string }>();
 for (const [page, list] of layout.sources) {
+  if (page === OTHER_ID) continue;
   for (const source of list) library.set(source.id, { source, page });
 }
 const libraryRows = [...library.values()].sort((a, b) =>
@@ -123,6 +124,7 @@ const choices = topicChoicesOf(layout);
                 data-members={row.members.join(" ")}
                 data-never={row.never}
               >
+                <span class="topic-emoji" aria-hidden="true">{row.emoji}</span>
                 <span class="settings-text">
                   <span class="settings-label">{row.name}</span>
                   <span class="settings-hint" data-hint>{row.hint}</span>
@@ -130,19 +132,6 @@ const choices = topicChoicesOf(layout);
                 <Icon name="chevronRight" />
               </a>
             ))
-          }
-          {
-            others.length > 0 && (
-              <a class="row-action" href={`/settings/topics/${OTHER_ID}`} data-page={OTHER_ID}>
-                <span class="settings-text">
-                  <span class="settings-label">Other</span>
-                  <span class="settings-hint" data-hint>
-                    {topicSummary(null, others.length, others.filter((source) => source.enabled).length)}
-                  </span>
-                </span>
-                <Icon name="chevronRight" />
-              </a>
-            )
           }
         </div>
 
@@ -163,11 +152,13 @@ const choices = topicChoicesOf(layout);
           }
         </ul>
 
-        {/* Outlets left out of every briefing and episode; its page is blocked-outlets.astro. */}
+        {/* Outlets left out of every briefing and episode, under a line of their own; their page is
+             blocked-outlets.astro. */}
         <div class="rows topics-more">
           <a class="row-action" href="/settings/blocked-outlets">
+            <span class="topic-emoji topic-blocked-mark" aria-hidden="true"><Icon name="blocked" /></span>
             <span class="settings-text">
-              <span class="settings-label">Blocked outlets</span>
+              <span class="settings-label">Blocked sources</span>
               <span class="settings-hint" data-blocked-hint data-blocked={JSON.stringify(blocked)}>
                 {outletsSummary(blocked.length)}
               </span>

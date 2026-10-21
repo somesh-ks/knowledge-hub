@@ -204,8 +204,10 @@
 }
 
 /* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
-   The glyph and the placeholder say what it is. Focus lifts it (fill and shadow); the ring is the
-   keyboard's only (data-input, app.ts), so a tap, a click or typing never draws it. */
+   The glyph and the placeholder say what it is. Focus lifts it (the overlay fill and a hairline;
+   the design is flat, so no shadow); the ring is the keyboard's only (data-input, app.ts), so a tap,
+   a click or typing never draws it. Library, Sources and every topic's page share this one field
+   (2026-10-21; styles.test.ts holds them to it). */
 .search-field {
   display: flex;
   align-items: center;
@@ -219,11 +221,11 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* Focus lifts the pill: the overlay surface and one step of shadow, since the surface alone is
-   1.05:1 from the page in light and the same grey as the pill in dark. */
+/* Focus lifts the pill: the overlay surface and a control-weight hairline inside it, since the
+   surface alone is 1.05:1 from the page in light and the same grey as the pill in dark. */
 .search-field:focus-within {
   background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-raised);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
 }
 
 :root[data-input="keyboard"] .search-field:focus-within {
@@ -818,9 +820,9 @@ html:has(.library-none) {
   position: relative;
 }
 
-.card:has(> .card-menu) .card-title,
-.card:has(> .card-menu) .card-sub,
-.card:has(> .card-menu) .card-match {
+[data-library][data-view="list"] .card:has(> .card-menu) .card-title,
+[data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
+[data-library][data-view="list"] .card:has(> .card-menu) .card-match {
   padding-inline-end: calc(var(--size-touch) - var(--space-2));
 }
 
@@ -828,25 +830,117 @@ html:has(.library-none) {
    the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on one
    line, never two. */
 @container (max-width: 12rem) {
-  .card:has(> .card-menu) .card-count {
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
     display: none;
   }
 }
 
+/* Anchored to the card's top right, over the art (owner, 2026-10-21): the button takes a surface
+   disc so the dots read on any cover, and the title and facts below keep their whole line. */
 .card-menu {
   position: absolute;
-  inset-block-end: 0;
-  inset-inline-end: 0;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
 }
 
 .card-more {
   anchor-name: var(--card-anchor);
+  background: color-mix(in oklch, var(--color-surface) 80%, transparent);
+  color: var(--color-on-surface);
+}
+
+/* Focus returns here when the menu sheet closes. After a tap that is no cause for a ring: it is the
+   keyboard's only (data-input, app.ts), as the search and sort fields' are (2026-10-21). */
+:root:not([data-input="keyboard"]) .card-more:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 /* Under its own row's button, as a story's menu hangs under its own (story-controls.css). */
 .hero-menu-list.card-menu-list {
   position-anchor: var(--card-anchor);
   margin-inline-end: var(--space-2);
+}
+
+/* An item of the menu: its icon at the start, then the word. */
+.card-menu-list .hero-menu-item {
+  gap: var(--space-4);
+}
+
+.card-menu-list .hero-menu-item .icon {
+  flex: none;
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+/* From 40rem the header is the sheet's alone. */
+.card-menu-list > .create-sheet-head {
+  display: none;
+}
+
+/* A phone shows the menu as a bottom sheet (owner, 2026-10-21): the popover pinned to the bottom edge
+   on the sheet surface, its header the shared SheetHeader, a scrim behind. It slides up like
+   dialog.sheet (foundations.css) and is as specific as the popover's own open rules (hero.css). */
+@media (width < 40rem) {
+  .hero-menu-list.card-menu-list,
+  .hero-menu-list.card-menu-list:popover-open {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: min(100%, var(--layout-column));
+    max-width: none;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    background: var(--sheet-bg);
+    box-shadow: var(--sheet-shadow);
+    --color-focus-gap: var(--sheet-bg);
+    opacity: 1;
+    transform: translateY(105%);
+    transform-origin: bottom;
+    transition:
+      transform var(--duration-sheet-out) var(--ease-drawer),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
+  }
+
+  .hero-menu-list.card-menu-list:popover-open {
+    display: block;
+    transform: none;
+    transition-duration: var(--duration-sheet-in);
+  }
+
+  @starting-style {
+    .hero-menu-list.card-menu-list:popover-open {
+      transform: translateY(105%);
+    }
+  }
+
+  .card-menu-list::backdrop {
+    background: var(--color-scrim);
+  }
+
+  .card-menu-list > .create-sheet-head {
+    display: flex;
+    padding-block: var(--space-1);
+    padding-inline: var(--space-2) var(--space-1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-menu-list.card-menu-list,
+    .hero-menu-list.card-menu-list:popover-open {
+      transform: none;
+      transition-duration: var(--duration-state);
+    }
+
+    .hero-menu-list.card-menu-list:not(:popover-open) {
+      opacity: 0;
+    }
+  }
+}
+
+[data-library][data-view="list"] .card-more {
+  background: transparent;
 }
 
 [data-library][data-view="list"] .card-menu {
