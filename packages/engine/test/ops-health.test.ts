@@ -46,6 +46,8 @@ beforeEach(async () => {
     },
     3,
   );
+  // A story the writer left as a stub: it parses, and reads as nothing.
+  newest.items[1] = { ...newest.items[1], summary: "To follow." };
   await put(digestRelPath(yesterday.id), serializeDigestFile(yesterday));
   await put(digestRelPath(newest.id), serializeDigestFile(newest));
   await put(digestRelPath("2026-10-16"), "---\nnot: a digest\n---\n");
@@ -82,7 +84,7 @@ const codes = (findings: ReadonlyArray<{ code: string; severity: string }>, seve
 
 describe("dispatch health", () => {
   // Each of these was an ordinary line in `dispatch status` that nobody read.
-  it("faults a failed run, a missed run, missing narration, a broken digest, a thin briefing and a runaway spend", async () => {
+  it("faults a failed run, a missed run, missing narration, a broken digest, a thin briefing, a stub story and a runaway spend", async () => {
     const report = await collectHealth({
       root,
       now: NOW,
@@ -101,12 +103,12 @@ describe("dispatch health", () => {
       ]),
     );
     expect(codes(report.findings, "warning")).toEqual(
-      expect.arrayContaining(["model_fallback", "digest_thin"]),
+      expect.arrayContaining(["model_fallback", "digest_thin", "story_short"]),
     );
   });
 
   // A deploy Vercel skipped (a wrong author on Hobby) or one that lost vercel.json looks fine to CI.
-  it("faults a live site that lost its headers, serves an old briefing and lost the narration file", async () => {
+  it("faults a live site that lost its headers, serves an old briefing, cannot tell an app it changed and lost the narration file", async () => {
     const asked: string[] = [];
     const answer = (status: number, body = "", headers: Record<string, string> = {}) => ({
       status,
@@ -118,6 +120,9 @@ describe("dispatch health", () => {
       if (url === AUDIO) return answer(404);
       if (url.endsWith("/api/podcast")) return answer(405);
       if (url.endsWith("/latest.json")) return answer(200, '{"id":"2026-10-19"}');
+      // A worker the browser may keep for a day, so a deploy never reaches an installed app.
+      if (url.endsWith("/sw.js")) return answer(200, "", { "cache-control": "max-age=86400" });
+      if (url.endsWith("/build.json")) return answer(404);
       return answer(200, "<html>", { "x-content-type-options": "nosniff" });
     };
     const report = await collectHealth({
@@ -129,7 +134,7 @@ describe("dispatch health", () => {
       fetch: fake,
     });
     expect(codes(report.findings, "fault")).toEqual(
-      expect.arrayContaining(["site_headers", "site_stale", "audio_unreachable"]),
+      expect.arrayContaining(["site_headers", "site_stale", "site_update", "audio_unreachable"]),
     );
     expect(codes(report.findings, "fault")).not.toContain("site_api");
     expect(asked).toContain(`HEAD ${AUDIO}`);

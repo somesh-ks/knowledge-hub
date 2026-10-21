@@ -119,3 +119,8 @@ jobs:
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # What ships, read from the lockfile (no install). The high advisories are known and taken
+      # (path-to-regexp under @astrojs/vercel, build-time routing: docs/engineering/hardening.md),
+      # so only a critical one fails the check.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=critical

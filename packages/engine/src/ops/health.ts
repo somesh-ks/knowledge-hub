@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type Digest, parseDigestFile } from "@dispatch/core";
+import { type Digest, parseDigestFile, VOICE_LIMITS } from "@dispatch/core";
 import { loadAllCosts } from "../cost/ledger.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
@@ -62,6 +62,8 @@ export interface HealthOptions {
 
 /** A briefing with fewer stories than this is thin (the schema stops at 3): the run found little or dropped most. */
 export const THIN_DIGEST_ITEMS = 5;
+/** A story summary this short is a stub: a third of what the writer's lint asks for. */
+export const SHORT_STORY_WORDS = Math.floor(VOICE_LIMITS.summaryMinWords / 3);
 /** A deploy that has not picked up a new digest after this long has failed (Hobby author check). */
 export const DEPLOY_LAG_MS = 45 * 60_000;
 const DAY_MS = 86_400_000;
@@ -154,6 +156,17 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       );
     }
     if (!digest.verified) warn("digest_unverified", "quality", `${digest.id} is not verified.`);
+    // A summary the writer left as a stub parses and airs as a gap in the narration.
+    const stubs = digest.items.filter(
+      (item) => item.summary.trim().split(/\s+/).length < SHORT_STORY_WORDS,
+    );
+    if (stubs.length > 0) {
+      warn(
+        "story_short",
+        "quality",
+        `${digest.id} has ${stubs.length} stories under ${SHORT_STORY_WORDS} words: ${stubs.map((item) => item.title).join("; ")}.`,
+      );
+    }
   }
   const lastRun = await readLastRun(root).catch(() => null);
   const fallbacks = lastRun?.spend?.requests.model_fallback ?? 0;
@@ -261,6 +274,32 @@ async function checkSite(
   const api = await ask("/api/podcast");
   if (api && api.status !== 405) {
     sink.fault("site_api", "reliability", `/api/podcast answered ${api.status}, wanted 405.`);
+  }
+
+  // A deploy reaches an open or installed app only if the browser asks for the worker each time
+  // (no-cache) and /build.json names the build (sw.js, scripts/serviceWorker.ts; 2026-10-21).
+  const worker = await ask("/sw.js");
+  const build = await ask("/build.json");
+  let buildName: unknown;
+  try {
+    buildName =
+      build?.status === 200
+        ? (JSON.parse(await build.text()) as { build?: unknown }).build
+        : undefined;
+  } catch {
+    buildName = undefined;
+  }
+  if (worker && build) {
+    const cached = !/no-cache|no-store|max-age=0\b/.test(worker.headers.get("cache-control") ?? "");
+    if (worker.status !== 200 || cached || typeof buildName !== "string") {
+      sink.fault(
+        "site_update",
+        "reliability",
+        `An installed app cannot see a deploy: /sw.js answered ${worker.status} (cache-control ${worker.headers.get("cache-control") ?? "none"}), /build.json answered ${build.status}.`,
+      );
+    } else {
+      sink.passed.push(`the site names its build (${buildName})`);
+    }
   }
 
   // The deploy carries the newest committed briefing: Vercel skips a commit it will not build
