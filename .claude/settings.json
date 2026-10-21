@@ -18,6 +18,20 @@
       "Edit(./.env.*.local)"
     ]
   },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/design-check.mjs\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "impeccable@agents-plugins": true
   }

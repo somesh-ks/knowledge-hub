@@ -33,6 +33,13 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths and undefined custom properties. Unpinned: copy, geometry.
 - Design fixes with a commented reason are extended, never rewritten.
 
+### Design system enforcement
+Three layers, each catching what the others miss (the owner's ask, 2026-10-21):
+- Static: `npm run design-check` (`styles.test.ts`, about 2 s). Colour, type, space, radius, easing and z-index only from tokens; no colour literal in markup or script; icons only through the Icon component; a button, chip, pill or fab is a shared class or a named entry in `BESPOKE_CONTROLS`; no shadow on a control. Each rule's comment names the drift it prevents; an allowlist entry carries a reason.
+- Hook: `.claude/hooks/design-check.mjs`, a PostToolUse hook on Edit, Write and MultiEdit for `apps/web/src/**` and `tokens/**`; silent when green, exit 2 with the failing rules when not.
+- Audit: the `design-audit` agent (`.claude/agents/design-audit.md`) screenshots the touched pages at phone and desktop in light and dark and judges them against the ledger. A UI change runs it before the PR; `/close-session` checks it ran.
+CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser job on any PR touching `apps/web`, `packages` or `tokens`.
+
 ## Code
 - `apps/web/src/styles/tokens.css`
 - `apps/web/src/styles/primitives.css`
