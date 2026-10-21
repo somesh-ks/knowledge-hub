@@ -40,7 +40,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `dispatch` group); the handlers' limits race under concurrent requests; production's `GITHUB_DISPATCH_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit, and the race has a fix or a decision.
-- Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`, the Nebius shortlist (needs `NEBIUS_API_KEY` on Vercel). closed when: each answers once on news.someshks.work.
+- Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on news.someshks.work.
 - Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note's map.
 - A 15 minute episode falls short (71% general, 45% owner topics on a 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - The first press on a cold audio device blocks about 200 ms (`new AudioContext()` in `packages/sound`). closed when: the owner decides whether to change that package's first rule.
@@ -51,7 +51,8 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source score thresholds (D55), the vote numbers (15%, 3 votes, 30 days). closed when: each is checked against the golden set or two weeks of real data.
 - Settings logic gaps (D102): a partial `skip_topics` without `general_scoped` un-skips general topics (the site never sends it); `topic.enabled` is never set false (dead branches); Edit topic sends the build's weight, not a pending edit. closed when: each is fixed or removed with a test.
 - Unverified (D106 to D109): the volume slider's 400 ms linger and hold while dragged (CSS only), the highlight's pause on a live briefing, a vote batch sent as a page unloads (a lost batch is not retried), a briefing regenerated with a topic the original run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
-- Costs reasoned, not measured: 150 to 400 extra Jev requests a run for the general feeds (D66 to D68). closed when: a run log reports the judge's request count with general topics on.
+- Costs (D137): every price in `config/prices.json` is unconfirmed and no run has filled the ledger. closed when: the owner confirms the prices and /analytics shows a real run.
+- Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
 
 - Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes.
@@ -61,7 +62,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - With the passphrase off (D41), anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
-- `podcast.yml` and `config.yml` push to `main` beside `run.yml`; an episode delete has no rebase-and-retry and failed once when `run.yml` pushed at the same moment (2026-10-21).
+- `podcast.yml` and `config.yml` push to `main` beside `run.yml`; a push that loses GitHub's ref-lock race now rebases and retries (D139).
 - A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
 - Two browser suites at once share `apps/web/dist` and give false failures.
 

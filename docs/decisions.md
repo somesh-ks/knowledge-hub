@@ -147,6 +147,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D133 | The second owner round: Up next is a player tab beside Stories (transcript only under the playing story; full-bleed tabs on a phone, the navigation control on a desktop); Settings in tonal card groups with About and a change log; one search field and one chip style everywhere, held by style rules; a flat navigation control; topic emoji from Jev; Other hidden; no Daily type; a Library bottom sheet on phones; plain outline icons | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
 | D135 | No batch API for the scheduled runs | active |
+| D136 | One model orchestrator: every model call goes through `config/models.json` (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite only; never Opus), each step with a fallback chain and the newest model of each family resolved per run; Nebius, temperature and the Settings model select are gone | active; replaces D46, D58, D113, D130 |
+| D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
+| D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
+| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
+| D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
 
 ---
 
@@ -1523,4 +1528,36 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-21 (the owner: "using batched requests on the Anthropic API if it'll be useful, but you need to time it well")
 - Decision: not built. The scheduled writer is Anthropic Sonnet (`config/writer.json`), but only the first writing pass is independent; grounding, rewrites and the script wait on it, all inside one job that must be listenable at 07:00. Batching would split the run into submit, wait and resume with a deadline fallback, for about $12 a month at today's volume (estimated, no token logs yet).
 - Revisit if: volume grows about tenfold, the owner accepts an earlier start, or the cost ledger shows the writer as the main spend.
+
+## D136: one model orchestrator, four model families
+
+- Date: 2026-10-21 (the owner: "remove nebius, and just use Gemini and Claude models in good orchestration and not have model selector"; "Use jev, flash models from Gemini, and haiku and sonnet only. Never opus. Also upgrade the relevant models whenever there's a new model available of the same kind. Use jev and backup of Gemini flash or haiku"; "Temperature can be removed")
+- Decision: `config/models.json` names, per step, an ordered chain of families: judge, taste fit, source format and topic emoji: Jev, Haiku, Flash-Lite; grounding: Jev, Flash, Haiku (a checker of another family than the writer); story writer, rewrites and the podcast script: Sonnet, Flash; transcription: Flash-Lite, Flash. A schema rule refuses any other family. At run start the provider model lists resolve each family to its newest generally available model (no preview, no Opus), falling back to a pinned id. `callModel(step, input)` moves on after an error, a timeout, a refusal or invalid output and logs every fallback. No request carries a temperature. Nebius, its keys, the Settings model select and `/api/models` are removed.
+- Why: one provider fewer, a fallback that is never silent (a deprecated temperature once dropped the writer onto Nebius unnoticed), and models that improve without a release.
+- Revisit if: an automatic upgrade changes tone or selection for the worse (pin the family in the routing file), or a family's price jumps.
+
+## D137: a cost ledger, shared and per-user
+
+- Date: 2026-10-21 (the owner: "a cost tracking engine to track costs in different time periods ... operating expenses per user when I expand my app to general public in different timezones"; "Cost analytics goes into a separate page /analytics")
+- Decision: every paid call is a record (run, kind, the edition's timezone, user, provider, product, units, USD from `config/prices.json`, estimated or measured) in `state/costs-YYYY-MM.json`; a scheduled edition is shared by everyone in its timezone, an on-demand episode or a Play narration belongs to its user. `dispatch costs` totals by period and group; /analytics shows the same, linked from Settings.
+- Why: per-user cost needs the split from the start; the marginal cost of a user is mostly what they ask for, not the shared briefing.
+- Revisit if: the prices in `config/prices.json` (all unconfirmed on 2026-10-21) are corrected, or a second user arrives.
+
+## D138: Alexandria enriches, never replaces
+
+- Date: 2026-10-21 (the owner: "enrich the content with firecrawl Alexandria when needed"; "Alexandria just gives enriched information about certain things")
+- Decision: when a finalist's text is under 600 characters after the feed, the free read and the regular scrape, the engine asks Firecrawl Alexandria for facts on its subject and appends them, labelled with their provider, to the material the writer and the grounding check read. Caps: 30 credits a run, 10 a story, 20 s a story. A story with no readable text is still dropped.
+- Why: facts from a third party can fill out a thin story; standing in for an unread article would describe it from someone else's data.
+
+## D139: faults are found and healed, once
+
+- Date: 2026-10-21 (the owner: "hardening the webapp in every aspect ... systems to spot faults in reliability, performance, quality, security ... and self-heal")
+- Decision: `dispatch health` checks runs, narration, digest and state integrity, cost against a ceiling, fallbacks, the Speechify budget and the live site; `.github/workflows/health.yml` runs it daily, opens or closes one `health` issue and starts one retry run. Every engine push retries a lost ref-lock race. The service worker rebuilds a broken cache; held saves older than a week are dropped; client errors and CSP violations reach `/api/report`. HSTS is set; the paid emoji route is rate-limited. The audit and what is not built: `docs/engineering/hardening.md`.
+- Why: the faults found (a push race, a cache read that broke pages online, a paid route with no limit) failed silently.
+
+## D140: the design system, enforced
+
+- Date: 2026-10-21 (the owner: "everything ui related ... must respect design system. implement either a hook/linter/audit pass"; "why drift to other icons when we have an icon library")
+- Decision: `npm run design-check` holds tokens-only colour, type and easing, no raw SVG outside the Icon components, shared classes for every control (a reasoned allowlist that only shrinks), the 8pt grid, flat surfaces and regular headings. A PostToolUse hook runs it after any edit under `apps/web/src` or `tokens`. The `design-audit` agent screenshots a UI change before its PR. Icons come from `@phosphor-icons/core` through `npm run glyphs`, and a test fails on any path that differs from the package.
+- Why: icons had been redrawn by hand because nothing tied the glyph file to the library, and every check before ran only when someone remembered.
 
