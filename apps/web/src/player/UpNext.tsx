@@ -15,7 +15,7 @@ export default function UpNext() {
   const queued = useQueue();
   if (queued.length > 0) return <QueueList ids={queued} />;
   if (!previous) {
-    return <p className="player-empty">Nothing is queued. Add recordings from the Library.</p>;
+    return <p className="player-empty">Nothing is queued.</p>;
   }
   // The new page's data arrives after the navigation; the store plays it then, on the same audio
   // element, which the browser already trusts to play. A briefing with no finished audio is

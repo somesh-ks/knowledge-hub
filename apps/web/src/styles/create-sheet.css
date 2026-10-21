@@ -107,10 +107,10 @@
   min-width: var(--fab-size);
   height: var(--fab-size);
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
-  border: var(--stroke-hairline) solid transparent;
+  /* Flat: a hairline and a tonal step lift it off the page, no shadow (owner, 2026-10-21). */
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-accent-container-high);
-  box-shadow: var(--shadow-floating);
   color: var(--color-on-accent-container-high);
   text-decoration: none;
   /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
@@ -122,13 +122,6 @@
     background-color var(--duration-hover) var(--ease-hover),
     visibility 0s,
     inset-block-end var(--duration-enter) var(--ease-out);
-}
-
-/* The ring's gap stays round the button; the button's own shadow sits under it. */
-.create-fab:focus-visible {
-  box-shadow:
-    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
-    var(--shadow-floating);
 }
 
 @media (hover: hover) and (pointer: fine) {
