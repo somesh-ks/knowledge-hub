@@ -302,7 +302,7 @@ export type ConfigOp =
         enabled: boolean;
         keywords: string[];
         section_id: string;
-        /** One emoji for the topic's row, 1 to 16 characters. */
+        /** Its row's emoji (core configOps); left out keeps the stored one. */
         emoji?: string;
       };
     }

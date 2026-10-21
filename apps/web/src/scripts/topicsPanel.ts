@@ -284,7 +284,7 @@ export function openPanel(
     } catch {
       listed = [];
     }
-    const added = [...document.querySelectorAll("[data-queued] [data-q-name]")].map(
+    const added = [...document.querySelectorAll("[data-new-topic] .settings-label")].map(
       (node) => node.textContent ?? "",
     );
     const own = editedTopic?.name.trim().toLowerCase();

@@ -119,3 +119,11 @@ export function parseSuggestedAdd(json: string | undefined): SuggestedAdd | null
     topic_id: typeof topic_id === "string" ? topic_id : "",
   };
 }
+
+/**
+ * The page that shows a topic added since the build, before the build gives it its own (D142):
+ * pages/settings/topics/new, built once with these stand-ins for the topic's id, name and what counts,
+ * which savedView.ts (fillShell) swaps for the saved topic's. No topic may take its address.
+ */
+export const NEW_TOPIC_ID = "new";
+export const SHELL = { id: "__shell_id__", name: "__shell_name__", about: "__shell_about__" };

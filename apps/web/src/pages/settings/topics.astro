@@ -11,6 +11,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
 import { loadManage } from "../../lib/manage";
+import { NEW_TOPIC_ID } from "../../lib/topicText";
 import {
   byName,
   OTHER_ID,
@@ -85,7 +86,7 @@ const choices = topicChoicesOf(layout);
     <div
       class="manage topics"
       data-topics
-      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
+      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID, NEW_TOPIC_ID].join(" ")}
       data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
       <SettingsHead title="Sources" />
@@ -112,7 +113,6 @@ const choices = topicChoicesOf(layout);
         </SourceFilter>
 
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
-        <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>
 
         <div class="rows topics-index" data-spots={JSON.stringify(spots)}>
           {

@@ -1,7 +1,7 @@
 /**
  * Asks the site for a new topic's emoji (GET /api/topic-emoji, where Jev chooses). Gives up after
- * `ms`: with no answer the topic is saved without one, and the page shows the name's fixed fallback
- * (core topicEmoji), so nothing waits on Jev for long.
+ * `ms`: the topic is listed at once with the name's own guess (core topicEmoji), its one save waits
+ * for this answer, and with none by then the guess is what is saved (D142).
  */
 export async function pickEmoji(
   name: string,

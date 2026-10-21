@@ -153,6 +153,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
 | D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
+| D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 
 ---
 
@@ -1570,3 +1571,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: about 21 KB of headroom is roughly a fifth more script to fetch and parse on a slow phone before the page answers, if it is all used.
 - Revisit if: the heaviest page passes 120 KB, or INP or LCP on a real phone gets worse.
 
+## D142: creating and deleting feel instant
+
+- Date: 2026-10-21 (the owner on a phone: "emoji selection & topic creation should be made instantly", "suggested sources shown outside - not good and natural", "Why's there a delay in creation or deletion actions in the app?")
+- Decision: A new topic is listed at once as a row like the others (emoji, name, "No sources yet", chevron) in its place by name, with core `topicEmoji`'s guess, replaced in place by Jev's pick. The add sends one `topic.upsert`: the request waits for Jev (up to 4.5 s, `pickEmoji`) through a `ready` promise on the pending edit, so the edits made meanwhile ride with it, and carries the guess when Jev has no answer. Before the build the row opens `/settings/topics/new?id=<id>`: one page `[id].astro` builds with stand-in id, name and description, which `fillShell` (`savedView.ts`) swaps for the saved or pending topic; it suggests sources with `suggestSources` in the browser. A topic the build already has, or one not saved here, goes to its own page; a removed one to the list. Suggested sources no longer show on the Sources list, and "Its page opens in about a minute" is gone. A source's removal now leaves at once with Undo in the toast, as a topic's does; a topic's page shows it removed at once rather than when the request lands. The server keeps its 10 s gap (`CONFIG_COOLDOWN_MS`, the flood guard): the client already holds the next request quietly and sends what changed meanwhile in one (D79, D91), so no screen waits on it.
+- Why: the add waited up to 2.5 s for Jev before showing anything, then sat in a separate block with a note about the build, and its suggestions sat outside any topic. A deleted source vanished but could not be undone, and a deleted topic stayed on screen for the Undo window.
+- Cost: the page before the build shows the generic art of its stand-in, not the topic's own, until the build. A topic opened from another device before the build is not on that device's list (the overlay is per browser, as D79's is).
+- Rejected: an on-demand server route for the topic page (a function call on every visit to it, and the site is otherwise static); lowering the server gap (it is the flood guard, and the queue already hides it); a follow-up upsert for Jev's emoji (two commits and a ten-second wait).
+- Amends: D79 (a new topic is a row and has a page before the build; its suggestions are on that page).
