@@ -3,7 +3,10 @@
  * own popover. The listeners sit on the document, so they outlive a client-side navigation that
  * swaps the menu for another page's. Loaded by the briefing and episode pages.
  */
+import { pullToDismiss } from "./pullDismiss";
+
 const LIST = ".hero-menu-list";
+const wired = new WeakSet<Element>();
 
 const itemsOf = (list: Element): HTMLElement[] =>
   Array.from(list.querySelectorAll<HTMLElement>('[role="menuitem"]'));
@@ -34,6 +37,11 @@ export function installHeroMenu(): void {
     (event) => {
       const list = event.target as HTMLElement;
       if (!list.matches?.(LIST) || (event as ToggleEvent).newState !== "open") return;
+      // A phone shows the menu as a sheet: pulled down, it closes (light dismiss is the popover's own).
+      if (list.matches(".menu-sheet") && !wired.has(list)) {
+        wired.add(list);
+        pullToDismiss(list, () => list.hidePopover());
+      }
       // Without anchor positioning the menu is placed from the button's box.
       if (CSS.supports("top", "anchor(bottom)")) return;
       const box = moreOf(list)?.getBoundingClientRect();

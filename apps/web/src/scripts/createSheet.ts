@@ -1,4 +1,5 @@
 import { installCreate } from "./createPage";
+import { sheetGestures } from "./pullDismiss";
 
 /**
  * The Create sheet: a native dialog cloned from the layout's template on first open (the markup is
@@ -41,17 +42,8 @@ function build(): HTMLDialogElement | null {
     sizes.observe(body);
     if (body.firstElementChild) sizes.observe(body.firstElementChild);
   }
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel. A press
-  // that starts inside and ends outside (selecting the title, sliding off a chip onto the header)
-  // also clicks the dialog, so only one that began on the scrim closes it.
-  let fromScrim = false;
-  clone.addEventListener("pointerdown", (event) => {
-    fromScrim = event.target === clone;
-  });
-  clone.addEventListener("click", (event) => {
-    if (event.target === clone && fromScrim) clone.close();
-    fromScrim = false;
-  });
+  // Pulled down on a phone, or tapped on the scrim, it closes (pullDismiss.ts).
+  sheetGestures(clone);
   return clone;
 }
 

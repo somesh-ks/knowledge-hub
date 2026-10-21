@@ -19,7 +19,7 @@ import {
   webAddress,
 } from "../lib/topicText";
 import { fitAboveKeyboard } from "./keyboardFit";
-import { pullToDismiss } from "./pullDismiss";
+import { sheetGestures } from "./pullDismiss";
 import { mountSegmentedNav, selectTab } from "./segmentedNav";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
@@ -626,20 +626,10 @@ export function openPanel(
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
-  // On a phone the full-screen panel also closes when pulled down.
-  pullToDismiss(panel, () => panel.close());
+  // On a phone the full-screen panel also closes when pulled down; a tap on the scrim closes it.
+  sheetGestures(panel);
   // On a phone the full-screen panel ends where the keyboard begins, so the screen never pans.
   const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(panel) : () => {};
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel. Only a press
-  // that also began on the scrim closes it: a drag out of a field ends there too.
-  let fromScrim = false;
-  panel.addEventListener("pointerdown", (event) => {
-    fromScrim = event.target === panel;
-  });
-  panel.addEventListener("click", (event) => {
-    if (event.target === panel && fromScrim) panel.close();
-    fromScrim = false;
-  });
 
   // Browser Back closes the panel and stays on the page; the panel takes one history entry.
   let entry = true;
