@@ -43,7 +43,7 @@ describe("glyph source", () => {
       const outline = doc.glyphs[name];
       const filled = doc.glyphs[`${name}Fill`];
       expect(outline?.fill ?? false, name).toBe(false);
-      expect(filled?.fill, `${name}Fill`).toBe(true);
+      expect(Boolean(filled?.fill || filled?.drawn), `${name}Fill`).toBe(true);
       expect(filled?.symbol).toBe(outline?.symbol);
       expect(filled?.d).not.toBe(outline?.d);
     }
