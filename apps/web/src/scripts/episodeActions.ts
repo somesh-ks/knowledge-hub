@@ -2,6 +2,7 @@ import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { isChipOn } from "../lib/regenTopics";
 import { navigateTo } from "../player/core/navigation";
 import { libraryAddress } from "./libraryAddress";
+import { dismissOnScrim, sheetGestures } from "./pullDismiss";
 import { forgetRunAbout, startRun } from "./runStatus";
 
 /**
@@ -67,17 +68,10 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   dialog.querySelectorAll("[data-dialog-close]").forEach((button) => {
     button.addEventListener("click", () => dialog.close());
   });
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel. A press
-  // that starts inside and ends outside (selecting the feedback text) also clicks the dialog, so
-  // only one that began on the scrim closes it.
-  let fromScrim = false;
-  dialog.addEventListener("pointerdown", (event) => {
-    fromScrim = event.target === dialog;
-  });
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog && fromScrim) dialog.close();
-    fromScrim = false;
-  });
+  // The rewrite panel is a sheet: pulled down or tapped outside it closes. The confirm is a small
+  // dialog and closes on a tap outside only.
+  if (dialog.classList.contains("regen-sheet")) sheetGestures(dialog);
+  else dismissOnScrim(dialog);
 
   if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
 

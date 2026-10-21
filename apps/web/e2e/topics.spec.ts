@@ -712,7 +712,7 @@ test.describe("a topic's page", () => {
     await pick(page, "World", "Edit topic World");
     const sheet = page.getByRole("dialog", { name: "Edit topic" });
     await expect(sheet.getByLabel("What should count as this topic")).toBeEditable();
-    await sheet.getByRole("button", { name: "Close" }).click();
+    await page.keyboard.press("Escape");
     // A general topic can be put in or out of each podcast and is always on: a list of podcasts, no switch.
     await expect(page.getByRole("button", { name: /^Listen in/ })).toHaveCount(1);
     await expect(page.getByRole("switch")).toHaveCount(0);

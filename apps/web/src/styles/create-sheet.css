@@ -393,6 +393,24 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
   margin-inline-start: auto;
 }
 
+/* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
+   The button stays for a keyboard and a screen reader, as the .sr-only utility. Doubled class so
+   it outranks the shared .icon-btn sizing wherever that loads. */
+@media (width < 40rem) {
+  .create-sheet-head > .icon-btn.icon-btn {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
 .create-sheet-body {
   /* The hairline between groups runs to the edges of the scrolling area, as it does on the page. */
   --sheet-gutter: var(--space-4);
