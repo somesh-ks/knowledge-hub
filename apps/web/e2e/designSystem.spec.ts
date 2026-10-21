@@ -117,6 +117,11 @@ test.describe("the 8pt spacing system", () => {
     await page.route("**/api/site-icon**", (route) =>
       route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
     );
+    // The open player shows the playing story's transcript, which asks for its word marks; the
+    // static server has no API, so answer as a turn with no marks does (the transcript estimates).
+    await page.route("**/api/narrate-marks**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+    );
 
     // The full-screen player.
     await page.goto(AUDIO_DIGEST);
