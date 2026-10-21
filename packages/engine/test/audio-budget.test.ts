@@ -15,6 +15,7 @@ import {
   saveUsage,
   usageMonth,
 } from "../src/audio/budget.js";
+import { loadAllCosts } from "../src/cost/ledger.js";
 import type { TempRoot } from "./audio-fixtures.js";
 import { makeTempRoot, writeRepoFile } from "./audio-fixtures.js";
 
@@ -180,6 +181,20 @@ describe("addUsage", () => {
   });
 });
 
+const PRICES = JSON.stringify({
+  version: 1,
+  as_of: "2026-10-21",
+  prices: [
+    {
+      provider: "speechify",
+      product: "*",
+      units: { characters: { usd: 10, per: 1_000_000 } },
+      as_of: "2026-10-21",
+      confirmed: false,
+    },
+  ],
+});
+
 describe("usage file", () => {
   let temp: TempRoot;
   beforeEach(async () => {
@@ -228,6 +243,19 @@ describe("usage file", () => {
     const after = await recordUsage({ root: temp.root, now: OCTOBER, characters: 5290 });
     expect(after.speechify.characters).toBe(10_000);
     expect((await loadUsage(temp.root, OCTOBER)).speechify.characters).toBe(10_000);
+  });
+
+  it("keeps every billing of one run in the cost ledger: six segments, or a partial stream and its retry", async () => {
+    await writeRepoFile(temp.root, "config/prices.json", PRICES);
+    const ledger = { runId: "ep-1", kind: "on_demand" as const, product: "simba-3.2" };
+    for (const characters of [100, 200, 300, 400, 500, 600]) {
+      await recordUsage({ root: temp.root, now: OCTOBER, characters, ledger });
+    }
+    const spent = (await loadAllCosts(temp.root)).reduce(
+      (sum, record) => sum + (record.units.characters ?? 0),
+      0,
+    );
+    expect(spent).toBe(2100);
   });
 
   it("starts a new month at the recorded amount", async () => {

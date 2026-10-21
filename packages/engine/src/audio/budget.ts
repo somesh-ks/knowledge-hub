@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type CostKind, STATE_FILES, UsageFile } from "@dispatch/core";
@@ -55,6 +56,8 @@ export async function recordUsage(input: RecordUsageInput): Promise<UsageFile> {
           provider: "speechify",
           product: input.ledger.product,
           units: { characters: input.characters },
+          // Each recording is its own billing: usage.json adds it every time, so the ledger must too.
+          event: randomUUID(),
         },
       ]);
     } catch {

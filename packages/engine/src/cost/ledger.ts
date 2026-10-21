@@ -39,6 +39,11 @@ export interface PaidCall {
   units: Record<string, number>;
   /** True when we counted a unit rather than reading it from the response. */
   estimated?: boolean;
+  /**
+   * Tells apart billings that share a run, stage and product (each segment of an episode, a failed
+   * stream and its retry). Without it the id is one per run, so recording again keeps one.
+   */
+  event?: string;
 }
 
 export const defaultScope = (kind: CostKind): CostScope =>
@@ -54,7 +59,9 @@ export function toRecord(table: PriceTable, call: PaidCall): CostRecord {
   const user = call.user ?? OWNER_USER;
   const priced = priceUnits(table, call.provider, call.product, call.units);
   return {
-    id: [call.runId, call.kind, call.stage, call.provider, call.product, user].join("|"),
+    id: [call.runId, call.kind, call.stage, call.provider, call.product, user, call.event]
+      .filter((part) => part !== undefined)
+      .join("|"),
     at: call.at,
     run_id: call.runId,
     kind: call.kind,

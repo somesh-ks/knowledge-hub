@@ -7,7 +7,7 @@
  * Each story's source is read again with the engine's own extractor (feed text, then the page
  * through Readability; no paid scrape), and its summary stands in when the page cannot be read, the
  * same for both prompts. Defaults are this branch's prompt and config/voice.md; CI passes main's
- * copies to get the "before" episode. Batches of four with the writer's own model, like the engine.
+ * copies to get the "before" episode. Batches of four through the engine's story_writer chain.
  * Needs ANTHROPIC_API_KEY.
  */
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -18,12 +18,15 @@ import {
   type Category,
   type Item,
   isBuiltinCategory,
+  loadEnv,
+  loadModelRouting,
   parseDigestFile,
   serializeDigestFile,
 } from "../packages/core/src/index.js";
 import { extractFullText } from "../packages/engine/src/extract/extractText.js";
-import { createAnthropicLlm } from "../packages/engine/src/llm/anthropicClient.js";
 import { mapConcurrent } from "../packages/engine/src/llm/concurrency.js";
+import { resolveFamilies } from "../packages/engine/src/llm/modelResolver.js";
+import { createModelRouter } from "../packages/engine/src/llm/modelRouter.js";
 import { TokenBudget } from "../packages/engine/src/llm/tokenBudget.js";
 import { newBoundary } from "../packages/engine/src/llm/untrusted.js";
 import { parseVoice } from "../packages/engine/src/voice/voice.js";
@@ -43,10 +46,16 @@ const prompt = (await import(
   resolve(values.prompt ?? join(ROOT, "packages/engine/src/write/prompt.ts"))
 )) as PromptModule;
 const voice = parseVoice(readFileSync(values.voice ?? join(ROOT, "config/voice.md"), "utf8"));
-const model = (
-  JSON.parse(readFileSync(join(ROOT, "config/writer.json"), "utf8")) as { model: string }
-).model;
-const llm = createAnthropicLlm({ env: process.env, model, budget: new TokenBudget(2_000_000) });
+const env = loadEnv(process.env);
+const routing = loadModelRouting(ROOT);
+const log = { info() {}, warn() {}, error() {}, debug() {} };
+const router = createModelRouter({
+  routing,
+  resolve: () => resolveFamilies({ routing, env, log }),
+  env,
+  budget: new TokenBudget(2_000_000),
+  log,
+});
 
 const Output = z.object({
   items: z.array(
@@ -76,10 +85,11 @@ const batches: SourceMaterial[][] = [];
 for (let i = 0; i < materials.length; i += WRITER_BATCH_SIZE) {
   batches.push(materials.slice(i, i + WRITER_BATCH_SIZE));
 }
+const models = new Set<string>();
 const written = new Map<string, { headline: string; summary: string; spoken: string }>();
 await mapConcurrent(batches, 4, async (batch) => {
   const boundary = newBoundary();
-  const { value } = await llm.completeJson({
+  const { value, served } = await router.callModel("story_writer", {
     schema: Output,
     schemaName: "dispatch_items",
     messages: [
@@ -95,10 +105,10 @@ await mapConcurrent(batches, 4, async (batch) => {
         ),
       },
     ],
-    temperature: 0.2,
     maxTokens: 800 * batch.length + 300,
     label: "writer",
   });
+  models.add(served.model);
   for (const row of value.items) {
     written.set(row.id, {
       headline: cleanField("headline", row.headline),
@@ -116,5 +126,5 @@ mkdirSync(outDir, { recursive: true });
 copyFileSync(join(episodeDir, "settings.json"), join(outDir, "settings.json"));
 writeFileSync(join(outDir, "episode.md"), serializeDigestFile({ ...digest, items }));
 console.log(
-  `${outDir}: ${items.length} of ${digest.items.length} stories rewritten with ${model}, ${sources.filter(Boolean).length} from the page`,
+  `${outDir}: ${items.length} of ${digest.items.length} stories rewritten with ${[...models].join(", ")}, ${sources.filter(Boolean).length} from the page`,
 );
