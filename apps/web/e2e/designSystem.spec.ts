@@ -34,6 +34,9 @@ const HAIRLINE = [
  */
 const EXEMPT = [
   ".sr-only",
+  // A phone sheet's Close is visually hidden (D145), as the utility above.
+  ".create-sheet-head > .icon-btn",
+  ".sheet-head > .icon-btn",
   ".chip-bars",
   ".story-menu",
   ".hero-more",

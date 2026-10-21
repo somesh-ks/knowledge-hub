@@ -259,7 +259,7 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const cdp = await page.context().newCDPSession(page);
-  const touch = (type: string, y: number) =>
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", y: number) =>
     cdp.send("Input.dispatchTouchEvent", {
       type,
       touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }],

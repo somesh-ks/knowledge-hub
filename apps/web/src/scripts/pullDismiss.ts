@@ -1,5 +1,5 @@
 /**
- * The gestures every sheet shares on a phone (2026-10-21, D144). Pull down to dismiss: a drag that
+ * The gestures every sheet shares on a phone (2026-10-21, D145). Pull down to dismiss: a drag that
  * starts on the head, or anywhere once the body is scrolled to its top, moves the sheet with the
  * finger, and a release past a quarter of its height, or a flick down, closes it. A shorter pull
  * springs back. Touch events, not pointer events, so the drag can take the gesture from the
@@ -141,7 +141,7 @@ export function pullToDismiss(sheet: HTMLElement, close: () => void): void {
 }
 
 /**
- * A tap on the scrim closes a dialog (2026-10-21, D144). A press on the scrim lands on the dialog
+ * A tap on the scrim closes a dialog (2026-10-21, D145). A press on the scrim lands on the dialog
  * itself, but so does one on its own padding, so the point must also be outside its box. A press
  * that starts inside and ends outside (selecting text, sliding off a chip) also clicks the dialog,
  * so only one that began on the scrim closes it.

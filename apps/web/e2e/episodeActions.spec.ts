@@ -100,7 +100,7 @@ test.describe("regenerate and delete an episode", () => {
     await choose(page, "Regenerate");
     await expect(panel(page)).toBeVisible();
     await expect(menu(page)).toBeHidden();
-    await panel(page).getByRole("button", { name: "Close" }).click();
+    await page.keyboard.press("Escape");
     await expect(more(page)).toBeFocused();
   });
 

@@ -155,6 +155,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 | D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
+| D145 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
 
 ---
 
@@ -1587,3 +1588,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: every PR is opened with the `review` label. `claude-code-review.yml` reviews it and `automerge.yml` skips it, so it merges by hand once the review has landed and its blocking findings are fixed. A large change also gets the `/code-review` skill on the branch before the PR.
 - Why: two large PRs auto-merged on green CI with no review, and the review run afterwards on the merged diff found real bugs (a broken import, cost records that overwrote each other, a paid call on empty text).
 - Cost: no PR merges itself any more; each waits for a review run and a hand merge.
+
+## D145: phone sheets close by gesture and show no Close
+
+- Date: 2026-10-21 (the owner: "All bottom sheets must be swipable down without x, and should be dismissed when clicked outside the bottom sheet")
+- Decision: below 40rem every sheet built from `SheetHeader` or `.sheet-head` (the ⋮ menu sheets, the Library card sheet, the Create sheet, Add source and topic panels, the rewrite panel, the passphrase sheet) shares `scripts/pullDismiss.ts`: a pull from the header, or from the content once scrolled to its top, moves the sheet; a release past a quarter of its height or a flick closes it, a shorter pull springs back; a dialog closes on a tap on its scrim, a popover by light dismiss. Reduced motion skips the follow, not the close. The Close button is visually hidden on a phone (sr-only styles, still focusable); Escape works as before. From 40rem the close controls are as D132 left them. The React sheets (Base UI Drawer) already swiped and closed on the scrim, so they only lose the visible Close. The grabber stays removed (D106).
+- Why: a visible X on a phone is a reach and a second way to do what a swipe does.
+- Amends: D132 (one header with Close at the end, now visible from 40rem only).
