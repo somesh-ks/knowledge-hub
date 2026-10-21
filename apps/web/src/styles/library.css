@@ -204,8 +204,10 @@
 }
 
 /* The search field: a filled pill with the glyph inside it, as a search bar is in every Google app.
-   The glyph and the placeholder say what it is. Focus lifts it (fill and shadow); the ring is the
-   keyboard's only (data-input, app.ts), so a tap, a click or typing never draws it. */
+   The glyph and the placeholder say what it is. Focus lifts it (the overlay fill and a hairline;
+   the design is flat, so no shadow); the ring is the keyboard's only (data-input, app.ts), so a tap,
+   a click or typing never draws it. Library, Sources and every topic's page share this one field
+   (2026-10-21; styles.test.ts holds them to it). */
 .search-field {
   display: flex;
   align-items: center;
@@ -219,11 +221,11 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* Focus lifts the pill: the overlay surface and one step of shadow, since the surface alone is
-   1.05:1 from the page in light and the same grey as the pill in dark. */
+/* Focus lifts the pill: the overlay surface and a control-weight hairline inside it, since the
+   surface alone is 1.05:1 from the page in light and the same grey as the pill in dark. */
 .search-field:focus-within {
   background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-raised);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
 }
 
 :root[data-input="keyboard"] .search-field:focus-within {

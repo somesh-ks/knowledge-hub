@@ -58,6 +58,8 @@ export const TopicInput = z.object({
   /** Title for a section this op creates. Defaults to the topic name. */
   section_title: z.string().trim().min(1).max(60).optional(),
   never_publish: z.boolean().default(false),
+  /** One emoji for the topic's row; Jev picks it when the owner adds a topic. Left out keeps the stored one. */
+  emoji: z.string().trim().min(1).max(16).optional(),
   origin: z.enum(TOPIC_ORIGINS).optional(),
   depth: z.enum(TOPIC_DEPTHS).default("fit_only"),
 });

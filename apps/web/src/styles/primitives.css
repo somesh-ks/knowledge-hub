@@ -425,8 +425,10 @@
 
 /*
  * Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one
- * raised surface pill that slides under the active label, by transform alone. The active label
- * takes the text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves
+ * pill in the accent container that slides under the active label, by transform alone. The design
+ * is flat, so the pill is told apart by colour, not by a shadow (2026-10-21); the choice control is
+ * told apart by its outline and check. The active label takes the pill's text colour, the others
+ * stay muted. Buttons in a tablist: segmentedNav.ts moves
  * aria-selected and the roving tabindex, and answers Left, Right, Home and End.
  * Markup: <div class="segmented-nav" role="tablist" aria-label="Show"> of
  *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
@@ -484,8 +486,7 @@
   inset-inline-start: var(--segmented-padding);
   width: calc(100% / var(--seg-n) - var(--segmented-padding) * 2);
   border-radius: var(--radius-round);
-  background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-raised);
+  background: var(--color-accent-container);
   pointer-events: none;
   transform: translateX(calc(var(--seg-i) * (100% + var(--segmented-padding) * 2)));
 }
@@ -521,7 +522,7 @@
 }
 
 .segmented-nav-tab[aria-selected="true"] {
-  color: var(--color-on-surface);
+  color: var(--color-on-accent-container);
 }
 
 /* The press layer is the pill's shape, inside the track's inset. No press scale on a label. */
@@ -648,6 +649,25 @@
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* A row of chips that scrolls sideways when it does not fit, with room inside it for the focus ring
+   and the 44px targets: Sources and a topic's page use it as the Library's kind chips do. */
+.filter-chips-scroll {
+  flex-wrap: nowrap;
+  margin: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.filter-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chips-scroll > .filter-chip {
+  flex: none;
 }
 
 .filter-chip {

@@ -157,6 +157,8 @@ export const Topic = z.object({
   never_publish: z.boolean(),
   origin: TopicOrigin,
   depth: TopicDepth,
+  /** One emoji shown beside the topic on the Sources page. Built-in topics have theirs in the site's code. */
+  emoji: z.string().trim().min(1).max(16).optional(),
   /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
   perspective: Perspective.optional(),
 });

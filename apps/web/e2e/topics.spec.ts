@@ -1143,15 +1143,15 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   expect(await scan()).toEqual([]);
 });
 
-test.describe("Blocked outlets", () => {
+test.describe("Blocked sources", () => {
   test("a blocked outlet stays listed after a reload, and Undo brings a removal back", async ({
     page,
   }) => {
     const { sent } = await setup(page);
     await page.goto(LIST);
     await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
-    await expect(page.getByRole("link", { name: /Blocked outlets/ })).toContainText("None");
-    await page.getByRole("link", { name: /Blocked outlets/ }).click();
+    await expect(page.getByRole("link", { name: /Blocked sources/ })).toContainText("None");
+    await page.getByRole("link", { name: /Blocked sources/ }).click();
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
 
     // Any address of the outlet works; the page lists and sends its domain.
@@ -1168,7 +1168,7 @@ test.describe("Blocked outlets", () => {
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await page.goto(LIST);
-    await expect(page.getByRole("link", { name: /Blocked outlets/ })).toContainText("1 outlet");
+    await expect(page.getByRole("link", { name: /Blocked sources/ })).toContainText("1 outlet");
 
     await page.goto("/settings/blocked-outlets");
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
@@ -1185,12 +1185,12 @@ test.describe("Blocked outlets", () => {
         { op: "profile.block", domain: "example.com" },
         { op: "profile.unblock", domain: "example.com" },
       ]);
-    await expect(page.getByText("No blocked outlets")).toBeVisible();
+    await expect(page.getByText("No blocked sources")).toBeVisible();
 
     // Blocked again once the unblock has gone: the row was hidden as removing and stayed hidden.
     await page.getByLabel("Block an outlet").fill("example.com");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
-    await expect(page.getByText("No blocked outlets")).toBeHidden();
+    await expect(page.getByText("No blocked sources")).toBeHidden();
   });
 });
