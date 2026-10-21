@@ -35,6 +35,8 @@ const homeLabel =
 </header>
 
 <script>
+  import { atScrollEnd } from "../scripts/fabScroll";
+
   // The bar slides away on a scroll down and returns on a scroll up. Small movements are ignored so
   // a thumb resting on the page does not make it flutter, and the bar always shows at the top. While
   // it is away it is inert, so Tab and a screen reader never land on a control that cannot be seen;
@@ -57,6 +59,9 @@ const homeLabel =
     const delta = y - last;
     if (y < 64 || calm.matches) {
       setHidden(false);
+      last = y;
+    } else if (delta < 0 && atScrollEnd()) {
+      // At the page end Chrome's URL bar resizing the viewport clamps scrollY: not a scroll up.
       last = y;
     } else if (Math.abs(delta) > 12) {
       const bar = document.querySelector(".app-bar");
@@ -105,6 +110,10 @@ const homeLabel =
     },
     { passive: true },
   );
+  // The viewport's height changed (the URL bar): measure the next scroll from where the page is now.
+  addEventListener("resize", () => {
+    last = Math.max(0, scrollY);
+  });
   document.addEventListener("astro:page-load", () => {
     last = Math.max(0, scrollY);
   });
