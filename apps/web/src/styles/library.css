@@ -836,13 +836,13 @@ html:has(.library-none) {
 }
 
 /* At the end of the title line, beside the card's text and never over the art (owner, 2026-10-21,
-   reversing the disc on the cover). The gallery's title starts one cover (the card's width) and a gap
+   reversing the disc on the cover). The gallery's title starts one cover (the card's width) and a 16px gap
    down; the button is a compact glyph in a full touch target, centred on the title's first line.
    The title reserves the glyph's room, so the button appearing moves nothing. */
 .card-menu {
   --title-line: calc(var(--font-size-body) * var(--font-leading-label));
   position: absolute;
-  inset-block-start: calc(100cqw + var(--space-2) - (var(--size-touch) - var(--title-line)) / 2);
+  inset-block-start: calc(100cqw + var(--space-4) - (var(--size-touch) - var(--title-line)) / 2);
   inset-inline-end: 0;
 }
 
