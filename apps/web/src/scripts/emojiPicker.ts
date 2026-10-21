@@ -218,7 +218,4 @@ export function openEmojiPicker(
   // A phone keeps its keyboard down until the search is tapped.
   if (matchMedia(WIDE).matches) input.focus();
   else cells()[0]?.focus();
-  picker
-    .querySelector("[data-menu-close]")
-    ?.addEventListener("click", () => picker.hidePopover(), { signal });
 }
