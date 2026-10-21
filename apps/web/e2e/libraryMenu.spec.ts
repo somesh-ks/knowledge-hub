@@ -44,7 +44,7 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
-test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph", async ({
+test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", async ({
   page,
 }) => {
   await page.goto("/library");
@@ -68,10 +68,14 @@ test("pressing a row's three dots moves nothing: not the card, its title or the 
   await page.waitForTimeout(300);
   expect(await boxes()).toEqual(rest);
   await page.mouse.up();
-  // The dots sit at the card's top right.
-  const cardBox = rest[0] as { x: number; y: number; width: number };
-  expect(dots.y - cardBox.y).toBeLessThan(16);
-  expect(cardBox.x + cardBox.width - (dots.x + dots.width)).toBeLessThan(16);
+  // The dots sit beside the title, not over the art: below the cover, level with the title's first line.
+  const cover = (await card.locator(".cover").first().boundingBox()) as {
+    y: number;
+    height: number;
+  };
+  const title = rest[1] as { y: number };
+  expect(dots.y + dots.height / 2).toBeGreaterThan(cover.y + cover.height);
+  expect(Math.abs(dots.y + dots.height / 2 - (title.y + 12))).toBeLessThan(8);
 });
 
 test.describe("a briefing download", () => {

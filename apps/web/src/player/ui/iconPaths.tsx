@@ -3,7 +3,7 @@
  *
  * The glyphs the React player's first load draws, offline too; lazy code uses LazyIcon.
  * One icon set: Phosphor, regular weight, with the fill weight where a glyph must read as
- * solid, the bold weight for the plus, and the More dots drawn to the bold plus's weight
+ * solid, the bold weight for the plus, and the bold dots for More
  * (Phosphor Icons, MIT License). Every glyph is one filled path in currentColor.
  * Decorative by default: the button or link that holds an icon carries the accessible name.
  */
