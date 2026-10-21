@@ -1,0 +1,65 @@
+---
+import Icon from "../../components/Icon.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+
+const title = "Costs";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the costs">
+  <main id="main" tabindex="-1">
+    {/* Static shell: the numbers load after first paint from /api/costs (scripts/costsPage.ts), so the page costs nothing at start. */}
+    <div class="settings-view" data-settings data-costs>
+      <SettingsHead title={title} note="What the app spent on paid services, from the cost ledger." />
+
+      <section>
+        <h2 class="section-head">Range</h2>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="costs-period">Period</label>
+            <span class="manage-select value-select">
+              <select class="manage-input" id="costs-period" autocomplete="off">
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+              </select>
+              <Icon name="chevronDown" />
+            </span>
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="costs-by">Group by</label>
+            <span class="manage-select value-select">
+              <select class="manage-input" id="costs-by" autocomplete="off">
+                <option value="provider">Provider</option>
+                <option value="kind">Kind</option>
+                <option value="scope">Shared or personal</option>
+                <option value="timezone">Timezone</option>
+                <option value="user">User</option>
+              </select>
+              <Icon name="chevronDown" />
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">Total</h2>
+        <div class="rows card-group" data-costs-total>
+          <p class="settings-about" data-costs-status>Loading.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">By period</h2>
+        <div class="rows card-group" data-costs-rows></div>
+        <p class="settings-note" data-costs-note></p>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import "../../scripts/costsPage";
+</script>

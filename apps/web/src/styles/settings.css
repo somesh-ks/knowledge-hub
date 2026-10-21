@@ -592,3 +592,19 @@
 .changelog-entry > .settings-about {
   padding: 0;
 }
+
+/* ------------------------------------------------------------------ the costs page */
+
+.cost-row {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+
+/* A group's row sits one step in from its period's row. */
+.cost-group {
+  padding-inline-start: var(--space-4);
+}
+
+.cost-value {
+  font-variant-numeric: tabular-nums;
+}
