@@ -5,6 +5,7 @@ import AddFab from "../../../components/AddFab.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
+import MenuSheet from "../../../components/MenuSheet.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceFilter from "../../../components/SourceFilter.astro";
@@ -196,7 +197,7 @@ const facts = topic && {
                   >
                     <Icon name="moreVert" />
                   </button>
-                  <div class="hero-menu-list" id="topic-menu" popover role="menu" aria-label={`More actions for ${name}`}>
+                  <MenuSheet id="topic-menu" title={name}>
                     <button
                       class="hero-menu-item"
                       type="button"
@@ -206,7 +207,7 @@ const facts = topic && {
                       data-edit-topic={JSON.stringify(facts)}
                       data-topic-base={upsert}
                     >
-                      Edit
+                      <Icon name="pencil" />Edit
                     </button>
                     {topic.origin === "custom" && (
                       <button
@@ -222,11 +223,11 @@ const facts = topic && {
                         data-remove
                         data-confirm
                       >
-                        <span class="topic-delete-do">Delete</span>
+                        <Icon name="trash" /><span class="topic-delete-do">Delete</span>
                         <span class="topic-delete-undo">Keep topic</span>
                       </button>
                     )}
-                  </div>
+                  </MenuSheet>
                 </div>
               )
             }

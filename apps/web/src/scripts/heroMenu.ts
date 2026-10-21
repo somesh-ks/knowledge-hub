@@ -97,6 +97,12 @@ export function installHeroMenu(): void {
     }
   });
 
+  // The sheet's Close (the header of a phone's menu).
+  document.addEventListener("click", (event) => {
+    const close = (event.target as Element).closest?.("[data-menu-close]");
+    close?.closest<HTMLElement>("[popover]")?.hidePopover();
+  });
+
   // A pick closes the menu first; what it opened (the share sheet, a panel) comes after. A disabled
   // item never gets here: the shell's guard stops its click.
   document.addEventListener("click", (event) => {
