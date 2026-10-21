@@ -18,7 +18,6 @@ export const Env = z.object({
   BLOB_STORE_ID: optionalString,
   /** Account token the audio workflow uses to run `vercel link` and `vercel env pull`. */
   VERCEL_TOKEN: optionalString,
-  COMPOSIO_API_KEY: optionalString,
   /** Gemini API key: transcribes a YouTube finalist that has no subtitles. */
   GEMINI_API_KEY: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),

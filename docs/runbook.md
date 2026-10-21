@@ -39,7 +39,6 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `GEMINI_API_KEY` | Google AI Studio (optional: YouTube transcription) |
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
-| `COMPOSIO_API_KEY` | Optional. A Composio project key (the YouTube connection is Composio-managed). The pipeline reads YouTube channel feeds without a key, so nothing needs it yet. |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
 | `DISPATCH_GIT_NAME`, `DISPATCH_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |

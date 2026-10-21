@@ -248,12 +248,6 @@ const KEYS: readonly KeySpec[] = [
     missing:
       "The audio workflow cannot pull Blob credentials. Create an account token in the Vercel dashboard (Settings, Tokens).",
   },
-  {
-    name: "COMPOSIO_API_KEY",
-    missing:
-      "Only for ad-hoc YouTube lookups through Composio; the pipeline reads YouTube feeds without a key.",
-    optional: true,
-  },
 ];
 
 function keyChecks(env: Env, root: string): Check[] {
