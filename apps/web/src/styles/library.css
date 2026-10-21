@@ -7,7 +7,7 @@
 
 .card-link {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   border-radius: var(--cover-radius-hero);
   color: inherit;
   text-decoration: none;
@@ -100,7 +100,7 @@
   display: -webkit-box;
   overflow: hidden;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -209,7 +209,7 @@
 .search-field {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   height: var(--field-height);
   padding-inline: var(--space-4);
   border-radius: var(--radius-round);
@@ -291,15 +291,16 @@
      screens the row wraps rather than run off the page. The padding is room for the focus ring and
      the selects' taller targets. */
   flex-wrap: wrap;
-  row-gap: var(--space-3);
-  padding-block: var(--space-1);
+  row-gap: var(--space-4);
+  padding-block: var(--space-2);
 }
 
 /* The kind chips: one row that scrolls sideways when it does not fit, with room inside it for the
-   focus ring and the 44px targets. On a phone they take the bar's first row, and the order and the
-   view switch the second. */
+   focus ring and the 44px targets. On a phone they share one line with the view switch, which sits
+   at its far end; there is no sort on a phone (2026-10-21). */
 .library-filters {
-  flex: 1 1 100%;
+  flex: 1 1 0;
+  min-width: 0;
   flex-wrap: nowrap;
   margin: calc(var(--space-1) * -1);
   padding: var(--space-1);
@@ -322,10 +323,30 @@
   }
 }
 
-/* On a phone the order starts its row and only the view switch sits at the far end, as in a
-   Google library; from 40rem everything is on one row with the order next to the switch. */
+/* On a phone the chips and the view switch are the bar's one line, and the order is not offered
+   (2026-10-21): the bar no longer wraps. From 40rem the order sits next to the switch. */
 .library-bar .view-switch {
   margin-inline-start: auto;
+}
+
+@media (width < 40rem) {
+  .library-bar {
+    flex-wrap: nowrap;
+  }
+
+  .library-bar .sort-field {
+    display: none;
+  }
+
+  /* The chips give up 4px a side so all three fit beside the switch on a 390px phone: 16px of side
+     room, with the check moved 4px out so it still clears the words it slides beside. */
+  .library-filters > .filter-chip {
+    padding-inline: var(--space-4);
+  }
+
+  .library-filters > .filter-chip > .icon {
+    inset-inline-start: var(--space-1);
+  }
 }
 
 @media (min-width: 40rem) {
@@ -383,7 +404,7 @@
 .sort-field > select {
   height: var(--size-touch);
   margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
-  padding-inline: var(--space-3) calc(var(--space-3) + var(--space-4) + var(--field-chevron-gap));
+  padding-inline: var(--space-4) calc(var(--space-4) + var(--space-4) + var(--field-chevron-gap));
   border: 0;
   border-radius: inherit;
   background: none;
@@ -398,7 +419,7 @@
 /* The chevron is a hint at the end of the label, a step smaller than a toolbar glyph. */
 .sort-field > .icon {
   position: absolute;
-  inset-inline-end: var(--space-3);
+  inset-inline-end: var(--space-4);
   inline-size: var(--size-icon-sm);
   block-size: var(--size-icon-sm);
   pointer-events: none;
@@ -513,7 +534,7 @@
 /* A row is its own stacking context, so its press fill can sit behind its content. Its hover and
    press tile runs past the row into the gutters, so a row is never clipped (content-visibility). */
 [data-library][data-view="list"] .card {
-  --list-cover: calc(var(--size-touch) + var(--space-3));
+  --list-cover: 3.5rem;
   position: relative;
   isolation: isolate;
   content-visibility: visible;
@@ -526,7 +547,7 @@
   grid-template-rows: 1fr auto auto auto 1fr;
   gap: 0 var(--space-4);
   align-items: center;
-  padding-block: var(--space-3);
+  padding-block: var(--space-4);
 }
 
 [data-library][data-view="list"] .card-link .cover {
@@ -694,7 +715,7 @@ html:has(.library-none) {
 }
 
 .shelf-head > .btn {
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-4) * -1);
 }
 
 @property --shelf-left-mask {
@@ -715,7 +736,7 @@ html:has(.library-none) {
   margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   padding-inline: var(--page-gutter-start) var(--page-gutter-end);
   /* Room for the focus ring above and below. */
-  padding-block: var(--space-1) var(--space-2);
+  padding-block: var(--space-2);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
@@ -785,4 +806,65 @@ html:has(.library-none) {
 .library-grid > .card:focus-within,
 .shelf > .card:focus-within {
   content-visibility: visible;
+}
+
+/* ------------------------------------------------------------------ a row's menu */
+
+/* The ⋮ at the end of a row's text (components/LibraryItemMenu.astro), beside the card's link and
+   never inside it. The title and the quiet line reserve its room whether or not the button shows, so
+   nothing on a row moves when it appears. The button sits on the row's last line in the gallery and
+   in the middle of the row in the list. */
+.card {
+  position: relative;
+}
+
+.card:has(> .card-menu) .card-title,
+.card:has(> .card-menu) .card-sub,
+.card:has(> .card-menu) .card-match {
+  padding-inline-end: calc(var(--size-touch) - var(--space-2));
+}
+
+/* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
+   the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on one
+   line, never two. */
+@container (max-width: 12rem) {
+  .card:has(> .card-menu) .card-count {
+    display: none;
+  }
+}
+
+.card-menu {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+
+.card-more {
+  anchor-name: var(--card-anchor);
+}
+
+/* Under its own row's button, as a story's menu hangs under its own (story-controls.css). */
+.hero-menu-list.card-menu-list {
+  position-anchor: var(--card-anchor);
+  margin-inline-end: var(--space-2);
+}
+
+[data-library][data-view="list"] .card-menu {
+  inset-block: 0;
+  inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+  display: grid;
+  align-items: center;
+}
+
+/* Downloaded: a filled check circle at the start of the quiet line, put there once by
+   scripts/libraryMenu.ts, so it takes room only while it is shown. */
+.card-downloaded {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-accent);
+}
+
+.card-downloaded .icon {
+  width: 1rem;
+  height: 1rem;
 }

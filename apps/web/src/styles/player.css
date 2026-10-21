@@ -510,10 +510,10 @@
 .player-section-title {
   margin: 0;
   padding-block: var(--space-2) 0;
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .segmented-legend {
@@ -529,7 +529,7 @@
 .player-fallback {
   display: grid;
   justify-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding-block: var(--space-8);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -783,7 +783,7 @@
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--mini-player-control-size);
   padding-inline-end: var(--space-2);
   border-radius: var(--mini-player-control-radius);
@@ -841,7 +841,7 @@
 .dock-title {
   overflow: hidden;
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -874,16 +874,18 @@
  * from the edge).
  */
 .dock-seek {
+  /* The thumb's own size, 12px: a dimension of the control, not a space between things. */
+  --range-thumb: 0.75rem;
   position: absolute;
   /* Drawn along the bar's top edge and first in the markup: the first Tab stop, ahead of the rows
      that the bar's reading flow orders. */
   reading-order: -1;
   /* Half a thumb in from each edge, so the thumb and its ring at 0 and 100 percent are not cut. */
-  inset-inline: calc(var(--space-3) / 2);
+  inset-inline: calc(var(--range-thumb) / 2);
   inset-block-start: 0;
   z-index: var(--z-raised);
   display: none;
-  width: calc(100% - var(--space-3));
+  width: calc(100% - var(--range-thumb));
   height: var(--space-4);
   margin: 0;
   padding: 0;
@@ -905,9 +907,9 @@
 }
 
 .dock-seek::-webkit-slider-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
-  margin-block-start: calc(var(--mini-player-progress-height) - var(--space-3) / 2);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-block-start: calc(var(--mini-player-progress-height) - var(--range-thumb) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -917,8 +919,8 @@
 }
 
 .dock-seek::-moz-range-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -997,6 +999,7 @@
 }
 
 .dock-volume-level {
+  --range-thumb: 0.75rem;
   width: 6rem;
   height: var(--size-touch);
   margin: 0;
@@ -1030,9 +1033,9 @@
 }
 
 .dock-volume-level::-webkit-slider-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
-  margin-block-start: calc((var(--scrubber-track) - var(--space-3)) / 2);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-block-start: calc((var(--scrubber-track) - var(--range-thumb)) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -1040,8 +1043,8 @@
 }
 
 .dock-volume-level::-moz-range-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -1237,7 +1240,7 @@
 
   .dock-text {
     transform: translate3d(
-      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
+      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-4))),
       0,
       0
     );
@@ -1599,7 +1602,7 @@
 .scrubber-times {
   display: flex;
   justify-content: space-between;
-  margin-block-start: calc(var(--space-3) * -1);
+  margin-block-start: calc(var(--space-2) * -1);
   pointer-events: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -1613,7 +1616,9 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  row-gap: var(--space-3);
+  /* The speed pill belongs to the transport above it: one control's inner step, 8px. At 16px the
+     two-column player overflowed a 1024x768 window by 4px (2026-10-21). */
+  row-gap: var(--space-2);
   padding-block: var(--space-4) var(--space-2);
 }
 
@@ -1728,9 +1733,9 @@
 .speed-btn {
   display: grid;
   place-items: center;
-  min-width: calc(5ch + var(--space-3) * 2);
+  min-width: calc(5ch + var(--space-2) * 2);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   border-radius: var(--button-radius);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
@@ -1776,13 +1781,13 @@
   --panel-center: 50vw;
   --panel-width: 16rem;
   --panel-left: clamp(
-    var(--space-3),
+    var(--space-4),
     var(--panel-center) -
     var(--panel-width) /
     2,
     100vw -
     var(--panel-width) -
-    var(--space-3)
+    var(--space-4)
   );
   --panel-scale: var(--scale-enter);
   --color-focus-gap: var(--color-surface-overlay);
@@ -1934,7 +1939,7 @@
 .speed-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .speed-preset {
@@ -1994,8 +1999,8 @@
   display: grid;
   gap: var(--space-1);
   width: 100%;
-  padding-block: var(--space-3);
-  padding-inline: var(--space-3);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
@@ -2073,7 +2078,7 @@
 .script-word[data-spoken] {
   --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
   background: var(--spoken-fill);
-  box-shadow: 0 0 0 var(--space-half) var(--spoken-fill);
+  box-shadow: 0 0 0 0.125rem var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
   transition: none;
 }
@@ -2149,7 +2154,7 @@
   position: sticky;
   inset-block-end: max(var(--space-4), calc(var(--safe-bottom) + var(--space-2)));
   display: block;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   margin-inline: auto;
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
@@ -2503,7 +2508,7 @@
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--button-radius);
   color: var(--color-accent);
   /* The story's size, so the block under the title keeps to two type sizes. */
@@ -2534,11 +2539,11 @@
 
 /* A section's name: quiet text in sentence case over its rows, as a list's heading is elsewhere. */
 .story-group-title {
-  padding-block: var(--space-4) var(--space-1);
-  padding-inline: var(--space-3);
+  padding-block: var(--space-4) var(--space-2);
+  padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .story-rows {
@@ -2554,11 +2559,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
@@ -2651,7 +2656,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-block-end: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--radius-lg);
@@ -2704,12 +2709,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   background: var(--color-surface-container);
   text-align: start;
@@ -2727,6 +2732,212 @@
 .player-upnext-hint {
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
+}
+
+/* ------------------------------------------------------------------ the collapse chevron */
+
+/* Below 64rem the close button is a chevron at the top left of the open player (owner, 2026-10-20):
+   a 44px icon button whose glyph lines up with the page's left edge, centred in the room above the
+   art that the handle once took (D111), so the art does not move. The rule above still hides it
+   from 64rem until the keyboard reaches it. */
+@media (max-width: 63.9375rem) {
+  .player .player-collapse {
+    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+    padding: 0;
+    background: transparent;
+    color: var(--color-on-surface-muted);
+    translate: none;
+    clip-path: none;
+  }
+
+  .player .player-collapse:active {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (max-width: 63.9375rem) {
+  .player .player-collapse:hover:not(:active) {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ the queue */
+
+/* What plays next, held at the foot of the open player while something is queued. A pull up on it
+   raises the queue; it takes no native pan. */
+.player-queue-peek {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--size-touch-comfortable);
+  margin-block-start: var(--space-4);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  border-radius: var(--row-radius);
+  background: var(--color-surface-container);
+  text-align: start;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-queue-peek-title {
+  overflow: hidden;
+  font-weight: var(--font-weight-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The one chevron there is, turned to point the way the queue comes from. */
+.player-queue-peek-glyph {
+  flex: none;
+  rotate: 180deg;
+}
+
+/* The queue sheet, over the whole open player. --queue-p (0 down, 1 up) is written by QueueSheet.tsx
+   from the player's spring; it moves only by transform. */
+.player-queue-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--safe-top) max(var(--space-4), var(--safe-bottom));
+  padding-inline: max(var(--player-padding), var(--safe-left))
+    max(var(--player-padding), var(--safe-right));
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  pointer-events: auto;
+  transform: translate3d(0, calc((1 - var(--queue-p, 0)) * 100%), 0);
+  visibility: hidden;
+}
+
+.player[data-queue] .player-queue-sheet {
+  visibility: visible;
+}
+
+/* Under the rising sheet the cover shrinks out, as YouTube Music's does. */
+.player[data-queue] .player-cover-slot {
+  opacity: calc(1 - var(--queue-p, 0));
+  transform: scale(calc(1 - 0.25 * var(--queue-p, 0)));
+}
+
+/* The playing recording, docked small at the top. A pull down on it lowers the sheet. */
+.player-queue-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.player-queue-dock,
+.player-queue-row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: var(--size-touch-comfortable);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-2);
+  border-radius: var(--row-radius);
+  text-align: start;
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-queue-dock .player-upnext-text,
+.player-queue-row .player-upnext-text,
+.player-queue-peek .player-upnext-text {
+  min-width: 0;
+}
+
+.player-queue-dock .player-upnext-date,
+.player-queue-row .player-upnext-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-queue-thumb {
+  flex: none;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.player-queue-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.player-queue-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-queue-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--row-radius);
+  background: var(--color-surface);
+}
+
+/* The row being dragged rides over its neighbours on the container tone, with no shadow. */
+.player-queue-item[data-dragging] {
+  z-index: var(--z-raised);
+  background: var(--color-surface-container);
+}
+
+.player-queue-handle {
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.player-queue-item[data-dragging] .player-queue-handle {
+  cursor: grabbing;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-peek:hover,
+  .player-queue-row:hover,
+  .player-queue-dock:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.player-queue-peek:active,
+.player-queue-row:active,
+.player-queue-dock:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */

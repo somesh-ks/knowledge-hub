@@ -140,10 +140,10 @@ const COPY = {
 
     <section class="create-group" aria-labelledby="create-length-label">
       <h2 class="section-head" id="create-length-label">Length</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-length-label">
+      <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-length-label">
         {
           LENGTHS.map((length) => (
-            <label class="settings-segment">
+            <label class="segmented-choice-item">
               <input type="radio" name="length" value={length.value} data-submit-label={submitLabel(length.value)} checked={length.value === startLength} />
               <span>{length.label}</span>
             </label>
@@ -154,10 +154,10 @@ const COPY = {
 
     <section class="create-group" aria-labelledby="create-window-label">
       <h2 class="section-head" id="create-window-label">Look back</h2>
-      <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
+      <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
         {
           WINDOWS.map((window) => (
-            <label class="settings-segment">
+            <label class="segmented-choice-item">
               <input type="radio" name="window" value={window.value} data-label={window.label} checked={window.value === DEFAULTS.window} />
               <span>{window.label}</span>
             </label>
@@ -181,10 +181,10 @@ const COPY = {
              they have. The script fills in the names once the voices have loaded. */}
         <section class="create-group" aria-labelledby="create-format-label">
           <h2 class="section-head" id="create-format-label">Format</h2>
-          <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-format-label" aria-describedby="create-format-hint">
+          <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-format-label" aria-describedby="create-format-hint">
             {
               FORMATS.map((format) => (
-                <label class="settings-segment">
+                <label class="segmented-choice-item">
                   <input type="radio" name="format" value={format.value} data-label={format.label} checked={format.value === startFormat} />
                   <span>{format.label}</span>
                 </label>
@@ -251,10 +251,10 @@ const COPY = {
 
         <section class="create-group" aria-labelledby="create-tone-label">
           <h2 class="section-head" id="create-tone-label">Tone</h2>
-          <fieldset class="settings-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
+          <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
             {
               TONES.map((tone) => (
-                <label class="settings-segment">
+                <label class="segmented-choice-item">
                   <input type="radio" name="tone" value={tone.value} data-label={tone.label} checked={tone.value === DEFAULTS.tone} />
                   <span>{tone.label}</span>
                 </label>

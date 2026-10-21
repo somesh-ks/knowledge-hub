@@ -16,10 +16,12 @@ export interface RankEntry {
 const NOT_CHAT =
   /embed|bge-|rerank|guard|safety|moderation|\bvl\b|vision|llava|pixtral|ocr|whisper|tts|code|[-_]base\b/i;
 
+/** Families the owner never wants offered, however they rank (Kimi, 2026-10-21). */
+export const EXCLUDED_MODELS = /kimi/i;
+
 /** Parameter counts (billions) for families whose ids do not carry one. */
 const KNOWN_SIZE: ReadonlyArray<readonly [RegExp, number]> = [
   [/deepseek-(?:v3|r1)/i, 671],
-  [/kimi-k2/i, 1000],
   [/glm-4\.[5-9]/i, 355],
 ];
 
@@ -29,7 +31,6 @@ const NEWEST: readonly RegExp[] = [
   /qwen3/i,
   /gpt-oss/i,
   /glm-4\.[5-9]/i,
-  /kimi-k2/i,
   /llama-?3\.3/i,
   /nemotron/i,
 ];
@@ -43,7 +44,7 @@ function billions(id: string): number {
 
 /** Whether a model can be recommended at all. */
 export function isRecommendable(id: string): boolean {
-  return !NOT_CHAT.test(id);
+  return !NOT_CHAT.test(id) && !EXCLUDED_MODELS.test(id);
 }
 
 /** Higher is better. Size counts on a log scale, so 235B is not twice as good as 120B. */
@@ -90,6 +91,6 @@ export function shortlist(entries: readonly RankEntry[], max = 5): string[] {
 export function topModels(live: readonly RankEntry[] | null, curated: readonly string[]): string[] {
   if (live === null) return [...curated];
   const served = new Set(live.map((entry) => entry.id));
-  const kept = curated.filter((id) => served.has(id));
+  const kept = curated.filter((id) => served.has(id) && !EXCLUDED_MODELS.test(id));
   return kept.length > 0 ? kept : shortlist(live);
 }

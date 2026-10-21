@@ -163,7 +163,8 @@ export default defineConfig({
         "img-src 'self' data:",
         "font-src 'self'",
         "media-src 'self' https://*.public.blob.vercel-storage.com",
-        "connect-src 'self'",
+        // The blob host too, so a download can read the audio file it saves (CORS on the host).
+        "connect-src 'self' https://*.public.blob.vercel-storage.com",
         "manifest-src 'self'",
         "worker-src 'self'",
         "object-src 'none'",

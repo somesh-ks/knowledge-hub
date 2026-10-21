@@ -18,9 +18,10 @@ const formats = Object.entries(FORMAT_LABEL)
 const shownTabs = tabs && formats.length > 1;
 ---
 
-{/* One search field over a list of source rows, and on a topic's page a tab bar of formats, All
-     first (sourceFilter.ts reads the rows' data-text and data-format). One tab at a time; the words
-     narrow within it. Below 64rem the field and the tabs stick under the app bar together.
+{/* One search field over a list of source rows, and on a topic's page the formats: a tab bar, All
+     first, below 64rem (one at a time, sticking with the field), and from 64rem chips with no All, any
+     number chosen and none meaning everything. Both are drawn and one shows; they read and write one
+     state (sourceFilter.ts reads the rows' data-text and data-format).
      Whole static HTML without the script: the list simply stays unfiltered. */}
 <div class="source-filter" data-filter data-tabs={shownTabs ? "" : undefined} data-needs-js>
   <div class="filter-row">
@@ -45,7 +46,7 @@ const shownTabs = tabs && formats.length > 1;
   {
     shownTabs && (
       <div class="tabs-bar filter-tabs">
-        <div class="tabs" role="tablist" aria-label="Format">
+        <div class="tabs" role="tablist" aria-label="Type">
           {[{ format: "", label: "All" }, ...formats].map((tab) => (
             <button
               class="tab"
@@ -58,6 +59,17 @@ const shownTabs = tabs && formats.length > 1;
             </button>
           ))}
         </div>
+      </div>
+    )
+  }
+  {
+    shownTabs && (
+      <div class="filter-chips" role="group" aria-label="Type">
+        {formats.map((chip) => (
+          <button class="format-chip" type="button" aria-pressed="false" data-chip={chip.format}>
+            {chip.label}
+          </button>
+        ))}
       </div>
     )
   }

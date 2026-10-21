@@ -74,10 +74,7 @@ test.describe("theme", () => {
     // of the preferences, and passed or failed by which loaded first.
     await page.goto("/settings");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page
-      .getByRole("radiogroup", { name: "Theme" })
-      .getByRole("radio", { name: "Dark" })
-      .check();
+    await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await page
       .getByRole("navigation", { name: "Primary" })

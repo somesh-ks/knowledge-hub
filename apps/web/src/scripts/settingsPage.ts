@@ -109,9 +109,11 @@ function installHintApplies(): boolean {
 /** Wires one settings page. Returns a teardown for when the router swaps the page away. */
 function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
-  const themes = [...root.querySelectorAll<HTMLInputElement>('input[name="theme"]')];
+  const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
+  // The index's Interface sounds row: its line says whether they are on in this browser.
+  const soundsHint = root.querySelector<HTMLElement>("[data-sounds-hint] [data-hint]");
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
   const installApp = root.querySelector<HTMLElement>("[data-install-app]");
 
@@ -123,8 +125,9 @@ function mountSettings(root: HTMLElement): () => void {
 
   const render = (): void => {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
-    for (const input of themes) input.checked = input.value === state.theme;
+    if (theme) theme.value = state.theme;
     if (sounds) sounds.checked = state.sounds;
+    if (soundsHint) soundsHint.textContent = state.sounds ? "On" : "Off";
     if (volume) {
       volume.value = state.volume;
       volume.disabled = state.volumeDisabled;
@@ -136,12 +139,14 @@ function mountSettings(root: HTMLElement): () => void {
 
   const onChange = (event: Event): void => {
     const input = event.target;
-    if (!(input instanceof HTMLInputElement)) return;
-    if (input.name === "theme") {
-      const theme = toTheme(input.value);
+    if (input === theme && theme) {
+      const chosen = toTheme(theme.value);
       // The theme runtime watches the preference and crossfades the change; no sound.
-      if (theme) preferences.set({ theme });
-    } else if (input === sounds) {
+      if (chosen) preferences.set({ theme: chosen });
+      return;
+    }
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input === sounds) {
       changeSounds(input.checked, {
         setSounds: (enabled) => preferences.set({ sounds: enabled }),
         play: playUiCue,

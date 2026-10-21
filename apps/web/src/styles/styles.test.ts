@@ -39,7 +39,8 @@ const LABEL_CONTROLS = [
   "btn-primary",
   "btn-secondary",
   "source-main",
-  "settings-segment",
+  "segmented-choice-item",
+  "segmented-nav-tab",
   "segmented",
   "filter-chip",
   "chip",
@@ -60,6 +61,85 @@ const LABEL_CONTROLS = [
   "speed-btn",
   "speed-preset",
 ];
+
+/**
+ * The only rules that may space with --space-1 (4px), each with why. Everything else spaces on the
+ * 8pt grid: a 4px gap between two rows, or under a heading, reads as the two touching. A selector
+ * matches when it contains the entry as a whole name.
+ */
+const ALLOWED_4PX: [selector: string, reason: string][] = [
+  [".aside", "the rail's hit area reaching past the column's edge"],
+  [".aside-rail", "the rail's track padding, around its own segments"],
+  [".banner > .btn", "the action's hit area reaching into the banner's padding"],
+  [".banner-body", "a banner's title onto its body, inside one banner"],
+  [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
+  [".create-fab-label", "the button's own inner gap at the label's end"],
+  [".create-sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
+  [".create-more-text", "title onto its subtitle inside one row"],
+  [".episode-highlight-actions", "the chips' hit-area overhang under the highlight"],
+  [".hero-text", "title onto its subtitle inside one block"],
+  [".library-filters", "room for the chips' focus ring inside the scroller"],
+  ['[data-view="list"] .card-link::after', "the row's press layer, inset as a hit area"],
+  [".card-match", "title onto its subtitle inside one row"],
+  [".card-sub", "title onto its subtitle inside one row"],
+  [".manage-text", "title onto its subtitle inside one row"],
+  [".multiselect-text", "title onto its subtitle inside one option"],
+  [".player-collapse", "the button's inner padding and its offset past the focus ring"],
+  [".player-meta", "the title onto its meta line"],
+  [".player-meta-line", "an icon beside its own label, and the notice's inner padding"],
+  [".player-title", "room for the title's focus ring"],
+  [".dock-text", "title onto its subtitle inside one row"],
+  [".dock-seek-time", "a chip's inner padding"],
+  [".scrubber-bubble", "a chip's inner padding and its optical nudge onto the track"],
+  [".script-turn", "the speaker onto their words inside one turn"],
+  [".row-action::after", "the row's press layer, inset as a hit area"],
+  [".source-link", "an icon beside its own label"],
+  [".filter-chip", "a chip's inner gap"],
+  [".sort-field > select::picker(select)", "the list's edge onto the label's outline"],
+  [".meta-wrap", "the meta link's hit area reaching past its words"],
+  [".segmented-choice-item", "the check glyph beside its own segment label"],
+  [".segmented-nav", "a segmented track: the pill inset by its 4px track padding"],
+  [".settings-text", "title onto its subtitle inside one row"],
+  [".sheet-hint-title", "title onto its body inside one card"],
+  [".toast", "the action's hit area reaching the toast's edge"],
+  [".app-bar-back", "the back button's hit area, offset to the edge"],
+  [".app-nav-item", "an icon beside its own label"],
+  [".source-icon > img", "the favicon's inset inside its own tile"],
+  [".source-host", "the separator dot beside its own text"],
+  [".score", "the meter beside its own label"],
+  [".source-card-score", "the meter beside its own label"],
+  [".source-plus-btn", "the button's hit area and its press layer's inset"],
+  [".source-filter[data-tabs]", "a segmented track: the gap matches its 4px track padding"],
+  [".manage-bar:popover-open", "a bar's inset sum: the 4px inset doubled, landing on the grid"],
+];
+
+/** A selector fragment as a whole name: `.aside` matches `.aside:hover`, not `.aside-x`. */
+const wholeName = (fragment: string) =>
+  new RegExp(`${fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`);
+
+/** Every innermost rule of a stylesheet, as [selector, body]. */
+const rulesOf = (css: string) =>
+  [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
+    ([, selector = "", body = ""]) => [selector.trim(), body] as const,
+  );
+
+/** The declarations of a rule body, as [property, value]. */
+const declarationsOf = (body: string) =>
+  [...body.matchAll(/(?:^|;)\s*([a-z-]+)\s*:\s*([^;]+)/g)].map(
+    ([, property = "", value = ""]) => [property, value.trim()] as const,
+  );
+
+/** A custom property's value in tokens.css, followed through var() to its end. */
+function tokenValue(name: string): string {
+  const tokens = read("tokens.css");
+  let value = name;
+  for (let hop = 0; hop < 8; hop += 1) {
+    const reference = /^var\((--[\w-]+)\)$/.exec(value.trim());
+    if (!reference) return value;
+    value = new RegExp(`${reference[1]}:\\s*([^;]+);`).exec(tokens)?.[1] ?? value;
+  }
+  return value;
+}
 
 /** One house rule: its name and every place that breaks it. */
 interface Rule {
@@ -110,6 +190,62 @@ const RULES: Rule[] = [
             return rawLength.test(own) ? [`${file}: ${property}: ${value.trim()}`] : [];
           },
         ),
+      );
+    },
+  },
+  {
+    // A 12px gap beside a 16px one, or a 4px one between two rows, reads as rows touching and
+    // headings crowding their controls. Space is 8, 16, 24 and up; 4px only where ALLOWED_4PX says.
+    name: "spacing is on the 8pt grid",
+    offenders: () => {
+      const spacing =
+        /^(?:margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left|scroll-margin|scroll-padding)(?:-[a-z-]+)?$/;
+      return [
+        ...ownCss(),
+        ["foundations.css", withoutComments(read("foundations.css"))] as const,
+      ].flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) =>
+          declarationsOf(body)
+            .filter(([property]) => spacing.test(property))
+            .flatMap(([property, value]) =>
+              [...value.matchAll(/--space-([\w]+)/g)]
+                .filter(([, step]) => {
+                  if (["2", "4", "6", "8", "12", "16", "24"].includes(step ?? "")) return false;
+                  const fine = ALLOWED_4PX.some(([allowed]) => wholeName(allowed).test(selector));
+                  return !(step === "1" && fine);
+                })
+                .map(([token]) => `${file}: ${selector} { ${property}: ${token} }`),
+            ),
+        ),
+      );
+    },
+  },
+  {
+    // Headings are regular weight: the type's size and the space around it carry the hierarchy.
+    // A medium heading reads as a button label and competes with the controls under it.
+    name: "headings are never bold",
+    offenders: () => {
+      const heading = /(?:^|[\s>+~(,])h[1-6]\b|\.[\w-]+-(?:title|head|heading)\b|\.section-head\b/;
+      const bold = (value: string) => {
+        const end = tokenValue(value);
+        return /medium|semibold|bold|^[5-9]00$/.test(end) || /medium|semibold|bold/.test(value);
+      };
+      return ownCss().flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) => {
+          // The subject of each selector in the list: what follows its last combinator.
+          const subjects = selector.split(",").map(
+            (part) =>
+              part
+                .trim()
+                .split(/\s+|>|\+|~/)
+                .pop() ?? "",
+          );
+          if (!subjects.some((subject) => heading.test(subject.replace(/:[\w-]+\(.*$/, ""))))
+            return [];
+          return declarationsOf(body)
+            .filter(([property, value]) => property === "font-weight" && bold(value))
+            .map(([, value]) => `${file}: ${selector} { font-weight: ${value} }`);
+        }),
       );
     },
   },
@@ -219,6 +355,38 @@ const RULES: Rule[] = [
       ),
   },
   {
+    // A style attribute is out of reach of every rule above: a raw padding or colour there would
+    // ship unnoticed. Markup may only hand values to the stylesheet through custom properties.
+    name: "no inline styling bypasses the tokens",
+    offenders: () =>
+      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) => {
+        const markup = readFileSync(file, "utf8");
+        return [...markup.matchAll(/\bstyle=(["{])/g)].flatMap((match) => {
+          const start = (match.index ?? 0) + match[0].length;
+          let end = start;
+          if (match[1] === '"') end = markup.indexOf('"', start);
+          else
+            for (let depth = 1; depth > 0 && end < markup.length; end += 1)
+              depth += markup[end] === "{" ? 1 : markup[end] === "}" ? -1 : 0;
+          let expression = markup.slice(start, end);
+          // style={name}: the object or string the file builds for it.
+          const named = /^\s*(\w+)\s*\}?$/.exec(expression);
+          if (named)
+            expression =
+              new RegExp(`const ${named[1]}\\s*=([^;]+);`).exec(markup)?.[1] ?? expression;
+          const properties = [
+            ...expression.matchAll(/(?:^|[{;,`"'\s])["']?(-{0,2}[a-zA-Z][\w-]*)["']?\s*:(?!:)/g),
+          ]
+            .map(([, name = ""]) => name)
+            .filter((name) => !["as", "React"].includes(name));
+          const own = properties.filter((name) => !name.startsWith("--"));
+          return own.length > 0 || properties.length === 0
+            ? [`${file}: style=${expression.trim().slice(0, 60)}`]
+            : [];
+        });
+      }),
+  },
+  {
     name: "does not give a label control the press classes, which scale it",
     offenders: () =>
       filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) => {
@@ -239,6 +407,27 @@ const RULES: Rule[] = [
           })
           .map((value) => `${file}: ${value}`);
       }),
+  },
+  {
+    // Two segmented controls that read differently (2026-10-20): a choice is a radiogroup with a
+    // check, navigation is a tablist with a sliding pill. Swapping them breaks the keys, the roles
+    // and what the owner sees.
+    name: "a segmented radiogroup is the choice control, a segmented tablist the navigation one",
+    offenders: () =>
+      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) =>
+        [...readFileSync(file, "utf8").matchAll(/<[a-z]+\s[^<>]*>/g)].flatMap(([tag]) => {
+          const classes = /\bclass="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
+          const role = /\brole="([^"]*)"/.exec(tag)?.[1];
+          const choice = classes.includes("segmented-choice");
+          const nav = classes.includes("segmented-nav");
+          const wrong =
+            (choice && role !== "radiogroup") ||
+            (nav && role !== "tablist") ||
+            (role === "radiogroup" && nav) ||
+            (role === "tablist" && choice);
+          return wrong ? [`${file}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`] : [];
+        }),
+      ),
   },
 ];
 

@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { storyTurns } from "./core/storyTurns";
 import { usePlayerState } from "./hooks/usePlayer";
+import { useQueue } from "./hooks/useQueue";
 import PlayerNotice from "./PlayerNotice";
+import QueueSheet from "./QueueSheet";
 import ScriptView from "./ScriptView";
 import Scrubber from "./Scrubber";
 import StoryList from "./StoryList";
@@ -24,7 +26,8 @@ const LIST_VIEWS = [
  * what the host says of each story.
  */
 export default function PlayerPageContent() {
-  const track = usePlayerState().track;
+  const { track, status, upNextId } = usePlayerState();
+  const queued = useQueue();
   const digest = track?.digest;
   const turns = useMemo(() => digest?.turns ?? storyTurns(digest?.items ?? []), [digest]);
   const hasScript = turns.length > 0;
@@ -36,6 +39,8 @@ export default function PlayerPageContent() {
   const view = choice && choice.id === digest?.id ? choice.view : first;
   const tabs = hasScript || hasChapters;
   const showScript = view === "transcript";
+  // Once the recording has ended only Up next shows, when there is something to offer.
+  const ended = status === "ended" && (queued.length > 0 || Boolean(upNextId));
   return (
     <>
       <div className="player-controls">
@@ -47,7 +52,7 @@ export default function PlayerPageContent() {
       </div>
       <div className="player-list">
         <UpNext />
-        {tabs ? (
+        {ended ? null : tabs ? (
           <SegmentedControl
             className="player-views"
             legend="Show"
@@ -58,7 +63,7 @@ export default function PlayerPageContent() {
             onChange={(next) => setChoice({ id: digest?.id, view: next })}
           />
         ) : null}
-        {showScript ? (
+        {ended ? null : showScript ? (
           hasScript ? (
             <ScriptView turns={turns} titleHidden />
           ) : (
@@ -70,6 +75,8 @@ export default function PlayerPageContent() {
           <p className="player-empty">There are no stories in this recording.</p>
         )}
       </div>
+      {/* While a recording plays, what is queued waits in a strip at the foot of the page. */}
+      {status === "ended" || queued.length === 0 ? null : <QueueSheet ids={queued} />}
     </>
   );
 }

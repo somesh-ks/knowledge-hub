@@ -46,7 +46,7 @@ async function holdDailyLength(page: Page): Promise<void> {
   await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
   await page.locator("#daily-hour").selectOption("9");
   await expect(spoken(page)).toHaveText(SAVED);
-  await page.getByRole("radio", { name: "3 min" }).check();
+  await page.locator("#daily-length").selectOption("3");
   await page.goBack();
   await expect(page).toHaveURL(/\/settings$/);
 }
@@ -68,7 +68,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
       const sent = await mockConfig(page, [202, lost]);
       await holdDailyLength(page);
       await openDaily(page);
-      await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
+      await expect(page.locator("#daily-length")).toHaveValue("3");
       await expect(note(page)).toBeHidden();
       // The held request fails: the page says so at once, in the toast and to a screen reader.
       await page.clock.runFor(GAP_MS);
@@ -96,7 +96,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
       await page.reload();
       await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
       await expect(page.locator("#daily-hour")).toHaveValue("9");
-      await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
+      await expect(page.locator("#daily-length")).toHaveValue("3");
     });
   }
 
@@ -110,7 +110,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await expect(note(page)).toBeVisible();
     await page.reload();
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
-    await expect(page.getByRole("radio", { name: "3 min" })).not.toBeChecked();
+    await expect(page.locator("#daily-length")).not.toHaveValue("3");
     await expect(note(page)).toHaveCount(0);
   });
 
@@ -123,7 +123,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await expect.poll(() => sent.length).toBe(2);
     await expect(note(page)).toBeHidden();
     await expect(toastText(page)).toBeHidden();
-    await expect(page.getByRole("radio", { name: "3 min" })).toBeChecked();
+    await expect(page.locator("#daily-length")).toHaveValue("3");
     expect(await pendingStored(page)).toBe(false);
   });
 

@@ -291,6 +291,18 @@ describe("weights.set", () => {
   });
 });
 
+describe("mix.set", () => {
+  // The one type mix lives in the preferences, which the engine reads for every topic; a write the
+  // preferences file dropped would leave the sliders saved and never applied.
+  it("keeps the type mix in the preferences, and Normal takes a type out", async () => {
+    const first = await apply({ op: "mix.set", format_mix: { video: "Off", forum: 1.1 } });
+    expect(first.code).toBe(0);
+    expect((await apply({ op: "mix.set", format_mix: { forum: "Normal" } })).code).toBe(0);
+    const prefs = await repo.readJson<Preferences>("config/preferences.json");
+    expect(prefs.format_mix).toEqual({ video: "Off" });
+  });
+});
+
 describe("topic.scope", () => {
   type Lists = {
     skip_topics: string[];

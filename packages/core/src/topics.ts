@@ -86,8 +86,8 @@ export const TopicSection = z.object({
 export type TopicSection = z.infer<typeof TopicSection>;
 
 /**
- * The five stops of a topic's format mix. A stop multiplies the score of a story whose source has
- * that format; Off keeps such stories out. Normal is the default and is left out of the file.
+ * The five stops of the type mix. A stop multiplies the score of a story whose source has that
+ * format (type); Off keeps such stories out. Normal is the default and is left out of the file.
  */
 export const MIX_STOPS = [
   { name: "Off", factor: 0 },
@@ -98,7 +98,7 @@ export const MIX_STOPS = [
 ] as const;
 export const MixStop = z.enum(["Off", "Less", "Normal", "More", "Most"]);
 export type MixStop = z.infer<typeof MixStop>;
-/** A topic's format mix: the stop of each format that is not Normal. */
+/** The type mix, one for every topic (config/preferences.json): the stop of each format that is not Normal. */
 export const FormatMix = z.partialRecord(SourceFormat, MixStop);
 export type FormatMix = z.infer<typeof FormatMix>;
 
@@ -157,8 +157,6 @@ export const Topic = z.object({
   never_publish: z.boolean(),
   origin: TopicOrigin,
   depth: TopicDepth,
-  /** How much each source format counts here; a format at Normal is absent. */
-  format_mix: FormatMix.optional(),
   /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
   perspective: Perspective.optional(),
 });

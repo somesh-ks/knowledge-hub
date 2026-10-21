@@ -47,8 +47,6 @@ export interface ManageTopic {
   section_id: string;
   never_publish: boolean;
   origin: TopicOrigin;
-  /** The stop of each source format that is not Normal (core MIX_STOPS names). */
-  format_mix?: Record<string, string>;
   /** A general topic's perspective, -2 to 2; absent is Even. */
   perspective?: number;
 }
@@ -108,6 +106,8 @@ export interface ManageCandidate {
 }
 
 export interface ManageData {
+  /** The type mix (config/preferences.json), one for every topic: the stop of each format not at Normal. */
+  typeMix: Record<string, string>;
   topics: ManageTopic[];
   sections: ManageSection[];
   sources: ManageSource[];
@@ -318,7 +318,7 @@ function leanOf(value: unknown): number | null | undefined {
   return lean !== null && Number.isInteger(lean) && lean >= -2 && lean <= 2 ? lean : undefined;
 }
 
-/** A topic's format mix as stored: only known formats at a known stop. */
+/** The type mix as stored: only known formats at a known stop. */
 function mixOf(value: unknown): Record<string, string> | undefined {
   if (!isRecord(value)) return undefined;
   const mix: Record<string, string> = {};
@@ -348,7 +348,6 @@ function parseTopic(value: unknown): ManageTopic | null {
     keywords,
     section_id: asString(value.section_id) ?? "top",
     never_publish: asBool(value.never_publish, false),
-    ...(mixOf(value.format_mix) ? { format_mix: mixOf(value.format_mix) } : {}),
     ...(asNumber(value.perspective) ? { perspective: asNumber(value.perspective) as number } : {}),
     origin:
       value.origin === "custom" || value.origin === "app" || value.origin === "general"
@@ -695,6 +694,7 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
     [source.feed_url, source.url].filter((address): address is string => address !== null),
   );
   return {
+    typeMix: mixOf(isRecord(preferences) ? preferences.format_mix : undefined) ?? {},
     topics,
     sections,
     sources,

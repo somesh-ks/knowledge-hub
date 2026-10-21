@@ -40,16 +40,22 @@ export function dailySummary(input: {
   return `${cadence} at ${hourLabel(input.hour)}${zoneNote(input.timezone)}`;
 }
 
-/** "Sundays at 07:00", "Sundays at 07:00 (Tokyo)", or "Off". */
-export function weeklySummary(input: {
-  enabled: boolean;
-  day: number;
-  hour: number;
-  timezone?: string;
-}): string {
-  const day = WEEKDAYS[input.day];
-  if (!input.enabled || !day) return "Off";
+/** "Sundays at 07:00", "Sundays at 07:00 (Tokyo)". The weekly podcast is always on. */
+export function weeklySummary(input: { day: number; hour: number; timezone?: string }): string {
+  const day = WEEKDAYS[input.day] ?? WEEKDAYS[0];
   return `${day}s at ${hourLabel(input.hour)}${zoneNote(input.timezone)}`;
+}
+
+/** A Speechify voice id as a name: "geffen_32" is Geffen. Empty is the default voice. */
+function voiceName(id: string): string {
+  const name = id.replace(/[_-]\d+$/, "").replaceAll(/[_-]+/g, " ");
+  return name ? name.charAt(0).toUpperCase() + name.slice(1) : "Default";
+}
+
+/** "Alicia and Dominic", "Default voices": the Podcast voice row's line. */
+export function voicesSummary(primary: string, secondary: string): string {
+  if (!primary && !secondary) return "Default voices";
+  return `${voiceName(primary)} and ${voiceName(secondary)}`;
 }
 
 /**

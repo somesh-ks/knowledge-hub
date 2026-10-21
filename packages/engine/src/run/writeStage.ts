@@ -33,7 +33,7 @@ import {
 import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
 import {
-  applyGroupMix,
+  applyFormatMix,
   applyTopics,
   type SourceFacts,
   sourceFactsMap,
@@ -85,10 +85,8 @@ interface PassContext {
   linter: Linter;
   preferences: Preferences;
   sourceNames: Record<string, string>;
-  /** Each source's format and lean, for a topic's format mix and perspective. */
+  /** Each source's format and lean, for the type mix and perspective. */
   sourceFacts: Record<string, SourceFacts>;
-  /** Every topic, for the groups' format mix. */
-  allTopics: readonly Topic[];
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -147,7 +145,6 @@ export async function writeStage(
     preferences,
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
-    allTopics: topics.topics,
     customTopics: activeFitTopics(topics),
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
@@ -241,9 +238,9 @@ async function writePass(
     }
     base.push(
       withSourceAdjustment(
-        applyGroupMix(
+        applyFormatMix(
           applyTopics(scoreItem(entry, preferences, item), layer),
-          context.allTopics,
+          preferences.format_mix,
           context.sourceFacts,
         ),
         sourceStats,
@@ -278,6 +275,7 @@ async function writePass(
       poolPath: file("general.json"),
       judgedPath: file("general-judged.json"),
       topics: context.generalTopics,
+      formatMix: preferences.format_mix,
       sources: context.sourceFacts,
       publish: onlyTopics
         ? context.generalTopics.map((topic) => topic.id).filter((id) => onlyTopics.has(id))

@@ -36,13 +36,13 @@ const opsOf = (sent: Sent[]) =>
 const scheduleSent = (sent: Sent[]) =>
   Object.assign({}, ...opsOf(sent).filter((op) => op.op === "schedule.set"));
 
-type Leaf = "daily" | "weekly";
+type Leaf = "daily" | "weekly" | "voice";
 
 async function open(page: Page, leaf: Leaf): Promise<void> {
   await page.goto(`/settings/${leaf}`);
   const root = page.locator("[data-manage]");
   await expect(root).toHaveAttribute("data-ready", "");
-  // A profile page loads its voices after the page is up.
+  // A podcast page loads its voices after the page is up.
   await expect(root).toHaveAttribute("data-voices", "");
   // The time zone and the voices are lists with a search box once their script has run.
   await expect(root).toHaveAttribute("data-pickers", "");
@@ -72,28 +72,59 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every second day at 07:00", "/settings/daily"],
       ["Weekly", "Sundays at 07:00", "/settings/weekly"],
+      ["Sources", "", "/settings/topics"],
+      ["Preferences", "", "/settings/preferences"],
+      ["Podcast voice", "Default voices", "/settings/voice"],
+      ["Interface sounds", "On", "/settings/sounds"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
       await expect(row).toContainText(hint);
       await expect(row).toHaveAttribute("href", href);
     }
-    await expect(page.getByRole("link", { name: /^Topics and sources/ })).toHaveAttribute(
-      "href",
-      "/settings/topics",
-    );
     // An episode on request is set up in the Create panel, so it has no page here.
     await expect(page.getByRole("link", { name: /^Custom/ })).toHaveCount(0);
   });
 
-  test("a row leads to its page, whose title says where it sits", async ({ page }) => {
+  test("a row leads to its page, whose title stands alone", async ({ page }) => {
     await page.goto("/settings");
     await page.getByRole("link", { name: /^Daily/ }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Daily Podcast" })).toBeVisible();
     await expect(page).toHaveTitle("Daily Podcast, Singularity");
-    const crumb = page.locator(".settings-up");
-    await expect(crumb).toHaveText("Settings");
-    await expect(crumb).toHaveAttribute("href", "/settings");
+  });
+
+  test("no settings page has a breadcrumb or a way up above its title @desktop", async ({
+    page,
+  }) => {
+    const ROUTES = [
+      "/settings",
+      "/settings/daily",
+      "/settings/weekly",
+      "/settings/voice",
+      "/settings/sounds",
+      "/settings/preferences",
+      "/settings/topics",
+      "/settings/topics/design",
+      "/settings/topics/design?view=preferences",
+      "/settings/blocked-outlets",
+    ];
+    for (const path of ROUTES) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Breadcrumb" }), path).toHaveCount(0);
+      // A link in the page before its title, leading to a page above this one.
+      const up = await page.evaluate(() => {
+        const title = document.querySelector("main h1");
+        if (!title) return [];
+        const here = location.pathname.replace(/\/$/, "");
+        return [...document.querySelectorAll<HTMLAnchorElement>("main a[href]")]
+          .filter((link) => link.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING)
+          .filter((link) => link.checkVisibility())
+          .map((link) => new URL(link.href).pathname.replace(/\/$/, ""))
+          .filter((path) => path !== here && here.startsWith(`${path}/`));
+      });
+      expect(up, path).toEqual([]);
+    }
   });
 
   test("the addresses of the old pages still land somewhere sensible", async ({ page }) => {
@@ -122,30 +153,19 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#daily-timezone")).toHaveText(/^Stockholm \(GMT\+[12]\)$/);
     await expect(page.locator("#daily-timezone-native")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
-    await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeChecked();
-    // Format and the Secondary voice are the profile's own, saved whatever the format is now.
-    await expect(page.getByRole("radio", { name: "Readout" })).toBeChecked();
-    await expect(page.getByLabel("Secondary voice", { exact: true })).toBeVisible();
-    // Headlines is no longer offered, and there is no switch between profiles.
-    await expect(page.getByRole("radio", { name: "Headlines" })).toHaveCount(0);
-    await expect(page.getByRole("radiogroup", { name: "Podcast" })).toHaveCount(0);
+    await expect(page.locator("#daily-length")).toHaveValue("10");
+    await expect(page.locator("#daily-format")).toHaveValue("readout");
+    // The voices are one pair for every podcast, on the Podcast voice page.
+    await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
+    // Headlines is no longer offered.
+    await expect(page.locator("#daily-format option[value=headlines]")).toHaveCount(0);
   });
 
-  test("Weekly is one switch while it is off", async ({ page }) => {
-    await mockConfig(page);
+  test("Weekly is always on: it has no switch and its schedule shows", async ({ page }) => {
     await open(page, "weekly");
-    const on = page.getByRole("switch", { name: "Weekly podcast" });
-    await expect(on).toBeChecked();
+    await expect(page.getByRole("switch")).toHaveCount(0);
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
-    await expect(page.locator("[data-off]")).toBeHidden();
-    const before = await on.boundingBox();
-    await on.uncheck();
-    await expect(page.locator("#weekly-day")).toBeHidden();
-    await expect(page.getByRole("radio", { name: "10 min", exact: true })).toBeHidden();
-    // The line that says it is off sits under the switch, so the switch holds still.
-    await expect(page.locator("[data-off]")).toHaveText("No weekly episodes while this is off.");
-    expect((await on.boundingBox())?.y).toBe(before?.y);
   });
 
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
@@ -160,12 +180,13 @@ test.describe("the profile pages", () => {
     await expect(hint).toBeHidden();
   });
 
-  test("both voices are rows under Episode, filled from the voice list", async ({ page }) => {
-    await open(page, "daily");
-    const episode = page.getByRole("region", { name: "Episode" });
+  test("both voices are rows of the Podcast voice page, filled from the voice list", async ({
+    page,
+  }) => {
+    await open(page, "voice");
     const voices = [
-      episode.getByLabel("Primary voice", { exact: true }),
-      episode.getByLabel("Secondary voice", { exact: true }),
+      page.getByLabel("Primary voice", { exact: true }),
+      page.getByLabel("Secondary voice", { exact: true }),
     ];
     for (const field of voices) {
       await expect(field).toBeVisible();
@@ -188,7 +209,7 @@ test.describe("the profile pages", () => {
   test("each voice row has its own play button, which plays the chosen voice's sample", async ({
     page,
   }) => {
-    await open(page, "daily");
+    await open(page, "voice");
     const first = page.locator("[data-voice-row=voice] [data-preview]");
     const second = page.locator("[data-voice-row=voice_b] [data-preview]");
     // Both buttons are on the page; a voice with no sample leaves its own dimmed and not pressable.
@@ -196,12 +217,12 @@ test.describe("the profile pages", () => {
     await expect(second).toBeDisabled();
     // The page plays audio only from its own address, so the sample comes through /api.
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await choose(page, page.locator("#daily-voice_b"), /Ada, female/);
+    await choose(page, page.locator("#podcast-voice_b"), /Ada, female/);
     await sample;
     await expect(second).toBeEnabled();
     await expect(second).toHaveAccessibleName("Play a sample of the secondary voice");
     await expect(first).toBeDisabled();
-    await choose(page, page.locator("#daily-voice"), /Leo, male/);
+    await choose(page, page.locator("#podcast-voice"), /Leo, male/);
     await expect(first).toBeDisabled();
     await expect(first).toHaveAccessibleName("No sample for the primary voice");
     await expect(second).toBeEnabled();
@@ -218,13 +239,13 @@ test.describe("the profile pages", () => {
       };
     });
     await mockConfig(page);
-    await open(page, "daily");
+    await open(page, "voice");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await choose(page, page.locator("#daily-voice"), /Ada, female/);
+    await choose(page, page.locator("#podcast-voice"), /Ada, female/);
     await sample;
     await expect(spoken(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
-    await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
+    await page.locator(".app-bar-back").click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     // The app swaps the page in place, so the window, and the sample, live on: it must be paused.
@@ -235,9 +256,7 @@ test.describe("the profile pages", () => {
       .toBeGreaterThan(before);
   });
 
-  test("the topics are chips, each one in the podcast or left out, and Topics and sources is one tap away", async ({
-    page,
-  }) => {
+  test("the topics are chips, each one in the podcast or left out", async ({ page }) => {
     await open(page, "daily");
     const chips = page.locator(".podcast-topics .filter-chip");
     // Every topic is shown, and every one can be put in or out, the general news topics too.
@@ -257,19 +276,6 @@ test.describe("the profile pages", () => {
     for (const chip of (await chips.all()).slice(0, 4)) {
       await expect(chip.locator("input")).toBeChecked();
     }
-    const link = page.getByRole("link", { name: /^Configure/ });
-    await expect(link).toHaveAttribute("href", "/settings/topics");
-    // A link row is as tall as the value rows, and its chevron ends at the row's edge.
-    const [height, gap] = await link.evaluate((row) => {
-      const box = row.getBoundingClientRect();
-      const icon = row.querySelector(":scope > .icon")?.getBoundingClientRect();
-      return [Math.round(box.height), Math.round(box.right - (icon?.right ?? 0))];
-    });
-    const timeRow = await page
-      .locator(".settings-row:has(#daily-voice)")
-      .evaluate((row) => Math.round(row.getBoundingClientRect().height));
-    expect(Math.abs(gap)).toBeLessThanOrEqual(8);
-    if ((page.viewportSize()?.width ?? 0) >= 640) expect(height).toBe(timeRow);
   });
 });
 
@@ -282,9 +288,8 @@ test.describe("saving on its own", () => {
     await open(page, "daily");
     await page.locator("#daily-hour").selectOption("9");
     await page.locator("#daily-cadence").selectOption("1");
-    await page.getByRole("radio", { name: "15 min" }).check();
-    await page.getByRole("radio", { name: "Discussion" }).check();
-    await choose(page, page.locator("#daily-voice_b"), /Leo, male/);
+    await page.locator("#daily-length").selectOption("15");
+    await page.locator("#daily-format").selectOption("discussion");
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({
@@ -293,7 +298,6 @@ test.describe("saving on its own", () => {
         cadence_days: 1,
         length_minutes: 15,
         format: "discussion",
-        voice_id_b: "voice-leo",
       });
     await expect(spoken(page)).toHaveText(SAVED);
     // Never more requests than changes, and each sends only what changed.
@@ -323,7 +327,7 @@ test.describe("saving on its own", () => {
       await page.locator("#daily-cadence").selectOption("1");
       expect(sent).toHaveLength(1);
       if (way === "browser Back") await page.goBack();
-      else await page.locator(".settings-up:visible, .app-bar-back:visible").first().click();
+      else await page.locator(".app-bar-back").click();
       await expect(page).toHaveURL(/\/settings$/);
       // Until it goes, the index shows the change as it will be.
       await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 09:00");
@@ -344,11 +348,26 @@ test.describe("saving on its own", () => {
     const sent = await mockConfig(page);
     await open(page, "weekly");
     await page.locator("#weekly-day").selectOption("5");
-    await page.getByRole("switch", { name: "Weekly podcast" }).uncheck();
+    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", weekly: { day: 5 } });
+    await expect(spoken(page)).toHaveText(SAVED);
+  });
+
+  // One pair reads every podcast (podcastVoices): it goes as the schedule's own voice, never a
+  // profile's, and a reload before the build still shows it.
+  test("a voice chosen on Podcast voice is sent as every podcast's voice and holds after a reload", async ({
+    page,
+  }) => {
+    const sent = await mockConfig(page);
+    await open(page, "voice");
+    await choose(page, page.locator("#podcast-voice"), /Leo, male/);
     await expect
       .poll(() => scheduleSent(sent))
-      .toEqual({ op: "schedule.set", weekly: { enabled: false, day: 5 } });
+      .toEqual({ op: "schedule.set", voice_id: "voice-leo" });
     await expect(spoken(page)).toHaveText(SAVED);
+    await page.reload();
+    await open(page, "voice");
+    await expect(page.locator("#podcast-voice")).toContainText("Leo");
+    expect(opsOf(sent)).toHaveLength(1);
   });
 
   test("a topic chip puts the topics it stands for in or out of this podcast alone", async ({
@@ -446,7 +465,7 @@ test.describe("saved, before the build", () => {
     await page.clock.install();
     const sent = await mockConfig(page);
     const ops = [
-      { op: "schedule.set", hour: 9, weekly: { day: 1 } },
+      { op: "schedule.set", hour: 9, voice_id: "leo_2", weekly: { day: 1 } },
       { op: "topic.remove", id: "audio_interfaces" },
       { op: "source.add", url: "https://pixel.example/feed.xml", topic_ids: ["product_design"] },
     ];
@@ -466,7 +485,8 @@ test.describe("saved, before the build", () => {
       page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
     await expect(hint("Daily")).toHaveText("Every second day at 09:00");
     await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
-    await expect(hint("Topics and sources")).toHaveText("8 topics · 12 sources");
+    await expect(hint("Sources")).toHaveText("8 topics · 12 sources");
+    await expect(hint("Podcast voice")).toHaveText("Leo and Default");
     // A choice saved in the last few minutes is in the select before the next build has it.
     await expect(combo(page)).toHaveValue("claude-haiku-5-5");
 
@@ -598,7 +618,8 @@ test.describe("the model select on Settings", () => {
       "Claude Sonnet 5.5",
       "Claude Haiku 5.5",
     ]);
-    await expect(grouped(page, "Nebius")).toHaveText(["GLM-5.3", "Kimi K3"]);
+    // Nebius still serves Kimi K3; the owner never wants it offered (2026-10-21).
+    await expect(grouped(page, "Nebius")).toHaveText(["GLM-5.3", "DeepSeek V4.1 Flash"]);
     await expect(options(page)).toHaveCount(5);
     await expect(toast(page)).toBeHidden();
   });
@@ -607,12 +628,12 @@ test.describe("the model select on Settings", () => {
     const sent = await mockConfig(page);
     await openSettings(page);
     // A top model is picked by its short name and saved by its id, as any live pick is.
-    await combo(page).selectOption({ label: "Kimi K3" });
+    await combo(page).selectOption({ label: "DeepSeek V4.1 Flash" });
     await expect(spoken(page)).toHaveText(SAVED);
     expect(opsOf(sent)).toContainEqual({
       op: "writer.set",
       provider: "nebius",
-      model: "moonshotai/Kimi-K3",
+      model: "deepseek-ai/DeepSeek-V4.1-Flash",
     });
   });
 

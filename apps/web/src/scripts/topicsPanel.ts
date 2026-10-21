@@ -9,9 +9,18 @@
  * the Create panel. Loaded the first time it is opened.
  */
 import type { SourceFormat } from "@dispatch/core";
-import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
+import type { HeldSource } from "../lib/sourceCatalogMatch";
+import {
+  parseSuggestedAdd,
+  problemText,
+  type SuggestedAdd,
+  topicChanged,
+  topicProblems,
+  webAddress,
+} from "../lib/topicText";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { pullToDismiss } from "./pullDismiss";
+import { mountSegmentedNav, selectTab } from "./segmentedNav";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -89,8 +98,12 @@ export interface PanelHandlers {
   editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
-  /** Deletes a source, with an Undo in the toast. */
-  removeSource(id: string): void;
+  /** A suggestion's + pressed in the panel: the editor adds it to its topic like one on the page. */
+  addSuggested(button: HTMLButtonElement, suggestion: SuggestedAdd): void;
+  /** The sources the page lists, so the panel does not suggest one already there. */
+  held(): HeldSource[];
+  /** Asks to delete a source and, once confirmed, deletes it at once. True when it did. */
+  removeSource(id: string): Promise<boolean>;
 }
 
 export type PanelStart =
@@ -240,7 +253,7 @@ export function openPanel(
 
   const one = <T extends Element>(selector: string): T => panel.querySelector(selector) as T;
   const title = one<HTMLElement>("[data-panel-title]");
-  const kinds = one<HTMLFieldSetElement>("[data-panel-kind]");
+  const kinds = one<HTMLElement>("[data-panel-kind]");
   const topicPane = one<HTMLFormElement>('[data-pane="topic"]');
   const sourcePane = one<HTMLElement>('[data-pane="source"]');
   const editPane = one<HTMLElement>('[data-pane="edit"]');
@@ -339,6 +352,51 @@ export function openPanel(
   let timer = 0;
   let seq = 0;
   if (start.kind === "source") sourceTopic.value = start.topicId;
+
+  // The feeds that fit the topic chosen, under the address: up to ten drawn, five shown, and the rest
+  // wait hidden for the places the added ones leave (topicsEditor.ts, addSuggested).
+  const suggestList = one<HTMLElement>("[data-panel-suggested-list]");
+  let suggestSeq = 0;
+  const suggest = async (): Promise<void> => {
+    suggestSeq += 1;
+    const mine = suggestSeq;
+    suggestList.replaceChildren();
+    const topic = sourceTopic.value;
+    if (!topic) return;
+    const [view, match] = await Promise.all([
+      import("./savedView"),
+      import("../lib/sourceCatalogMatch"),
+    ]);
+    const catalog = await view.loadCatalog();
+    const template = document.querySelector<HTMLTemplateElement>("#suggested-template");
+    const item = template?.content.children[1];
+    if (mine !== suggestSeq || !catalog || !item || !panel.isConnected) return;
+    const name = sourceTopic.selectedOptions[0]?.text ?? "";
+    const offers = match.suggestSources(
+      catalog.sources,
+      [...catalog.held, ...handlers.held()],
+      { id: topic, name },
+      10,
+    );
+    suggestList.setAttribute("aria-label", `Suggested sources for ${name}`);
+    offers.forEach((offer, index) => {
+      const line = view.suggestionLine(item, offer, topic);
+      if (index >= 5) {
+        line.hidden = true;
+        line.dataset.spare = "";
+      }
+      suggestList.append(line);
+    });
+  };
+  sourceTopic.addEventListener("change", () => void suggest());
+  suggestList.addEventListener("click", (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>(
+      "button[data-suggested-add]",
+    );
+    const suggestion = parseSuggestedAdd(button?.dataset.suggestedAdd);
+    if (button && suggestion) handlers.addSuggested(button, suggestion);
+  });
+  if (start.kind === "source") void suggest();
 
   const addressError = one<HTMLElement>('[data-error="url"]');
   const show = (state: string, node?: HTMLElement): void => {
@@ -499,10 +557,10 @@ export function openPanel(
   const firstField = (): HTMLElement =>
     mode === "topic" ? (topicField("name") as HTMLElement) : mode === "source" ? address : editName;
 
-  kinds.addEventListener("change", (event) => {
-    const value = (event.target as HTMLInputElement).value;
+  mountSegmentedNav(kinds, (value) => {
     mode = value === "source" ? "source" : "topic";
     render();
+    void suggest();
   });
 
   go.addEventListener("click", () => {
@@ -562,8 +620,9 @@ export function openPanel(
 
   remove.addEventListener("click", () => {
     if (start.kind !== "edit") return;
-    handlers.removeSource(start.source.id);
-    panel.close();
+    void handlers.removeSource(start.source.id).then((confirmed) => {
+      if (confirmed) panel.close();
+    });
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
@@ -613,8 +672,7 @@ export function openPanel(
   );
 
   if (mode === "source") {
-    const radio = kinds.querySelector<HTMLInputElement>('input[value="source"]');
-    if (radio) radio.checked = true;
+    selectTab(kinds, "source");
   }
   render();
   panel.showModal();

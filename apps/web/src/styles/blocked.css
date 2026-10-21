@@ -12,7 +12,7 @@
 .blocked-add-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .blocked-add-row > .manage-input {
@@ -24,7 +24,7 @@
   flex: none;
   width: auto;
   min-height: var(--field-height);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   font-size: var(--font-size-label);
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
@@ -49,7 +49,7 @@
 
 .blocked-row .icon-btn {
   flex: none;
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 /* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list. */

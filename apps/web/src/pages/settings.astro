@@ -4,7 +4,7 @@ import ManageChrome from "../components/ManageChrome.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
-import { dailySummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
 import { loadWriterView, writerLabel } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
@@ -48,7 +48,6 @@ const PODCAST = [
     hint: weeklySummary({ ...schedule.weekly, timezone: schedule.timezone }),
     data: {
       summary: "weekly",
-      enabled: String(schedule.weekly.enabled),
       day: schedule.weekly.day,
       hour: schedule.weekly.hour,
       timezone: schedule.timezone,
@@ -56,7 +55,7 @@ const PODCAST = [
   },
   {
     href: "/settings/topics",
-    label: "Topics and sources",
+    label: "Sources",
     hint: topicsSummary(shownTopics.length, manage.sources.length),
     data: {
       summary: "topics",
@@ -65,6 +64,23 @@ const PODCAST = [
       sources: JSON.stringify(spots),
     },
   },
+  {
+    href: "/settings/preferences",
+    label: "Preferences",
+    hint: "Story types",
+    data: {},
+  },
+];
+// The voices every podcast is read in, and the interface's own sounds, each on a page of its own.
+// Whether sounds are on is kept in this browser, so settingsPage.ts writes that row's line.
+const SOUND = [
+  {
+    href: "/settings/voice",
+    label: "Podcast voice",
+    hint: voicesSummary(schedule.voiceId ?? "", schedule.voiceIdB ?? ""),
+    data: { summary: "voice", voice: schedule.voiceId ?? "", "voice-b": schedule.voiceIdB ?? "" },
+  },
+  { href: "/settings/sounds", label: "Interface sounds", hint: "On", data: { "sounds-hint": "" } },
 ];
 
 // The day this build was made, which is what changes when the site does.
@@ -137,34 +153,38 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       <section>
         <h2 class="section-head">Sound</h2>
         <div class="rows">
-          <div class="settings-row">
-            <label class="settings-label" for="settings-sounds">Interface sounds</label>
-            <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
-          </div>
-          <div class="settings-row">
-            <label class="settings-label" for="settings-volume">Volume</label>
-            <input class="settings-range" id="settings-volume" name="volume" type="range" min="0" max="1" step="0.05" />
-          </div>
+          {
+            SOUND.map((row) => (
+              <a
+                class="row-action"
+                href={row.href}
+                {...Object.fromEntries(Object.entries(row.data).map(([key, value]) => [`data-${key}`, value]))}
+              >
+                <span class="settings-text">
+                  <span class="settings-label">{row.label}</span>
+                  <span class="settings-hint" data-hint>{row.hint}</span>
+                </span>
+                <Icon name="chevronRight" />
+              </a>
+            ))
+          }
         </div>
       </section>
 
       <section>
         <h2 class="section-head">Appearance</h2>
         <div class="rows">
-          <div class="settings-row" data-layout="choice">
-            <div class="settings-text">
-              <span class="settings-label" id="settings-theme-label">Theme</span>
-            </div>
-            <fieldset class="settings-choice" role="radiogroup" aria-labelledby="settings-theme-label">
-              {
-                THEME_PREFERENCES.map((theme) => (
-                  <label class="settings-segment">
-                    <input type="radio" name="theme" value={theme} />
-                    <span>{THEME_LABELS[theme]}</span>
-                  </label>
-                ))
-              }
-            </fieldset>
+          {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
+               settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
+               Dark never shows System first. */}
+          <div class="settings-row">
+            <label class="settings-label" for="settings-theme">Theme</label>
+            <span class="manage-select value-select theme-select">
+              <select class="manage-input" id="settings-theme" name="theme" autocomplete="off">
+                {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </div>
         </div>
       </section>

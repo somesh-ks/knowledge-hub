@@ -1,6 +1,5 @@
 import {
   GENERAL_TOPICS,
-  groupHomeId,
   isBuiltinCategory,
   isBuiltinSection,
   MAX_CUSTOM_TOPICS,
@@ -15,7 +14,6 @@ import {
   type Topic,
   type TopicsFile,
   TopicsFile as TopicsSchema,
-  topicGroupOf,
   topicIdFromName,
   type WriterFile,
   withGeneralScope,
@@ -442,29 +440,29 @@ function setMix(op: Extract<ParsedConfigOp, { op: "topic.mix" }>, bundle: Config
   const next = clone(bundle);
   const topic = next.topics.topics.find((t) => t.id === op.id);
   if (!topic) throw new ConfigOpError(`There is no topic ${op.id}.`);
-  // A grouped topic's stories take the group's mix, kept on its home topic; a mix set elsewhere
-  // would be saved and never read.
-  const group = topicGroupOf(topic);
-  if (op.format_mix && group && groupHomeId(group, next.topics.topics) !== topic.id) {
-    throw new ConfigOpError(`Set the formats on the ${group.name} page.`);
+  if (op.perspective !== 0 && topic.origin !== "general") {
+    throw new ConfigOpError("Only a general news topic has a perspective.");
   }
-  if (op.format_mix) {
-    const mix = { ...topic.format_mix };
-    for (const [format, stop] of Object.entries(op.format_mix)) {
-      if (stop === "Normal") delete mix[format as keyof typeof mix];
-      else mix[format as keyof typeof mix] = stop;
-    }
-    if (Object.keys(mix).length > 0) topic.format_mix = mix;
-    else delete topic.format_mix;
+  if (op.perspective === 0) delete topic.perspective;
+  else topic.perspective = op.perspective;
+  return { next, summary: `set the perspective of ${tidy(topic.name)}`, topic_id: topic.id };
+}
+
+/** The one type mix, kept in the preferences and read for every topic. */
+function setFormatMix(
+  op: Extract<ParsedConfigOp, { op: "mix.set" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  const mix = { ...next.preferences.format_mix };
+  for (const [format, stop] of Object.entries(op.format_mix)) {
+    if (stop === "Normal") delete mix[format as keyof typeof mix];
+    else mix[format as keyof typeof mix] = stop;
   }
-  if (op.perspective !== undefined) {
-    if (op.perspective !== 0 && topic.origin !== "general") {
-      throw new ConfigOpError("Only a general news topic has a perspective.");
-    }
-    if (op.perspective === 0) delete topic.perspective;
-    else topic.perspective = op.perspective;
-  }
-  return { next, summary: `set the mix of ${tidy(topic.name)}`, topic_id: topic.id };
+  if (Object.keys(mix).length > 0) next.preferences.format_mix = mix;
+  else delete next.preferences.format_mix;
+  const count = Object.keys(op.format_mix).length;
+  return { next, summary: `set the type mix of ${count} type${count === 1 ? "" : "s"}` };
 }
 
 /** The topics an episode leaves out, checked against the known ones, each once. */
@@ -510,6 +508,13 @@ function setSchedule(
   };
   if (op.custom?.skip_topics !== undefined) {
     next.schedule.custom.skip_topics = skippedTopics(op.custom.skip_topics, next);
+  }
+  // The top-level pair is every podcast's voice (podcastVoices): saving it clears a weekly or Create
+  // voice left from before, so Default there means Default everywhere.
+  for (const key of ["voice_id", "voice_id_b"] as const) {
+    if (op[key] === undefined) continue;
+    if (op.weekly?.[key] === undefined) next.schedule.weekly[key] = null;
+    if (op.custom?.[key] === undefined) next.schedule.custom[key] = null;
   }
   const parts: string[] = [];
   if (op.timezone !== undefined) {
@@ -657,6 +662,8 @@ export async function applyConfigOp(
       return setWeights(op, bundle);
     case "topic.mix":
       return setMix(op, bundle);
+    case "mix.set":
+      return setFormatMix(op, bundle);
     case "schedule.set":
       return setSchedule(op, bundle);
     case "topic.scope":

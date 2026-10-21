@@ -1,10 +1,11 @@
 import { verifyPassphrase } from "@dispatch/core/passphrase";
+import { planEpisodeNarration } from "@dispatch/engine/segments";
 import { beforeAll, describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
 import { createFakeSpeechify, FAKE_AUDIO } from "../testing/fakeSpeechify";
-import { MS_PER_CHARACTER, type ServerEnv } from "./config";
+import { MS_PER_CHARACTER, type ServerEnv, withSecondVoice } from "./config";
 import { NARRATE_DAILY_CAP } from "./limits";
 import {
   type EpisodeBundle,
@@ -230,6 +231,27 @@ describe("GET /api/narrate for an episode", () => {
     expect(rest.segments[2]?.audio?.url).toBe(
       `${FAKE_BLOB_HOST}/${pathOf(TURNS[2] as Turn, VOICE_B)}`,
     );
+  });
+
+  it("points every turn at the file the engine's publish stores for it, so a pre-narrated episode is never narrated again", async () => {
+    // Padded text and a missing turn number: the two sides must read the file to the same words.
+    const turns = [{ ...(TURNS[0] as Turn), text: "  Welcome back.\n" }, ...TURNS.slice(1)];
+    const cases: { env: ServerEnv; request?: Record<string, unknown> }[] = [
+      { env: {} },
+      { env: { SPEECHIFY_VOICE_ID: "env_a", ...TWO_VOICES } },
+      { env: TWO_VOICES, request: { topic_ids: ["x"], voice_id: "mine_1", voice_id_b: "other_2" } },
+    ];
+    for (const { env, request } of cases) {
+      const file = episodeFile(turns, ID, request);
+      const context = setup({ files: new Map([[ID, file]]) });
+      // As the route runs it: the second voice is filled in when nothing sets it.
+      context.deps.env = withSecondVoice({ ...context.deps.env, ...env });
+      const { segments } = lookupBody(await lookup(context));
+      const plan = planEpisodeNarration(file, env);
+      expect(segments.map((segment) => segment.audio?.url)).toEqual(
+        plan.segments.map((segment) => `${FAKE_BLOB_HOST}/${segment.path}`),
+      );
+    }
   });
 
   it("synthesizes with the episode's voices and ignores a voice in the request body", async () => {

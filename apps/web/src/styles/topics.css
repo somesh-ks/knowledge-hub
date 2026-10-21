@@ -12,8 +12,10 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A source is a two-line list item (name, then its site), M3's 72px. */
-.topics {
+/* A source is a two-line list item (name, then its site), M3's 72px. The row holds its own height,
+   so it keeps it outside a topics page too: the Add source panel is appended to the body
+   (2026-10-20, its suggestions touched on a phone). */
+:is(.topics, .source-row) {
   --source-row: 4.5rem;
 }
 
@@ -24,7 +26,8 @@
    the index's search, Add source beside a topic's Sources heading. One of the two at a time, so a
    name is never said twice. */
 @media (width < 64rem) {
-  .topics :is(.topics-add, .topic-sources-head > .topic-add-source) {
+  .topics
+    :is(.topics-add, .filter-row > .topic-add-source, .topic-sources-head > .topic-add-source) {
     display: none;
   }
 }
@@ -120,36 +123,16 @@
   margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
 }
 
-/* The way up, over the card, where the wide layout has no app bar to hold a back arrow. */
-.topic-up {
-  display: none;
-}
-
-@media (min-width: 64rem) {
-  .topic-up {
-    display: block;
-    padding-block-end: var(--space-4);
-  }
-
-  .topic-up .settings-up {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    font-size: var(--font-size-label);
-    line-height: var(--font-leading-label);
-  }
-}
-
 /* Listen in closes the card under a line that runs its full width, edge to edge through the card's
    padding (2026-10-20). */
 .topic-card:has(.topic-card-foot) {
-  padding-block-end: var(--space-1);
+  padding-block-end: var(--space-2);
 }
 
 .topic-card-foot {
   grid-area: foot;
   margin-inline: calc(var(--space-4) * -1);
-  padding: var(--space-3) var(--space-4) 0;
+  padding: var(--space-4) var(--space-4) 0;
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
@@ -177,54 +160,40 @@
   text-wrap: nowrap;
 }
 
-/* ------------------------------------------------------------------ a folded group of sliders */
+/* ------------------------------------------------------------------ Sources or Preferences */
 
-/* Topic weightage, Formats and Perspective (Accordion.astro): the heading is the H2 and the whole
-   line is the target, with a chevron at its end that turns as the group opens. Closed by default, so
-   the page reads as its card and its sources first. */
-.accordion-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-height: var(--size-touch);
+/* A topic's page shows its sources or its sliders, never both (2026-10-20). Each pane takes no box of
+   its own, so the rules for what is inside it hold as they did before the switch. The floating Add is
+   for sources and shows with them. Before the script, the page is its sources. */
+.topic-view {
   margin-block-start: var(--space-6);
-  border-radius: var(--row-radius);
-  cursor: pointer;
-  list-style: none;
 }
 
-.accordion-summary::-webkit-details-marker {
+.topic-view-pane {
+  display: contents;
+}
+
+.topics:not([data-view="preferences"]) .topic-view-preferences,
+.topics[data-view="preferences"] :is(.topic-view-sources, .add-fab) {
   display: none;
 }
 
-.topic .accordion-summary > .section-head {
-  padding-block: 0;
-}
-
-.accordion-icon {
-  flex: none;
-  color: var(--color-on-surface-subtle);
-  transition: rotate var(--duration-state) var(--ease-out);
-}
-
-.accordion[open] .accordion-icon {
-  rotate: 180deg;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .accordion-summary:hover .accordion-icon {
-    color: var(--color-on-surface);
+/* Until topicsPage.ts has read ?view= and set data-view, neither pane shows, so a Preferences load
+   never flashes the sources first (2026-10-20). The sources keep their room meanwhile, as
+   .manage:not([data-ready]) keeps the controls', so nothing moves. Without a script the page is its
+   sources, as before. */
+@media (scripting: enabled) {
+  .topics:has([data-topic-view]):not([data-view]) :is(.topic-view-pane, .add-fab) {
+    visibility: hidden;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .accordion-icon {
-    transition: none;
-  }
+/* Each group of sliders under its heading, as a section of a settings page. */
+.topic-weights > .section-head {
+  padding-block: var(--space-8) 0;
 }
 
-.accordion > .topic-controls {
+.topic-weights > .topic-controls {
   padding-block-start: var(--space-2);
 }
 
@@ -338,13 +307,19 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-block: var(--space-8) var(--space-1);
+  padding-block: var(--space-8) var(--space-4);
 }
 
 /* Air between the two lists: the suggestions' heading has its own space above it, and this adds
    to it. */
 .topic .topic-suggested {
   margin-block-start: var(--space-8);
+}
+
+/* Under the tabs with nothing else on its line (the heading is for screen readers), the row gives
+   up its room, so the search sits a tab bar's step under the tabs. */
+.topic .topic-sources-head[data-quiet]:not(:has(> button)) {
+  padding-block: var(--space-6) 0;
 }
 
 .topic .topic-sources-head > .section-head {
@@ -358,7 +333,7 @@
   flex: none;
   width: auto;
   min-height: calc(var(--size-touch) - var(--space-2));
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   font-size: var(--font-size-label);
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
@@ -419,6 +394,9 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   column-gap: var(--space-2);
+  /* The row carries its own rhythm: M3's 72px two-line item, as tall in the Add source panel as on
+     the page (outside a .rows list the suggestions once touched). Padding on top of it made a row
+     104px (2026-10-21). */
   min-height: var(--source-row);
   border-radius: var(--radius-md);
 }
@@ -430,7 +408,7 @@
   position: absolute;
   z-index: var(--z-base);
   inset-block: 0;
-  inset-inline: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+  inset-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -466,7 +444,7 @@
 .source-main {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
   min-height: var(--source-row);
 }
@@ -555,7 +533,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   min-width: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
@@ -616,7 +594,7 @@
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-2) * -1);
   border-radius: var(--radius-round);
   cursor: pointer;
   transition: background-color var(--duration-hover) var(--ease-hover);
@@ -709,7 +687,7 @@
 .source-sheet-foot {
   display: flex;
   flex: none;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
@@ -872,7 +850,7 @@
 
 .score-parts {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
   font-size: var(--font-size-label);
 }
@@ -890,7 +868,7 @@
 .score-parts dd {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
 }
 
@@ -978,7 +956,7 @@
 .source-card-head {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -1246,11 +1224,43 @@
   padding-block-start: var(--space-6);
 }
 
-/* A source deleted in the edit panel: quiet while its Undo waits, gone once it is saved. */
-.source-row:has(> .source-remove[data-pressed="true"]) {
-  opacity: var(--opacity-disabled);
+/* A suggestion being added: a light sweeps across its row while the request goes, so the press is
+   answered where it was made and the row stays until the source is in the list. Only the
+   gradient's position moves. Reduced motion keeps the tint and drops the sweep. */
+.source-row.is-suggested[data-adding]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent) 50%,
+      transparent 70%
+    )
+    100% 0 / 250% 100% no-repeat,
+    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  animation: source-shimmer calc(var(--duration-progress) * 5) linear infinite;
 }
 
+@keyframes source-shimmer {
+  to {
+    background-position:
+      0% 0,
+      0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-row.is-suggested[data-adding]::after {
+    animation: none;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.source-row[hidden],
 .source-row[data-gone] {
   display: none;
 }
@@ -1269,8 +1279,8 @@
   /* One column that may shrink below its content: otherwise the tab strip's full width sets the
      column, the filter grows past the screen and a phone zooms the whole page out (2026-10-20). */
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
-  margin-block-end: var(--space-3);
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
 }
 
 /* The index starts with its search (2026-10-20), a group's step under the title. */
@@ -1282,7 +1292,7 @@
 .filter-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .filter-field {
@@ -1356,7 +1366,7 @@
 .filter-none {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
   color: var(--color-on-surface-muted);
 }
@@ -1366,4 +1376,62 @@
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* The Add source panel's suggestions for the topic chosen: the topic page's rows under a heading of
+   their own, and nothing at all when the topic has none (Other, or all added). */
+.panel-suggested {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+
+.panel-suggested:not(:has(li:not([hidden]))) {
+  display: none;
+}
+
+.panel-suggested-head {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Types as chips from 64rem, tabs below it: both are in the page and one shows, so a resize keeps
+   the choice. Chips are the filter's old look: a hairline outline, the accent when pressed. No All:
+   none pressed means everything. */
+.filter-chips {
+  display: none;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.format-chip {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--chip-height);
+  padding-inline: var(--space-4);
+  border: var(--stroke-hairline) solid var(--field-border);
+  border-radius: var(--field-radius);
+  background: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-size: var(--font-size-label);
+  cursor: pointer;
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+.format-chip[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-accent);
+}
+
+@media (width >= 64rem) {
+  .filter-chips {
+    display: flex;
+  }
+
+  .filter-tabs {
+    display: none;
+  }
 }

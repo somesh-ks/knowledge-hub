@@ -43,4 +43,42 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
     expect(await audio.count()).toBe(1);
   });
+
+  // The queue is the listener's choice, so it does chain: a queued item that never started at the
+  // end, or started the wrong one, is the failure this guards against.
+  test("the end of a recording starts the next queued item by itself", async ({
+    player,
+    audio,
+    page,
+  }) => {
+    await player.open();
+    await serveNarration(page, 300, "/d/2026-10-05");
+    await page.evaluate(() => {
+      for (const id of ["ep-20261007-1930", "2026-10-05"])
+        document.dispatchEvent(new CustomEvent("dispatch:queue-add", { detail: { id } }));
+    });
+    // Opening a queued item's page loads it, idle: it must stay in the queue until it plays.
+    await player.open("/d/2026-10-05");
+    expect(await page.evaluate(() => localStorage.getItem("dispatch:queue"))).toBe(
+      '["ep-20261007-1930","2026-10-05"]',
+    );
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    // Reordered by its handle's keys, in the raised queue: the briefing now comes first.
+    await player.dialog.getByRole("button", { name: /^Up next/ }).click();
+    await page.getByRole("button", { name: /^Move .*, 2 of 2$/ }).focus();
+    await page.keyboard.press("ArrowUp");
+    await page.reload();
+    await player.play();
+    await player.openPlayer();
+    await player.scrubber.focus();
+    await page.keyboard.press("End");
+    await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}`));
+    await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+    expect(await audio.count()).toBe(1);
+    expect(await page.evaluate(() => localStorage.getItem("dispatch:queue"))).toBe(
+      '["ep-20261007-1930"]',
+    );
+  });
 });

@@ -182,7 +182,7 @@ html:has(dialog[open]) .create-fab {
 /* The word folds away while scrolling down to read, and comes back at the top and on the way up. */
 .create-fab-label {
   max-width: 6rem;
-  margin-inline: var(--space-3) var(--space-1);
+  margin-inline: var(--space-2) var(--space-1);
   overflow: hidden;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -204,7 +204,7 @@ html:has(dialog[open]) .create-fab {
 @media (prefers-reduced-motion: reduce) {
   .create-fab[data-folded] .create-fab-label {
     max-width: 6rem;
-    margin-inline: var(--space-3) var(--space-1);
+    margin-inline: var(--space-2) var(--space-1);
     opacity: 1;
   }
 }
@@ -377,10 +377,11 @@ dialog.create-sheet[open]::backdrop {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-height: var(--app-bar-height);
   padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
-  padding-inline: max(var(--space-1), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  /* The title at the start, on the body's gutter; Close at the end, its 44px reaching the edge. */
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-1), var(--safe-right));
   background: var(--sheet-bg);
   transition: background-color var(--duration-state) var(--ease-out);
 }
@@ -391,6 +392,12 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
 
 .create-sheet-head > .sheet-title {
   min-width: 0;
+}
+
+/* Close sits at the row's end in every sheet, full screen or side (2026-10-20, SheetHeader.astro). */
+.create-sheet-head > .icon-btn {
+  flex: none;
+  margin-inline-start: auto;
 }
 
 .create-sheet-body {
@@ -496,11 +503,6 @@ dialog.create-sheet .create-submit > .btn-primary {
     padding-inline: var(--space-8) var(--space-4);
   }
 
-  .create-sheet-head > [data-create-close] {
-    order: 1;
-    margin-inline-start: auto;
-  }
-
   .create-sheet-body {
     --sheet-gutter: var(--space-8);
   }
@@ -573,7 +575,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   /* A fixed height, so a long line never grows the card into the Create button above it. */
   height: var(--run-height);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
@@ -725,7 +727,7 @@ html[data-player="open"] .run-status {
 
   .run-text {
     grid-area: text;
-    padding-inline-end: var(--space-1);
+    padding-inline-end: var(--space-2);
   }
 
   /* The column has room to grow, so the whole line shows. */
@@ -748,14 +750,14 @@ html[data-player="open"] .run-status {
   .run-retry {
     grid-area: extra;
     justify-self: start;
-    margin-inline-start: calc(-1 * var(--space-3));
+    margin-inline-start: calc(-1 * var(--space-4));
   }
 
   .run-bar {
     position: relative;
     inset: auto;
     grid-area: extra;
-    margin-block-start: var(--space-3);
+    margin-block-start: var(--space-4);
     border-radius: var(--radius-round);
     height: var(--space-1);
   }

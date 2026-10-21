@@ -30,6 +30,9 @@ const GITHUB_VARIABLES = [
   "DISPATCH_FALLBACK_MODEL",
   "GEMINI_TRANSCRIBE_MODEL",
   "SPEECHIFY_VOICE_ID",
+  // The second host's voice: the site and the audio job must agree on it, or a pre-narrated turn is
+  // stored under a name the site never asks for, and paid for twice (D128).
+  "SPEECHIFY_VOICE_ID_B",
   "SPEECHIFY_MONTHLY_CHARS",
   "DISPATCH_GIT_NAME",
   "DISPATCH_GIT_EMAIL",
@@ -47,6 +50,9 @@ const VERCEL_ENV = [
   "GENERATE_PASSPHRASE_HASH",
   "SPEECHIFY_API_KEY",
   "SPEECHIFY_VOICE_ID",
+  // The second host's voice: the site and the audio job must agree on it, or a pre-narrated turn is
+  // stored under a name the site never asks for, and paid for twice (D128).
+  "SPEECHIFY_VOICE_ID_B",
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
   "NEBIUS_API_KEY",

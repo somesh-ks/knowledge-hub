@@ -10,15 +10,20 @@
  *   - A move inside the app (the client router's fetch, or a prefetch) is answered at once from a copy
  *     saved in the last few minutes and checked against the network behind it. If the page changed, the
  *     page on screen is told. When /latest.json changes, every saved page counts as old again.
- *   - NEVER touches audio. Serving media from the Cache API without correct Range handling breaks
- *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
+ *   - Audio is never cached by the worker itself. The one exception is a file the person chose to
+ *     download (Library menu, scripts/libraryDownloads.ts), which the page saved in AUDIO_CACHE. That
+ *     file is answered from the cache with correct Range handling (206 and Content-Range), which
+ *     Safari needs, and the cache survives a version bump: a download is the person's, not the
+ *     worker's. Any other audio request goes to the network as it would have.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v8";
+const VERSION = "v11";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
-const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE];
+/** Episodes saved for offline listening. Not versioned: a new worker keeps what the person downloaded. */
+const AUDIO_CACHE = "dispatch-audio-v1";
+const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE, AUDIO_CACHE];
 
 const OFFLINE_URL = "/offline";
 const SHELL_PAGES = ["/", "/library", OFFLINE_URL];
@@ -126,8 +131,41 @@ self.addEventListener("install", (event) => {
   event.waitUntil(precacheShell());
 });
 
+/**
+ * The addresses of downloaded files, in memory, so the fetch handler can tell at once whether a
+ * request is one it should answer: an audio read the person never downloaded goes straight to the
+ * network, as before downloads existed, with no cache lookup on the playback path. Filled when the
+ * worker starts and again whenever the page says the downloads changed.
+ */
+const downloaded = new Set();
+
+async function refreshDownloaded() {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const keys = await cache.keys();
+    downloaded.clear();
+    for (const key of keys) downloaded.add(key.url);
+  } catch {
+    // Storage blocked: nothing is downloaded, and every request goes to the network.
+  }
+}
+
+refreshDownloaded();
+
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  const data = event.data || {};
+  if (data.type === "SKIP_WAITING") self.skipWaiting();
+  if (data.type === "DOWNLOADS_CHANGED") event.waitUntil(refreshDownloaded());
+  // A download asks for the page's scripts and styles to be saved too, and hears when they are.
+  if (data.type === "WARM_PAGE" && typeof data.path === "string" && data.path.startsWith("/")) {
+    const port = event.ports && event.ports[0];
+    event.waitUntil(
+      fetch(data.path)
+        .then((response) => (response.ok ? warmAssets(response) : undefined))
+        .catch(() => undefined)
+        .then(() => port?.postMessage("done")),
+    );
+  }
 });
 
 /* ------------------------------------------------------------------ activate */
@@ -350,12 +388,112 @@ function isPage(request) {
   );
 }
 
+/* ------------------------------------------------------------------ downloaded audio */
+
+/**
+ * The bytes a Range header asks for, as [start, end] inclusive, or null when it cannot be met.
+ * Handles "bytes=a-b", "bytes=a-" and the suffix form "bytes=-n". Only the first range is served.
+ */
+function parseRange(header, size) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec((header || "").split(",")[0].trim());
+  if (!match || (match[1] === "" && match[2] === "") || size <= 0) return null;
+  let start;
+  let end;
+  if (match[1] === "") {
+    const length = Number(match[2]);
+    if (length === 0) return null;
+    start = Math.max(0, size - length);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
+  }
+  return start > end || start >= size ? null : [start, end];
+}
+
+/** A saved file as the answer to a request, whole or the slice a Range header names. */
+async function fromDownload(cached, rangeHeader) {
+  const blob = await cached.blob();
+  const type = cached.headers.get("content-type") || "audio/mpeg";
+  const base = { "content-type": type, "accept-ranges": "bytes" };
+  if (!rangeHeader) {
+    return new Response(blob, {
+      status: 200,
+      headers: { ...base, "content-length": String(blob.size) },
+    });
+  }
+  const range = parseRange(rangeHeader, blob.size);
+  if (!range) {
+    return new Response(null, {
+      status: 416,
+      headers: { ...base, "content-range": `bytes */${blob.size}` },
+    });
+  }
+  const [start, end] = range;
+  return new Response(blob.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      ...base,
+      "content-length": String(end - start + 1),
+      "content-range": `bytes ${start}-${end}/${blob.size}`,
+    },
+  });
+}
+
+/** A request for audio the person downloaded, or undefined to let it go to the network. */
+async function downloadedAudio(request) {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const cached = await cache.match(request.url);
+    return cached ? await fromDownload(cached, request.headers.get("range")) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The narrate lookup and word marks of a downloaded episode, when the network will not answer:
+ * the download saved them under the same address. Online they go to the network as before.
+ */
+async function downloadedApi(request) {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const cached = await cache.match(request.url);
+    if (cached) return cached;
+  } catch {
+    // Fall through to the error below.
+  }
+  return Response.error();
+}
+
 /* ------------------------------------------------------------------ routing */
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+
+  // A downloaded file is answered here, from any origin, with or without a Range header. Offline
+  // the worker also looks (its list may not be read yet after a restart); online, audio that was
+  // never downloaded is left alone.
+  if (
+    (request.destination === "audio" || AUDIO_PATH.test(url.pathname)) &&
+    (downloaded.has(request.url) || self.navigator?.onLine === false)
+  ) {
+    event.respondWith(downloadedAudio(request).then((answer) => answer || fetch(request)));
+    return;
+  }
+
+  // A downloaded episode's lookup and marks: the network first, the saved copy when it fails. Only
+  // for what was downloaded (or offline): every other lookup goes straight to the network.
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname === "/api/narrate" || url.pathname === "/api/narrate-marks") &&
+    (downloaded.has(request.url) || self.navigator?.onLine === false)
+  ) {
+    event.respondWith(fetch(request).catch(() => downloadedApi(request)));
+    return;
+  }
 
   // Never serve or store: other origins (the audio host included), ranged reads, audio, the API.
   if (url.origin !== self.location.origin) return;

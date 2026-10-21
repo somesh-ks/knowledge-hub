@@ -1,6 +1,6 @@
 # Navigation and offline
 
-Service worker, saved copies, PWA, launch screen, offline. What it does now. Reasons: D47, D97, D98, D99, D102, D123; history: docs/history/.
+Service worker, saved copies, PWA, launch screen, offline. What it does now. Reasons: D47, D97, D98, D99, D102, D123, D127; history: docs/history/.
 
 ## Requirements
 
@@ -12,10 +12,10 @@ Service worker, saved copies, PWA, launch screen, offline. What it does now. Rea
 - Every page names the modules it loads at start in modulepreload links (a build step; `checkBundle` fails a page that loads one without a link) (D112). Modules a press needs are fetched at idle, never on the press. The player surface's motion loads after first paint behind a facade that holds early calls. The bundle budget is 109 KB.
 
 ### Offline
-- The worker keeps every file a page fetches (cache v7, six levels deep), so a settings page opened offline in a later session still has its editor (D97). The offline shell is pruned and includes /library.
+- The worker keeps every file a page fetches (cache v10, six levels deep), so a settings page opened offline in a later session still has its editor (D97). The offline shell is pruned and includes /library.
 - Offline is the one device banner. Offline and back online are one empty-state section; `data-state` shows the true scene.
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads (D98, D99).
-- Offline listening of unplayed audio is not offered.
+- Offline listening is by Download in the Library (D127): the worker answers Range requests (206, 416) and the `/api/narrate` lookup from `dispatch-audio-v1`, which holds at most 10 items and survives version bumps. Audio never downloaded is not available offline.
 
 ### PWA
 - The manifest names no colours, so an installed app's Android bars and splash follow the system theme. It has shortcuts. Settings has an Android Install row.

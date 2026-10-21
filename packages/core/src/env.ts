@@ -14,6 +14,8 @@ export const Env = z.object({
   FIRECRAWL_API_KEY: optionalString,
   SPEECHIFY_API_KEY: optionalString,
   SPEECHIFY_VOICE_ID: z.string().default("geffen_32"),
+  /** The second host's voice; `publish` narrates new episodes in it as the site would. */
+  SPEECHIFY_VOICE_ID_B: optionalString,
   BLOB_READ_WRITE_TOKEN: optionalString,
   /** Short-lived Blob credentials from `vercel env pull`; used when no long-lived token is set. */
   VERCEL_OIDC_TOKEN: optionalString,

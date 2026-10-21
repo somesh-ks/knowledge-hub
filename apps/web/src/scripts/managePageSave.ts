@@ -106,8 +106,11 @@ interface Step {
 export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
   const weights: Record<string, number> = {};
   const weightKeys: string[] = [];
+  /** Every type slider goes in one mix.set. */
+  const mix: Record<string, number> = {};
+  const mixKeys: string[] = [];
   const edits: Step[] = [];
-  /** Every mix slider of a topic goes in one topic.mix. */
+  /** A topic's perspective goes in one topic.mix. */
   const mixes = new Map<string, Step>();
   const removals: Step[] = [];
   for (const [key, { op, el, with: extra }] of changes) {
@@ -121,14 +124,16 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
     if (op.op === "topic.mix") {
       const step = mixes.get(op.id);
       if (step && step.op.op === "topic.mix") {
-        step.op.format_mix = { ...step.op.format_mix, ...op.format_mix };
-        if (op.perspective !== undefined) step.op.perspective = op.perspective;
+        step.op.perspective = op.perspective;
         step.keys.push(key);
       } else {
         const joined: Step = { op: { ...op }, keys: [key] };
         mixes.set(op.id, joined);
         edits.push(joined);
       }
+    } else if (op.op === "mix.set") {
+      Object.assign(mix, op.format_mix);
+      mixKeys.push(key);
     } else if (op.op === "weights.set") {
       Object.assign(weights, op.weights);
       weightKeys.push(key);
@@ -141,6 +146,7 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
     }
   }
   if (weightKeys.length > 0) edits.push({ op: { op: "weights.set", weights }, keys: weightKeys });
+  if (mixKeys.length > 0) edits.push({ op: { op: "mix.set", format_mix: mix }, keys: mixKeys });
   return [...edits, ...removals];
 }
 

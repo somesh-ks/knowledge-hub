@@ -17,6 +17,17 @@ export function installHeroMenu(): void {
   if (installed) return;
   installed = true;
 
+  // A light dismiss: the press that closed the menu landed outside it and its button.
+  let pressedOutside = false;
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      const target = event.target as Element;
+      pressedOutside = !target.closest?.(`${LIST}, [data-hero-more]`);
+    },
+    true,
+  );
+
   // toggle events do not bubble, so they are caught on the way down.
   document.addEventListener(
     "beforetoggle",
@@ -41,9 +52,17 @@ export function installHeroMenu(): void {
     (event) => {
       const list = event.target as HTMLElement;
       if (!list.matches?.(LIST)) return;
-      if ((event as ToggleEvent).newState === "open") itemsOf(list)[0]?.focus();
-      // Escape or a pick: focus goes back to the button. A press elsewhere keeps its own focus.
-      else if (list.contains(document.activeElement) || document.activeElement === document.body)
+      if ((event as ToggleEvent).newState === "open") {
+        pressedOutside = false;
+        itemsOf(list)[0]?.focus();
+      }
+      // Escape or a pick: focus goes back to the button. A press elsewhere keeps its own focus,
+      // even when it landed on nothing focusable: a button left focused that way took the next
+      // Space, which opened the menu again instead of playing (2026-10-20).
+      else if (
+        list.contains(document.activeElement) ||
+        (document.activeElement === document.body && !pressedOutside)
+      )
         moreOf(list)?.focus();
     },
     true,

@@ -20,6 +20,7 @@ const NEBIUS = [
   { id: "moonshotai/Kimi-K3", context_length: 1048576 },
   { id: "openai/gpt-oss-120b", context_length: 131072 },
   { id: "zai-org/GLM-5.3", context_length: 1048576 },
+  { id: "deepseek-ai/DeepSeek-V4.1-Flash", context_length: 1048576 },
 ];
 
 describe("writerOptions", () => {
@@ -43,11 +44,12 @@ describe("writerOptions", () => {
     expect(ids(writerOptions(null, noOpus), "Claude")[0]).toBe("claude-opus-5-5");
   });
 
-  // Bug it prevents: a retired Nebius model offered, or more than five crowding the select.
-  it("offers the first five curated Nebius models the live list still serves", () => {
+  // Bug it prevents: a retired Nebius model offered, more than five crowding the select, or a
+  // Kimi model offered against the owner's word (2026-10-21) because Nebius still serves it.
+  it("offers the first five curated Nebius models the live list still serves, never Kimi", () => {
     expect(ids(writerOptions(null, null, NEBIUS), "Nebius")).toEqual([
       "zai-org/GLM-5.3",
-      "moonshotai/Kimi-K3",
+      "deepseek-ai/DeepSeek-V4.1-Flash",
     ]);
     const all = TOP_IDS.map((id) => ({ id, context_length: null }));
     expect(ids(writerOptions(null, null, all), "Nebius")).toEqual(TOP_IDS.slice(0, 5));

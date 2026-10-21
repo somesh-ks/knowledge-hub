@@ -245,6 +245,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Chapter gaps are masked into the track.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
+- **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126).
 
 ### The bottom stack on a phone
 
@@ -365,6 +366,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Titles clamp to two lines (`library.css:98`) and generated names stay short ("AI Products, Design and 2 more"), with a tooltip for a truncated title under a mouse (2026-10-08).
   - Filters All, Daily, Weekly and Custom; Oldest first reverses same-day cards too; the count reads "1 of 5 results"; a touch-only Clear text button (2026-10-08).
   - Deleting an episode hides it at once on this device and lands on the Library while the 2 to 3 minute workflow runs (2026-10-08).
+  - A three-dots menu per row (Download, Add to queue, Regenerate, Share, Delete); a downloaded row has a filled check-circle with a hidden "Downloaded" (D127). A phone has no sort, and the chips (16px side padding) share a line with the view switch, scrolling at 360px (2026-10-21).
 
 ### Settings and forms
 - **Structure.**
@@ -388,6 +390,8 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).
   - The add-topic form uses `novalidate` with inline messages; an emoji-only name no longer becomes the id "topic" (2026-10-08).
   - Model headings sit on the left in regular weight (D113, #125).
+  - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
+  - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
 
 ### Sound

@@ -28,7 +28,7 @@ async function serveNarration(page: Page): Promise<void> {
     const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
     return (data.items as { id: string }[]).map((item) => item.id);
   });
-  await page.route("**/api/narrate?digest=*", (route) =>
+  await page.context().route("**/api/narrate?digest=*", (route) =>
     route.fulfill({
       json: {
         status: 200,
@@ -44,7 +44,7 @@ async function serveNarration(page: Page): Promise<void> {
       },
     }),
   );
-  await page.route("**/api/narrate", (route) => {
+  await page.context().route("**/api/narrate", (route) => {
     if (route.request().method() !== "POST") return route.fallback();
     const { segment } = route.request().postDataJSON() as { segment: string };
     return route.fulfill({
