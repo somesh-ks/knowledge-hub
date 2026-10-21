@@ -143,6 +143,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
+| D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
 
 ---
 
@@ -1492,4 +1493,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the old scale offered 2, 4 and 12px beside the 8pt steps, so each new surface picked whatever looked right in its own context, and spacing applied by a parent selector vanished when a row moved into a panel (the cramped suggested sources). No test read spacing at all.
 - Rejected: dropping 4px entirely (small controls read loose); pinning measured gaps in browser tests (AGENTS.md forbids pinned geometry; the grid invariant catches the class of bug without it).
 - Check: each static rule was shown red on a probe; the sweep passes on every page, both widths.
+
+## D132: two segmented controls, and Close at the end of every sheet
+
+- Date: 2026-10-21 (the owner: "I need two types of segmented selector component, one for selection duty with a check, another for navigation, used like tabs. Make them visually distinct. The topic page should use the latter", "In full screen modals with the X, have it on the right side. Change it in the parent component")
+- Decision: `.segmented-choice` (a radiogroup: one outlined pill split by hairlines, the chosen segment in the accent container with a check) is for picking a value: the New episode form's Length, Look back, Format and Tone. `.segmented-nav` (a tablist: a tonal track with a raised pill that slides under the active label, no check, arrow keys) is for switching what shows below: a topic page's Sources and Preferences, and the add panel's Topic and Source. A style rule keeps radiogroup markup on the first and tablist markup on the second. `SheetHeader.astro` gives New episode, Add or Edit source and Regenerate one header: the title at the start and Close at the end, as the bottom sheets already were; focus order follows.
+- Why: one look for two jobs made a view switch read as a setting, and three copies of a sheet header had drifted from the bottom sheets' layout.
+- Check: the style rule was shown red first; the topics, create and episode actions specs cover both controls and the headers.
 

@@ -42,3 +42,4 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - `packages/cover/src/season.ts`
 - `packages/sound/src/engine.ts`
 - `apps/web/src/scripts/uiSound.ts`
+- Segmented controls come in two kinds (D132): a choice with a check for picking a value, and a sliding-pill tablist for switching views. Every full-screen sheet closes from the top right (`SheetHeader.astro`).
