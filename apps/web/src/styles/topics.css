@@ -328,10 +328,16 @@
     var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
     transparent calc(var(--stroke-hairline) * 3 + 0.5px)
   );
-  background-image: var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot);
+  background-image:
+    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot);
   background-repeat: no-repeat;
   background-size: var(--scrubber-thumb) var(--scrubber-thumb);
-  background-position: 0% center, 25% center, 50% center, 75% center, 100% center;
+  background-position:
+    0% center,
+    25% center,
+    50% center,
+    75% center,
+    100% center;
 }
 
 /* On the Preferences page a row has more air: 16px above and below, and 8px between the name and
