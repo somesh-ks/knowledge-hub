@@ -159,7 +159,7 @@
   );
   /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
   animation-name: tabs-scroll-fade;
-  animation-timing-function: linear;
+  animation-timing-function: var(--ease-linear);
   animation-timeline: scroll(self inline);
 }
 

@@ -750,7 +750,7 @@
   visibility: hidden;
   transition:
     translate var(--duration-sheet-out) var(--ease-drawer),
-    visibility 0s linear var(--duration-sheet-out);
+    visibility 0s var(--ease-linear) var(--duration-sheet-out);
 }
 
 /* Both lines are cut into chapters by a mask the components compute (chapterMask.ts). */
@@ -2360,7 +2360,7 @@
   @supports (animation-timeline: scroll()) {
     .list-scroll {
       animation-name: list-fade-start, list-fade-end;
-      animation-timing-function: linear;
+      animation-timing-function: var(--ease-linear);
       animation-fill-mode: both;
       animation-timeline: scroll(self block), scroll(self block);
       animation-range:
@@ -3027,7 +3027,7 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     translate: none;
     transition:
       opacity var(--duration-state) var(--ease-out),
-      visibility 0s linear var(--duration-state);
+      visibility 0s var(--ease-linear) var(--duration-state);
   }
 
   .glyph-swap > .ui-icon {

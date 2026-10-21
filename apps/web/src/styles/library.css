@@ -760,7 +760,7 @@ html:has(.library-none) {
   );
   /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
   animation-name: shelf-scroll-fade;
-  animation-timing-function: linear;
+  animation-timing-function: var(--ease-linear);
   animation-timeline: scroll(self inline);
 }
 

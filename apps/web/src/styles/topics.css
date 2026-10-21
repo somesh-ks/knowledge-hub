@@ -1313,7 +1313,7 @@
     )
     100% 0 / 250% 100% no-repeat,
     color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
-  animation: source-shimmer calc(var(--duration-progress) * 5) linear infinite;
+  animation: source-shimmer calc(var(--duration-progress) * 5) var(--ease-linear) infinite;
 }
 
 @keyframes source-shimmer {
