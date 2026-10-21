@@ -1328,6 +1328,16 @@
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
     background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
+
+  /* A mouse press on the bar is a quiet tonal layer, as light as a hover and eased in and out:
+     the 12% touch layer over the whole wide bar read as a flash (owner, 2026-10-21). */
+  .dock-open::after {
+    transition: background-color var(--duration-state) var(--ease-out);
+  }
+
+  .dock-open:active::after {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
 }
 
 @media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
