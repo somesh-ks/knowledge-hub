@@ -814,7 +814,7 @@ html:has(.library-none) {
 
 /* The ⋮ at the end of a row's text (components/LibraryItemMenu.astro), beside the card's link and
    never inside it. The title and the quiet line reserve its room whether or not the button shows, so
-   nothing on a row moves when it appears. The button sits on the row's last line in the gallery and
+   nothing on a row moves when it appears. The button sits at the title's end in the gallery and
    in the middle of the row in the list. */
 .card {
   position: relative;
@@ -835,18 +835,44 @@ html:has(.library-none) {
   }
 }
 
-/* Anchored to the card's top right, over the art (owner, 2026-10-21): the button takes a surface
-   disc so the dots read on any cover, and the title and facts below keep their whole line. */
+/* At the end of the title line, beside the card's text and never over the art (owner, 2026-10-21,
+   reversing the disc on the cover). The gallery's title starts one cover (the card's width) and a gap
+   down; the button is a compact glyph in a full touch target, centred on the title's first line.
+   The title reserves the glyph's room, so the button appearing moves nothing. */
 .card-menu {
+  --title-line: calc(var(--font-size-body) * var(--font-leading-label));
   position: absolute;
-  inset-block-start: var(--space-2);
-  inset-inline-end: var(--space-2);
+  inset-block-start: calc(100cqw + var(--space-2) - (var(--size-touch) - var(--title-line)) / 2);
+  inset-inline-end: 0;
+}
+
+.card:has(> .card-menu) .card-title {
+  padding-inline-end: calc(var(--size-touch) - var(--space-4));
 }
 
 .card-more {
   anchor-name: var(--card-anchor);
-  background: color-mix(in oklch, var(--color-surface) 80%, transparent);
-  color: var(--color-on-surface);
+  color: var(--color-on-surface-muted);
+}
+
+.card-more .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* A mouse sees the button when the row is hovered, a key press is inside it, or its menu is open;
+   touch has no hover, so it is always there. */
+@media (hover: hover) and (pointer: fine) {
+  .card-more {
+    opacity: 0;
+    transition: opacity var(--duration-hover) var(--ease-hover);
+  }
+
+  .card:hover .card-more,
+  .card:focus-within .card-more,
+  .card-menu:has(:popover-open) .card-more {
+    opacity: 1;
+  }
 }
 
 /* Focus returns here when the menu sheet closes. After a tap that is no cause for a ring: it is the
@@ -937,10 +963,6 @@ html:has(.library-none) {
       opacity: 0;
     }
   }
-}
-
-[data-library][data-view="list"] .card-more {
-  background: transparent;
 }
 
 [data-library][data-view="list"] .card-menu {
