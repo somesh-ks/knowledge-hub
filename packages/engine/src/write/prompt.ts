@@ -63,6 +63,7 @@ const FIELD_RULES = [
 const FACT_RULES = [
   "Use facts from the source text only. Never add a claim, number, name, date or link that the text does not state.",
   "If the text lacks a detail, leave it out instead of guessing.",
+  'A block headed "Alexandria facts" is sourced records from a data provider. A fact taken from it must name that provider in the sentence ("per <provider>").',
   // Seen in the October weekly: "The catch: the piece doesn't include new evidence" and a catch
   // after a missile strike that killed a person.
   'Tell the news, never review the article: no "the piece", "the post" or "the author doesn\'t say".',

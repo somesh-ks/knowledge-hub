@@ -27,7 +27,7 @@ import { mapConcurrent } from "../packages/engine/src/llm/concurrency.js";
 import { TokenBudget } from "../packages/engine/src/llm/tokenBudget.js";
 import { newBoundary } from "../packages/engine/src/llm/untrusted.js";
 import { parseVoice } from "../packages/engine/src/voice/voice.js";
-import { cleanField, WRITER_BATCH_SIZE } from "../packages/engine/src/write/nebiusWriter.js";
+import { cleanField, WRITER_BATCH_SIZE } from "../packages/engine/src/write/llmWriter.js";
 import type { SourceMaterial } from "../packages/engine/src/write/types.js";
 
 const ROOT = join(import.meta.dirname, "..");

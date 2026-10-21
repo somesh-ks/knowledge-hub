@@ -6,7 +6,6 @@
  */
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { clearPendingChoice, readPendingChoice, writePendingChoice } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import { weightOf } from "../lib/weightStops";
@@ -251,8 +250,7 @@ function heldOps(): ConfigOp[] {
 
 /**
  * Keeps a request that went through, so a settings page opened before the build shows what was
- * saved (lib/savedOverlay.ts, scripts/savedView.ts), and what the left pages' runs still hold. A
- * writer choice among it goes to its own note (lib/pendingWriter.ts).
+ * saved (lib/savedOverlay.ts, scripts/savedView.ts), and what the left pages' runs still hold.
  */
 export function remember(
   ops: readonly ConfigOp[],
@@ -267,9 +265,6 @@ export function remember(
   } catch {
     // Storage is refused: the page shows the old value until the build, as it did before.
   }
-  // The writer's own note is written only here, once its choice went through: a refused one is
-  // never shown as saved.
-  for (const op of ops) if (op.op === "writer.set") writePendingChoice(op.provider, op.model);
 }
 
 /**
@@ -434,15 +429,10 @@ function tellLost(held: Held, from: SaveContext["from"]): void {
 
 /**
  * Leaving the page open now drops what no page took: it was never saved, and the page opened next is
- * built without it. A writer choice among it is no longer shown as saved either.
+ * built without it.
  */
 export function dropUnclaimed(): void {
-  const lost = unclaimed?.entries ?? [];
   unclaimed = null;
-  const choice = readPendingChoice();
-  for (const [, { op }] of lost)
-    if (op.op === "writer.set" && choice?.provider === op.provider && choice.model === op.model)
-      clearPendingChoice();
 }
 globalThis.document?.addEventListener("astro:after-swap", dropUnclaimed);
 

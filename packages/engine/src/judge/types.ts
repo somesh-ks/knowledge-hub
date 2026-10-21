@@ -14,7 +14,7 @@ export interface JudgeFailure {
  * for a single item.
  */
 export interface Judge {
-  /** Short name for logs: "jev", "nebius", "fallback". */
+  /** Short name for logs: "jev", "llm", "fallback". */
   readonly name: string;
   /** Model id used in cache keys and stored in each entry. */
   readonly model: string;

@@ -14,8 +14,10 @@ const SpendFile = z.object({
   version: z.literal(1),
   /** The plan's `created_at`; a file from another run is ignored. */
   run: z.string(),
-  /** Jev, Nebius and Exa requests. */
+  /** Jev, Exa and model-fallback counts. */
   requests: z.record(z.string(), count),
+  /** Tokens and other units the providers reported, by `provider|product|unit`. */
+  units: z.record(z.string(), z.number().nonnegative()).optional(),
   firecrawl: z.object({
     listing: count,
     scrape: count,
@@ -35,7 +37,7 @@ export type SpendTotals = Pick<
 
 /**
  * Paid requests of one run, across stages that may be separate processes. The meter counts Jev,
- * Nebius and Exa where they leave the process; the guard counts Firecrawl and enforces its
+ * Exa where they leave the process; the guard counts Firecrawl and enforces its
  * ceiling. Each stage calls `begin` first and `save` last (also on failure), so the commit stage
  * can report the whole run.
  */
@@ -44,16 +46,19 @@ export class SpendTracker {
   readonly guard = new FirecrawlGuard();
   private run: string | null = null;
   private base: Record<string, number> = {};
+  private baseUnits: Record<string, number> = {};
 
   async begin(root: string, run: string): Promise<void> {
     if (this.run === run) return;
     this.run = run;
     this.base = {};
+    this.baseUnits = {};
     this.guard.restore(EMPTY_FIRECRAWL_STATE);
     const raw = await readJsonIfExists(spendPath(root), "spend.json").catch(() => null);
     const parsed = raw === null ? null : SpendFile.safeParse(raw);
     if (parsed?.success && parsed.data.run === run) {
       this.base = { ...parsed.data.requests };
+      this.baseUnits = { ...parsed.data.units };
       this.guard.restore(parsed.data.firecrawl);
     }
   }
@@ -73,17 +78,29 @@ export class SpendTracker {
     };
   }
 
+  /** Reported units of the whole run so far, by `provider|product|unit`. */
+  unitTotals(): Record<string, number> {
+    const units = { ...this.baseUnits };
+    for (const [key, n] of Object.entries(this.meter.peekUnits()))
+      units[key] = (units[key] ?? 0) + n;
+    return units;
+  }
+
   /** Fold the meter into the saved totals and write the file. A failed write never fails a run. */
   async save(root: string): Promise<void> {
     if (this.run === null) return;
     for (const [service, n] of Object.entries(this.meter.take())) {
       this.base[service] = (this.base[service] ?? 0) + n;
     }
+    for (const [key, n] of Object.entries(this.meter.takeUnits())) {
+      this.baseUnits[key] = (this.baseUnits[key] ?? 0) + n;
+    }
     try {
       await writeJson(spendPath(root), {
         version: 1,
         run: this.run,
         requests: this.base,
+        units: this.baseUnits,
         firecrawl: this.guard.snapshot,
       });
     } catch {

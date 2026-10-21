@@ -5,10 +5,7 @@
  * works the same line out again from an edit saved since the build (scripts/settingsSaved.ts).
  */
 import { SUPPORTED_TIMEZONES, scheduleZone, TIME_ZONE } from "@dispatch/core/time";
-import { CLAUDE_MODELS, NEBIUS_DEFAULT_ID, nebiusName } from "./modelId";
 import { hourLabel, WEEKDAYS } from "./nextRun";
-
-export type Provider = "nebius" | "anthropic";
 
 export const CADENCES = [
   { days: 1, label: "Every day" },
@@ -56,21 +53,6 @@ function voiceName(id: string): string {
 export function voicesSummary(primary: string, secondary: string): string {
   if (!primary && !secondary) return "Default voices";
   return `${voiceName(primary)} and ${voiceName(secondary)}`;
-}
-
-/**
- * The name the Settings row and the Model field show, the same one the model list uses. No model
- * saved on Nebius is what Nebius runs on then.
- */
-export function writerLabel(model: string | null, provider: Provider = "nebius"): string {
-  if (model === null)
-    return provider === "anthropic"
-      ? (CLAUDE_MODELS.find((entry) => entry.id === "claude-sonnet-5-5")?.label ?? "")
-      : nebiusName(NEBIUS_DEFAULT_ID);
-  if (provider === "anthropic") {
-    return CLAUDE_MODELS.find((entry) => entry.id === model)?.label ?? model;
-  }
-  return nebiusName(model);
 }
 
 /** "9 topics · 11 sources": how many there are, not how many are read. */

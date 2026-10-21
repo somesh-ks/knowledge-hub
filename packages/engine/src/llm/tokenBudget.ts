@@ -1,6 +1,6 @@
 import { BudgetExceededError } from "./errors.js";
 
-/** Nebius has no token-counting endpoint, so estimates use a rough characters-per-token ratio. */
+/** Estimates use a rough characters-per-token ratio. */
 export const CHARS_PER_TOKEN = 3.5;
 
 export function estimateTokensForChars(chars: number): number {

@@ -12,7 +12,6 @@ interface Target {
 /** Secrets used by the GitHub Actions workflows. */
 const GITHUB_SECRETS = [
   "TYPESAFE_API_KEY",
-  "NEBIUS_API_KEY",
   "ANTHROPIC_API_KEY",
   "EXA_API_KEY",
   "FIRECRAWL_API_KEY",
@@ -25,10 +24,6 @@ const GITHUB_SECRETS = [
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
 const GITHUB_VARIABLES = [
-  "NEBIUS_BASE_URL",
-  "DISPATCH_MODEL",
-  "DISPATCH_FALLBACK_MODEL",
-  "GEMINI_TRANSCRIBE_MODEL",
   "SPEECHIFY_VOICE_ID",
   // The second host's voice: the site and the audio job must agree on it, or a pre-narrated turn is
   // stored under a name the site never asks for, and paid for twice (D128).
@@ -55,7 +50,6 @@ const VERCEL_ENV = [
   "SPEECHIFY_VOICE_ID_B",
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
-  "NEBIUS_API_KEY",
   "ANTHROPIC_API_KEY",
   "TYPESAFE_API_KEY",
   "CRON_SECRET",

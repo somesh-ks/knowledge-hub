@@ -1,7 +1,7 @@
 import type { CommandRun } from "../context.js";
 
-const NOTICE = `dispatch eval calls TypeSafe Jev and Nebius Token Factory with your keys.
-It costs a few cents per run and is meant for tuning thresholds and choosing DISPATCH_MODEL.
+const NOTICE = `dispatch eval calls TypeSafe Jev and the routed Claude and Gemini models with your keys.
+It costs a few cents per run and is meant for tuning thresholds.
 It never runs in CI. Pass --yes to proceed.`;
 
 /** The eval runner's own entry point, loaded on demand: it pulls in every model client. */

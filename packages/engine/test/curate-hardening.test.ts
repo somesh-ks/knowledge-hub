@@ -47,7 +47,7 @@ function factory(judge: TableJudge): ApiRuntimeFactory {
     grounder: keywordGrounder,
     extract: async (item) => longText(item),
     judgeFailures: [],
-    usage: () => ({ nebiusTokens: 10, nebiusTokenLimit: 400_000 }),
+    usage: () => ({ tokens: 10, tokenLimit: 400_000 }),
   });
 }
 
