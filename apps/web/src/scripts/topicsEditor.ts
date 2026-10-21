@@ -11,7 +11,9 @@
  * The pure parts are exported and tested; the rest is wiring.
  */
 import type { SourceFormat } from "@dispatch/core";
+import { topicEmoji } from "@dispatch/core/topicEmoji";
 import { pickEmoji } from "../lib/pickEmoji";
+import { sourcesSummary } from "../lib/settingsSummary";
 import type { HeldSource } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
 import { weightOf } from "../lib/weightStops";
@@ -27,7 +29,7 @@ import type {
   TopicEdit,
   TopicFacts,
 } from "./topicsPanel";
-import { bandOf, element, iconNode, starNode } from "./topicsView";
+import { bandOf, element, iconNode, starNode, topicRow } from "./topicsView";
 
 type Control = HTMLInputElement;
 
@@ -68,7 +70,6 @@ export interface Editor {
 export function mountEditor(root: HTMLElement): Editor {
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>
     root.querySelector(selector) as T;
-  const queued = one("[data-queued]");
   const taken = (root.dataset.taken ?? "").split(" ");
   /** Each pending change by a key: an op string and its field, or the key of a queued row. */
   const changes = new Map<string, Pending>();
@@ -92,10 +93,9 @@ export function mountEditor(root: HTMLElement): Editor {
   const removals = (): HTMLButtonElement[] =>
     [...changes.values()]
       .map(({ el }) => el)
-      // A source's removal is confirmed first and sent at once, so only a topic's waits with an Undo.
-      .filter(
-        (el): el is HTMLButtonElement => el.matches("button[data-remove]") && !el.closest("li"),
-      );
+      // A topic's and a source's removal: each is gone from the page at once and waits behind the
+      // scenes with an Undo in the toast (D142).
+      .filter((el): el is HTMLButtonElement => el.matches("button[data-remove]"));
   const autosave = mountAutosave(
     root,
     changes,
@@ -110,51 +110,31 @@ export function mountEditor(root: HTMLElement): Editor {
         return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} items`;
       },
       undo() {
-        for (const button of removals()) press(button);
+        for (const button of removals()) {
+          const row = button.closest("li");
+          if (!row) {
+            press(button);
+            continue;
+          }
+          // A source's row comes back where it was.
+          button.dataset.pressed = "false";
+          row.removeAttribute("data-gone");
+          update(button as unknown as Control);
+        }
       },
     },
   );
 
   // ------------------------------------------------------------------------------------ adding
 
-  /** A topic waiting to be saved, listed above the topics until it is. */
-  const queue = (name: string, op: ConfigOp, after?: ConfigOp[]): HTMLElement => {
-    const template = one<HTMLTemplateElement>(
-      "template:not(#topics-panel-template, #suggested-template)",
-    );
-    const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement;
-    added += 1;
-    row.dataset.key = `new${added}`;
-    (row.querySelector("[data-q-name]") as HTMLElement).textContent = name;
-    queued.append(row);
-    changes.set(row.dataset.key, {
-      op,
-      el: row,
-      now: "",
-      ...(after?.length ? { with: after } : {}),
-      // Refused or not sent: the row says so, and the toast's Retry sends it again.
-      fail: () => {
-        const note = row.querySelector(".manage-quiet");
-        if (note) note.textContent = TOPIC_NOT_ADDED;
-      },
-    });
-    // The panel closes behind it, so focus and the view go to the row that says it is being added.
-    row.tabIndex = -1;
-    row.focus({ preventScroll: true });
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
-    return row;
-  };
-
   /**
-   * A topic from the panel: a decision already made, so it is sent now. It waits in the list, saved,
-   * until the build gives it a page: the site is static, so a page for it does not exist before
-   * then, and leaving this one would drop the request on its way (and any passphrase it asks for).
+   * A topic from the panel: a decision already made, so it is listed now, as a row like every
+   * other, in its place by name, and its row opens a page that shows it until the build gives it its
+   * own (D142). Its one save waits for Jev's emoji (the same Jev that places a source's format) for
+   * up to 4.5 s; the row shows the name's own guess (core topicEmoji) until then, and the guess is
+   * what is saved when Jev has no answer.
    */
   const addTopic = async (topic: NewTopic): Promise<void> => {
-    // Jev picks the topic's emoji (the same Jev that places a source's format) within 2.5 s; after
-    // that, or with no answer, the name's fixed fallback stands (core topicEmoji).
-    const emoji = await pickEmoji(topic.name, topic.description);
     // A topic still waiting to be saved holds its id.
     const waiting = [...changes.values()].map(({ op }) =>
       op.op === "topic.upsert" ? (op.topic.id ?? "") : "",
@@ -166,29 +146,56 @@ export function mountEditor(root: HTMLElement): Editor {
     ) as { daily?: boolean; weekly?: boolean; custom?: boolean };
     const scope: ConfigOp[] =
       Object.keys(out).length > 0 ? [{ op: "topic.scope", ids: [id], ...out }] : [];
-    const row = queue(
-      topic.name,
-      {
-        op: "topic.upsert",
-        topic: {
-          id,
-          name: topic.name,
-          description: topic.description,
-          weight: 0.7,
-          enabled: true,
-          keywords: topic.keywords,
-          // A new topic gets a section of its own, titled after it.
-          section_id: id,
-          ...(emoji ? { emoji } : {}),
-        },
+    const guess = topicEmoji({ id, name: topic.name });
+    const op: Extract<ConfigOp, { op: "topic.upsert" }> = {
+      op: "topic.upsert",
+      topic: {
+        id,
+        name: topic.name,
+        description: topic.description,
+        weight: 0.7,
+        enabled: true,
+        keywords: topic.keywords,
+        // A new topic gets a section of its own, titled after it.
+        section_id: id,
+        emoji: guess,
       },
-      scope,
-    );
+    };
+    const hint = sourcesSummary({ total: 0 });
+    const row = topicRow(root, { id, name: topic.name, emoji: guess }, hint);
+    if (!row) return;
+    added += 1;
+    const line = row.querySelector("[data-hint]");
+    let ready: () => void = () => {};
+    changes.set(`new${added}`, {
+      op,
+      el: row,
+      now: "",
+      ...(scope.length > 0 ? { with: scope } : {}),
+      ready: new Promise<void>((resolve) => {
+        ready = resolve;
+      }),
+      // Refused or not sent: the row says so, and the toast's Retry sends it again.
+      fail: () => {
+        if (line) line.textContent = TOPIC_NOT_ADDED;
+      },
+      done: () => {
+        if (line) line.textContent = hint;
+      },
+    });
+    // The panel closes behind it, so focus and the view go to the new row.
+    row.focus({ preventScroll: true });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    row.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
     autosave.now();
-    // Its suggested sources at once, ranked in the browser as the build ranks them for its page.
-    void import("./savedView").then((view) =>
-      view.suggestUnder(row, { id, name: topic.name, description: topic.description }),
-    );
+    void pickEmoji(topic.name, topic.description).then((emoji) => {
+      if (emoji) {
+        op.topic.emoji = emoji;
+        const shown = row.querySelector(".topic-emoji");
+        if (shown) shown.textContent = emoji;
+      }
+      ready();
+    });
   };
 
   /**
@@ -530,12 +537,14 @@ export function mountEditor(root: HTMLElement): Editor {
     });
   };
 
-  /** The row is gone before the request is: the control is recorded as pressed and sent at once. */
+  /**
+   * The row is gone at once: the control is recorded as pressed and waits behind the scenes, with
+   * Undo in the toast, as a topic's removal does (D142).
+   */
   const deleteNow = (row: HTMLElement, button: HTMLButtonElement): void => {
     button.dataset.pressed = "true";
     row.setAttribute("data-gone", "");
-    record(button as unknown as Control);
-    autosave.now();
+    update(button as unknown as Control);
     // Focus was on the row's Edit button, now hidden: it goes to the next row once the panel, which
     // holds focus until it closes, has gone.
     const hand = (): void => {
@@ -598,6 +607,15 @@ export function mountEditor(root: HTMLElement): Editor {
     control.dataset.pressed = String(pressed);
     const label = pressed ? control.dataset.labelUndo : control.dataset.label;
     if (label) control.setAttribute("aria-label", label);
+    // A topic's own page shows it removed at once, before its request goes (D142).
+    const topic =
+      button.matches("[data-remove]") && !button.closest("li")
+        ? button.closest<HTMLElement>("[data-topic]")
+        : null;
+    if (topic) {
+      topic.toggleAttribute("data-gone", pressed);
+      if (pressed) topic.querySelector<HTMLElement>(".topic-gone")?.focus({ preventScroll: true });
+    }
     update(control);
   };
 

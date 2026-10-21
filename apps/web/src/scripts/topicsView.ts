@@ -84,3 +84,47 @@ export function scoreNode(label: string): HTMLElement {
 }
 
 export { element };
+
+/** Where a topic not built yet opens: one page the build makes for every such topic (D142). */
+export const NEW_TOPIC_PAGE = "/settings/topics/new/";
+
+/**
+ * A topic not built yet as a row of the Sources list, drawn as a built row is (it copies one), in its
+ * place by name, linked to the page that shows it until the build gives it its own (D142). A row that
+ * holds it already is returned instead, so a reload or a second call never lists it twice.
+ */
+export function topicRow(
+  root: ParentNode,
+  topic: { id: string; name: string; emoji: string },
+  hint: string,
+): HTMLAnchorElement | null {
+  const index = root.querySelector<HTMLElement>(".topics-index");
+  const rows = [...(index?.querySelectorAll<HTMLAnchorElement>("a.row-action[data-page]") ?? [])];
+  const held = rows.find((row) => row.dataset.page === topic.id);
+  if (held) return held;
+  const model = rows[0];
+  if (!index || !model) return null;
+  const row = model.cloneNode(true) as HTMLAnchorElement;
+  row.href = `${NEW_TOPIC_PAGE}?id=${encodeURIComponent(topic.id)}`;
+  row.dataset.page = topic.id;
+  row.dataset.members = topic.id;
+  row.dataset.newTopic = "";
+  delete row.dataset.never;
+  row.hidden = false;
+  const emoji = row.querySelector(".topic-emoji");
+  if (emoji) emoji.textContent = topic.emoji;
+  const label = row.querySelector(".settings-label");
+  if (label) label.textContent = topic.name;
+  const line = row.querySelector("[data-hint]");
+  if (line) line.textContent = hint;
+  // By name, as the build sorts them (byName in lib/topicPages.ts).
+  const after = (other: HTMLElement): boolean => {
+    const name = other.querySelector(".settings-label")?.textContent?.trim() ?? "";
+    return (
+      (name.localeCompare(topic.name, "en", { sensitivity: "base" }) ||
+        name.localeCompare(topic.name, "en")) > 0
+    );
+  };
+  index.insertBefore(row, rows.find(after) ?? null);
+  return row;
+}

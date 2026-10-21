@@ -440,7 +440,8 @@
   pointer-events: none;
 }
 
-/* Once the removal is in the repository, the page says so and keeps nothing else. */
+/* Once the removal is confirmed (D142: at once, with Undo in the toast), the page says so and keeps
+   nothing else. */
 .topic[data-gone] > :not(.topic-gone),
 .topic:not([data-gone]) > .topic-gone {
   display: none;
@@ -448,6 +449,12 @@
 
 .topics li[data-gone] {
   display: none;
+}
+
+/* The page for a topic not built yet (D142) shows none of its stand-ins before savedView.ts fills
+   it, a moment after it opens. */
+[data-shell]:not([data-filled]) .manage-fields {
+  visibility: hidden;
 }
 
 /* ------------------------------------------------------------------ a source */

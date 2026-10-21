@@ -20,10 +20,8 @@ export const SAVED = "Saved.";
 /** Shown when the edit went through but the site could not change the briefing time. */
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
 
-/** What a topic or a source added on the page says once it is in the repository. */
+/** What a source added on the page says once it is in the repository. */
 export const ADDED_SOURCE = "Added. Read from the next update.";
-/** A topic added on the list: it is listed already; its page is what the build brings. */
-export const ADDED_TOPIC = "Added. Its page opens in about a minute.";
 
 const REASONS: Record<number, string> = {
   0: "Couldn't reach the site.",
@@ -66,6 +64,11 @@ export interface Pending {
   fail?: () => void;
   /** And when it was saved, whether by its own request or by a retry. */
   done?: () => void;
+  /**
+   * Settles once the edit is final: a new topic waits for Jev's emoji (D142). The page already shows
+   * it; only its request waits, and the edits made meanwhile go with it.
+   */
+  ready?: Promise<void>;
 }
 
 /**
@@ -212,12 +215,9 @@ export function settle(batch: Batch, changes: Map<string, Pending>): void {
   for (const [key, pending] of batch.sent) {
     const { el, now } = pending;
     pending.done?.();
-    if (el.matches("li")) {
-      // A topic added on the page: it stays listed, saved, until the build shows it in place.
-      const note = el.querySelector(".manage-quiet");
-      if (note) note.textContent = ADDED_TOPIC;
-    } else if (el.matches(".source-note, .source-announce")) el.textContent = ADDED_SOURCE;
-    else {
+    if (el.matches(".source-note, .source-announce")) el.textContent = ADDED_SOURCE;
+    // A topic added on the list is a row like the others already (D142): nothing more to say.
+    else if (!el.matches("a[data-new-topic]")) {
       if (el.matches("[data-remove]")) {
         const row = el.closest("li") ?? el.closest("[data-topic]");
         if (row) rehome(row);
@@ -559,6 +559,13 @@ export async function flush(
       // its way yet, and whatever changes meanwhile goes in the one request sent after it.
       const hold = gapLeft(lastSent, Date.now());
       if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
+      // An edit not final yet (a new topic's emoji, D142) holds the request, quietly, as the gap does.
+      const unready = [...changes.values()].filter((pending) => pending.ready);
+      if (unready.length > 0) {
+        await Promise.all(unready.map((pending) => pending.ready));
+        for (const pending of unready) delete pending.ready;
+        continue;
+      }
       const [batch] = pack(buildQueue(changes), changes);
       if (!batch || JSON.stringify(batch.ops) === last) break;
       sent = true;

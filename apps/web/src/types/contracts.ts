@@ -302,6 +302,8 @@ export type ConfigOp =
         enabled: boolean;
         keywords: string[];
         section_id: string;
+        /** Its row's emoji (core configOps); left out keeps the stored one. */
+        emoji?: string;
       };
     }
   | { op: "topic.remove"; id: string }

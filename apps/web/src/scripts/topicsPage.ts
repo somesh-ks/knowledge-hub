@@ -17,14 +17,18 @@ function mount(root: HTMLElement): void {
   // An edit saved in the last few minutes is not in this page until the next build: the controls
   // show it first (savedView.ts), and the editor then reads it as their starting point.
   // An edit a left page's run still holds loads the editor at once: it takes the edit if that run fails.
-  const saved = hasSaved()
-    ? import("./savedView")
-        .then((module) => {
-          module.overlayTopics(root);
-          if (module.readPending()) void load();
-        })
-        .catch(() => {})
-    : Promise.resolve();
+  // The page for a topic not built yet takes it from what was saved first (D142).
+  const shell = root.dataset.shell !== undefined;
+  const saved =
+    hasSaved() || shell
+      ? import("./savedView")
+          .then((module) => {
+            if (shell && !module.fillShell(root)) return;
+            module.overlayTopics(root);
+            if (module.readPending()) void load();
+          })
+          .catch(() => {})
+      : Promise.resolve();
   /** Loads the editor once. */
   const load = (): Promise<Editor> =>
     (editor ??= saved
