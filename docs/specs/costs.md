@@ -23,7 +23,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 
 ### Reports
 - `dispatch costs [--period day|week|month] [--from] [--to] [--by provider|kind|timezone|user|product|scope] [--tz] [--json]` totals by period in a zone (default the schedule's) with per-run and per-user averages. A day is the zone's calendar day, so the 25-hour day of a DST change is one bucket. Weeks start Monday.
-- Settings > Costs (`/settings/costs`, a row in About) loads `/api/costs` after first paint (`apps/web/src/scripts/costsPage.ts`), so the page adds no start-up script. The route merges the build's bundled `state/costs-*.json` (a new ledger commit redeploys the site) with the Blob usage documents; if Blob cannot be read, the page says Play narration is left out. It shows the last 30 days; the route also takes `period`, `by` and `days`.
+- Analytics (`/analytics`, a row on the Settings index) loads `/api/costs` after first paint (`apps/web/src/scripts/costsPage.ts`), so the page adds no start-up script. The route merges the build's bundled `state/costs-*.json` (a new ledger commit redeploys the site) with the Blob usage documents; if Blob cannot be read, the page says Play narration is left out. It shows the last 30 days; the route also takes `period`, `by` and `days`.
 - The route has no passphrase (D41): anyone who can open the site can read the totals.
 
 ## Code
@@ -31,5 +31,5 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 - `packages/engine/src/cost`
 - `packages/engine/src/commands/costs.ts`
 - `apps/web/src/server/costs.ts`
-- `apps/web/src/pages/settings/costs.astro`
+- `apps/web/src/pages/analytics.astro`
 - `config/prices.json`

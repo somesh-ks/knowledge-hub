@@ -76,8 +76,8 @@ describe("Alexandria facts for a thin finalist", () => {
     expect(merged?.text).toContain("short teaser");
     expect(merged?.text).toContain("Alexandria facts");
 
-    const rescued = await enrichThin({ enrich: async () => "f".repeat(300) }, item, null);
-    expect(rescued?.method).toBe("alexandria");
+    // Facts never replace text: a story with none stays dropped.
+    expect(await enrichThin({ enrich: async () => "f".repeat(300) }, item, null)).toBeNull();
   });
 
   it("leaves the story as it was when the call fails or finds nothing", async () => {

@@ -19,7 +19,7 @@ import {
 } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.js";
-import { type ExtractedText, MIN_ACCEPT_CHARS } from "../extract/extractText.js";
+import type { ExtractedText } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
@@ -547,8 +547,8 @@ async function extractSafely(runtime: ApiRuntime, item: Item): Promise<Extracted
 /**
  * A finalist whose text is still thin after every free and paid read gets sourced facts from
  * Alexandria, labelled with their provider, appended to its source text (so the grounding check
- * reads them too). Facts alone stand in for a story that would be dropped when they are long
- * enough to write from. Any failure leaves the text as it was.
+ * reads them too). Facts never replace text: a story with no readable text is still
+ * dropped. Any failure leaves the text as it was.
  */
 export async function enrichThin(
   runtime: Pick<ApiRuntime, "enrich">,
@@ -559,10 +559,8 @@ export async function enrichThin(
   try {
     const facts = await runtime.enrich(item);
     if (!facts) return text;
-    if (text) return { ...text, text: `${text.text}\n\n${facts}` };
-    return facts.length >= MIN_ACCEPT_CHARS
-      ? { text: facts, method: "alexandria", truncated: false }
-      : null;
+    // Facts only enrich text that was read; they never stand in for a story with none.
+    return text ? { ...text, text: `${text.text}\n\n${facts}` } : text;
   } catch {
     return text;
   }

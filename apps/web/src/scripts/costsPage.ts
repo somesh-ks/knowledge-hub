@@ -1,5 +1,5 @@
 /**
- * Settings > Costs. Asks /api/costs for the report and writes it into the page's rows. Plain DOM,
+ * Analytics page (/analytics). Asks /api/costs for the report and writes it into the page's rows. Plain DOM,
  * no framework: the numbers are one fetch, and this page loads nothing else.
  */
 interface Rollup {
