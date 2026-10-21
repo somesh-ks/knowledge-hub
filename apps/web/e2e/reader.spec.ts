@@ -233,7 +233,7 @@ test.describe("sections and stories", () => {
     await page.goto("/");
     const sections = page.locator("[data-chapter]");
     await expect(sections).toHaveCount(6);
-    await expect(sections.locator("h2")).toHaveText([
+    await expect(sections.locator("h2.section-head")).toHaveText([
       "Top picks",
       "Design engineering",
       "AI products",
@@ -244,7 +244,7 @@ test.describe("sections and stories", () => {
     await expect(page.locator(".story")).toHaveCount(12);
     // A section header is its title alone: no listening time beside it.
     await expect(page.locator(".head-fact")).toHaveCount(0);
-    await expect(sections.first().locator("h2")).toHaveText("Top picks");
+    await expect(sections.first().locator("h2.section-head")).toHaveText("Top picks");
   });
 
   test("keeps headings in order: the date, then sections, then stories", async ({ page }) => {
