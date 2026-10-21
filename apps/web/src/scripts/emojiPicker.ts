@@ -98,7 +98,7 @@ export function openEmojiPicker(
       if (found.length === 0) body.append(element("p", "emoji-note", `No emoji for "${query}"`));
       else body.append(section("Results", found.map(named)));
     } else {
-      const suggested = suggestedEmoji(name, current).map((emoji) =>
+      const suggested = suggestedEmoji(name, current, all).map((emoji) =>
         cell(emoji, names.get(emoji) ?? "", current),
       );
       body.append(section("Suggested", suggested));

@@ -8,9 +8,9 @@ import { fileURLToPath } from "node:url";
  * in a page's first load. Only emoji up to Unicode 15 are kept (they draw on current Android and
  * iOS), without skin tones or the regional-indicator and component pieces.
  *
- *   npx tsx scripts/buildEmoji.ts <dir of emojibase-data/en>
+ *   npm run emoji   (or: npx tsx scripts/buildEmoji.ts <dir of emojibase-data/en>)
  *
- * The package is not a dependency: unpack it anywhere (`npm pack emojibase-data`) and point at it.
+ * emojibase-data is a pinned devDependency; the build never reads it, only this script does.
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -60,8 +60,7 @@ export function compile(entries: Entry[], groups: Message[]): EmojiFile {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const from = process.argv[2];
-  if (!from) throw new Error("usage: tsx scripts/buildEmoji.ts <dir of emojibase-data/en>");
+  const from = process.argv[2] ?? resolve(ROOT, "node_modules/emojibase-data/en");
   const read = (name: string) => JSON.parse(readFileSync(join(from, name), "utf8"));
   const file = compile(read("data.json"), read("messages.json").groups);
   writeFileSync(EMOJI_PATH, `${JSON.stringify(file)}\n`);

@@ -43,9 +43,16 @@ export function searchEmoji(groups: readonly EmojiGroup[], query: string): Emoji
 
 /**
  * The picker's Suggested row for a topic: the emoji it has, the name's own guess (a flag for a place),
- * then the topic emoji whose meaning shares a word with the name, best first. No repeats.
+ * the topic emoji whose meaning shares a word with the name, best first, then, once the list has
+ * loaded, the best matches in it for each word of the name. The rest of the topic emoji fill the row,
+ * so it is never a lone emoji. No repeats.
  */
-export function suggestedEmoji(name: string, current: string, limit = 8): string[] {
+export function suggestedEmoji(
+  name: string,
+  current: string,
+  groups: readonly EmojiGroup[] = [],
+  limit = 8,
+): string[] {
   const typed = words(name);
   const ranked = Object.entries(TOPIC_EMOJIS)
     .filter(([emoji]) => emoji !== "✨")
@@ -62,7 +69,15 @@ export function suggestedEmoji(name: string, current: string, limit = 8): string
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .map(({ emoji }) => emoji);
-  return [...new Set([current, fallbackEmoji(name), ...ranked])]
+  const found = typed
+    .filter((word) => word.length >= 3)
+    .flatMap((word) =>
+      searchEmoji(groups, word)
+        .slice(0, 2)
+        .map((item) => item[0]),
+    );
+  const rest = Object.keys(TOPIC_EMOJIS).filter((emoji) => emoji !== "✨");
+  return [...new Set([current, fallbackEmoji(name), ...ranked, ...found, ...rest])]
     .filter((emoji) => emoji !== "")
     .slice(0, limit);
 }

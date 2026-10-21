@@ -36,4 +36,8 @@ describe("suggestedEmoji", () => {
     expect(new Set(row).size).toBe(row.length);
     expect(row.length).toBeLessThanOrEqual(8);
   });
+
+  it("fills the row when the name matches little, so the owner never sees a lone emoji", () => {
+    expect(suggestedEmoji("Audio interfaces", "🎵")).toHaveLength(8);
+  });
 });
