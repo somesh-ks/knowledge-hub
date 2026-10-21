@@ -12,6 +12,7 @@ export * from "./ids.js";
 export * from "./item.js";
 export * from "./modelRouting.js";
 export * from "./paths.js";
+export * from "./placeEmoji.js";
 export * from "./podcast.js";
 export * from "./preferences.js";
 export * from "./publisher.js";

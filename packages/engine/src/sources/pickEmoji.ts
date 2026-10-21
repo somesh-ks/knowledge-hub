@@ -1,4 +1,4 @@
-import { fallbackEmoji, TOPIC_EMOJIS } from "@dispatch/core";
+import { fallbackEmoji, placeEmoji, TOPIC_EMOJIS } from "@dispatch/core";
 import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { DEFAULT_JEV_MODEL, type JevClientLike } from "../judge/jev.js";
@@ -24,7 +24,8 @@ export interface EmojiPickerOptions {
 }
 
 /**
- * Asks Jev for a topic's emoji, through the same call that places a source's format. Never throws:
+ * Asks Jev for a topic's emoji, through the same call that places a source's format, unless the name
+ * holds a place, which gets its flag with no call. Never throws:
  * when Jev cannot answer, or answers outside the list, the name's fallback stands.
  */
 export class EmojiPicker {
@@ -35,6 +36,8 @@ export class EmojiPicker {
   }
 
   async pick(topic: { name: string; description?: string }): Promise<string> {
+    const place = placeEmoji(topic.name);
+    if (place) return place;
     try {
       const raw = await withRetry(
         () =>
