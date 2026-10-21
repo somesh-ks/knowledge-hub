@@ -24,3 +24,15 @@ Eight briefings and three episodes older than the 18 Oct weekly were removed thr
 ## Advice on the open product calls
 
 General topics stay unticked (D102); no photographs for topics yet; no More menu on built-in topics; briefings stay readouts for now; iOS startup images and the status bar wait for an iPhone pass; checking feeds for the 17 Firecrawl-listed sources is worth doing; `MAX_TEXT_CHARS` waits for measured token counts.
+
+## Later the same day
+
+The model orchestrator (D136), the cost ledger and /analytics (D137), Alexandria enrichment (D138), hardening (D139) and design enforcement (D140) followed, each from its own worktree, then merged as one stack.
+
+Lessons, for learnings when it has room:
+- GitHub reports two simultaneous pushes as "cannot lock ref", not "[rejected]"; the engine's rebase-and-retry only caught the second wording until D139.
+- Unit tests read committed digests under `Digests/`, so the owner's cleanup broke six of them; they now read frozen copies under `packages/engine/test/fixtures/digests`.
+- A worktree agent once wrote into the main checkout; brief agents to use paths relative to their worktree.
+- `pkill -f <pattern>` and `pgrep -f` match the shell running them; stop a server by the PID listening on its port.
+- Switching branches in a checkout while a browser suite reads it from there corrupts the run; build stacks in a separate worktree.
+- A worktree made before a package install lacks it until `node scripts/worktreeLinks.mjs` runs again.
