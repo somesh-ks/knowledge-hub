@@ -12,7 +12,6 @@ import {
 } from "@dispatch/core";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
-import { handleAnthropicModels } from "./anthropicModels";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
 import {
@@ -393,18 +392,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       }
       return Object.keys(scope).length > 0 ? { op: "topic.scope", ids, ...scope } : null;
     }
-    case "writer.set": {
-      if (value.provider === "anthropic") {
-        if (typeof value.model !== "string" || !ANTHROPIC_MODEL_ID_PATTERN.test(value.model))
-          return null;
-        return { op: "writer.set", provider: "anthropic", model: value.model };
-      }
-      if (value.provider !== "nebius") return null;
-      if (value.model === null) return { op: "writer.set", provider: "nebius", model: null };
-      if (typeof value.model !== "string" || !MODEL_ID_PATTERN.test(value.model)) return null;
-      if (value.model.startsWith("claude-")) return null;
-      return { op: "writer.set", provider: "nebius", model: value.model };
-    }
     case "profile.block":
     case "profile.unblock": {
       // Any address of the outlet is accepted and stored as its domain; what is not a host is refused.
@@ -484,30 +471,6 @@ export function configCooldownSeconds(startedAt: readonly number[], now: number)
   return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
 }
 
-/**
- * Whether every Claude model the edit picks beyond the built-in two is one Anthropic lists now
- * (D117): "unlisted" when one is not, "unavailable" when the list cannot be read. The built-in two
- * never ask, so they save while Anthropic is down.
- */
-async function claudeModelsListed(
-  op: ConfigOp | ConfigOp[],
-  deps: ConfigDeps,
-): Promise<"ok" | "unlisted" | "unavailable"> {
-  const picked = (Array.isArray(op) ? op : [op]).flatMap((entry) =>
-    entry.op === "writer.set" &&
-    entry.provider === "anthropic" &&
-    entry.model !== null &&
-    !isAnthropicModel(entry.model)
-      ? [entry.model]
-      : [],
-  );
-  if (picked.length === 0) return "ok";
-  const listed = await handleAnthropicModels({ env: deps.env, fetch: deps.fetch, log: deps.log });
-  if (!("models" in listed.body)) return "unavailable";
-  const ids = new Set(listed.body.models.map((model) => model.id));
-  return picked.every((id) => ids.has(id)) ? "ok" : "unlisted";
-}
-
 // -------------------------------------------------------------------------------------------- handler
 
 export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promise<ConfigResult> {
@@ -528,14 +491,6 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
     await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
-
-  // Asked only after the passphrase, so a stranger cannot make the site call Anthropic.
-  const claude = await claudeModelsListed(request.op, deps);
-  if (claude === "unavailable") {
-    log("config unavailable: the Anthropic model list could not be read to check the picked model");
-    return unavailable;
-  }
-  if (claude === "unlisted") return invalid;
 
   const github = createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE);
   try {
