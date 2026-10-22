@@ -7,7 +7,8 @@ name: health
 # audio run. GitHub's own run list is the record that a run started: one that failed with no
 # outcome in state/last-run.json after it is `run_died` and one cancelled is the warning
 # `run_cancelled`; both only alert (a missed briefing also reads as `run_overdue`, which heals).
-# While the issue stays open nothing is retried again, so a fault never loops.
+# While the issue stays open nothing is retried again, so a fault never loops. Performance is a
+# lab probe (D147): cold loads of three pages on a throttled phone, judged as warnings only.
 
 on:
   schedule:
@@ -26,7 +27,7 @@ permissions:
 jobs:
   health:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -39,8 +40,35 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # The probe costs several minutes of a capped allowance (D148), so it runs on Mondays and on a
+      # manual run; the other days health judges no performance.
+      - name: Probe today?
+        id: probe
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%u)" = "1" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        # apps/web brings Playwright, which only the probe needs.
+        run: >-
+          npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+          ${{ steps.probe.outputs.run == 'true' && '--workspace=apps/web' || '' }}
+
+      # The lab probe (D147, scripts/perfProbe.ts). One that fails (the site down, a timeout) writes
+      # no perf.json and never fails the job: health reads the missing file as `perf_unmeasured`.
+      - name: Probe performance
+        if: steps.probe.outputs.run == 'true'
+        shell: bash
+        continue-on-error: true
+        # Nine throttled loads of up to 65 s each, after the browser install, with room to spare.
+        timeout-minutes: 15
+        run: |
+          npx playwright install --with-deps chromium
+          npx tsx scripts/perfProbe.ts https://news.someshks.work --out "$RUNNER_TEMP/perf.json"
 
       - name: Check
         shell: bash
@@ -49,15 +77,20 @@ jobs:
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+          # Empty on a day without the probe, which health reads as nothing to judge.
+          PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |
           set -uo pipefail
           runs="$RUNNER_TEMP/runs.json"
           # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
           since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
           gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
-          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
+          # Performance findings are warnings and open no issue (D147), so they go on the run's page.
+          jq -r '.findings[] | select(.aspect == "performance") | "::warning title=\(.code)::\(.message)"' "$RUNNER_TEMP/health.json" || true
+          [ -n "$PERF" ] && jq -r '"## Lab performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Report and heal
         shell: bash

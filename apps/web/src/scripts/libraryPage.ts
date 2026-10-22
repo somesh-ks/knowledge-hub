@@ -210,6 +210,9 @@ function install(): void {
     if (status) status.textContent = resultSummary(shown, live.length);
     if (empty) {
       empty.hidden = shown > 0;
+      // A search with no result puts the floating New episode away (library.css), said on the root
+      // so a key restyles only the button, not the whole page (D147).
+      document.documentElement.toggleAttribute("data-search-empty", shown === 0 && query !== "");
       if (shown === 0) {
         const copy = emptyCopy(query, filter);
         emptyReset = copy.resets;
@@ -319,7 +322,14 @@ function install(): void {
   });
 
   // Episodes this device deleted may be taken out of the page after this script has counted it.
+  // It goes with the page too: apply() writes the root, and an old visit's would hide the New
+  // episode button on a later one.
   document.addEventListener("dispatch:library-pruned", apply);
+  document.addEventListener(
+    "astro:before-swap",
+    () => document.removeEventListener("dispatch:library-pruned", apply),
+    { once: true },
+  );
   apply();
 }
 

@@ -7,8 +7,10 @@
 
 /* ------------------------------------------------------------------ sections */
 
-/* While the section tabs stick, focus and anchors land below them as well as below the app bar. */
-html:has(.briefing > .tabs-bar) {
+/* While the section tabs stick, focus and anchors land below them as well as below the app bar.
+   data-has-tabs is the layout's word for a page with the tabs (BaseLayout.astro), not a root :has(),
+   which restyled the whole page (D147). */
+html[data-has-tabs] {
   scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
 }
 
@@ -43,7 +45,8 @@ html:has(.briefing > .tabs-bar) {
 }
 
 /* Stuck under the app bar, the strip draws the one line under the top chrome: while it sticks the
-   bar's own line goes (briefingPage.ts sets data-stuck), so one line shows, not two. The strip sits
+   bar's own line goes (briefingPage.ts sets data-stuck, and data-tabs-stuck on the root for the bar),
+   so one line shows, not two. The strip sits
    under the bar, a hairline up, so where the end of the briefing pushes it up it slides beneath the
    bar instead of over the wordmark. From 64rem there is no app bar. */
 @media (width < 64rem) {
@@ -52,7 +55,7 @@ html:has(.briefing > .tabs-bar) {
     z-index: calc(var(--z-header) - 1);
   }
 
-  html:has(.briefing > .tabs-bar[data-stuck]) .app-bar::after {
+  html[data-tabs-stuck] .app-bar::after {
     display: none;
   }
 }
@@ -106,7 +109,7 @@ html:has(.briefing > .tabs-bar) {
     display: none;
   }
 
-  html:has(.briefing > .tabs-bar) {
+  html[data-has-tabs] {
     scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
   }
 

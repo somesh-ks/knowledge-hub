@@ -50,11 +50,10 @@ dependent; Hobby has none).
 heal. Gap: quota eviction of downloads is not detected. Recommend: `navigator.storage.persist()`
 on the first Download (small).
 
-**Performance.** Detector: `checkBundle` holds first load to 109 KB (heaviest page about
-108.7 KB; the reporter added a few hundred bytes to `app.ts`). Gap: no LCP or INP from real
-devices. Recommend: send `PerformanceObserver` LCP and INP through `/api/report` at page hide
-(about 0.3 KB, needs budget room from a cut in [first-load-js.md](first-load-js.md)); Vercel
-Speed Insights costs about 4 KB and money.
+**Performance.** Detector: `checkBundle` holds first load to 130 KB in CI, and since D147 the
+weekly lab probe (Mondays, D148) (`scripts/perfProbe.ts` in `health.yml`) loads three pages cold on a throttled
+phone and warns `perf_budget` or `perf_unmeasured` on the run's page (no issue). Gap: lab, not field; real-user Web Vitals are
+deferred (D147).
 
 **Quality of briefings.** Before: the validate stage grounds each story with Jev and drops the
 ungrounded; nothing reported a thin run after the fact. Added: `digest_thin`,
@@ -93,7 +92,7 @@ config checks into `health` (small).
 
 ## Round 3: episodes, config, died runs (2026-10-22)
 
-- Web Vitals: built and taken out again before merge (D146); an open gap in the Performance row.
+- Web Vitals: built and taken out again before merge (D146); replaced by the weekly lab probe (Mondays, D148) (D147).
 - Died runs: GitHub's run list is the start marker; nothing new is written by the engine.
 - Episodes and config: parsed daily by `health`, with doctor's config checks folded in.
 
@@ -107,7 +106,7 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 | Reliability | `run_failed`, `run_overdue`, `run_died`, `audio_missing`, `audio_unreachable`, the push answer | `health.yml` daily; every engine push | one run (`run_failed`, `run_overdue`), one `audio.yml`, rebase and retry | Vercel Cron unverified (D61); `run_died` sees run.yml's last 3 days (200 runs at most) and needs `gh` in `health.yml` |
 | Availability | `site_down`, `site_api` (`/api/podcast` 405), `site_stale`, `site_update` | `health.yml`; `smoke.yml` after each deploy | none: alert only, a redeploy is the owner's | function 5xx rates and latency (Vercel dashboard only) |
 | Stale client | `site_update`; build compare on load and on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, a Reload offer per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
-| Performance | `checkBundle` (D141, 130 KB) | CI build | none | real-user Web Vitals: planned as its own change; a per-hour cap and serialised writes needed |
+| Performance | `checkBundle` (D141, 130 KB); the weekly lab probe (Mondays, D148), `perf_budget` and `perf_unmeasured` (D147) | CI build; `health.yml` | none: alert only | lab, not field: one throttled Chromium on a shared runner; real-user Web Vitals deferred (D147) |
 | Quality | `digest_thin`, `digest_unverified`, `model_fallback`, `source_failing`, `story_short`, `episode_broken`, `episode_unnarrated` | `health.yml` | none: a thin or stub briefing is the owner's to regenerate | a briefing short of its length; a briefing's own word marks; only the newest episode's first segment is fetched |
 | Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; per-instance limits reset on a cold start |
 | Cost | `cost_over_ceiling`, `speech_budget`, the per-call caps | `health.yml`; every call | the caps stop the next call | Vercel-side Speechify spend has its own counter |

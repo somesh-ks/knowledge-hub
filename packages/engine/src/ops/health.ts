@@ -17,6 +17,7 @@ import {
 import {
   checkConfig,
   checkEpisodes,
+  checkPerf,
   checkRunsDied,
   type HealthAspect,
   type HealthFetch,
@@ -61,6 +62,8 @@ export interface HealthOptions {
   fetch?: HealthFetch;
   /** run.yml's recent runs from GitHub (health.yml passes them); absent skips `run_died`. */
   runs?: readonly WorkflowRun[];
+  /** The lab probe's output (health.yml passes it; null when it wrote none); absent skips the perf check. */
+  perf?: unknown;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
 }
@@ -236,6 +239,8 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
 
   // Quality: every episode parses and narrates whole; the newest one's word marks read.
   await checkEpisodes(root, options.voices ?? {}, now, { fault, warn, passed }, blob);
+
+  if (options.perf !== undefined) checkPerf(options.perf, { fault, warn, passed });
 
   if (options.site !== null) {
     await checkSite(options.site, get, latest?.digest ?? null, now, {

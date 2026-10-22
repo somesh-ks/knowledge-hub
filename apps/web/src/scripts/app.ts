@@ -3,18 +3,21 @@ import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
 import { installNavigation } from "./navigation";
+import { installRootState } from "./rootState";
 import { installThemeColor } from "./themeColor";
 import { installUiSound } from "./uiSound";
 
 /**
  * Page-level behavior that belongs to the shell, not to the player: navigation rules, device
- * banners, the disabled-control guard, the browser chrome colour and the service worker. Loaded once
+ * banners, the disabled-control guard, the browser chrome colour, the root's dialog and toast state
+ * and the service worker. Loaded once
  * from the layout. A bundled module script runs once per session, so per-page work listens for
  * astro:page-load.
  */
 installDisabledGuard();
 captureInstallPrompt();
 installNavigation();
+installRootState();
 installCreateEntry();
 installDeviceBanners();
 installThemeColor();
@@ -60,9 +63,15 @@ if (document.readyState === "complete") registerWorker();
 else addEventListener("load", registerWorker, { once: true });
 // The scrollbar's width, measured while no dialog or open player holds the page: either takes the
 // scrollbar away, and the page keeps this much room instead so it does not move (foundations.css,
-// player.css). A swap replaces the root's style, so the value goes back on after each one.
+// player.css). A swap replaces the root's style, so the value goes back on after each one. No
+// scrollbar (a phone) leaves the property unset, which every use reads as 0px: a custom property
+// set on the root restyles the whole page, about 50 ms of a throttled phone's first load.
 let gutter = "0px";
-const holdGutter = (): void => document.documentElement.style.setProperty("--gutter", gutter);
+const holdGutter = (): void => {
+  const root = document.documentElement.style;
+  if (gutter === "0px") root.removeProperty("--gutter");
+  else root.setProperty("--gutter", gutter);
+};
 const measureGutter = (): void => {
   const held =
     document.querySelector("dialog[open]") || document.documentElement.dataset.player === "open";
