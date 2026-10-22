@@ -21,7 +21,7 @@ export const REPORTS_PER_MINUTE = 30;
 export const VITALS_PER_MINUTE = 30;
 export const MAX_REPORT_CHARS = 4096;
 const FIELD_CHARS = 300;
-const KINDS = new Set(["error", "rejection", "csp"]);
+const KINDS = new Set(["error", "rejection", "csp", "platform"]);
 
 export interface ReportDeps {
   log: (line: string) => void;

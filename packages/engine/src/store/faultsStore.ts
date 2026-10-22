@@ -38,8 +38,10 @@ export const FAULTS_SCHEMA_SQL = [
 /**
  * `server`: a 5xx a site function answered (http.ts: answerWithRef or recordingFaults), its page
  * the route label, its message the step code or a redacted throw's start; never sent by a page.
+ * `platform`: a 5xx Vercel answered for a function it killed, sent by the page that saw it, its page
+ * the route label, its message Vercel's `x-vercel-error` code.
  */
-export type ClientFaultKind = "error" | "rejection" | "csp" | "server";
+export type ClientFaultKind = "error" | "rejection" | "csp" | "server" | "platform";
 
 /** One fault as the server checked it (apps/web/src/server/faults.ts). */
 export interface ClientFault {
