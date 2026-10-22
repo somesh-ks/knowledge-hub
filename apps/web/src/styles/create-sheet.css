@@ -401,7 +401,7 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
    it outranks the shared .icon-btn sizing wherever that loads. A full-screen sheet (dialog.create-sheet:
    New episode, the topic and source panel, Regenerate) is the exception and keeps its Close at the
    row's end, as on a desktop (owner, 2026-10-22): with no page left showing, there is nothing to tap
-   away to (D151). The partial sheets (the menu sheets, the emoji picker) still hide it. */
+   away to (D152). The partial sheets (the menu sheets, the emoji picker) still hide it. */
 @media (width < 40rem) {
   :not(dialog.create-sheet) > .create-sheet-head > .icon-btn.icon-btn {
     position: absolute;
