@@ -138,9 +138,9 @@ function watchSections({ keepHeld = false } = {}): void {
   // The reading line: a heading's padding under the sticky strip (or the top, where the strip is
   // not shown), which is where a jump to a section puts its heading's words. A jump made while the
   // app bar shows can leave the heading lower once the bar slides away, still within this line.
-  // The bar around the strip is what sticks (Briefing.astro). Every box is read before the probe in
-  // stickyTop goes in, and the probe is read once: each read after a change to the page restyles all
-  // of it, about 60 ms on a throttled phone.
+  // The bar around the strip is what sticks (Briefing.astro). Here every box is read before the probe
+  // in stickyTop goes in, and the probe is read once: each read after a change to the page restyles
+  // all of it, about 60 ms on a throttled phone.
   const bar = strip?.closest<HTMLElement>("[data-tabs-bar]") ?? strip;
   const stripHeight = strip?.offsetParent ? strip.offsetHeight : null;
   const barShown = Boolean(bar?.offsetParent);
@@ -298,21 +298,23 @@ window.addEventListener("keydown", release);
 window.addEventListener("popstate", release);
 
 /** Marks a tab strip whose tabs all fit, which then shows no edge fades (briefing.css). */
-function fitStrip(): void {
+function fitStrip(): () => void {
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
-  strip?.toggleAttribute("data-fits", strip.scrollWidth <= strip.clientWidth + 1);
+  const fits = strip ? strip.scrollWidth <= strip.clientWidth + 1 : false;
+  return () => strip?.toggleAttribute("data-fits", fits);
 }
 
 const measure = (): void => {
-  fitStrip();
+  fitStrip()();
 };
 
 const watchPage = (): void => {
-  // First, while the page is as it loaded: watchSections changes it, and a read after a change costs
-  // another restyle of the whole page.
-  measure();
+  // Read before watchSections and written after it: a read after a change to the page costs another
+  // restyle of all of it.
+  const fit = fitStrip();
   watchSections();
   watchHeroPlay();
+  fit();
   void document.fonts?.ready.then(measure);
 };
 

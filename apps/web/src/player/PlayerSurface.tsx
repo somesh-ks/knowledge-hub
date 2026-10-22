@@ -80,16 +80,20 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
  * dialog role) belong to the surface controller, which writes them the instant they change. They
  * are rendered here only in their collapsed form, which is what the server sends.
  */
+/**
+ * The page's controls, or the way to them. Controls that arrive after the surface mounted render in
+ * a pass React can pause for a press, and only this slot renders again: in one go they blocked a
+ * throttled phone for about 140 ms at idle. Already loaded, they render in the surface's first pass.
+ */
+function PageBody() {
+  const { Content, status } = useDeferredValue(
+    useSyncExternalStore(subscribePageContent, getPageContent, getServerPageContent),
+  );
+  return Content ? <Content /> : <PageFallback status={status} />;
+}
+
 export default function PlayerSurface() {
   const state = usePlayerState();
-  const { Content: arrived, status } = useSyncExternalStore(
-    subscribePageContent,
-    getPageContent,
-    getServerPageContent,
-  );
-  // Controls that arrive while the page is up render in a pass React can pause for a press: in one
-  // go they blocked a throttled phone for about 140 ms at idle. Already loaded, they render at once.
-  const Content = useDeferredValue(arrived);
 
   // Nodes that React has just made are told where the page is.
   useEffect(() => playerSheet.sync(), []);
@@ -209,7 +213,7 @@ export default function PlayerSurface() {
               </div>
             </div>
             <div className="player-body">
-              {Content ? <Content /> : <PageFallback status={status} />}
+              <PageBody />
             </div>
           </div>
         </section>

@@ -66,9 +66,8 @@ else addEventListener("load", registerWorker, { once: true });
 let gutter = "0px";
 const holdGutter = (): void => {
   const root = document.documentElement.style;
-  if (gutter === "0px") {
-    if (root.getPropertyValue("--gutter")) root.removeProperty("--gutter");
-  } else root.setProperty("--gutter", gutter);
+  if (gutter === "0px") root.removeProperty("--gutter");
+  else root.setProperty("--gutter", gutter);
 };
 const measureGutter = (): void => {
   const held =
