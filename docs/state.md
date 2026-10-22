@@ -61,7 +61,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Known risks
 
-- No passphrase (D159): anyone who opens the site, a shared link too, can start runs, narrate, delete and edit config, inside the caps.
+- No passphrase (D159): anyone with the URL can run, narrate, delete and edit config, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
 - A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
