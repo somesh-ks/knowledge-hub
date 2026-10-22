@@ -54,6 +54,7 @@ interface Collected {
   lcp: number;
   shifts: LayoutShift[];
   tasks: LongTask[];
+  fcp: number;
   loadEnd: number;
 }
 
@@ -70,13 +71,17 @@ async function measure(browser: Browser, url: string): Promise<PageMetrics> {
     if (!response?.ok()) throw new Error(`${url} answered ${response?.status() ?? "nothing"}`);
     await page.waitForTimeout(IDLE_MS);
     const collected = (await page.evaluate(
-      `({ ...window.__perf, loadEnd: performance.getEntriesByType("navigation")[0]?.loadEventEnd ?? 0 })`,
+      `({
+        ...window.__perf,
+        fcp: performance.getEntriesByName("first-contentful-paint")[0]?.startTime ?? 0,
+        loadEnd: performance.getEntriesByType("navigation")[0]?.loadEventEnd ?? 0,
+      })`,
     )) as Collected;
     if (!(collected.lcp > 0)) throw new Error(`${url} reported no largest contentful paint`);
     return {
       lcp_ms: collected.lcp,
       cls: cumulativeLayoutShift(collected.shifts),
-      tbt_ms: totalBlockingTime(collected.tasks, collected.loadEnd + IDLE_MS),
+      tbt_ms: totalBlockingTime(collected.tasks, collected.fcp, collected.loadEnd + IDLE_MS),
     };
   } finally {
     await context.close();
@@ -94,12 +99,14 @@ async function main(): Promise<void> {
   });
   const origin = positionals[0]?.replace(/\/+$/, "");
   const loads = Number(values.loads);
-  if (!origin || !/^https?:\/\/[^/]+$/.test(origin) || !(loads >= 1)) {
+  if (!origin || !/^https?:\/\/[^/]+$/.test(origin) || !Number.isInteger(loads) || loads < 1) {
     throw new Error(
       "Usage: tsx scripts/perfProbe.ts <origin> [--out perf.json] [--loads 3] [--browser <path>]",
     );
   }
-  const latest = (await (await fetch(`${origin}/latest.json`)).json()) as { id?: string | null };
+  const answer = await fetch(`${origin}/latest.json`, { signal: AbortSignal.timeout(20_000) });
+  if (!answer.ok) throw new Error(`/latest.json answered ${answer.status}`);
+  const latest = (await answer.json()) as { id?: string | null };
   if (!latest.id) throw new Error("/latest.json names no briefing");
   const paths = ["/", `/d/${latest.id}`, "/library"];
 

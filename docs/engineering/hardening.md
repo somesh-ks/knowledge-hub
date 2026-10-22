@@ -52,7 +52,7 @@ on the first Download (small).
 
 **Performance.** Detector: `checkBundle` holds first load to 130 KB in CI, and since D147 the
 daily lab probe (`scripts/perfProbe.ts` in `health.yml`) loads three pages cold on a throttled
-phone and warns `perf_budget` or `perf_unmeasured`. Gap: lab, not field; real-user Web Vitals are
+phone and warns `perf_budget` or `perf_unmeasured` on the run's page (no issue). Gap: lab, not field; real-user Web Vitals are
 deferred (D147).
 
 **Quality of briefings.** Before: the validate stage grounds each story with Jev and drops the

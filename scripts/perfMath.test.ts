@@ -21,15 +21,17 @@ describe("the lab probe's arithmetic", () => {
     expect(cumulativeLayoutShift(steady)).toBeCloseTo(0.06);
   });
 
-  // A whole long task counted as blocking (its first 50 ms do not), and the idle tail's timers,
-  // past the measured span, inflated TBT.
-  it("counts only the blocking part of long tasks that started before the end", () => {
+  // A whole long task counted as blocking (its first 50 ms do not), and parsing before the first
+  // paint (Lighthouse starts TBT at FCP) or a timer past the measured span inflated TBT.
+  it("counts only the blocking part of long tasks between first paint and the end", () => {
     const tasks = [
       { startTime: 100, duration: 120 },
+      { startTime: 200, duration: 120 },
       { startTime: 900, duration: 50 },
       { startTime: 9000, duration: 400 },
     ];
-    expect(totalBlockingTime(tasks, 6000)).toBe(70);
+    // 20 ms of the first after paint at 150, 70 of the second, none of the others.
+    expect(totalBlockingTime(tasks, 150, 6000)).toBe(90);
   });
 
   // One cold load that hit a slow runner moment set the day's number.

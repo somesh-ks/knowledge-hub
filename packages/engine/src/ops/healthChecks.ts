@@ -255,7 +255,7 @@ export function checkPerf(perf: unknown, sink: Sink): void {
     return;
   }
   for (const { page, lcp_ms, cls, tbt_ms } of pages as PerfPage[]) {
-    const reading = `LCP ${Math.round(lcp_ms)} ms, CLS ${cls.toFixed(3)}, TBT ${Math.round(tbt_ms)} ms`;
+    const reading = `LCP ${Math.round(lcp_ms)} ms, CLS ${cls.toFixed(4)}, TBT ${Math.round(tbt_ms)} ms`;
     const over = [
       lcp_ms > PERF_BUDGET.lcp_ms && `LCP over ${PERF_BUDGET.lcp_ms} ms`,
       cls > PERF_BUDGET.cls && `CLS over ${PERF_BUDGET.cls}`,

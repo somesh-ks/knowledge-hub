@@ -47,17 +47,23 @@ export function cumulativeLayoutShift(shifts: readonly LayoutShift[]): number {
   return worst;
 }
 
-/** TBT: each long task's time past 50 ms, for the tasks that started before `end`. */
-export function totalBlockingTime(tasks: readonly LongTask[], end: number): number {
+/**
+ * TBT: each long task's time past 50 ms, from `start` (first contentful paint, where Lighthouse
+ * starts; a task across it counts from the paint) for the tasks that started before `end`.
+ */
+export function totalBlockingTime(tasks: readonly LongTask[], start: number, end: number): number {
   return tasks
     .filter((task) => task.startTime < end)
-    .reduce((sum, task) => sum + Math.max(0, task.duration - BLOCKING_MS), 0);
+    .reduce((sum, task) => {
+      const after = task.startTime + task.duration - Math.max(task.startTime, start);
+      return sum + Math.max(0, after - BLOCKING_MS);
+    }, 0);
 }
 
-export function median(values: readonly number[]): number {
+function median(values: readonly number[]): number {
+  if (values.length === 0) return Number.NaN;
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
-  if (sorted.length === 0) return Number.NaN;
   return sorted.length % 2 === 1
     ? (sorted[middle] as number)
     : ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2;
