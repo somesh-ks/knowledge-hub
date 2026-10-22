@@ -257,8 +257,8 @@ describe("sections and top picks", () => {
     expect(bySection[a.item.id]).toBe("top");
     expect(bySection[b.item.id]).toBe("top");
     expect(bySection[c.item.id]).toBe("top");
-    // Library, framework and changelog news files under Launches, read last (2026-10-18).
-    expect(bySection[d.item.id]).toBe("launches");
+    // A tool launch with no version in its headline competes in Software Engineering (D155).
+    expect(bySection[d.item.id]).toBe("software");
     expect(bySection[e.item.id]).toBe("ui-craft");
     expect(result.selected.filter((s) => s.section === "top")).toHaveLength(3);
   });
@@ -278,8 +278,8 @@ describe("sections and top picks", () => {
       "top",
       "top",
       "design",
+      "software",
       "ai",
-      "launches",
     ]);
   });
 
@@ -501,6 +501,17 @@ describe("release notes", () => {
     expect(result.selected.at(-1)?.item.id).toBe(releases[0]?.item.id);
     expect(result.selected.at(-1)?.section).toBe("launches");
   });
+
+  // D155: Software Engineering takes tool launches uncapped; only a version in the headline is a release note.
+  it("lets tool launches without a version compete in Software Engineering, uncapped and never read last", () => {
+    const launches = Array.from({ length: 6 }, (_, i) =>
+      scored("developer_tool_launches", 0.9 - i * 0.01, { title: `Acme ships tool ${i}` }),
+    );
+    const result = selectItems({ scored: launches, kind: "regular", floor: 3, cap: 12 });
+    expect(result.selected).toHaveLength(6);
+    expect(result.selected.some((s) => s.section === "launches")).toBe(false);
+    expect(result.selected.filter((s) => s.section === "software")).toHaveLength(3);
+  });
 });
 
 describe("same story", () => {
@@ -550,15 +561,14 @@ describe("weekly reserved slot", () => {
     ...Array.from({ length: 3 }, (_, i) => scored("hci_empirical_research", 0.8 - i * 0.01)),
   ];
 
-  it("computes the median of the eleven weights: the middle one", () => {
-    expect(Object.keys(weights)).toHaveLength(11);
-    // Sorted: 0.02, 0.1, 0.8, 0.82, 0.85, [0.85], 0.88, 0.9, 0.92, 0.92, 0.95.
+  it("computes the median of the twelve weights: the mean of the middle two", () => {
+    expect(Object.keys(weights)).toHaveLength(12);
+    // Sorted: 0.02, 0.1, 0.8, 0.82, 0.85, [0.85, 0.85], 0.88, 0.9, 0.92, 0.92, 0.95.
     expect(medianWeight(weights)).toBe(0.85);
   });
 
   it("moves with the weights: one category raised above the middle shifts the median up", () => {
-    // Before consumer tech (0.8) joined, the median of ten weights was 0.865.
-    expect(medianWeight({ ...weights, consumer_tech_releases: 0.9 })).toBe(0.88);
+    expect(medianWeight({ ...weights, consumer_tech_releases: 0.9 })).toBe(0.865);
     expect(medianWeight({ ...weights, consumer_tech_releases: 0 })).toBe(0.85);
   });
 
@@ -719,6 +729,7 @@ describe("the tech allowance", () => {
       "top",
       "design",
       "ui-craft",
+      "software",
       "ai",
       "tech",
       "trending",
@@ -734,7 +745,7 @@ describe("the tech allowance", () => {
       scored("design_engineering_craft", 0.5),
       scored("frontier_model_releases", 0.5),
       scored("hci_empirical_research", 0.5),
-      scored("developer_tool_launches", 0.5),
+      scored("developer_tool_launches", 0.5, { title: "kit 1.0" }),
       scored("css_canvas_motion_techniques", 0.5, { source_type: "youtube" }),
     ]);
     expect(result.selected.map((s) => s.section)).toEqual([

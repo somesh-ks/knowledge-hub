@@ -17,9 +17,6 @@ const VERSION =
  */
 export const RELEASE_NOTE_SHARE = 0.06;
 
-/** The category of library, framework and tool launches. */
-export const RELEASE_CATEGORY = "developer_tool_launches";
-
 /**
  * The section release stories are filed in: the retired Launches section, which reads last, so
  * library, framework and changelog news closes an episode instead of opening it (2026-10-18).
@@ -27,14 +24,16 @@ export const RELEASE_CATEGORY = "developer_tool_launches";
 export const RELEASE_SECTION = "launches";
 
 /**
- * True for library, framework or changelog news: a release note, or a story the judge filed as a
- * developer tool launch. Such a story never becomes a Top pick and is read at the end.
+ * True for changelog news: a GitHub release or a headline that names a version number. Such a
+ * story never becomes a Top pick and is read at the end. Since D155 a tool launch the judge files
+ * under developer_tool_launches no longer counts by its category alone: it competes in Software
+ * Engineering like any other story and is a release story only when its headline is a version.
  */
 export function isReleaseStory(candidate: {
   item: Pick<Item, "source_type" | "title">;
   category: string;
 }): boolean {
-  return candidate.category === RELEASE_CATEGORY || isReleaseNote(candidate.item);
+  return isReleaseNote(candidate.item);
 }
 
 /**

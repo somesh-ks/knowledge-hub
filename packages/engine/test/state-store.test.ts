@@ -120,7 +120,11 @@ describe("round trips", () => {
 describe("judgments cached before the consumer tech category", () => {
   /** An entry exactly as the cache held it: eleven probabilities and no launch scale. */
   const oldEntry = (): Record<string, unknown> => {
-    const { consumer_tech_releases: _tech, ...elevenKeys } = CATEGORY_PROBS;
+    const {
+      consumer_tech_releases: _tech,
+      software_engineering_depth: _software,
+      ...elevenKeys
+    } = CATEGORY_PROBS;
     return {
       item_id: "abc123def456",
       model: "jev-latest",
@@ -136,7 +140,8 @@ describe("judgments cached before the consumer tech category", () => {
     const raw = oldEntry();
     expect(Object.keys(raw.category_probs as object)).toHaveLength(11);
     const entry = JudgmentEntry.parse(raw);
-    expect(Object.keys(entry.category_probs)).toHaveLength(12);
+    expect(Object.keys(entry.category_probs)).toHaveLength(13);
+    expect(entry.category_probs.software_engineering_depth).toBe(0);
     expect(entry.category_probs.consumer_tech_releases).toBe(0);
     expect(entry.category_probs.design_engineering_craft).toBe(0.7);
     expect(entry).not.toHaveProperty("launch_scale");

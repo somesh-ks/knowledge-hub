@@ -11,6 +11,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.10",
+    date: "2026-10-22",
+    description:
+      "Software Engineering is a fourth topic with its own section in every briefing, for tools, languages and engineering deep dives.",
+  },
+  {
     version: "0.9",
     date: "2026-10-22",
     description:

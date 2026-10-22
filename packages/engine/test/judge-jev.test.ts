@@ -65,8 +65,8 @@ const judgeWith = (
 ) => new JevJudge({ client, now: () => NOW, retry: NO_WAIT, ...extra });
 
 describe("question definitions", () => {
-  it("covers the eleven categories plus none, each with a criterion", () => {
-    expect(CATEGORIES).toHaveLength(11);
+  it("covers the twelve categories plus none, each with a criterion", () => {
+    expect(CATEGORIES).toHaveLength(12);
     expect([...CATEGORY_OPTIONS].sort()).toEqual([...CATEGORIES, "none"].sort());
     for (const option of CATEGORY_OPTIONS)
       expect(CATEGORY_CRITERIA[option].length).toBeGreaterThan(30);
@@ -82,7 +82,7 @@ describe("question definitions", () => {
       "funding",
     ]);
     expect(JEV_QUESTIONS.category.type).toBe("choice");
-    expect(Object.keys(JEV_QUESTIONS.category.criteria)).toHaveLength(12);
+    expect(Object.keys(JEV_QUESTIONS.category.criteria)).toHaveLength(13);
     expect(JEV_QUESTIONS.craft_depth.type).toBe("score");
     expect(JEV_QUESTIONS.craft_depth.criteria).toHaveLength(5);
     expect(CRAFT_LEVELS).toHaveLength(5);
@@ -172,7 +172,7 @@ describe("answer mapping", () => {
       { design_engineering_craft: 0.6, bogus: 0.4 },
       "design_engineering_craft",
     );
-    expect(Object.keys(probs)).toHaveLength(12);
+    expect(Object.keys(probs)).toHaveLength(13);
     expect(probs.design_engineering_craft).toBe(1);
     expect(probs.none).toBe(0);
     expect(probs.consumer_tech_releases).toBe(0);
@@ -237,7 +237,7 @@ describe("JevJudge", () => {
       flags: { hype: 0.03, sponsored: 0.01, funding: 0.02 },
     });
     expect(entry?.category_probs.css_canvas_motion_techniques).toBe(0.8);
-    expect(Object.keys(entry?.category_probs ?? {})).toHaveLength(12);
+    expect(Object.keys(entry?.category_probs ?? {})).toHaveLength(13);
     const total = Object.values(entry?.category_probs ?? {}).reduce((a, b) => a + b, 0);
     expect(total).toBeCloseTo(1, 2);
   });

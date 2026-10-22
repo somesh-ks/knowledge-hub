@@ -36,6 +36,7 @@ export const CATEGORY_PROBS: JudgmentEntry["category_probs"] = {
   venture_capital_and_gossip: 0,
   generic_ai_hype_listicles: 0,
   consumer_tech_releases: 0,
+  software_engineering_depth: 0,
   none: 0.3,
 };
 

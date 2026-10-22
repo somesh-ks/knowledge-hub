@@ -99,6 +99,7 @@ export const BUILTIN_TOPIC_EMOJI: Readonly<Record<string, string>> = {
   design: "🎨",
   ai: "🤖",
   tech: "📱",
+  software: "💻",
   world: "🌍",
   business: "💼",
   science: "🔬",

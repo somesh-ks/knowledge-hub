@@ -29,7 +29,7 @@ export const TopicDepth = z.enum(TOPIC_DEPTHS);
 export type TopicDepth = z.infer<typeof TopicDepth>;
 
 /**
- * "builtin" topics are the eleven judge categories. "custom" topics are the owner's. "app" topics
+ * "builtin" topics are the twelve judge categories. "custom" topics are the owner's. "app" topics
  * ship with the app (Design and Trending): judged by fit like a custom topic, but they can be
  * switched off and never removed, and they do not count toward MAX_CUSTOM_TOPICS. "general" topics
  * are the general news topics (World, Business, Science, Culture, Sports; D66): fed only by their
@@ -52,9 +52,10 @@ export const RESERVED_TOPIC_IDS: readonly string[] = [
   DESIGN_TOPIC_ID,
   TRENDING_TOPIC_ID,
   ...GENERAL_TOPICS.map((topic) => topic.id),
-  // The pages of the owner's three topics (topicGroups.ts) take these ids.
+  // The pages of the owner's four topics (topicGroups.ts) take these ids.
   "ai",
   "tech",
+  "software",
 ];
 
 /**
@@ -289,6 +290,11 @@ const BUILTIN_META: Record<Category, { name: string; description: string; depth:
   developer_tool_launches: {
     name: "Tool launches",
     description: "New frameworks, editors, CLIs",
+    depth: "craft",
+  },
+  software_engineering_depth: {
+    name: "Engineering deep dives",
+    description: "Architecture, performance and internals, with code",
     depth: "craft",
   },
   taste_and_design_philosophy: {
