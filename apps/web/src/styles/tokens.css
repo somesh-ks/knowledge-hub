@@ -93,6 +93,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-sheet: 1.75rem;
+  --radius-2xl: 2rem;
   --radius-round: 9999px;
   --stroke-hairline: 1px;
   --stroke-rail: 2px;
@@ -408,9 +409,9 @@
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
-  --card-padding: var(--space-4);
-  --card-inset: var(--space-2);
-  --card-radius: var(--radius-xl);
+  --card-padding: var(--space-6);
+  --card-inset: var(--space-4);
+  --card-radius: var(--radius-2xl);
   --card-inner-radius: var(--radius-lg);
   --card-content-radius: var(--radius-sm);
 
