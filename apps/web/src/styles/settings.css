@@ -517,8 +517,16 @@
    values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
    the stored value is set, which comes later and so still wins. */
 .settings-view .value-select > select.manage-input {
+  padding-inline-end: calc(var(--space-2) + var(--size-icon) * 0.72 + var(--field-chevron-gap));
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
+}
+
+/* Its value and chevron end where the link rows' do: their glyph is pulled out by 0.28 of the icon
+   (`.row-action .icon` above), so this one moves the same way inside the select's fill, whose box
+   stays one inset from the card's edge (the design audit, 2026-10-22: 5.6px apart). */
+.settings-view .value-select > .icon {
+  inset-inline-end: calc(var(--space-2) - var(--size-icon) * 0.28);
 }
 
 .settings-row .value-select > select.manage-input:focus-visible {
@@ -595,7 +603,8 @@
 /* A label row that introduces the paragraph under it (About's Author) is not a control row: no
    control-row height, and the paragraph follows one row gap below (2026-10-21, the audit's About). */
 .card-group > .settings-row:has(+ .settings-about) {
-  min-height: 0;
+  /* 56px, on the 8pt grid: its one line and padding came to 52.8px (the design audit, 2026-10-22). */
+  min-height: calc(var(--space-12) + var(--space-2));
 }
 
 .card-group > .settings-row + .settings-about {
