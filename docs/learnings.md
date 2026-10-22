@@ -80,12 +80,11 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
-- 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
+- 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry drops the package): set its version, `resolved` and `integrity`, then `npm ci`. In a linked worktree the adapter build's function check fails (`devalue` missing); check it after a real `npm ci`.
 - 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
 - 2026-10-11: Biome rewrote a generic arrow function, `<T,>(x: T) => ...`, to `<T>(x: T) => ...` in an Astro frontmatter, which the Astro compiler rejects, so a lint-clean commit broke the build. Use a `function` declaration for generics in `.astro` files and build before pushing one.
 - 2026-10-08: a glyph listed only for the lazy icon set renders nothing through the eager `Icon`; `tsc` passes and only `astro check` catches it. Run `astro check` before a PR: CI does not.
-- 2026-10-08: branches that each pass alone can fail together (tab order, focus ring, touch targets, bundle size). Stack them and run the whole site suite before the PR, and measure the bundle on the stack.
 - 2026-10-08: branches that each pass alone can fail together (tab order, focus ring, touch targets, bundle size). Stack them and run the whole site suite before the PR, and measure the bundle on the stack.
 - 2026-10-08: a dev server left running across an install, or a build run beside it, makes every island fail with `_jsxDEV is not a function` (mismatched React builds, stale `apps/web/node_modules/.vite/deps`). Stop it with `npx astro dev stop` (Astro refuses a second one), delete `.vite/deps`, and start the dev server on its own.
 
