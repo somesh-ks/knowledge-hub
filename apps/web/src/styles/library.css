@@ -361,75 +361,11 @@
   }
 }
 
-.sort-field {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex: none;
-  height: var(--chip-height);
-  border: var(--stroke-hairline) solid transparent;
-  border-radius: var(--button-radius);
-  background: var(--color-surface-container);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  white-space: nowrap;
-  color: var(--color-on-surface);
-  transition: background-color var(--duration-hover) var(--ease-hover);
-}
+/* The sort control is the shared select chip (.sort-field, primitives.css, since 2026-10-22 when the
+   Costs page took it too). */
 
-/* A filter or an order that is not the default is on, so it looks chosen, as a chosen chip does. */
-.sort-field[data-active] {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
-}
-
-/* The ring is the keyboard's. A press that opens the list keeps the chip's own fill and state
-   layer: no ring and no accent edge (the shared open rule in primitives.css draws both). */
-:root[data-input="keyboard"] .sort-field:has(> select:focus-visible) {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-:root:not([data-input="keyboard"]) .library-bar .sort-field:has(> select:open) {
-  border-color: transparent;
-  outline: none;
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
-}
-
-/* The select is 44px tall and the box around it 36px: negative margins let it reach past the border
-   for a full-size target. The row's padding holds room for the overhang. */
-.sort-field > select {
-  height: var(--size-touch);
-  margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
-  padding-inline: var(--space-4) calc(var(--space-4) + var(--space-4) + var(--field-chevron-gap));
-  border: 0;
-  border-radius: inherit;
-  background: none;
-  font: inherit;
-  /* The label size is under 16px on purpose: a select does not zoom the page on iOS. */
-  font-size: inherit;
-  outline: none;
-  box-shadow: none;
-  cursor: pointer;
-}
-
-/* The chevron is a hint at the end of the label, a step smaller than a toolbar glyph. */
-.sort-field > .icon {
-  position: absolute;
-  inset-inline-end: var(--space-4);
-  inline-size: var(--size-icon-sm);
-  block-size: var(--size-icon-sm);
-  pointer-events: none;
-}
-
-/* Every control in the bar fills the same way under the pointer. */
+/* Every control in the bar fills the same way under the pointer: the search field as the chip. */
 @media (hover: hover) and (pointer: fine) {
-  .sort-field:hover,
   .search-field:hover:not(:focus-within) {
     background: color-mix(
       in oklch,
@@ -441,14 +377,6 @@
   .search-clear:hover {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
-  }
-
-  .sort-field[data-active]:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
   }
 
   .view-btn[aria-pressed="false"]:hover {

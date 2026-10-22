@@ -3,94 +3,71 @@ import Icon from "../components/Icon.astro";
 import SettingsHead from "../components/SettingsHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/settings.css";
-import "../styles/manage.css";
 import "../styles/costs.css";
 
 const title = "Costs";
 
-// The period sets both the window and the bucket: a column a day, a week or a month.
+// The range sets both the window and the column: a column a day, a week or a month.
 const RANGES = [
-  { value: "day", days: 30, label: "30 days" },
-  { value: "week", days: 91, label: "13 weeks" },
-  { value: "month", days: 365, label: "12 months" },
+  { value: "day", days: 30, label: "Last 30 days" },
+  { value: "week", days: 91, label: "Last 3 months" },
+  { value: "month", days: 365, label: "Last 12 months" },
+];
+// What the breakdown under the chart splits the spend by. By person shows once there are two people.
+const SPLITS = [
+  { value: "provider", label: "By provider" },
+  { value: "kind", label: "By use" },
+  { value: "scope", label: "Shared or personal" },
+  { value: "user", label: "By person" },
 ];
 ---
 
 <BaseLayout title={title} view="settings" skipLabel="Skip to the costs">
   <main id="main" tabindex="-1">
-    {/* Static shell: the numbers load after first paint from /api/costs (scripts/costsPage.ts), so the page costs nothing at start. */}
+    {/* Static shell: the numbers load after first paint from /api/costs (scripts/costsPage.ts), so the
+         page costs nothing at start. One card answers it all (2026-10-22, the owner): the range and
+         breakdown chips at its top, the total, the chart, then the breakdown. */}
     <div class="settings-view costs" data-settings data-costs>
-      <SettingsHead title={title} note="What the app spent on paid services, from the cost ledger." />
+      <SettingsHead title={title} note="What the app spends on paid services." />
 
-      {/* The controls scope everything below them, in the settings row grammar. */}
-      <section aria-labelledby="costs-range-head">
-        <h2 class="section-head" id="costs-range-head">Range</h2>
-        <div class="rows card-group">
-          <div class="settings-row" data-layout="choice">
-            <span class="settings-text">
-              <span class="settings-label" id="costs-period-label">Period</span>
-            </span>
-            <fieldset class="segmented-choice" role="radiogroup" aria-labelledby="costs-period-label">
-              {
-                RANGES.map((range, index) => (
-                  <label class="segmented-choice-item">
-                    <input type="radio" name="costs-range" value={range.value} data-days={range.days} checked={index === 0} />
-                    <span>{range.label}</span>
-                  </label>
-                ))
-              }
-            </fieldset>
-          </div>
-          <div class="settings-row">
-            <label class="settings-label" for="costs-by">Group by</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="costs-by" autocomplete="off">
-                <option value="provider">Provider</option>
-                <option value="kind">Kind</option>
-                <option value="scope">Shared or personal</option>
-                <option value="user">User</option>
+      <section class="card-group costs-card" aria-labelledby="costs-total-label">
+        <div class="costs-head">
+          <div class="costs-filters">
+            <label class="sort-field">
+              <span class="sr-only">Range</span>
+              <select id="costs-range" autocomplete="off">
+                {RANGES.map((range) => <option value={range.value} data-days={range.days}>{range.label}</option>)}
               </select>
               <Icon name="chevronDown" />
-            </span>
+            </label>
+            <label class="sort-field">
+              <span class="sr-only">Breakdown</span>
+              <select id="costs-by" autocomplete="off">
+                {SPLITS.map((split) => <option value={split.value}>{split.label}</option>)}
+              </select>
+              <Icon name="chevronDown" />
+            </label>
+          </div>
+          <div class="costs-answer costs-data" aria-live="polite">
+            <h2 class="costs-label" id="costs-total-label" data-costs-label>Total spend</h2>
+            <p class="costs-total" data-costs-total>Loading</p>
+            <p class="costs-detail" data-costs-detail>&nbsp;</p>
           </div>
         </div>
-      </section>
 
-      <section class="costs-data" aria-labelledby="costs-total-head" aria-live="polite">
-        <h2 class="section-head" id="costs-total-head">Total</h2>
-        <div class="card-group costs-summary">
-          <p class="costs-hero">
-            <span class="costs-hero-label" data-costs-spent-label>Spent in the last 30 days</span>
-            <span class="costs-hero-value" data-costs-total>Loading</span>
-            <span class="costs-tag" data-costs-estimate hidden>Estimate</span>
-          </p>
-          <dl class="costs-kpis">
-            <div><dt>Per run</dt><dd data-costs-per-run></dd></div>
-            <div><dt>Runs</dt><dd data-costs-runs></dd></div>
-            <div data-costs-users hidden><dt>Per user</dt><dd data-costs-per-user></dd></div>
-          </dl>
+        <div class="costs-plot costs-data" data-costs-plot tabindex="0" role="group" aria-label="Spend over time">
+          <div class="costs-tip" data-costs-tip hidden></div>
         </div>
+
+        <h3 class="sr-only" data-costs-rank-head>By provider</h3>
+        <ol class="costs-rank costs-data" data-costs-rank></ol>
       </section>
 
-      <section class="costs-data" aria-labelledby="costs-time-head">
-        <h2 class="section-head" id="costs-time-head">Over time</h2>
-        <div class="card-group costs-chart">
-          <div class="costs-plot" data-costs-plot tabindex="0" role="group" aria-label="Spend over time. Use the arrow keys to read each column.">
-            <div class="costs-tip" data-costs-tip hidden></div>
-          </div>
-          <p class="costs-empty" data-costs-empty hidden>Nothing spent in this range yet. The ledger fills after the engine's first paid run.</p>
-        </div>
-      </section>
-
-      <section class="costs-data" aria-labelledby="costs-rank-head">
-        <h2 class="section-head" id="costs-rank-head" data-costs-rank-head>By provider</h2>
-        <ol class="card-group costs-rank" data-costs-rank></ol>
-        <details class="costs-table" data-costs-table>
-          <summary>Show as a table</summary>
-          <div class="costs-table-scroll"><table data-costs-grid></table></div>
-        </details>
-        <p class="settings-note costs-note" data-costs-note></p>
-      </section>
+      <details class="costs-table" data-costs-table>
+        <summary>Show as a table</summary>
+        <div class="costs-table-scroll"><table data-costs-grid></table></div>
+      </details>
+      <p class="settings-note costs-note" data-costs-note></p>
     </div>
   </main>
 </BaseLayout>
