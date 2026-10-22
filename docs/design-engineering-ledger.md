@@ -374,6 +374,8 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Structure.**
   - Two levels, one job per page, a breadcrumb title, autosave (D51).
   - Rows hover as rounded tiles clear of the hairlines.
+  - A row's value sits at its end, not under its name, which read as squeezed; summaries are short ("Every other day at 7", a source count) and rows with nothing to say have no line; podcast topic chips go by name; an unticked chip in a card has its own tone, as dark mode's raised tone equalled the card (2026-10-22).
+  - Cards and what they hold are concentric: a surface 8px in takes radius 16, content 16px in radius 8, in a 24px card (`component.card`, 2026-10-22).
   - The score is a star and a number (D103).
   - The edit source panel uses token spacing, with "Scorecard" on the left and "x.x/5" on the right, and an empty state (#122).
 - **Saving.**

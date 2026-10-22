@@ -41,11 +41,16 @@
   display: grid;
 }
 
+/* The voice page's one card has no head: with the panel's 16px it sits 24px under the page's note,
+   the air a head gives a card elsewhere (2026-10-22). */
+.podcast-profile[data-profile="voice"] > .card-group:first-child {
+  margin-block-start: var(--space-2);
+}
+
 /* A quiet line under a group's name or its rows. */
 .podcast-hint {
   padding-block-start: var(--space-2);
 }
-
 
 /* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
    room when the voice has no sample yet, so nothing moves when the list arrives. */

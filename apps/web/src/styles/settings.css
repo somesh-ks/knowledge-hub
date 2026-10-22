@@ -513,6 +513,14 @@
   font-weight: var(--font-weight-regular);
 }
 
+/* The same on the index for any select (Theme): its value sits at the row's end among the link rows'
+   values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
+   the stored value is set, which comes later and so still wins. */
+.settings-view .value-select > select.manage-input {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
 .settings-row .value-select > select.manage-input:focus-visible {
   border-color: transparent;
 }
@@ -565,6 +573,12 @@
 }
 
 /* ------------------------------------------------------------------ cards (2026-10-21) */
+
+/* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps the air a
+   head would give it under the page's note, 24px, so the card does not crowd the note (2026-10-22). */
+.settings-view > .settings-head ~ section:first-of-type:not(:has(> .section-head)) {
+  margin-block-start: var(--space-6);
+}
 
 /* The groups are cards (.card-group, primitives.css): the head sits above its card, and the install
    offer, which has no head, stands apart from the card above it. */

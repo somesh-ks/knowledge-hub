@@ -269,7 +269,9 @@ test.describe("the profile pages", () => {
     for (const chip of await chips.all()) await expect(chip.locator("input")).toBeEnabled();
     // The fixtures leave nothing out, so the owner's topics are in.
     for (const name of ["Design", "AI", "Technology", "Audio interfaces"]) {
-      await expect(chips.filter({ hasText: new RegExp(`^${name}$`) }).locator("input")).toBeChecked();
+      await expect(
+        chips.filter({ hasText: new RegExp(`^${name}$`) }).locator("input"),
+      ).toBeChecked();
     }
   });
 });

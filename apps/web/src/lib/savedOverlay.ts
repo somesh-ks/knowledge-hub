@@ -330,4 +330,3 @@ export function sourceCounts(
   const listed = Object.values(spots).filter((spot) => page === undefined || spot.page === page);
   return { total: listed.length, on: listed.filter((spot) => spot.on).length };
 }
-

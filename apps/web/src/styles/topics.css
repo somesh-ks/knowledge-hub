@@ -196,8 +196,13 @@
    switch's track, the field, the Add button and the chips take the card's radius less its padding,
    and the switch's segments that less the track's own padding. */
 .topic-panel > .topic-view {
-  --segmented-radius: var(--card-content-radius);
-  --segmented-segment-radius: calc(var(--card-content-radius) - var(--segmented-padding));
+  border-radius: var(--card-content-radius);
+}
+
+.topic-panel > .topic-view::before,
+.topic-panel > .topic-view > .segmented-nav-tab,
+.topic-panel > .topic-view > .segmented-nav-tab::after {
+  border-radius: calc(var(--card-content-radius) - var(--segmented-padding));
 }
 
 .topic-panel :is(.search-field, .filter-row > .topic-add-source, .filter-chip) {
