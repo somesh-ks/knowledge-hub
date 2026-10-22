@@ -167,7 +167,11 @@ function builtinBridges(section: Section, count: number): readonly string[] {
     case "ui-craft":
       return ["Now, design engineering.", "On to design engineering.", "Over to the craft side."];
     case "software":
-      return ["Now, software engineering.", "On to software engineering.", "Over to the engineering side."];
+      return [
+        "Now, software engineering.",
+        "On to software engineering.",
+        "Over to the engineering side.",
+      ];
     case "ai":
       return ["Over in AI.", "Now, AI products.", "On the AI side."];
     case "tech":

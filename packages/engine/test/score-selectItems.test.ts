@@ -745,7 +745,7 @@ describe("the tech allowance", () => {
       scored("design_engineering_craft", 0.5),
       scored("frontier_model_releases", 0.5),
       scored("hci_empirical_research", 0.5),
-      scored("developer_tool_launches", 0.5),
+      scored("developer_tool_launches", 0.5, { title: "kit 1.0" }),
       scored("css_canvas_motion_techniques", 0.5, { source_type: "youtube" }),
     ]);
     expect(result.selected.map((s) => s.section)).toEqual([
