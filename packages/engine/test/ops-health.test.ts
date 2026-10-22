@@ -52,6 +52,11 @@ beforeEach(async () => {
     ...(newest.items[1] as (typeof newest.items)[number]),
     summary: "To follow.",
   };
+  // The newest briefing airs one minute of the five the schedule sets.
+  await put(
+    "config/schedule.json",
+    JSON.stringify({ version: 1, hour: 7, cadence_days: 2, length_minutes: 5, skip_topics: [] }),
+  );
   await put(digestRelPath(yesterday.id), serializeDigestFile(yesterday));
   await put(digestRelPath(newest.id), serializeDigestFile(newest));
   await put(digestRelPath("2026-10-16"), "---\nnot: a digest\n---\n");
@@ -88,7 +93,7 @@ const codes = (findings: ReadonlyArray<{ code: string; severity: string }>, seve
 
 describe("dispatch health", () => {
   // Each of these was an ordinary line in `dispatch status` that nobody read.
-  it("faults a failed run, a missed run, missing narration, a broken digest, a thin briefing, a stub story and a runaway spend", async () => {
+  it("faults a failed run, a missed run, missing narration, a broken digest, a short episode, a thin briefing, a stub story and a runaway spend", async () => {
     const report = await collectHealth({
       root,
       now: NOW,
@@ -103,6 +108,7 @@ describe("dispatch health", () => {
         "run_overdue",
         "audio_missing",
         "digest_invalid",
+        "episode_short",
         "cost_over_ceiling",
       ]),
     );
