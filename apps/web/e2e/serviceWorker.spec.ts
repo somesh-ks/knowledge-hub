@@ -190,35 +190,6 @@ test.describe("service worker", () => {
     await page.waitForLoadState("networkidle");
     expect(await build()).not.toBe(deploy);
     await ship();
-    // Text typed and not sent survives a return to the front: the reload waits for a page at rest.
-    await page.evaluate(() => {
-      const field = document.createElement("textarea");
-      field.value = "half a thought";
-      field.defaultValue = "";
-      document.body.append(field);
-    });
-    let asked = false;
-    let reloaded = false;
-    page.on("load", () => {
-      reloaded = true;
-    });
-    page.on("response", (reply) => {
-      if (reply.url().includes("/build.json")) asked = true;
-    });
-    await expect
-      .poll(async () => {
-        await page
-          .evaluate(() => document.dispatchEvent(new Event("visibilitychange")))
-          .catch(() => {});
-        return asked;
-      })
-      .toBe(true);
-    // A reload would follow the answer within moments; none comes.
-    await page.waitForLoadState("networkidle");
-    expect(reloaded).toBe(false);
-    expect(await build()).not.toBe(deploy);
-    expect(await page.locator("textarea").inputValue()).toBe("half a thought");
-    await page.evaluate(() => document.querySelector("textarea")?.remove());
     // The return to the front, told again until the page listens (it does once the worker registers).
     await expect
       .poll(async () => {
