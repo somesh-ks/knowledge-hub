@@ -210,8 +210,12 @@ export async function removeDownload(id: string): Promise<void> {
   for (const old of list.filter((item) => item.id === id)) {
     for (const address of addressesOf(old)) await cache.delete(address);
   }
-  await writeDownloads(
-    cache,
-    list.filter((item) => item.id !== id),
-  );
+  const left = list.filter((item) => item.id !== id);
+  // The scripts and styles kept for the downloaded pages (sw.js) are shared: they go with the last one.
+  if (left.length === 0) {
+    for (const key of await cache.keys()) {
+      if (new URL(key.url).pathname.startsWith("/_astro/")) await cache.delete(key);
+    }
+  }
+  await writeDownloads(cache, left);
 }

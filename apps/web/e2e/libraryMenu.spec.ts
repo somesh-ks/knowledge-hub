@@ -115,15 +115,17 @@ test.describe("a briefing download", () => {
       .locator("[data-library-menu]")
       .getAttribute("data-audio");
 
-    // The media cache keeps only the latest covers (and the player may never have drawn this one):
-    // a download stands on what it saved.
+    // A deploy that updates the worker drops every cache but the downloads, and renames the hashed
+    // scripts and styles, so the saved page's own files are nowhere else: a download stands on what
+    // it saved (2026-10-22, the player did not start offline on the owner's phone).
     await page.evaluate(async () => {
-      for (const name of await caches.keys()) if (name.includes("media")) await caches.delete(name);
+      for (const name of await caches.keys()) if (!name.includes("audio")) await caches.delete(name);
     });
     await context.setOffline(true);
-    // Offline does not always reach the worker's own requests here (it does on CI): covers fail as
-    // they would on a phone.
+    // Offline does not always reach the worker's own requests here (it does on CI): covers and the
+    // hashed files fail as they would on a phone.
     await context.route("**/covers/**", (route) => route.abort());
+    await context.route("**/_astro/**", (route) => route.abort());
     if (audio)
       await context.route(`**${new URL(audio, "http://x").pathname}`, (route) => route.abort());
     await page.goto(`/d/${AUDIO_ID}`);

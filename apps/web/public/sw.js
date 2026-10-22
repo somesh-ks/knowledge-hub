@@ -15,14 +15,16 @@
  *     download (Library menu, scripts/libraryDownloads.ts), which the page saved in AUDIO_CACHE. That
  *     file is answered from the cache with correct Range handling (206 and Content-Range), which
  *     Safari needs, and the cache survives a version bump: a download is the person's, not the
- *     worker's. Any other audio request goes to the network as it would have.
+ *     worker's. Any other audio request goes to the network as it would have. The scripts and styles
+ *     a downloaded page names are kept there too: a deploy renames them and a version bump drops the
+ *     shell, so the page opened offline without its player (2026-10-22, the owner's phone).
  *   - A strategy that throws (a cache entry the browser corrupted or evicted mid-read) never breaks
  *     the page: the request goes to the network and, when that answers and a cache read really does
  *     throw, the worker's own caches are dropped and the shell saved again, once per worker life
  *     (healed below). A network failure alone never deletes a saved page.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v13";
+const VERSION = "v14";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -166,7 +168,7 @@ self.addEventListener("message", (event) => {
     const port = event.ports && event.ports[0];
     event.waitUntil(
       fetch(data.path)
-        .then((response) => (response.ok ? warmAssets(response) : undefined))
+        .then((response) => (response.ok ? warmAssets(response, AUDIO_CACHE) : undefined))
         .catch(() => undefined)
         .then(() => port?.postMessage("done")),
     );
@@ -175,9 +177,39 @@ self.addEventListener("message", (event) => {
 
 /* ------------------------------------------------------------------ activate */
 
+/**
+ * Copies every file a downloaded page needs into the downloads cache, from whichever cache holds it,
+ * before activation drops the old ones. Downloads made before their files were kept there are saved.
+ */
+async function keepDownloadAssets() {
+  const audio = await caches.open(AUDIO_CACHE);
+  const queue = [];
+  for (const key of await audio.keys()) {
+    const saved = await audio.match(key);
+    if (!(saved?.headers.get("content-type") || "").includes("text/html")) continue;
+    queue.push(...referencedAssets(await saved.text(), self.location.origin));
+  }
+  const seen = new Set();
+  while (queue.length > 0) {
+    const path = queue.pop();
+    if (seen.has(path)) continue;
+    seen.add(path);
+    let file = await audio.match(path);
+    if (!file) {
+      file = await caches.match(path);
+      if (!file) continue;
+      await audio.put(path, file.clone());
+    }
+    if (/\.(css|js)$/.test(path)) {
+      queue.push(...referencedAssets(await file.text(), new URL(path, self.location.origin)));
+    }
+  }
+}
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      await keepDownloadAssets().catch(() => {});
       const names = await caches.keys();
       await Promise.all(
         names
@@ -259,10 +291,13 @@ async function expirePagesIfChanged(request, response) {
   if (was !== is) await expirePages();
 }
 
-/** Saves the scripts and styles a page names, so the first move to it does not wait for them. */
-async function warmAssets(response) {
+/**
+ * Saves the scripts and styles a page names, so the first move to it does not wait for them. A
+ * download keeps them in its own cache, which no deploy empties.
+ */
+async function warmAssets(response, cacheName = SHELL_CACHE) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return;
-  const cache = await caches.open(SHELL_CACHE);
+  const cache = await caches.open(cacheName);
   const assets = referencedAssets(await response.text(), self.location.origin);
   // As deep as the install goes: an editor behind two lazy imports is on the page, and a file missed
   // here fails offline. Files already saved are skipped, so a page after the first costs little.
