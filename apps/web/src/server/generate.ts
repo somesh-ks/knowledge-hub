@@ -8,15 +8,12 @@ import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
- * POST /api/generate: check the passphrase, check the rate limits against GitHub, dispatch run.yml.
- * Everything with a side effect is a parameter (fetch, clock, delay, the verifier, the logger), so the
- * whole flow is tested with fakes and no network.
+ * POST /api/generate: check the request, check the rate limits against GitHub, dispatch run.yml.
+ * Everything with a side effect is a parameter (fetch, clock, delay, the logger), so the whole flow
+ * is tested with fakes and no network. There is no passphrase (D157).
  */
 
-/** A wrong guess costs the caller this much extra time, on top of the scrypt work. */
-export const WRONG_PASSPHRASE_DELAY_MS = 750;
 export const MAX_BODY_CHARS = 2048;
-export const MAX_PASSPHRASE_CHARS = 256;
 /** How long to wait for GitHub to list a run it was just asked to start, when dispatch gave no id. */
 const RUN_LOOKUP_ATTEMPTS = 3;
 const RUN_LOOKUP_DELAY_MS = 1500;
@@ -28,7 +25,6 @@ export interface GenerateDeps {
   fetch: FetchLike;
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
-  verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
   /** The digests this build knows; Regenerate and Delete on a briefing refuse any other id. */
   digestIds?: () => readonly string[];
   /** A digest's kind ("regular", "weekly", "on-demand"); Delete refuses the scheduled ones. */
@@ -52,20 +48,18 @@ const unavailable: GenerateResult = {
 };
 const invalid: GenerateResult = { status: 400, body: { status: 400, error: "invalid_request" } };
 
-/** Pulls the passphrase out of a JSON body, or null when the body is not the expected shape. */
-export function parsePassphrase(bodyText: string): string | null {
-  if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return null;
-  let parsed: unknown;
+/**
+ * Whether the body is one JSON object of a size the route reads. A `passphrase` field that a page
+ * built before D157 still sends is ignored with any other field the route does not read.
+ */
+export function isJsonObjectBody(bodyText: string): boolean {
+  if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return false;
   try {
-    parsed = JSON.parse(bodyText);
+    const parsed: unknown = JSON.parse(bodyText);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed);
   } catch {
-    return null;
+    return false;
   }
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const passphrase = (parsed as { passphrase?: unknown }).passphrase;
-  if (typeof passphrase !== "string") return null;
-  if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
-  return passphrase;
 }
 
 /**
@@ -140,9 +134,7 @@ export async function handleGenerate(
   }
 
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
-  const passphrase = parsePassphrase(input.bodyText);
-  if (passphrase === null) return invalid;
-  // parsePassphrase has already proven the body is a JSON object.
+  if (!isJsonObjectBody(input.bodyText)) return invalid;
   const feedback = parseFeedback(input.bodyText);
   if (feedback === undefined) return invalid;
   const topics = parseTopics(input.bodyText);
@@ -157,12 +149,6 @@ export async function handleGenerate(
   if (deleting && id !== null) {
     const kind = await deps.digestKind?.(id);
     if (kind === "regular" || kind === "weekly") return invalid;
-  }
-
-  const isValid = await deps.verifyPassphrase(passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.

@@ -34,7 +34,7 @@ async function open(deps: { connectConfigStore?: ConfigDeps["connectConfigStore"
 }
 
 /**
- * An edit with the store on. The same checks have passed (origin, body, passphrase); the cooldown
+ * An edit with the store on. The same checks have passed (origin, body, burst cap); the cooldown
  * counts from the newest stored write, the ops apply to the stored documents and every changed one
  * is written only if none changed since the read (409 otherwise). No workflow runs: the suggestions
  * a new topic got from config.yml wait (D149), since that workflow edits the committed files.

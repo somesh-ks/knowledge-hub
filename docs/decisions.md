@@ -52,7 +52,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
 | D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
-| D41 | The passphrase step is switched off, with its code kept | active |
+| D41 | The passphrase step is switched off, with its code kept | superseded by D157 |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
@@ -166,6 +166,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D152 | Full-screen phone sheets show Close | amends D144 |
 | D154 | Simple Analytics and a Privacy page | active |
 | D156 | Field Vitals in Neon | amends D147 |
+| D157 | No passphrase | active |
 
 ---
 
@@ -1692,3 +1693,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: rows in D153's proposed `engagement_events` (not built; it keeps 13 months with a per-load session id and a country, in whole seconds, where vitals keep 7 days, no identifier and a fractional CLS, and would grow it a row per metric per page load); the web-vitals package (its README puts it at about 2 KB brotli, twice this collector, for the same three numbers); Vercel Speed Insights (a dashboard health cannot read); a report per move inside the app (D146's split, which browsers measure without an LCP); sampling a share of loads (too few readers to spare any).
 - Amends: D147 (field Vitals are judged beside the lab probe).
 - Revisit if: phones give LCP under 20 samples in most weeks (read 28 days), or forged reports appear (a per-page token, or drop the store).
+
+## D157: the passphrase is removed completely
+
+- Date: 2026-10-22 (the owner: "remove passphrase completely", after approving D153's stage 0, which would have turned it back on; that stage was dropped before it merged)
+- Decision: there is no passphrase anywhere. The four routes that spend or edit (`/api/generate`, `/api/podcast`, `/api/config`, and `/api/narrate` POST) check the origin, the body and their caps, and never answer 401. Request bodies carry no `passphrase`; one that a page built before this still sends is ignored. The prompts are gone: the narration sheet ("Make the audio"), the Create dialog, the Regenerate, Delete and settings-save fields, and the device memory `dispatch:narrate-passphrase`, which nothing reads or writes now. `GENERATE_PASSPHRASE_HASH`, `npm run passphrase`, `@dispatch/core/passphrase` and the scrypt verifier are deleted. A failed run's Try again always resends its request, so the path that reopened the form after a refused passphrase is gone too.
+- Cost: anyone who opens the site, a shared link included, can start a briefing, an episode, narration, a regeneration or a delete, and edit topics, sources and the schedule, bounded only by the daily caps, the monthly narration budget and the per-minute caps (D150). This is D41's risk with no switch left to turn back.
+- Rejected: keeping the code behind a switch (D41); asking once per device (D153's stage 0).
+- Supersedes: D41. Amends: D153 (stage 0 dropped).
+- Revisit if: someone other than the owner spends or edits. The answer then is accounts or a per-device token, not a shared passphrase.

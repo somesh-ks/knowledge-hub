@@ -1,7 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "./helpers";
-import { enterPassphrase } from "./passphrase";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -86,7 +85,6 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await page.clock.install();
     const dialog = await player.openGenerate();
     await expectAccessible(page, "the Generate sheet");
-    await enterPassphrase(dialog);
     const start = dialog.getByRole("button", { name: "Regenerate" });
     await player.finger.press(start);
     await expect(dialog.getByRole("alert")).toContainText("ran into a problem");

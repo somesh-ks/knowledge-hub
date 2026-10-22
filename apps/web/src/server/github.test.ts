@@ -6,7 +6,6 @@ import { createGitHubClient, GitHubError } from "./github";
 const parsedConfig = readServerConfig({
   GITHUB_DISPATCH_TOKEN: "github_pat_secret_value_123456",
   GITHUB_REPOSITORY: REPO,
-  GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
 });
 if (!parsedConfig) throw new Error("test config");
 const config = parsedConfig;

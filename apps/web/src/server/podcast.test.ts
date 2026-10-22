@@ -1,10 +1,7 @@
 import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
-import { verifyPassphrase } from "@dispatch/core/passphrase";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
-import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
 import { PODCAST_COOLDOWN_MS, PODCAST_DAILY_CAP } from "./limits";
 import {
   handlePodcast,
@@ -18,18 +15,11 @@ import { resetVoicesCache, SPEECHIFY_VOICES_URL } from "./voices";
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const TOKEN = "github_pat_secret_value_123456";
 const ORIGIN = "https://news.someshks.work";
-const PASSPHRASE = "correct horse battery staple";
 const minutesAgo = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString();
 const RUNS = "GET /actions/workflows/podcast.yml/runs";
 const DISPATCH = "POST /actions/workflows/podcast.yml/dispatches";
 const podcastRun = (overrides: Record<string, unknown> = {}) =>
   runJson({ path: ".github/workflows/podcast.yml", ...overrides });
-
-let passphraseHash = "";
-
-beforeAll(() => {
-  passphraseHash = cheapPassphraseHash(PASSPHRASE);
-});
 
 const EPISODE_ID = "ep-20261007-0900";
 const REQUEST: PodcastRequest = {
@@ -49,14 +39,12 @@ function setup(overrides: Partial<PodcastDeps> = {}) {
     env: {
       GITHUB_DISPATCH_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
-      GENERATE_PASSPHRASE_HASH: passphraseHash,
     },
     fetch: github.fetch,
     now: () => NOW,
     delay: async (milliseconds) => {
       delays.push(milliseconds);
     },
-    verifyPassphrase,
     episodeIds: () => [EPISODE_ID],
     log: (message) => logs.push(message),
     ...overrides,
@@ -65,7 +53,7 @@ function setup(overrides: Partial<PodcastDeps> = {}) {
 }
 
 const body = (fields: Record<string, unknown> = {}) =>
-  JSON.stringify({ passphrase: PASSPHRASE, request: REQUEST, ...fields });
+  JSON.stringify({ request: REQUEST, ...fields });
 const input = (bodyText: string, origin: string | null = ORIGIN) => ({
   bodyText,
   origin,
@@ -164,8 +152,9 @@ describe("parsePodcastRequest", () => {
 });
 
 describe("parsePodcastBody", () => {
-  it("reads the passphrase and the request", () => {
-    expect(parsePodcastBody(body())).toEqual({ passphrase: PASSPHRASE, request: REQUEST });
+  it("reads the request, and ignores a passphrase an older page still sends", () => {
+    expect(parsePodcastBody(body())).toEqual({ request: REQUEST });
+    expect(parsePodcastBody(body({ passphrase: "left over" }))).toEqual({ request: REQUEST });
   });
 
   it("rejects anything else", () => {
@@ -174,11 +163,8 @@ describe("parsePodcastBody", () => {
       "not json",
       "[]",
       "null",
-      body({ passphrase: "" }),
-      body({ passphrase: 42 }),
       body({ request: undefined }),
       body({ request: { ...REQUEST, length_minutes: 99 } }),
-      body({ passphrase: "x".repeat(257) }),
       body({ pad: "y".repeat(2048) }),
     ]) {
       expect(parsePodcastBody(bad)).toBeNull();
@@ -186,8 +172,7 @@ describe("parsePodcastBody", () => {
   });
 });
 
-const action = (fields: Record<string, unknown>) =>
-  JSON.stringify({ passphrase: PASSPHRASE, ...fields });
+const action = (fields: Record<string, unknown>) => JSON.stringify({ ...fields });
 const del = (fields: Record<string, unknown> = {}) =>
   action({ action: "delete", id: EPISODE_ID, ...fields });
 const regen = (fields: Record<string, unknown> = {}) =>
@@ -196,12 +181,10 @@ const regen = (fields: Record<string, unknown> = {}) =>
 describe("parsePodcastBody for an episode action", () => {
   it("reads delete and regenerate", () => {
     expect(parsePodcastBody(del())).toEqual({
-      passphrase: PASSPHRASE,
       action: "delete",
       id: EPISODE_ID,
     });
     expect(parsePodcastBody(regen({ feedback: "  Less\nhype  " }))).toEqual({
-      passphrase: PASSPHRASE,
       action: "regenerate",
       id: EPISODE_ID,
       feedback: "Less hype",
@@ -215,13 +198,11 @@ describe("parsePodcastBody for an episode action", () => {
 
   it("takes comments and topics as optional and drops blank comments", () => {
     expect(parsePodcastBody(regen({ feedback: "  \n ", topic_ids: ["ai", "design"] }))).toEqual({
-      passphrase: PASSPHRASE,
       action: "regenerate",
       id: EPISODE_ID,
       topic_ids: ["ai", "design"],
     });
     expect(parsePodcastBody(regen({ feedback: undefined }))).toEqual({
-      passphrase: PASSPHRASE,
       action: "regenerate",
       id: EPISODE_ID,
     });
@@ -276,12 +257,10 @@ describe("handlePodcast for an episode action", () => {
     });
   });
 
-  it("answers 400 for an id this build does not have, before the passphrase check", async () => {
-    const verify = vi.fn(async () => true);
-    const { deps, github } = setup({ verifyPassphrase: verify });
+  it("answers 400 for an id this build does not have", async () => {
+    const { deps, github } = setup();
     const result = await handlePodcast(input(del({ id: "ep-20200101-0000" })), deps);
     expect(result.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
     expect(github.requests).toHaveLength(0);
   });
 
@@ -348,30 +327,18 @@ describe("handlePodcast", () => {
     expect(github.requests).toHaveLength(0);
   });
 
-  it("answers 400 for a body that is not the expected shape, before any passphrase check", async () => {
-    const verify = vi.fn(async () => true);
-    const { deps, github } = setup({ verifyPassphrase: verify });
+  it("answers 400 for a body that is not the expected shape", async () => {
+    const { deps, github } = setup();
     for (const bad of ["", "not json", "{}", body({ request: { ...REQUEST, topic_ids: [] } })]) {
       expect((await handlePodcast(input(bad), deps)).status).toBe(400);
     }
-    expect(verify).not.toHaveBeenCalled();
     expect(github.requests).toHaveLength(0);
   });
 
-  it("answers 400 for a request from another origin before checking the passphrase", async () => {
-    const verify = vi.fn(async () => true);
-    const { deps } = setup({ verifyPassphrase: verify });
+  it("answers 400 for a request from another origin", async () => {
+    const { deps } = setup();
     const result = await handlePodcast(input(body(), "https://evil.example"), deps);
     expect(result.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
-  });
-
-  it("answers 401 with a constant extra delay for a wrong passphrase", async () => {
-    const { deps, delays, github } = setup();
-    const result = await handlePodcast(input(body({ passphrase: "not the passphrase" })), deps);
-    expect(result).toEqual({ status: 401, body: { status: 401, error: "wrong_passphrase" } });
-    expect(delays).toEqual([WRONG_PASSPHRASE_DELAY_MS]);
-    expect(github.requests).toHaveLength(0);
   });
 
   it("dispatches podcast.yml on main with the request as its one input and returns 202", async () => {
@@ -397,7 +364,6 @@ describe("handlePodcast", () => {
     github.on(RUNS, { json: { workflow_runs: [] } });
     github.on(DISPATCH, { json: { workflow_run_id: 1 } });
     const hostile = JSON.stringify({
-      passphrase: PASSPHRASE,
       request: { ...REQUEST, ref: "evil", inputs: { mode: "weekly" } },
       ref: "evil",
       inputs: { mode: "weekly" },
@@ -487,16 +453,14 @@ describe("handlePodcast", () => {
     expect(logs.join("\n")).not.toContain("Bad credentials");
   });
 
-  it("never puts the token, the hash or the passphrase in any response or log", async () => {
+  it("never puts the token in any response or log", async () => {
     const throwing = async () => {
-      throw new Error(`network down while using ${TOKEN} and ${passphraseHash}`);
+      throw new Error(`network down while using ${TOKEN}`);
     };
     const { deps, logs } = setup({ fetch: throwing });
     const result = await handlePodcast(input(body()), deps);
     const everything = JSON.stringify(result) + logs.join("\n");
     expect(everything).not.toContain(TOKEN);
-    expect(everything).not.toContain(passphraseHash);
-    expect(everything).not.toContain(PASSPHRASE);
     expect(logs.find((line) => line.startsWith("podcast failed"))).toContain("[redacted]");
   });
 });

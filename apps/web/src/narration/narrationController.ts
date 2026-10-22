@@ -2,8 +2,8 @@
  * Press Play on a briefing that has no finished audio, and hear it within a few seconds.
  *
  * The order matters. The first file is made BEFORE the player is told anything, so the refusals a
- * listener can do something about (a wrong passphrase, a cap) are answered here, in words that name
- * them, and the player never shows a generic error for them. Once the first file exists the
+ * listener can do something about (a cap, the monthly allowance) are answered here, in words that
+ * name them, and the player never shows a generic error for them. Once the first file exists the
  * briefing is loaded as one track and plays; the rest is made just ahead of the playhead.
  */
 import type { StreamStatus } from "../lib/liveStream";
@@ -37,14 +37,6 @@ import { createTrackAudio, type Playlist } from "./trackAudio";
 
 /** Used when the server sends no estimate. About the pace of the default voice. */
 const FALLBACK_MS_PER_CHARACTER = 62;
-/** A wrong passphrase is asked for again this many times before the attempt is given up. */
-const MAX_PASSPHRASE_TRIES = 3;
-
-export interface PassphraseAnswer {
-  value: string;
-  /** Keep it on this device, so the next briefing does not ask. */
-  remember: boolean;
-}
 
 export interface ControllerDeps {
   store: Pick<
@@ -53,13 +45,6 @@ export interface ControllerDeps {
   >;
   audio: SwitchableAudio;
   api: ApiDeps;
-  passphrase: {
-    get(): string | null;
-    set(answer: PassphraseAnswer): void;
-    clear(): void;
-  };
-  /** Opens the passphrase sheet. Resolves null when the listener closes it without answering. */
-  askPassphrase(context: { wrong: boolean }): Promise<PassphraseAnswer | null>;
   /** Says something to the listener: a toast. */
   notify(message: string): void;
   /** Marks a briefing as being prepared, so its Play control can show it. Null clears the mark. */
@@ -139,9 +124,6 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   const playlists = new Map<string, Playlist>();
   let adapterInstalled = false;
   let activeId: string | null = null;
-  /** True while the first file is being made: its refusals are handled there, not in passing. */
-  let starting = false;
-  let asking = false;
   /** Bumped by every play, so an attempt that was overtaken stops quietly. */
   let attempt = 0;
   // What the recording being started is called, for the copy of a refusal.
@@ -174,61 +156,22 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
-  /**
-   * A file turned out to be missing mid-briefing and making it needs a passphrase the session does
-   * not have. Ask once, then carry on from where the listener was.
-   */
-  async function reauthorize(digestId: string, queue: SegmentQueue, wrong: boolean): Promise<void> {
-    if (asking) return;
-    asking = true;
-    try {
-      if (wrong) deps.passphrase.clear();
-      const answer = await deps.askPassphrase({ wrong });
-      if (!answer) return;
-      deps.passphrase.set(answer);
-      queue.reset();
-      if (activeId === digestId) deps.store.play();
-    } finally {
-      asking = false;
-    }
-  }
-
   function say(reason: NarrationFailure): void {
-    const message = failureCopy(reason, noun);
-    if (message) deps.notify(message);
+    deps.notify(failureCopy(reason, noun));
   }
 
-  /** Makes the first file the listener will hear, asking for the passphrase as often as it takes. */
+  /** Makes the first file the listener will hear. */
   async function firstFile(queue: SegmentQueue, index: number, mine: number): Promise<PlayOutcome> {
-    let wrong = false;
-    for (let tries = 0; tries < MAX_PASSPHRASE_TRIES; tries += 1) {
-      // A file that may already exist is tried first: listening to it needs no passphrase.
-      if (deps.passphrase.get() === null && !queue.segments[index]?.url) {
-        const answer = await deps.askPassphrase({ wrong });
-        if (mine !== attempt) return "cancelled";
-        if (!answer) return "cancelled";
-        deps.passphrase.set(answer);
-        queue.reset();
-      }
-      try {
-        // With a passphrase to ask with, the server is asked even where a file is expected to be:
-        // it answers at once for one that exists, and a guess that is wrong costs a failed fetch.
-        await (deps.passphrase.get() !== null ? queue.confirm(index) : queue.ensure(index));
-        return mine === attempt ? "playing" : "cancelled";
-      } catch (error) {
-        if (mine !== attempt) return "cancelled";
-        const reason = error instanceof NarrationError ? error.reason : "failed";
-        if (reason !== "wrong_passphrase" && reason !== "passphrase_required") {
-          say(reason);
-          return "failed";
-        }
-        // Not kept, on this device or in this session: the next try starts from the sheet.
-        deps.passphrase.clear();
-        wrong = reason === "wrong_passphrase";
-      }
+    try {
+      // The server is asked even where a file is expected to be: it answers at once for one that
+      // exists, and a guess that is wrong costs a failed fetch.
+      await queue.confirm(index);
+      return mine === attempt ? "playing" : "cancelled";
+    } catch (error) {
+      if (mine !== attempt) return "cancelled";
+      say(error instanceof NarrationError ? error.reason : "failed");
+      return "failed";
     }
-    say("wrong_passphrase");
-    return "failed";
   }
 
   /** One lookup per briefing, shared by a prewarm and a press. A failed one is forgotten. */
@@ -244,17 +187,10 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       const plan = planNarration(found.segments, found.msPerCharacter || FALLBACK_MS_PER_CHARACTER);
       const queue = createSegmentQueue({
         segments: plan.segments,
-        narrate: (key, passphrase) => narrateSegment(digest.id, key, passphrase, deps.api),
-        getPassphrase: deps.passphrase.get,
-        // A file being made ahead of time can fail quietly: it is asked for again when needed.
-        onFailure: (reason, needed) => {
-          if (!needed || starting || activeId !== digest.id) return;
-          if (reason === "passphrase_required" || reason === "wrong_passphrase") {
-            void reauthorize(digest.id, queue, reason === "wrong_passphrase");
-          }
-          // Any other refusal mid-briefing is told once, by the player: the file's wait ends in an
-          // error whose words describeFailure gives (see playlists below), so no toast repeats it.
-        },
+        narrate: (key) => narrateSegment(digest.id, key, deps.api),
+        // A file being made ahead of time fails quietly: it is asked for again when needed. A
+        // refusal mid-briefing is told once, by the player: the file's wait ends in an error whose
+        // words describeFailure gives (see playlists below), so no toast repeats it.
       });
       return {
         ok: true,
@@ -273,8 +209,8 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   }
 
   async function prewarm(digest: PlayerDigestData): Promise<void> {
-    // Nothing to ask with, nothing to ask for, or a press already has it: stay out of the way.
-    if (sessions.has(digest.id) || deps.passphrase.get() === null) return;
+    // A press already has it: stay out of the way.
+    if (sessions.has(digest.id)) return;
     try {
       const prepared = await prepare(digest);
       if (!prepared.ok || prepared.whole) return;
@@ -325,10 +261,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       const tapped = itemId ? segments.findIndex((segment) => segment.item_id === itemId) : -1;
       const first = Math.max(0, tapped);
       if (!plan.complete) {
-        starting = true;
-        const outcome = await firstFile(queue, first, mine).finally(() => {
-          starting = false;
-        });
+        const outcome = await firstFile(queue, first, mine);
         if (outcome !== "playing") return outcome;
       }
 

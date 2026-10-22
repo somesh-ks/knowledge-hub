@@ -17,7 +17,6 @@ const SAVED = "Saved.";
 const ADDED = "Added. Read from the next update.";
 
 interface Sent {
-  passphrase: string;
   op: Record<string, unknown> | Record<string, unknown>[];
 }
 

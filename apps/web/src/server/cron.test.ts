@@ -14,7 +14,6 @@ const SECRET = "cron-secret-of-enough-length";
 const env = {
   GITHUB_DISPATCH_TOKEN: TOKEN,
   GITHUB_REPOSITORY: REPO,
-  GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
   CRON_SECRET: SECRET,
 };
 const BEARER = `Bearer ${SECRET}`;

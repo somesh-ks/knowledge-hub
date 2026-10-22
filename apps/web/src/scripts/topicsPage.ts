@@ -101,7 +101,7 @@ function mount(root: HTMLElement): void {
   });
 
   root.addEventListener("submit", (event) => {
-    // The passphrase dialog is a form too, and closes itself.
+    // A dialog's own form closes the dialog itself.
     if ((event.target as HTMLFormElement).method === "dialog") return;
     // The other forms have no address of their own; Enter in one must not reload the page.
     event.preventDefault();

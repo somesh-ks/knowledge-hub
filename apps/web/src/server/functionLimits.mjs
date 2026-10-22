@@ -25,7 +25,7 @@ export const FUNCTION_MAX_DURATION_S = 20;
 export const SYNTHESIS_DEADLINE_MS = 12_000;
 
 /**
- * Time kept back for everything around synthesis: the passphrase check, the Blob lookups, and the
+ * Time kept back for everything around synthesis: the request checks, the Blob lookups, and the
  * uploads with their retries. Killed in the middle of an upload, the function would lose audio that
  * was already paid for. The handler enforces it: synthesis must end this long before the function's
  * limit, whatever SYNTHESIS_DEADLINE_MS says.

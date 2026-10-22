@@ -49,7 +49,7 @@ jobs:
 
           check() {
             expect 405 /api/podcast "the server does not load" &&
-              expect 400 "/api/status?run=x" "the deployment is missing GITHUB_DISPATCH_TOKEN, GITHUB_REPOSITORY or GENERATE_PASSPHRASE_HASH" &&
+              expect 400 "/api/status?run=x" "the deployment is missing GITHUB_DISPATCH_TOKEN or GITHUB_REPOSITORY" &&
               { [ -z "$run_id" ] || expect 200 "/api/status?run=${run_id}" "GitHub refused the site's token (expired or revoked GITHUB_DISPATCH_TOKEN)"; }
           }
 

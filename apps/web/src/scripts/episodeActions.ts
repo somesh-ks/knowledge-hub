@@ -11,7 +11,6 @@ import { forgetRunAbout, startRun } from "./runStatus";
  * like the Create sheet, and the removal is a small confirm. Every sentence it shows is in the
  * markup (`[data-k]`). A started run is handed to the run indicator (runStatus.ts), which follows it.
  */
-const KEY = "dispatch:narrate-passphrase";
 const NEAR_LIMIT = 50;
 
 type Kind = "regenerate" | "delete";
@@ -22,13 +21,6 @@ const leaving = new WeakSet<HTMLDialogElement>();
 /** The row a dialog is open for: the Library shares one dialog between all its rows. */
 const rootOf = new WeakMap<HTMLDialogElement, HTMLElement>();
 
-const store = (run: (s: Storage) => unknown) => {
-  try {
-    return run(localStorage);
-  } catch {
-    return null;
-  }
-};
 
 function build(kind: Kind, root: HTMLElement): HTMLDialogElement | null {
   const template = document.getElementById(
@@ -47,7 +39,6 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   const form = dialog.querySelector<HTMLFormElement>("form");
   const submit = dialog.querySelector<HTMLButtonElement>("[data-submit]");
   const error = dialog.querySelector<HTMLElement>("[data-error]");
-  const pass = dialog.querySelector<HTMLInputElement>('[name="passphrase"]');
   const feedback = dialog.querySelector<HTMLTextAreaElement>('[name="feedback"]');
   const count = dialog.querySelector<HTMLElement>("[data-count]");
   if (!form || !submit) return;
@@ -73,8 +64,6 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   if (dialog.classList.contains("regen-sheet")) sheetGestures(dialog);
   else dismissOnScrim(dialog);
 
-  if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
-
   dialog.addEventListener("change", () => say());
 
   if (feedback && count) {
@@ -92,15 +81,6 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     event.preventDefault();
     say();
     const current = rootOf.get(dialog) ?? root;
-    let passphrase = current.dataset.openPassphrase ?? "";
-    if (pass) {
-      passphrase = pass.value.trim();
-      if (!passphrase) {
-        say(copy("passphrase"));
-        pass.focus();
-        return;
-      }
-    }
     // On a briefing page the root names a digest and the request goes to /api/generate.
     const briefing = current.dataset.briefing ?? current.dataset.libraryBriefing;
     const id = briefing ?? current.dataset.episode ?? "";
@@ -120,14 +100,13 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       const topics = [...new Set(ticked.flatMap((chip) => (chip.dataset.ids ?? "").split(" ")))];
       const text = feedback?.value.trim() ?? "";
       body = {
-        passphrase,
         action: "regenerate",
         id,
         ...(text ? { feedback: text } : {}),
         ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
       };
     } else {
-      body = { passphrase, action: "delete", id };
+      body = { action: "delete", id };
     }
 
     submit.disabled = true;
@@ -138,12 +117,6 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     }).catch(() => null);
     submit.disabled = false;
     const reply = (await res?.json().catch(() => null)) ?? {};
-    if (res?.status === 401 && pass) {
-      store((s) => s.removeItem(KEY));
-      say(copy("401"));
-      pass.select();
-      return;
-    }
     if (res?.status !== 202 || !reply.run_id) {
       say(
         !res
@@ -152,15 +125,12 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
             ? `${copy(reply.error)} ${wait(reply.retry_after_s)}.`
             : res.status === 400
               ? copy("400")
-              : res.status === 401
-                ? copy("refused")
-                : isSiteAnswer(reply)
-                  ? withErrorRef(copy("503"), reply)
-                  : copy("crashed"),
+              : isSiteAnswer(reply)
+                ? withErrorRef(copy("503"), reply)
+                : copy("crashed"),
       );
       return;
     }
-    if (pass) store((s) => s.setItem(KEY, passphrase));
     if (kind === "delete") {
       // Instant: the redeploy takes minutes, so this device hides the episode meanwhile and the
       // person lands on the Library with no progress to watch.
@@ -175,12 +145,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       return;
     }
     // The request goes with the run, so a failure can send it again (Try again).
-    const { passphrase: _sent, ...again } = body;
-    startRun(
-      reply.run_id,
-      { kind, episode: id },
-      { body: again, ...(pass ? {} : { open: passphrase }) },
-    );
+    startRun(reply.run_id, { kind, episode: id }, { body });
     form.reset();
     if (count) count.hidden = true;
     dialog.close();

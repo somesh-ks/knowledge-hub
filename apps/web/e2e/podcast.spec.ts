@@ -6,7 +6,6 @@ import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./f
 import { choose, openPicker, pickerList } from "./picker";
 
 interface Sent {
-  passphrase: string;
   op: Record<string, unknown> | Record<string, unknown>[];
 }
 

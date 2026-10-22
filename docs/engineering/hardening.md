@@ -79,12 +79,12 @@ Recommend: record the sized target in the digest and compare (medium).
   reach `/api/report` through the `securitypolicyviolation` event (a meta policy cannot carry
   `report-uri`).
 - Headers: HSTS added (`max-age=63072000; includeSubDomains`); `health` faults a missing one.
-- Open passphrase (D41): anyone with the URL can start runs inside the caps. Generate, Podcast,
+- No passphrase (D157): anyone with the URL can start runs inside the caps. Generate, Podcast,
   delete and config count GitHub's run list (or the store), narration the Blob usage document.
   The per-minute caps (topic-emoji's model asks, source-preview's Jev, costs, and a burst cap
   on Generate, Podcast, config and narration) are counted in Neon across instances (D150), with
   the instance's own count as the floor when `DATABASE_URL` is unset or the counter errors or is
-  slow. Gap: the table exists only after `dispatch config seed`; with the passphrase off anyone can
+  slow. Gap: the table exists only after `dispatch config seed`; with no passphrase anyone can
   fill a burst cap's minute, which for narration fails the owner's next turn until it ends.
 - SSRF: `source-preview` and `site-icon` check every resolved address and redirect hop. Known gap
   (documented there): DNS rebinding between check and connect.

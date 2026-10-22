@@ -17,7 +17,6 @@
  * the server takes it, so a page left or closed before then sends it on the next visit.
  */
 import type { ConfigOp } from "@dispatch/core";
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { track } from "../lib/analytics";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import { withErrorRef } from "../lib/errorRef";
@@ -49,8 +48,6 @@ import { sendToast } from "./toastEvent";
 
 /** How long a block waits, with Undo in the toast, before it is sent (autosave.ts' UNDO_MS). */
 const UNDO_MS = 5000;
-/** Where the settings pages keep a remembered passphrase (managePageSave.ts). */
-const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
 /** How many times one request waits out the server's gap before it is a failure (managePageSave.ts). */
 const MAX_WAITS = 6;
 
@@ -133,20 +130,11 @@ interface Answer {
 }
 
 async function post(ops: ConfigOp[]): Promise<Answer> {
-  let passphrase: string | null = OPEN_PASSPHRASE;
-  if (PASSPHRASE_REQUIRED) {
-    try {
-      passphrase = localStorage.getItem(PASSPHRASE_KEY);
-    } catch {
-      passphrase = null;
-    }
-  }
-  if (!passphrase) return { status: 401, wait: 0, cause: "no passphrase on this device" };
   try {
     const response = await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passphrase, op: ops.length === 1 ? ops[0] : ops }),
+      body: JSON.stringify({ op: ops.length === 1 ? ops[0] : ops }),
       keepalive: true,
     });
     const body = (await response.json().catch(() => ({}))) as {

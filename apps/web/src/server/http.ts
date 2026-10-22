@@ -24,7 +24,6 @@ export function toResponse(result: ApiResult<unknown>): Response {
 /** The settings whose values a crash message must never print. */
 const SECRET_SETTINGS = [
   "GITHUB_DISPATCH_TOKEN",
-  "GENERATE_PASSPHRASE_HASH",
   "SPEECHIFY_API_KEY",
   "ANTHROPIC_API_KEY",
   "BLOB_READ_WRITE_TOKEN",

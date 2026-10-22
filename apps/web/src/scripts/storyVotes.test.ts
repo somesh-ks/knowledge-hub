@@ -81,12 +81,10 @@ function sitefetch(network: { down: boolean }): typeof fetch {
         env: {
           GITHUB_DISPATCH_TOKEN: "t",
           GITHUB_REPOSITORY: "o/r",
-          GENERATE_PASSPHRASE_HASH: "h",
         },
         fetch: githubFetch,
         now: () => Date.now(),
         delay: async () => {},
-        verifyPassphrase: async () => true,
       },
     );
     statuses.push(result.status);
@@ -228,16 +226,9 @@ describe("Stop hearing from", () => {
 
 describe("stopFailure", () => {
   it("names the cause and whether pressing again can help, and no two causes read alike", () => {
-    const causes = [0, 429, 503, 400, 401, 500];
+    const causes = [0, 429, 503, 400, 500];
     const failures = causes.map((status) => stopFailure("reveneau.com", status));
-    expect(failures.map((failure) => failure.retry)).toEqual([
-      "now",
-      "later",
-      "later",
-      "no",
-      "no",
-      "later",
-    ]);
+    expect(failures.map((failure) => failure.retry)).toEqual(["now", "later", "later", "no", "later"]);
     for (const failure of failures) expect(failure.message).toContain("reveneau.com");
     expect(new Set(failures.map((failure) => failure.message)).size).toBe(causes.length);
   });
@@ -253,7 +244,6 @@ describe("handleConfig without its settings", () => {
         fetch: fakeGitHub(),
         now: () => 0,
         delay: async () => {},
-        verifyPassphrase: async () => true,
         log: (message) => logs.push(message),
       },
     );

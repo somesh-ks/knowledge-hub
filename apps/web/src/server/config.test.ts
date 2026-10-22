@@ -13,7 +13,6 @@ import {
 const GOOD = {
   GITHUB_DISPATCH_TOKEN: "github_pat_example",
   GITHUB_REPOSITORY: "somesh-ks/knowledge-hub",
-  GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
 };
 
 describe("readServerConfig", () => {
@@ -23,7 +22,6 @@ describe("readServerConfig", () => {
       owner: "somesh-ks",
       repo: "knowledge-hub",
       repository: "somesh-ks/knowledge-hub",
-      passphraseHash: GOOD.GENERATE_PASSPHRASE_HASH,
     });
   });
 
@@ -48,16 +46,15 @@ describe("readServerConfig", () => {
 });
 
 describe("secretsOf", () => {
-  it("lists the token and the hash for the log redactor", () => {
+  it("lists the token for the log redactor", () => {
     const config = readServerConfig(GOOD);
-    expect(secretsOf(config)).toEqual([GOOD.GITHUB_DISPATCH_TOKEN, GOOD.GENERATE_PASSPHRASE_HASH]);
+    expect(secretsOf(config)).toEqual([GOOD.GITHUB_DISPATCH_TOKEN]);
     expect(secretsOf(null)).toEqual([]);
   });
 });
 
 const BLOB_TOKEN = "vercel_blob_rw_example_0123456789abcdef";
 const NARRATE = {
-  GENERATE_PASSPHRASE_HASH: GOOD.GENERATE_PASSPHRASE_HASH,
   SPEECHIFY_API_KEY: "speechify-example-key",
   BLOB_READ_WRITE_TOKEN: BLOB_TOKEN,
 };
@@ -158,7 +155,6 @@ describe("readNarrateConfig", () => {
   it("reads a complete environment, leaving the optional settings to their defaults", () => {
     expect(readNarrateConfig(NARRATE)).toEqual({
       blob: { token: BLOB_TOKEN },
-      passphraseHash: NARRATE.GENERATE_PASSPHRASE_HASH,
       speechifyKey: "speechify-example-key",
     });
   });
@@ -218,10 +214,9 @@ describe("readNarrateConfig", () => {
 });
 
 describe("narrateSecretsOf", () => {
-  it("lists the key, the hash and whichever Blob credential is in use", () => {
+  it("lists the key and whichever Blob credential is in use", () => {
     expect(narrateSecretsOf(readNarrateConfig(NARRATE))).toEqual([
       "speechify-example-key",
-      NARRATE.GENERATE_PASSPHRASE_HASH,
       BLOB_TOKEN,
     ]);
     expect(blobSecretsOf({ oidcToken: "oidc-token", storeId: "store_abc" })).toEqual([

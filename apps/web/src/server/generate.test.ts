@@ -1,26 +1,17 @@
-import { verifyPassphrase } from "@dispatch/core/passphrase";
-import { beforeAll, describe, expect, it, vi } from "vitest";
-import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
+import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import {
   type GenerateDeps,
   handleGenerate,
+  isJsonObjectBody,
   isSameOrigin,
   MAX_BODY_CHARS,
-  parsePassphrase,
-  WRONG_PASSPHRASE_DELAY_MS,
 } from "./generate";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const TOKEN = "github_pat_secret_value_123456";
 const ORIGIN = "https://news.someshks.work";
 const hoursAgo = (hours: number) => new Date(NOW - hours * 3600 * 1000).toISOString();
-
-let passphraseHash = "";
-
-beforeAll(() => {
-  passphraseHash = cheapPassphraseHash("correct horse battery staple");
-});
 
 function setup(overrides: Partial<GenerateDeps> = {}) {
   const github = createFakeGitHub();
@@ -30,45 +21,41 @@ function setup(overrides: Partial<GenerateDeps> = {}) {
     env: {
       GITHUB_DISPATCH_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
-      GENERATE_PASSPHRASE_HASH: passphraseHash,
     },
     fetch: github.fetch,
     now: () => NOW,
     delay: async (milliseconds) => {
       delays.push(milliseconds);
     },
-    verifyPassphrase,
     log: (message) => logs.push(message),
     ...overrides,
   };
   return { github, deps, delays, logs };
 }
 
-const body = (passphrase: unknown) => JSON.stringify({ passphrase });
+const EMPTY_BODY = "{}";
 const input = (bodyText: string, origin: string | null = ORIGIN) => ({
   bodyText,
   origin,
   expectedOrigin: ORIGIN,
 });
 
-describe("parsePassphrase", () => {
-  it("reads a passphrase from a JSON body", () => {
-    expect(parsePassphrase('{"passphrase":"hunter2 hunter2"}')).toBe("hunter2 hunter2");
+describe("isJsonObjectBody", () => {
+  it("accepts a JSON object, whatever fields it carries", () => {
+    expect(isJsonObjectBody("{}")).toBe(true);
+    expect(isJsonObjectBody('{"passphrase":"left over from an old build"}')).toBe(true);
   });
 
-  it("rejects anything else", () => {
+  it("rejects anything else, and a body over the size cap", () => {
     for (const bad of [
       "",
       "not json",
       "[]",
       "null",
-      '{"passphrase":""}',
-      '{"passphrase":42}',
-      '{"other":"x"}',
-      `{"passphrase":"${"x".repeat(257)}"}`,
-      `{"passphrase":"x","pad":"${"y".repeat(MAX_BODY_CHARS)}"}`,
+      "42",
+      `{"pad":"${"y".repeat(MAX_BODY_CHARS)}"}`,
     ]) {
-      expect(parsePassphrase(bad)).toBeNull();
+      expect(isJsonObjectBody(bad)).toBe(false);
     }
   });
 });
@@ -89,53 +76,33 @@ describe("isSameOrigin", () => {
 describe("handleGenerate", () => {
   it("answers 503 and never calls GitHub when the site is not configured", async () => {
     const { deps, github } = setup({ env: {} });
-    const result = await handleGenerate(input(body("anything")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toEqual({ status: 503, body: { status: 503, error: "unavailable" } });
     expect(github.requests).toHaveLength(0);
   });
 
   it("answers 400 for a body that is not the expected shape", async () => {
     const { deps } = setup();
-    for (const bad of ["", "not json", "{}", body(""), body(7)]) {
+    for (const bad of ["", "not json", "[]", "null"]) {
       expect((await handleGenerate(input(bad), deps)).status).toBe(400);
     }
   });
 
   // The burst cap is shared by every visitor (D150): a request another site sends must not use a
   // slot, or a cross-site loop would hold the owner's minute full.
-  it("answers 400 for a request from another origin before checking the passphrase or taking a burst slot", async () => {
-    const verify = vi.fn(async () => true);
+  it("answers 400 for a request from another origin before taking a burst slot", async () => {
     const burst = vi.fn(async () => 0);
-    const { deps } = setup({ verifyPassphrase: verify, burst });
-    const result = await handleGenerate(input(body("x"), "https://evil.example"), deps);
+    const { deps } = setup({ burst });
+    const result = await handleGenerate(input(EMPTY_BODY, "https://evil.example"), deps);
     expect(result.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
     expect(burst).not.toHaveBeenCalled();
-  });
-
-  it("answers 401 with a constant extra delay for a wrong passphrase, and takes no burst slot", async () => {
-    const burst = vi.fn(async () => 0);
-    const { deps, delays, github } = setup({ burst });
-    const result = await handleGenerate(input(body("not the passphrase")), deps);
-    expect(result).toEqual({ status: 401, body: { status: 401, error: "wrong_passphrase" } });
-    expect(delays).toEqual([WRONG_PASSPHRASE_DELAY_MS]);
-    expect(github.requests).toHaveLength(0);
-    expect(burst).not.toHaveBeenCalled();
-  });
-
-  it("does not delay a correct passphrase", async () => {
-    const { deps, delays, github } = setup();
-    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
-    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 99 } });
-    await handleGenerate(input(body("correct horse battery staple")), deps);
-    expect(delays).toEqual([]);
   });
 
   it("dispatches run.yml on main with fixed inputs and returns 202 with the run id", async () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
     github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 4242 } });
-    const result = await handleGenerate(input(body("correct horse battery staple")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toEqual({
       status: 202,
       body: { status: 202, run_id: 4242, started_at: "2026-10-07T12:00:00.000Z" },
@@ -152,7 +119,6 @@ describe("handleGenerate", () => {
       handleGenerate(
         input(
           JSON.stringify({
-            passphrase: "correct horse battery staple",
             replace: "2026-10-07-weekly",
             topics,
           }),
@@ -173,11 +139,7 @@ describe("handleGenerate", () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
     github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 7 } });
-    const send = (feedback: unknown) =>
-      handleGenerate(
-        input(JSON.stringify({ passphrase: "correct horse battery staple", feedback })),
-        deps,
-      );
+    const send = (feedback: unknown) => handleGenerate(input(JSON.stringify({ feedback })), deps);
     expect((await send(" Shorter\nsummaries ")).status).toBe(202);
     const dispatch = github.requests.find((request) => request.method === "POST");
     expect(dispatch?.body).toMatchObject({
@@ -193,10 +155,7 @@ describe("handleGenerate", () => {
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [recentDelete] } });
     github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
     const send = (extra: Record<string, unknown>) =>
-      handleGenerate(
-        input(JSON.stringify({ passphrase: "correct horse battery staple", ...extra })),
-        deps,
-      );
+      handleGenerate(input(JSON.stringify({ ...extra })), deps);
     for (const bad of [
       { replace: "2026-01-01" },
       { replace: "../x" },
@@ -232,10 +191,7 @@ describe("handleGenerate", () => {
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
     github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
     const remove = (id: string) =>
-      handleGenerate(
-        input(JSON.stringify({ passphrase: "correct horse battery staple", action: "delete", id })),
-        deps,
-      );
+      handleGenerate(input(JSON.stringify({ action: "delete", id })), deps);
     expect((await remove("2026-10-07")).status).toBe(400);
     expect((await remove("2026-10-11-weekly")).status).toBe(400);
     expect(github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
@@ -247,7 +203,6 @@ describe("handleGenerate", () => {
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
     github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 1 } });
     const hostile = JSON.stringify({
-      passphrase: "correct horse battery staple",
       inputs: { mode: "weekly", force: "true" },
       ref: "evil",
     });
@@ -265,7 +220,7 @@ describe("handleGenerate", () => {
     github.on("GET /actions/workflows/run.yml/runs", {
       json: { workflow_runs: [runJson({ created_at: hoursAgo(2) })] },
     });
-    const result = await handleGenerate(input(body("correct horse battery staple")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toEqual({
       status: 429,
       headers: { "Retry-After": String(4 * 3600) },
@@ -285,7 +240,7 @@ describe("handleGenerate", () => {
         ],
       },
     });
-    const result = await handleGenerate(input(body("correct horse battery staple")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toMatchObject({
       status: 429,
       body: { error: "daily_cap", retry_after_s: 3 * 3600 },
@@ -307,7 +262,7 @@ describe("handleGenerate", () => {
       };
     });
     github.on("POST /actions/workflows/run.yml/dispatches", { status: 204 });
-    const result = await handleGenerate(input(body("correct horse battery staple")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toMatchObject({ status: 202, body: { run_id: 777 } });
     expect(delays.length).toBeGreaterThan(0);
   });
@@ -318,28 +273,21 @@ describe("handleGenerate", () => {
       status: 401,
       json: { message: "Bad credentials" },
     });
-    const result = await handleGenerate(input(body("correct horse battery staple")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toEqual({ status: 503, body: { status: 503, error: "unavailable" } });
     expect(JSON.stringify(result)).not.toContain("Bad credentials");
     expect(logs).toHaveLength(1);
     expect(logs[0]).toContain("GitHub answered 401");
   });
 
-  it("never puts the token or the hash in any response or log", async () => {
+  it("never puts the token in any response or log", async () => {
     const throwing = async () => {
-      throw new Error(`network down while using ${TOKEN} and ${passphraseHash}`);
+      throw new Error(`network down while using ${TOKEN}`);
     };
     const { deps, logs } = setup({ fetch: throwing });
-    const result = await handleGenerate(input(body("correct horse battery staple")), deps);
+    const result = await handleGenerate(input(EMPTY_BODY), deps);
     const everything = JSON.stringify(result) + logs.join("\n");
     expect(everything).not.toContain(TOKEN);
-    expect(everything).not.toContain(passphraseHash);
     expect(logs[0]).toContain("[redacted]");
-  });
-
-  it("never echoes the submitted passphrase", async () => {
-    const { deps } = setup();
-    const result = await handleGenerate(input(body("my private guess")), deps);
-    expect(JSON.stringify(result)).not.toContain("my private guess");
   });
 });

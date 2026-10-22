@@ -28,8 +28,7 @@
     "prototype": "tsx scripts/buildPrototype.ts",
     "sound-lab": "tsx scripts/buildSoundLab.ts",
     "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",
-    "secrets:push": "tsx scripts/pushSecrets.ts",
-    "passphrase": "tsx scripts/passphrase.ts"
+    "secrets:push": "tsx scripts/pushSecrets.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

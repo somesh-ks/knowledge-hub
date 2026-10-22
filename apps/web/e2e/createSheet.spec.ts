@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
@@ -57,7 +56,6 @@ test.describe("Create as the primary action", () => {
     await page.waitForTimeout(500);
     expect(bodies).toEqual([]);
     await expect(sheet(page)).toBeVisible();
-    await expect(page.getByRole("dialog", { name: "Enter the passphrase" })).toBeHidden();
     await expect(title).toHaveValue("My week in AI");
   });
 
@@ -140,7 +138,6 @@ test.describe("Create as the primary action", () => {
     await sheet(page).locator("[data-submit]").click();
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["design", "ui-craft", "ai", "tech"],
@@ -176,38 +173,5 @@ test.describe("Create as the primary action", () => {
   test("axe finds nothing with the sheet open", async ({ page }) => {
     await openSheet(page);
     await expectNoViolationsInEitherScheme(page);
-  });
-});
-
-test.describe("Try again on a failed run", () => {
-  // The refused request is logged by the browser as a failed load; here it is the point.
-  test.use({ allowNetworkErrors: true });
-
-  test("a Try again that cannot be sent opens the sheet again, filled in with the request", async ({
-    page,
-  }) => {
-    await mockRun(page, [{ run_id: 31, state: "completed", step: null, outcome: "failed" }]);
-    await openSheet(page);
-    const chosen = (name: string) =>
-      sheet(page).locator(".filter-chip", { hasText: name }).locator("input");
-    await sheet(page).getByRole("radio", { name: "10 min", exact: true }).click();
-    await sheet(page).locator(".filter-chip", { hasText: "Design" }).click();
-    await expect(chosen("Design")).not.toBeChecked();
-    await sheet(page).locator("[data-submit]").click();
-    await expect(sheet(page)).toBeHidden();
-    await expect(page.locator("[data-run-text]")).toHaveText("Couldn't make the episode", {
-      timeout: 15_000,
-    });
-    // The passphrase is refused this time: the request cannot go from the line, so the form it
-    // came from opens again with every choice in it.
-    await page.unroute("**/api/podcast");
-    await page.route("**/api/podcast", (route) =>
-      route.fulfill({ status: 401, contentType: "application/json", body: "{}" }),
-    );
-    await page.getByRole("button", { name: "Try again" }).click();
-    await expect(sheet(page)).toBeVisible();
-    await expect(sheet(page).locator('input[name="length"][value="10"]')).toBeChecked();
-    await expect(chosen("Design")).not.toBeChecked();
-    await expect(chosen("Technology")).toBeChecked();
   });
 });

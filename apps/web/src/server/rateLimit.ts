@@ -71,9 +71,8 @@ export const cooldownRefusal = (wait: number) => ({
 
 /**
  * A burst cap for a paid route (the ones that start a workflow, and narration): 0 to go ahead, or
- * the seconds to the end of the counter's minute. The handlers take it only after the origin, the
- * body and the passphrase have passed, so a request from another site cannot use up the owner's
- * minute.
+ * the seconds to the end of the counter's minute. The handlers take it only after the origin and the
+ * body have passed, so a request from another site cannot use up the owner's minute.
  */
 export function burstCap(
   bucket: string,
