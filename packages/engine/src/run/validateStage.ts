@@ -1,5 +1,5 @@
 import { type Digest, VOICE_LIMITS } from "@dispatch/core";
-import { buildSpokenText } from "../audio/spokenText.js";
+import { buildSpokenText, SpokenTextTooLongError } from "../audio/spokenText.js";
 import { linkSourceIds, loadPreferences, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
@@ -140,6 +140,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     }
 
     // A briefing sized by the owner's length wrote spares: air the best survivors that fill it.
+    const measured = validated;
     const spare = new Set(
       selection.length_chars === undefined
         ? []
@@ -151,15 +152,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
             selection.length_chars,
             VOICE_LIMITS.items.floor,
             // The narration these stories would make, as the audio stage builds it.
-            validated === null
-              ? undefined
-              : (ids) => {
-                  const digest = validated as Digest;
-                  return buildSpokenText({
-                    ...digest,
-                    items: digest.items.filter((item) => ids.has(item.id)),
-                  }).text.length;
-                },
+            measured === null ? undefined : (ids) => narrationLength(measured, ids),
           ),
     );
     for (const g of ranked.slice(VOICE_LIMITS.items.hardMax)) spare.add(g.item.id);
@@ -256,4 +249,19 @@ function updatedWritten(
       })),
     ],
   };
+}
+
+/**
+ * The length of the narration the audio stage would build from these stories of the digest. Past
+ * the one-request limit buildSpokenText refuses, and its error carries the length: a weekly's
+ * untrimmed spares can run past 19,000 characters before the trim brings them to the length.
+ */
+export function narrationLength(digest: Digest, ids: ReadonlySet<string>): number {
+  try {
+    return buildSpokenText({ ...digest, items: digest.items.filter((item) => ids.has(item.id)) })
+      .text.length;
+  } catch (error) {
+    if (error instanceof SpokenTextTooLongError) return error.length;
+    throw error;
+  }
 }
