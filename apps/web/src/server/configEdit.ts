@@ -444,7 +444,7 @@ export function scheduledTime(
 /**
  * Pulls the edit out of a JSON body, or null when the body is not valid. `op` is one edit, or a
  * list of 1 to 8 that are applied together; one bad entry refuses the whole list. A `passphrase`
- * field that a page built before D157 still sends is ignored.
+ * field that a page built before D159 still sends is ignored.
  */
 export function parseConfigRequest(bodyText: string): { op: ConfigOp | ConfigOp[] } | null {
   if (bodyText.length === 0 || bodyText.length > MAX_CONFIG_BODY_CHARS) return null;

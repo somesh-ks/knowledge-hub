@@ -332,7 +332,7 @@ export interface ParsedNarrateRequest {
 
 /**
  * Pulls the digest id and the optional segment key out of a JSON body, or null when it is not that
- * shape. A `passphrase` field that a page built before D157 still sends is ignored.
+ * shape. A `passphrase` field that a page built before D159 still sends is ignored.
  */
 export function parseNarrateRequest(bodyText: string): ParsedNarrateRequest | null {
   if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return null;

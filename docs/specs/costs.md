@@ -5,7 +5,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 ## Requirements
 
 ### Records
-- One `CostRecord` (`packages/core/src/costs.ts`) per provider and product in a run: `at`, `run_id`, `kind` (daily, weekly, catch_up, on_demand, narration_on_play, config), `timezone` (the edition's zone, the schedule's for a scheduled run), `user` ("owner" until there are more), `scope`, `stage`, `provider`, `product`, `units` by name, `usd`, and the flags `estimated` and `unpriced`. The id is run, kind, stage, provider, product and user, so recording a run twice keeps one record. A narration billing (each segment, a failed stream and its retry) adds a unique event part to the id, so none overwrites another. `/api/costs` is open (D157) with a 30 a minute limit counted across instances, per instance when the counter is down (D150).
+- One `CostRecord` (`packages/core/src/costs.ts`) per provider and product in a run: `at`, `run_id`, `kind` (daily, weekly, catch_up, on_demand, narration_on_play, config), `timezone` (the edition's zone, the schedule's for a scheduled run), `user` ("owner" until there are more), `scope`, `stage`, `provider`, `product`, `units` by name, `usd`, and the flags `estimated` and `unpriced`. The id is run, kind, stage, provider, product and user, so recording a run twice keeps one record. A narration billing (each segment, a failed stream and its retry) adds a unique event part to the id, so none overwrites another. `/api/costs` is open (D159) with a 30 a minute limit counted across instances, per instance when the counter is down (D150).
 - Scope is the split behind cost per user. A scheduled edition (daily, weekly: fetch, judge, write, narration) is `shared`: everyone in its timezone hears it. An on-demand episode and narration on Play are `user`: they belong to whoever asked. Cost per user is their own records plus an even share of the shared records of their timezone (`costPerUser`); shared cost of a zone with no user is returned as unallocated, never dropped.
 - Prices live in `config/prices.json` only: per provider and product (`*` for any), a USD rate per N units, `as_of`, `confirmed` and a note. USD is units times that rate. A unit with no rate adds nothing and sets `unpriced`. Every entry is `confirmed: false` until the owner checks it against the provider's page; the Costs page lists them.
 
@@ -24,7 +24,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 ### Reports
 - `dispatch costs [--period day|week|month] [--from] [--to] [--by provider|kind|timezone|user|product|scope] [--tz] [--json]` totals by period in a zone (default the schedule's) with per-run and per-user averages. A day is the zone's calendar day, so the 25-hour day of a DST change is one bucket. Weeks start Monday.
 - Analytics (`/analytics`, a row on the Settings index) loads `/api/costs` after first paint (`apps/web/src/scripts/costsPage.ts`), so the page adds no start-up script. The route merges the build's bundled `state/costs-*.json` (a new ledger commit redeploys the site) with the Blob usage documents; if Blob cannot be read, the page says Play narration is left out. It shows the last 30 days; the route also takes `period`, `by` and `days`.
-- Anyone who can open the site can read the totals (no passphrase, D157).
+- Anyone who can open the site can read the totals (no passphrase, D159).
 
 ## Code
 - `packages/core/src/costs.ts`

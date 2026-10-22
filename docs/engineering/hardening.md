@@ -79,7 +79,7 @@ Recommend: record the sized target in the digest and compare (medium).
   reach `/api/report` through the `securitypolicyviolation` event (a meta policy cannot carry
   `report-uri`).
 - Headers: HSTS added (`max-age=63072000; includeSubDomains`); `health` faults a missing one.
-- No passphrase (D157): anyone with the URL can start runs inside the caps. Generate, Podcast,
+- No passphrase (D159): anyone with the URL can start runs inside the caps. Generate, Podcast,
   delete and config count GitHub's run list (or the store), narration the Blob usage document.
   The per-minute caps (topic-emoji's model asks, source-preview's Jev, costs, and a burst cap
   on Generate, Podcast, config and narration) are counted in Neon across instances (D150), with
