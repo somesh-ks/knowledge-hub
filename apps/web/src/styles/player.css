@@ -1073,12 +1073,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-seek::-webkit-slider-thumb,
+  /* One rule per engine: a selector list holding a pseudo-element the other engine does not know
+     is dropped whole. */
+  .dock-seek::-webkit-slider-thumb {
+    transition: opacity var(--duration-hover) var(--ease-hover);
+  }
+
   .dock-seek::-moz-range-thumb {
     transition: opacity var(--duration-hover) var(--ease-hover);
   }
 
-  .dock-volume-level::-webkit-slider-thumb,
+  .dock-volume-level::-webkit-slider-thumb {
+    transition: none;
+  }
+
   .dock-volume-level::-moz-range-thumb {
     transition: none;
   }
