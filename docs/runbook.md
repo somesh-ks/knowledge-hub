@@ -120,7 +120,7 @@ Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state an
 ### 1.11 Push `main` and deploy
 
 1. Push the code: `git push origin main`. The workflows must be on the default branch before `gh workflow run` can start them.
-2. The push starts `ci.yml` (`changes`, `check`, `secrets`) and, separately, a Vercel build and deploy. Vercel does not wait for `ci.yml`, so a failing check does not stop a deploy. To audio-process by hand, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
+2. The push starts a Vercel build and deploy; `ci.yml` ran on the pull request (D148). Vercel does not wait for `ci.yml`, so a failing check does not stop a deploy. To audio-process by hand, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
 3. Watch the checks: `gh run watch -R somesh-ks/knowledge-hub`. Watch the deploy in the Vercel dashboard. This is the first live build of the `apps/web` workspace through the Git integration, so read any build error there.
 4. Open `https://news.someshks.work`. With no digest yet it shows "No briefings yet".
 
@@ -173,7 +173,7 @@ Monthly:
 | --- | --- | --- |
 | `run.yml` | Dispatched by `/api/cron/run` in the schedule's hour, its own hourly schedule as a late fallback, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
 | `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
-| `ci.yml` | A pull request, or a push to `main` | Runs typecheck, lint, tests and the build when code changed, and always runs gitleaks. It does not deploy |
+| `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 

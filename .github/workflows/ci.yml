@@ -1,9 +1,10 @@
 name: ci
 
+# Pull requests only: every change reaches main through one, and a run per push to main checked the
+# same code again and ran for every digest commit. Actions minutes on a private repository are
+# capped, and the cap stopped every workflow on 2026-10-22 (D148).
 on:
   pull_request:
-  push:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,11 +14,17 @@ permissions:
   contents: read
 
 jobs:
-  changes:
+  # One job, so a run bills the fewest whole minutes (each job rounds up on its own, D148).
+  check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # gitleaks lists the pull request's commits, which needs pull-requests: read.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      code: ${{ steps.diff.outputs.code }}
       web: ${{ steps.diff.outputs.web }}
+      shared: ${{ steps.diff.outputs.shared }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -25,17 +32,25 @@ jobs:
       # Digest, state and docs commits skip the heavy checks.
       - id: diff
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "shared=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # An unreachable base (a force-push) must run every check, never skip them.
           if ! changed=$(git diff --name-only "$BASE" HEAD); then
-            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "shared=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          # The browser suites are the only checks that see CSS and layout: they run for any
-          # change the site is built from.
+          # The tokens and the shared stylesheets carry most of the load-bearing design fixes.
+          if printf '%s\n' "$changed" | grep -qE '^(tokens/|apps/web/src/styles/(player|primitives|buttons)\.css$)'; then
+            echo "shared=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "shared=false" >> "$GITHUB_OUTPUT"
+          fi
+          # The browser suites are the only checks that see CSS and layout: any change the site is
+          # built from may need them (the browser job decides which run them).
           if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|package(-lock)?\.json$|tsconfig)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
@@ -47,75 +62,6 @@ jobs:
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
-
-  check:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Lint
-        run: npm run lint
-      - name: Test
-        run: npm test
-      - name: Build site
-        env:
-          DISPATCH_FIXTURES: "1"
-        run: npm run build
-
-  # A design fix (a sizer, a fixed width, a specificity bump) is invisible to the checks above: a
-  # change that undoes one passes typecheck, lint, unit tests and the build. Both browser suites
-  # run here so it fails before it merges (AGENTS.md, 2026-10-18).
-  browser:
-    needs: changes
-    if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      PORT: "4501"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-        working-directory: apps/web
-      - name: Player suite
-        run: npm run e2e:player -w @dispatch/web
-      - name: Site suite
-        if: ${{ !cancelled() }}
-        run: npm run e2e -w @dispatch/web
-      - name: Keep the traces of a failure
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: browser-traces-${{ github.run_id }}
-          path: apps/web/test-results/
-          retention-days: 14
-          if-no-files-found: ignore
-
-  secrets:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # The action lists the pull request's commits, which needs pull-requests: read.
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -143,3 +89,67 @@ jobs:
           fi
           jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical") | "critical: \(.key)"' <<<"$out"
           exit 1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.diff.outputs.code == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: steps.diff.outputs.code == 'true'
+        run: npm ci --ignore-scripts
+      - name: Typecheck
+        if: steps.diff.outputs.code == 'true'
+        run: npm run typecheck
+      - name: Lint
+        if: steps.diff.outputs.code == 'true'
+        run: npm run lint
+      - name: Test
+        if: steps.diff.outputs.code == 'true'
+        run: npm test
+      - name: Build site
+        if: steps.diff.outputs.code == 'true'
+        env:
+          DISPATCH_FIXTURES: "1"
+        run: npm run build
+
+  # A design fix (a sizer, a fixed width, a specificity bump) is invisible to the checks above: a
+  # change that undoes one passes typecheck, lint, unit tests and the build. Both browser suites
+  # run here so it fails before it merges (AGENTS.md, 2026-10-18).
+  # The suites cost most of CI's minutes, so they run here only for a change to the tokens or a
+  # shared stylesheet, for Dependabot's pull requests (nobody runs those locally) and for one
+  # labelled `browser` (the label must be on before the push). Everyone runs both suites before
+  # opening a pull request (AGENTS.md, D148).
+  # After check: a run that fails it is blocked anyway, and the suites would only spend minutes.
+  browser:
+    needs: check
+    if: >-
+      needs.check.outputs.web == 'true' &&
+      (needs.check.outputs.shared == 'true' ||
+      github.event.pull_request.user.login == 'dependabot[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'browser'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PORT: "4501"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Player suite
+        run: npm run e2e:player -w @dispatch/web
+      - name: Site suite
+        if: ${{ !cancelled() }}
+        run: npm run e2e -w @dispatch/web
+      - name: Keep the traces of a failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-traces-${{ github.run_id }}
+          path: apps/web/test-results/
+          retention-days: 14
+          if-no-files-found: ignore

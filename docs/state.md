@@ -9,7 +9,7 @@ Last updated 2026-10-21. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run (commits for 2026-10-17, 18-weekly and 20); episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Deploy: the Vercel GitHub integration deploys `main`. CI on Linux: typecheck, lint, unit tests, site build, gitleaks, and the `browser` job (both suites) for changes to the site, core or tokens. Owner and Dependabot PRs auto-merge.
+- Deploy: the Vercel GitHub integration deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
 - Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (`dispatch-verify`, `dispatch-worker` in `.claude/agents/`), `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
 
 ## Tests

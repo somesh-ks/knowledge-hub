@@ -158,6 +158,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
 | D145 | Network-first page loads; a build check on return | amends D47 |
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
+| D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 
 ---
 
@@ -1611,3 +1612,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: a page behind `/build.json` shows the app's toast, "New version available" with Reload, on load and on each return to the front (at most once a minute) while `/build.json` names a newer build; a dismissed toast comes back only at the next such check. Reload reloads at once; it never reloads by itself. Without the Popover API there is no toast, and the next navigation picks up the deploy. The automatic reload and its guards (open dialogs and popovers, typing, edited fields) are gone. The real-user Web Vitals pipeline (page script, `/api/report` kind, Blob day files, `perf_regression`) leaves the PR, and `/api/report` answers an old bundle's unknown kind with 204 before it spends a limiter slot. `run_died` (a failed or timed-out briefing run with no record after it) only alerts: health.yml no longer heals it; a `cancelled` one is the warning `run_cancelled`, since GitHub reports a timeout and the owner's cancel alike. Both stand down only for a newer briefing run under way.
 - Why: each round found another thing a reload could throw away; a prompt cannot lose work. A paid run started on a guess (a cancel, a timeout) is worse than an alert; a missed briefing still heals as `run_overdue`. The vitals store needs a per-hour cap and serialised writes, which is its own change.
 - Amends: D145 (the reload on return).
+
+## D148: CI fits the free Actions minutes
+
+- Date: 2026-10-22 (every workflow stopped: the private repository had spent its monthly Actions minutes, and the owner will not pay for more)
+- Decision: `ci.yml` runs on pull requests only, not again on each push to `main`, as one `check` job (each job bills whole minutes). Its `browser` job (both suites) runs for a change to `tokens/` or `player.css`, `primitives.css` or `buttons.css`, for a Dependabot pull request, and for one labelled `browser`; every other change runs both suites locally before its pull request. `episode-eval.yml` runs only for the writer, the judges, the voice and `loop/`. `automerge.yml` starts only for Dependabot. Push to a pull request once the local gate passes, not per fix.
+- Why: in the week to 2026-10-22 CI took about 880 minutes and the episode eval 290, the briefing runs 22. A full CI run billed 25 minutes, 19 of them the browser job. That used the cap that the briefings, audio and health runs need. A push to `main` re-checked code its pull request had checked and ran for every digest commit. The shared stylesheets and tokens hold most of the load-bearing design fixes the 2026-10-18 rule guards.

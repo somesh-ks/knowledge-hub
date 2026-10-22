@@ -1,9 +1,10 @@
 name: automerge
 
-# Squash-merges a pull request once ci has passed on its current head. Only the owner's branches
-# and Dependabot's updates qualify (Dependabot is configured to skip major versions); anything else
-# waits for a human. Branch protection stays off on purpose: the digest commits push straight to
-# main, and a required-checks rule would block them.
+# Squash-merges a Dependabot pull request once ci has passed on its current head (Dependabot is
+# configured to skip major versions). Every other one carries the review label and waits for a
+# human (D143, D148); the owner check below stays for when that changes. Branch protection stays
+# off on purpose: the digest commits push straight to main, and a required-checks rule would block
+# them.
 #
 # Limit: the workflow token cannot merge a pull request that edits files under .github/workflows.
 # Those fail with a notice here and need a manual merge.
@@ -19,9 +20,13 @@ permissions:
 
 jobs:
   merge:
+    # Every other pull request carries the review label and is merged by hand (D143), so only
+    # Dependabot's branch starts a runner (by branch: a re-run by anyone else keeps it). A skipped
+    # job bills no minutes (D148).
     if: >-
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
