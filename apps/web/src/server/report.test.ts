@@ -40,9 +40,9 @@ describe("handleReport", () => {
     expect(lines).toHaveLength(REPORTS_PER_MINUTE + 1);
   });
 
-  // Vitals reports spent the fault log's slots (D146), so a busy hour of page loads hid real
-  // faults; and the store must keep a route template, never a page's address or anything else a
-  // body carries. An old bundle's vitals shape is dropped unstored.
+  // Vitals reports, and kinds the log does not know, spent the fault log's slots (D146), so a busy
+  // hour of page loads hid real faults; and the store must keep a route template, never a page's
+  // address or anything else a body carries. An old bundle's vitals shape is dropped unstored.
   it("stores a page's vitals by template alone, apart from the fault log's cap", async () => {
     const lines: string[] = [];
     const stored: VitalsReport[] = [];
@@ -68,6 +68,9 @@ describe("handleReport", () => {
       expect((await handleReport(vitals, deps, limiter)).status).toBe(204);
     }
     await handleReport(JSON.stringify({ kind: "vitals", page: "/", metrics: [] }), deps, limiter);
+    for (let i = 0; i < REPORTS_PER_MINUTE; i++) {
+      await handleReport(JSON.stringify({ kind: "unknown", page: "/" }), deps, limiter);
+    }
     await handleReport(
       JSON.stringify({ kind: "error", page: "/", message: "boom" }),
       deps,

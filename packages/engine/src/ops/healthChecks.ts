@@ -22,7 +22,7 @@ import {
 } from "../audio/segmentStore.js";
 import { redact } from "../context.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
-import { connectConfigStore, type SqlClient } from "../store/configPaths.js";
+import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
 import { readVitals, VITALS_WINDOW_DAYS, type VitalSummary } from "../store/vitalsStore.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
@@ -307,13 +307,7 @@ export async function readFieldVitals(
     });
     return { summaries: await Promise.race([read, late]) };
   } catch (error) {
-    let password = "";
-    try {
-      password = decodeURIComponent(new URL(databaseUrl).password);
-    } catch {
-      // Not a URL: the whole value is redacted below.
-    }
-    return { error: redact(message(error), [databaseUrl, password]) };
+    return { error: redact(message(error), databaseSecrets(databaseUrl)) };
   } finally {
     clearTimeout(timer);
   }

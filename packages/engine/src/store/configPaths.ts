@@ -49,6 +49,15 @@ export function configStoreUrl(env: {
     : null;
 }
 
+/** The URL and its password, decoded: an error that names either must be logged without it. */
+export function databaseSecrets(databaseUrl: string): string[] {
+  try {
+    return [databaseUrl, decodeURIComponent(new URL(databaseUrl).password)];
+  } catch {
+    return [databaseUrl];
+  }
+}
+
 /** Opens the store over Neon's HTTP driver, which is loaded only on this call. */
 export async function connectConfigStore(databaseUrl: string): Promise<SqlClient> {
   const { connectNeon } = await import("./neon.js");

@@ -5,9 +5,10 @@ import type { SqlClient } from "./configPaths.js";
  * Field Web Vitals in Neon (D156), in the database the config store and the rate-limit counter use
  * (D149, D150): `/api/report` adds a page's samples, `dispatch health` reads each metric's 7-day
  * p75. One row per metric a page measured, holding only its route template, the value, the device
- * class and the connection type. The table stays bounded: every insert deletes what fell out of the
- * window, and an hour takes at most VITALS_ROWS_PER_HOUR rows, so a flood of forged reports fills one
- * hour's share and no more. No driver here: see neon.ts.
+ * class and the connection type. The table stays bounded: every insert and every read deletes what
+ * fell out of the window (so health's daily read keeps the week the Privacy page promises with no
+ * traffic), and an hour takes at most VITALS_ROWS_PER_HOUR rows, so a flood of forged reports fills
+ * one hour's share and no more. No driver here: see neon.ts.
  */
 
 /** How long a sample is kept and how far back health reads. */
@@ -53,7 +54,10 @@ from unnest($5::text[], $6::float8[]) as sample(metric, value), recent
 where recent.n + cardinality($5::text[]) <= $7::int
 returning 1`;
 
-const READ_SQL = `select metric, device, count(*)::int as samples,
+const READ_SQL = `with gone as (
+  delete from web_vitals where at <= to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
+)
+select metric, device, count(*)::int as samples,
   percentile_disc(0.75) within group (order by value) as p75
 from web_vitals
 where at > to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
@@ -90,7 +94,9 @@ export async function recordVitals(
     return await insert();
   } catch (error) {
     if (!missingTable(error)) throw error;
-    for (const statement of VITALS_SCHEMA_SQL) await sql.query(statement);
+    // Two first reports at once can race to create it, and Postgres then refuses one `if not
+    // exists` with a duplicate; the insert after says whether the table is there.
+    for (const statement of VITALS_SCHEMA_SQL) await sql.query(statement).catch(() => undefined);
     return insert();
   }
 }
@@ -105,7 +111,8 @@ export interface VitalSummary {
 
 /**
  * Each metric's p75 per device class over the last VITALS_WINDOW_DAYS before `now` (nearest rank,
- * as CrUX reads it). No table yet reads as no samples. Throws when the database does.
+ * as CrUX reads it), deleting what is older. No table yet reads as no samples. Throws when the
+ * database does.
  */
 export async function readVitals(sql: SqlClient, now: number): Promise<VitalSummary[]> {
   let rows: Record<string, unknown>[];

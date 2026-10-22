@@ -36,8 +36,9 @@ const page = (lcp: number, device: VitalsReport["device"] = "mobile"): VitalsRep
 describe("the field vitals store", () => {
   // The bugs it prevents: a p75 read over samples older than the window (a regression fixed a week
   // ago still alarming), phones and desktops read as one (a slow phone hidden by a fast desktop), a
-  // flood of forged reports growing the table without bound, and the first report lost because no
-  // one had created the table.
+  // report kept past the week the Privacy page promises when no new page load comes, a flood of
+  // forged reports growing the table without bound, and the first report lost because no one had
+  // created the table.
   it("reads a 7-day p75 per device, drops what fell out of the window, and caps each hour", async () => {
     const { sql, rows } = store();
     const old = NOW - VITALS_WINDOW_DAYS * 24 * HOUR - HOUR;
@@ -69,6 +70,8 @@ describe("the field vitals store", () => {
       samples: 2,
       p75: 3000,
     });
+    // That read deleted the rest: only the six rows of the last 1.5 hours are kept.
+    expect(await rows()).toBe(6);
 
     // The last hour holds 4 rows: a page of 2 more would pass a cap of 5, so it is refused whole;
     // an hour later there is room again.

@@ -1,4 +1,4 @@
-import { connectConfigStore, type SqlClient } from "@dispatch/engine/config-paths";
+import { connectConfigStore, databaseSecrets, type SqlClient } from "@dispatch/engine/config-paths";
 import { describeError } from "./redact";
 
 /** How long a query may take (Neon waking from idle included) before the caller's fallback stands. */
@@ -59,7 +59,7 @@ export function guardedDatabase(deps: DatabaseDeps): DatabaseCall {
     } catch (error) {
       client = null;
       quietUntil = now() + DATABASE_BACKOFF_MS;
-      log(`unavailable: ${describeError(error, [url])}`);
+      log(`unavailable: ${describeError(error, databaseSecrets(url))}`);
       return fallback;
     } finally {
       clearTimeout(timer);
