@@ -49,6 +49,7 @@ const preferencesText = (data: unknown): string => `${JSON.stringify(data, null,
  */
 async function writeStored(
   store: { sql: SqlClient; stored: ConfigDocument | undefined },
+  current: Preferences,
   next: Preferences,
   reapply: (current: Preferences) => Preferences,
   ctx: CommandContext,
@@ -65,7 +66,8 @@ async function writeStored(
     )
       return true;
     const again = (await readConfigDocuments(store.sql)).find((d) => d.path === path);
-    const merged = reapply(Preferences.parse(JSON.parse(again?.content ?? preferencesText(next))));
+    // A row gone meanwhile is written afresh from what was read, never from `next` (that would move twice).
+    const merged = reapply(again ? Preferences.parse(JSON.parse(again.content)) : current);
     return await writeConfigDocument(
       store.sql,
       path,
@@ -257,7 +259,7 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
   if (store !== null) {
     const reapply = (stored: Preferences) =>
       applyPatch(stored, patch, stockholmDate(ctx.now())).next;
-    if (!(await writeStored(store, next, reapply, ctx))) {
+    if (!(await writeStored(store, current, next, reapply, ctx))) {
       ctx.log.error(
         `${CONFIG_FILES.preferences} is updated but the config store is not, so the next run will use the stored preferences. Run learn again.`,
       );

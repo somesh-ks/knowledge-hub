@@ -158,6 +158,8 @@ function sourceChanges(
           id: source.id,
           ...(source.topic_ids.length > 0 ? { topic_ids: source.topic_ids } : {}),
         });
+      // An add reads as on; one switched off since says so, for the counts as for its row.
+      if (!source.enabled) ops.push({ op: "source.set", id: source.id, enabled: false });
       sources.push(sketch(source, page));
       continue;
     }

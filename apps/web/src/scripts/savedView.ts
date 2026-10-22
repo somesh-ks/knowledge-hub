@@ -224,7 +224,7 @@ export function overlayTopics(
   ops = readSaved(),
   store: ConfigReadBody | null = storeRead(),
 ): boolean {
-  if (ops.length === 0) return false;
+  if (ops.length === 0 && !store?.sources.length) return false;
   let shown = false;
   for (const control of root.querySelectorAll<HTMLInputElement>("input[data-op]")) {
     let op: ConfigOp;

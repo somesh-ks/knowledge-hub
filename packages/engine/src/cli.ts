@@ -217,18 +217,20 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   // Whether it did is noted for the commit, which a later stage of the same run makes.
   if (readsConfigAtStart(spec.name, parsed.rest)) {
     const storeUrl = configStoreUrl(env);
-    let copied = false;
+    // Noted before copying, so a copy that stops halfway still lets its commit carry the files it
+    // wrote; a dry run commits nothing, so it notes nothing a later commit could misread.
+    await markCopiedFromStore(root, storeUrl !== null && !parsed.rest.includes("--dry-run")).catch(
+      () => {},
+    );
     if (storeUrl !== null) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
         const changed = await hydrateConfig(root, sql, log);
         log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
-        copied = true;
       } catch (error) {
         log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
       }
     }
-    await markCopiedFromStore(root, copied).catch(() => {});
   }
 
   let run: CommandRun;

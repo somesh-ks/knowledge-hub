@@ -301,8 +301,9 @@ export function savedSources(
       const spot = out[op.id];
       if (spot && op.topic_ids) out[op.id] = { ...spot, page: pageOf(op.topic_ids[0]) };
     } else if (op.op === "source.remove") delete out[op.id];
+    // An add that names its id (the page's own, or the config store's) can be switched off later.
     else if (op.op === "source.add")
-      out[`add:${op.url}`] = { page: pageOf(op.topic_ids?.[0]), on: true };
+      out[op.id ?? `add:${op.url}`] = { page: pageOf(op.topic_ids?.[0]), on: true };
   }
   return out;
 }

@@ -1,4 +1,5 @@
 import {
+  APPLY_DEADLINE_MS,
   applyOpsToDocuments,
   lastConfigWrite,
   readConfigDocuments,
@@ -57,14 +58,21 @@ export async function saveToStore(
     }
     // Another edit (another device, or `learn`) can land between the read and the write. The ops
     // are applied once more on top of it before the page is told 409, which it cannot resolve.
+    // Both attempts share one deadline, sized to the function's time limit.
+    const started = Date.now();
     let result: Awaited<ReturnType<typeof applyOpsToDocuments>> | undefined;
     let written = false;
     for (let attempt = 0; attempt < 2 && !written; attempt += 1) {
-      result = await applyOpsToDocuments({
-        ops: request.op,
-        documents: await readConfigDocuments(sql),
-        baseFiles: deps.baseFiles ?? {},
-      });
+      const left = APPLY_DEADLINE_MS - (Date.now() - started);
+      if (attempt > 0 && left < 1000) break;
+      result = await applyOpsToDocuments(
+        {
+          ops: request.op,
+          documents: await readConfigDocuments(sql),
+          baseFiles: deps.baseFiles ?? {},
+        },
+        left,
+      );
       if (!result.ok) {
         log(
           `config ${result.retryable ? "not applied" : "refused"}: ${describeError(result.message, secrets)}`,

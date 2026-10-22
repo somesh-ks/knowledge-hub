@@ -100,7 +100,7 @@ function mount(root: HTMLElement): void {
       const domain = row.dataset.domain ?? "";
       if (!will.includes(domain) && !mine(domain)) row.remove();
     }
-    for (const domain of will) if (!rowOf(domain)) insert(domain);
+    for (const domain of will) if (!rowOf(domain) && !mine(domain)) insert(domain);
     recount();
   };
   if (hasSaved()) showSaved(null);

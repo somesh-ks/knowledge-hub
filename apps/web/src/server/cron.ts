@@ -58,7 +58,8 @@ async function readSchedule(
       // Loaded only with the store on, so the function never loads the driver while it is off.
       const { readStoredSchedule } = await import("./configStore");
       const stored = await readStoredSchedule(storeUrl, deps);
-      if (stored !== null) return stored;
+      // A row that is not JSON is skipped, as the run's own copy skips it: main's file stands.
+      if (stored !== null && parseJson(stored, (value) => value) !== null) return stored;
     } catch (error) {
       deps.log?.(`config store unreachable, reading main: ${describeError(error, [storeUrl])}`);
     }
