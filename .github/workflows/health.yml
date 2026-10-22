@@ -12,10 +12,11 @@ name: health
 #
 # A drill (Run workflow, drill ticked) proves the healing path on the real repository without a
 # real fault: on a copy of the report with the real findings taken out it plants `run_overdue`,
-# opens an issue of its own (labelled `health-drill`), starts one scheduled run as a dry run (on a
-# day nothing is due it stops at the gate and writes nothing), then closes that issue. It never
-# reads or touches the `health` issue, so a real fault open for days does not hold it back. It is
-# refused while a run.yml run is queued or running and on a day a briefing is due.
+# opens an issue of its own (labelled `health-drill`), starts one scheduled run as a dry run (it
+# stops at the gate and writes nothing), then closes that issue. It never reads or touches the
+# `health` issue, so a real fault open for days does not hold it back. It is refused while a
+# run.yml run is queued or running and whenever run.yml's own gate would let a scheduled run work
+# today (a briefing or the weekly pass due), since that dry run would pay for models.
 
 on:
   schedule:
@@ -27,8 +28,10 @@ on:
         type: boolean
         default: false
 
+# A drill touches no `health` issue, so it queues apart: a drill dispatched behind another never
+# takes the daily check's single pending place.
 concurrency:
-  group: health
+  group: ${{ inputs.drill && 'health-drill' || 'health' }}
   cancel-in-progress: false
 
 permissions:
@@ -53,12 +56,13 @@ jobs:
           cache: npm
 
       # The probe costs several minutes of a capped allowance (D148), so it runs on Mondays and on a
-      # manual run; the other days health judges no performance.
+      # manual run; the other days health judges no performance. A drill drops the real findings,
+      # so it never probes.
       - name: Probe today?
         id: probe
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%u)" = "1" ]; then
+          if [ "${{ inputs.drill }}" != "true" ] && { [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%u)" = "1" ]; }; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -118,24 +122,27 @@ jobs:
           # A check that crashed is a fault of its own, reported like the others.
           jq -e '.findings' "$report" >/dev/null 2>&1 ||
             echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"dispatch health did not finish; see the run log."}]}' > "$report"
+          # run.yml runs queued or running.
+          run_busy() { gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length'; }
           label=health
           heal_args=()
           prefix=""
           if [ "$DRILL" = "true" ]; then
-            # A drill is its own case: its own issue (label health-drill, never the health issue,
-            # which it does not read) and its own report, today's with the real findings taken out
-            # and run_overdue planted, so a real fault neither holds it back nor changes what it
-            # tests. It runs only when its dry run can start and costs nothing: on a day a briefing
-            # is due or overdue (or the check did not finish, so nobody knows) the dry run would go
-            # past the gate and pay for models.
+            # A drill is its own case: its own issue (label health-drill; it never reads the health
+            # issue) and its own report, today's with the real findings taken out and run_overdue
+            # planted, so a real fault neither holds it back nor changes what it tests. Its dry run
+            # must stop at the gate: run.yml's gate is asked first, as its Gate step will ask it, and
+            # a briefing or weekly pass due today (a run_failed or run_overdue makes one due) would
+            # take the dry run past it and pay for models.
             refuse=""
-            due=$(jq -r '[(.passed // [])[] | capture("briefing due (?<d>[0-9]{4}-[0-9]{2}-[0-9]{2})").d] | min // empty' "$report")
-            if [ -z "$due" ]; then
-              refuse="the report names no next briefing (one is overdue, or the check did not finish), so its dry run could pay for model calls"
-            elif [[ ! "$due" > "$(date -u +%F)" ]]; then
-              refuse="a briefing is due today, so its dry run would pay for model calls"
-            elif [ "$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')" != "0" ]; then
-              refuse="a run.yml run is queued or running"
+            due=$(npm run --silent dispatch -- run --stage gate --mode scheduled --dry-run --json | jq -r '.due') || due=""
+            if [ "$due" = "true" ]; then
+              refuse="run.yml's gate says a briefing or the weekly pass is due today, so its dry run would pay for model calls"
+            elif [ "$due" != "false" ]; then
+              refuse="run.yml's gate did not answer, so its dry run could pay for model calls"
+            else
+              busy=$(run_busy)
+              [ "$busy" = "0" ] || refuse="a run.yml run is queued or running"
             fi
             if [ -n "$refuse" ]; then
               echo "::warning title=Drill refused::No drill: $refuse."
@@ -147,6 +154,11 @@ jobs:
             heal_args=(-f dry_run=true)
             prefix="Drill: "
             gh label create health-drill --color FBCA04 --description "health.yml drill: a planted fault, nothing is wrong" --force >/dev/null
+            # A drill stopped between its create and its close (a cancel, an API error) left its
+            # issue open; the next one closes it. Only drill issues are listed.
+            for stale in $(gh issue list --label health-drill --state open --json number --jq '.[].number'); do
+              gh issue close "$stale" --comment "Left open by an earlier drill; closed by the next one."
+            done
             open_issue='{}'
           else
             gh label create health --color B60205 --description "Daily health check" --force >/dev/null
@@ -175,7 +187,7 @@ jobs:
           just_healed=""
           # A fault heals once, when it first appears, even while the issue is open for another
           # (run_died alone never heals: it is alert only). A run already queued or running is left alone.
-          busy=$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')
+          busy=$(run_busy)
           if { new_fault run_failed || new_fault run_overdue; } && [ "$busy" = "0" ]; then
             if gh workflow run run.yml -f mode=scheduled "${heal_args[@]}"; then
               healed="${healed}- Started one scheduled run.\n"
