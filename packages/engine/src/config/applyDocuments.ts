@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type ParsedConfigOp, parseConfigOps } from "@dispatch/core";
 import { combineOutcomes, readBundle, renderBundle } from "../commands/config.js";
-import { createHttpClient } from "../http.js";
+import { createHttpClient, type HttpClient } from "../http.js";
 import type { DiscoverDeps } from "../sources/discover.js";
 import {
   CONFIG_DOCUMENT_PATHS,
@@ -40,11 +40,54 @@ export interface ApplyToDocumentsInput {
 
 export type ApplyToDocumentsResult =
   | { ok: true; writes: DocumentWrite[]; outcome: OpOutcome; documents: Record<string, string> }
-  | { ok: false; message: string };
+  /** `retryable`: the network failed or the time ran out, not the edit; the caller answers 503. */
+  | { ok: false; message: string; retryable?: boolean };
+
+/** Per request of the feed lookup in `source.add`; one attempt, no retries. */
+const LOOKUP_TIMEOUT_MS = 4000;
+/** The whole edit, well inside the function's 20 s (functionLimits.mjs). */
+export const APPLY_DEADLINE_MS = 12_000;
+
+/**
+ * Notes when a lookup failed for a reason that is not the address's: no answer, a timeout or a 5xx.
+ * A 4xx or a host that does not resolve is the address's fault and stays a refusal.
+ */
+function watchNetwork(http: HttpClient, failed: { network: boolean }): HttpClient {
+  const watch = <T>(call: Promise<T>): Promise<T> =>
+    call.catch((error: unknown) => {
+      const status = (error as { status?: unknown }).status;
+      const code = (error as { cause?: { code?: unknown } }).cause?.code;
+      const theirs = (typeof status === "number" && status < 500) || code === "ENOTFOUND";
+      if (!theirs) failed.network = true;
+      throw error;
+    });
+  return {
+    fetchText: (url, options) => watch(http.fetchText(url, options)),
+    getJson: (url, options) => watch(http.getJson(url, options)),
+    postJson: (url, body, options) => watch(http.postJson(url, body, options)),
+  };
+}
 
 export async function applyOpsToDocuments(
   input: ApplyToDocumentsInput,
+  deadlineMs = APPLY_DEADLINE_MS,
 ): Promise<ApplyToDocumentsResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<ApplyToDocumentsResult>((resolve) => {
+    timer = setTimeout(
+      () => resolve({ ok: false, message: "the edit took too long", retryable: true }),
+      deadlineMs,
+    );
+  });
+  try {
+    return await Promise.race([applyNow(input), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function applyNow(input: ApplyToDocumentsInput): Promise<ApplyToDocumentsResult> {
+  const failed = { network: false };
   const parsed = parseConfigOps(input.ops);
   if (!parsed.success) {
     return { ok: false, message: parsed.issues.map((issue) => issue.message).join("; ") };
@@ -58,7 +101,9 @@ export async function applyOpsToDocuments(
       await writeFile(join(root, path), text, "utf8");
     }
     const before = await readBundle(root);
-    const discover = input.discover ?? { http: createHttpClient({ retries: 1 }) };
+    const http =
+      input.discover?.http ?? createHttpClient({ retries: 0, timeoutMs: LOOKUP_TIMEOUT_MS });
+    const discover: DiscoverDeps = { ...input.discover, http: watchNetwork(http, failed) };
     const outcomes: OpOutcome[] = [];
     let current = before;
     for (const op of parsed.data as ParsedConfigOp[]) {
@@ -85,7 +130,9 @@ export async function applyOpsToDocuments(
     );
     return { ok: true, writes, outcome, documents };
   } catch (error) {
-    if (error instanceof ConfigOpError) return { ok: false, message: error.message };
+    if (error instanceof ConfigOpError) {
+      return { ok: false, message: error.message, retryable: failed.network };
+    }
     throw error;
   } finally {
     await rm(root, { recursive: true, force: true });

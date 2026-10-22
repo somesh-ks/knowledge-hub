@@ -9,7 +9,6 @@ import {
   readChangedPaths,
 } from "../src/git/guard.js";
 import { createGitRunner } from "../src/git/runGit.js";
-import { CONFIG_DOCUMENT_PATHS } from "../src/store/configDocs.js";
 import { digestFor, makeItem, must } from "./audio-fixtures.js";
 import type { RepoPair } from "./git-testRepo.js";
 import { createRepoPair, git, put, SEED_DIGEST_ID, SEED_DIGEST_PATH } from "./git-testRepo.js";
@@ -17,7 +16,7 @@ import { createRepoPair, git, put, SEED_DIGEST_ID, SEED_DIGEST_PATH } from "./gi
 describe("ALLOWLISTS", () => {
   it("names the four commands and their paths", () => {
     expect(ALLOWLISTS).toEqual({
-      run: ["Digests/", "state/", ...CONFIG_DOCUMENT_PATHS],
+      run: ["Digests/", "state/"],
       publish: [
         "Digests/**/*.audio.json",
         "Digests/**/*.md",
@@ -25,7 +24,7 @@ describe("ALLOWLISTS", () => {
         "state/costs-*.json",
       ],
       learn: ["config/preferences.json"],
-      podcast: ["Podcasts/", "state/costs-*.json", ...CONFIG_DOCUMENT_PATHS],
+      podcast: ["Podcasts/", "state/costs-*.json"],
       config: [
         "config/topics.json",
         "config/sources.user.json",
@@ -65,7 +64,7 @@ describe("isPathAllowed", () => {
     ["Digests/2026/10/2026-10-07.audio.json", true],
     ["state/seen.json", true],
     ["state/runs/2026-10-07.json", true],
-    ["config/preferences.json", true],
+    ["config/preferences.json", false],
     ["package.json", false],
     ["Digests", false],
     ["DigestsX/a.md", false],
@@ -193,19 +192,19 @@ describe("findViolations", () => {
 
   it("lists each path outside the allowlist once", () => {
     const changed = parsePorcelain(
-      " M config/sources.json\0 M package.json\0 M package.json\0 M state/seen.json\0",
+      " M config/preferences.json\0 M package.json\0 M package.json\0 M state/seen.json\0",
     );
     expect(findViolations(changed, ALLOWLISTS.run)).toEqual([
-      "config/sources.json",
+      "config/preferences.json",
       "package.json",
     ]);
   });
 
   it("counts both ends of a rename", () => {
-    const out = parsePorcelain("R  Digests/a.md\0config/sources.json\0");
-    expect(findViolations(out, ALLOWLISTS.run)).toEqual(["config/sources.json"]);
-    const inbound = parsePorcelain("R  config/sources.json\0Digests/a.md\0");
-    expect(findViolations(inbound, ALLOWLISTS.run)).toEqual(["config/sources.json"]);
+    const out = parsePorcelain("R  Digests/a.md\0config/preferences.json\0");
+    expect(findViolations(out, ALLOWLISTS.run)).toEqual(["config/preferences.json"]);
+    const inbound = parsePorcelain("R  config/preferences.json\0Digests/a.md\0");
+    expect(findViolations(inbound, ALLOWLISTS.run)).toEqual(["config/preferences.json"]);
   });
 
   it("accepts plain path strings as well", () => {
@@ -235,21 +234,21 @@ describe("against a real repository", () => {
 
   it("reports modified, staged, deleted and untracked files, each untracked file on its own line", async () => {
     await put(pair.a, "state/usage.json", "{}\n");
-    await put(pair.a, "config/sources.json", '{"x":1}\n');
-    git(pair.a, "add", "config/sources.json");
+    await put(pair.a, "config/preferences.json", '{"x":1}\n');
+    git(pair.a, "add", "config/preferences.json");
     git(pair.a, "rm", "-q", "state/seen.json");
     await put(pair.a, "newdir/deep/file.txt", "x");
     await put(pair.a, "newdir/other.txt", "x");
     const changed = await readChangedPaths(createGitRunner(pair.a));
     expect(changed.map((entry) => entry.path).sort()).toEqual([
-      "config/sources.json",
+      "config/preferences.json",
       "newdir/deep/file.txt",
       "newdir/other.txt",
       "state/seen.json",
       "state/usage.json",
     ]);
     expect(findViolations(changed, ALLOWLISTS.run).sort()).toEqual([
-      "config/sources.json",
+      "config/preferences.json",
       "newdir/deep/file.txt",
       "newdir/other.txt",
     ]);

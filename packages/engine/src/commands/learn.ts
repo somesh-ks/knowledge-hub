@@ -2,17 +2,37 @@ import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONFIG_FILES, Preferences, stockholmDate } from "@dispatch/core";
 import { z } from "zod";
-import type { CommandRun } from "../context.js";
+import type { CommandContext, CommandRun } from "../context.js";
 import { type BotIdentity, type CommitOutcome, commitAndPush } from "../git/commit.js";
 import { createGitRunner, gitOutput } from "../git/runGit.js";
 import { isBehindRemote, isTreeClean } from "../git/status.js";
 import { applyPatch, PreferencesPatch } from "../learn/patch.js";
 import {
+  type ConfigDocument,
   configStoreUrl,
   connectConfigStore,
-  putConfigDocument,
   readConfigDocuments,
+  type SqlClient,
+  writeConfigDocument,
 } from "../store/configDocs.js";
+
+/** The store and the stored preferences, or null when the store is off or cannot be reached. */
+async function openPreferencesStore(
+  ctx: CommandContext,
+): Promise<{ sql: SqlClient; stored: ConfigDocument | undefined } | null> {
+  const url = configStoreUrl(ctx.env);
+  if (url === null) return null;
+  try {
+    const sql = await connectConfigStore(url);
+    const documents = await readConfigDocuments(sql);
+    return { sql, stored: documents.find((d) => d.path === CONFIG_FILES.preferences) };
+  } catch (error) {
+    ctx.log.warn(
+      `Config store unreachable, using the file: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
+}
 
 const USAGE = `Usage:
   dispatch learn --schema                 Print the JSON Schema of a preferences patch
@@ -120,14 +140,12 @@ export const run: CommandRun = async (argv, ctx) => {
     return 2;
   }
   const prefsPath = join(ctx.root, CONFIG_FILES.preferences);
-  // With the config store on (D149) the stored preferences are the current ones, not the file.
-  const storeUrl = configStoreUrl(ctx.env);
-  const store = storeUrl === null ? null : await connectConfigStore(storeUrl);
-  const stored =
-    store === null
-      ? undefined
-      : (await readConfigDocuments(store)).find((d) => d.path === CONFIG_FILES.preferences);
-  const current = Preferences.parse(JSON.parse(stored?.content ?? readFileSync(prefsPath, "utf8")));
+  // With the config store on (D149) the stored preferences are the current ones, not the file. A
+  // store that cannot be reached is a warning, as at the start of a run: the file is used.
+  const store = await openPreferencesStore(ctx);
+  const current = Preferences.parse(
+    JSON.parse(store?.stored?.content ?? readFileSync(prefsPath, "utf8")),
+  );
   let patchJson: unknown;
   try {
     patchJson = JSON.parse(readFileSync(patchPath, "utf8"));
@@ -164,9 +182,28 @@ export const run: CommandRun = async (argv, ctx) => {
       return 1;
     }
   }
-  // The store first: a run copies it over the file, so a weight written only to the file is undone.
-  if (store !== null)
-    await putConfigDocument(store, CONFIG_FILES.preferences, `${JSON.stringify(next, null, 2)}\n`);
+  // The store first, on the version read: a run copies it over the file, so a weight written only
+  // to the file would be undone, and an edit made in the app since the read must not be lost.
+  if (store !== null) {
+    try {
+      const written = await writeConfigDocument(
+        store.sql,
+        CONFIG_FILES.preferences,
+        `${JSON.stringify(next, null, 2)}\n`,
+        store.stored?.version ?? null,
+      );
+      if (!written) {
+        ctx.log.error(
+          "The stored preferences changed while learn ran (an edit in the app). Nothing was written; run learn again.",
+        );
+        return 1;
+      }
+    } catch (error) {
+      ctx.log.warn(
+        `Config store unreachable, writing the file only: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
   writeJson(prefsPath, next);
   if (!commit) {
     ctx.log.info(

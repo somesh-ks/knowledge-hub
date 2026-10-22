@@ -157,7 +157,7 @@ describe("commitAndPush: what it commits", () => {
 
 describe("commitAndPush: the write guard", () => {
   it("refuses a change outside the allowlist and stages nothing", async () => {
-    await put(pair.a, "config/sources.json", '{"weights":{}}\n');
+    await put(pair.a, "config/preferences.json", '{"weights":{}}\n');
     const before = head(pair.a);
     const outcome = await commitAndPush({
       root: pair.a,
@@ -168,7 +168,7 @@ describe("commitAndPush: the write guard", () => {
     expect(outcome).toEqual({
       status: "refused",
       reason: "guard",
-      offending: ["config/sources.json"],
+      offending: ["config/preferences.json"],
     });
     expect(head(pair.a)).toBe(before);
     expect(stagedFiles(pair.a)).toBe("");

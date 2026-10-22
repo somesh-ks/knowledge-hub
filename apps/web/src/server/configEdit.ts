@@ -7,15 +7,7 @@ import {
   SOURCE_FORMATS,
   scheduleZone,
 } from "@dispatch/core";
-import {
-  applyOpsToDocuments,
-  configStoreUrl,
-  connectConfigStore,
-  lastConfigWrite,
-  readConfigDocuments,
-  type SqlClient,
-  writeConfigDocuments,
-} from "@dispatch/engine/config-store";
+import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
@@ -439,7 +431,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
  * The daily hour of the last schedule.set that names one, or null when none does. The last one wins,
  * as it does when the engine applies them in order.
  */
-function scheduledTime(
+export function scheduledTime(
   op: ConfigOp | ConfigOp[],
 ): { hour: number | undefined; timezone: string | undefined } | null {
   let hour: number | undefined;
@@ -500,7 +492,7 @@ export function configCooldownSeconds(startedAt: readonly number[], now: number)
  * entries are), so the hour is moved there as of now. A token without "Variables: write" is refused;
  * the rest of the edit is saved either way, so this answers false instead of failing.
  */
-async function updateRunTime(
+export async function updateRunTime(
   config: ServerConfig,
   deps: ConfigDeps,
   time: { hour: number | undefined; timezone: string | undefined },
@@ -522,112 +514,6 @@ async function updateRunTime(
   } catch (error) {
     (deps.log ?? (() => {}))(`run time not changed: ${describeError(error, secretsOf(config))}`);
     return false;
-  }
-}
-
-// ------------------------------------------------------------------------------------------- store
-
-/**
- * The edit with the config store on (D149): the same checks have passed (origin, body, passphrase);
- * the cooldown counts from the newest stored write, the ops apply to the stored documents and the
- * changed ones are written only if nothing else changed them meanwhile. Every device reads the
- * result from GET /api/config at once; no workflow runs, except to find sources for a new topic.
- */
-async function saveToStore(
-  request: { op: ConfigOp | ConfigOp[] },
-  storeUrl: string,
-  config: ServerConfig,
-  deps: ConfigDeps,
-): Promise<ConfigResult> {
-  const log = deps.log ?? (() => {});
-  try {
-    const sql = await (deps.connectConfigStore ?? connectConfigStore)(storeUrl);
-    const last = await lastConfigWrite(sql);
-    const wait = configCooldownSeconds(last === null ? [] : [last], deps.now());
-    if (wait > 0) {
-      return {
-        status: 429,
-        headers: { "Retry-After": String(wait) },
-        body: { status: 429, error: "cooldown", retry_after_s: wait },
-      };
-    }
-    const result = await applyOpsToDocuments({
-      ops: request.op,
-      documents: await readConfigDocuments(sql),
-      baseFiles: deps.baseFiles ?? {},
-    });
-    if (!result.ok) {
-      log(`config refused: ${result.message}`);
-      return invalid;
-    }
-    if (!(await writeConfigDocuments(sql, result.writes))) {
-      return { status: 409, body: { status: 409, error: "conflict" } };
-    }
-    if (result.outcome.new_topic === true) {
-      // Source suggestions still come from the workflow (Exa runs there). Best effort: the topic is saved.
-      const edit =
-        Array.isArray(request.op) && request.op.length === 1 ? request.op[0] : request.op;
-      await createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE)
-        .dispatch({ op: JSON.stringify(edit) })
-        .catch((error: unknown) =>
-          log(`suggestions not started: ${describeError(error, secretsOf(config))}`),
-        );
-    }
-    const time = scheduledTime(request.op);
-    if (time === null) return { status: 202, body: { status: 202 } };
-    const schedule = result.documents["config/schedule.json"] ?? null;
-    const timeChanged = await updateRunTime(config, deps, time, async () => schedule);
-    return { status: 202, body: { status: 202, time_changed: timeChanged } };
-  } catch (error) {
-    log(`config store failed: ${describeError(error, secretsOf(config))}`);
-    return unavailable;
-  }
-}
-
-export interface ConfigReadBody {
-  status: 200;
-  /** Each stored config file, parsed, with the version an edit to it was made on. */
-  documents: Record<string, { version: number; data: unknown }>;
-}
-
-/**
- * GET /api/config: the stored documents, for pages that paint the build-time copy first and replace
- * it when the store holds something else (D149). With the store off it answers 404, and a page
- * keeps what it was built with, exactly as today. No passphrase: the static pages already publish
- * the same settings.
- */
-export async function handleConfigRead(deps: {
-  env: ConfigDeps["env"];
-  log?: (message: string) => void;
-  connectConfigStore?: ConfigDeps["connectConfigStore"];
-}): Promise<
-  ApiResult<
-    ConfigReadBody | { status: 404; error: "not_found" } | { status: 503; error: "unavailable" }
-  >
-> {
-  const storeUrl = configStoreUrl(deps.env);
-  if (storeUrl === null) return { status: 404, body: { status: 404, error: "not_found" } };
-  try {
-    const sql = await (deps.connectConfigStore ?? connectConfigStore)(storeUrl);
-    const documents: ConfigReadBody["documents"] = {};
-    for (const document of await readConfigDocuments(sql)) {
-      try {
-        documents[document.path] = {
-          version: document.version,
-          data: JSON.parse(document.content),
-        };
-      } catch {
-        // A row that is not JSON is left out; the page keeps its built copy of that file.
-      }
-    }
-    return {
-      status: 200,
-      headers: { "Cache-Control": "no-store" },
-      body: { status: 200, documents },
-    };
-  } catch (error) {
-    (deps.log ?? (() => {}))(`config read failed: ${describeError(error, [storeUrl])}`);
-    return { status: 503, body: { status: 503, error: "unavailable" } };
   }
 }
 
@@ -653,7 +539,11 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
   }
 
   const storeUrl = configStoreUrl(deps.env);
-  if (storeUrl !== null) return saveToStore(request, storeUrl, config, deps);
+  if (storeUrl !== null) {
+    // Loaded only with the store on, so the function never loads the driver while it is off.
+    const { saveToStore } = await import("./configStore");
+    return saveToStore(request, storeUrl, config, deps);
+  }
 
   const github = createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE);
   try {

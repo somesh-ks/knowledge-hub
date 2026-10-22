@@ -8,15 +8,14 @@ import type { ConfigOp } from "../types/contracts";
 import {
   CONFIG_COOLDOWN_MS,
   type ConfigDeps,
-  type ConfigReadBody,
   configCooldownSeconds,
   handleConfig,
-  handleConfigRead,
   MAX_CONFIG_BODY_CHARS,
   MAX_OPS,
   parseConfigOp,
   parseConfigRequest,
 } from "./configEdit";
+import { type ConfigReadBody, handleConfigRead } from "./configStore";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
@@ -862,7 +861,9 @@ describe("handleConfig with the config store on (D149)", () => {
     baseFiles: { "config/sources.json": JSON.stringify({ version: 1, sources: [] }) },
   });
 
-  it("saves the edit where every device reads it at once, with no workflow run", async () => {
+  // The bugs: an edit that waits on a workflow and a rebuild, and a public read that hands out the
+  // owner's private history along with the settings.
+  it("saves the edit where every device reads it at once, and shows only what pages publish", async () => {
     const store = fakeStore([
       { path: "config/preferences.json", content: PREFERENCES, version: 1 },
     ]);
@@ -870,9 +871,10 @@ describe("handleConfig with the config store on (D149)", () => {
     const result = await handleConfig(input(body(block)), deps);
     expect({ status: result.status, logs }).toEqual({ status: 202, logs: [] });
     expect(github.requests).toHaveLength(0);
-    const read = await handleConfigRead(deps);
+    const read = await handleConfigRead({ ...deps, storeUrl: "postgres://fake" });
     const profile = (read.body as ConfigReadBody).documents["config/profiles/owner.json"];
-    expect(JSON.stringify(profile?.data)).toContain("spam.example");
+    // Only what the built pages publish: no story votes or opens, no user id.
+    expect(profile?.data).toEqual({ blocked_domains: ["spam.example"] });
   });
 
   // The bug: two devices edit at once and the later write silently replaces the earlier one.
