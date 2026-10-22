@@ -1,4 +1,5 @@
-import type { SqlClient } from "@dispatch/engine/config-paths";
+import { connectConfigStore, type SqlClient } from "@dispatch/engine/config-paths";
+import { takeSharedSlot } from "@dispatch/engine/rate-counter";
 import { describeError } from "./redact";
 
 /**
@@ -24,15 +25,17 @@ export function takeSlot(limiter: WindowLimiter, perMinute: number, now: number)
   return true;
 }
 
-/** How long the counter may take before a request goes ahead on the instance's own count. */
-export const SHARED_TIMEOUT_MS = 400;
-/** After a failure or a timeout, the instance counts alone this long before it asks again. */
+/** How long the counter may take (Neon waking from idle included) before the instance's count stands. */
+export const SHARED_TIMEOUT_MS = 1_000;
+/** After an error, the instance counts alone this long before it asks again. */
 export const SHARED_BACKOFF_MS = 30_000;
+/** After a timeout, a shorter wait: the database is likely waking, and its upsert still counts. */
+export const SHARED_SLOW_BACKOFF_MS = 5_000;
 
 export interface SharedLimiterDeps {
   /** DATABASE_URL; unset or empty means the instance counts alone. */
   databaseUrl: string | undefined;
-  /** Opens the database; Neon's HTTP driver by default, loaded only when a URL is set. */
+  /** Opens the database; Neon's HTTP driver by default (D149's loader), only when a URL is set. */
   connect?: (url: string) => Promise<SqlClient>;
   now?: () => number;
   log?: (message: string) => void;
@@ -41,18 +44,14 @@ export interface SharedLimiterDeps {
 /** Takes one slot of `bucket`'s minute; false when the cap is reached. Never throws. */
 export type SharedLimiter = (bucket: string, perMinute: number) => Promise<boolean>;
 
-const defaultConnect = async (url: string): Promise<SqlClient> => {
-  const { connectNeon } = await import("@dispatch/engine/neon");
-  return connectNeon(url);
-};
-
 /**
  * A per-minute limit counted across every instance, in Neon (`rate_limit_counters`, created by
  * `dispatch config seed`). Each request first takes a slot of this instance's own window, so the
  * shared count can only tighten the limit, never loosen it; then one upsert counts it across
  * instances. With no DATABASE_URL, a database error, or no answer within SHARED_TIMEOUT_MS, the
  * instance's slot stands alone: a counter that is down never fails a request, and the instance
- * stops asking it for SHARED_BACKOFF_MS so a missing table or a sleeping database costs one wait.
+ * stops asking it for a while (SHARED_BACKOFF_MS after an error, SHARED_SLOW_BACKOFF_MS after a
+ * timeout) so a missing table or a sleeping database costs one wait, not one per request.
  */
 export function createSharedLimiter(deps: SharedLimiterDeps): SharedLimiter {
   const now = deps.now ?? Date.now;
@@ -63,19 +62,20 @@ export function createSharedLimiter(deps: SharedLimiterDeps): SharedLimiter {
 
   async function sharedSlot(url: string, bucket: string, perMinute: number): Promise<boolean> {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`no answer in ${SHARED_TIMEOUT_MS} ms`)),
-        SHARED_TIMEOUT_MS,
-      );
+    const slow = Symbol("slow");
+    const timeout = new Promise<typeof slow>((done) => {
+      timer = setTimeout(() => done(slow), SHARED_TIMEOUT_MS);
     });
     try {
       const take = async () => {
-        client ??= (deps.connect ?? defaultConnect)(url);
-        const { takeSharedSlot } = await import("@dispatch/engine/rate-counter");
+        client ??= (deps.connect ?? connectConfigStore)(url);
         return takeSharedSlot(await client, bucket, perMinute, now());
       };
-      return await Promise.race([take(), timeout]);
+      const answer = await Promise.race([take(), timeout]);
+      if (answer !== slow) return answer;
+      quietUntil = now() + SHARED_SLOW_BACKOFF_MS;
+      log(`shared counter slow (over ${SHARED_TIMEOUT_MS} ms), counting per instance`);
+      return true;
     } catch (error) {
       client = null;
       quietUntil = now() + SHARED_BACKOFF_MS;
@@ -104,9 +104,15 @@ export const sharedLimit: SharedLimiter = createSharedLimiter({
   databaseUrl: process.env.DATABASE_URL,
 });
 
-/** What a workflow route answers when its shared per-minute cap is full: the cooldown its page knows. */
-export const floodRefusal = {
-  status: 429,
-  headers: { "Retry-After": "60" },
-  body: { status: 429, error: "cooldown", retry_after_s: 60 },
-};
+/**
+ * What a workflow route answers when its shared per-minute cap is full: the cooldown its page
+ * knows, running to the end of the counter's minute.
+ */
+export function floodRefusal(now: number = Date.now()) {
+  const wait = Math.max(1, Math.ceil((60_000 - (now % 60_000)) / 1000));
+  return {
+    status: 429,
+    headers: { "Retry-After": String(wait) },
+    body: { status: 429, error: "cooldown", retry_after_s: wait },
+  };
+}

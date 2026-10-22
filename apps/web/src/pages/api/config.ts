@@ -18,7 +18,7 @@ const EDITS_PER_MINUTE = 12;
 
 export const POST: APIRoute = ({ request, url }) =>
   answerWithRef("api/config", async (log) => {
-    if (!(await sharedLimit("config", EDITS_PER_MINUTE))) return floodRefusal;
+    if (!(await sharedLimit("config", EDITS_PER_MINUTE))) return floodRefusal();
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_CONFIG_BODY_CHARS + 1);
     return handleConfig(

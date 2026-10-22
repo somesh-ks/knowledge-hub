@@ -345,8 +345,8 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
   if (!dryRun) await sql.query(RATE_LIMIT_SCHEMA_SQL);
   print(
     ctx.json
-      ? JSON.stringify({ ok: true, inserted, dry_run: dryRun })
-      : `${dryRun ? "would insert" : "inserted"}: ${inserted.length === 0 ? "nothing" : inserted.join(", ")}`,
+      ? JSON.stringify({ ok: true, inserted, rate_limit_table: !dryRun, dry_run: dryRun })
+      : `${dryRun ? "would insert" : "inserted"}: ${inserted.length === 0 ? "nothing" : inserted.join(", ")}\nrate-limit table: ${dryRun ? "would create if missing" : "ready"}`,
   );
   return 0;
 }
