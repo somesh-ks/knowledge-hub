@@ -65,11 +65,11 @@ test.describe("the Settings index", () => {
   test("lists one row per podcast page, each with what it holds now", async ({ page }) => {
     await page.goto("/settings");
     const rows = [
-      ["Daily", "Every second day at 07:00", "/settings/daily"],
-      ["Weekly", "Sundays at 07:00", "/settings/weekly"],
+      ["Daily", "Every other day at 7", "/settings/daily"],
+      ["Weekly", "Sundays at 7", "/settings/weekly"],
       ["Sources", "", "/settings/topics"],
       ["Preferences", "", "/settings/preferences"],
-      ["Podcast voice", "Default voices", "/settings/voice"],
+      ["Podcast voice", "", "/settings/voice"],
       ["Interface sounds", "On", "/settings/sounds"],
     ] as const;
     for (const [name, hint, href] of rows) {
@@ -253,22 +253,23 @@ test.describe("the profile pages", () => {
   test("the topics are chips, each one in the podcast or left out", async ({ page }) => {
     await open(page, "daily");
     const chips = page.locator(".podcast-topics .filter-chip");
-    // Every topic is shown, and every one can be put in or out, the general news topics too.
+    // Every topic is shown, by name as the Sources page lists them, and every one can be put in or
+    // out, the general news topics too.
     await expect(chips).toHaveText([
-      "Design",
       "AI",
-      "Technology",
       "Audio interfaces",
-      "World",
       "Business",
-      "Science",
       "Culture",
+      "Design",
+      "Science",
       "Sports",
+      "Technology",
+      "World",
     ]);
     for (const chip of await chips.all()) await expect(chip.locator("input")).toBeEnabled();
     // The fixtures leave nothing out, so the owner's topics are in.
-    for (const chip of (await chips.all()).slice(0, 4)) {
-      await expect(chip.locator("input")).toBeChecked();
+    for (const name of ["Design", "AI", "Technology", "Audio interfaces"]) {
+      await expect(chips.filter({ hasText: new RegExp(`^${name}$`) }).locator("input")).toBeChecked();
     }
   });
 });
@@ -512,10 +513,9 @@ test.describe("saved, before the build", () => {
     await page.goto("/settings");
     const hint = (name: string) =>
       page.getByRole("link", { name: new RegExp(`^${name}`) }).locator("[data-hint]");
-    await expect(hint("Daily")).toHaveText("Every second day at 09:00");
-    await expect(hint("Weekly")).toHaveText("Mondays at 07:00");
-    await expect(hint("Sources")).toHaveText("8 topics · 12 sources");
-    await expect(hint("Podcast voice")).toHaveText("Leo and Default");
+    await expect(hint("Daily")).toHaveText("Every other day at 9");
+    await expect(hint("Weekly")).toHaveText("Mondays at 7");
+    await expect(hint("Sources")).toHaveText("12 sources");
 
     await page.goto("/settings/topics");
     await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");

@@ -331,17 +331,3 @@ export function sourceCounts(
   return { total: listed.length, on: listed.filter((spot) => spot.on).length };
 }
 
-/**
- * How many topics the Topics list shows once the saved edits land: `shown` (the topics it was built
- * with) less those removed, plus those added that are not among `taken` (every id already in use).
- */
-export function savedTopicCount(
-  shown: readonly string[],
-  taken: readonly string[],
-  ops: readonly ConfigOp[],
-): number {
-  const saved = savedTopics(ops);
-  const kept = shown.filter((id) => !saved.removedTopics.has(id)).length;
-  const known = new Set([...shown, ...taken]);
-  return kept + [...saved.topics.keys()].filter((id) => !known.has(id)).length;
-}

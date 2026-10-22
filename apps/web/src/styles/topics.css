@@ -88,16 +88,17 @@
     "foot foot";
   align-items: start;
   gap: var(--space-4);
-  padding: var(--space-4);
-  border-radius: var(--radius-xl);
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
 }
 
+/* One padding in from the card's corner, so its radius is the card's less that padding (2026-10-22). */
 .topic-card-art {
   width: var(--cover-size-hero);
   height: var(--cover-size-hero);
   overflow: hidden;
-  border-radius: var(--radius-lg);
+  border-radius: var(--card-content-radius);
   font-family: var(--text-display-family);
 }
 
@@ -186,9 +187,21 @@
    track is the page's own surface, so it reads against the card. */
 .topic-panel {
   margin-block-start: var(--space-8);
-  padding: var(--space-4);
-  border-radius: var(--radius-xl);
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
+}
+
+/* What sits one padding in from the card's edge is concentric with its corners (2026-10-22): the
+   switch's track, the field, the Add button and the chips take the card's radius less its padding,
+   and the switch's segments that less the track's own padding. */
+.topic-panel > .topic-view {
+  --segmented-radius: var(--card-content-radius);
+  --segmented-segment-radius: calc(var(--card-content-radius) - var(--segmented-padding));
+}
+
+.topic-panel :is(.search-field, .filter-row > .topic-add-source, .filter-chip) {
+  border-radius: var(--card-content-radius);
 }
 
 /* On the card's fill the switch's track, the field, the Add button and the chips take the page's own

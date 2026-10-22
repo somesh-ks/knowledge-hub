@@ -12,7 +12,7 @@
   padding-block: var(--space-4) 0;
 }
 
-/* On a phone the selects stack under their label at full width, so "Every second day" and
+/* On a phone the selects stack under their label at full width, so "Every other day" and
    "Wednesday" are never cut, at any text size. From 40rem they sit side by side at the end of the
    row: the time takes two fifths beside the cadence, and three beside the weekday, which comes first.
    Every control in the column, segmented choices included, is one width and starts at one edge. */
@@ -46,10 +46,6 @@
   padding-block-start: var(--space-2);
 }
 
-/* The topics are a wrapped row of filter chips, with the room a row of chips has above and below. */
-.podcast-topics {
-  padding-block: var(--space-4) var(--space-2);
-}
 
 /* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
    room when the voice has no sample yet, so nothing moves when the list arrives. */
