@@ -11,7 +11,9 @@
  *
  * An open dialog is seen by its `open` attribute, before the frame is drawn. A popover is seen in
  * `beforetoggle`, which runs as it is shown or hidden; `toggle` checks again once it settled, in
- * case a listener cancelled the show. A swap brings a root without these, so they are said again.
+ * case a listener cancelled the show. An open dialog or a showing toast taken out of the page fires
+ * neither, so a removal checks both again. A swap brings a root without these, so they are said
+ * again.
  */
 
 const TOAST = ".toast";
@@ -28,7 +30,14 @@ function syncDialog(): void {
 
 /** Whether a popover matching `selector` shows, with `changing` about to be `opening`. */
 function popoverShows(selector: string, changing?: Element, opening = false): boolean {
-  for (const element of document.querySelectorAll(`${selector}:popover-open`)) {
+  let open: NodeListOf<Element>;
+  try {
+    open = document.querySelectorAll(`${selector}:popover-open`);
+  } catch {
+    // Safari before 17 has no Popover API and throws on the selector; no toast is a popover there.
+    return false;
+  }
+  for (const element of open) {
     if (element !== changing) return true;
   }
   return opening && changing?.matches(selector) === true;
@@ -45,8 +54,13 @@ function sync(): void {
 }
 
 export function installRootState(): void {
-  new MutationObserver(syncDialog).observe(document.documentElement, {
+  new MutationObserver((records) => {
+    if (records.some((record) => record.type === "childList" && record.removedNodes.length > 0)) {
+      sync();
+    } else syncDialog();
+  }).observe(document.documentElement, {
     subtree: true,
+    childList: true,
     attributeFilter: ["open"],
   });
   document.addEventListener(

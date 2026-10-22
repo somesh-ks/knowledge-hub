@@ -322,7 +322,14 @@ function install(): void {
   });
 
   // Episodes this device deleted may be taken out of the page after this script has counted it.
+  // It goes with the page too: apply() writes the root, and an old visit's would hide the New
+  // episode button on a later one.
   document.addEventListener("dispatch:library-pruned", apply);
+  document.addEventListener(
+    "astro:before-swap",
+    () => document.removeEventListener("dispatch:library-pruned", apply),
+    { once: true },
+  );
   apply();
 }
 

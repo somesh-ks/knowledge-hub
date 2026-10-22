@@ -78,6 +78,8 @@ async function measure(browser: Browser, url: string): Promise<PageMetrics> {
       })`,
     )) as Collected;
     if (!(collected.lcp > 0)) throw new Error(`${url} reported no largest contentful paint`);
+    // TBT counts from the first paint: without one, every task from parsing on would count.
+    if (!(collected.fcp > 0)) throw new Error(`${url} reported no first contentful paint`);
     return {
       lcp_ms: collected.lcp,
       cls: cumulativeLayoutShift(collected.shifts),

@@ -40,10 +40,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install
-        # apps/web brings Playwright for the probe.
-        run: npm ci --ignore-scripts --workspace=packages/engine --workspace=apps/web --include-workspace-root
-
       # The probe costs several minutes of a capped allowance (D148), so it runs on Mondays and on a
       # manual run; the other days health judges no performance.
       - name: Probe today?
@@ -56,14 +52,20 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Install
+        # apps/web brings Playwright, which only the probe needs.
+        run: >-
+          npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+          ${{ steps.probe.outputs.run == 'true' && '--workspace=apps/web' || '' }}
+
       # The lab probe (D147, scripts/perfProbe.ts). One that fails (the site down, a timeout) writes
       # no perf.json and never fails the job: health reads the missing file as `perf_unmeasured`.
       - name: Probe performance
         if: steps.probe.outputs.run == 'true'
         shell: bash
         continue-on-error: true
-        # Nine throttled loads of up to 65 s each, after the browser install.
-        timeout-minutes: 12
+        # Nine throttled loads of up to 65 s each, after the browser install, with room to spare.
+        timeout-minutes: 15
         run: |
           npx playwright install --with-deps chromium
           npx tsx scripts/perfProbe.ts https://news.someshks.work --out "$RUNNER_TEMP/perf.json"
@@ -88,7 +90,7 @@ jobs:
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are warnings and open no issue (D147), so they go on the run's page.
           jq -r '.findings[] | select(.aspect == "performance") | "::warning title=\(.code)::\(.message)"' "$RUNNER_TEMP/health.json" || true
-          jq -r '"## Lab performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
+          [ -n "$PERF" ] && jq -r '"## Lab performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Report and heal
         shell: bash
