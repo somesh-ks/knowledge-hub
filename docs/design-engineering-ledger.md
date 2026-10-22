@@ -434,7 +434,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 | Source names as links, then plain text | D69, D83 | One element, one job: the row opens the editor. |
 | Saved toast and "Live in about a minute" line, then silence | D79, D115 | Truthful status the owner did not ask to see is noise. |
 | General audience and its preset Undo, then retired | D67, D87, D114 | A mode one person never uses is cost, not choice. |
-| First-load budget 110, 150, then 109 KB | D53, D103, D112 | A loose ceiling lets pages grow by a third unnoticed. |
+| First-load budget 110, 150, 109, then 130 KB | D53, D103, D112, D141 | A loose ceiling lets pages grow by a third unnoticed. |
 | Player corners round in travel, then square throughout | D32, D111 | One edge throughout reads as one object. |
 | Default (automatic) model row, then removed | D106, D113 | A choice that names nothing hides what is happening. |
 | Timeline rail, Schibsted and Literata, then Google Podcasts, then tonal Material | 2026-10-05, D31, D72 | An invented identity loses to a familiar reference. |

@@ -147,6 +147,17 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D133 | The second owner round: Up next is a player tab beside Stories (transcript only under the playing story; full-bleed tabs on a phone, the navigation control on a desktop); Settings in tonal card groups with About and a change log; one search field and one chip style everywhere, held by style rules; a flat navigation control; topic emoji from Jev; Other hidden; no Daily type; a Library bottom sheet on phones; plain outline icons | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
 | D135 | No batch API for the scheduled runs | active |
+| D136 | One model orchestrator: every model call goes through `config/models.json` (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite only; never Opus), each step with a fallback chain and the newest model of each family resolved per run; Nebius, temperature and the Settings model select are gone | active; replaces D46, D58, D113, D130 |
+| D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
+| D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
+| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
+| D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
+| D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
+| D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
+| D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
+| D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
+| D145 | Network-first page loads; a build check on return | amends D47 |
+| D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 
 ---
 
@@ -1524,3 +1535,79 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: not built. The scheduled writer is Anthropic Sonnet (`config/writer.json`), but only the first writing pass is independent; grounding, rewrites and the script wait on it, all inside one job that must be listenable at 07:00. Batching would split the run into submit, wait and resume with a deadline fallback, for about $12 a month at today's volume (estimated, no token logs yet).
 - Revisit if: volume grows about tenfold, the owner accepts an earlier start, or the cost ledger shows the writer as the main spend.
 
+## D136: one model orchestrator, four model families
+
+- Date: 2026-10-21 (the owner: "remove nebius, and just use Gemini and Claude models in good orchestration and not have model selector"; "Use jev, flash models from Gemini, and haiku and sonnet only. Never opus. Also upgrade the relevant models whenever there's a new model available of the same kind. Use jev and backup of Gemini flash or haiku"; "Temperature can be removed")
+- Decision: `config/models.json` names, per step, an ordered chain of families: judge, taste fit, source format and topic emoji: Jev, Haiku, Flash-Lite; grounding: Jev, Flash, Haiku (a checker of another family than the writer); story writer, rewrites and the podcast script: Sonnet, Flash; transcription: Flash-Lite, Flash. A schema rule refuses any other family. At run start the provider model lists resolve each family to its newest generally available model (no preview, no Opus), falling back to a pinned id. `callModel(step, input)` moves on after an error, a timeout, a refusal or invalid output and logs every fallback. No request carries a temperature. Nebius, its keys, the Settings model select and `/api/models` are removed.
+- Why: one provider fewer, a fallback that is never silent (a deprecated temperature once dropped the writer onto Nebius unnoticed), and models that improve without a release.
+- Revisit if: an automatic upgrade changes tone or selection for the worse (pin the family in the routing file), or a family's price jumps.
+
+## D137: a cost ledger, shared and per-user
+
+- Date: 2026-10-21 (the owner: "a cost tracking engine to track costs in different time periods ... operating expenses per user when I expand my app to general public in different timezones"; "Cost analytics goes into a separate page /analytics")
+- Decision: every paid call is a record (run, kind, the edition's timezone, user, provider, product, units, USD from `config/prices.json`, estimated or measured) in `state/costs-YYYY-MM.json`; a scheduled edition is shared by everyone in its timezone, an on-demand episode or a Play narration belongs to its user. `dispatch costs` totals by period and group; /analytics shows the same, linked from Settings.
+- Why: per-user cost needs the split from the start; the marginal cost of a user is mostly what they ask for, not the shared briefing.
+- Revisit if: the prices in `config/prices.json` (all unconfirmed on 2026-10-21) are corrected, or a second user arrives.
+
+## D138: Alexandria enriches, never replaces
+
+- Date: 2026-10-21 (the owner: "enrich the content with firecrawl Alexandria when needed"; "Alexandria just gives enriched information about certain things")
+- Decision: when a finalist's text is under 600 characters after the feed, the free read and the regular scrape, the engine asks Firecrawl Alexandria for facts on its subject and appends them, labelled with their provider, to the material the writer and the grounding check read. Caps: 30 credits a run, 10 a story, 20 s a story. A story with no readable text is still dropped.
+- Why: facts from a third party can fill out a thin story; standing in for an unread article would describe it from someone else's data.
+
+## D139: faults are found and healed, once
+
+- Date: 2026-10-21 (the owner: "hardening the webapp in every aspect ... systems to spot faults in reliability, performance, quality, security ... and self-heal")
+- Decision: `dispatch health` checks runs, narration, digest and state integrity, cost against a ceiling, fallbacks, the Speechify budget and the live site; `.github/workflows/health.yml` runs it daily, opens or closes one `health` issue and starts one retry run. Every engine push retries a lost ref-lock race. The service worker rebuilds a broken cache; held saves older than a week are dropped; client errors and CSP violations reach `/api/report`. HSTS is set; the paid emoji route is rate-limited. The audit and what is not built: `docs/engineering/hardening.md`.
+- Why: the faults found (a push race, a cache read that broke pages online, a paid route with no limit) failed silently.
+
+## D140: the design system, enforced
+
+- Date: 2026-10-21 (the owner: "everything ui related ... must respect design system. implement either a hook/linter/audit pass"; "why drift to other icons when we have an icon library")
+- Decision: `npm run design-check` holds tokens-only colour, type and easing, no raw SVG outside the Icon components, shared classes for every control (a reasoned allowlist that only shrinks), the 8pt grid, flat surfaces and regular headings. A PostToolUse hook runs it after any edit under `apps/web/src` or `tokens`. The `design-audit` agent screenshots a UI change before its PR. Icons come from `@phosphor-icons/core` through `npm run glyphs`, and a test fails on any path that differs from the package.
+- Why: icons had been redrawn by hand because nothing tied the glyph file to the library, and every check before ran only when someone remembered.
+
+## D141: a 130 KB first-load budget
+
+- Date: 2026-10-21 (the owner: "Increase bundle size to 130kb")
+- Decision: `FIRST_LOAD_BUDGET_BYTES` is 130 KB of gzipped JavaScript per page (from 109 KB, D112). `checkBundle` still fails any page above it; the heaviest page is 109.0 KB.
+- Why: at 109 KB every feature that adds first-load code needed a cut first; the fault reporter and the player's tabs had used the last bytes.
+- Cost: about 21 KB of headroom is roughly a fifth more script to fetch and parse on a slow phone before the page answers, if it is all used.
+- Revisit if: the heaviest page passes 120 KB, or INP or LCP on a real phone gets worse.
+
+## D142: creating and deleting feel instant
+
+- Date: 2026-10-21 (the owner on a phone: "emoji selection & topic creation should be made instantly", "suggested sources shown outside - not good and natural", "Why's there a delay in creation or deletion actions in the app?")
+- Decision: A new topic is listed at once as a row like the others (emoji, name, "No sources yet", chevron) in its place by name, with core `topicEmoji`'s guess, replaced in place by Jev's pick. The add sends one `topic.upsert`: the request waits for Jev (up to 4.5 s, `pickEmoji`) through a `ready` promise on the pending edit, so the edits made meanwhile ride with it, and carries the guess when Jev has no answer. Before the build the row opens `/settings/topics/new?id=<id>`: one page `[id].astro` builds with stand-in id, name and description, which `fillShell` (`savedView.ts`) swaps for the saved or pending topic; it suggests sources with `suggestSources` in the browser. A topic the build already has, or one not saved here, goes to its own page; a removed one to the list. Suggested sources no longer show on the Sources list, and "Its page opens in about a minute" is gone. A source's removal now leaves at once with Undo in the toast, as a topic's does; a topic's page shows it removed at once rather than when the request lands. The server keeps its 10 s gap (`CONFIG_COOLDOWN_MS`, the flood guard): the client already holds the next request quietly and sends what changed meanwhile in one (D79, D91), so no screen waits on it.
+- Why: the add waited up to 2.5 s for Jev before showing anything, then sat in a separate block with a note about the build, and its suggestions sat outside any topic. A deleted source vanished but could not be undone, and a deleted topic stayed on screen for the Undo window.
+- Cost: the page before the build shows the generic art of its stand-in, not the topic's own, until the build. A topic opened from another device before the build is not on that device's list (the overlay is per browser, as D79's is).
+- Rejected: an on-demand server route for the topic page (a function call on every visit to it, and the site is otherwise static); lowering the server gap (it is the flood guard, and the queue already hides it); a follow-up upsert for Jev's emoji (two commits and a ten-second wait).
+- Amends: D79 (a new topic is a row and has a page before the build; its suggestions are on that page).
+
+## D143: a code review before every merge
+
+- Date: 2026-10-21 (the owner: "Code review before every merge is mandatory", after #185 and #186 merged with no review)
+- Decision: every PR is opened with the `review` label. `claude-code-review.yml` reviews it and `automerge.yml` skips it, so it merges by hand once the review has landed and its blocking findings are fixed. A large change also gets the `/code-review` skill on the branch before the PR.
+- Why: two large PRs auto-merged on green CI with no review, and the review run afterwards on the merged diff found real bugs (a broken import, cost records that overwrote each other, a paid call on empty text).
+- Cost: no PR merges itself any more; each waits for a review run and a hand merge.
+
+## D144: phone sheets close by gesture and show no Close
+
+- Date: 2026-10-21 (the owner: "All bottom sheets must be swipable down without x, and should be dismissed when clicked outside the bottom sheet")
+- Decision: below 40rem every sheet built from `SheetHeader` or `.sheet-head` (the ⋮ menu sheets, the Library card sheet, the Create sheet, Add source and topic panels, the rewrite panel, the passphrase sheet) shares `scripts/pullDismiss.ts`: a pull from the header, or from the content once scrolled to its top, moves the sheet; a release past a quarter of its height or a flick closes it, a shorter pull springs back; a dialog closes on a tap on its scrim, a popover by light dismiss. Reduced motion skips the follow, not the close. The Close button is visually hidden on a phone (sr-only styles, still focusable); Escape works as before. From 40rem the close controls are as D132 left them. The React sheets (Base UI Drawer) already swiped and closed on the scrim, so they only lose the visible Close. The grabber stays removed (D106).
+- Why: a visible X on a phone is a reach and a second way to do what a swipe does.
+- Amends: D132 (one header with Close at the end, now visible from 40rem only).
+
+## D145: a deploy reaches the screen on the next page load or return to the app
+
+- Date: 2026-10-21 (the owner's phone kept the old Stories layout after #185 was live)
+- Decision: the service worker (v13) answers every page load, briefings included, from the network first with the 3 s fallback to the saved copy; briefings are no longer stale-while-revalidate. Each page carries `<meta name="dispatch-build">` and `/build.json` (no-store) names the build (the commit on Vercel). An app that comes back to the front asks `/build.json` at most once a minute and reloads once per build when the two differ and nothing plays. `dispatch health` faults `site_update` when `/sw.js` is cacheable or `/build.json` does not name a build.
+- Why: a briefing's words never change, but its page does with each deploy, and a saved copy names the old stylesheets the shell cache still holds; an installed app resumed for days never navigates at all.
+- Amends: D47 (saved copies answer moves inside the app, not page loads).
+
+## D146: a deploy is offered, not forced; Web Vitals wait for their own change
+
+- Date: 2026-10-22 (three review rounds on PR #187 kept finding edge cases in both)
+- Decision: a page behind `/build.json` shows the app's toast, "New version available" with Reload, on load and on each return to the front (at most once a minute) while `/build.json` names a newer build; a dismissed toast comes back only at the next such check. Reload reloads at once; it never reloads by itself. Without the Popover API there is no toast, and the next navigation picks up the deploy. The automatic reload and its guards (open dialogs and popovers, typing, edited fields) are gone. The real-user Web Vitals pipeline (page script, `/api/report` kind, Blob day files, `perf_regression`) leaves the PR, and `/api/report` answers an old bundle's unknown kind with 204 before it spends a limiter slot. `run_died` (a failed or timed-out briefing run with no record after it) only alerts: health.yml no longer heals it; a `cancelled` one is the warning `run_cancelled`, since GitHub reports a timeout and the owner's cancel alike. Both stand down only for a newer briefing run under way.
+- Why: each round found another thing a reload could throw away; a prompt cannot lose work. A paid run started on a guess (a cancel, a timeout) is worse than an alert; a missed briefing still heals as `run_overdue`. The vitals store needs a per-hour cap and serialised writes, which is its own change.
+- Amends: D145 (the reload on return).

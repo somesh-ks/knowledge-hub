@@ -1,10 +1,12 @@
 ---
-import { PERSPECTIVE_STOPS } from "@dispatch/core";
+import { PERSPECTIVE_STOPS, topicEmoji } from "@dispatch/core";
 import { topicArt } from "@dispatch/cover";
 import AddFab from "../../../components/AddFab.astro";
+import EmojiPicker from "../../../components/EmojiPicker.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
+import MenuSheet from "../../../components/MenuSheet.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceFilter from "../../../components/SourceFilter.astro";
@@ -23,6 +25,7 @@ import {
   topicChoicesOf,
   topicLayout,
 } from "../../../lib/topicPages";
+import { NEW_TOPIC_ID, SHELL } from "../../../lib/topicText";
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
@@ -39,6 +42,17 @@ export async function getStaticPaths() {
   const choices = topicChoicesOf(layout);
   const taken = [...topics.map((t) => t.id), ...layout.groups.map((group) => group.id)];
   const list = (id: string) => layout.sources.get(id) ?? [];
+  const SHELL_TOPIC: ManageTopic = {
+    id: SHELL.id,
+    name: SHELL.name,
+    description: SHELL.about,
+    weight: 0.7,
+    enabled: true,
+    keywords: [],
+    section_id: SHELL.id,
+    never_publish: false,
+    origin: "custom",
+  };
   return [
     ...layout.groups.map((group) => ({
       params: { id: group.id },
@@ -54,6 +68,16 @@ export async function getStaticPaths() {
       params: { id: OTHER_ID },
       props: { group: null, topic: null, list: list(OTHER_ID), choices, taken },
     },
+    // A topic added since the build opens here at once (D142), drawn as an own topic with no sources
+    // and filled in the browser from what was saved (savedView.ts, fillShell).
+    ...(taken.includes(NEW_TOPIC_ID)
+      ? []
+      : [
+          {
+            params: { id: NEW_TOPIC_ID },
+            props: { group: null, topic: SHELL_TOPIC, list: [], choices, taken, shell: true },
+          },
+        ]),
   ];
 }
 
@@ -63,9 +87,11 @@ interface Props {
   list: ManageSource[];
   choices: { id: string; name: string }[];
   taken: string[];
+  /** The page for a topic not built yet (D142). */
+  shell?: boolean;
 }
 
-const { group, topic, list, choices, taken } = Astro.props;
+const { group, topic, list, choices, taken, shell = false } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
@@ -78,7 +104,8 @@ const shown = group ? { id: group.home, name: group.name } : undefined;
 // The catalogue's feeds that fit the topic and are not among the sources: all known at build time, so
 // they are in the page and need no request. Where nothing fits, the page has no such section.
 const words = suggestionWords({ group, topic });
-const suggested = words ? suggestSources(catalog, sources, words, 10) : [];
+// A topic not built yet has its suggestions ranked in the browser (savedView.ts, suggestUnder).
+const suggested = words && !shell ? suggestSources(catalog, sources, words, 10) : [];
 // Where the topic plays (D69): one of the owner's three sets it for every judge topic it gathers.
 const schedule = await loadScheduleView();
 const scopeIds = group ? group.members.map((member) => member.id) : topic ? [topic.id] : [];
@@ -165,7 +192,7 @@ const facts = topic && {
          view's sliders). A topic is always on and
          available to every podcast, so there is no switch. The controls carry the edit they stand for
          (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later. */}
-    <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
+    <div class="manage topics topic-page" data-topics data-shell={shell ? "" : undefined} data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -178,7 +205,25 @@ const facts = topic && {
                Listen in, the podcasts it plays in (2026-10-20). The menu is the app's
                popover menu (HeroMenu.astro, heroMenu.ts). */}
           <div class="topic-card">
-            <div class="topic-card-art" set:html={art} />
+            <div class="topic-card-lead">
+              <div class="topic-card-art" set:html={art} />
+              {/* The topic's emoji (2026-10-21): a button at the picture's corner that opens the
+                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. */}
+              {
+                topic && (
+                  <button
+                    class="icon-btn press topic-emoji-pick"
+                    type="button"
+                    aria-label={`Change emoji for ${name}`}
+                    aria-haspopup="dialog"
+                    aria-controls="emoji-picker"
+                    data-change-emoji
+                    data-needs-js
+                  >{topicEmoji(topic)}</button>
+                )
+              }
+            </div>
+            {topic && <EmojiPicker id="emoji-picker" />}
             <div class="topic-card-text">
               <SettingsHead title={name} note={note} />
             </div>
@@ -196,7 +241,7 @@ const facts = topic && {
                   >
                     <Icon name="moreVert" />
                   </button>
-                  <div class="hero-menu-list" id="topic-menu" popover role="menu" aria-label={`More actions for ${name}`}>
+                  <MenuSheet id="topic-menu" title={name}>
                     <button
                       class="hero-menu-item"
                       type="button"
@@ -206,7 +251,7 @@ const facts = topic && {
                       data-edit-topic={JSON.stringify(facts)}
                       data-topic-base={upsert}
                     >
-                      Edit
+                      <Icon name="pencil" />Edit
                     </button>
                     {topic.origin === "custom" && (
                       <button
@@ -222,11 +267,11 @@ const facts = topic && {
                         data-remove
                         data-confirm
                       >
-                        <span class="topic-delete-do">Delete</span>
+                        <Icon name="trash" /><span class="topic-delete-do">Delete</span>
                         <span class="topic-delete-undo">Keep topic</span>
                       </button>
                     )}
-                  </div>
+                  </MenuSheet>
                 </div>
               )
             }

@@ -302,6 +302,8 @@ export type ConfigOp =
         enabled: boolean;
         keywords: string[];
         section_id: string;
+        /** Its row's emoji (core configOps); left out keeps the stored one. */
+        emoji?: string;
       };
     }
   | { op: "topic.remove"; id: string }
@@ -384,12 +386,6 @@ export type ConfigOp =
       daily?: boolean;
       weekly?: boolean;
       custom?: boolean;
-    }
-  | {
-      op: "writer.set";
-      provider: "nebius" | "anthropic";
-      /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
-      model: string | null;
     }
   /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
   | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;

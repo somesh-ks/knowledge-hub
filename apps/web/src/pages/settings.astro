@@ -8,18 +8,13 @@ import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
 import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
-import { loadWriterView, writerLabel } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
 import "../styles/manage.css";
 
-const [schedule, writer, manage] = await Promise.all([
-  loadScheduleView(),
-  loadWriterView(),
-  loadManage(),
-]);
+const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
 // The topics a person sees (D69): the owner's three, any of their own apart from those, and the
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);
@@ -127,25 +122,6 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         </div>
       </section>
 
-      {/* Intelligence holds the model select alone, and is the model editor's root:
-           scripts/podcastEntry.ts loads it after first paint and fills the select, and autosave.ts
-           sends a pick a moment later. */}
-      <section data-manage="podcast">
-        <h2 class="section-head">Intelligence</h2>
-        <div class="rows card-group">
-          <div class="settings-row" data-models data-saved={writer.model ?? ""} data-provider={writer.provider}>
-            <label class="settings-label" for="model-select">AI model</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="model-select" name="model" autocomplete="off">
-                <option value={writer.model ?? ""} selected>{writerLabel(writer.model, writer.provider)}</option>
-              </select>
-              <Icon name="chevronDown" />
-            </span>
-          </div>
-        </div>
-        <ManageChrome />
-      </section>
-
       <section>
         <h2 class="section-head">Sound</h2>
         <div class="rows card-group">
@@ -182,6 +158,19 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               <Icon name="chevronDown" />
             </span>
           </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">Analytics</h2>
+        <div class="rows card-group">
+          <a class="row-action" href="/analytics">
+            <span class="settings-text">
+              <span class="settings-label">Costs</span>
+              <span class="settings-hint">What paid services cost, by day, week or month</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
         </div>
       </section>
 

@@ -24,6 +24,9 @@ export const test = base.extend<Options & { problems: Problems }>({
       await page.route("**/api/stream?**", (route) =>
         route.fulfill({ status: 200, json: { status: "waiting", turns: [] } }),
       );
+      // The page's own reports (client errors and CSP violations) go to /api/report, which the
+      // static site does not have; the API takes them with 204.
+      await page.route("**/api/report", (route) => route.fulfill({ status: 204 }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>

@@ -252,3 +252,51 @@ test.describe("an episode download", () => {
     await context.setOffline(false);
   });
 });
+
+test("a phone's menu sheet has no visible Close, a short pull springs back to the same box, a long pull or a tap outside closes it and focus returns to the dots", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", y: number) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }],
+    });
+  const pull = async (from: number, by: number) => {
+    await touch("touchStart", from);
+    for (let step = 1; step <= 6; step++) await touch("touchMove", from + (by * step) / 6);
+    await touch("touchEnd", from + by);
+  };
+  const sheet = row(page, AUDIO_ID).locator(".hero-menu-list");
+  const dots = row(page, AUDIO_ID).locator("[data-hero-more]");
+
+  await openMenu(page, AUDIO_ID);
+  // Keyboard and screen readers keep a Close; it takes no room a finger could see.
+  const close = sheet.locator("[data-menu-close]");
+  expect(((await close.boundingBox()) ?? { width: 99 }).width).toBeLessThan(2);
+  // The sheet slides up when it opens: its rest box and its head are read, and the finger lands on
+  // the head, only once the slide is over (a slow runner was still mid-slide).
+  const settled = () =>
+    sheet.evaluate((el) =>
+      Promise.allSettled(el.getAnimations().map((animation) => animation.finished)),
+    );
+  await settled();
+  const rest = await sheet.boundingBox();
+  const head = (await sheet.locator(".create-sheet-head").boundingBox()) as { y: number };
+
+  await pull(head.y + 8, 40);
+  await expect.poll(() => sheet.boundingBox()).toEqual(rest);
+  await expect(sheet).toBeVisible();
+  // The spring-back runs on its own clock: the next finger waits for it, or lands above the head.
+  await settled();
+
+  await pull(head.y + 8, 200);
+  await expect(sheet).toBeHidden();
+  await expect(dots).toBeFocused();
+
+  await openMenu(page, AUDIO_ID);
+  await page.touchscreen.tap(195, 40);
+  await expect(sheet).toBeHidden();
+});

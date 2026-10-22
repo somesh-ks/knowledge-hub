@@ -19,8 +19,6 @@ export interface ServerEnv {
   BLOB_STORE_ID?: string;
   VERCEL_OIDC_TOKEN?: string;
   /** Only /api/models reads these three, to list the models the Model picker offers. */
-  NEBIUS_API_KEY?: string;
-  NEBIUS_BASE_URL?: string;
   ANTHROPIC_API_KEY?: string;
   /** What Vercel Cron sends as a bearer token to /api/cron/run. Unset, the route refuses every call. */
   CRON_SECRET?: string;

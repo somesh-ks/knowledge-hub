@@ -18,8 +18,8 @@ import {
   FLAG_NAMES,
   JEV_QUESTIONS,
   LAUNCH_LEVELS,
-  NEBIUS_JUDGE_VERSION,
-  NEBIUS_QUESTIONS_HASH,
+  LLM_JUDGE_VERSION,
+  LLM_QUESTIONS_HASH,
   QUESTIONS_HASH,
   STATE_LIMITS,
 } from "../src/judge/questions.js";
@@ -108,10 +108,10 @@ describe("question definitions", () => {
       launch_scale: { ...JEV_QUESTIONS.launch_scale, criteria: ["a", "b", "c", "d", "e"] },
     };
     expect(hashOf({ questions: edited, state: STATE_LIMITS })).not.toBe(QUESTIONS_HASH);
-    expect(NEBIUS_JUDGE_VERSION).toBe("nebius-json-v2");
-    expect(NEBIUS_QUESTIONS_HASH).toBe(
+    expect(LLM_JUDGE_VERSION).toBe("llm-json-v3");
+    expect(LLM_QUESTIONS_HASH).toBe(
       hashOf({
-        version: NEBIUS_JUDGE_VERSION,
+        version: LLM_JUDGE_VERSION,
         categories: CATEGORY_CRITERIA,
         craft: CRAFT_LEVELS,
         launch: LAUNCH_LEVELS,
@@ -119,7 +119,7 @@ describe("question definitions", () => {
         state: STATE_LIMITS,
       }),
     );
-    expect(NEBIUS_QUESTIONS_HASH).not.toBe(QUESTIONS_HASH);
+    expect(LLM_QUESTIONS_HASH).not.toBe(QUESTIONS_HASH);
   });
 
   it("hashes the definitions, so any change to a question changes the hash", () => {

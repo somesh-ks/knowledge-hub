@@ -9,13 +9,12 @@ import { NotReadyError } from "../lib/downloads";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
 import { shareLink } from "./shareLink";
+import { sendToast } from "./toastEvent";
 
 const ROOT = "[data-library-menu]";
 
 function toast(message: string, kind?: "success" | "error"): void {
-  document.dispatchEvent(
-    new CustomEvent("dispatch:toast", { detail: { message, ...(kind ? { kind } : {}) } }),
-  );
+  sendToast({ message, ...(kind ? { kind } : {}) });
 }
 
 function setDownloaded(root: HTMLElement, on: boolean): void {
@@ -32,6 +31,7 @@ function setDownloaded(root: HTMLElement, on: boolean): void {
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
   const label = item?.querySelector("[data-menu-label]");
   if (label) label.textContent = on ? "Remove download" : "Download";
+  // The item's icon follows the card's data-downloaded (library.css, .dl-remove).
 }
 
 /** Marks the rows whose files are saved on this device. */
@@ -124,12 +124,6 @@ export function installLibraryMenu(): void {
     },
     true,
   );
-
-  // The sheet's Close (the header of a phone's menu).
-  document.addEventListener("click", (event) => {
-    const close = (event.target as Element).closest?.("[data-menu-close]");
-    close?.closest<HTMLElement>("[popover]")?.hidePopover();
-  });
 
   document.addEventListener("click", (event) => {
     const item = (event.target as Element).closest?.<HTMLElement>(`${ROOT} [data-menu]`);

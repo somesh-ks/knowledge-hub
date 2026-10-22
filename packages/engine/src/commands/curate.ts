@@ -155,7 +155,6 @@ async function runApi(
 ): Promise<number> {
   const { root, log } = ctx;
   // Fail before any work when a required key is missing.
-  requireKey(ctx.env, "NEBIUS_API_KEY");
   const paths = await resolvePaths(ctx, flags);
   const voice = await loadVoice(root);
   const linter = createLinter(voice);

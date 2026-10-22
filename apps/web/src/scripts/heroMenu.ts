@@ -3,7 +3,11 @@
  * own popover. The listeners sit on the document, so they outlive a client-side navigation that
  * swaps the menu for another page's. Loaded by the briefing and episode pages.
  */
-const LIST = ".hero-menu-list";
+import { pullToDismiss } from "./pullDismiss";
+
+// The emoji picker (data-picker) is the same popover but its own: its keys, focus and Close are emojiPicker.ts.
+const LIST = ".hero-menu-list:not([data-picker])";
+const wired = new WeakSet<Element>();
 
 const itemsOf = (list: Element): HTMLElement[] =>
   Array.from(list.querySelectorAll<HTMLElement>('[role="menuitem"]'));
@@ -33,7 +37,14 @@ export function installHeroMenu(): void {
     "beforetoggle",
     (event) => {
       const list = event.target as HTMLElement;
-      if (!list.matches?.(LIST) || (event as ToggleEvent).newState !== "open") return;
+      if ((event as ToggleEvent).newState !== "open") return;
+      // A phone shows the menu, and the emoji picker, as a sheet: pulled down, it closes (light
+      // dismiss is the popover's own).
+      if (list.matches?.(".hero-menu-list.menu-sheet") && !wired.has(list)) {
+        wired.add(list);
+        pullToDismiss(list, () => list.hidePopover());
+      }
+      if (!list.matches?.(LIST)) return;
       // Without anchor positioning the menu is placed from the button's box.
       if (CSS.supports("top", "anchor(bottom)")) return;
       const box = moreOf(list)?.getBoundingClientRect();
@@ -95,6 +106,12 @@ export function installHeroMenu(): void {
     if (list && next && !list.contains(next) && next !== moreOf(list)) {
       (list as HTMLElement).hidePopover();
     }
+  });
+
+  // The sheet's Close (the header of a phone's menu).
+  document.addEventListener("click", (event) => {
+    const close = (event.target as Element).closest?.("[data-menu-close]");
+    close?.closest<HTMLElement>("[popover]")?.hidePopover();
   });
 
   // A pick closes the menu first; what it opened (the share sheet, a panel) comes after. A disabled

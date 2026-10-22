@@ -10,7 +10,7 @@ Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
 
 ## 1. First-time setup
 
-Accounts for Nebius, TypeSafe, Exa, Firecrawl and Speechify already exist (D13 in [decisions.md](decisions.md)). You also need GitHub, Vercel (Hobby) and Cloudflare (DNS only).
+Accounts for Anthropic, Google AI Studio (Gemini), TypeSafe, Exa, Firecrawl and Speechify already exist (D13 in [decisions.md](decisions.md)). You also need GitHub, Vercel (Hobby) and Cloudflare (DNS only).
 
 **Cost.** About 2 USD per month, dominated by Exa. Judgments cost about 0.01 USD per run and the writer under 0.07 USD per run. Speechify, Vercel Hobby, GitHub Actions (about 120 of 2,000 free minutes) and Cloudflare DNS use free tiers. Details: `git show 91bc533:docs/plan/build-plan.md` Section 10.
 
@@ -28,31 +28,30 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 ### 1.2 Create `.env` and add the service keys
 
 1. Copy the template: `cp .env.example .env`. `.env` is gitignored.
-2. In an editor, fill in the keys below. Leave a value empty to skip it: the script sends only non-empty values, and the engine uses its defaults for `NEBIUS_BASE_URL` and `SPEECHIFY_VOICE_ID` (`geffen_32`).
+2. In an editor, fill in the keys below. Leave a value empty to skip it: the script sends only non-empty values, and the engine uses its defaults for `SPEECHIFY_VOICE_ID` (`geffen_32`).
 
 | Name | Where to get it |
 | --- | --- |
-| `NEBIUS_API_KEY` | Nebius Token Factory console. Create a key used only for this project and top up prepaid credit modestly |
+| `ANTHROPIC_API_KEY` | Anthropic console. Create a key used only for this project; it serves Claude Sonnet and Haiku |
 | `TYPESAFE_API_KEY` | console.typesafe.ai |
 | `EXA_API_KEY` | Exa dashboard |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard |
-| `GEMINI_API_KEY` | Google AI Studio (optional: YouTube transcription) |
+| `GEMINI_API_KEY` | Google AI Studio (optional: YouTube transcription, topic emoji backup on Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console |
-| `NEBIUS_BASE_URL`, `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
-| `COMPOSIO_API_KEY` | Optional. A Composio project key (the YouTube connection is Composio-managed). The pipeline reads YouTube channel feeds without a key, so nothing needs it yet. |
+| `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
 | `DISPATCH_GIT_NAME`, `DISPATCH_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | `GENERATE_PASSPHRASE_HASH` | Section 1.8 |
-| `DISPATCH_MODEL`, `DISPATCH_FALLBACK_MODEL` | Section 1.3 |
+| Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
 ### 1.3 Pick the writer model
 
-No model id is the default (D24). With `NEBIUS_API_KEY` in `.env`:
+Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
 
-1. List what your key can use: `npm run dispatch -- models`.
-2. Set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` in `.env` to two ids from the list.
-3. Compare candidates before trusting one. This calls Jev and Nebius with your keys and costs a few cents:
+
+
+3. Compare candidates before trusting one. This calls Jev and the routed models with your keys and costs a few cents:
 
 ```bash
 npm run dispatch -- eval --yes --only bakeoff --models <id>,<id>
@@ -116,7 +115,7 @@ For the Vercel side, open the project's Settings, Environment Variables in the d
 
 ### 1.10 Check the setup
 
-Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: Nebius must list both model ids, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
+Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
 
 ### 1.11 Push `main` and deploy
 
@@ -163,7 +162,7 @@ Nothing to do on most days.
 Monthly:
 
 1. Run `npm run dispatch -- status` and read the failing sources. Fix or drop any that fail five runs in a row.
-2. Check balances: Nebius credit, Exa, Speechify characters (`state/usage.json`), the TypeSafe console, Vercel Blob usage.
+2. Check balances: Anthropic and Gemini balances, Exa, Speechify characters (`state/usage.json`), the TypeSafe console, Vercel Blob usage.
 3. Check the token expiry dates in section 6.
 
 ---
@@ -220,8 +219,8 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 | Step | Usual cause | Fix |
 | --- | --- | --- |
 | Fetch | The network is down or every source failed. One failing source is logged, not fatal | Rerun. Check `dispatch status` for sources failing repeatedly |
-| Judge | Both judges were unavailable, so most of the pool went unjudged. A Jev failure alone falls back to the Nebius judge | Section 8.4 |
-| Write | Nebius model not found, key rejected, the token budget aborted the run, or extraction or the writer was down | Section 8.3 |
+| Judge | Both judges were unavailable, so most of the pool went unjudged. A Jev failure alone falls back to the Haiku or Flash-Lite judge | Section 8.4 |
+| Write | a model not found, key rejected, the token budget aborted the run, or extraction or the writer was down | Section 8.3 |
 | Validate | A digest-level validation error, named in the log. Too few surviving items is not a failure: the outcome is `nothing` | Read the log, then rerun |
 | Commit | The write guard refused a path outside the command's list, or the push conflicted three times | A guard refusal is a bug: open an issue with the log. For a conflict, pull and rerun |
 | `audio.yml`: Audio | A refused commit or a push that failed after three rebase retries. A failed narration, a missing key or a failed prune is only a warning | Section 8.2 |
@@ -244,11 +243,11 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 
 | Key | Rotate at | Used by |
 | --- | --- | --- |
-| `NEBIUS_API_KEY` | Nebius Token Factory console | Writer and fallback judge |
+| `ANTHROPIC_API_KEY` | Anthropic console | Story and script writers, Haiku fallbacks |
 | `TYPESAFE_API_KEY` | console.typesafe.ai | Jev judge and grounding check |
 | `EXA_API_KEY` | Exa dashboard | Discovery |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction |
-| `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback |
+| `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
 | `GITHUB_DISPATCH_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
@@ -294,21 +293,15 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
 5. Playback starts but seeking fails on iPhone only: this is the Blob Range risk (`git show 91bc533:docs/plan/build-plan.md` Section 14). Record the iOS version and report it.
 
-### 8.3 The Nebius model id changed
+### 8.3 A model id changed or was retired
 
-Nebius retires and renames models (Qwen3-32B left its serverless tier on 2026-08-31). Symptoms: the Write step fails with a model-not-found error, or `doctor --online` reports a model id missing from the live list.
-
-1. Run `npm run dispatch -- doctor --online`. It checks `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` against the live list and suggests similar ids.
-2. The client fails over to the fallback id on model-not-found, so a run may still succeed. Fix the id anyway.
-3. List replacements with `npm run dispatch -- models`, then set `DISPATCH_MODEL` and `DISPATCH_FALLBACK_MODEL` in `.env`.
-4. Run the bake-off before trusting a new model, because a different model writes differently: `npm run dispatch -- eval --yes --only bakeoff --models <id>,<id>`.
-5. Send the variables: `npm run secrets:push -- --only github`.
+Models are resolved at run start from the providers' lists. Symptoms: the run log warns "A model failed; falling back" with `model_not_found`, or `dispatch models` shows a family on its fallback id. Run `npm run dispatch -- models`, then set `pin` or `fallback_id` for that family in `config/models.json`.
 
 ### 8.4 Jev is unavailable
 
-1. A 429 or 529 means rate limit or an outage. The engine retries with backoff, then the Nebius fallback judge answers the items Jev could not. The run log warns when it does.
+1. A 429 or 529 means rate limit or an outage. The engine retries with backoff, then the routed fallback judge answers the items Jev could not. The run log warns when it does.
 2. A 401 means the key was revoked or expired. Rotate `TYPESAFE_API_KEY` (section 6).
-3. With `TYPESAFE_API_KEY` unset, the Nebius judge answers alone, the grounding check is skipped and the digest is `verified: false`.
+3. With `TYPESAFE_API_KEY` unset, the routed fallback judge answers alone, the grounding check is skipped and the digest is `verified: false`.
 4. If Jev stays down for days, check the TypeSafe console for status, balance and version retirements. The fallback judge is less calibrated, so scores shift. Revalidate thresholds with `dispatch eval --yes --only judges,grounding` before trusting them again.
 
 ### 8.5 The site did not update

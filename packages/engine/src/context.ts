@@ -36,14 +36,14 @@ export function redact(text: string, secrets: readonly string[]): string {
 export function secretsFromEnv(env: Env): string[] {
   const keys = [
     env.TYPESAFE_API_KEY,
-    env.NEBIUS_API_KEY,
+    env.ANTHROPIC_API_KEY,
+    env.GEMINI_API_KEY,
     env.EXA_API_KEY,
     env.FIRECRAWL_API_KEY,
     env.SPEECHIFY_API_KEY,
     env.BLOB_READ_WRITE_TOKEN,
     env.VERCEL_OIDC_TOKEN,
     env.VERCEL_TOKEN,
-    env.COMPOSIO_API_KEY,
   ];
   return keys.filter((value): value is string => typeof value === "string" && value.length > 0);
 }

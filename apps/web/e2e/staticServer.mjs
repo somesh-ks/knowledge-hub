@@ -89,25 +89,6 @@ export function startServer({ root, port }) {
 
   const server = createServer((request, response) => {
     const { pathname } = new URL(request.url ?? "/", "http://localhost");
-    if (pathname === "/api/models" && request.method === "GET") {
-      // A small fixed list, so the Model page renders in tests without a Nebius key: models Nebius
-      // served on 2026-10-21, two of them top models and one (Kimi) the page must never offer,
-      // sorted by id as the route sends them.
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(
-        JSON.stringify({
-          provider: "nebius",
-          models: [
-            { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262144 },
-            { id: "deepseek-ai/DeepSeek-V4.1-Flash", context_length: 1048576 },
-            { id: "moonshotai/Kimi-K3", context_length: 1048576 },
-            { id: "openai/gpt-oss-120b", context_length: 131072 },
-            { id: "zai-org/GLM-5.3", context_length: 1048576 },
-          ],
-        }),
-      );
-      return;
-    }
     if (pathname === "/api/voices" && request.method === "GET") {
       // A small fixed list in the route's contract, so the voice selects fill in tests without a
       // Speechify key. Only the first voice has a sample.
@@ -152,6 +133,21 @@ export function startServer({ root, port }) {
       return;
     }
     const file = resolveFile(pathname);
+    // A deploy, for one browser context only: its `test-build` cookie renames the build in every
+    // page and in /build.json, the way a new deploy would. Playwright's routes never see a request
+    // the service worker makes, and the test is about what the worker serves.
+    const deploy = /(?:^|;\s*)test-build=([\w-]+)/.exec(request.headers.cookie ?? "")?.[1];
+    if (file && deploy && /\.(html|json)$/.test(file) && request.method === "GET") {
+      const body = readFileSync(file, "utf8")
+        .replace(/(<meta name="dispatch-build" content=")[^"]*"/, `$1${deploy}"`)
+        .replace(/^\{"build":"[^"]*"\}/, `{"build":"${deploy}"}`);
+      response.writeHead(200, {
+        "Content-Type": TYPES[extname(file)] ?? "application/octet-stream",
+        ...headersFor(pathname),
+      });
+      response.end(body);
+      return;
+    }
     if (file) {
       send(request, response, file, 200);
       return;

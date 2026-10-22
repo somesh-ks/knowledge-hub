@@ -52,7 +52,7 @@ export default function PlayerTabs<Value extends string>({
           role="tab"
           id={`${idBase}-tab-${tab.value}`}
           aria-selected={tab.value === value}
-          aria-controls={`${idBase}-panel-${tab.value}`}
+          aria-controls={tab.value === value ? `${idBase}-panel-${tab.value}` : undefined}
           tabIndex={tab.value === value ? 0 : -1}
           onClick={() => onChange(tab.value)}
         >

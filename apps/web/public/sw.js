@@ -3,10 +3,11 @@
  * available offline and nothing else.
  *
  *   - Precaches the shell (the home page and /offline) with their stylesheet, fonts and scripts.
- *   - Digest pages: stale-while-revalidate. A digest never changes once published, so the cached copy
- *     is right and the refresh in the background only matters for a correction.
- *   - Home, the library and /latest.json change whenever a briefing lands, so a page load goes to the
- *     network first and falls back to the cache after a short wait. A stale "today" would be a wrong answer.
+ *   - Every page load, a briefing's included, goes to the network first and falls back to the cache
+ *     after a short wait. Home, the library and /latest.json change whenever a briefing lands, and a
+ *     briefing's words never change but its page does with every deploy: a saved copy names the old
+ *     build's stylesheets and scripts, which the shell cache still holds, so a briefing answered from
+ *     the cache showed the old layout after a deploy (2026-10-21, the Stories tab on the owner's phone).
  *   - A move inside the app (the client router's fetch, or a prefetch) is answered at once from a copy
  *     saved in the last few minutes and checked against the network behind it. If the page changed, the
  *     page on screen is told. When /latest.json changes, every saved page counts as old again.
@@ -15,9 +16,13 @@
  *     file is answered from the cache with correct Range handling (206 and Content-Range), which
  *     Safari needs, and the cache survives a version bump: a download is the person's, not the
  *     worker's. Any other audio request goes to the network as it would have.
+ *   - A strategy that throws (a cache entry the browser corrupted or evicted mid-read) never breaks
+ *     the page: the request goes to the network and, when that answers and a cache read really does
+ *     throw, the worker's own caches are dropped and the shell saved again, once per worker life
+ *     (healed below). A network failure alone never deletes a saved page.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v11";
+const VERSION = "v13";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
@@ -468,6 +473,33 @@ async function downloadedApi(request) {
 
 /* ------------------------------------------------------------------ routing */
 
+/**
+ * A strategy that rejects is answered from the network. It rejects for a broken cache or for a
+ * network blip, and only a cache read that itself throws now proves the first, so only then are the
+ * versioned caches dropped and the shell saved again, once per worker life. A blip on an uncached
+ * asset leaves every saved page alone. Downloads (AUDIO_CACHE) are kept.
+ */
+let healing = false;
+function healed(event, answer, probe = event.request) {
+  return answer.catch(async (error) => {
+    const response = await fetch(event.request);
+    const readable = await caches.match(probe).then(
+      () => true,
+      () => false,
+    );
+    if (!readable && !healing) {
+      healing = true;
+      console.warn("[sw] cache read failed; rebuilding the caches", error);
+      event.waitUntil(
+        Promise.all([SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE].map((name) => caches.delete(name)))
+          .then(precacheShell)
+          .catch(() => {}),
+      );
+    }
+    return response;
+  });
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -502,23 +534,30 @@ self.addEventListener("fetch", (event) => {
   if (AUDIO_PATH.test(url.pathname) || url.pathname.startsWith("/api/")) return;
 
   if (url.pathname.startsWith("/_astro/")) {
-    event.respondWith(cacheFirst(event, SHELL_CACHE));
-  } else if (url.pathname.startsWith("/d/")) {
-    event.respondWith(staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES));
+    event.respondWith(healed(event, cacheFirst(event, SHELL_CACHE)));
   } else if (url.pathname === LATEST_PATH) {
     // One entry under the bare path, whatever the query: a copy per query string would never match
     // the one before it (so the check for a new briefing never fired) and would push real pages out.
     event.respondWith(
-      networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+      healed(
+        event,
+        networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+        LATEST_PATH,
+      ),
     );
   } else if (isPage(request)) {
     // A page load waits for the network. The client router's fetch and a prefetch do not have to.
     event.respondWith(
-      request.mode === "navigate" ? networkFirst(event, PAGES_CACHE, MAX_PAGES) : inAppPage(event),
+      healed(
+        event,
+        request.mode === "navigate"
+          ? networkFirst(event, PAGES_CACHE, MAX_PAGES)
+          : inAppPage(event),
+      ),
     );
   } else if (url.pathname.startsWith("/covers/")) {
-    event.respondWith(staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA));
+    event.respondWith(healed(event, staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA)));
   } else if (SHELL_FILES.includes(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(event, SHELL_CACHE));
+    event.respondWith(healed(event, staleWhileRevalidate(event, SHELL_CACHE)));
   }
 });

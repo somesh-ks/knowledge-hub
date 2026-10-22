@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   JudgmentsFile,
   LastRunFile,
+  ModelRouting,
   Preferences,
   ScheduleFile,
   SeenFile,
@@ -12,7 +13,6 @@ import {
   TopicJudgmentsFile,
   TopicsFile,
   UsageFile,
-  WriterFile,
 } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { parseQueries } from "../src/fetch/queries.js";
@@ -27,7 +27,7 @@ const SCHEMAS: Record<string, { parse: (value: unknown) => unknown }> = {
   "config/schedule.json": ScheduleFile,
   "config/sources.json": SourcesFile,
   "config/topics.json": TopicsFile,
-  "config/writer.json": WriterFile,
+  "config/models.json": ModelRouting,
   "config/queries.json": { parse: parseQueries },
   "state/judgments.json": JudgmentsFile,
   "state/last-run.json": LastRunFile,

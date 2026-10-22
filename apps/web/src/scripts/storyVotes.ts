@@ -38,18 +38,18 @@ import {
   pressedOf,
   recordOpen,
   type StoryRef,
+  splitStaleBlocks,
   stopFailure,
   VOTES_KEY,
   type VoteOp,
   type VoteState,
 } from "../lib/storyVotes";
+import { sendToast } from "./toastEvent";
 
 /** How long a block waits, with Undo in the toast, before it is sent (autosave.ts' UNDO_MS). */
 const UNDO_MS = 5000;
 /** Where the settings pages keep a remembered passphrase (managePageSave.ts). */
 const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
-/** The toast's event (sheets/toastStore.ts), spelled out so this code does not load the store. */
-const TOAST_EVENT = "dispatch:toast";
 /** How many times one request waits out the server's gap before it is a failure (managePageSave.ts). */
 const MAX_WAITS = 6;
 
@@ -196,7 +196,7 @@ const blocks = new Map<string, Block>();
 const messages = new Map<string, string>();
 
 function toast(detail: object): void {
-  document.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail }));
+  sendToast(detail);
 }
 
 /** The outlets in the request on its way: too late for Undo. */
@@ -327,7 +327,7 @@ function commitBlock(entry: Block): void {
   window.clearTimeout(entry.timer);
   blocks.delete(entry.host);
   messages.set(entry.host, entry.message);
-  saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet }]);
+  saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet, at: Date.now() }]);
   void send(false);
 }
 
@@ -396,7 +396,7 @@ function leave(): void {
     window.clearTimeout(entry.timer);
     blocks.delete(entry.host);
     messages.set(entry.host, entry.message);
-    saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet }]);
+    saveOutbox([...outbox(), { domain: entry.host, outlet: entry.outlet, at: Date.now() }]);
   }
   void send(true);
 }
@@ -406,4 +406,15 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", leave);
 document.addEventListener("astro:before-preparation", leave);
+// A stop that waited more than a week (a device long offline) is dropped, and the reader is told.
+{
+  const { fresh, stale } = splitStaleBlocks(outbox(), Date.now());
+  if (stale.length > 0 || fresh.some((block, i) => block.at !== outbox()[i]?.at)) saveOutbox(fresh);
+  for (const { outlet } of stale) {
+    toast({
+      message: `Did not stop ${outlet}: the request waited more than a week. Stop it again if you still want to.`,
+      kind: "error",
+    });
+  }
+}
 schedule();

@@ -1,6 +1,11 @@
 import { join } from "node:path";
 import type { Item } from "@dispatch/core";
-import { requireKey } from "@dispatch/core";
+import { loadModelRouting } from "@dispatch/core";
+import {
+  type Alexandria,
+  createAlexandria,
+  loadAlexandriaConfig,
+} from "../alexandria/alexandria.js";
 import { type CommandContext, secretsFromEnv } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { extractFullText } from "../extract/extractText.js";
@@ -12,17 +17,18 @@ import { FallbackJudge } from "../judge/fallbackJudge.js";
 import { GeneralJudge } from "../judge/generalJudge.js";
 import { JevJudge } from "../judge/jev.js";
 import { createJevClient } from "../judge/jevClient.js";
-import { NebiusJudge } from "../judge/nebiusJudge.js";
+import { LlmJudge } from "../judge/llmJudge.js";
 import { TopicJudge } from "../judge/topicJudge.js";
 import type { Judge, JudgeFailure } from "../judge/types.js";
-import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
-import { meterChat, meterJev, type RequestMeter } from "../llm/requestMeter.js";
+import { withModelFallback } from "../llm/jevFallback.js";
+import { resolveFamilies } from "../llm/modelResolver.js";
+import { createModelRouter } from "../llm/modelRouter.js";
+import { meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
-import { createWriterLlm } from "../llm/writerLlm.js";
 import { TasteFitter } from "../profile/tasteFit.js";
 import { type Grounder, JevGrounder } from "../validate/grounding.js";
 import type { VoiceConfig } from "../voice/voice.js";
-import { NebiusWriter } from "../write/nebiusWriter.js";
+import { LlmWriter } from "../write/llmWriter.js";
 import type { Writer } from "../write/types.js";
 
 /** Builds the runtime from the environment. Tests inject a factory that returns fakes. */
@@ -34,7 +40,7 @@ export interface ApiRuntime {
   writer: Writer;
   grounder: Grounder | null;
   /**
-   * Judges items against custom topics. Null without a Jev key: the Nebius fallback judge only
+   * Judges items against custom topics. Null without a Jev key: the fallback judge only
    * knows the built-in categories, so custom topics wait for a run that has the key.
    */
   topicJudge?: TopicJudge | null;
@@ -49,7 +55,7 @@ export interface ApiRuntime {
    */
   generalJudge?: GeneralJudge | null;
   /**
-   * Judges the scoring sample (D70): Jev alone, with no Nebius fallback, so a Jev outage can never
+   * Judges the scoring sample (D70): Jev alone, with no model fallback, so a Jev outage can never
    * spend the writer's token budget on items judged for scores. Null without a Jev key; the sample
    * then waits for a run that has one.
    */
@@ -57,20 +63,23 @@ export interface ApiRuntime {
   /** Jev's check of candidates against the owner's taste (profile/tasteFit.ts). Null without a Jev key. */
   tasteFitter?: TasteFitter | null;
   extract: (item: Item) => Promise<ExtractedText | null>;
+  /** Sourced facts from Firecrawl Alexandria for a thin finalist; absent without a Firecrawl key. */
+  enrich?: ((item: Item) => Promise<string | null>) | undefined;
   /** Judge failures collected during the run, for the report. */
   judgeFailures: JudgeFailure[];
   /** Spend so far, for the report. */
-  usage: () => { nebiusTokens: number; nebiusTokenLimit: number };
+  usage: () => { tokens: number; tokenLimit: number };
 }
 
 /**
  * Build the real clients from the typed environment. Missing keys fail with a message that names
  * the variable and never a value.
  *
- *   judge     Jev when TYPESAFE_API_KEY is set (the Nebius judge answers items Jev cannot);
- *             otherwise the Nebius fallback judge alone, with a warning.
- *   writer    the Settings model, then DISPATCH_MODEL, then DISPATCH_FALLBACK_MODEL, on Nebius.
- *   grounder  Jev, or none (the digest is then unverified).
+ * Every model step follows config/models.json through the model router (llm/modelRouter.ts):
+ *   judge     Jev when TYPESAFE_API_KEY is set, the routed Haiku or Flash-Lite judge for items Jev
+ *             cannot answer; otherwise the routed judge alone, with a warning.
+ *   writer    the story_writer chain (Sonnet, then Gemini Flash); rewrites use story_rewrite.
+ *   grounder  Jev, then Gemini Flash or Haiku; none without a Jev key (the digest is unverified).
  *   scraper   Firecrawl when FIRECRAWL_API_KEY is set.
  */
 export function createApiRuntime(
@@ -79,27 +88,37 @@ export function createApiRuntime(
   spend?: { meter: RequestMeter; guard: FirecrawlGuard },
 ): ApiRuntime {
   const { env, log } = ctx;
-  requireKey(env, "NEBIUS_API_KEY");
   const secrets = secretsFromEnv(env);
   const judgeFailures: JudgeFailure[] = [];
   const onFailure = (failure: JudgeFailure): void => {
     judgeFailures.push(failure);
   };
 
+  if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
+    throw new Error(
+      "Set ANTHROPIC_API_KEY or GEMINI_API_KEY: the writer and the fallback judge need a model key.",
+    );
+  }
+  const routing = loadModelRouting(ctx.root);
   const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
-  const rawApi = createOpenAiChatApi(env);
-  const api = spend ? meterChat(rawApi, spend.meter) : rawApi;
-  const llm = createWriterLlm({
-    root: ctx.root,
+  const router = createModelRouter({
+    routing,
+    resolve: () => resolveFamilies({ routing, env, log }),
     env,
-    api,
     budget,
     log,
-    onAnthropicRequest: spend ? () => spend.meter.add("anthropic") : undefined,
+    onRequest: spend ? (provider) => spend.meter.add(provider) : undefined,
+    onUsage: spend
+      ? (usage) => {
+          spend.meter.addUnits(usage.provider, usage.model, "input_tokens", usage.inputTokens);
+          spend.meter.addUnits(usage.provider, usage.model, "output_tokens", usage.outputTokens);
+        }
+      : undefined,
+    onFallback: spend ? () => spend.meter.add("model_fallback") : undefined,
   });
 
-  const nebiusJudge = new NebiusJudge({ llm, log, onFailure, secrets });
-  let judge: Judge = nebiusJudge;
+  const llmJudge = new LlmJudge({ llm: router.llmFor("judge"), log, onFailure, secrets });
+  let judge: Judge = llmJudge;
   let grounder: Grounder | null = null;
   let topicJudge: TopicJudge | null = null;
   let combinedJudge: CombinedJudge | null = null;
@@ -114,27 +133,57 @@ export function createApiRuntime(
       log,
       onFailure,
       secrets,
-      fallback: nebiusJudge,
+      fallback: llmJudge,
     });
     topicJudge = new TopicJudge({ client: jevClient, log, onFailure, secrets });
     generalJudge = new GeneralJudge({ client: jevClient, log, onFailure, secrets });
     const jevJudge = new JevJudge({ client: jevClient, log, onFailure, secrets });
-    judge = new FallbackJudge(jevJudge, nebiusJudge, log);
+    judge = new FallbackJudge(jevJudge, llmJudge, log);
     sampleJudge = jevJudge;
-    grounder = new JevGrounder({ client: jevClient, log, secrets });
-    tasteFitter = new TasteFitter({ client: jevClient, log, secrets });
+    grounder = new JevGrounder({
+      client: withModelFallback(jevClient, router, "grounding", log),
+      log,
+      secrets,
+    });
+    tasteFitter = new TasteFitter({
+      client: withModelFallback(jevClient, router, "taste_fit", log),
+      log,
+      secrets,
+    });
   } else {
     log.warn(
-      "TYPESAFE_API_KEY is not set: judging with the Nebius fallback judge (lower trust) and skipping the grounding check; the digest will be unverified",
+      "TYPESAFE_API_KEY is not set: judging with the routed fallback judge (lower trust) and skipping the grounding check; the digest will be unverified",
     );
   }
 
   const scrape = env.FIRECRAWL_API_KEY
     ? createFirecrawlScrape({ apiKey: env.FIRECRAWL_API_KEY, guard: spend?.guard })
     : null;
+  let alexandria: Promise<Alexandria> | null = null;
+  const enrich = env.FIRECRAWL_API_KEY
+    ? async (item: Item): Promise<string | null> => {
+        const apiKey = env.FIRECRAWL_API_KEY as string;
+        alexandria ??= loadAlexandriaConfig(ctx.root).then((config) =>
+          createAlexandria({
+            apiKey,
+            config,
+            guard: spend?.guard,
+            onCredits: (credits, estimated) =>
+              spend?.meter.addUnits(
+                "firecrawl",
+                "alexandria",
+                estimated ? "credits_estimated" : "credits",
+                credits,
+              ),
+          }),
+        );
+        return (await alexandria).factsFor(item);
+      }
+    : undefined;
   return {
     judge,
-    writer: new NebiusWriter({ llm, voice, log, secrets }),
+    enrich,
+    writer: new LlmWriter({ llm: router.llmFor("story_writer"), voice, log, secrets }),
     grounder,
     topicJudge,
     combinedJudge,
@@ -145,12 +194,19 @@ export function createApiRuntime(
       (item) => extractFullText(item, { scrape, log }),
       createVideoText({
         apiKey: env.GEMINI_API_KEY,
-        model: env.GEMINI_TRANSCRIBE_MODEL,
+        models: () => router.modelsFor("transcription"),
         cachePath: join(ctx.root, "state", "video-text.json"),
         log,
+        onUsage: spend
+          ? (usage) => {
+              spend.meter.add("gemini");
+              spend.meter.addUnits("gemini", usage.model, "input_tokens", usage.inputTokens);
+              spend.meter.addUnits("gemini", usage.model, "output_tokens", usage.outputTokens);
+            }
+          : undefined,
       }),
     ),
     judgeFailures,
-    usage: () => ({ nebiusTokens: budget.used, nebiusTokenLimit: budget.limit }),
+    usage: () => ({ tokens: budget.used, tokenLimit: budget.limit }),
   };
 }

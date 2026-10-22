@@ -1,7 +1,10 @@
 import { EXA_BASE_URL } from "../fetch/exa.js";
 import type { HttpClient } from "../http.js";
 import type { JevClientLike } from "../judge/jev.js";
-import type { ChatApi } from "./nebiusClient.js";
+
+/** The key of one reported unit in the meter and in the run's spend file. */
+export const unitKey = (provider: string, product: string, unit: string): string =>
+  `${provider}|${product}|${unit}`;
 
 /**
  * Paid requests by service, counted where they leave the process so retries are included. Stages
@@ -9,6 +12,26 @@ import type { ChatApi } from "./nebiusClient.js";
  */
 export class RequestMeter {
   private counts: Record<string, number> = {};
+  private units: Record<string, number> = {};
+
+  /** Units the provider reported for one product (tokens, characters), kept apart from request counts. */
+  addUnits(provider: string, product: string, unit: string, n: number): void {
+    if (!(n > 0)) return;
+    const key = unitKey(provider, product, unit);
+    this.units[key] = (this.units[key] ?? 0) + n;
+  }
+
+  /** Reported units since the last `takeUnits`, without resetting them. */
+  peekUnits(): Readonly<Record<string, number>> {
+    return this.units;
+  }
+
+  /** Reported units since the last call, then back to zero. */
+  takeUnits(): Record<string, number> {
+    const taken = this.units;
+    this.units = {};
+    return taken;
+  }
 
   add(service: string, n = 1): void {
     this.counts[service] = (this.counts[service] ?? 0) + n;
@@ -58,16 +81,6 @@ export function meterExa(http: HttpClient, meter: RequestMeter): HttpClient {
     postJson(url, body, options) {
       count(url);
       return http.postJson(url, body, options);
-    },
-  };
-}
-
-/** A Nebius chat API that counts every request, retries included. */
-export function meterChat(api: ChatApi, meter: RequestMeter): ChatApi {
-  return {
-    createChatCompletion(body) {
-      meter.add("nebius");
-      return api.createChatCompletion(body);
     },
   };
 }

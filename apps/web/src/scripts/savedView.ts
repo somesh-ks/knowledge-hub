@@ -7,6 +7,7 @@
  * A control takes the saved value as its starting point, so the editors read it as unchanged and
  * never send it again. The page says once, under its title, that what it shows is saved and not live.
  */
+import { topicEmoji } from "@dispatch/core/topicEmoji";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
 import { SAVED_KEY } from "../lib/savedKey";
@@ -33,14 +34,11 @@ import {
   suggestSources,
   type TopicWords,
 } from "../lib/sourceCatalogMatch";
-import { parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
+import { fillShellText, parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import { drawStop, stopFor, weightOf } from "../lib/weightStops";
 import type { ConfigOp } from "../types/contracts";
-import { ADDED_SOURCE, ADDED_TOPIC, HELD_EVENT, type Held, type Pending } from "./managePageSave";
-import { element, iconNode } from "./topicsView";
-
-/** The row a topic waits in until the build (ManageChrome.astro), among the page's templates. */
-export const QUEUED_ROW = "template:not(#topics-panel-template, #suggested-template)";
+import { ADDED_SOURCE, HELD_EVENT, type Held, type Pending } from "./managePageSave";
+import { element, iconNode, topicRow } from "./topicsView";
 
 /** The page that lists the sources no topic page shows (OTHER_ID in lib/topicPages.ts). */
 const OTHER_PAGE = "other";
@@ -123,12 +121,12 @@ export function followHeld(root: HTMLElement, note: HTMLElement): void {
 /** What a row that waits for a refused add says (TOPIC_NOT_ADDED in topicsEditor.ts). */
 const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
 
-/** The lines on this page that say an edit was added: a queued topic's, a suggested source's. */
+/** The lines on this page that say an edit was added: a new topic's row, a suggested source's. */
 function addedLines(root: HTMLElement, op: ConfigOp): [Element, string][] {
   const lines: [Element, string][] = [];
   if (op.op === "topic.upsert") {
-    const note = root.querySelector(`[data-topic-id="${op.topic.id}"] .manage-quiet`);
-    if (note) lines.push([note, ADDED_TOPIC]);
+    const hint = root.querySelector(`a[data-new-topic][data-page="${op.topic.id}"] [data-hint]`);
+    if (hint) lines.push([hint, hint.textContent ?? ""]);
   } else if (op.op === "source.add") {
     for (const button of root.querySelectorAll<HTMLButtonElement>("button[data-suggested-add]")) {
       const note = button.closest("li")?.querySelector(".source-note");
@@ -267,11 +265,72 @@ export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
       shown = true;
     }
   }
-  shown = addTopics(root, saved.topics, saved.feeds) || shown;
+  shown = addTopics(root, saved.topics) || shown;
   shown = recount(root, ops) || shown;
   shown = recountBlocked(root, ops) || shown;
   if (shown) markSaved(root);
   return shown;
+}
+
+/**
+ * The page for a topic not built yet (D142): the topic named in the address (`?id=`), taken from what
+ * was saved or is on its way, put in place of the stand-ins the page was built with, its suggested
+ * sources ranked here as the build ranks them. A topic the build already has, or that was never saved
+ * here, opens its own page instead; a removed one, the list. False when the page is being left.
+ */
+export function fillShell(root: HTMLElement, ops = readSaved()): boolean {
+  const id = new URLSearchParams(location.search).get("id") ?? "";
+  const saved = savedTopics(ops);
+  const topic = saved.topics.get(id);
+  if (!topic || (root.dataset.taken ?? "").split(" ").includes(id)) {
+    location.replace(
+      saved.removedTopics.has(id) || !id
+        ? "/settings/topics"
+        : `/settings/topics/${encodeURIComponent(id)}`,
+    );
+    return false;
+  }
+  const inJson = (text: string): string => JSON.stringify(text).slice(1, -1);
+  const swap = (text: string, json: boolean): string =>
+    fillShellText(text, {
+      id,
+      name: json ? inJson(topic.name) : topic.name,
+      about: json ? inJson(topic.description) : topic.description,
+    });
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+  );
+  for (let node: Node | null = walker.currentNode; node; node = walker.nextNode()) {
+    if (node instanceof Element) {
+      for (const attribute of [...node.attributes]) {
+        const value = swap(attribute.value, attribute.name.startsWith("data-"));
+        if (value !== attribute.value) attribute.value = value;
+      }
+    } else if (node.nodeValue?.includes("__shell_")) node.nodeValue = swap(node.nodeValue, false);
+  }
+  document.title = swap(document.title, false);
+  // Edit topic starts from the saved topic, and sends it whole, emoji and keywords included.
+  const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
+  if (trigger) {
+    const { name, description, keywords } = topic;
+    trigger.dataset.editTopic = JSON.stringify({
+      id,
+      name,
+      description,
+      keywords,
+      origin: "custom",
+    });
+    trigger.dataset.topicBase = JSON.stringify({ op: "topic.upsert", topic });
+  }
+  const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
+  if (pick) pick.textContent = topicEmoji({ id, name: topic.name, emoji: topic.emoji });
+  root.dataset.taken = `${root.dataset.taken ?? ""} ${id}`;
+  root.dataset.filled = "";
+  const pane = root.querySelector<HTMLElement>("#topic-pane-sources");
+  if (pane)
+    void suggestUnder(pane, { id, name: topic.name, description: topic.description }, saved.feeds);
+  return true;
 }
 
 /** On the list: the Blocked outlets row counts the outlets blocked once the saved edits land. */
@@ -333,8 +392,24 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
     row.textContent = topic.name;
     shown = true;
   }
+  const mark = root.querySelector(`a.row-action[href="/settings/topics/${id}"] .topic-emoji`);
+  if (mark && topic.emoji && mark.textContent !== topic.emoji) {
+    mark.textContent = topic.emoji;
+    shown = true;
+  }
   const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
   if (!byId(root, "[data-topic]", id) || !trigger) return shown;
+  // A saved emoji shows on the list's row and on the topic's page, and its next edit keeps it.
+  const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
+  if (topic.emoji && pick && pick.textContent !== topic.emoji) {
+    pick.textContent = topic.emoji;
+    const base = JSON.parse(trigger.dataset.topicBase ?? "{}");
+    trigger.dataset.topicBase = JSON.stringify({
+      ...base,
+      topic: { ...base.topic, emoji: topic.emoji },
+    });
+    shown = true;
+  }
   const facts = JSON.parse(trigger.dataset.editTopic ?? "{}") as Partial<Upsert>;
   if (facts.id !== id || (facts.name === topic.name && facts.description === topic.description))
     return shown;
@@ -343,6 +418,7 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   trigger.setAttribute("aria-label", `Edit topic ${name}`);
   const title = document.getElementById("page-title");
   if (title) title.textContent = name;
+  pick?.setAttribute("aria-label", `Change emoji for ${name}`);
   const note = root.querySelector(".settings-note");
   if (note) note.textContent = description;
   // A later edit sends the topic with these details, not the ones it was built with.
@@ -407,25 +483,19 @@ function showAdded(button: HTMLButtonElement, offer: Pick<SuggestedAdd, "name">)
     ?.replaceChildren(element("span", "source-note", ADDED_SOURCE));
 }
 
-/** On the list: each topic saved since the build, waiting where a topic just added waits. */
-function addTopics(root: HTMLElement, topics: Map<string, Upsert>, feeds: Set<string>): boolean {
-  const queued = root.querySelector<HTMLElement>("[data-queued]");
-  const template = root.querySelector<HTMLTemplateElement>(QUEUED_ROW);
-  if (!queued || !template) return false;
+/**
+ * On the list: each topic saved since the build, as a row like the others in its place by name, its
+ * link the page that shows a topic not built yet (D142). Its suggested sources are on that page.
+ */
+function addTopics(root: HTMLElement, topics: Map<string, Upsert>): boolean {
+  if (!root.querySelector(".topics-index")) return false;
   const taken = new Set((root.dataset.taken ?? "").split(" "));
   let shown = false;
   for (const [id, topic] of topics) {
-    if (taken.has(id) || queued.querySelector(`[data-topic-id="${id}"]`)) continue;
-    const row = template.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
-    if (!row) continue;
-    row.dataset.topicId = id;
-    const name = row.querySelector("[data-q-name]");
-    if (name) name.textContent = topic.name;
-    const note = row.querySelector(".manage-quiet");
-    if (note) note.textContent = ADDED_TOPIC;
-    queued.append(row);
-    void suggestUnder(row, topic, feeds);
-    shown = true;
+    if (taken.has(id)) continue;
+    const emoji = topic.emoji ?? topicEmoji({ id, name: topic.name });
+    const row = topicRow(root, { id, name: topic.name, emoji }, sourcesSummary({ total: 0 }));
+    shown = Boolean(row) || shown;
   }
   return shown;
 }
@@ -492,7 +562,7 @@ export function suggestionLine(item: Element, offer: CatalogSource, topicId: str
 }
 
 /**
- * The catalogue's feeds that fit a topic not built yet, under its row in the list, each with the +
+ * The catalogue's feeds that fit a topic not built yet, at the end of `row` (its page's Sources), each with the +
  * a topic's page has: the same suggestSources the build runs, so its page offers the same ones.
  * `feeds` are those already added, whose + shows its check. Nothing fits, nothing shown.
  */

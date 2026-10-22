@@ -1,7 +1,7 @@
 import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_JEV_MODEL, type JevClientLike } from "../src/judge/jev.js";
-import { NEBIUS_QUESTIONS_HASH, QUESTIONS_HASH } from "../src/judge/questions.js";
+import { LLM_QUESTIONS_HASH, QUESTIONS_HASH } from "../src/judge/questions.js";
 import {
   judgeTopicsWithCache,
   mergeTopicJudgments,
@@ -127,7 +127,7 @@ describe("the question", () => {
 
   it("leaves the category questions and their hashes as they were", () => {
     expect(QUESTIONS_HASH).toBe("f15d2649e212");
-    expect(NEBIUS_QUESTIONS_HASH).toBe("b8fe1956b1fd");
+    expect(LLM_QUESTIONS_HASH).toBe("a9816f66a6f1");
   });
 
   it("maps an expected level to 0..1", () => {

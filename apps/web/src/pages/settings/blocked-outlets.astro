@@ -22,7 +22,7 @@ const domains = await loadBlockedDomains();
     <div class="manage blocked" data-blocked data-domains={JSON.stringify(domains)}>
       <SettingsHead
         title="Blocked sources"
-        note="A blocked outlet is left out of every briefing and episode from the next one made, including stories found by search. Blocking a domain blocks its subdomains."
+        note="Left out of all briefings, subdomains too."
       />
       <noscript>
         <p class="manage-note">Changing blocked sources needs JavaScript, which is turned off in this browser.</p>

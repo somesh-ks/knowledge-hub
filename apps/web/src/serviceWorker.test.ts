@@ -209,6 +209,65 @@ describe("service worker: what it leaves alone", () => {
 });
 
 describe("service worker: caching strategies", () => {
+  // A cache entry the browser broke made every load of the file fail, online, until the worker changed.
+  it("answers from the network when a cache read throws, and rebuilds its caches", async () => {
+    const worker = load();
+    await worker.dispatchFetch(request("/_astro/app.abc.css"));
+    const name = `dispatch-shell-${CURRENT_VERSION}`;
+    const broken = await worker.caches.open(name);
+    worker.caches.match = async () => {
+      throw new Error("corrupt entry");
+    };
+    const answer = await worker.dispatchFetch(request("/_astro/app.abc.css"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(name)).not.toBe(broken);
+  });
+
+  // /latest.json is stored under its bare path: probing the request (with its query) never saw the
+  // corrupt entry, so it was never healed.
+  it("rebuilds its caches when only the saved /latest.json entry is unreadable", async () => {
+    let online = true;
+    const worker = load(() => {
+      if (!online) {
+        online = true;
+        throw new TypeError("network blip");
+      }
+      return new Response("{}");
+    });
+    await worker.dispatchFetch(request("/latest.json?t=1"));
+    const name = `dispatch-pages-${CURRENT_VERSION}`;
+    const broken = await worker.caches.open(name);
+    const match = worker.caches.match.bind(worker.caches);
+    worker.caches.match = async (key: string | FakeRequest) => {
+      if (key === "/latest.json") throw new Error("corrupt entry");
+      return match(key);
+    };
+    online = false;
+    const answer = await worker.dispatchFetch(request("/latest.json?t=2"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(name)).not.toBe(broken);
+  });
+
+  // A dropped connection on an uncached asset once emptied the shell, pages and media caches: the
+  // saved briefings the person reads offline went with it.
+  it("keeps every saved page when a network blip rejects a strategy and the retry answers", async () => {
+    let blip = false;
+    const worker = load(() => {
+      if (blip) {
+        blip = false;
+        throw new TypeError("network blip");
+      }
+      return new Response("body");
+    });
+    await worker.dispatchFetch(request("/d/2026-10-07"));
+    const pages = await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`);
+    blip = true;
+    const answer = await worker.dispatchFetch(request("/_astro/uncached.abc.js"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`)).toBe(pages);
+    expect(await pages.match("/d/2026-10-07")).toBeDefined();
+  });
+
   it("serves hashed assets cache first", async () => {
     const worker = load();
     await worker.dispatchFetch(request("/_astro/app.abc.css"));
@@ -217,25 +276,14 @@ describe("service worker: caching strategies", () => {
     expect(worker.fetched).toEqual([`${ORIGIN}/_astro/app.abc.css`]);
   });
 
-  it("serves a digest page stale while it revalidates", async () => {
+  // A briefing's saved page names the old deploy's stylesheets: answered first, it showed the old layout.
+  it.each(["/", "/d/2026-10-07"])("goes to the network first for a load of %s", async (path) => {
     let version = 1;
     const worker = load(() => new Response(`page v${version}`));
-    const first = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await first.response?.text()).toBe("page v1");
+    await worker.dispatchFetch(request(path, { mode: "navigate" }));
     version = 2;
-    const second = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await second.response?.text()).toBe("page v1");
-    const third = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await third.response?.text()).toBe("page v2");
-  });
-
-  it("goes to the network first for the home page", async () => {
-    let version = 1;
-    const worker = load(() => new Response(`home v${version}`));
-    await worker.dispatchFetch(request("/", { mode: "navigate" }));
-    version = 2;
-    const next = await worker.dispatchFetch(request("/", { mode: "navigate" }));
-    expect(await next.response?.text()).toBe("home v2");
+    const next = await worker.dispatchFetch(request(path, { mode: "navigate" }));
+    expect(await next.response?.text()).toBe("page v2");
   });
 
   // A preload the worker ignores is a second request for the same page and a console warning.

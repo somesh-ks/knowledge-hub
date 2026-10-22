@@ -1,7 +1,8 @@
 name: run
 
-# A delete run is named for what it does, so the site's rate limit on Regenerate does not count it.
-run-name: ${{ inputs.delete != '' && format('delete {0}', inputs.delete) || 'run' }}
+# A delete run is named for what it does, so the site's rate limit on Regenerate does not count it,
+# and a dry run too, so health.yml's run_died and run_cancelled count neither: they write no record.
+run-name: ${{ inputs.delete != '' && format('delete {0}', inputs.delete) || inputs.dry_run && 'dry run' || 'run' }}
 
 # Produces a digest on the chosen cadence (schedule), on demand (workflow_dispatch), and the weekly pass.
 # Step names are part of a contract: the site's Generate sheet maps them to its progress list.
@@ -106,10 +107,11 @@ concurrency:
   group: ${{ (github.event_name == 'schedule' && github.event.schedule != (vars.RUN_CRON || '13 7 * * *') && github.event.schedule != vars.RUN_CRON_WEEKLY) && format('dispatch-skipped-{0}', github.run_id) || 'dispatch' }}
   cancel-in-progress: false
 
-# Every step that calls the writer can reach Claude when Settings picks Anthropic: a secret is only
+# Every step that calls a model can reach Claude and Gemini (config/models.json): a secret is only
 # visible to a step that is given it, so it is given once here.
 env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
 permissions:
   contents: write
@@ -179,10 +181,6 @@ jobs:
         if: steps.gate.outputs.due == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
-          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
-          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
-          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
         run: npm run --silent dispatch -- run --stage judge --json
 
       - name: Write
@@ -190,13 +188,8 @@ jobs:
         env:
           # The write stage checks each summary against its source with Jev and rewrites once.
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
-          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
-          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
-          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_TRANSCRIBE_MODEL: ${{ vars.GEMINI_TRANSCRIBE_MODEL }}
           # Typed text from the site: passed as data in the environment, never spliced into the script.
           FEEDBACK: ${{ inputs.feedback }}
           TOPICS: ${{ inputs.topics }}
@@ -206,10 +199,6 @@ jobs:
         if: steps.gate.outputs.due == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
-          NEBIUS_BASE_URL: ${{ vars.NEBIUS_BASE_URL }}
-          DISPATCH_MODEL: ${{ vars.DISPATCH_MODEL }}
-          DISPATCH_FALLBACK_MODEL: ${{ vars.DISPATCH_FALLBACK_MODEL }}
         run: npm run --silent dispatch -- run --stage validate --json
 
       # Every story each pass considered (pool, judgments, selection), kept 30 days, so loop/replay.ts

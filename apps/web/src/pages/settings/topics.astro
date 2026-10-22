@@ -19,6 +19,7 @@ import {
   topicLayout,
   topicSummary,
 } from "../../lib/topicPages";
+import { NEW_TOPIC_ID } from "../../lib/topicText";
 // The switch and the slider are the settings page's own; the form fields, the saving toast and the
 // passphrase dialog are manage.css; the rows and stars are topics.css.
 import "../../styles/settings.css";
@@ -63,11 +64,11 @@ const spots = Object.fromEntries(
   ),
 );
 // Every source once, by name, under the page it is filed on: the flat list the search shows. The
-// sources no topic page shows (the Other list) are not offered here (2026-10-21).
+// sources no topic page shows (the Other list) are included: the Other row is hidden, so the search is
+// the one way to reach them to switch one off or delete it.
 const pageNames = new Map(rows.map((row) => [row.id, row.name] as const));
 const library = new Map<string, { source: (typeof sources)[number]; page: string }>();
 for (const [page, list] of layout.sources) {
-  if (page === OTHER_ID) continue;
   for (const source of list) library.set(source.id, { source, page });
 }
 const libraryRows = [...library.values()].sort((a, b) =>
@@ -85,7 +86,7 @@ const choices = topicChoicesOf(layout);
     <div
       class="manage topics"
       data-topics
-      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
+      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID, NEW_TOPIC_ID].join(" ")}
       data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
       <SettingsHead title="Sources" />
@@ -112,7 +113,6 @@ const choices = topicChoicesOf(layout);
         </SourceFilter>
 
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
-        <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>
 
         <div class="rows topics-index" data-spots={JSON.stringify(spots)}>
           {

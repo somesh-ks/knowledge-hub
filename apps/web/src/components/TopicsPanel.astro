@@ -265,12 +265,12 @@ const { topics } = Astro.props;
   </div>
 </dialog>
 
-{/* Suggested sources for a topic added before the build gives it a page: scripts/savedView.ts ranks
-     the catalogue in the browser, puts this section under the topic's row in the list and fills one
-     row per feed, drawn as SuggestedSources.astro draws them on a topic's page. */}
+{/* Suggested sources for a topic added before the build gives it a page: on the page that shows such
+     a topic (D142), scripts/savedView.ts ranks the catalogue in the browser, puts this section where
+     a built page has it and fills one row per feed, drawn as SuggestedSources.astro draws them. */}
 <template id="suggested-template">
-  <section class="queued-suggested">
-    <h2 class="section-head">Suggested sources</h2>
+  <section class="topic-suggested" aria-labelledby="suggested-head">
+    <h2 class="section-head" id="suggested-head">Suggested sources</h2>
     <ul class="topic-sources" role="list" data-suggested-sources></ul>
   </section>
   <li class="source-row is-suggested">

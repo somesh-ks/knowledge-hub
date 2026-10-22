@@ -4,6 +4,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Browser tests
 
+- Two browser suites at once share `apps/web/dist` and give false failures.
+- 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
 - 2026-10-19: a source just added showed as a tinted stub with no address, rating or checkbox, and its `box-shadow` tint spread 8px over the next row. The add specs checked text and the request, never the row's parts or box, and unit tests cannot see CSS. The new row is built from the same parts as a built row (`source.add` takes the page's `id`, so it is live at once) and the spec asserts those parts and no `box-shadow`. A row made in script must mirror its Astro component's markup; a state drawn by `box-shadow` or outline spreads past the box.
 - 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
@@ -64,11 +66,11 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-11: `dispatch sources import` keeps an existing source's `enabled` and `options`, so a seed change to either reaches only new sources; write it into `config/sources.json` after the import (`--fresh` would lose discovered feeds and counters). The import also writes JSON that Biome reformats: run `biome format` on it before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
 - 2026-10-08: Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for the repo, its workflows and its runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
-- 2026-10-08: Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for the repo, its workflows and its runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `dispatch doctor --online` after any credential change.
 
 ## Site and service worker
 
+- 2026-10-21: a phone kept the old layout after a deploy: saved briefings answered first, naming old cached stylesheets (D145).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install and paints the system navigation bar in it (Chromium's WebAppNavigationBarThemeColor); a runtime theme-color meta never repaints it, and Chrome 128 dropped dark manifest colours. Leave theme_color out to get bars that follow the system theme.
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame, but one held by both edges (`inset: 0` or top and bottom) resizes only after the gesture ends. The player bar was held by both edges and the navigation and the floating button by their bottom, so they drifted apart and snapped back (#120). Hold every bottom-stack element by its bottom edge, and size a full-height fixed box with `100dvh`: its `100%` is the small viewport.
 - 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts and the exit plays in the page: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.

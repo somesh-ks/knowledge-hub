@@ -1,7 +1,7 @@
 ---
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
-import SheetHeader from "./SheetHeader.astro";
+import MenuSheet from "./MenuSheet.astro";
 
 interface Props {
   /** The digest id ("2026-10-07") or episode id ("ep-20261007-1930"). */
@@ -57,19 +57,11 @@ const menuId = `card-menu-${id}`;
   >
     <Icon name="moreVert" />
   </button>
-  <div
-    class="hero-menu-list card-menu-list"
-    id={menuId}
-    popover
-  >
-    {/* A phone shows this popover as a bottom sheet with this header (library.css); from 40rem the
-         header is hidden and it is the popover menu under the button. */}
-    <SheetHeader title={title} titleId={`${menuId}-title`} close="data-menu-close" />
-    <div class="card-menu-items" role="menu" aria-label={`More actions for ${title}`}>
+  <MenuSheet id={menuId} title={title} class="card-menu-list">
     {
       audio && (
         <button class="hero-menu-item" type="button" role="menuitem" data-menu="download">
-          <Icon name="download" /><span data-menu-label>Download</span>
+          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
         </button>
       )
     }
@@ -113,6 +105,5 @@ const menuId = `card-menu-${id}`;
         </button>
       )
     }
-    </div>
-  </div>
+  </MenuSheet>
 </div>

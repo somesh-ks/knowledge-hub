@@ -347,10 +347,6 @@ textarea.manage-input {
   display: block;
 }
 
-.manage-queued:empty {
-  display: none;
-}
-
 /* ------------------------------------------------------------------ the saving toast */
 
 /* The toast of sheets.css (ManageChrome.astro), told by its state what to show: Undo while a removal

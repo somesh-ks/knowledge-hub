@@ -147,11 +147,11 @@ export const JEV_QUESTIONS = {
 export const QUESTIONS_HASH = hashOf({ questions: JEV_QUESTIONS, state: STATE_LIMITS });
 
 /** Version of the fallback judge's prompt and answer format. Bump when either changes. */
-export const NEBIUS_JUDGE_VERSION = "nebius-json-v2";
+export const LLM_JUDGE_VERSION = "llm-json-v3";
 
 /** The fallback judge answers the same questions in its own format, so it has its own hash. */
-export const NEBIUS_QUESTIONS_HASH = hashOf({
-  version: NEBIUS_JUDGE_VERSION,
+export const LLM_QUESTIONS_HASH = hashOf({
+  version: LLM_JUDGE_VERSION,
   categories: CATEGORY_CRITERIA,
   craft: CRAFT_LEVELS,
   launch: LAUNCH_LEVELS,
