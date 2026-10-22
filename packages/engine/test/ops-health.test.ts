@@ -196,7 +196,7 @@ describe("dispatch health", () => {
   });
 
   // Real phones were never measured: a slow deploy read as fine while CI's bundle size held.
-  it("warns when the last day's real-user p75 is past good or well past the week before", async () => {
+  it("warns when the last day's real-user p75 is past good or well past the six days before", async () => {
     const loads = (iso: string, lcp: number, inp: number) =>
       Array.from({ length: 6 }, (_, i) => ({ at: Date.parse(iso) + i, page: "/", lcp, inp }));
     const files: Record<string, object[]> = {

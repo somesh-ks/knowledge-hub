@@ -26,7 +26,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | A run that died before it recorded an outcome (install, timeout, crash) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a cancelled run is not counted | one scheduled run, as for `run_failed` |
 | A broken episode | `episode_broken`: every Podcasts/ file parses and the shared reader narrates every turn; online, the newest settled episode's first segment has readable word marks once its audio is stored (`episode_unnarrated` warns when it is not stored) | none |
 | A config file that stopped parsing | `config_invalid`: doctor's offline config checks, `config/models.json`, and the core schemas of topics, schedule, prices, the catalogue and `sources.user.json` | none |
-| Slow pages on real phones | warning `perf_regression`: the last 24 hours' p75 of LCP, INP or CLS past web.dev's good (2.5 s, 200 ms, 0.1) or 25% past the six days before (and by a floor), from 5 page loads | none |
+| Slow pages on real phones | warning `perf_regression`: the last 24 hours' p75 of LCP, INP or CLS past web.dev's good (2.5 s, 200 ms, 0.1) or 25% past the six days (144 hours) before them (and by a floor), from 5 page loads in each; the 7 days are read whole from 8 UTC day files | none |
 
 The self-healing never loops: a retry happens only when no `health` issue is open, so the second
 day of the same fault only comments.

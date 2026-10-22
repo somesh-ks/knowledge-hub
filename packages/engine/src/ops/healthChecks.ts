@@ -214,9 +214,11 @@ export function checkRunsDied(
 
 /** Fewer samples than this in a window say nothing about it. */
 export const VITALS_MIN_SAMPLES = 5;
-/** A p75 this much above the week before is a regression even inside "good"... */
+/** A p75 this much above the baseline is a regression even inside "good"... */
 export const VITALS_REGRESSION_RATIO = 1.25;
 /** ...when it also moved by more than this, so a fast page jittering by a few ms says nothing. */
+/** The baseline the last day is compared to: this many days before it. */
+const BASELINE_DAYS = 6;
 const VITALS_MIN_STEP: Record<VitalMetric, number> = { lcp: 300, inp: 50, cls: 0.02 };
 
 const show = (metric: VitalMetric, value: number): string =>
@@ -224,8 +226,9 @@ const show = (metric: VitalMetric, value: number): string =>
 
 /**
  * `perf_regression` (a warning): the p75 of the last 24 hours of real-user LCP, INP or CLS is past
- * web.dev's "good", or 25% past the six days before it. The samples are /api/report's day files in
- * the public Blob store (vitalsStore.ts): eight reads a day, cache hits after the first.
+ * web.dev's "good", or 25% past the baseline, the six days (144 hours) before them. The samples are
+ * /api/report's UTC day files in the public Blob store (vitalsStore.ts): those 7 days touch 8 files,
+ * whole, so no part of either window is missing. Eight reads a day, cache hits after the first.
  */
 export async function checkVitals(
   base: string,
@@ -234,7 +237,7 @@ export async function checkVitals(
   sink: Sink,
 ): Promise<void> {
   const samples: VitalSample[] = [];
-  for (let back = 0; back < 8; back++) {
+  for (let back = 0; back <= BASELINE_DAYS + 1; back++) {
     const day = new Date(now.getTime() - back * DAY_MS).toISOString().slice(0, 10);
     try {
       const answer = await get(`${base}/${vitalsPath(day)}`, {
@@ -249,7 +252,9 @@ export async function checkVitals(
   }
   const dayAgo = now.getTime() - DAY_MS;
   const last = samples.filter((sample) => sample.at > dayAgo && sample.at <= now.getTime());
-  const before = samples.filter((sample) => sample.at <= dayAgo && sample.at > dayAgo - 7 * DAY_MS);
+  const before = samples.filter(
+    (sample) => sample.at <= dayAgo && sample.at > dayAgo - BASELINE_DAYS * DAY_MS,
+  );
   if (last.length < VITALS_MIN_SAMPLES) {
     sink.passed.push(`Web Vitals: ${last.length} page loads in the last day, too few to judge`);
     return;
@@ -274,7 +279,7 @@ export async function checkVitals(
       sink.warn(
         "perf_regression",
         "performance",
-        `${metric.toUpperCase()} p75 rose to ${show(metric, now75)} from ${show(metric, was)} the week before (${last.length} page loads).`,
+        `${metric.toUpperCase()} p75 rose to ${show(metric, now75)} from ${show(metric, was)} over the six days before (${last.length} page loads).`,
       );
     }
   }

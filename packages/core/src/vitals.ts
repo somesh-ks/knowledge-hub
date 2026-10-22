@@ -3,8 +3,8 @@ import { z } from "zod";
 /**
  * Real-user Web Vitals (D139, hardening round 3). Each page load measures LCP, INP and CLS in the
  * browser and sends them to /api/report at page hide; the site keeps a day's samples in one public
- * Blob file, and `dispatch health` reads the last eight days and compares the p75 to the "good"
- * thresholds and to the week before.
+ * Blob file, and `dispatch health` compares the last day's p75 to the "good" thresholds and to the
+ * six days before it (eight day files).
  */
 
 export const VITAL_METRICS = ["lcp", "inp", "cls"] as const;
