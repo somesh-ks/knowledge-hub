@@ -4,15 +4,16 @@ import { cumulativeLayoutShift, type LayoutShift, vitalPage } from "@dispatch/co
  * Field Web Vitals (D156): this page load's LCP, INP and CLS, read from the browser's own
  * PerformanceObserver and sent once, by beacon, to /api/report (server/vitals.ts) when the page is
  * first hidden. On a phone that is the moment an installed app goes to the background, which fires
- * no pagehide; pagehide is the fallback. app.ts loads this at idle, or at the first visibility change
- * if that comes sooner, on the production site alone. The observers ask for buffered entries, so
- * what happened before it loaded still counts.
+ * no pagehide; pagehide is the fallback. app.ts loads this at idle, or at the first visibility
+ * change if that comes sooner, with the analytics opt-outs (`counted()`). The observers ask for
+ * buffered entries, so what happened before it loaded still counts.
  *
  * One report per page load, as CrUX counts them: the LCP of the page that loaded, and CLS and INP
  * over its life until that hide, moves inside the app included, under the route it loaded at (a
- * template, never an address). A paint after the page was first hidden is not its LCP (a tab opened
- * in the background, whose report waits until it has been shown). A metric the browser does not
- * measure is left out (Safari has no layout-shift or event timing). Besides the three numbers it sends the device class and the connection type.
+ * template, never an address). A paint after the page was first hidden is not its LCP; a tab
+ * opened in the background reports only once it has been shown. A metric the browser does not
+ * measure is left out (Safari has no layout-shift or event timing). Besides the three numbers it
+ * sends the device class and the connection type.
  */
 
 interface EventTiming extends PerformanceEntry {
@@ -49,7 +50,8 @@ export function startVitals(): void {
     }
   };
   // A tab opened in the background is measured from when it is first shown, never sent unseen.
-  // Without visibility-state entries a page hidden now is taken as one the reader just left.
+  // Without visibility-state entries (Firefox, Safari) a page hidden now is taken as one the reader
+  // just left: those browsers paint nothing in a hidden tab, so an unseen one has nothing to send.
   let shown = document.visibilityState === "visible";
   observe("visibility-state", (entry) => {
     if (entry.name === "hidden") hiddenAt = Math.min(hiddenAt, entry.startTime);
@@ -72,19 +74,21 @@ export function startVitals(): void {
     if (sent) return;
     for (const flush of flushes) flush();
     if (!shown) return;
-    sent = true;
     // Without visibility-state entries, the earliest hide known is now.
     hiddenAt = Math.min(hiddenAt, performance.now());
     const lcp = paints.filter((at) => at < hiddenAt).pop();
     // INP: the slowest interaction, less one for every 50 (web.dev's 98th percentile). Interactions
     // too quick to be observed (under 16 ms, or under 104 ms before this loaded) rank below every
-    // observed one, so a rank past those reads 0, never the quickest slow one.
+    // observed one, so a rank past those reads 0: good, as they are, where the quickest observed
+    // one could read poor.
     const latencies = [...interactions.values()].sort((a, b) => b - a);
     const count =
       (performance as { interactionCount?: number }).interactionCount ?? latencies.length;
     const inp = count > 0 ? (latencies[Math.floor(count / 50)] ?? 0) : null;
     const cls = measured.has("layout-shift") ? cumulativeLayoutShift(shifts) : null;
+    // Nothing measured yet (a tab hidden before it painted) leaves the report to a later hide.
     if (lcp === undefined && inp === null && cls === null) return;
+    sent = true;
     const landed = performance.getEntriesByType("navigation")[0]?.name;
     navigator.sendBeacon?.(
       "/api/report",

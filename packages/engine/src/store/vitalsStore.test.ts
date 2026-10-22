@@ -1,7 +1,13 @@
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, expect, it } from "vitest";
 import type { SqlClient } from "./configPaths.js";
-import { readVitals, recordVitals, VITALS_WINDOW_DAYS, type VitalsReport } from "./vitalsStore.js";
+import {
+  pruneVitals,
+  readVitals,
+  recordVitals,
+  VITALS_WINDOW_DAYS,
+  type VitalsReport,
+} from "./vitalsStore.js";
 
 const open: PGlite[] = [];
 afterAll(async () => {
@@ -62,15 +68,18 @@ describe("the field vitals store", () => {
     );
     // The sample from before the window was deleted by the next insert, not only left unread.
     expect(await rows()).toBe(10);
-    // Read days later, with no insert since, only the last 1.5 hours of samples are still inside.
-    const later = await readVitals(sql, NOW + VITALS_WINDOW_DAYS * 24 * HOUR - 1.5 * HOUR);
+    // Read days later, with no insert since, only the last 1.5 hours of samples are still inside,
+    // and health's prune deletes the rest.
+    const daysLater = NOW + VITALS_WINDOW_DAYS * 24 * HOUR - 1.5 * HOUR;
+    const later = await readVitals(sql, daysLater);
+    await pruneVitals(sql, daysLater);
     expect(later.find((each) => each.metric === "lcp" && each.device === "mobile")).toEqual({
       metric: "lcp",
       device: "mobile",
       samples: 2,
       p75: 3000,
     });
-    // That read deleted the rest: only the six rows of the last 1.5 hours are kept.
+    // Only the six rows of the last 1.5 hours are kept.
     expect(await rows()).toBe(6);
 
     // The last hour holds 4 rows: a page of 2 more would pass a cap of 5, so it is refused whole;

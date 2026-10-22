@@ -5,10 +5,9 @@ import type { SqlClient } from "./configPaths.js";
  * Field Web Vitals in Neon (D156), in the database the config store and the rate-limit counter use
  * (D149, D150): `/api/report` adds a page's samples, `dispatch health` reads each metric's 7-day
  * p75. One row per metric a page measured, holding only its route template, the value, the device
- * class and the connection type. The table stays bounded: every insert and every read deletes what
- * fell out of the window (so health's daily read keeps the week the Privacy page promises with no
- * traffic), and an hour takes at most VITALS_ROWS_PER_HOUR rows, so a flood of forged reports fills
- * one hour's share and no more. No driver here: see neon.ts.
+ * class and the connection type. The table stays bounded: every insert deletes what fell out of the
+ * window, as does health each day (`pruneVitals`), and an hour takes at most VITALS_ROWS_PER_HOUR
+ * rows, so a flood of forged reports fills one hour's share and no more. No driver here: see neon.ts.
  */
 
 /** How long a sample is kept and how far back health reads. */
@@ -54,17 +53,19 @@ from unnest($5::text[], $6::float8[]) as sample(metric, value), recent
 where recent.n + cardinality($5::text[]) <= $7::int
 returning 1`;
 
-const READ_SQL = `with gone as (
-  delete from web_vitals where at <= to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
-)
-select metric, device, count(*)::int as samples,
+const PRUNE_SQL = `delete from web_vitals
+where at <= to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'`;
+
+const READ_SQL = `select metric, device, count(*)::int as samples,
   percentile_disc(0.75) within group (order by value) as p75
 from web_vitals
 where at > to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
 group by metric, device`;
 
-const missingTable = (error: unknown): boolean =>
-  (error as { code?: unknown } | null)?.code === "42P01";
+const errorCode = (error: unknown): unknown => (error as { code?: unknown } | null)?.code;
+const missingTable = (error: unknown): boolean => errorCode(error) === "42P01";
+/** What Postgres answers the loser of two `create ... if not exists` racing: a duplicate. */
+const DUPLICATE = new Set(["23505", "42P07"]);
 
 /**
  * Stores a page's samples at `now` (epoch ms); the number of rows written, 0 when the hour is full.
@@ -96,7 +97,11 @@ export async function recordVitals(
     if (!missingTable(error)) throw error;
     // Two first reports at once can race to create it, and Postgres then refuses one `if not
     // exists` with a duplicate; the insert after says whether the table is there.
-    for (const statement of VITALS_SCHEMA_SQL) await sql.query(statement).catch(() => undefined);
+    for (const statement of VITALS_SCHEMA_SQL) {
+      await sql.query(statement).catch((raced: unknown) => {
+        if (!DUPLICATE.has(String(errorCode(raced)))) throw raced;
+      });
+    }
     return insert();
   }
 }
@@ -110,9 +115,20 @@ export interface VitalSummary {
 }
 
 /**
+ * Deletes what is older than the window, so the week the Privacy page promises holds while no new
+ * report comes (health's daily read calls it). Throws when the database does.
+ */
+export async function pruneVitals(sql: SqlClient, now: number): Promise<void> {
+  try {
+    await sql.query(PRUNE_SQL, [now, VITALS_WINDOW_DAYS]);
+  } catch (error) {
+    if (!missingTable(error)) throw error;
+  }
+}
+
+/**
  * Each metric's p75 per device class over the last VITALS_WINDOW_DAYS before `now` (nearest rank,
- * as CrUX reads it), deleting what is older. No table yet reads as no samples. Throws when the
- * database does.
+ * as CrUX reads it). Only reads. No table yet reads as no samples. Throws when the database does.
  */
 export async function readVitals(sql: SqlClient, now: number): Promise<VitalSummary[]> {
   let rows: Record<string, unknown>[];

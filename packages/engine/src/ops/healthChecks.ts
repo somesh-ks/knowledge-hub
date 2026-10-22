@@ -23,7 +23,12 @@ import {
 import { redact } from "../context.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
-import { readVitals, VITALS_WINDOW_DAYS, type VitalSummary } from "../store/vitalsStore.js";
+import {
+  pruneVitals,
+  readVitals,
+  VITALS_WINDOW_DAYS,
+  type VitalSummary,
+} from "../store/vitalsStore.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
 
@@ -298,7 +303,11 @@ export async function readFieldVitals(
   if (!databaseUrl) return { error: "DATABASE_URL is not set" };
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const read = connect(databaseUrl).then((sql) => readVitals(sql, now.getTime()));
+    const read = connect(databaseUrl).then(async (sql) => {
+      // The week's retention without traffic; a role that may only read still gets its reading.
+      await pruneVitals(sql, now.getTime()).catch(() => undefined);
+      return readVitals(sql, now.getTime());
+    });
     const late = new Promise<never>((_, fail) => {
       timer = setTimeout(
         () => fail(new Error(`no answer in ${FIELD_TIMEOUT_MS} ms`)),
