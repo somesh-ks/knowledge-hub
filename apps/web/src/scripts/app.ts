@@ -87,12 +87,20 @@ document.addEventListener("astro:after-swap", holdGutter);
 const launch = document.querySelector<HTMLElement>(".launch");
 if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // Uncaught errors and policy violations go to /api/report (server/report.ts), at most five a page
-// load, so a fault on a phone reaches the function log instead of vanishing. Kept a few hundred
-// bytes: it is on every page's first load.
+// load, so a fault on a phone reaches the function log and the week's store instead of vanishing.
+// The page's own build goes with it, so health judges a fault by the build that raised it (D158).
+// Kept a few hundred bytes: it is on every page's first load.
 let reports = 0;
 const report = (fault: object): void => {
   if (reports++ < 5)
-    navigator.sendBeacon?.("/api/report", JSON.stringify({ ...fault, page: location.pathname }));
+    navigator.sendBeacon?.(
+      "/api/report",
+      JSON.stringify({
+        ...fault,
+        page: location.pathname,
+        build: document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content,
+      }),
+    );
 };
 addEventListener("error", (event) =>
   report({ kind: "error", message: event.message, source: event.filename, line: event.lineno }),

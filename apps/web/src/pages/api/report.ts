@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { storeFault } from "../../server/faults";
 import { toResponse } from "../../server/http";
 import { handleReport, MAX_REPORT_CHARS, readReportBody } from "../../server/report";
 import { storeVitals } from "../../server/vitals";
@@ -17,6 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
     log: (line) => console.error(line),
     now: Date.now,
     storeVitals,
+    storeFault,
   });
   return result.status === 204 ? new Response(null, { status: 204 }) : toResponse(result);
 };

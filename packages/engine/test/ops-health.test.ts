@@ -5,6 +5,7 @@ import { digestRelPath, serializeDigestFile, VITAL_THRESHOLDS } from "@dispatch/
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
 import {
+  checkClientFaults,
   checkFieldVitals,
   checkPerf,
   checkRunsDied,
@@ -232,6 +233,39 @@ describe("dispatch health", () => {
     expect(head?.sha).toBe(onMain);
     expect(await head?.includes(onFeature)).toBe(true);
     expect(await head?.includes("0123456789ab")).toBeNull();
+  });
+
+  // A blocked script on phones, or a run of errors after a deploy, was a log line Hobby kept an
+  // hour (D158). Judged on the build the site serves: a fault a deploy fixed stops counting.
+  it("faults a script the current build blocked, warns on a run of errors, and forgets older builds", () => {
+    const group = (kind: "csp" | "error", build: string, day: number, directive = "") => ({
+      kind,
+      page: "/settings",
+      message: kind === "error" ? "x is undefined" : "",
+      directive,
+      blocked: kind === "csp" ? "https://evil.example" : "",
+      build,
+      total: day,
+      day,
+    });
+    const found: string[] = [];
+    const sink = {
+      fault: (code: string) => found.push(`fault ${code}`),
+      warn: (code: string) => found.push(`warn ${code}`),
+      passed: [] as string[],
+    };
+    const week = [
+      group("csp", "newbuild1", 1, "script-src-elem"),
+      group("csp", "newbuild1", 4, "img-src"),
+      group("error", "newbuild1", 6),
+      group("csp", "oldbuild1", 9, "script-src"),
+      group("error", "oldbuild1", 40),
+    ];
+    checkClientFaults(week, "newbuild1", sink);
+    expect(found).toEqual(["fault client_faults", "warn client_faults"]);
+    found.length = 0;
+    checkClientFaults(week, "fixedbuild", sink);
+    expect(found).toEqual([]);
   });
 
   // A run that died in install or on a timeout wrote nothing, so the last record still read as the

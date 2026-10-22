@@ -23,6 +23,7 @@ import {
   readUsage,
 } from "../state/store.js";
 import {
+  checkClientFaults,
   checkConfig,
   checkConfigStore,
   checkEpisodes,
@@ -325,11 +326,15 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   }
 
   if (options.site !== null) {
-    await checkSite(options.site, get, latest?.digest ?? null, options.main, now, {
+    const served = { build: null as string | null };
+    await checkSite(options.site, get, latest?.digest ?? null, options.main, served, now, {
       fault,
       warn,
       passed,
     });
+    // Client faults on the build the site serves now (D158); an unread store is store_degraded's.
+    const faults = options.store && "faults" in options.store ? options.store.faults : undefined;
+    if (Array.isArray(faults)) checkClientFaults(faults, served.build, { fault, warn, passed });
   }
 
   return {
@@ -346,6 +351,7 @@ async function checkSite(
   get: HealthFetch,
   latest: Digest | null,
   main: WatchedHead | undefined,
+  served: { build: string | null },
   now: Date,
   sink: Sink,
 ): Promise<void> {
@@ -395,6 +401,7 @@ async function checkSite(
   } catch {
     buildName = undefined;
   }
+  if (typeof buildName === "string") served.build = buildName;
   // The build carries the newest commit the site would deploy: a push whose last commit touches no
   // watched path skips the deploy (vercel.json diffs HEAD^ only), and nothing says so.
   // A build named by its start time (no commit: the dev server, a build off Vercel) says nothing.

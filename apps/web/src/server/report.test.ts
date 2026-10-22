@@ -1,3 +1,4 @@
+import type { ClientFault } from "@dispatch/engine/faults-store";
 import type { VitalsReport } from "@dispatch/engine/vitals-store";
 import { describe, expect, it } from "vitest";
 import {
@@ -38,6 +39,57 @@ describe("handleReport", () => {
     now += 60_000;
     await handleReport(body, deps, limiter);
     expect(lines).toHaveLength(REPORTS_PER_MINUTE + 1);
+  });
+
+  // Hobby keeps the log an hour, so faults were never seen (D158). The week's store must keep a
+  // route template, a blocked origin and a message without the user's words, never an address.
+  it("stores a fault by route template, blocked origin and a scrubbed message", async () => {
+    const stored: ClientFault[] = [];
+    const deps = {
+      log: () => undefined,
+      now: () => 1_000_000,
+      storeFault: async (fault: ClientFault) => {
+        stored.push(fault);
+      },
+    };
+    await handleReport(
+      JSON.stringify({
+        kind: "error",
+        page: "/d/2026-10-20?key=secret-value",
+        message: `Cannot find "secret-value" at https://x.example/a?key=secret-value line 12`,
+        build: "0123456789ab",
+      }),
+      deps,
+      limiters(),
+    );
+    await handleReport(
+      JSON.stringify({
+        kind: "csp",
+        page: "/settings",
+        directive: "script-src-elem",
+        blocked: "https://evil.example/path/secret-value.js?key=secret-value",
+      }),
+      deps,
+      limiters(),
+    );
+    expect(stored).toEqual([
+      {
+        kind: "error",
+        page: "/d/[id]",
+        message: "Cannot find … at <url> line N",
+        directive: "",
+        blocked: "",
+        build: "0123456789ab",
+      },
+      {
+        kind: "csp",
+        page: "/settings",
+        message: "",
+        directive: "script-src-elem",
+        blocked: "https://evil.example",
+        build: "",
+      },
+    ]);
   });
 
   // Vitals reports, and kinds the log does not know, spent the fault log's slots (D146), so a busy

@@ -35,6 +35,11 @@ import {
   type SqlClient,
 } from "../store/configPaths.js";
 import {
+  type ClientFaultGroup,
+  pruneClientFaults,
+  readClientFaults,
+} from "../store/faultsStore.js";
+import {
   pruneVitals,
   readVitals,
   VITALS_WINDOW_DAYS,
@@ -437,6 +442,8 @@ export type StoreReading =
   | {
       field: FieldReading;
       rate_table: Read<boolean>;
+      /** The week's client faults (D158), grouped. */
+      faults?: Read<readonly ClientFaultGroup[]>;
       documents?: Read<readonly ConfigDocument[]>;
     };
 
@@ -488,11 +495,68 @@ export async function readStore(
     }),
     options.configStore ? within(() => readConfigDocuments(sql)) : undefined,
   ]);
+  // The week's client faults (D158), pruned like the vitals.
+  const faults = await within(async () => {
+    await pruneClientFaults(sql, now.getTime()).catch(() => undefined);
+    return readClientFaults(sql, now.getTime());
+  });
   return {
     field: Array.isArray(summaries) ? { summaries } : (summaries as { error: string }),
     rate_table: rateTable,
+    faults,
     ...(documents ? { documents } : {}),
   };
+}
+
+/** Client errors on one route in 24 hours past this are a warning: one reader's bad moment is not. */
+export const CLIENT_ERRORS_PER_DAY = 5;
+/** CSP directives whose violation means a script did not run: a feature broken, or an injection. */
+const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
+
+/**
+ * `client_faults` (D158), judged on the build the site serves now (`/build.json`), so a fault a
+ * deploy fixed stops counting: a blocked script in the week is a fault; client errors past
+ * CLIENT_ERRORS_PER_DAY on one route in 24 hours are a warning naming the route and its commonest
+ * message. Without a build name nothing is judged. A store that did not read says nothing here
+ * (`store_degraded` covers it).
+ */
+export function checkClientFaults(
+  groups: readonly ClientFaultGroup[],
+  build: string | null,
+  sink: Sink,
+): void {
+  if (build === null) return;
+  const current = groups.filter((group) => group.build === build);
+  const blocked = current.filter(
+    (group) => group.kind === "csp" && SCRIPT_DIRECTIVES.has(group.directive),
+  );
+  for (const group of blocked) {
+    sink.fault(
+      "client_faults",
+      "security",
+      `${group.page} blocked a script from ${group.blocked || "an unnamed source"} (${group.directive}) ${group.total} times this week on build ${build}: a feature is broken, or something is injecting.`,
+    );
+  }
+  const errors = new Map<string, ClientFaultGroup[]>();
+  for (const group of current) {
+    if (group.kind === "csp" || group.day === 0) continue;
+    errors.set(group.page, [...(errors.get(group.page) ?? []), group]);
+  }
+  let warned = false;
+  for (const [page, list] of errors) {
+    const day = list.reduce((sum, group) => sum + group.day, 0);
+    if (day <= CLIENT_ERRORS_PER_DAY) continue;
+    warned = true;
+    const top = [...list].sort((a, b) => b.day - a.day)[0];
+    sink.warn(
+      "client_faults",
+      "reliability",
+      `${page}: ${day} client errors in 24 hours on build ${build}, most often "${top?.message || "no message"}".`,
+    );
+  }
+  if (blocked.length === 0 && !warned) {
+    sink.passed.push(`no blocked script and no run of client errors on build ${build}`);
+  }
 }
 
 /**

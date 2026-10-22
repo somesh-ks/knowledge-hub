@@ -1,3 +1,4 @@
+import { type FaultWriter, parseClientFault } from "./faults";
 import type { ApiResult } from "./http";
 import { newLimiter, takeSlot, type WindowLimiter } from "./rateLimit";
 import { parseVitals, type VitalsWriter } from "./vitals";
@@ -5,8 +6,10 @@ import { parseVitals, type VitalsWriter } from "./vitals";
 /**
  * POST /api/report: a page's uncaught error, unhandled rejection or Content-Security-Policy
  * violation, written to the function log as one line so it shows in Vercel's logs and can be
- * searched. Nothing personal is kept: no address, no user agent, and every URL is cut to its path,
- * so a token in a query string never reaches the log. Each instance takes REPORTS_PER_MINUTE; the
+ * searched, and kept for a week in the store (server/faults.ts, D158), where `dispatch health`
+ * reads it: Hobby keeps the log an hour. Nothing personal is kept: no address, no user agent, and
+ * every URL is cut to its path (the store keeps less: a route template and an origin), so a token
+ * in a query string never reaches either. Each instance takes REPORTS_PER_MINUTE; the
  * rest are dropped with 204, so a loop on a page cannot fill the log or the bill.
  *
  * A `vitals` report (D156) is a page's field Web Vitals: it goes to the store (server/vitals.ts),
@@ -25,6 +28,8 @@ export interface ReportDeps {
   now: () => number;
   /** Where a page's vitals go; without it they are dropped. */
   storeVitals?: VitalsWriter;
+  /** Where a page's faults are kept (D158); without it they reach only the log. */
+  storeFault?: FaultWriter;
 }
 
 /** Each instance's own windows: faults and vitals counted apart. */
@@ -126,5 +131,8 @@ export async function handleReport(
     blocked: pathOnly(data.blocked),
   };
   deps.log(`[client-fault] ${JSON.stringify(line)}`);
+  // The log lasts an hour on Hobby; the store keeps the week health reads (D158).
+  const fault = parseClientFault(data);
+  if (fault && deps.storeFault) await deps.storeFault(fault);
   return { status: 204, body: null };
 }
