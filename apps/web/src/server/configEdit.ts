@@ -7,9 +7,18 @@ import {
   SOURCE_FORMATS,
   scheduleZone,
 } from "@dispatch/core";
+import {
+  applyOpsToDocuments,
+  configStoreUrl,
+  connectConfigStore,
+  lastConfigWrite,
+  readConfigDocuments,
+  type SqlClient,
+  writeConfigDocuments,
+} from "@dispatch/engine/config-store";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
-import { missingSettings, readServerConfig, secretsOf } from "./config";
+import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
 import {
   type GenerateDeps,
@@ -44,7 +53,12 @@ export const CONFIG_COOLDOWN_MS = 10_000;
 const RUN_LOOKUP_ATTEMPTS = 1;
 const RUN_LOOKUP_DELAY_MS = 500;
 
-export type ConfigDeps = GenerateDeps;
+export interface ConfigDeps extends GenerateDeps {
+  /** Opens the config store (D149). Tests pass a fake; left out, the Neon driver is used. */
+  connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
+  /** Read-only files the edit is applied against besides the stored documents (the seed sources). */
+  baseFiles?: Readonly<Record<string, string>>;
+}
 
 export interface ConfigInput {
   bodyText: string;
@@ -478,6 +492,145 @@ export function configCooldownSeconds(startedAt: readonly number[], now: number)
   return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
 }
 
+// -------------------------------------------------------------------------------------------- run time
+
+/**
+ * Move the repository variable run.yml compares against its schedule. The edit names the hour, the
+ * zone or both; the other comes from the stored schedule. The variable is in Stockholm time (run.yml's
+ * entries are), so the hour is moved there as of now. A token without "Variables: write" is refused;
+ * the rest of the edit is saved either way, so this answers false instead of failing.
+ */
+async function updateRunTime(
+  config: ServerConfig,
+  deps: ConfigDeps,
+  time: { hour: number | undefined; timezone: string | undefined },
+  readSchedule: () => Promise<string | null>,
+): Promise<boolean> {
+  try {
+    let hour = time.hour;
+    let timezone = time.timezone;
+    if (hour === undefined || timezone === undefined) {
+      const text = await readSchedule();
+      const stored =
+        text === null ? DEFAULT_SCHEDULE : ScheduleFile.parse(JSON.parse(text) as unknown);
+      hour ??= stored.hour;
+      timezone ??= stored.timezone;
+    }
+    const runHour = fallbackCronHour(hour, scheduleZone(timezone), new Date(deps.now()));
+    await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${runHour} * * *`);
+    return true;
+  } catch (error) {
+    (deps.log ?? (() => {}))(`run time not changed: ${describeError(error, secretsOf(config))}`);
+    return false;
+  }
+}
+
+// ------------------------------------------------------------------------------------------- store
+
+/**
+ * The edit with the config store on (D149): the same checks have passed (origin, body, passphrase);
+ * the cooldown counts from the newest stored write, the ops apply to the stored documents and the
+ * changed ones are written only if nothing else changed them meanwhile. Every device reads the
+ * result from GET /api/config at once; no workflow runs, except to find sources for a new topic.
+ */
+async function saveToStore(
+  request: { op: ConfigOp | ConfigOp[] },
+  storeUrl: string,
+  config: ServerConfig,
+  deps: ConfigDeps,
+): Promise<ConfigResult> {
+  const log = deps.log ?? (() => {});
+  try {
+    const sql = await (deps.connectConfigStore ?? connectConfigStore)(storeUrl);
+    const last = await lastConfigWrite(sql);
+    const wait = configCooldownSeconds(last === null ? [] : [last], deps.now());
+    if (wait > 0) {
+      return {
+        status: 429,
+        headers: { "Retry-After": String(wait) },
+        body: { status: 429, error: "cooldown", retry_after_s: wait },
+      };
+    }
+    const result = await applyOpsToDocuments({
+      ops: request.op,
+      documents: await readConfigDocuments(sql),
+      baseFiles: deps.baseFiles ?? {},
+    });
+    if (!result.ok) {
+      log(`config refused: ${result.message}`);
+      return invalid;
+    }
+    if (!(await writeConfigDocuments(sql, result.writes))) {
+      return { status: 409, body: { status: 409, error: "conflict" } };
+    }
+    if (result.outcome.new_topic === true) {
+      // Source suggestions still come from the workflow (Exa runs there). Best effort: the topic is saved.
+      const edit =
+        Array.isArray(request.op) && request.op.length === 1 ? request.op[0] : request.op;
+      await createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE)
+        .dispatch({ op: JSON.stringify(edit) })
+        .catch((error: unknown) =>
+          log(`suggestions not started: ${describeError(error, secretsOf(config))}`),
+        );
+    }
+    const time = scheduledTime(request.op);
+    if (time === null) return { status: 202, body: { status: 202 } };
+    const schedule = result.documents["config/schedule.json"] ?? null;
+    const timeChanged = await updateRunTime(config, deps, time, async () => schedule);
+    return { status: 202, body: { status: 202, time_changed: timeChanged } };
+  } catch (error) {
+    log(`config store failed: ${describeError(error, secretsOf(config))}`);
+    return unavailable;
+  }
+}
+
+export interface ConfigReadBody {
+  status: 200;
+  /** Each stored config file, parsed, with the version an edit to it was made on. */
+  documents: Record<string, { version: number; data: unknown }>;
+}
+
+/**
+ * GET /api/config: the stored documents, for pages that paint the build-time copy first and replace
+ * it when the store holds something else (D149). With the store off it answers 404, and a page
+ * keeps what it was built with, exactly as today. No passphrase: the static pages already publish
+ * the same settings.
+ */
+export async function handleConfigRead(deps: {
+  env: ConfigDeps["env"];
+  log?: (message: string) => void;
+  connectConfigStore?: ConfigDeps["connectConfigStore"];
+}): Promise<
+  ApiResult<
+    ConfigReadBody | { status: 404; error: "not_found" } | { status: 503; error: "unavailable" }
+  >
+> {
+  const storeUrl = configStoreUrl(deps.env);
+  if (storeUrl === null) return { status: 404, body: { status: 404, error: "not_found" } };
+  try {
+    const sql = await (deps.connectConfigStore ?? connectConfigStore)(storeUrl);
+    const documents: ConfigReadBody["documents"] = {};
+    for (const document of await readConfigDocuments(sql)) {
+      try {
+        documents[document.path] = {
+          version: document.version,
+          data: JSON.parse(document.content),
+        };
+      } catch {
+        // A row that is not JSON is left out; the page keeps its built copy of that file.
+      }
+    }
+    return {
+      status: 200,
+      headers: { "Cache-Control": "no-store" },
+      body: { status: 200, documents },
+    };
+  } catch (error) {
+    (deps.log ?? (() => {}))(`config read failed: ${describeError(error, [storeUrl])}`);
+    return { status: 503, body: { status: 503, error: "unavailable" } };
+  }
+}
+
 // -------------------------------------------------------------------------------------------- handler
 
 export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promise<ConfigResult> {
@@ -498,6 +651,9 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
     await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
+
+  const storeUrl = configStoreUrl(deps.env);
+  if (storeUrl !== null) return saveToStore(request, storeUrl, config, deps);
 
   const github = createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE);
   try {
@@ -534,28 +690,9 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
         body: { status: 202, ...(runId !== null ? { run_id: runId } : {}) },
       };
     }
-    let timeChanged = true;
-    try {
-      // The edit names the hour, the zone or both; the other comes from the schedule on main. The
-      // variable is in Stockholm time (run.yml's entries are), so the hour is moved there as of now.
-      let hour = time.hour;
-      let timezone = time.timezone;
-      if (hour === undefined || timezone === undefined) {
-        const text = await createGitHubClient(config, deps.fetch).readFile(
-          "config/schedule.json",
-          "main",
-        );
-        const stored =
-          text === null ? DEFAULT_SCHEDULE : ScheduleFile.parse(JSON.parse(text) as unknown);
-        hour ??= stored.hour;
-        timezone ??= stored.timezone;
-      }
-      const runHour = fallbackCronHour(hour, scheduleZone(timezone), new Date(deps.now()));
-      await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${runHour} * * *`);
-    } catch (error) {
-      timeChanged = false;
-      log(`run time not changed: ${describeError(error, secretsOf(config))}`);
-    }
+    const timeChanged = await updateRunTime(config, deps, time, () =>
+      createGitHubClient(config, deps.fetch).readFile("config/schedule.json", "main"),
+    );
     return {
       status: 202,
       body: {

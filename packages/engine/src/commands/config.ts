@@ -84,7 +84,7 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
-async function readBundle(root: string): Promise<ConfigBundle> {
+export async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
   const [topics, schedule, sourcesUser, registry, queries, candidates, profile] = await Promise.all(
     [
@@ -110,7 +110,7 @@ async function readBundle(root: string): Promise<ConfigBundle> {
 }
 
 /** What each file would contain, in the form it is committed in. */
-function renderBundle(bundle: ConfigBundle): Record<string, string> {
+export function renderBundle(bundle: ConfigBundle): Record<string, string> {
   return {
     [CONFIG_FILES.topics]: serializeTopics(bundle.topics),
     [CONFIG_FILES.preferences]: serializePreferences(bundle.preferences),

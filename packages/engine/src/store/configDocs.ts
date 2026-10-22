@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { neon } from "@neondatabase/serverless";
 import type { Logger } from "../context.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 
@@ -126,18 +127,99 @@ export async function seedConfigDocuments(
   return inserted;
 }
 
-/** The driver's package, named in a variable so the engine typechecks and runs without it installed. */
-const NEON_DRIVER = "@neondatabase/serverless";
-
-/** A client over Neon's HTTP endpoint: one fetch per query, nothing to close. */
+/**
+ * A client over Neon's HTTP endpoint: one fetch per query, nothing to close. Imported statically so
+ * Vercel's file tracing puts the driver in the function that writes edits.
+ */
 export async function connectConfigStore(databaseUrl: string): Promise<SqlClient> {
-  const driver = (await import(NEON_DRIVER)) as {
-    neon: (url: string) => {
-      query: (text: string, params?: unknown[]) => Promise<Record<string, unknown>[]>;
-    };
+  const sql = neon(databaseUrl);
+  return {
+    query: async (text, params) =>
+      (await sql.query(text, params ?? [])) as unknown as Record<string, unknown>[],
   };
-  const sql = driver.neon(databaseUrl);
-  return { query: (text, params) => sql.query(text, params ?? []) };
+}
+
+/** The URL to use when the store is switched on (D149), or null: the URL alone never turns it on. */
+export function configStoreUrl(env: {
+  DATABASE_URL?: string | undefined;
+  DISPATCH_CONFIG_STORE?: string | undefined;
+}): string | null {
+  return env.DATABASE_URL !== undefined &&
+    env.DATABASE_URL !== "" &&
+    env.DISPATCH_CONFIG_STORE === "postgres"
+    ? env.DATABASE_URL
+    : null;
+}
+
+/** When the newest document was written, in epoch milliseconds, or null for an empty store. */
+export async function lastConfigWrite(sql: SqlClient): Promise<number | null> {
+  const rows = await sql.query(
+    "select (extract(epoch from max(updated_at)) * 1000)::float8 as at from config_documents",
+  );
+  const at = rows[0]?.at;
+  return at === null || at === undefined ? null : Number(at);
+}
+
+/** Replace one document whatever its version: `dispatch learn`, whose input is the stored copy. */
+export async function putConfigDocument(
+  sql: SqlClient,
+  path: (typeof CONFIG_DOCUMENT_PATHS)[number],
+  content: string,
+): Promise<void> {
+  await sql.query(
+    `insert into config_documents (path, content) values ($1, $2)
+     on conflict (path) do update set content = excluded.content,
+       version = config_documents.version + 1, updated_at = now()`,
+    [path, content],
+  );
+}
+
+export interface DocumentWrite {
+  path: string;
+  content: string;
+  /** The version the edit was made on; null for a document the store does not hold yet. */
+  version: number | null;
+}
+
+/**
+ * Write edited documents only if none changed since they were read: one statement, so it lands
+ * whole or, when any version moved on (another edit won the race), not at all. Returns false then.
+ */
+export async function writeConfigDocuments(
+  sql: SqlClient,
+  writes: readonly DocumentWrite[],
+): Promise<boolean> {
+  if (writes.length === 0) return true;
+  for (const write of writes) {
+    if (!KNOWN.has(write.path)) throw new Error(`not a config document: ${write.path}`);
+  }
+  const rows = await sql.query(
+    `with input as (
+       select * from unnest($1::text[], $2::text[], $3::int[]) as t(path, content, version)
+     ),
+     matching as (
+       select i.path from input i left join config_documents d on d.path = i.path
+       where (i.version is null and d.path is null) or d.version = i.version
+     ),
+     ok as (select (select count(*) from matching) = (select count(*) from input) as fine),
+     updated as (
+       update config_documents d set content = i.content, version = d.version + 1, updated_at = now()
+       from input i, ok where ok.fine and d.path = i.path and d.version = i.version
+       returning d.path
+     ),
+     inserted as (
+       insert into config_documents (path, content)
+       select i.path, i.content from input i, ok where ok.fine and i.version is null
+       on conflict (path) do nothing returning path
+     )
+     select (select count(*) from updated) + (select count(*) from inserted) as written`,
+    [
+      writes.map((write) => write.path),
+      writes.map((write) => write.content),
+      writes.map((write) => write.version),
+    ],
+  );
+  return Number(rows[0]?.written ?? 0) === writes.length;
 }
 
 /**

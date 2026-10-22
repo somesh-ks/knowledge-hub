@@ -413,6 +413,8 @@ export type ConfigResponse =
   | { status: 400; error: "invalid_request" }
   | { status: 401; error: "wrong_passphrase" }
   | { status: 429; error: "cooldown"; retry_after_s: number }
+  /** Config store only (D149): another edit changed the same settings first; reload and redo. */
+  | { status: 409; error: "conflict" }
   | { status: 503; error: "unavailable" };
 
 /**

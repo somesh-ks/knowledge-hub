@@ -7,6 +7,12 @@ import { type BotIdentity, type CommitOutcome, commitAndPush } from "../git/comm
 import { createGitRunner, gitOutput } from "../git/runGit.js";
 import { isBehindRemote, isTreeClean } from "../git/status.js";
 import { applyPatch, PreferencesPatch } from "../learn/patch.js";
+import {
+  configStoreUrl,
+  connectConfigStore,
+  putConfigDocument,
+  readConfigDocuments,
+} from "../store/configDocs.js";
 
 const USAGE = `Usage:
   dispatch learn --schema                 Print the JSON Schema of a preferences patch
@@ -114,7 +120,14 @@ export const run: CommandRun = async (argv, ctx) => {
     return 2;
   }
   const prefsPath = join(ctx.root, CONFIG_FILES.preferences);
-  const current = Preferences.parse(JSON.parse(readFileSync(prefsPath, "utf8")));
+  // With the config store on (D149) the stored preferences are the current ones, not the file.
+  const storeUrl = configStoreUrl(ctx.env);
+  const store = storeUrl === null ? null : await connectConfigStore(storeUrl);
+  const stored =
+    store === null
+      ? undefined
+      : (await readConfigDocuments(store)).find((d) => d.path === CONFIG_FILES.preferences);
+  const current = Preferences.parse(JSON.parse(stored?.content ?? readFileSync(prefsPath, "utf8")));
   let patchJson: unknown;
   try {
     patchJson = JSON.parse(readFileSync(patchPath, "utf8"));
@@ -151,6 +164,9 @@ export const run: CommandRun = async (argv, ctx) => {
       return 1;
     }
   }
+  // The store first: a run copies it over the file, so a weight written only to the file is undone.
+  if (store !== null)
+    await putConfigDocument(store, CONFIG_FILES.preferences, `${JSON.stringify(next, null, 2)}\n`);
   writeJson(prefsPath, next);
   if (!commit) {
     ctx.log.info(

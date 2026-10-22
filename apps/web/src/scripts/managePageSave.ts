@@ -31,6 +31,7 @@ const REASONS: Record<number, string> = {
     ? "That passphrase is not right."
     : "The server's passphrase setting does not match this site's.",
   429: "There were too many edits in a row.",
+  409: "Another device changed this first. Reload to see it.",
   503: "The server ran into a problem.",
 };
 

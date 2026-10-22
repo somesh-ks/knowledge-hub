@@ -22,6 +22,8 @@ export const Env = z.object({
   GEMINI_API_KEY: optionalString,
   /** Neon Postgres holding the owner's config (D149). Unset, the committed files are the config. */
   DATABASE_URL: optionalString,
+  /** "postgres" switches the config store on (D149); the URL alone never does. */
+  DISPATCH_CONFIG_STORE: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */
   SPEECHIFY_MONTHLY_CHARS: z.coerce.number().int().positive().default(500_000),

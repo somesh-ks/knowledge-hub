@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./audio": "./src/audio/index.ts",
+    "./config-store": "./src/config/applyDocuments.ts",
     "./gate": "./src/gate/decideRun.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts"
