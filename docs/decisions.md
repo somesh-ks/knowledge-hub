@@ -160,7 +160,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
-| D149 | Owner config in Neon Postgres; git keeps a snapshot | active; stage 1 in part |
+| D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 
 ---
 
