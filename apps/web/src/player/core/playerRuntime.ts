@@ -66,7 +66,7 @@ export function getPlayerAudio(): SwitchableAudio {
   if (!playerAudio) {
     // The element a Play pressed before the player loaded has already unlocked, when there is one.
     const element = takeEarlyAudio() ?? new Audio();
-    // CORS mode, before any source is set. The audio lives on the Blob host, another origin, and
+    // CORS mode (an early element already asked for it, from its first load). The audio lives on the Blob host, another origin, and
     // Chrome takes the worker's saved copy of a no-cors cross-origin file for the first read only:
     // the next range read failed, so a downloaded briefing stopped after a second offline
     // (2026-10-22, the owner's phone). The Blob host answers with Access-Control-Allow-Origin: *.
