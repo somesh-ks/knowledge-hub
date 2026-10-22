@@ -1,6 +1,7 @@
 import type { ClientFault } from "@dispatch/engine/faults-store";
+import type { APIRoute } from "astro";
 import { describe, expect, it, vi } from "vitest";
-import { answerWithRef, toResponse } from "./http";
+import { answerWithRef, recordingFaults, toResponse } from "./http";
 
 describe("toResponse", () => {
   it("writes a JSON body with the status", async () => {
@@ -94,5 +95,26 @@ describe("answerWithRef", () => {
       { kind: "server", page: "api/x", message: "status 503" },
     ]);
     spy.mockRestore();
+  });
+});
+
+describe("recordingFaults", () => {
+  // The routes that answer for themselves (a stream, their own body) kept no 5xx at all (D158). The
+  // wrapper keeps one, returns the answer unchanged, rethrows a throw, and never waits on the store.
+  it("keeps a returned 5xx or a throw, leaves the answer as it was, and never waits", async () => {
+    const kept: string[] = [];
+    const hangs = (fault: ClientFault) => {
+      kept.push(`${fault.page} ${fault.message}`);
+      return new Promise<void>(() => undefined);
+    };
+    const context = {} as Parameters<APIRoute>[0];
+    const answer = new Response("upstream", { status: 502 });
+    const route = (handler: APIRoute) => recordingFaults("api/y", handler, hangs)(context);
+    expect(await route(() => answer)).toBe(answer);
+    expect((await route(() => new Response("ok"))).status).toBe(200);
+    await expect(route(() => Promise.reject(new Error("Speechify timed out")))).rejects.toThrow(
+      "Speechify timed out",
+    );
+    expect(kept).toEqual(["api/y status 502", "api/y Speechify timed out"]);
   });
 });

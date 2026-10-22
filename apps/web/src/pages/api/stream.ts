@@ -1,10 +1,10 @@
 import type { APIRoute } from "astro";
-import { toResponse } from "../../server/http";
+import { recordingFaults, toResponse } from "../../server/http";
 import { handleStream } from "../../server/liveStream";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) =>
+const get: APIRoute = async ({ url }) =>
   toResponse(
     await handleStream(url.searchParams.get("run"), {
       env: process.env,
@@ -13,6 +13,8 @@ export const GET: APIRoute = async ({ url }) =>
       log: (message) => console.error(`[api/stream] ${message}`),
     }),
   );
+
+export const GET = recordingFaults("api/stream", get);
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "GET" } });

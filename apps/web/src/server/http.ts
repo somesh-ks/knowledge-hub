@@ -1,4 +1,5 @@
 import type { ClientFault } from "@dispatch/engine/faults-store";
+import type { APIRoute } from "astro";
 import { BUILD_ID } from "../lib/buildId";
 import { type FaultWriter, NO_MESSAGE, scrubMessage, storeFault } from "./faults";
 import { describeError } from "./redact";
@@ -25,6 +26,43 @@ export function serverFault(route: string, status: number, thrown: unknown): Cli
     blocked: "",
     source: "",
     build: BUILD_ID,
+  };
+}
+
+/**
+ * The one path a 5xx takes to the store. Hobby keeps the function log an hour, so the week's store
+ * keeps it too (D158): fire and forget, never holding or failing the answer, nothing of the request.
+ */
+function keepServerFault(
+  record: FaultWriter,
+  route: string,
+  status: number,
+  thrown: unknown,
+): void {
+  void record(serverFault(route, status, thrown)).catch(() => undefined);
+}
+
+/**
+ * Wraps a route that answers for itself (its own body, a stream) so a 5xx it returns, or a throw,
+ * is kept as a `server` fault, the same way `answerWithRef` keeps one. The Response is returned
+ * unchanged and a throw is rethrown, so the host behaves as before. A stream that fails after its
+ * headers went out answered 200 and is not seen here.
+ */
+export function recordingFaults(
+  route: string,
+  handler: APIRoute,
+  record: FaultWriter = storeFault,
+): APIRoute {
+  return async (context) => {
+    let response: Response;
+    try {
+      response = await handler(context);
+    } catch (error) {
+      keepServerFault(record, route, 500, error);
+      throw error;
+    }
+    if (response.status >= 500) keepServerFault(record, route, response.status, undefined);
+    return response;
   };
 }
 
@@ -98,11 +136,7 @@ export async function answerWithRef(
     );
     result = { status: 500, body: { status: 500, error: "server_error" } };
   }
-  if (result.status >= 500) {
-    // Hobby keeps this log an hour, so the week's store keeps a 5xx too (D158): fire and forget,
-    // never holding or failing the answer, and nothing of the request in it.
-    void record(serverFault(route, result.status, thrown)).catch(() => undefined);
-  }
+  if (result.status >= 500) keepServerFault(record, route, result.status, thrown);
   if (result.status < 500 || typeof result.body !== "object" || result.body === null) {
     return toResponse(result);
   }

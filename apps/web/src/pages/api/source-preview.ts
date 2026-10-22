@@ -1,6 +1,6 @@
 import { createFormatClassifier } from "@dispatch/engine/source-preview";
 import type { APIRoute } from "astro";
-import { toResponse } from "../../server/http";
+import { recordingFaults, toResponse } from "../../server/http";
 import { sharedLimit } from "../../server/rateLimit";
 import { handleSourcePreview } from "../../server/sourcePreview";
 
@@ -14,7 +14,7 @@ const classifier = process.env.TYPESAFE_API_KEY
   ? createFormatClassifier(process.env.TYPESAFE_API_KEY)
   : null;
 
-export const GET: APIRoute = async ({ url, request }) =>
+const get: APIRoute = async ({ url, request }) =>
   toResponse(
     await handleSourcePreview(
       {
@@ -39,6 +39,8 @@ export const GET: APIRoute = async ({ url, request }) =>
       },
     ),
   );
+
+export const GET = recordingFaults("api/source-preview", get);
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "GET" } });
