@@ -159,6 +159,15 @@
   text-wrap: nowrap;
 }
 
+/* An open Listen in list rises over the search block that sticks under the app bar below 64rem
+   (.source-filter[data-chips], one under the header): the card that holds it is lifted to the
+   header's level while it is open, so the list's last row, Catch up, is never drawn under the
+   search (2026-10-22). The list closes on any press outside it. */
+.topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
+  position: relative;
+  z-index: var(--z-header);
+}
+
 /* ------------------------------------------------------------------ Sources or Preferences */
 
 /* A topic's page shows its sources or its sliders, never both (2026-10-20). Each pane takes no box of
@@ -1549,6 +1558,8 @@
   background: var(--emoji-bg);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
+  /* An h3, so the browser would make it bold: no heading is bold, anywhere (D125, 2026-10-22). */
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 
