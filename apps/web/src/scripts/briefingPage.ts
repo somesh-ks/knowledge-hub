@@ -73,8 +73,7 @@ function revealTab(
  * stays above it while the end of the briefing pushes it under the bar, until it is gone. Chromium
  * reports a strip partly past that edge as not intersecting, so the test reads its top instead.
  */
-function watchStuck(bar: HTMLElement): void {
-  const edge = stickyTop();
+function watchStuck(bar: HTMLElement, edge: number): void {
   stuckObserver = new IntersectionObserver(
     ([entry]) => {
       if (!entry) return;
@@ -139,10 +138,15 @@ function watchSections({ keepHeld = false } = {}): void {
   // The reading line: a heading's padding under the sticky strip (or the top, where the strip is
   // not shown), which is where a jump to a section puts its heading's words. A jump made while the
   // app bar shows can leave the heading lower once the bar slides away, still within this line.
-  const chrome = strip?.offsetParent ? stickyTop() + strip.offsetHeight : 0;
-  // The bar around the strip is what sticks (Briefing.astro).
+  // The bar around the strip is what sticks (Briefing.astro). Every box is read before the probe in
+  // stickyTop goes in, and the probe is read once: each read after a change to the page restyles all
+  // of it, about 60 ms on a throttled phone.
   const bar = strip?.closest<HTMLElement>("[data-tabs-bar]") ?? strip;
-  if (bar?.offsetParent) watchStuck(bar);
+  const stripHeight = strip?.offsetParent ? strip.offsetHeight : null;
+  const barShown = Boolean(bar?.offsetParent);
+  const edge = stripHeight !== null || barShown ? stickyTop() : 0;
+  const chrome = stripHeight !== null ? edge + stripHeight : 0;
+  if (bar && barShown) watchStuck(bar, edge);
   const inView = new Set<Element>();
   /** All on screen: the first section, the end of the page, or both. */
   const whole = new Set<Element>();
@@ -304,9 +308,11 @@ const measure = (): void => {
 };
 
 const watchPage = (): void => {
+  // First, while the page is as it loaded: watchSections changes it, and a read after a change costs
+  // another restyle of the whole page.
+  measure();
   watchSections();
   watchHeroPlay();
-  measure();
   void document.fonts?.ready.then(measure);
 };
 
