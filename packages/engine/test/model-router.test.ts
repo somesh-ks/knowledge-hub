@@ -138,7 +138,7 @@ describe("Claude's prompt cache", () => {
   // Every request once embedded its random boundary in the system prompt and sent no breakpoint,
   // so nothing was ever read from cache; and input_tokens alone is only the uncached tail, so a
   // cached run would have looked nearly free in the budget and the cost ledger.
-  it("marks the system prompt cacheable and counts cache writes and reads at what they bill", async () => {
+  it("marks the system prompt cacheable and counts the cached part of the prompt", async () => {
     let sent: Record<string, unknown> = {};
     const api = createAnthropicApi({
       apiKey: "a",
@@ -167,7 +167,7 @@ describe("Claude's prompt cache", () => {
     expect(sent.system).toEqual([
       { type: "text", text: "be brief", cache_control: { type: "ephemeral" } },
     ]);
-    expect(reply.inputTokens).toBe(100 + 1250 + 200);
+    expect(reply.inputTokens).toBe(3100);
   });
 });
 

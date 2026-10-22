@@ -91,15 +91,15 @@ interface AnthropicBody {
 }
 
 /**
- * The prompt as billed, in input-token units: `input_tokens` is only the uncached part, a cache
- * write costs 1.25 times an input token and a cache read 0.1 times, so the budget and the cost
- * ledger see what the request cost and not only its uncached tail.
+ * The whole prompt: `input_tokens` is only its uncached part. The budget checks a request by its
+ * whole prompt, so it records the same; the cost ledger then prices a cache read as a full input
+ * token, an overstatement on a hit and never an undercount.
  */
-function billedInputTokens(usage: AnthropicBody["usage"]): number {
-  return Math.round(
+function promptTokens(usage: AnthropicBody["usage"]): number {
+  return (
     (usage?.input_tokens ?? 0) +
-      1.25 * (usage?.cache_creation_input_tokens ?? 0) +
-      0.1 * (usage?.cache_read_input_tokens ?? 0),
+    (usage?.cache_creation_input_tokens ?? 0) +
+    (usage?.cache_read_input_tokens ?? 0)
   );
 }
 
@@ -172,7 +172,7 @@ export function createAnthropicApi(options: {
       return {
         text,
         stopReason,
-        inputTokens: billedInputTokens(json.usage),
+        inputTokens: promptTokens(json.usage),
         outputTokens: json.usage?.output_tokens ?? 0,
       };
     },
