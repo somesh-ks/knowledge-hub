@@ -18,7 +18,6 @@ import {
   checkConfig,
   checkEpisodes,
   checkRunsDied,
-  checkVitals,
   type HealthAspect,
   type HealthFetch,
   type Sink,
@@ -244,8 +243,6 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       warn,
       passed,
     });
-    // Performance: real-user Web Vitals that /api/report keeps in the store.
-    if (blob) await checkVitals(blob.base, blob.get, now, { fault, warn, passed });
   }
 
   return {

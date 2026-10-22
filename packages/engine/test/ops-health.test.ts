@@ -172,13 +172,16 @@ describe("dispatch health", () => {
     );
   });
 
-  // A dry run, a delete or a cancelled press writes no record, and read as died, starting a paid run.
-  it("does not count a dry run, a delete or a cancelled run as one that died", () => {
-    const run = (databaseId: number, conclusion: string, displayTitle: string) => ({
+  // A dry run, a delete or an owner's cancel writes no record, and read as died, starting a paid
+  // run; a run killed at run.yml's timeout-minutes also reads `cancelled`, and was missed.
+  it("counts a cancelled run as died only when it ran to the timeout, never a dry run or a delete", () => {
+    const run = (databaseId: number, conclusion: string, displayTitle: string, minutes = 5) => ({
       databaseId,
       status: "completed",
       conclusion,
       createdAt: "2026-10-21T07:13:00Z",
+      startedAt: "2026-10-21T07:13:00Z",
+      updatedAt: new Date(Date.parse("2026-10-21T07:13:00Z") + minutes * 60_000).toISOString(),
       displayTitle,
     });
     const faults: string[] = [];
@@ -191,36 +194,26 @@ describe("dispatch health", () => {
     ];
     checkRunsDied(records, quiet, NOW, sink);
     expect(faults).toEqual([]);
-    checkRunsDied(records, [...quiet, run(4, "failure", "run")], NOW, sink);
+    checkRunsDied(records, [...quiet, run(4, "cancelled", "run", 25)], NOW, sink);
     expect(faults).toEqual(["run_died"]);
   });
 
-  // Real phones were never measured: a slow deploy read as fine while CI's bundle size held.
-  it("warns when the last day's real-user p75 is past good or well past the six days before", async () => {
-    const loads = (iso: string, lcp: number, inp: number) =>
-      Array.from({ length: 6 }, (_, i) => ({ at: Date.parse(iso) + i, page: "/", lcp, inp }));
-    const files: Record<string, object[]> = {
-      "2026-10-21": loads("2026-10-21T10:00:00Z", 4000, 150),
-      "2026-10-18": loads("2026-10-18T10:00:00Z", 1000, 60),
-    };
-    const fake: HealthFetch = async (url) => {
-      const day = /\/health\/vitals-(\d{4}-\d{2}-\d{2})\.json$/.exec(url)?.[1] ?? "";
-      const samples = files[day];
-      return {
-        status: samples ? 200 : 404,
-        headers: { get: () => null },
-        text: async () => JSON.stringify({ version: 1, day, samples }),
-      };
-    };
-    const report = await collectHealth({
-      root,
-      now: NOW,
-      monthlyChars: 500_000,
-      ceilingUsd: 50,
-      site: "https://news.example",
-      fetch: fake,
+  // Any run under way silenced the check, so an hourly run in progress hid one that died before it.
+  it("stands down for a run under way only when it is newer than the one that died", () => {
+    const run = (databaseId: number, status: string, createdAt: string) => ({
+      databaseId,
+      status,
+      conclusion: status === "completed" ? "failure" : null,
+      createdAt,
+      displayTitle: "run",
     });
-    const perf = report.findings.filter((each) => each.code === "perf_regression");
-    expect(perf.map((each) => each.message.slice(0, 3))).toEqual(["LCP", "INP"]);
+    const faults: string[] = [];
+    const sink = { fault: (code: string) => faults.push(code), warn: () => {}, passed: [] };
+    const records = [{ at: "2026-10-20T07:13:00Z" }];
+    const died = run(1, "completed", "2026-10-21T07:13:00Z");
+    checkRunsDied(records, [died, run(2, "in_progress", "2026-10-21T06:13:00Z")], NOW, sink);
+    expect(faults).toEqual(["run_died"]);
+    checkRunsDied(records, [died, run(3, "queued", "2026-10-21T08:13:00Z")], NOW, sink);
+    expect(faults).toEqual(["run_died"]);
   });
 });

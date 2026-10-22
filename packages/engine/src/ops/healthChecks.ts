@@ -4,18 +4,11 @@ import {
   episodeRelPath,
   loadModelRouting,
   PriceTable,
-  p75,
   parseEpisodeFile,
   parseSourceCatalog,
   ScheduleFile,
   SourcesUserFile,
   TopicsFile,
-  VITAL_GOOD,
-  VITAL_METRICS,
-  type VitalMetric,
-  type VitalSample,
-  VitalsDay,
-  vitalsPath,
 } from "@dispatch/core";
 import {
   type EpisodeVoiceEnv,
@@ -28,8 +21,8 @@ import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
 
 /**
  * The checks hardening round 3 added to `dispatch health` (docs/engineering/hardening.md): the
- * config files and episodes parse, a run that died before it recorded anything, and real-user Web
- * Vitals. Each one reports through the sink with a stable code, as health.ts's own checks do.
+ * config files and episodes parse, and a run that died before it recorded anything. Each one reports
+ * through the sink with a stable code, as health.ts's own checks do.
  */
 
 export type HealthAspect =
@@ -37,8 +30,7 @@ export type HealthAspect =
   | "quality"
   | "cost"
   | "security"
-  | "integrity"
-  | "performance";
+  | "integrity";
 
 export interface Sink {
   fault: (code: string, aspect: HealthAspect, message: string) => void;
@@ -157,29 +149,48 @@ export async function checkEpisodes(
 }
 
 /**
- * One run of run.yml, as `gh run list --json databaseId,status,conclusion,createdAt,event,displayTitle`
- * lists it. run.yml names a briefing run "run", a dry run "dry run" and a delete "delete <id>".
+ * One run of run.yml, as `gh run list --json
+ * databaseId,status,conclusion,createdAt,startedAt,updatedAt,event,displayTitle` lists it (health.yml).
+ * run.yml names a briefing run "run", a dry run "dry run" and a delete "delete <id>".
  */
 export interface WorkflowRun {
   databaseId: number;
   status: string;
   conclusion: string | null;
   createdAt: string;
+  /** When this attempt started; a completed run's `updatedAt` is when it ended. */
+  startedAt?: string;
+  updatedAt?: string;
   event?: string;
   displayTitle?: string;
 }
 
 /** A run older than this that died is left to `run_overdue`: the next run has had its chance. */
 export const RUN_DIED_WINDOW_MS = 3 * DAY_MS;
-/** Not `cancelled`: a press that collapsed into the pending run, or one the owner stopped. */
+/** run.yml's `run` job `timeout-minutes` (25); keep the two equal. */
+export const RUN_TIMEOUT_MS = 25 * 60_000;
 const DIED = new Set(["failure", "timed_out", "startup_failure"]);
+
+const isBriefing = (run: WorkflowRun): boolean => (run.displayTitle ?? "run") === "run";
+
+/**
+ * GitHub reports a job killed at its `timeout-minutes` as `cancelled`, the same as a press that
+ * collapsed into the pending run or one the owner stopped. Only a cancel that ran to the timeout
+ * died; a shorter one was the owner's.
+ */
+function ranToTimeout(run: WorkflowRun): boolean {
+  const ended = Date.parse(run.updatedAt ?? "");
+  const started = Date.parse(run.startedAt ?? run.createdAt);
+  return ended - started >= RUN_TIMEOUT_MS;
+}
 
 /**
  * `run_died`: a run.yml run that ended badly with no run record written after it started. A run
  * that fails inside the engine records `failed` (and reads as `run_failed`); one that dies before
- * (install, a timeout, a cancel, a crash past the engine's own catch) wrote nothing, so the last
- * record still reads as the run before. Only a briefing run counts: a dry run or a delete never
- * writes a record, and healing starts a paid run. Nothing is said while a run is under way.
+ * (install, a timeout, a crash past the engine's own catch) wrote nothing, so the last record still
+ * reads as the run before. Only a briefing run counts: a dry run or a delete never writes a record,
+ * and healing starts a paid run. A briefing run under way that is newer than the one that died may
+ * still record, so nothing is said until it ends.
  */
 export function checkRunsDied(
   records: ReadonlyArray<{ at: string } | null>,
@@ -187,7 +198,6 @@ export function checkRunsDied(
   now: Date,
   sink: Sink,
 ): void {
-  if (runs.some((run) => run.status !== "completed")) return;
   const recorded = Math.max(
     Number.NEGATIVE_INFINITY,
     ...records.flatMap((record) => (record ? [Date.parse(record.at)] : [])),
@@ -195,13 +205,19 @@ export function checkRunsDied(
   const died = runs
     .filter(
       (run) =>
-        DIED.has(run.conclusion ?? "") &&
-        (run.displayTitle ?? "run") === "run" &&
+        run.status === "completed" &&
+        (DIED.has(run.conclusion ?? "") || (run.conclusion === "cancelled" && ranToTimeout(run))) &&
+        isBriefing(run) &&
         now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS &&
         Date.parse(run.createdAt) > recorded,
     )
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
   if (died) {
+    const after = Date.parse(died.createdAt);
+    const healing = runs.some(
+      (run) => run.status !== "completed" && isBriefing(run) && Date.parse(run.createdAt) > after,
+    );
+    if (healing) return;
     sink.fault(
       "run_died",
       "reliability",
@@ -210,78 +226,4 @@ export function checkRunsDied(
   } else if (runs.length > 0) {
     sink.passed.push("every recent run recorded its outcome");
   }
-}
-
-/** Fewer samples than this in a window say nothing about it. */
-export const VITALS_MIN_SAMPLES = 5;
-/** A p75 this much above the baseline is a regression even inside "good"... */
-export const VITALS_REGRESSION_RATIO = 1.25;
-/** ...when it also moved by more than this, so a fast page jittering by a few ms says nothing. */
-/** The baseline the last day is compared to: this many days before it. */
-const BASELINE_DAYS = 6;
-const VITALS_MIN_STEP: Record<VitalMetric, number> = { lcp: 300, inp: 50, cls: 0.02 };
-
-const show = (metric: VitalMetric, value: number): string =>
-  metric === "cls" ? value.toFixed(3) : `${Math.round(value)} ms`;
-
-/**
- * `perf_regression` (a warning): the p75 of the last 24 hours of real-user LCP, INP or CLS is past
- * web.dev's "good", or 25% past the baseline, the six days (144 hours) before them. The samples are
- * /api/report's UTC day files in the public Blob store (vitalsStore.ts): those 7 days touch 8 files,
- * whole, so no part of either window is missing. Eight reads a day, cache hits after the first.
- */
-export async function checkVitals(
-  base: string,
-  get: HealthFetch,
-  now: Date,
-  sink: Sink,
-): Promise<void> {
-  const samples: VitalSample[] = [];
-  for (let back = 0; back <= BASELINE_DAYS + 1; back++) {
-    const day = new Date(now.getTime() - back * DAY_MS).toISOString().slice(0, 10);
-    try {
-      const answer = await get(`${base}/${vitalsPath(day)}`, {
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-      if (answer.status !== 200) continue;
-      const file = VitalsDay.safeParse(JSON.parse(await answer.text()));
-      if (file.success) samples.push(...file.data.samples);
-    } catch {
-      // A day the store cannot answer for is a day without samples.
-    }
-  }
-  const dayAgo = now.getTime() - DAY_MS;
-  const last = samples.filter((sample) => sample.at > dayAgo && sample.at <= now.getTime());
-  const before = samples.filter(
-    (sample) => sample.at <= dayAgo && sample.at > dayAgo - BASELINE_DAYS * DAY_MS,
-  );
-  if (last.length < VITALS_MIN_SAMPLES) {
-    sink.passed.push(`Web Vitals: ${last.length} page loads in the last day, too few to judge`);
-    return;
-  }
-  const shown: string[] = [];
-  for (const metric of VITAL_METRICS) {
-    const now75 = p75(last, metric);
-    if (now75 === null) continue;
-    shown.push(`${metric.toUpperCase()} ${show(metric, now75)}`);
-    const was = before.length >= VITALS_MIN_SAMPLES ? p75(before, metric) : null;
-    if (now75 > VITAL_GOOD[metric]) {
-      sink.warn(
-        "perf_regression",
-        "performance",
-        `${metric.toUpperCase()} p75 is ${show(metric, now75)} over the last day, past the good ${show(metric, VITAL_GOOD[metric])} (${last.length} page loads).`,
-      );
-    } else if (
-      was !== null &&
-      now75 > was * VITALS_REGRESSION_RATIO &&
-      now75 - was > VITALS_MIN_STEP[metric]
-    ) {
-      sink.warn(
-        "perf_regression",
-        "performance",
-        `${metric.toUpperCase()} p75 rose to ${show(metric, now75)} from ${show(metric, was)} over the six days before (${last.length} page loads).`,
-      );
-    }
-  }
-  sink.passed.push(`Web Vitals p75 over ${last.length} page loads: ${shown.join(", ")}`);
 }
