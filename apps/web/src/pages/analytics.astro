@@ -4,58 +4,81 @@ import SettingsHead from "../components/SettingsHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/settings.css";
 import "../styles/manage.css";
+import "../styles/costs.css";
 
 const title = "Costs";
+
+// The range sets both the window and the bucket: a column a day, a week or a month.
+const RANGES = [
+  { value: "day", days: 30, label: "30 days" },
+  { value: "week", days: 91, label: "13 weeks" },
+  { value: "month", days: 365, label: "12 months" },
+];
 ---
 
 <BaseLayout title={title} view="settings" skipLabel="Skip to the costs">
   <main id="main" tabindex="-1">
     {/* Static shell: the numbers load after first paint from /api/costs (scripts/costsPage.ts), so the page costs nothing at start. */}
-    <div class="settings-view" data-settings data-costs>
+    <div class="settings-view costs" data-settings data-costs>
       <SettingsHead title={title} note="What the app spent on paid services, from the cost ledger." />
 
-      <section>
-        <h2 class="section-head">Range</h2>
-        <div class="rows card-group">
-          <div class="settings-row">
-            <label class="settings-label" for="costs-period">Period</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="costs-period" autocomplete="off">
-                <option value="day">Day</option>
-                <option value="week">Week</option>
-                <option value="month">Month</option>
-              </select>
-              <Icon name="chevronDown" />
-            </span>
-          </div>
-          <div class="settings-row">
-            <label class="settings-label" for="costs-by">Group by</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="costs-by" autocomplete="off">
-                <option value="provider">Provider</option>
-                <option value="kind">Kind</option>
-                <option value="scope">Shared or personal</option>
-                <option value="timezone">Timezone</option>
-                <option value="user">User</option>
-              </select>
-              <Icon name="chevronDown" />
-            </span>
-          </div>
-        </div>
-      </section>
+      {/* One row of filters above everything they scope. */}
+      <div class="costs-filters">
+        <fieldset class="segmented-choice costs-range" role="radiogroup" aria-label="Range">
+          {
+            RANGES.map((range, index) => (
+              <label class="segmented-choice-item">
+                <input type="radio" name="costs-range" value={range.value} data-days={range.days} checked={index === 0} />
+                <span>{range.label}</span>
+              </label>
+            ))
+          }
+        </fieldset>
+        <span class="manage-select value-select costs-by">
+          <select class="manage-input" id="costs-by" aria-label="Split by" autocomplete="off">
+            <option value="provider">By provider</option>
+            <option value="kind">By kind</option>
+            <option value="scope">Shared or personal</option>
+            <option value="user">By user</option>
+          </select>
+          <Icon name="chevronDown" />
+        </span>
+      </div>
 
-      <section>
-        <h2 class="section-head">Total</h2>
-        <div class="rows card-group" data-costs-total>
-          <p class="settings-about" data-costs-status>Loading.</p>
-        </div>
-      </section>
+      <div class="costs-body" data-costs-body>
+        <section class="costs-summary" aria-labelledby="costs-spent-label" aria-live="polite">
+          <p class="costs-hero">
+            <span class="costs-hero-label" id="costs-spent-label" data-costs-spent-label>Spent in the last 30 days</span>
+            <span class="costs-hero-value" data-costs-total>Loading</span>
+            <span class="costs-tag" data-costs-estimate hidden>Estimate</span>
+          </p>
+          <dl class="costs-kpis">
+            <div><dt>Per run</dt><dd data-costs-per-run></dd></div>
+            <div><dt>Runs</dt><dd data-costs-runs></dd></div>
+            <div data-costs-users hidden><dt>Per user</dt><dd data-costs-per-user></dd></div>
+          </dl>
+        </section>
 
-      <section>
-        <h2 class="section-head">By period</h2>
-        <div class="rows card-group" data-costs-rows></div>
-        <p class="settings-note" data-costs-note></p>
-      </section>
+        <section aria-labelledby="costs-time-head">
+          <h2 class="section-head" id="costs-time-head">Over time</h2>
+          <div class="costs-card">
+            <div class="costs-plot" data-costs-plot tabindex="0" role="group" aria-label="Spend over time. Use the arrow keys to read each column.">
+              <div class="costs-tip" data-costs-tip hidden></div>
+            </div>
+            <p class="costs-empty" data-costs-empty hidden>Nothing spent in this range yet. The ledger fills after the engine's first paid run.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="costs-rank-head">
+          <h2 class="section-head" id="costs-rank-head" data-costs-rank-head>By provider</h2>
+          <ol class="costs-card costs-rank" data-costs-rank></ol>
+          <details class="costs-table" data-costs-table>
+            <summary>Show as a table</summary>
+            <div class="costs-table-scroll"><table data-costs-grid></table></div>
+          </details>
+          <p class="settings-note costs-note" data-costs-note></p>
+        </section>
+      </div>
     </div>
   </main>
 </BaseLayout>

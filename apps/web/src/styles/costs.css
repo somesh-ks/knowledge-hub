@@ -1,0 +1,394 @@
+/*
+ * The Costs page (/analytics): the period's total first, one stacked column chart of spend over
+ * time, a ranked breakdown that doubles as the chart's legend, and a table view. Drawn by
+ * scripts/costsPage.ts as plain DOM and inline SVG. Imported by pages/analytics.astro after the
+ * settings and manage stylesheets, whose rows, select and segmented choice it reuses.
+ *
+ * Series colours (2026-10-22): four categorical slots, blue, orange, aqua, yellow, in that fixed
+ * order, plus a grey for the folded "Other". The design system has no categorical ramp, so slot 1
+ * is the blue ramp's own step and the others are derived from it at the dataviz reference steps.
+ * Validated with the dataviz palette validator against the card tone: light passes with a contrast
+ * warning on slots 2 to 4 (relief: every value is in the labelled ranking and the table view), dark
+ * passes every check. Colour never carries text: names and values stay in the text tokens.
+ */
+
+.costs {
+  --costs-s1: var(--color-blue-600);
+  --costs-s2: oklch(from var(--color-blue-600) 66.5% 0.185 41);
+  --costs-s3: oklch(from var(--color-blue-600) 66% 0.14 162);
+  --costs-s4: oklch(from var(--color-blue-600) 76% 0.16 75);
+  --costs-s0: var(--color-grey-450);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .costs {
+    --costs-s1: var(--color-blue-500);
+    --costs-s2: oklch(from var(--color-blue-500) 62% 0.18 40);
+    --costs-s3: oklch(from var(--color-blue-500) 61% 0.125 163);
+    --costs-s4: oklch(from var(--color-blue-500) 66% 0.145 72);
+    --costs-s0: var(--color-grey-600);
+  }
+}
+
+:root[data-theme="dark"] .costs {
+  --costs-s1: var(--color-blue-500);
+  --costs-s2: oklch(from var(--color-blue-500) 62% 0.18 40);
+  --costs-s3: oklch(from var(--color-blue-500) 61% 0.125 163);
+  --costs-s4: oklch(from var(--color-blue-500) 66% 0.145 72);
+  --costs-s0: var(--color-grey-600);
+}
+
+.costs .s1 {
+  --costs-series: var(--costs-s1);
+}
+
+.costs .s2 {
+  --costs-series: var(--costs-s2);
+}
+
+.costs .s3 {
+  --costs-series: var(--costs-s3);
+}
+
+.costs .s4 {
+  --costs-series: var(--costs-s4);
+}
+
+.costs .s0 {
+  --costs-series: var(--costs-s0);
+}
+
+/* ------------------------------------------------------------------ the filters */
+
+/* One row above everything it scopes: the range, then the split. Stacks on a phone. */
+.costs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  margin-block-end: var(--space-6);
+}
+
+.costs-filters .costs-range {
+  flex: 1 1 100%;
+}
+
+.costs-filters .costs-by {
+  flex: 1 1 100%;
+}
+
+@media (min-width: 40rem) {
+  .costs-filters .costs-range {
+    flex: 0 1 var(--settings-control-width);
+  }
+
+  .costs-filters .costs-by {
+    flex: 0 1 auto;
+  }
+}
+
+/* ------------------------------------------------------------------ the answer */
+
+/* While a refetch runs the last frame holds, dimmed: no skeleton, no jump. */
+.costs-body {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.costs-body[data-loading] {
+  opacity: 0.6;
+}
+
+.costs-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-block-end: var(--space-8);
+}
+
+.costs-hero {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  margin: 0;
+}
+
+.costs-hero-label {
+  grid-column: 1 / -1;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+/* The one number the page leads with: the same sans, proportional figures. */
+.costs-hero-value {
+  font-family: var(--text-display-family);
+  font-size: calc(var(--font-size-display) * 1.5);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-display);
+  line-height: var(--font-leading-display);
+}
+
+.costs-kpis {
+  display: flex;
+  gap: var(--space-8);
+  margin: 0;
+}
+
+.costs-kpis dt {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+.costs-kpis dd {
+  margin: 0;
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+/* A price nobody has confirmed: a word, not a colour alone. */
+.costs-tag {
+  display: inline-block;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-caption);
+  vertical-align: middle;
+}
+
+/* ------------------------------------------------------------------ the chart */
+
+.costs-card {
+  position: relative;
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+.costs-plot {
+  position: relative;
+  /* As tall as the drawn chart, before and after it draws, so nothing below moves. */
+  block-size: 200px;
+  border-radius: var(--radius-sm);
+}
+
+.costs-plot:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.costs-svg {
+  display: block;
+  overflow: visible;
+}
+
+.costs-grid line {
+  stroke: var(--color-border-hairline);
+  stroke-width: var(--stroke-hairline);
+}
+
+.costs-svg text {
+  fill: var(--color-on-surface-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-mark {
+  fill: var(--costs-series);
+}
+
+.costs-wash {
+  fill: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+}
+
+.costs-tip {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: var(--z-raised);
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 10rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+.costs-tip p {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+}
+
+/* Values lead and carry the weight; the names follow, quieter. */
+.costs-tip strong {
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-tip span:not(.costs-key) {
+  color: var(--color-on-surface-muted);
+}
+
+/* A short stroke of the series colour keys a tooltip row. */
+.costs-key {
+  flex: none;
+  inline-size: var(--space-2);
+  block-size: var(--stroke-rail);
+  align-self: center;
+  background: var(--costs-series);
+}
+
+.costs-empty {
+  position: absolute;
+  inset: var(--space-4) var(--space-4) var(--space-8) var(--space-12);
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding-inline: var(--space-4);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* ------------------------------------------------------------------ the ranking */
+
+/* The legend and the ranking in one: swatch, name, amount, share, and a bar to the largest. */
+.costs-rank {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  list-style: none;
+}
+
+.costs-rank-row {
+  display: grid;
+  grid-template-columns: var(--space-2) minmax(0, 1fr) auto 3rem;
+  column-gap: var(--space-2);
+  row-gap: var(--space-2);
+  align-items: center;
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-label);
+}
+
+.costs-swatch {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--costs-series);
+}
+
+.costs-rank-name {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.costs-rank-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-rank-share {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.costs-meter {
+  grid-column: 2 / -1;
+  block-size: var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--color-track);
+}
+
+.costs-meter-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--costs-series);
+}
+
+.costs-rank-none {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+}
+
+/* ------------------------------------------------------------------ the table view */
+
+.costs-table {
+  margin-block-start: var(--space-4);
+}
+
+.costs-table > summary {
+  min-block-size: var(--space-12);
+  display: flex;
+  align-items: center;
+  color: var(--color-accent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.costs-table > summary:focus-visible {
+  border-radius: var(--radius-xs);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.costs-table-scroll {
+  overflow-x: auto;
+}
+
+.costs-table table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-table :is(th, td) {
+  padding: var(--space-2) var(--space-4) var(--space-2) 0;
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  text-align: end;
+  white-space: nowrap;
+}
+
+.costs-table :is(th, td):first-child {
+  text-align: start;
+}
+
+.costs-table thead th {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.costs-table tbody th {
+  font-weight: var(--font-weight-regular);
+}
+
+.costs-note {
+  margin-block-start: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .costs-body {
+    transition: none;
+  }
+}
