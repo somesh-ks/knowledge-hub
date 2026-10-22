@@ -1,5 +1,6 @@
 import type { ApiResult } from "./http";
 import { newLimiter, takeSlot, type WindowLimiter } from "./rateLimit";
+import { parseVitals, type VitalsWriter } from "./vitals";
 
 /**
  * POST /api/report: a page's uncaught error, unhandled rejection or Content-Security-Policy
@@ -7,9 +8,14 @@ import { newLimiter, takeSlot, type WindowLimiter } from "./rateLimit";
  * searched. Nothing personal is kept: no address, no user agent, and every URL is cut to its path,
  * so a token in a query string never reaches the log. Each instance takes REPORTS_PER_MINUTE; the
  * rest are dropped with 204, so a loop on a page cannot fill the log or the bill.
+ *
+ * A `vitals` report (D156) is a page's field Web Vitals: it goes to the store (server/vitals.ts),
+ * never to the log, and takes its own VITALS_PER_MINUTE, so a busy hour of page loads never crowds
+ * out a fault. Every answer is 204: a beacon is never failed for what the store did.
  */
 
 export const REPORTS_PER_MINUTE = 30;
+export const VITALS_PER_MINUTE = 30;
 export const MAX_REPORT_CHARS = 4096;
 const FIELD_CHARS = 300;
 const KINDS = new Set(["error", "rejection", "csp"]);
@@ -17,9 +23,17 @@ const KINDS = new Set(["error", "rejection", "csp"]);
 export interface ReportDeps {
   log: (line: string) => void;
   now: () => number;
+  /** Where a page's vitals go; without it they are dropped. */
+  storeVitals?: VitalsWriter;
 }
 
-const shared = newLimiter();
+/** Each instance's own windows: faults and vitals counted apart. */
+export interface ReportLimiters {
+  faults: WindowLimiter;
+  vitals: WindowLimiter;
+}
+
+const shared: ReportLimiters = { faults: newLimiter(), vitals: newLimiter() };
 
 /**
  * The body as text, or null once it passes `maxBytes`: the stream is cancelled at the cap, so a
@@ -74,11 +88,11 @@ export function pathOnly(value: unknown): string {
 const text = (value: unknown): string =>
   typeof value === "string" ? value.replace(/\s+/g, " ").slice(0, FIELD_CHARS) : "";
 
-export function handleReport(
+export async function handleReport(
   body: string,
   deps: ReportDeps,
-  limiter: WindowLimiter = shared,
-): ApiResult<null | { error: string }> {
+  limiters: ReportLimiters = shared,
+): Promise<ApiResult<null | { error: string }>> {
   if (body.length > MAX_REPORT_CHARS) return { status: 413, body: { error: "too_large" } };
   let data: Record<string, unknown>;
   try {
@@ -89,9 +103,19 @@ export function handleReport(
   if (typeof data !== "object" || data === null || typeof data.kind !== "string") {
     return { status: 400, body: { error: "invalid_report" } };
   }
-  // A kind this build no longer logs (an old bundle's "vitals") is answered before it spends a slot.
+  if (data.kind === "vitals") {
+    // An old bundle's shape (D146's) names no device class, so it is dropped unstored.
+    const vitals = parseVitals(data);
+    if (vitals && deps.storeVitals && takeSlot(limiters.vitals, VITALS_PER_MINUTE, deps.now())) {
+      await deps.storeVitals(vitals);
+    }
+    return { status: 204, body: null };
+  }
+  // A kind this build does not log is answered before it spends a slot.
   if (!KINDS.has(data.kind)) return { status: 204, body: null };
-  if (!takeSlot(limiter, REPORTS_PER_MINUTE, deps.now())) return { status: 204, body: null };
+  if (!takeSlot(limiters.faults, REPORTS_PER_MINUTE, deps.now())) {
+    return { status: 204, body: null };
+  }
   const line = {
     kind: data.kind,
     page: pathOnly(data.page),

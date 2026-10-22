@@ -1,4 +1,4 @@
-import { installAnalytics } from "../lib/analytics";
+import { counted, installAnalytics } from "../lib/analytics";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
@@ -152,10 +152,20 @@ addEventListener("scroll", () => void import("./fabScroll").then((fab) => fab.in
   once: true,
   passive: true,
 });
+const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200));
 // What makes a move between destinations immediate is not needed for first paint.
-(window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 200)))(() => {
+idle(() => {
   void import("./navigationBoost").then((boost) => boost.installNavigationBoost());
 });
+// Field Web Vitals (D156), with the analytics opt-outs (the production host, no Do Not Track or
+// Global Privacy Control): a lazy module measures this page load and sends it once when the page is
+// first hidden. It loads at idle, or at the first visibility change if that comes sooner (a reader
+// who leaves at once), so the first load carries only these lines.
+if (counted()) {
+  const vitals = (): void => void import("./vitals").then((each) => each.startVitals());
+  idle(vitals);
+  document.addEventListener("visibilitychange", vitals, { once: true });
+}
 try {
   if (localStorage.getItem("dispatch:deleted-episodes")) void import("./deletedEpisodes");
 } catch {

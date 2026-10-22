@@ -1,10 +1,16 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { digestRelPath, serializeDigestFile } from "@dispatch/core";
+import { digestRelPath, serializeDigestFile, VITAL_THRESHOLDS } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
-import { checkPerf, checkRunsDied } from "../src/ops/healthChecks.js";
+import {
+  checkFieldVitals,
+  checkPerf,
+  checkRunsDied,
+  FIELD_MIN_SAMPLES,
+  readFieldVitals,
+} from "../src/ops/healthChecks.js";
 import { makeDigest } from "./audio-fixtures.js";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
@@ -247,5 +253,62 @@ describe("dispatch health", () => {
       checkPerf(unreadable, sink);
       expect(warnings.map((line) => line.split(" ")[0])).toEqual(["perf_unmeasured"]);
     }
+  });
+
+  // A slow phone reached only the weekly lab probe: real visits whose 7-day p75 crossed Google's
+  // lines said nothing. And a p75 of a handful of visits, or none, must never read as a pass.
+  it("warns on a field p75 that needs improvement, faults at poor, and never passes too few", () => {
+    const found: string[] = [];
+    const sink = {
+      fault: (code: string) => found.push(`fault ${code}`),
+      warn: (code: string) => found.push(`warn ${code}`),
+      passed: [] as string[],
+    };
+    const [inpGood] = VITAL_THRESHOLDS.inp;
+    const [clsGood] = VITAL_THRESHOLDS.cls;
+    const [, lcpPoor] = VITAL_THRESHOLDS.lcp;
+    const summary = (
+      metric: "lcp" | "inp" | "cls",
+      device: string,
+      samples: number,
+      p75: number,
+    ) => ({
+      metric,
+      device,
+      samples,
+      p75,
+    });
+    checkFieldVitals(
+      {
+        summaries: [
+          summary("lcp", "mobile", FIELD_MIN_SAMPLES, lcpPoor + 1),
+          summary("inp", "mobile", FIELD_MIN_SAMPLES, inpGood + 1),
+          summary("cls", "mobile", FIELD_MIN_SAMPLES, clsGood),
+          // A desktop with too few is not judged, and not a warning either: phones are the readers.
+          summary("lcp", "desktop", FIELD_MIN_SAMPLES - 1, lcpPoor + 1),
+        ],
+      },
+      sink,
+    );
+    expect(found).toEqual(["fault field_vitals", "warn field_vitals"]);
+    expect(sink.passed).toHaveLength(1);
+
+    found.length = 0;
+    checkFieldVitals({ summaries: [summary("cls", "mobile", FIELD_MIN_SAMPLES - 1, 0)] }, sink);
+    expect(found).toEqual(["warn field_unmeasured"]);
+    found.length = 0;
+    checkFieldVitals({ error: "no answer" }, sink);
+    expect(found).toEqual(["warn field_unmeasured"]);
+  });
+
+  // A database error can name the address it failed to reach, password and all, and the reading's
+  // message goes into the health issue.
+  it("reads the field store with the database address taken out of any error", async () => {
+    const url = "postgres://owner:pw-0123456789@ep-x.neon.invalid/neondb";
+    const reading = await readFieldVitals(url, NOW, async () => {
+      throw new Error(`could not connect to ${url} (password pw-0123456789)`);
+    });
+    expect("error" in reading && reading.error).not.toMatch(/pw-0123456789/);
+    expect(await readFieldVitals(undefined, NOW)).toEqual({ error: "DATABASE_URL is not set" });
   });
 });

@@ -1,6 +1,7 @@
 import type { SqlClient } from "@dispatch/engine/config-paths";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createSharedLimiter, SHARED_TIMEOUT_MS } from "./rateLimit";
+import { DATABASE_TIMEOUT_MS } from "./database";
+import { createSharedLimiter } from "./rateLimit";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -38,7 +39,7 @@ describe("createSharedLimiter", () => {
     now += 60_000;
     mode = "hang";
     const pending = take("emoji", 2);
-    await vi.advanceTimersByTimeAsync(SHARED_TIMEOUT_MS);
+    await vi.advanceTimersByTimeAsync(DATABASE_TIMEOUT_MS);
     expect(await pending).toBe(true);
 
     now += 60_000;

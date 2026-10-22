@@ -8,7 +8,8 @@
     "./hosts": "./src/hosts.ts",
     "./passphrase": "./src/passphrase.ts",
     "./time": "./src/time.ts",
-    "./topicEmoji": "./src/topicEmoji.ts"
+    "./topicEmoji": "./src/topicEmoji.ts",
+    "./vitals": "./src/vitals.ts"
   },
   "dependencies": {
     "yaml": "^2.9.1",

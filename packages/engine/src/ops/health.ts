@@ -18,8 +18,10 @@ import {
 import {
   checkConfig,
   checkEpisodes,
+  checkFieldVitals,
   checkPerf,
   checkRunsDied,
+  type FieldReading,
   type HealthAspect,
   type HealthFetch,
   type Sink,
@@ -27,7 +29,7 @@ import {
 } from "./healthChecks.js";
 import { collectStatus } from "./statusReport.js";
 
-export type { HealthAspect, HealthFetch, WorkflowRun };
+export type { FieldReading, HealthAspect, HealthFetch, WorkflowRun };
 
 /**
  * `dispatch health`: the faults that fail silently today, from the repository files and the live
@@ -65,6 +67,8 @@ export interface HealthOptions {
   runs?: readonly WorkflowRun[];
   /** The lab probe's output (health.yml passes it; null when it wrote none); absent skips the perf check. */
   perf?: unknown;
+  /** Field Web Vitals from the store (D156; the command reads it when online); absent skips them. */
+  field?: FieldReading;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
 }
@@ -266,6 +270,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   await checkEpisodes(root, options.voices ?? {}, now, { fault, warn, passed }, blob);
 
   if (options.perf !== undefined) checkPerf(options.perf, { fault, warn, passed });
+  if (options.field !== undefined) checkFieldVitals(options.field, { fault, warn, passed });
 
   if (options.site !== null) {
     await checkSite(options.site, get, latest?.digest ?? null, now, {

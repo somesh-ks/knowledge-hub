@@ -8,7 +8,9 @@ name: health
 # outcome in state/last-run.json after it is `run_died` and one cancelled is the warning
 # `run_cancelled`; both only alert (a missed briefing also reads as `run_overdue`, which heals).
 # While the issue stays open nothing is retried again, so a fault never loops. Performance is a
-# lab probe (D147): cold loads of three pages on a throttled phone, judged as warnings only.
+# lab probe on Mondays (D147): cold loads of three pages on a throttled phone, judged as warnings
+# only; and, daily, the field Web Vitals real visits stored in Neon (D156): a 7-day p75 past
+# "needs improvement" warns, past "poor" it is a fault, which opens the issue (nothing heals it).
 #
 # A drill (Run workflow, drill ticked) proves the healing path on the real repository without a
 # real fault: on a copy of the report with the real findings taken out it plants `run_overdue`,
@@ -93,6 +95,8 @@ jobs:
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+          # The field Web Vitals store (D156); unset, health warns field_unmeasured.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # Empty on a day without the probe, which health reads as nothing to judge.
           PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |
@@ -108,9 +112,10 @@ jobs:
           npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
-          # Performance findings are warnings and open no issue (D147), so they go on the run's page.
+          # Performance findings are mostly warnings, which open no issue (D147, D156), so they go on
+          # the run's page, the field p75s with them.
           jq -r '.findings[] | select(.aspect == "performance") | "::warning title=\(.code)::\(.message)"' "$RUNNER_TEMP/health.json" || true
-          [ -n "$PERF" ] && jq -r '"## Lab performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
+          jq -r '"## Performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget|^field ")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Report and heal
         shell: bash
