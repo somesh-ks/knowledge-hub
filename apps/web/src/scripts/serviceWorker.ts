@@ -34,8 +34,6 @@ export function shouldCheckForUpdate(now: number, lastCheck: number): boolean {
  * the only limit on the offer: a dismissed one comes back at the next check that finds it newer.
  */
 const BUILD_CHECK_MS = 60 * 1000;
-/** The longest a Reload waits for a new worker before it reloads anyway. */
-const RELOAD_WAIT_MS = 1500;
 
 /** A toast is up (an Undo waiting to be sent, a saved notice): a new one would replace it. */
 function toastIsUp(): boolean {
@@ -63,19 +61,18 @@ async function checkBuild(registration: ServiceWorkerRegistration): Promise<bool
   if (!pageBuild || typeof siteBuild !== "string" || !siteBuild || siteBuild === pageBuild) {
     return true;
   }
-  // Another toast up (an Undo, a lost save) is left alone; the next return asks again.
-  if (toastIsUp()) return false;
+  // A toast up (an Undo, a lost save, or this offer itself) is left alone; a return after the
+  // minute asks again.
+  if (toastIsUp()) return true;
   sendToast(
     {
       message: "New version available",
       actionLabel: "Reload",
-      // A new worker, when the deploy has one, installs first so it answers the reload; a slow
-      // network never holds the reload more than a moment (the page load is network-first anyway).
+      // The page load goes to the network first, so the reload shows the new build under either
+      // worker; a new worker, if the deploy has one, takes over at the next idle moment.
       onAction: () => {
-        Promise.race([
-          registration.update().catch(() => {}),
-          new Promise((settle) => setTimeout(settle, RELOAD_WAIT_MS)),
-        ]).finally(() => location.reload());
+        registration.update().catch(() => {});
+        location.reload();
       },
     },
     document,

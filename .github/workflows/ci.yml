@@ -132,8 +132,14 @@ jobs:
           set -e
           if [ "$code" -eq 0 ]; then exit 0; fi
           if ! jq -e '.metadata.vulnerabilities' >/dev/null 2>&1 <<<"$out"; then
-            echo "::warning::npm's audit service did not answer; dependencies were not audited this run"
-            exit 0
+            # Only the service being away (a hang, a 5xx, a network error) passes; a broken lockfile
+            # or any other error fails, so the audit is never skipped in silence.
+            if [ "$code" -eq 124 ] || grep -qiE '"code": *"(E5[0-9][0-9]|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN)"|Service Unavailable|Bad Gateway|Gateway Time' <<<"$out"; then
+              echo "::warning::npm's audit service did not answer; dependencies were not audited this run"
+              exit 0
+            fi
+            echo "npm audit failed: $out"
+            exit 1
           fi
           jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical") | "critical: \(.key)"' <<<"$out"
           exit 1

@@ -73,8 +73,11 @@ jobs:
           open_issue=$(gh issue list --label health --state open --limit 1 --json number,title --jq '.[0] // empty')
           [ -n "$open_issue" ] || open_issue='{}'
           issue=$(jq -r '.number // empty' <<<"$open_issue")
-          # The open issue's title names the faults it already holds, each healed once when it came.
-          held=$(jq -r '.title // ""' <<<"$open_issue" | sed 's/^Health: //')
+          # The open issue's title ends with the faults already healed ("| healed: ..."): each heals
+          # once while it lasts. A fault that clears drops off the list, so a return heals again.
+          title=$(jq -r '.title // ""' <<<"$open_issue")
+          held=""
+          [[ "$title" == *"| healed: "* ]] && held="${title##*| healed: }"
           new_fault() { [[ " $codes " == *" $1 "* && " $held " != *" $1 "* ]]; }
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
@@ -86,15 +89,25 @@ jobs:
           fi
 
           healed=""
+          just_healed=""
           # A fault heals once, when it first appears, even while the issue is open for another
           # (run_died alone never heals: it is alert only). A run already queued or running is left alone.
           busy=$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')
           if { new_fault run_failed || new_fault run_overdue; } && [ "$busy" = "0" ]; then
-            gh workflow run run.yml -f mode=scheduled && healed="${healed}- Started one scheduled run.\n"
+            if gh workflow run run.yml -f mode=scheduled; then
+              healed="${healed}- Started one scheduled run.\n"
+              for code in run_failed run_overdue; do new_fault "$code" && just_healed="$just_healed $code"; done
+            fi
           fi
-          if new_fault audio_missing; then
-            gh workflow run audio.yml && healed="${healed}- Started one audio run.\n"
+          if new_fault audio_missing && gh workflow run audio.yml; then
+            healed="${healed}- Started one audio run.\n"
+            just_healed="$just_healed audio_missing"
           fi
+          # Healed and still failing, or healed just now; a fault that cleared is forgotten.
+          keep=""
+          for code in $held $just_healed; do [[ " $codes " == *" $code "* ]] && keep="$keep $code"; done
+          keep=$(printf '%s\n' $keep | sort -u | xargs)
+          new_title="Health: ${codes}${keep:+ | healed: $keep}"
 
           {
             echo "Health check on $(date -u +%F): **faults** ([run]($run_url))."
@@ -107,8 +120,7 @@ jobs:
 
           if [ -n "$issue" ]; then
             gh issue comment "$issue" --body-file "$RUNNER_TEMP/body.md"
-            # The title keeps every fault the issue has held, so none heals twice while it stays open.
-            gh issue edit "$issue" --title "Health: $(printf '%s\n' $held $codes | sort -u | xargs)"
+            gh issue edit "$issue" --title "$new_title"
           else
-            gh issue create --title "Health: ${codes}" --label health --body-file "$RUNNER_TEMP/body.md"
+            gh issue create --title "$new_title" --label health --body-file "$RUNNER_TEMP/body.md"
           fi
