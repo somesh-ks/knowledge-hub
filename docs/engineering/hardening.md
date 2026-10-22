@@ -71,10 +71,12 @@ Recommend: record the sized target in the digest and compare (medium).
   reach `/api/report` through the `securitypolicyviolation` event (a meta policy cannot carry
   `report-uri`).
 - Headers: HSTS added (`max-age=63072000; includeSubDomains`); `health` faults a missing one.
-- Open passphrase (D41): anyone with the URL can start runs inside the caps. Caps exist for
-  Generate, Podcast, delete, narration and config; `/api/topic-emoji` had none and now asks Jev
-  at most 20 times a minute per instance. Gap: per-instance limits reset on a cold start.
-  Recommend: re-enable the passphrase, or a KV counter (Upstash, free tier) for the paid routes.
+- Open passphrase (D41): anyone with the URL can start runs inside the caps. Generate, Podcast,
+  delete and config count GitHub's run list (or the store), narration the Blob usage document.
+  The per-minute caps (topic-emoji's model asks, source-preview's Jev, costs, and a burst cap
+  on Generate, Podcast and config) are counted in Neon across instances (D150), with the
+  instance's own count as the floor when `DATABASE_URL` is unset or the counter errors or is slow.
+  Gap: the table exists only after `dispatch config seed`; narration has no request cap.
 - SSRF: `source-preview` and `site-icon` check every resolved address and redirect hop. Known gap
   (documented there): DNS rebinding between check and connect.
 - Secrets: gitleaks in CI; the logger redacts key values; `/api/report` keeps paths only.
@@ -113,10 +115,10 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 | Stale client | `site_update`; build compare on load and on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, a Reload offer per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
 | Performance | `checkBundle` (D141, 130 KB); the weekly lab probe (Mondays, D148), `perf_budget` and `perf_unmeasured` (D147) | CI build; `health.yml` | none: alert only | lab, not field: one throttled Chromium on a shared runner; real-user Web Vitals deferred (D147) |
 | Quality | `digest_thin`, `digest_unverified`, `model_fallback`, `source_failing`, `story_short`, `episode_broken`, `episode_unnarrated` | `health.yml` | none: a thin or stub briefing is the owner's to regenerate | a briefing short of its length; a briefing's own word marks; only the newest episode's first segment is fetched |
-| Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; per-instance limits reset on a cold start |
+| Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; the shared counter needs `dispatch config seed` |
 | Cost | `cost_over_ceiling`, `speech_budget`, the per-call caps | `health.yml`; every call | the caps stop the next call | Vercel-side Speechify spend has its own counter |
 | Data integrity | `digest_invalid`, `state_invalid`, `config_invalid`, the write guard | `health.yml`; every commit | none: the guard should refuse it | `config/alexandria.json`, `writer.json` and `profiles/` have no core schema to check |
 | Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life; the first Download asks for persistent storage | quota eviction of downloads is not detected where the browser refuses persistence |
 
 Next by value: real-user Web Vitals (its own change, D146), a briefing that aired short
-of its length, function 5xx rates (needs a log drain), and a KV counter for the paid routes.
+of its length, and function 5xx rates (needs a log drain).

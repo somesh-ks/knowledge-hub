@@ -2,7 +2,7 @@ import { fallbackEmoji, placeEmoji } from "@dispatch/core";
 import { createEmojiPicker } from "@dispatch/engine/source-preview";
 import type { APIRoute } from "astro";
 import { toResponse } from "../../server/http";
-import { newLimiter, takeSlot } from "../../server/rateLimit";
+import { sharedLimit } from "../../server/rateLimit";
 
 export const prerender = false;
 
@@ -12,29 +12,21 @@ export const prerender = false;
 const jevKey = process.env.TYPESAFE_API_KEY;
 const geminiKey = process.env.GEMINI_API_KEY;
 
-// The route is open (D41) and each answer is a paid request, so an instance takes a slot of a
-// model's per-minute cap before asking it; past a cap the next model, then the free fallback, answers.
-const JEV_PER_MINUTE = 20;
-const GEMINI_PER_MINUTE = 20;
-const jevAsked = newLimiter();
-const geminiAsked = newLimiter();
-const picker =
-  jevKey || geminiKey
-    ? createEmojiPicker(
-        { jev: jevKey, gemini: geminiKey },
-        {
-          jev: () => takeSlot(jevAsked, JEV_PER_MINUTE, Date.now()),
-          backup: () => takeSlot(geminiAsked, GEMINI_PER_MINUTE, Date.now()),
-        },
-      )
-    : null;
+// The route is open (D41) and an answer costs up to two paid requests (Jev, then Gemini), so a
+// request that would ask a model takes one slot of a per-minute cap shared by every instance; past
+// it the free fallback answers.
+const ASKS_PER_MINUTE = 20;
+const picker = jevKey || geminiKey ? createEmojiPicker({ jev: jevKey, gemini: geminiKey }) : null;
 
 export const GET: APIRoute = async ({ url }) => {
   const name = (url.searchParams.get("name") ?? "").trim().slice(0, 60);
   if (name === "") return toResponse({ status: 400, body: { error: "name_required" } });
   const description = (url.searchParams.get("description") ?? "").slice(0, 400);
+  const asks = picker !== null && !placeEmoji(name);
   const emoji =
-    picker && !placeEmoji(name) ? await picker.pick({ name, description }) : fallbackEmoji(name);
+    asks && (await sharedLimit("topic-emoji", ASKS_PER_MINUTE))
+      ? await picker.pick({ name, description })
+      : fallbackEmoji(name);
   return toResponse({ status: 200, body: { emoji } });
 };
 

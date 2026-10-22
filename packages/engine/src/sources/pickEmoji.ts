@@ -45,8 +45,6 @@ export interface EmojiPickerOptions {
   backup?: EmojiBackup;
   model?: string;
   secrets?: readonly string[];
-  /** Asked before each paid call; false skips that model (the site's per-minute caps). */
-  allow?: { jev?: () => boolean; backup?: () => boolean };
   /** Called with the reason when Jev or the backup cannot answer. */
   onFailure?: (reason: string) => void;
 }
@@ -68,7 +66,7 @@ export class EmojiPicker {
     const place = placeEmoji(topic.name);
     if (place) return place;
     const { client, backup } = this.options;
-    if (client && (this.options.allow?.jev?.() ?? true)) {
+    if (client) {
       try {
         const raw = await withRetry(
           () =>
@@ -90,7 +88,7 @@ export class EmojiPicker {
         this.options.onFailure?.(describeError(error, this.options.secrets));
       }
     }
-    if (backup && (this.options.allow?.backup?.() ?? true)) {
+    if (backup) {
       try {
         const text = await backup({
           name: cleanText(topic.name, 120),
@@ -156,12 +154,8 @@ export function createEmojiBackup(geminiKey: string, doFetch?: typeof fetch): Em
 }
 
 /** The site's picker: Jev (one try, the chain's timeout) and Gemini Flash-Lite as backup, each only with its key. */
-export function createEmojiPicker(
-  keys: { jev?: string; gemini?: string },
-  allow?: EmojiPickerOptions["allow"],
-): EmojiPicker {
+export function createEmojiPicker(keys: { jev?: string; gemini?: string }): EmojiPicker {
   return new EmojiPicker({
-    allow,
     client: keys.jev
       ? new TypeSafeClient({
           apiKey: keys.jev,

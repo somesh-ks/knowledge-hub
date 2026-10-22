@@ -17,9 +17,11 @@ import type { ApiResult } from "./http";
 import { describeError } from "./redact";
 
 /**
- * The config store's side of /api/config (D149). Only the store branch loads this module (by a
- * dynamic import), so with DISPATCH_CONFIG_STORE unset the function never loads the Neon driver;
- * the driver is imported statically here so Vercel's file tracing puts it in the function.
+ * The config store's side of /api/config (D149), and the cron's read of the stored schedule. Only
+ * the store branch loads this module (by a dynamic import), so with DISPATCH_CONFIG_STORE unset none
+ * of it runs. The Neon driver itself may still load whenever DATABASE_URL is set, for the shared
+ * rate-limit counter (D150). It is imported statically here so Vercel's file tracing puts it in the
+ * function.
  */
 
 type ConfigResult = ApiResult<ConfigResponse>;
