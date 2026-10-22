@@ -4,11 +4,9 @@
   "hour": 7,
   "cadence_days": 2,
   "skip_topics": [
-    "business",
     "sports",
     "culture"
   ],
-  "format": "readout",
   "length_minutes": 5,
   "voice_id": null,
   "voice_id_b": null,
