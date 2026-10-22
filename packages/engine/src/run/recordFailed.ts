@@ -52,7 +52,6 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
     root: deps.root,
     message,
     command: "run",
-    configStore: deps.configStore === true,
     push: !options.noPush,
     git: deps.git,
   });
