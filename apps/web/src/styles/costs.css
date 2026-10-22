@@ -203,11 +203,11 @@
   border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
-/* With nothing spent the plot says so, centred on the plot area itself, clear of the tick column
-   and the date band (the script's pads). */
+/* With nothing spent the plot says so, centred on the card's width (only a baseline is drawn, so
+   the card is the frame the eye centres on) and clear of the date band. */
 .costs-empty {
   position: absolute;
-  inset: 0 0 var(--space-8) calc(var(--space-8) + var(--space-2));
+  inset: 0 0 var(--space-8);
   display: grid;
   place-items: center;
   margin: 0;

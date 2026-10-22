@@ -315,20 +315,19 @@ function focusColumn(index: number, announce: boolean): void {
   when.textContent = bucketLabel(bucket, period, true);
   head.append(value, when);
   // Values lead, names follow; the split is the breakdown's, so the two always agree. One group is
-  // the whole total, so it is named without its amount again.
+  // the whole total, so the head names it and no split follows.
   const groups = Object.entries(entry?.groups ?? {})
     .filter(([, group]) => group.usd > 0)
     .sort(([, a], [, b]) => b.usd - a.usd);
-  const rows = groups.map(([key, group]) => {
+  const [only] = groups;
+  if (groups.length === 1 && only) when.textContent += ` · ${nameOf(by, only[0])}`;
+  const rows = (groups.length > 1 ? groups : []).map(([key, group]) => {
     const row = document.createElement("p");
+    const amount = document.createElement("strong");
+    amount.textContent = usd(group.usd);
     const name = document.createElement("span");
     name.textContent = nameOf(by, key);
-    if (groups.length > 1) {
-      const amount = document.createElement("strong");
-      amount.textContent = usd(group.usd);
-      row.append(amount);
-    }
-    row.append(name);
+    row.append(amount, name);
     return row;
   });
   tip.replaceChildren(head, ...rows);
