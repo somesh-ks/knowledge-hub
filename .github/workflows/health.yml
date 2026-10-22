@@ -75,17 +75,15 @@ jobs:
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
-          PROBED: ${{ steps.probe.outputs.run }}
+          # Empty on a day without the probe, which health reads as nothing to judge.
+          PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |
           set -uo pipefail
           runs="$RUNNER_TEMP/runs.json"
-          perf="$RUNNER_TEMP/perf.json"
           # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
           since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
           gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
-          perf_args=()
-          if [ "$PROBED" = "true" ]; then perf_args=(--perf "$perf"); fi
-          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" "${perf_args[@]}" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are warnings and open no issue (D147), so they go on the run's page.

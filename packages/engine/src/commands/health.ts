@@ -55,9 +55,11 @@ export const run: CommandRun = async (argv, ctx) => {
     }
   }
   // scripts/perfProbe.ts's output. A probe that failed wrote no file: that reads as unmeasured
-  // (a warning), never a usage error, so the rest of the check still runs.
+  // (a warning), never a usage error, so the rest of the check still runs. An empty path is a day
+  // the probe did not run (health.yml probes on Mondays, D148): no performance is judged.
+  const probed = Boolean(values.perf);
   let perf: unknown;
-  if (values.perf !== undefined) {
+  if (probed && values.perf) {
     perf = await readFile(values.perf, "utf8")
       .then((text) => JSON.parse(text) as unknown)
       .catch(() => null);
@@ -69,7 +71,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ceilingUsd,
     site,
     ...(runs ? { runs } : {}),
-    ...(values.perf !== undefined ? { perf } : {}),
+    ...(probed ? { perf } : {}),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
       SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,
