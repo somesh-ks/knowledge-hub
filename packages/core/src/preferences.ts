@@ -1,21 +1,24 @@
 import { z } from "zod";
-import { CATEGORIES, type Category, WEIGHT_STOPS } from "./categories.js";
+import { CATEGORIES, type Category } from "./categories.js";
 import { FormatMix } from "./topics.js";
 
 const weight = z.number().min(0).max(1);
-/** The Normal stop: what a category the file does not list weighs. */
-const NORMAL_WEIGHT = WEIGHT_STOPS.find((stop) => stop.name === "Normal")?.weight ?? 0.7;
 
 /**
- * The weights, one per category. A category added after the file was written has no key; it reads
- * as Normal, so a copy saved before it (an old commit, the config store's seeded row) still parses
- * instead of stopping every run (D155).
+ * Categories added after a preferences file could already be saved elsewhere (the config store's
+ * row, an old commit), with the weight each ships with. A file without one reads it at that weight
+ * instead of stopping every run (D155). Any other missing weight still fails: an Off read as a
+ * default would publish what the owner switched off.
  */
+const ADDED_CATEGORIES: Partial<Record<Category, number>> = { software_engineering_depth: 0.85 };
+
 const Weights = z.preprocess(
   (value) => {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
     const filled: Record<string, unknown> = { ...(value as Record<string, unknown>) };
-    for (const key of CATEGORIES) if (!Object.hasOwn(filled, key)) filled[key] = NORMAL_WEIGHT;
+    for (const [key, shipped] of Object.entries(ADDED_CATEGORIES)) {
+      if (!Object.hasOwn(filled, key)) filled[key] = shipped;
+    }
     return filled;
   },
   z.object(

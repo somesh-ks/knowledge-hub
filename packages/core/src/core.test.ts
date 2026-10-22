@@ -146,13 +146,13 @@ describe("paths and sections", () => {
     expect(homeSection("venture_capital_and_gossip", "rss")).toBe("ai");
   });
   // The config store's preferences row, seeded before D155, would have stopped every run.
-  it("reads a preferences file saved before a category existed, the new one at Normal", () => {
+  it("reads a preferences file saved before a category existed, but not one missing an older one", () => {
     const fixture = "packages/engine/test/fixtures/config/preferences.json";
     const saved = JSON.parse(readFileSync(join(REPO_ROOT, fixture), "utf8"));
-    delete saved.weights.software_engineering_depth;
-    const weights = Preferences.parse(saved).weights;
-    expect(weights.software_engineering_depth).toBe(0.7);
-    expect(weights.consumer_tech_releases).toBe(saved.weights.consumer_tech_releases);
+    const { software_engineering_depth: _added, ...before } = saved.weights;
+    expect(Preferences.safeParse({ ...saved, weights: before }).success).toBe(true);
+    const { venture_capital_and_gossip: _off, ...dropped } = saved.weights;
+    expect(Preferences.safeParse({ ...saved, weights: dropped }).success).toBe(false);
   });
 });
 

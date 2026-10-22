@@ -21,6 +21,8 @@ const sources = [
   makeSource({ id: "journal", type: "crossref", category_hint: "hci_empirical_research" }),
   makeSource({ id: "exa", type: "exa" }),
   makeSource({ id: "eng", category_hint: "software_engineering_depth" }),
+  // A source added on the Software Engineering page: tagged, with no hint.
+  makeSource({ id: "eng-added", topic_ids: ["software_engineering_depth"] }),
 ];
 
 describe("phrase matching", () => {
@@ -95,13 +97,30 @@ describe("prefilter", () => {
       title: "How we rebuilt our DNS resolver",
       source_id: "eng",
     });
-    const { items, report } = run([inTitle, inSnippet, unrelated, engineering]);
+    const added = makeItem({
+      url: "https://a.example/5",
+      title: "Our queue, sharded",
+      source_id: "eng-added",
+    });
+    const { items, report } = run([inTitle, inSnippet, unrelated, engineering, added]);
     expect(items.map((i) => i.title).sort()).toEqual([
       "A short post",
       "Dithered shader tricks",
       "How we rebuilt our DNS resolver",
+      "Our queue, sharded",
     ]);
     expect(report.dropped.not_relevant).toBe(1);
+    // With the category Off, its sources need a keyword like any other.
+    const off = prefilter({
+      items: [engineering, added],
+      preferences: {
+        ...preferences,
+        weights: { ...preferences.weights, software_engineering_depth: 0 },
+      },
+      sources,
+      now: NOW,
+    });
+    expect(off.items).toEqual([]);
   });
 
   it("keeps items from a preferred author without a keyword match", () => {
