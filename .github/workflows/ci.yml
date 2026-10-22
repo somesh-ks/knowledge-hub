@@ -1,9 +1,10 @@
 name: ci
 
+# Pull requests only: every change reaches main through one, and a run per push to main checked the
+# same code again and ran for every digest commit. Actions minutes on a private repository are
+# capped, and the cap stopped every workflow on 2026-10-22 (D148).
 on:
   pull_request:
-  push:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -18,6 +19,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       web: ${{ steps.diff.outputs.web }}
+      shared: ${{ steps.diff.outputs.shared }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -25,17 +27,25 @@ jobs:
       # Digest, state and docs commits skip the heavy checks.
       - id: diff
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "shared=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # An unreachable base (a force-push) must run every check, never skip them.
           if ! changed=$(git diff --name-only "$BASE" HEAD); then
-            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "shared=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          # The browser suites are the only checks that see CSS and layout: they run for any
-          # change the site is built from.
+          # The tokens and the shared stylesheets carry most of the load-bearing design fixes.
+          if printf '%s\n' "$changed" | grep -qE '^(tokens/|apps/web/src/styles/(player|primitives|buttons)\.css$)'; then
+            echo "shared=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "shared=false" >> "$GITHUB_OUTPUT"
+          fi
+          # The browser suites are the only checks that see CSS and layout: any change the site is
+          # built from may need them (the browser job decides which run them).
           if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|package(-lock)?\.json$|tsconfig)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
@@ -74,9 +84,17 @@ jobs:
   # A design fix (a sizer, a fixed width, a specificity bump) is invisible to the checks above: a
   # change that undoes one passes typecheck, lint, unit tests and the build. Both browser suites
   # run here so it fails before it merges (AGENTS.md, 2026-10-18).
+  # The suites cost most of CI's minutes, so they run here only for a change to the tokens or a
+  # shared stylesheet, for Dependabot's pull requests (nobody runs those locally) and for one
+  # labelled `browser` (the label must be on before the push). Everyone runs both suites before
+  # opening a pull request (AGENTS.md, D148).
   browser:
     needs: changes
-    if: needs.changes.outputs.web == 'true'
+    if: >-
+      needs.changes.outputs.web == 'true' &&
+      (needs.changes.outputs.shared == 'true' ||
+      github.event.pull_request.user.login == 'dependabot[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'browser'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
