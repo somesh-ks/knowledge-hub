@@ -63,7 +63,7 @@ export interface TopicOption {
   label: string;
   /** What the chip adds to the request: briefing section ids or general topic ids, in order. */
   ids: readonly string[];
-  /** Ticked when the form opens: the owner's four, Design, Software Engineering, AI and Technology. */
+  /** Ticked when the form opens: the owner's three, Design, AI and Technology. */
   ticked: boolean;
 }
 
@@ -81,13 +81,6 @@ const CHIPS: readonly (TopicOption & { group: string })[] = [
     ids: ["design", "ui-craft"],
     ticked: true,
     group: "design",
-  },
-  {
-    value: "software",
-    label: "Software Engineering",
-    ids: ["software"],
-    ticked: true,
-    group: "software",
   },
   { value: "ai", label: "AI", ids: ["ai"], ticked: true, group: "ai" },
   {

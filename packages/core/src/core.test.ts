@@ -137,7 +137,8 @@ describe("paths and sections", () => {
   });
   it("maps categories to sections", () => {
     expect(homeSection("hci_empirical_research", "rss")).toBe("design");
-    expect(homeSection("developer_tool_launches", "rss")).toBe("ui-craft");
+    expect(homeSection("developer_tool_launches", "rss")).toBe("software");
+    expect(homeSection("software_engineering_depth", "rss")).toBe("software");
     // A video goes where its category goes; "watch" no longer receives stories.
     expect(homeSection("design_engineering_craft", "youtube")).toBe("ui-craft");
     // Off, not a missing home, keeps a category out of a briefing.

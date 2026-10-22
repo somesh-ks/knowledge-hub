@@ -19,6 +19,8 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 ## Not working or unverified
 
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses until then); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
+- Software Engineering (D151): the section and its judge category are tested only. closed when: a committed digest has a Software Engineering section.
+- Sources design (D124) live: production asks Jev for a new source's format only after `npm run secrets:push` (the rule guesses until then); no run has used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - YouTube text: captions and Gemini worked on live videos (2026-10-19); no full run used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - D145 to D147, health rounds 2-3 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows a perf line.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
