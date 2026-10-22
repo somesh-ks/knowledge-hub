@@ -14,9 +14,13 @@
   display: none;
 }
 
-/* The column's one action, in the accent container. It is the navigation rows' size and shape: the
-   column's full width, the rows' height and their round ends, so the four read as one set. Its icon
-   and words sit where the rows' do. A press shows in the fill, never by scaling the label. */
+/* The column's one action. It is the navigation rows' size and shape: the column's full width, the
+   rows' height and their round ends, so the four read as one set. Its icon and words sit where the
+   rows' do. A press shows in the fill, never by scaling the label.
+   A neutral tonal fill with the accent on its icon and words: the accent container means "you are
+   here" alone, so beside the current row it no longer reads as a second selected item (owner,
+   2026-10-22; it was accent-container-high, D86). On /create it is the current place and takes the
+   rows' current fill. */
 @media (min-width: 64rem) {
   .app-nav-create {
     --color-focus-gap: var(--color-surface);
@@ -30,8 +34,8 @@
     padding-inline: calc(var(--space-4) - var(--stroke-hairline));
     border: var(--stroke-hairline) solid transparent;
     border-radius: var(--button-radius);
-    background: var(--color-accent-container-high);
-    color: var(--color-on-accent-container-high);
+    background: var(--color-surface-container);
+    color: var(--color-accent);
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
@@ -51,31 +55,33 @@
     .app-nav-create:hover {
       background: color-mix(
         in oklch,
-        var(--color-accent-container-high),
-        var(--color-on-accent-container-high) var(--state-hover)
+        var(--color-surface-container),
+        var(--color-accent) var(--state-hover)
       );
     }
 
     .app-nav-create[aria-current="page"]:hover {
-      background: var(--color-accent-container-high);
+      background: var(--nav-side-item-bg);
     }
   }
 
   .app-nav-create:active {
     background: color-mix(
       in oklch,
-      var(--color-accent-container-high),
-      var(--color-on-accent-container-high) var(--state-press)
+      var(--color-surface-container),
+      var(--color-accent) var(--state-press)
     );
   }
 
   /* On the New episode page the button is the current place: nothing to press, so no state layer. */
   .app-nav-create[aria-current="page"] {
+    background: var(--nav-side-item-bg);
+    color: var(--nav-side-item-fg);
     cursor: default;
   }
 
   .app-nav-create[aria-current="page"]:active {
-    background: var(--color-accent-container-high);
+    background: var(--nav-side-item-bg);
   }
 }
 
@@ -277,8 +283,9 @@ html[data-has-hero]:not([data-hero-away]) .play-fab {
   opacity: 0;
   transform: translateY(var(--space-4));
   transition-duration:
-    var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s, var(--duration-enter);
-  transition-delay: 0s, 0s, 0s, var(--duration-exit), 0s;
+    var(--duration-exit), var(--duration-exit), var(--duration-hover), 0s, var(--duration-enter),
+    var(--duration-state), var(--duration-state);
+  transition-delay: 0s, 0s, 0s, var(--duration-exit), 0s, 0s, 0s;
 }
 
 /* With reduced motion the exit takes no time, so it goes at once, and it comes back without moving. */
@@ -435,6 +442,50 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
   /* The scrollbar's room is kept whether or not the form scrolls: opening More options must not
      narrow the column and rewrap every control. */
   scrollbar-gutter: stable;
+}
+
+/* What runs on under the sticky foot fades out just above it, as the lists fade at their ends, so a
+   row resting at the foot's edge reads as "more below", not as cut through (2026-10-22). The mask
+   stays opaque over the foot itself; the fade shrinks to nothing as the form reaches its end, and a
+   form that does not scroll has none. --sheet-foot is the foot's height: its padding and button. */
+@property --sheet-foot-mask {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.create-sheet-body:has(.create-submit) {
+  --sheet-foot: calc(
+    var(--button-height) +
+    var(--space-4) +
+    max(var(--space-4), var(--safe-bottom))
+  );
+  mask-image: linear-gradient(
+    to top,
+    black var(--sheet-foot),
+    transparent var(--sheet-foot),
+    black calc(var(--sheet-foot) + var(--sheet-foot-mask, 0px))
+  );
+  -webkit-mask-image: linear-gradient(
+    to top,
+    black var(--sheet-foot),
+    transparent var(--sheet-foot),
+    black calc(var(--sheet-foot) + var(--sheet-foot-mask, 0px))
+  );
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: sheet-foot-fade;
+  animation-timing-function: var(--ease-linear);
+  animation-timeline: scroll(self block);
+}
+
+@keyframes sheet-foot-fade {
+  0%,
+  90% {
+    --sheet-foot-mask: var(--space-8);
+  }
+  100% {
+    --sheet-foot-mask: 0px;
+  }
 }
 
 /* The form fills the sheet's height, so a short form (More options closed) keeps its button at the
