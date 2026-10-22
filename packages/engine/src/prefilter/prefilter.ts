@@ -212,14 +212,24 @@ export function prefilter({
     const hnPoints = item.signals.hn_points ?? 0;
     const strong = hnPoints > STRONG_HN_POINTS;
 
-    // A source shipped for Design is relevant by being tagged, as the tech beat is by its hint.
+    // A source shipped for Design is relevant by being tagged, as the tech beat is by its hint, and
+    // an engineering blog filed for Software Engineering by its hint (D155): their posts rarely
+    // name a design keyword.
     const designTagged = isDesignHinted(item, source);
-    if (titleHits + snippetHits === 0 && !authorHit && !highSignal && !strong && !designTagged) {
+    const hint = categoryHint(item, source);
+    const depthHinted = hint === "software_engineering_depth";
+    if (
+      titleHits + snippetHits === 0 &&
+      !authorHit &&
+      !highSignal &&
+      !strong &&
+      !designTagged &&
+      !depthHinted
+    ) {
       report.dropped.not_relevant++;
       continue;
     }
 
-    const hint = categoryHint(item, source);
     const categoryWeight = hint ? preferences.weights[hint] : 0.5;
     const votes =
       Math.min(3, Math.log10(1 + hnPoints)) +

@@ -80,7 +80,7 @@ export function taste(
   return sum;
 }
 
-/** Most probable of the twelve options. Ties go to the earlier category, and "none" loses ties. */
+/** Most probable of the thirteen options. Ties go to the earlier category, and "none" loses ties. */
 export function topCategory(probs: JudgmentEntry["category_probs"]): CategoryOrNone {
   let best: CategoryOrNone = "none";
   let bestProb = probs.none ?? 0;

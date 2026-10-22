@@ -257,8 +257,8 @@ describe("sections and top picks", () => {
     expect(bySection[a.item.id]).toBe("top");
     expect(bySection[b.item.id]).toBe("top");
     expect(bySection[c.item.id]).toBe("top");
-    // A tool launch with no version in its headline competes in Software Engineering (D155).
-    expect(bySection[d.item.id]).toBe("software");
+    // Library, framework and changelog news files under Launches, read last (2026-10-18).
+    expect(bySection[d.item.id]).toBe("launches");
     expect(bySection[e.item.id]).toBe("ui-craft");
     expect(result.selected.filter((s) => s.section === "top")).toHaveLength(3);
   });
@@ -278,8 +278,8 @@ describe("sections and top picks", () => {
       "top",
       "top",
       "design",
-      "software",
       "ai",
+      "launches",
     ]);
   });
 
@@ -500,17 +500,6 @@ describe("release notes", () => {
     // It outscores every post, and still is no Top pick and closes the briefing.
     expect(result.selected.at(-1)?.item.id).toBe(releases[0]?.item.id);
     expect(result.selected.at(-1)?.section).toBe("launches");
-  });
-
-  // D155: Software Engineering takes tool launches uncapped; only a version in the headline is a release note.
-  it("lets tool launches without a version compete in Software Engineering, uncapped and never read last", () => {
-    const launches = Array.from({ length: 6 }, (_, i) =>
-      scored("developer_tool_launches", 0.9 - i * 0.01, { title: `Acme ships tool ${i}` }),
-    );
-    const result = selectItems({ scored: launches, kind: "regular", floor: 3, cap: 12 });
-    expect(result.selected).toHaveLength(6);
-    expect(result.selected.some((s) => s.section === "launches")).toBe(false);
-    expect(result.selected.filter((s) => s.section === "software")).toHaveLength(3);
   });
 });
 
@@ -745,7 +734,7 @@ describe("the tech allowance", () => {
       scored("design_engineering_craft", 0.5),
       scored("frontier_model_releases", 0.5),
       scored("hci_empirical_research", 0.5),
-      scored("developer_tool_launches", 0.5, { title: "kit 1.0" }),
+      scored("developer_tool_launches", 0.5),
       scored("css_canvas_motion_techniques", 0.5, { source_type: "youtube" }),
     ]);
     expect(result.selected.map((s) => s.section)).toEqual([

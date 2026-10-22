@@ -126,7 +126,7 @@ describe("the question", () => {
   });
 
   it("leaves the category questions and their hashes as they were", () => {
-    expect(QUESTIONS_HASH).toBe("f61cc5374659");
+    expect(QUESTIONS_HASH).toBe("376720dff5bc");
     expect(LLM_QUESTIONS_HASH).toBe("111cf0cce2c9");
   });
 

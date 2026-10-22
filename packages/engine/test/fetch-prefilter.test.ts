@@ -20,6 +20,7 @@ const sources = [
   makeSource({ id: "hn", type: "hn" }),
   makeSource({ id: "journal", type: "crossref", category_hint: "hci_empirical_research" }),
   makeSource({ id: "exa", type: "exa" }),
+  makeSource({ id: "eng", category_hint: "software_engineering_depth" }),
 ];
 
 describe("phrase matching", () => {
@@ -70,7 +71,8 @@ describe("prefilter", () => {
     expect(report.dropped.disliked).toBe(2);
   });
 
-  it("keeps items matching a preferred keyword in the title or snippet", () => {
+  // Cloudflare's, Stripe's and GitHub's blogs fed Software Engineering nothing: no design keyword (D155).
+  it("keeps items matching a preferred keyword, or from an engineering-depth source", () => {
     const inTitle = makeItem({
       url: "https://a.example/1",
       title: "Dithered shader tricks",
@@ -88,8 +90,17 @@ describe("prefilter", () => {
       snippet: "Revenue grew.",
       source_id: "plain",
     });
-    const { items, report } = run([inTitle, inSnippet, unrelated]);
-    expect(items.map((i) => i.title).sort()).toEqual(["A short post", "Dithered shader tricks"]);
+    const engineering = makeItem({
+      url: "https://a.example/4",
+      title: "How we rebuilt our DNS resolver",
+      source_id: "eng",
+    });
+    const { items, report } = run([inTitle, inSnippet, unrelated, engineering]);
+    expect(items.map((i) => i.title).sort()).toEqual([
+      "A short post",
+      "Dithered shader tricks",
+      "How we rebuilt our DNS resolver",
+    ]);
     expect(report.dropped.not_relevant).toBe(1);
   });
 

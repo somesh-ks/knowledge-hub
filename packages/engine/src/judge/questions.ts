@@ -121,7 +121,7 @@ export const STATE_LIMITS = { titleChars: 300, snippetChars: 1_200 } as const;
 
 export const JEV_QUESTIONS = {
   category: choice(
-    `${DATA_NOTE} Which single category best describes this item for a design engineer?`,
+    `${DATA_NOTE} Which single category best describes this item for a design or software engineer?`,
     CATEGORY_CRITERIA,
   ),
   craft_depth: score(

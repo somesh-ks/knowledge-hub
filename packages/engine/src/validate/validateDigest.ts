@@ -22,6 +22,12 @@ import { allowanceFor, capFor, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 import { ungroundedNumbers } from "../write/spokenCheck.js";
 
+/** A category's home before it moved: a briefing published then keeps the section it was filed in. */
+const FORMER_HOMES: Partial<Record<string, string>> = {
+  // Tool launches lived in Design Engineering until Software Engineering took them (D155).
+  developer_tool_launches: "ui-craft",
+};
+
 /** The lower bounds a summary gained with the four-beat voice. */
 const SUMMARY_MINIMUMS: ReadonlySet<ViolationRule> = new Set([
   "too_few_words",
@@ -268,7 +274,8 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       item.section !== "top" &&
       item.section !== home &&
       // A briefing published before the sections were retitled keeps the section it was filed in.
-      !isRetiredSection(item.section)
+      !isRetiredSection(item.section) &&
+      FORMER_HOMES[item.category] !== item.section
     ) {
       add(
         "error",

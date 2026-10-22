@@ -75,7 +75,7 @@ export interface GroupPage {
 
 /** The Topics and sources pages and where every source shows (D69). */
 export interface TopicLayout {
-  /** Design, AI and Technology, in that order, each with at least one member. */
+  /** Design, AI, Technology and Software Engineering, in that order, each with at least one member. */
   groups: GroupPage[];
   /** The owner's own topics that publish to a section of their own, by name. */
   own: ManageTopic[];
@@ -86,7 +86,7 @@ export interface TopicLayout {
 }
 
 /**
- * Lay the topics out as a person sees them: three topics of the owner's (the judge's finer topics
+ * Lay the topics out as a person sees them: four topics of the owner's (the judge's finer topics
  * gathered by section), the owner's own topics apart from those, the general news topics, and
  * Other for every source the pages do not show: no topic, a topic that never publishes, or one the
  * app no longer lists (Trending).

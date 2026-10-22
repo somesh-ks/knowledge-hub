@@ -66,6 +66,7 @@ describe("topicOptions", () => {
       "Design",
       "AI",
       "Technology",
+      "Software Engineering",
       "World",
       "Business",
       "Science",
@@ -81,15 +82,16 @@ describe("topicOptions", () => {
     expect(ids.design).toEqual(["design", "ui-craft"]);
     expect(ids.ai).toEqual(["ai"]);
     expect(ids.technology).toEqual(["tech"]);
+    expect(ids.software).toEqual(["software"]);
     expect(ids.world).toEqual(["world"]);
     expect(ids.sports).toEqual(["sports"]);
   });
 
-  it("starts with the owner's three ticked: Design, AI and Technology", () => {
+  it("starts with the owner's four ticked: Design, AI, Technology and Software Engineering", () => {
     const ticked = topicOptions([], [...general, mine()])
       .filter((option) => option.ticked)
       .map((option) => option.label);
-    expect(ticked).toEqual(["Design", "AI", "Technology"]);
+    expect(ticked).toEqual(["Design", "AI", "Technology", "Software Engineering"]);
   });
 
   it("titles of the owner's topics follow the file; Design, AI and Technology are fixed", () => {
@@ -107,6 +109,7 @@ describe("topicOptions", () => {
       "Design",
       "AI",
       "Technology",
+      "Software Engineering",
       "Global",
       "Sport",
     ]);
@@ -127,7 +130,7 @@ describe("topicOptions", () => {
         mine({ name: "Again", section_id: "audio_interfaces" }),
       ],
     );
-    expect(options.slice(8)).toEqual([
+    expect(options.slice(9)).toEqual([
       {
         value: "audio_interfaces",
         label: "Audio interfaces",

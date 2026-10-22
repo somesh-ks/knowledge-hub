@@ -17,6 +17,7 @@ import {
 import { GENERAL_TOPICS, type GeneralTopicId, isGeneralTopicId } from "./generalTopics.js";
 import type { Preferences } from "./preferences.js";
 import { SourceFormat } from "./sources.js";
+import { TOPIC_GROUP_IDS } from "./topicGroups.js";
 
 /**
  * How a topic is scored beyond fit. "craft" and "launch" multiply the fit by the same depth
@@ -52,10 +53,8 @@ export const RESERVED_TOPIC_IDS: readonly string[] = [
   DESIGN_TOPIC_ID,
   TRENDING_TOPIC_ID,
   ...GENERAL_TOPICS.map((topic) => topic.id),
-  // The pages of the owner's four topics (topicGroups.ts) take these ids.
-  "ai",
-  "tech",
-  "software",
+  // The pages of the owner's four topics take these ids.
+  ...TOPIC_GROUP_IDS,
 ];
 
 /**

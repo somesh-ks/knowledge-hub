@@ -4,7 +4,7 @@ import { type Digest, parseDigestFile, stockholmDate } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { createFileProfileStore, isBlockedUrl, OWNER_ID } from "../profile/profile.js";
 import { voteMultiplier, votePreferences } from "../profile/votes.js";
-import { RELEASE_SECTION } from "../score/releaseNotes.js";
+import { RELEASE_CATEGORY, RELEASE_SECTION } from "../score/releaseNotes.js";
 import { topicLabel } from "./episode.js";
 import type { PodcastPlan } from "./plan.js";
 import { PodcastError, type PodcastStory } from "./types.js";
@@ -167,9 +167,9 @@ export async function selectStories(
 }
 
 /**
- * A published story a briefing filed as release news, by its section. Its title is
+ * A published story a briefing filed as release news, by its section or its category. Its title is
  * gone by now, so this reads what the digest kept (selection uses releaseNotes.isReleaseStory).
  */
-function filedAsRelease(story: { section: string }): boolean {
-  return story.section === RELEASE_SECTION;
+function filedAsRelease(story: { section: string; category: string }): boolean {
+  return story.section === RELEASE_SECTION || story.category === RELEASE_CATEGORY;
 }
