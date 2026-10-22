@@ -76,6 +76,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-10-22: every Vercel preview failed in 2 s with "Branch limit reached": Neon's Vercel integration makes a database branch per preview deployment and the free plan's limit filled. Only `main` and `preview/*` deploy now (`vercel.json`), and `branches.yml` deletes closed branches.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry drops the package): set its version, `resolved` and `integrity`, then `npm ci`. In a linked worktree the adapter build's function check fails (`devalue` missing); check it after a real `npm ci`.
 - 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.

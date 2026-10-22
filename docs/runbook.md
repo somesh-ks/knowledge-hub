@@ -174,8 +174,11 @@ Monthly:
 | `run.yml` | Dispatched by `/api/cron/run` in the schedule's hour, its own hourly schedule as a late fallback, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
 | `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
+| `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
+
+Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
 
 Every `run.yml` run ends in one outcome:
 

@@ -1,0 +1,110 @@
+name: branches
+
+# Keeps branches from piling up (2026-10-22: Neon's Vercel integration made a database branch for
+# every preview deployment, the free plan's branch limit filled, and every preview failed before it
+# built). vercel.json now deploys only main and branches named preview/*, so new Neon branches are
+# rare; this workflow removes what is left behind.
+#
+# GitHub: when a pull request closes, its head branch goes, and once a day every branch whose pull
+# requests are all closed or merged goes too. A branch with an open pull request, or that never had
+# one (an agent still at work), is kept. main is never touched.
+#
+# Neon (only with the NEON_API_KEY secret and the NEON_PROJECT_ID variable): preview/<branch>
+# database branches whose git branch is gone are deleted, then all but the newest two. The default
+# branch and any branch not named preview/ are never touched.
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "27 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: branches
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Closed pull request's branch
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -uo pipefail
+          # A fork's branch is not ours to delete, and main never goes.
+          if [ "$HEAD_REPO" != "$REPO" ] || [ "$HEAD" = "main" ]; then exit 0; fi
+          open=$(gh api "repos/$REPO/pulls?state=open&head=${REPO%%/*}:$HEAD" --jq 'length')
+          if [ "$open" != "0" ]; then echo "Kept $HEAD: another pull request is open."; exit 0; fi
+          if gh api -X DELETE "repos/$REPO/git/refs/heads/$HEAD" >/dev/null 2>&1; then
+            echo "Deleted $HEAD."
+          else
+            echo "$HEAD was already gone."
+          fi
+
+      - name: Branches whose pull requests are all closed
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -uo pipefail
+          owner=${REPO%%/*}
+          gh api "repos/$REPO/branches" --paginate --jq '.[].name' | while read -r branch; do
+            [ "$branch" = "main" ] && continue
+            states=$(gh api "repos/$REPO/pulls?state=all&head=$owner:$branch" --jq '[.[].state] | join(" ")')
+            # No pull request: an agent may still be at work on it, so it stays.
+            [ -z "$states" ] && continue
+            [[ " $states " == *" open "* ]] && continue
+            if gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null 2>&1; then
+              echo "Deleted $branch (its pull requests are closed)."
+            fi
+          done
+
+      - name: Neon preview branches
+        shell: bash
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          KEEP: "2"
+        run: |
+          set -uo pipefail
+          if [ -z "$NEON_API_KEY" ] || [ -z "$NEON_PROJECT_ID" ]; then
+            echo "::notice title=Neon cleanup off::Set the NEON_API_KEY secret and the NEON_PROJECT_ID variable to trim Neon preview branches."
+            exit 0
+          fi
+          api="https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches"
+          auth=(-H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json")
+          if ! list=$(curl -fsS "${auth[@]}" "$api"); then
+            echo "::error title=Neon cleanup::Could not list the project's branches."
+            exit 1
+          fi
+          git_branches=$(gh api "repos/$REPO/branches" --paginate --jq '.[].name')
+          # Newest first; only preview/ branches that are not the project's default.
+          previews=$(jq -r '[.branches[] | select((.name | startswith("preview/")) and ((.default // false) | not))]
+            | sort_by(.created_at) | reverse | .[] | "\(.id) \(.name)"' <<<"$list")
+          kept=0
+          while read -r id name; do
+            [ -z "$id" ] && continue
+            git_branch=${name#preview/}
+            if grep -qxF "$git_branch" <<<"$git_branches" && [ "$kept" -lt "$KEEP" ]; then
+              kept=$((kept + 1))
+              continue
+            fi
+            if curl -fsS -X DELETE "${auth[@]}" "$api/$id" >/dev/null; then
+              echo "Deleted Neon branch $name."
+            else
+              echo "::warning title=Neon cleanup::Could not delete $name."
+            fi
+          done <<<"$previews"
+          echo "Kept $kept Neon preview branch(es)."
