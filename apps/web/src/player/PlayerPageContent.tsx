@@ -21,7 +21,8 @@ const LIST_VIEWS = [
  * The player page's lazy half. Two groups, so a wide screen can set them side by side: the
  * controls that belong with the cover, and the list under two views. Stories merges the chapters
  * and the transcript: the story being read shows its transcript and every other story is a chapter
- * row that jumps to it. Up next is the play queue (D126).
+ * row that jumps to it. Up next is the play queue (D126), and the only view once a recording has
+ * ended with something to offer.
  */
 export default function PlayerPageContent() {
   const { track, status, upNextId } = usePlayerState();
@@ -39,6 +40,9 @@ export default function PlayerPageContent() {
   useEffect(() => {
     if (status === "ended" && offered) setChoice({ id, view: "upnext" });
   }, [status, offered, id]);
+  // Once it has ended only Up next shows, as YouTube Music's player does: no Stories tab to turn
+  // back to (D126). Playing it again brings the tabs back.
+  const endedOnUpNext = status === "ended" && offered;
   return (
     <>
       <div className="player-controls">
@@ -49,21 +53,34 @@ export default function PlayerPageContent() {
         <PlayerNotice onRetry={() => getPlayerStore().retry()} />
       </div>
       <div className="player-list">
-        <PlayerTabs
-          label="Show"
-          idBase={idBase}
-          tabs={LIST_VIEWS}
-          value={view}
-          onChange={(next) => setChoice({ id, view: next })}
-        />
-        <div
-          className="player-panel"
-          role="tabpanel"
-          id={`${idBase}-panel-${view}`}
-          aria-labelledby={`${idBase}-tab-${view}`}
-        >
-          {view === "upnext" ? <UpNext /> : <StoryList turns={turns} />}
-        </div>
+        {endedOnUpNext ? (
+          <>
+            <h2 className="player-section-title" id={`${idBase}-upnext`}>
+              Up next
+            </h2>
+            <section className="player-panel" aria-labelledby={`${idBase}-upnext`}>
+              <UpNext />
+            </section>
+          </>
+        ) : (
+          <>
+            <PlayerTabs
+              label="Show"
+              idBase={idBase}
+              tabs={LIST_VIEWS}
+              value={view}
+              onChange={(next) => setChoice({ id, view: next })}
+            />
+            <div
+              className="player-panel"
+              role="tabpanel"
+              id={`${idBase}-panel-${view}`}
+              aria-labelledby={`${idBase}-tab-${view}`}
+            >
+              {view === "upnext" ? <UpNext /> : <StoryList turns={turns} />}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
