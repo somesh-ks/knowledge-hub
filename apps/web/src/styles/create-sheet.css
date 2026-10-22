@@ -145,9 +145,10 @@
     var(--duration-enter);
 }
 
-/* Out of the way while the expanded player or a sheet owns the screen, and where it is already open. */
+/* Out of the way while the expanded player or a sheet owns the screen, and where it is already open.
+   data-dialog-open: a dialog is open (rootState.ts). */
 html[data-player="open"] .create-fab,
-html:has(dialog[open]) .create-fab {
+html[data-dialog-open] .create-fab {
   visibility: hidden;
   opacity: 0;
   transform: translateY(var(--space-4));
@@ -158,14 +159,14 @@ html:has(dialog[open]) .create-fab {
 
 /* An open dialog takes the scrollbar away and the window's edge moves out by its width
    (foundations.css): the button keeps that room as it fades, so it does not jump aside. */
-html:has(dialog[open]) .create-fab {
+html[data-dialog-open] .create-fab {
   inset-inline-end: calc(max(var(--space-4), var(--safe-right)) + var(--gutter, 0px));
 }
 
 /* With reduced motion it only fades, out and back in; it does not move. */
 @media (prefers-reduced-motion: reduce) {
   html[data-player="open"] .create-fab,
-  html:has(dialog[open]) .create-fab {
+  html[data-dialog-open] .create-fab {
     transform: none;
     transition-duration:
       var(--duration-hover), 0s, var(--duration-hover), 0s, var(--duration-enter);
@@ -267,9 +268,11 @@ html:has(dialog[open]) .create-fab {
    for the open player. It comes back once the bar holds something else. */
 /* It is a second face of the hero's Play, so while that is on screen it waits: two Play buttons
    at once say the same thing twice. briefingPage.ts sets data-hero-away once the hero's Play has
-   scrolled out of view, and the button comes in; scrolling back up to it sends the button away. */
+   scrolled out of view, and the button comes in; scrolling back up to it sends the button away.
+   data-has-hero, a page with a hero's Play, comes from the layout (BaseLayout.astro) from the first
+   frame. */
 html:not([data-fab]) .play-fab,
-html:has(.hero-actions):not([data-hero-away]) .play-fab {
+html[data-has-hero]:not([data-hero-away]) .play-fab {
   visibility: hidden;
   opacity: 0;
   transform: translateY(var(--space-4));
@@ -281,7 +284,7 @@ html:has(.hero-actions):not([data-hero-away]) .play-fab {
 /* With reduced motion the exit takes no time, so it goes at once, and it comes back without moving. */
 @media (prefers-reduced-motion: reduce) {
   html:not([data-fab]) .play-fab,
-  html:has(.hero-actions):not([data-hero-away]) .play-fab {
+  html[data-has-hero]:not([data-hero-away]) .play-fab {
     transform: none;
   }
 }
@@ -707,7 +710,7 @@ html[data-player="open"] .run-status {
 /* Below 64rem the line runs to the window's right edge, which an open dialog moves out by the
    scrollbar's width (foundations.css): it keeps that room, so its link and button hold still. */
 @media not all and (min-width: 64rem) {
-  html:has(dialog[open]) .run-card {
+  html[data-dialog-open] .run-card {
     padding-inline-end: calc(max(var(--space-2), var(--safe-right)) + var(--gutter, 0px));
   }
 }

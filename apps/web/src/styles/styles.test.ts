@@ -110,7 +110,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".score", "the meter beside its own label"],
   [".source-card-score", "the meter beside its own label"],
   [".source-plus-btn", "the button's hit area and its press layer's inset"],
-  [".manage-bar:popover-open", "a bar's inset sum: the 4px inset doubled, landing on the grid"],
+  ["html[data-manage-toast-open]", "a bar's inset sum: the 4px inset doubled, landing on the grid"],
 ];
 
 /** Hand-written source (markup and script) the design rules read: no tests, fixtures or test kits. */

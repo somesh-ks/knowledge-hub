@@ -61,7 +61,7 @@ describe("the length asked of the writer", () => {
       const budget = input.budget_chars;
       const stories = input.stories.length;
       const reach = reachableChars(budget, stories, format, minutes);
-      const prompt = scriptSystemPrompt(input, "BOUNDARY");
+      const prompt = scriptSystemPrompt(input);
       expect(scriptTargetChars(budget)).toBe(Math.floor(budget * 0.95));
       expect(scriptFloorChars(budget)).toBe(Math.floor(budget * 0.8));
       // The plan gives a format as many stories as its length carries, so the whole length is in reach.
@@ -108,7 +108,7 @@ describe("the length asked of the writer", () => {
     expect(reachableChars(full.budget_chars, full.stories.length, "readout", 15)).toBe(
       full.budget_chars,
     );
-    const prompt = scriptSystemPrompt(thin, "B");
+    const prompt = scriptSystemPrompt(thin);
     expect(prompt).toContain(`no more than ${wordsFor(reach)}.`);
     expect(prompt).toContain("Never pad with filler and never repeat a fact.");
     // A discussion carries more per story than a readout, and headlines far less.
@@ -117,7 +117,7 @@ describe("the length asked of the writer", () => {
   });
 
   it("asks a discussion for full turns, and lets a host give a view but not a fact", () => {
-    const prompt = scriptSystemPrompt(inputFor("discussion", 5), "B");
+    const prompt = scriptSystemPrompt(inputFor("discussion", 5));
     expect(prompt).toContain("Turns run one to four sentences each");
     expect(prompt).toContain("clearly as their own view");
     expect(prompt).toContain("Neither host invents a fact, a number, a quote or a motive.");
@@ -177,7 +177,7 @@ describe("the episode structure", () => {
 
 describe("the prompt per length", () => {
   const prompts = Object.fromEntries(
-    LENGTHS.map((minutes) => [minutes, scriptSystemPrompt(inputFor("readout", minutes, 8), "B")]),
+    LENGTHS.map((minutes) => [minutes, scriptSystemPrompt(inputFor("readout", minutes, 8))]),
   ) as Record<(typeof LENGTHS)[number], string>;
 
   it("orders every episode: hello, rundown, stories, close, sign-off", () => {
@@ -219,20 +219,20 @@ describe("the prompt per length", () => {
   });
 
   it("describes the discussion and the legacy headlines shape", () => {
-    const duo = scriptSystemPrompt(inputFor("discussion", 10), "B");
+    const duo = scriptSystemPrompt(inputFor("discussion", 10));
     expect(duo).toContain("A deep dive is four to six turns");
     expect(duo).toContain("The close is");
-    const legacy = scriptSystemPrompt(inputFor("headlines", 5), "B");
+    const legacy = scriptSystemPrompt(inputFor("headlines", 5));
     expect(legacy).toContain("Open with one sentence that says the show is Singularity.");
     expect(legacy).not.toContain("STRUCTURE");
   });
 
   it("explains terms for a general audience and leaves the custom prompt alone", () => {
     const base = inputFor("readout", 10);
-    const general = scriptSystemPrompt(
-      { ...base, request: { ...base.request, audience: "general" } },
-      "B",
-    );
+    const general = scriptSystemPrompt({
+      ...base,
+      request: { ...base.request, audience: "general" },
+    });
     expect(general).toContain("Explain any technical term");
     expect(general).toContain("STRUCTURE");
     expect(prompts[10]).not.toContain("Explain any technical term");

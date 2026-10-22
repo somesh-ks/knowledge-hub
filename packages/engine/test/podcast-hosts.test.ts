@@ -34,7 +34,7 @@ const SOLO_HOST =
 function promptFor(request: PodcastRequest): string {
   const plan = planPodcast(request);
   const input: ScriptInput = { request, stories: [], budget_chars: plan.budget_chars };
-  return scriptSystemPrompt(input, "BOUNDARY");
+  return scriptSystemPrompt(input);
 }
 
 /** Two digests in the window, four stories in the request's one topic. */
@@ -126,7 +126,7 @@ describe("the names an episode is written with", () => {
   it("gives the writer the request's names and stores them in the episode file", async () => {
     const { result, input } = await generate({ ...DISCUSSION, host_names: NAMES });
     expect(input.request.host_names).toEqual(NAMES);
-    expect(scriptSystemPrompt(input, "B")).toContain('Two hosts: Nora, speaker "a", leads; Owen');
+    expect(scriptSystemPrompt(input)).toContain('Two hosts: Nora, speaker "a", leads; Owen');
     expect(result.episode.request.host_names).toEqual(NAMES);
     expect(parseEpisodeFile(result.markdown ?? "").request.host_names).toEqual(NAMES);
   });
@@ -135,7 +135,7 @@ describe("the names an episode is written with", () => {
     const fallback = hostNamesFor(null, null);
     const { result, input } = await generate(DISCUSSION);
     expect(input.request.host_names).toEqual(fallback);
-    expect(scriptSystemPrompt(input, "B")).toContain(`Two hosts: ${fallback.a}, speaker "a"`);
+    expect(scriptSystemPrompt(input)).toContain(`Two hosts: ${fallback.a}, speaker "a"`);
     expect(parseEpisodeFile(result.markdown ?? "").request.host_names).toEqual(fallback);
   });
 

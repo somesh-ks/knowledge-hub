@@ -60,11 +60,8 @@ describe("podcast", () => {
   });
   it("writes differently for a general audience", () => {
     const base = { stories: [], budget_chars: 3000 };
-    const custom = scriptSystemPrompt({ ...base, request: REQUEST }, "b");
-    const general = scriptSystemPrompt(
-      { ...base, request: { ...REQUEST, audience: "general" } },
-      "b",
-    );
+    const custom = scriptSystemPrompt({ ...base, request: REQUEST });
+    const general = scriptSystemPrompt({ ...base, request: { ...REQUEST, audience: "general" } });
     expect(custom).not.toContain("AUDIENCE");
     expect(general).toContain("Explain any technical term");
   });

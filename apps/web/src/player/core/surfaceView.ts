@@ -16,6 +16,7 @@ import {
   restingBox,
 } from "./coverMorph";
 import { createModalScope } from "./modalScope";
+import { setRootAttribute } from "./rootAttributes";
 import type { SurfaceSnapshot, SurfaceView } from "./sheetController";
 
 interface Parts {
@@ -136,6 +137,12 @@ export function createSurfaceView(): SurfaceView {
       found.root.dataset.state = state;
       found.root.dataset.open = String(open);
       found.root.toggleAttribute("data-landed", landed);
+      // While it moves the navigation bar rises above it (shell.css), read from the root so the
+      // change restyles the bar alone, not the whole page (D147).
+      setRootAttribute(
+        "data-player-moving",
+        state === "collapsed" || state === "expanded" ? null : "",
+      );
       // Inert only at rest: a page on its way down still has to take the tap that calls it back.
       found.page.inert = state === "collapsed";
       found.opener.setAttribute("aria-expanded", String(open));

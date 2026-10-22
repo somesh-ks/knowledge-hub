@@ -73,16 +73,15 @@ function revealTab(
  * stays above it while the end of the briefing pushes it under the bar, until it is gone. Chromium
  * reports a strip partly past that edge as not intersecting, so the test reads its top instead.
  */
-function watchStuck(bar: HTMLElement): void {
-  const edge = stickyTop();
+function watchStuck(bar: HTMLElement, edge: number): void {
   stuckObserver = new IntersectionObserver(
     ([entry]) => {
       if (!entry) return;
       const top = entry.rootBounds?.top ?? edge;
-      bar.toggleAttribute(
-        "data-stuck",
-        entry.intersectionRatio > 0 && entry.boundingClientRect.top < top,
-      );
+      const stuck = entry.intersectionRatio > 0 && entry.boundingClientRect.top < top;
+      bar.toggleAttribute("data-stuck", stuck);
+      // The app bar reads it from the root, which restyles only the bar, not the whole page (D147).
+      document.documentElement.toggleAttribute("data-tabs-stuck", stuck);
     },
     { rootMargin: `-${Math.round(edge)}px 0px 0px 0px`, threshold: [0, 1] },
   );
@@ -139,10 +138,15 @@ function watchSections({ keepHeld = false } = {}): void {
   // The reading line: a heading's padding under the sticky strip (or the top, where the strip is
   // not shown), which is where a jump to a section puts its heading's words. A jump made while the
   // app bar shows can leave the heading lower once the bar slides away, still within this line.
-  const chrome = strip?.offsetParent ? stickyTop() + strip.offsetHeight : 0;
-  // The bar around the strip is what sticks (Briefing.astro).
+  // The bar around the strip is what sticks (Briefing.astro). Here every box is read before the probe
+  // in stickyTop goes in, and the probe is read once: each read after a change to the page restyles
+  // all of it, about 60 ms on a throttled phone.
   const bar = strip?.closest<HTMLElement>("[data-tabs-bar]") ?? strip;
-  if (bar?.offsetParent) watchStuck(bar);
+  const stripHeight = strip?.offsetParent ? strip.offsetHeight : null;
+  const barShown = Boolean(bar?.offsetParent);
+  const edge = stripHeight !== null || barShown ? stickyTop() : 0;
+  const chrome = stripHeight !== null ? edge + stripHeight : 0;
+  if (bar && barShown) watchStuck(bar, edge);
   const inView = new Set<Element>();
   /** All on screen: the first section, the end of the page, or both. */
   const whole = new Set<Element>();
@@ -294,19 +298,23 @@ window.addEventListener("keydown", release);
 window.addEventListener("popstate", release);
 
 /** Marks a tab strip whose tabs all fit, which then shows no edge fades (briefing.css). */
-function fitStrip(): void {
+function fitStrip(): () => void {
   const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
-  strip?.toggleAttribute("data-fits", strip.scrollWidth <= strip.clientWidth + 1);
+  const fits = strip ? strip.scrollWidth <= strip.clientWidth + 1 : false;
+  return () => strip?.toggleAttribute("data-fits", fits);
 }
 
 const measure = (): void => {
-  fitStrip();
+  fitStrip()();
 };
 
 const watchPage = (): void => {
+  // Read before watchSections and written after it: a read after a change to the page costs another
+  // restyle of all of it.
+  const fit = fitStrip();
   watchSections();
   watchHeroPlay();
-  measure();
+  fit();
   void document.fonts?.ready.then(measure);
 };
 

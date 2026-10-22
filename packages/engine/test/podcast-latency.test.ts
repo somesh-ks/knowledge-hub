@@ -97,7 +97,7 @@ describe("a first script a little under the floor", () => {
     // Models deliver about 88 to 97 percent of what they are asked for.
     const input = inputOf(9);
     const reach = reachOf(input);
-    const asked = Number(/Write about (\d+) words/.exec(scriptSystemPrompt(input, "B"))?.[1]);
+    const asked = Number(/Write about (\d+) words/.exec(scriptSystemPrompt(input))?.[1]);
     expect(asked * 0.88).toBeGreaterThan(scriptFloorChars(reach) / 6);
     expect(asked).toBeLessThanOrEqual(reach / 6);
   });
@@ -141,7 +141,7 @@ describe("the story id", () => {
     const id = input.stories[0]?.item_id ?? "";
     expect(message).toContain(`\nitem_id: ${id}\n<<<SOURCE-0123456789abcdef story>>>\n`);
     expect(message).not.toMatch(new RegExp(`<<<SOURCE-[^>]*${id}`));
-    expect(scriptSystemPrompt(input, "B")).toContain('copied exactly from the "item_id:" line');
+    expect(scriptSystemPrompt(input)).toContain('copied exactly from the "item_id:" line');
   });
 });
 

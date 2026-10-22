@@ -701,15 +701,17 @@ html[data-mini="visible"] .toast {
     --toast-lift: var(--run-room);
   }
 
-  html:has(.toast:popover-open) {
+  /* data-toast-open: a toast shows (rootState.ts), not a root :has(), which restyled the page (D147). */
+  html[data-toast-open] {
     --fab-lift: calc(var(--size-touch) + var(--space-1) * 2 + var(--space-2));
   }
 }
 
 /* From 80rem every page but the Library keeps a track at its end for a contents list (shell.css), so
-   the reading column sits left of the window's middle: a toast centres on the column instead. */
+   the reading column sits left of the window's middle: a toast centres on the column instead.
+   data-library-page marks the Library page (BaseLayout.astro). */
 @media (min-width: 80rem) {
-  html:not([data-player="open"]):not(:has(.shell > main.library)) .toast {
+  html:not([data-player="open"]):not([data-library-page]) .toast {
     inset-inline-end: calc(var(--space-12) + var(--layout-aside));
   }
 }

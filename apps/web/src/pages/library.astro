@@ -16,7 +16,12 @@ const { entries, episodes } = await getSite();
 const items = libraryItems(entries, episodes);
 ---
 
-<BaseLayout title="Library" view="library" skipLabel="Skip to the library">
+<BaseLayout
+  title="Library"
+  view="library"
+  skipLabel="Skip to the library"
+  library={items.length === 0 ? "empty" : "items"}
+>
   <main id="main" class="library" tabindex="-1">
     {
       items.length === 0 ? (

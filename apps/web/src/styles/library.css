@@ -167,9 +167,9 @@
 
 /* The colour eases in under the pointer and snaps back when it leaves: a transition on the title at
    rest would also ease the words through a change of theme. Not behind a modal dialog: the page is
-   out of reach there, and the accent over the scrim is not legible. */
+   out of reach there, and the accent over the scrim is not legible. data-dialog-open: rootState.ts. */
 @media (hover: hover) and (pointer: fine) {
-  :root:not(:has(dialog[open])) .card-title:hover {
+  :root:not([data-dialog-open]) .card-title:hover {
     color: var(--color-accent);
     transition: color var(--duration-hover) var(--ease-hover);
   }
@@ -657,9 +657,9 @@
 
 /* No results for a search: the floating New episode would lie over the title and the button on a small
    screen, and a short one has no room for the whole scene. A filter with no match keeps it: "No
-   episodes yet" is where making one belongs. */
-html:has([data-library-empty]:not([hidden])):has([data-library-search]:not(:placeholder-shown))
-.create-fab {
+   episodes yet" is where making one belongs. libraryPage.ts sets data-search-empty on the root, where
+   a root :has() restyled the whole page on every key (D147). */
+html[data-search-empty] .create-fab {
   display: none;
 }
 
@@ -685,13 +685,13 @@ html:has([data-library-empty]:not([hidden])):has([data-library-search]:not(:plac
 
 /* A library with nothing in it: the title stays at the page top, and the empty state is centred
    under it. The page's own button is the one way to make an episode here: no floating copy of it
-   below. */
-html:has(.library-none) .create-fab {
+   below. data-library-page="empty" is the layout's word for it (BaseLayout.astro). */
+html[data-library-page="empty"] .create-fab {
   display: none;
 }
 
 /* Nor the room kept for it at the page's foot: only the air of a page without the button. */
-html:has(.library-none) {
+html[data-library-page="empty"] {
   --page-end: var(--space-12);
 }
 

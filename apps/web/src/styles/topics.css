@@ -1420,7 +1420,8 @@
     padding-block: var(--space-2);
   }
 
-  /* An anchor or a focused row lands below the stuck block, not under it. */
+  /* An anchor or a focused row lands below the stuck block, not under it. The one root :has() kept
+     (D147): the chips are drawn by the server and never change, and only a topic's page has them. */
   html:has(.source-filter[data-chips]) {
     scroll-padding-block-start: calc(
       var(--sticky-top) +

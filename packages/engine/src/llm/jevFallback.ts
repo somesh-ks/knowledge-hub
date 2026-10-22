@@ -4,7 +4,7 @@ import type { Logger } from "../context.js";
 import type { JevClientLike } from "../judge/jev.js";
 import { BudgetExceededError, DeadlineExceededError } from "./errors.js";
 import { failureReason, type ModelRouter } from "./modelRouter.js";
-import { newBoundary, untrustedInstruction, wrapUntrusted } from "./untrusted.js";
+import { boundaryLine, newBoundary, untrustedInstruction, wrapUntrusted } from "./untrusted.js";
 
 interface QuestionLike {
   type?: string;
@@ -62,11 +62,11 @@ export function withModelFallback(
           messages: [
             {
               role: "system",
-              content: `Answer each question about the data. For a noul question give the probability from 0 to 1 that the statement is true; for a choice question give exactly one option key. ${untrustedInstruction(boundary)}`,
+              content: `Answer each question about the data. For a noul question give the probability from 0 to 1 that the statement is true; for a choice question give exactly one option key. ${untrustedInstruction()}`,
             },
             {
               role: "user",
-              content: `Questions: ${JSON.stringify(asked)}\n\n${wrapUntrusted(JSON.stringify(request.state), boundary, "state")}`,
+              content: `${boundaryLine(boundary)}\n\nQuestions: ${JSON.stringify(asked)}\n\n${wrapUntrusted(JSON.stringify(request.state), boundary, "state")}`,
             },
           ],
         });

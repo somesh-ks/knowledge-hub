@@ -58,6 +58,8 @@ interface Props {
   skipLabel?: string;
   /** false on the offline page, which says it itself: no banner repeats it above. */
   deviceBanner?: boolean;
+  /** The Library page alone, with or without anything in it ("empty" draws .library-none). */
+  library?: "empty" | "items";
 }
 
 const {
@@ -70,7 +72,12 @@ const {
   audio,
   skipLabel = "Skip to the briefing",
   deviceBanner = true,
+  library,
 } = Astro.props;
+// What the page holds, said on the root from the first frame, where the stylesheets once asked with
+// a root :has() that restyled the whole page (D147): data-has-hero, a hero with its own Play (every
+// page with audio draws one, DigestHero.astro and EpisodeView.astro); data-has-tabs, the section
+// tabs (Briefing.astro, on every briefing); data-library-page, the Library and whether it is empty.
 
 const colors = readBrandColors();
 // Create is the primary action, not a destination. Its page sits under the Library, where episodes
@@ -111,6 +118,9 @@ const back =
   data-layout={layout}
   data-digest-id={digestId}
   data-device-banner={deviceBanner ? undefined : "off"}
+  data-has-hero={audio ? "" : undefined}
+  data-has-tabs={audio?.noun === "briefing" ? "" : undefined}
+  data-library-page={library}
   data-player="closed"
   data-mini="hidden"
   data-player-state="idle"

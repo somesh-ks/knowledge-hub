@@ -4,11 +4,15 @@ name: episode-eval
 # Sonnet scores quality. On a pull request it also rewrites the latest replay with main's writer
 # prompt and with the branch's, so a prompt change is judged before and after on the same stories.
 # The keys exist only as repository secrets, so the eval with its judges runs here.
+# Only for what it judges: the writer, its voice, the judges and the loop. Any engine change ran it
+# (48 runs in a week, six minutes and paid model calls each) and capped Actions minutes (D148).
 on:
   pull_request:
     paths:
       - "loop/**"
-      - "packages/engine/src/**"
+      - "packages/engine/src/write/**"
+      - "packages/engine/src/judge/**"
+      - "config/voice.md"
       - ".github/workflows/episode-eval.yml"
   workflow_dispatch:
 

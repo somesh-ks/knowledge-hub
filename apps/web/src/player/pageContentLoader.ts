@@ -7,9 +7,9 @@ import type { ComponentType } from "react";
  * the browser is idle, again at the first touch on the player, and the page shows a way to try
  * again if it did not arrive.
  *
- * The component lives here, outside React, so the page can render it in the same pass that learns
- * it loaded. React.lazy cannot do that: it suspends on its first render even when its module is
- * cached.
+ * The component lives here, outside React, so a page that mounts once it has loaded renders it in
+ * its first pass. React.lazy cannot do that: it suspends on its first render even when its module
+ * is cached. One that arrives later renders in a deferred pass (PlayerSurface.tsx).
  */
 export interface PageContentSnapshot {
   Content: ComponentType | null;
