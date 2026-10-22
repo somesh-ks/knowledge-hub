@@ -14,7 +14,7 @@ import type { ScoreBreakdown, ScoredItem } from "./types.js";
  *
  *   score = clamp01( taste x depthFactor x penaltyFactor + bonus )
  *
- * taste         = sum over the eleven categories of P(category) x preferences.weights[category].
+ * taste         = sum over the twelve categories of P(category) x preferences.weights[category].
  *                 Probability mass on "none" contributes 0, so unplaceable items sink on their own.
  * depthFactor   = floor + (1 - floor) x (1 - (1 - depth)^2), depth in 0..1.
  *                 A concave ease-out, read from one of two answers:

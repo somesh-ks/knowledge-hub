@@ -52,7 +52,7 @@
       "feed_url": "https://blog.cloudflare.com/rss/",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "developer_tool_launches",
+      "category_hint": "software_engineering_depth",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -94,7 +94,7 @@
       "feed_url": "https://stripe.dev/blog/feed",
       "tier": "weekly",
       "high_signal": false,
-      "category_hint": "developer_tool_launches",
+      "category_hint": "software_engineering_depth",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -108,7 +108,7 @@
       "feed_url": "https://github.blog/feed/",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "developer_tool_launches",
+      "category_hint": "software_engineering_depth",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -524,7 +524,7 @@
       "feed_url": null,
       "tier": "daily",
       "high_signal": true,
-      "category_hint": "design_engineering_craft",
+      "category_hint": "software_engineering_depth",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -538,7 +538,7 @@
       "feed_url": "https://overreacted.io/atom.xml",
       "tier": "daily",
       "high_signal": true,
-      "category_hint": "design_engineering_craft",
+      "category_hint": "software_engineering_depth",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -552,7 +552,7 @@
       "feed_url": "https://kentcdodds.com/blog/rss.xml",
       "tier": "daily",
       "high_signal": true,
-      "category_hint": "design_engineering_craft",
+      "category_hint": "software_engineering_depth",
       "enabled": true,
       "failures": 0,
       "options": {}
@@ -868,7 +868,7 @@
       "feed_url": "https://react.statuscode.com/rss/",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "ui_component_primitives",
+      "category_hint": "developer_tool_launches",
       "enabled": true,
       "failures": 0,
       "options": {
@@ -976,7 +976,7 @@
       "feed_url": "https://thisweekinreact.com/articles/rss.xml",
       "tier": "daily",
       "high_signal": false,
-      "category_hint": "ui_component_primitives",
+      "category_hint": "developer_tool_launches",
       "enabled": true,
       "failures": 0,
       "options": {}

@@ -107,6 +107,7 @@ const LEAD: Record<Section, string> = {
   top: "the top picks",
   design: "design",
   "ui-craft": "design engineering",
+  software: "software engineering",
   ai: "AI products",
   tech: "tech product launches",
   trending: "what is trending",
@@ -165,6 +166,8 @@ function builtinBridges(section: Section, count: number): readonly string[] {
       return ["Now, design.", "On to design.", "Over in design."];
     case "ui-craft":
       return ["Now, design engineering.", "On to design engineering.", "Over to the craft side."];
+    case "software":
+      return ["Now, software engineering.", "On to software engineering.", "Over to the engineering side."];
     case "ai":
       return ["Over in AI.", "Now, AI products.", "On the AI side."];
     case "tech":
