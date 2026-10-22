@@ -20,7 +20,10 @@ function failingHttp(error: unknown): HttpClient {
   return { fetchText: fail, getJson: fail, postJson: fail };
 }
 
-const addSource = (http: HttpClient, ops: unknown = { op: "source.add", url: "https://blog.example.com/" }) =>
+const addSource = (
+  http: HttpClient,
+  ops: unknown = { op: "source.add", url: "https://blog.example.com/" },
+) =>
   applyOpsToDocuments({
     ops,
     documents: [{ path: "config/preferences.json", content: PREFERENCES, version: 1 }],
