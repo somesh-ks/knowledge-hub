@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
-import { audioModeOf, buildEntries, compareNewestFirst, orderItems } from "./digests";
+import { audioModeOf, buildEntries, orderItems } from "./digests";
 
 const noTimeline = { timeline: null } as const;
 
@@ -44,30 +44,6 @@ describe("orderItems", () => {
     expect(orderItems({ items }).map((item) => item.id)).toEqual(
       [3, 5, 2, 4, 1].map((seed) => items.find((item) => item.url.endsWith(`-${seed}`))?.id),
     );
-  });
-});
-
-describe("compareNewestFirst", () => {
-  it("sorts by date, newest first", () => {
-    const older = makeDigest({ id: "2026-10-05" });
-    const newer = makeDigest({ id: "2026-10-07" });
-    expect([older, newer].sort(compareNewestFirst).map((digest) => digest.id)).toEqual([
-      "2026-10-07",
-      "2026-10-05",
-    ]);
-  });
-
-  it("puts a later run on the same day first", () => {
-    const first = makeDigest({ id: "2026-10-07", generated_at: "2026-10-07T05:00:00.000Z" });
-    const second = makeDigest({
-      id: "2026-10-07-2",
-      date: "2026-10-07",
-      generated_at: "2026-10-07T16:00:00.000Z",
-    });
-    expect([first, second].sort(compareNewestFirst).map((digest) => digest.id)).toEqual([
-      "2026-10-07-2",
-      "2026-10-07",
-    ]);
   });
 });
 

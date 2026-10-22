@@ -1,5 +1,6 @@
 import { VITAL_METRICS, type VitalDevice, type VitalMetric } from "@dispatch/core/vitals";
 import type { SqlClient } from "./configPaths.js";
+import { lostCreateRace, missingTable } from "./pgErrors.js";
 
 /**
  * Field Web Vitals in Neon (D156), in the database the config store and the rate-limit counter use
@@ -62,11 +63,6 @@ from web_vitals
 where at > to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
 group by metric, device`;
 
-const errorCode = (error: unknown): unknown => (error as { code?: unknown } | null)?.code;
-const missingTable = (error: unknown): boolean => errorCode(error) === "42P01";
-/** What Postgres answers the loser of two `create ... if not exists` racing: a duplicate. */
-const DUPLICATE = new Set(["23505", "42P07"]);
-
 /**
  * Stores a page's samples at `now` (epoch ms); the number of rows written, 0 when the hour is full.
  * The first report creates the table, so nothing has to be run by hand first. Throws when the
@@ -99,7 +95,7 @@ export async function recordVitals(
     // exists` with a duplicate; the insert after says whether the table is there.
     for (const statement of VITALS_SCHEMA_SQL) {
       await sql.query(statement).catch((raced: unknown) => {
-        if (!DUPLICATE.has(String(errorCode(raced)))) throw raced;
+        if (!lostCreateRace(raced)) throw raced;
       });
     }
     return insert();

@@ -36,4 +36,17 @@ describe("takeSharedSlot", () => {
     expect(await take("b", minute + 59_999)).toBe(true);
     expect(await take("a", minute + 60_000)).toBe(true);
   });
+
+  // The bug: nothing created the table, so every capped request failed over to per-instance caps
+  // and the shared count never held. The first request creates it and is counted.
+  it("creates the table on the first request into a fresh database", async () => {
+    const db = new PGlite();
+    open.push(db);
+    const sql: SqlClient = {
+      query: async (text, params) =>
+        (await db.query<Record<string, unknown>>(text, params ?? [])).rows,
+    };
+    expect(await takeSharedSlot(sql, "a", 1, 0)).toBe(true);
+    expect(await takeSharedSlot(sql, "a", 1, 0)).toBe(false);
+  });
 });

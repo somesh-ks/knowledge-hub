@@ -167,6 +167,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D154 | Simple Analytics and a Privacy page | active |
 | D155 | Software Engineering topic | active; amends D69 |
 | D156 | Field Vitals in Neon | amends D147 |
+| D157 | Health: store, drift, warnings | amends D146 |
 
 ---
 
@@ -1703,3 +1704,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: rows in D153's proposed `engagement_events` (not built; it keeps 13 months with a per-load session id and a country, in whole seconds, where vitals keep 7 days, no identifier and a fractional CLS, and would grow it a row per metric per page load); the web-vitals package (its README puts it at about 2 KB brotli, twice this collector, for the same three numbers); Vercel Speed Insights (a dashboard health cannot read); a report per move inside the app (D146's split, which browsers measure without an LCP); sampling a share of loads (too few readers to spare any).
 - Amends: D147 (field Vitals are judged beside the lab probe).
 - Revisit if: phones give LCP under 20 samples in most weeks (read 28 days), or forged reports appear (a per-page token, or drop the store).
+
+## D157: health watches the store and the deploy, and its warnings reach the owner
+
+- Date: 2026-10-22 (a dedicated Opus audit of what shipped after the 2026-10-21 hardening map: the Neon rate counter, the config store, field Vitals, branch cleanup)
+- Decision: `dispatch health` adds `store_degraded` (warning: with `DATABASE_URL` set, health's own Neon connection or the rate counter's check fails), `config_store_drift` (fault: a stored config document that is not JSON or fails its core schema; warning: one that differs from git though written before the last committed run), `config_store_unread` (fault: the documents do not read, so runs keep the committed files while the app edits the store), `site_behind` (warning: `/build.json` lacks the newest non-bot commit on `origin/main` touching a path Vercel's `ignoreCommand` watches, 45 minutes on) and `site_usage_unread` (warning). `speech_budget` adds the site's own month of narration. `takeSharedSlot` creates `rate_limit_counters` on its first request, as the vitals store does. `health.yml` opens or updates one `health-warnings` issue on Mondays listing the standing warnings (closed when none remain, untouched when health crashed or the issue list fails), and an open `health` issue's daily comment leads with faults new since the bot's last comment. One newest-first order (`compareNewestFirst`, core) serves the site, `dispatch status` and `dispatch health`, so a regenerated older briefing no longer reads as the newest (it raised a false `site_stale`).
+- Why: warnings went nowhere (only a fault's comment or the run log carried them); a Neon outage turned the shared caps per instance and dropped Vitals without a word; the seeded store drifts from git when code changes a config shape (D155 showed it). A fault is kept for what the owner can act on and what holds for a day; everything weaker is a warning, read weekly.
+- Rejected: a late-briefing warning (built and removed: Vercel Cron starts the on-time run as a `workflow_dispatch`, D61, and run.yml makes skipped hourly `schedule` runs, so nothing tells late from on time or from a regenerate; it needs the trigger in the run record); site narration in the 24-hour ceiling (its records are per day); `store_degraded` and `site_behind` as faults (a waking Neon and Dependabot merges Hobby never deploys would open the issue); changing `ignoreCommand` to diff from `VERCEL_GIT_PREVIOUS_SHA` (unverified variable; a wrong fallback would skip every deploy).
+- Amends: D146 (warnings now reach the owner, weekly).
+- Revisit if: the `health-warnings` issue stays open for a month with the same codes (tune or drop them), or a run record gains its trigger and copy time (then `run_late` and a drift fault come back).

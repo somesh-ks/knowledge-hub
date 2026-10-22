@@ -1,8 +1,11 @@
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, posix } from "node:path";
+import { promisify } from "node:util";
 import {
   episodeRelPath,
   loadModelRouting,
+  Preferences,
   PriceTable,
   parseEpisodeFile,
   parseSourceCatalog,
@@ -21,8 +24,16 @@ import {
   segmentMarksPath,
 } from "../audio/segmentStore.js";
 import { redact } from "../context.js";
+import { parseQueries } from "../fetch/queries.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
-import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
+import { readConfigDocuments } from "../store/configDocs.js";
+import {
+  CONFIG_DOCUMENT_PATHS,
+  type ConfigDocument,
+  connectConfigStore,
+  databaseSecrets,
+  type SqlClient,
+} from "../store/configPaths.js";
 import {
   pruneVitals,
   readVitals,
@@ -62,6 +73,7 @@ export type HealthFetch = (
 }>;
 
 const DAY_MS = 86_400_000;
+const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 20_000;
 
 function message(error: unknown): string {
@@ -76,6 +88,60 @@ const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
 ];
+
+/** The newest main commit Vercel would deploy, and whether a given build contains it. */
+export interface WatchedHead {
+  sha: string;
+  /** Its commit time, epoch ms. */
+  at: number;
+  /**
+   * Whether the build named `build` (a commit, maybe shortened) has this commit in its history;
+   * null when the checkout cannot tell (it does not know that commit: the site is newer).
+   */
+  includes: (build: string) => Promise<boolean | null>;
+}
+
+/**
+ * Reads the newest commit on main (origin/main, else a local main; never HEAD, so a run on another
+ * branch cannot fault) that touches a path apps/web/vercel.json's ignoreCommand watches (read from
+ * that file, so the two never drift). Needs history: health.yml fetches some. Undefined when git or
+ * the file does not answer.
+ */
+export async function readWatchedHead(root: string): Promise<WatchedHead | undefined> {
+  const git = async (...args: string[]) =>
+    (await execFileAsync("git", args, { cwd: root, encoding: "utf8" })).stdout.trim();
+  try {
+    const vercel = JSON.parse(await readFile(join(root, "apps/web/vercel.json"), "utf8")) as {
+      ignoreCommand?: string;
+    };
+    const watched = (vercel.ignoreCommand?.split(" -- ")[1] ?? "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((path) => posix.normalize(posix.join("apps/web", path)));
+    if (watched.length === 0) return undefined;
+    const main = await git("rev-parse", "--verify", "--quiet", "origin/main").catch(() =>
+      git("rev-parse", "--verify", "--quiet", "main"),
+    );
+    // A bot's commit (Dependabot's squash merges) is never deployed on Vercel Hobby, by design.
+    const human = (await git("log", "-50", "--format=%H %ct %an <%ae>", main, "--", ...watched))
+      .split("\n")
+      .find((line) => line !== "" && !line.includes("[bot]"));
+    const [sha, seconds] = (human ?? "").split(" ");
+    if (!sha || !seconds) return undefined;
+    return {
+      sha,
+      at: Number(seconds) * 1000,
+      // Exit 1 is "not an ancestor"; 128 (an unknown commit) and the rest cannot tell.
+      includes: (build) =>
+        git("merge-base", "--is-ancestor", sha, build).then(
+          () => true,
+          (error: unknown) => ((error as { code?: unknown }).code === 1 ? false : null),
+        ),
+    };
+  } catch {
+    return undefined;
+  }
+}
 
 /** `config_invalid`: doctor's offline config checks, the model routing and the other schemas. */
 export async function checkConfig(root: string, sink: Sink): Promise<void> {
@@ -102,6 +168,72 @@ export async function checkConfig(root: string, sink: Sink): Promise<void> {
     }
   }
   if (!failed) sink.passed.push("the config files parse");
+}
+
+/** The stored documents with a schema; the others (writer, profile, candidates) are checked as JSON. */
+const DOCUMENT_SCHEMAS = new Map<string, (json: unknown) => unknown>([
+  ...CONFIG_SCHEMAS,
+  ["config/preferences.json", (json) => Preferences.parse(json)],
+  ["config/queries.json", (json) => parseQueries(json)],
+]);
+
+/**
+ * `config_store_drift` (D149's store on): a stored document the next run would skip (not JSON) or
+ * fail on (its schema) is a fault. One that differs from its committed file though a committed run
+ * was recorded after it was written is a warning only: no record holds when a run copied the store
+ * (`at` is the commit, after the copy), so an edit made during a run reads the same. Only
+ * CONFIG_DOCUMENT_PATHS are checked, as hydrateConfig copies only those. Nothing heals it.
+ */
+export async function checkConfigStore(
+  root: string,
+  documents: readonly ConfigDocument[],
+  lastRunAt: string | null,
+  sink: Sink,
+): Promise<void> {
+  const ranAt = lastRunAt === null ? Number.NaN : Date.parse(lastRunAt);
+  const paths: readonly string[] = CONFIG_DOCUMENT_PATHS;
+  const known = documents.filter((document) => paths.includes(document.path));
+  let drifted = false;
+  const fault = (text: string): void => {
+    drifted = true;
+    sink.fault("config_store_drift", "integrity", text);
+  };
+  for (const document of known) {
+    let json: unknown;
+    try {
+      json = JSON.parse(document.content);
+    } catch {
+      fault(`The stored ${document.path} is not JSON: a run keeps the committed file.`);
+      continue;
+    }
+    const parse = DOCUMENT_SCHEMAS.get(document.path);
+    if (parse) {
+      try {
+        parse(json);
+      } catch (error) {
+        fault(`The stored ${document.path} fails its schema: ${firstIssue(error)}`);
+        continue;
+      }
+    }
+    const committed = await readFileIfPresent(join(root, document.path)).catch(() => null);
+    if (
+      committed !== document.content &&
+      document.updatedAt !== undefined &&
+      document.updatedAt < ranAt
+    ) {
+      drifted = true;
+      sink.warn(
+        "config_store_drift",
+        "integrity",
+        `The stored ${document.path} (written ${new Date(document.updatedAt).toISOString()}) differs from the committed file, and a run committed at ${lastRunAt} after it: it was edited during that run, or the run did not copy it.`,
+      );
+    }
+  }
+  if (!drifted) {
+    sink.passed.push(
+      `the ${known.length} stored config documents parse, and none written before the last committed run differs from git`,
+    );
+  }
 }
 
 /**
@@ -291,35 +423,113 @@ export const FIELD_MIN_SAMPLES = 20;
 /** Neon may be waking from idle; past this the store reads as unmeasured. */
 const FIELD_TIMEOUT_MS = 15_000;
 
+/** A read that answered, or why it did not. */
+type Read<T> = T | { error: string };
+
 /**
- * Reads the field store the site writes (packages/engine/src/store/vitalsStore.ts). Never throws: no
- * URL, an error or no answer in time is a reading that says why, with the URL taken out of it.
+ * What health read from the Neon store, each part on its own so one failure keeps the others: the
+ * field vitals, whether the site's shared rate counter has its table, and the stored config
+ * documents when the config store is on. A top-level error means no connection; `configured` is
+ * false when DATABASE_URL is not set.
  */
-export async function readFieldVitals(
+export type StoreReading =
+  | { error: string; configured: boolean }
+  | {
+      field: FieldReading;
+      rate_table: Read<boolean>;
+      documents?: Read<readonly ConfigDocument[]>;
+    };
+
+/**
+ * Reads the store the site writes (packages/engine/src/store/vitalsStore.ts, rateCounter.ts) and,
+ * with `configStore`, the config documents (D149). Never throws: no URL, an error or no answer in
+ * time is a reading that says why, with the URL taken out of it.
+ */
+export async function readStore(
   databaseUrl: string | undefined,
   now: Date,
+  options: { configStore: boolean },
   connect: (url: string) => Promise<SqlClient> = connectConfigStore,
-): Promise<FieldReading> {
-  if (!databaseUrl) return { error: "DATABASE_URL is not set" };
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const read = connect(databaseUrl).then(async (sql) => {
-      // The week's retention without traffic; a role that may only read still gets its reading.
-      await pruneVitals(sql, now.getTime()).catch(() => undefined);
-      return readVitals(sql, now.getTime());
-    });
+): Promise<StoreReading> {
+  if (!databaseUrl) return { error: "DATABASE_URL is not set", configured: false };
+  const why = (error: unknown) => ({
+    error: redact(message(error), databaseSecrets(databaseUrl)),
+  });
+  // Neon may be waking from idle; past FIELD_TIMEOUT_MS a read is an error of its own.
+  const within = async <T>(read: () => Promise<T>): Promise<Read<T>> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const late = new Promise<never>((_, fail) => {
       timer = setTimeout(
         () => fail(new Error(`no answer in ${FIELD_TIMEOUT_MS} ms`)),
         FIELD_TIMEOUT_MS,
       );
     });
-    return { summaries: await Promise.race([read, late]) };
-  } catch (error) {
-    return { error: redact(message(error), databaseSecrets(databaseUrl)) };
-  } finally {
-    clearTimeout(timer);
+    try {
+      return await Promise.race([read(), late]);
+    } catch (error) {
+      return why(error);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  const sql = await within(() => connect(databaseUrl));
+  if ("error" in sql) return { ...sql, configured: true };
+  const [summaries, rateTable, documents] = await Promise.all([
+    within(async () => {
+      // The week's retention without traffic; a role that may only read still gets its reading.
+      await pruneVitals(sql, now.getTime()).catch(() => undefined);
+      return readVitals(sql, now.getTime());
+    }),
+    within(async () => {
+      const [row] = await sql.query(
+        "select to_regclass('rate_limit_counters') is not null as present",
+      );
+      return row?.present === true;
+    }),
+    options.configStore ? within(() => readConfigDocuments(sql)) : undefined,
+  ]);
+  return {
+    field: Array.isArray(summaries) ? { summaries } : (summaries as { error: string }),
+    rate_table: rateTable,
+    ...(documents ? { documents } : {}),
+  };
+}
+
+/**
+ * `store_degraded` (warning): with DATABASE_URL set, no connection, or the rate counter's check
+ * failed. The site then counts its paid routes' caps per instance and drops field vitals, and says
+ * nothing (apps/web rateLimit.ts, database.ts). A warning: Neon may be waking, and nothing breaks
+ * for a reader. A missing counter table is no finding: the first capped request creates it.
+ * Without DATABASE_URL there is no store: the field vitals are `field_unmeasured`, a warning, as is
+ * a vitals read that failed on its own. The config documents are health.ts's to judge.
+ */
+export function checkStore(reading: StoreReading, sink: Sink): void {
+  if ("error" in reading) {
+    if (reading.configured) {
+      sink.warn(
+        "store_degraded",
+        "reliability",
+        `The Neon store did not connect: ${reading.error}. The site's rate caps fall back to per instance and field vitals are dropped.`,
+      );
+    } else {
+      checkFieldVitals(reading, sink);
+    }
+    return;
   }
+  if (typeof reading.rate_table === "boolean") {
+    sink.passed.push(
+      reading.rate_table
+        ? "the store answers and holds the shared rate counter"
+        : "the store answers; the first capped request creates the rate counter",
+    );
+  } else {
+    sink.warn(
+      "store_degraded",
+      "reliability",
+      `The rate counter's table could not be checked: ${reading.rate_table.error}. The site's rate caps may be counting per instance.`,
+    );
+  }
+  checkFieldVitals(reading.field, sink);
 }
 
 const FIELD_LABEL: Record<VitalMetric, string> = { lcp: "LCP", inp: "INP", cls: "CLS" };
@@ -331,7 +541,7 @@ const fieldValue = (metric: VitalMetric, value: number): string =>
  * Google's lines. Needs improvement is the warning `field_vitals`, poor the fault `field_vitals`,
  * which opens the health issue (nothing heals it). Phones are the site's readers, so too few phone
  * samples for a metric is `field_unmeasured`, never a pass; desktops are judged once they have
- * enough. A store that could not be read is `field_unmeasured` too. Daily: one query.
+ * enough. No DATABASE_URL is `field_unmeasured` too (a store that would not answer is checkStore's fault). Daily: one query.
  */
 export function checkFieldVitals(reading: FieldReading, sink: Sink): void {
   if ("error" in reading) {
