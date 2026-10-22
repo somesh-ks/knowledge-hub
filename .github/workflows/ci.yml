@@ -14,10 +14,15 @@ permissions:
   contents: read
 
 jobs:
-  changes:
+  # One job, so a run bills the fewest whole minutes (each job rounds up on its own, D148).
+  check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # gitleaks lists the pull request's commits, which needs pull-requests: read.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      code: ${{ steps.diff.outputs.code }}
       web: ${{ steps.diff.outputs.web }}
       shared: ${{ steps.diff.outputs.shared }}
     steps:
@@ -57,26 +62,51 @@ jobs:
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
-
-  check:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # What ships, read from the lockfile (no install). The high advisories are known and taken
+      # (path-to-regexp under @astrojs/vercel, build-time routing: docs/engineering/hardening.md),
+      # so only a critical one fails the check. The registry's audit service being down (a 503 on
+      # 2026-10-22, seven minutes then a failure) is not a finding: it warns and the check passes.
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          set +e
+          out=$(timeout 150 npm audit --omit=dev --audit-level=critical --json 2>/dev/null)
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then exit 0; fi
+          if ! jq -e '.metadata.vulnerabilities' >/dev/null 2>&1 <<<"$out"; then
+            # Only the service being away (a hang, a 5xx, a network error) passes; a broken lockfile
+            # or any other error fails, so the audit is never skipped in silence.
+            if [ "$code" -eq 124 ] || grep -qiE '"code": *"(E5[0-9][0-9]|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN)"|Service Unavailable|Bad Gateway|Gateway Time' <<<"$out"; then
+              echo "::warning::npm's audit service did not answer; dependencies were not audited this run"
+              exit 0
+            fi
+            echo "npm audit failed: $out"
+            exit 1
+          fi
+          jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical") | "critical: \(.key)"' <<<"$out"
+          exit 1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.diff.outputs.code == 'true'
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --ignore-scripts
+      - if: steps.diff.outputs.code == 'true'
+        run: npm ci --ignore-scripts
       - name: Typecheck
+        if: steps.diff.outputs.code == 'true'
         run: npm run typecheck
       - name: Lint
+        if: steps.diff.outputs.code == 'true'
         run: npm run lint
       - name: Test
+        if: steps.diff.outputs.code == 'true'
         run: npm test
       - name: Build site
+        if: steps.diff.outputs.code == 'true'
         env:
           DISPATCH_FIXTURES: "1"
         run: npm run build
@@ -89,10 +119,10 @@ jobs:
   # labelled `browser` (the label must be on before the push). Everyone runs both suites before
   # opening a pull request (AGENTS.md, D148).
   browser:
-    needs: changes
+    needs: check
     if: >-
-      needs.changes.outputs.web == 'true' &&
-      (needs.changes.outputs.shared == 'true' ||
+      needs.check.outputs.web == 'true' &&
+      (needs.check.outputs.shared == 'true' ||
       github.event.pull_request.user.login == 'dependabot[bot]' ||
       contains(github.event.pull_request.labels.*.name, 'browser'))
     runs-on: ubuntu-latest
@@ -122,42 +152,3 @@ jobs:
           path: apps/web/test-results/
           retention-days: 14
           if-no-files-found: ignore
-
-  secrets:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # The action lists the pull request's commits, which needs pull-requests: read.
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # What ships, read from the lockfile (no install). The high advisories are known and taken
-      # (path-to-regexp under @astrojs/vercel, build-time routing: docs/engineering/hardening.md),
-      # so only a critical one fails the check. The registry's audit service being down (a 503 on
-      # 2026-10-22, seven minutes then a failure) is not a finding: it warns and the check passes.
-      - name: Audit production dependencies
-        shell: bash
-        run: |
-          set +e
-          out=$(timeout 150 npm audit --omit=dev --audit-level=critical --json 2>/dev/null)
-          code=$?
-          set -e
-          if [ "$code" -eq 0 ]; then exit 0; fi
-          if ! jq -e '.metadata.vulnerabilities' >/dev/null 2>&1 <<<"$out"; then
-            # Only the service being away (a hang, a 5xx, a network error) passes; a broken lockfile
-            # or any other error fails, so the audit is never skipped in silence.
-            if [ "$code" -eq 124 ] || grep -qiE '"code": *"(E5[0-9][0-9]|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN)"|Service Unavailable|Bad Gateway|Gateway Time' <<<"$out"; then
-              echo "::warning::npm's audit service did not answer; dependencies were not audited this run"
-              exit 0
-            fi
-            echo "npm audit failed: $out"
-            exit 1
-          fi
-          jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical") | "critical: \(.key)"' <<<"$out"
-          exit 1
