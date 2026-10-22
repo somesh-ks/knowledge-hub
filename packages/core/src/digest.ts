@@ -141,3 +141,17 @@ export function digestSections(digest: Pick<Digest, "items" | "section_titles">)
   for (const item of digest.items) add(item.section, undefined);
   return out;
 }
+
+/**
+ * Newest first, the one order of briefings: the site's `/latest.json` and archive, `dispatch
+ * status` and `dispatch health` all use it. Same-day digests (a second run, a weekly) fall back to
+ * when they were written; a regenerated briefing keeps its date, so it never jumps ahead.
+ */
+export function compareNewestFirst(
+  a: Pick<Digest, "date" | "generated_at" | "id">,
+  b: Pick<Digest, "date" | "generated_at" | "id">,
+): number {
+  if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+  if (a.generated_at !== b.generated_at) return a.generated_at < b.generated_at ? 1 : -1;
+  return a.id < b.id ? 1 : -1;
+}

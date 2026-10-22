@@ -5,7 +5,7 @@ import { createVercelBlobStore, readFresh } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { bundledCostRecords, bundledPrices } from "../../server/costSource";
 import { costBody, narrationRecords, parseCostQuery } from "../../server/costs";
-import { toResponse } from "../../server/http";
+import { recordingFaults, toResponse } from "../../server/http";
 import { parseState, usageKey } from "../../server/narrationState";
 import { sharedLimit } from "../../server/rateLimit";
 
@@ -54,7 +54,7 @@ async function siteRecords(
   }
 }
 
-export const GET: APIRoute = async ({ request, url }) => {
+const get: APIRoute = async ({ request, url }) => {
   if (!(await sharedLimit("costs", REPORTS_PER_MINUTE))) {
     return toResponse({
       status: 429,
@@ -80,6 +80,8 @@ export const GET: APIRoute = async ({ request, url }) => {
     },
   });
 };
+
+export const GET = recordingFaults("api/costs", get);
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "GET" } });

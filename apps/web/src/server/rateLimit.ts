@@ -29,8 +29,8 @@ export type SharedLimiterDeps = DatabaseDeps;
 export type SharedLimiter = (bucket: string, perMinute: number) => Promise<boolean>;
 
 /**
- * A per-minute limit counted across every instance, in Neon (`rate_limit_counters`, created by
- * `dispatch config seed`). Each request first takes a slot of this instance's own window, so the
+ * A per-minute limit counted across every instance, in Neon (`rate_limit_counters`, created on
+ * its first request, as the vitals table is). Each request first takes a slot of this instance's own window, so the
  * shared count can only tighten the limit, never loosen it; then one upsert counts it across
  * instances. With no DATABASE_URL, a database error, or no answer in time, the instance's slot stands
  * alone: a counter that is down never fails a request, and the instance stops asking it for a while

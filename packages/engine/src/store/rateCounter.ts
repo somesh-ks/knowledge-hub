@@ -1,4 +1,5 @@
 import type { SqlClient } from "./configPaths.js";
+import { withTable } from "./pgErrors.js";
 
 /**
  * A rate-limit counter every serverless instance shares, in the same Neon database as the config
@@ -39,7 +40,11 @@ export async function takeSharedSlot(
   now: number,
   windowMs = 60_000,
 ): Promise<boolean> {
-  const rows = await sql.query(TAKE_SQL, [bucket, windowOf(now, windowMs)]);
+  // Nothing created the table, so every request fell back to per-instance caps (2026-10-22). The
+  // first capped request creates it, as the vitals and faults stores do.
+  const rows = await withTable(sql, [RATE_LIMIT_SCHEMA_SQL], () =>
+    sql.query(TAKE_SQL, [bucket, windowOf(now, windowMs)]),
+  );
   const count = Number(rows[0]?.count);
   if (!Number.isFinite(count)) throw new Error("rate counter: the upsert returned no count");
   return count <= perWindow;

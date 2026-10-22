@@ -13,7 +13,8 @@
     "./gate": "./src/gate/decideRun.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts",
-    "./vitals-store": "./src/store/vitalsStore.ts"
+    "./vitals-store": "./src/store/vitalsStore.ts",
+    "./faults-store": "./src/store/faultsStore.ts"
   },
   "bin": {
     "dispatch": "./src/cli.ts"
