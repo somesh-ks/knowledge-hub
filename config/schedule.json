@@ -4,7 +4,6 @@
   "hour": 7,
   "cadence_days": 2,
   "skip_topics": [
-    "business",
     "sports",
     "culture"
   ],
