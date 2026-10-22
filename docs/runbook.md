@@ -366,17 +366,11 @@ Off by default. With it on, a settings edit is saved to Neon Postgres and shows 
 
 ### 11.1 Switch on
 
-1. Make sure the workflows pass the store to the engine. `run.yml` (the Gate step's `env:`) and `podcast.yml` (the step that runs `dispatch -- podcast`) each need these two lines; until they have them, leave the store off, or the briefing is made from git while the pages show the store:
-
-   ```yaml
-   DATABASE_URL: ${{ secrets.DATABASE_URL }}
-   DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
-   ```
-
-2. Put the connection string in `.env` as `DATABASE_URL` (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string).
-3. Seed the database from an up-to-date `main`: `git pull`, then `npm run dispatch -- config seed --dry-run` (lists the files it would insert), then `npm run dispatch -- config seed`. It never replaces a row, so running it again is safe.
-4. GitHub secret: `npm run secrets:push -- --only github` sends `DATABASE_URL` (or GitHub → Settings → Secrets and variables → Actions → New repository secret).
-5. Refresh the rows, if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows, and seed never replaces a row. With `DISPATCH_CONFIG_STORE` still unset everywhere, `git pull`, then `npm run dispatch -- config seed --replace --dry-run` lists the rows that differ from the committed files, and `npm run dispatch -- config seed --replace` rewrites them. It refuses while the store is on here (the switch in `.env`, or a run's note in `.cache/`), since by then the app's edits live only in the database; `--force` overrides, so do not use it after switch-on.
+1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `DISPATCH_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
+2. GitHub secret `DATABASE_URL`: the Neon connection string (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string). Settings → Secrets and variables → Actions → New repository secret, or `npm run secrets:push -- --only github` from `.env`.
+3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run dispatch -- config seed --dry-run` and `npm run dispatch -- config seed`.
+4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `DISPATCH_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
+5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
 6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `DISPATCH_CONFIG_STORE` = `postgres`.
 7. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too (the Neon integration adds it).
 8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
