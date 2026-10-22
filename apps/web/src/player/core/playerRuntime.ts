@@ -7,6 +7,7 @@
  * exactly one set of listeners behind.
  */
 
+import { track } from "../../lib/analytics";
 import { narratedOrPage } from "../../narration/narrationRegistry";
 import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
@@ -21,6 +22,7 @@ function playerIsOpen(): boolean {
 
 import { readDigestData } from "./digestData";
 import { replayEarlyTap, takeEarlyAudio } from "./earlyTap";
+import { countListening } from "./listenEvents";
 import { attachMediaSession } from "./mediaSession";
 import { directionBetween, navigateTo } from "./navigation";
 import { shouldToggleOnPageSpace } from "./playerKeys";
@@ -220,6 +222,8 @@ export function startPlayerRuntime(): () => void {
     if (starting && status === "playing") announce(starting);
     starting = null;
   });
+  // Before the queue's listener, so an end is counted for the item that ended, not the next one.
+  const offListening = countListening(playerStore, track);
   const playQueue = getPlayQueue();
   // The Library's card menu adds to the queue with an event, so it needs none of the player's code.
   const onQueueAdd = (event: Event): void => {
@@ -340,6 +344,7 @@ export function startPlayerRuntime(): () => void {
     document.removeEventListener("astro:after-swap", onAfterSwap);
     document.removeEventListener("keydown", onSpace);
     document.removeEventListener(QUEUE_ADD_EVENT, onQueueAdd);
+    offListening();
     offQueueState();
     offQueueEnd();
     window.removeEventListener("online", onOnline);

@@ -5,6 +5,7 @@
  * its keys and its placement are the header More menu's (heroMenu.ts). Which rows are downloaded is
  * read from Cache Storage on load and after every change.
  */
+import { track } from "../lib/analytics";
 import { NotReadyError } from "../lib/downloads";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
@@ -63,6 +64,7 @@ async function toggleDownload(root: HTMLElement): Promise<void> {
         kind: episode ? "episode" : "briefing",
       });
       toast("Downloaded for offline listening", "success");
+      track("download", { kind: episode ? "episode" : "briefing" });
     }
   } catch (error) {
     // A turn without its file yet: a download never spends narration to make it.

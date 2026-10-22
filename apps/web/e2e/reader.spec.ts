@@ -175,8 +175,9 @@ test.describe("sharing", () => {
     const shared = await page.evaluate(
       () => (window as unknown as { __shared: ShareData[] }).__shared[0],
     );
-    // Today's page shares the dated address, so the link still opens this briefing next week.
-    expect(shared?.url).toMatch(/\/d\/2026-10-07$/);
+    // Today's page shares the dated address, so the link still opens this briefing next week, tagged
+    // so the visit it brings counts as a share's (D154).
+    expect(shared?.url).toMatch(/\/d\/2026-10-07\?ref=share$/);
     expect(shared?.title).toBe("Wednesday 7 October, Singularity");
     await expect(more).not.toHaveAttribute("data-copied", /.*/);
   });
@@ -203,7 +204,7 @@ test.describe("sharing", () => {
     await page.getByRole("menuitem", { name: "Share" }).click();
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __copied: string[] }).__copied))
-      .toEqual([expect.stringMatching(/\/d\/2026-10-05$/)]);
+      .toEqual([expect.stringMatching(/\/d\/2026-10-05\?ref=share$/)]);
   });
 
   // Only on-demand briefings and episodes can be deleted (#152): a Daily or Weekly has no Delete.

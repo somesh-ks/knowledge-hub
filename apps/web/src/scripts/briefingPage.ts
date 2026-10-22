@@ -4,6 +4,7 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
+import { shareLink } from "./shareLink";
 
 installHeroMenu();
 
@@ -193,22 +194,7 @@ function watchSections({ keepHeld = false } = {}): void {
 }
 
 async function share(button: HTMLElement): Promise<void> {
-  const url = new URL(button.dataset.share ?? "", location.href).href;
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: document.title, url });
-      return;
-    } catch (error) {
-      // The reader closed the share sheet: nothing more to do. Any other failure falls back to a copy.
-      if (error instanceof Error && error.name === "AbortError") return;
-    }
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-  } catch {
-    // The clipboard is not available here (an insecure origin, a denied permission).
-    return;
-  }
+  if ((await shareLink(document.title, button.dataset.share ?? "")) !== "copied") return;
   // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
   const host = button.closest("[data-share-host]");
   const status = host?.querySelector("[data-share-status]");

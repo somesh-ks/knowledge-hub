@@ -162,6 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
+| D154 | Simple Analytics and a Privacy page | active |
 
 ---
 
@@ -1652,3 +1653,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: one query (about 20 to 50 ms) per limited request when the counter is up; nothing changes until the owner reruns `dispatch config seed`. A workflow route's slot is taken only after its passphrase passes, so with the passphrase on (D41 has it off) wrong guesses are not capped per minute, as before this change; with it off anyone can fill the minute, as anyone can spend the GitHub-counted daily caps. The `source-preview` check can add up to 1 s before Jev's 3 s.
 - Rejected: Upstash or Vercel KV (a second store and key); a sliding log (a row per request).
 - Revisit if: the narration route needs a request cap (its spend is held by the daily digest cap and the monthly budget, both counted in Blob).
+
+## D154: cookieless visit counts with Simple Analytics, a few named events, and a Privacy page
+
+- Date: 2026-10-22
+- Decision: the site is for anyone with the link (the owner's call, 2026-10-22), so it counts visits with Simple Analytics, loaded by `lib/analytics.ts` on `news.someshks.work` alone and never for a browser that sends Do Not Track or Global Privacy Control. Nine events, each with a kind, topic or outcome and nothing about the reader: `share`, `listen_start`, `listen_half`, `listen_complete`, `story_open`, `vote`, `download`, `install`, `create_episode`. A shared link carries `?ref=share`. The page policy allows the script host and the queue host by name; no `'unsafe-inline'`, so no automated events and no `noscript` pixel. `/settings/privacy` says what is counted, kept and sent, from an inventory of the code. The loops and their numbers are in [specs/analytics.md](specs/analytics.md).
+- Why: the owner wants to see which loops (share, habit, taste, create) turn visitors into listeners and sharers. Simple Analytics counts in aggregate without cookies, storage or IP, so the site needs no consent banner and keeps its privacy. Sentry was considered and is an error monitor; the site's own `/api/report` covers errors.
+- Cost: about 7.5 KB of third-party script per session, outside the first-load budget (it loads async from another host); two hosts in the policy; counts are a floor (ad blockers) and unique visits run high (`no-referrer` makes a reload look new).
+- Rejected: the `noscript` pixel (mostly robots, by Simple Analytics' advice); automated events (need `'unsafe-inline'`); a per-device id for retention (identifies a reader; installs and `installed` page views stand in); PostHog or Sentry replay (record individuals).
+- Context: D153 (proposed the same day on another branch) counts events first-party in Neon instead and makes share links a public listen page. The two overlap on events; if D153 is approved, its events replace these and Simple Analytics keeps only visits and referrers, or goes.
+- Revisit if: retention per reader becomes the question (that needs accounts or an identifier, and a new privacy page), or ad blockers hide most visits (Simple Analytics' custom-domain proxy).

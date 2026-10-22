@@ -1,3 +1,4 @@
+import { track } from "../lib/analytics";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import type { Voice } from "../lib/voices";
 import { sheetGestures } from "./pullDismiss";
@@ -252,6 +253,15 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       }).catch(() => null);
       const body = (await res?.json().catch(() => null)) ?? {};
       if (res?.status === 401) return "wrong";
+      // Asked for, and what came of it: a cap that turns readers away (429) shows up here first.
+      track("create_episode", {
+        outcome:
+          res?.status === 202 && body.run_id
+            ? "started"
+            : res?.status === 429
+              ? "limited"
+              : "failed",
+      });
       dialog?.close();
       if (res?.status !== 202 || !body.run_id) {
         say(
