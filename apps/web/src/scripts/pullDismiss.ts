@@ -12,7 +12,7 @@
  */
 
 const HEAD = ".create-sheet-head, .sheet-head";
-const BODY = ".create-sheet-body, .menu-sheet-items, .sheet-panel";
+const BODY = ".create-sheet-body, .menu-sheet-items, .sheet-panel, .emoji-body";
 
 /** A pull this far down before the sheet follows, so a tap or a sideways swipe never moves it. */
 const SLOP_PX = 10;

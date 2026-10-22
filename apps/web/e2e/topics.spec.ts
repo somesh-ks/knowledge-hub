@@ -976,6 +976,33 @@ test.describe("editing a topic", () => {
     expect(ops(sent)).toHaveLength(1);
   });
 
+  // Every touch on the picker's grid started a pull, so scrolling back up it closed the sheet.
+  test("a phone's emoji grid scrolled down keeps the picker open when it is dragged back up the list", async ({
+    page,
+  }) => {
+    await setup(page);
+    await open(page, "/settings/topics/audio_interfaces");
+    await page.getByRole("button", { name: "Change emoji for Audio interfaces" }).click();
+    const picker = page.getByRole("dialog", { name: /emoji/i });
+    await expect(picker.locator(".emoji-cell").first()).toBeVisible();
+    const body = picker.locator(".emoji-body");
+    await body.evaluate((el) => {
+      el.scrollTop = 300;
+    });
+    const box = (await body.boundingBox()) as { x: number; y: number };
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: "touchStart" | "touchMove" | "touchEnd", y: number) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: type === "touchEnd" ? [] : [{ x: box.x + 40, y }],
+      });
+    await touch("touchStart", box.y + 20);
+    for (let step = 1; step <= 6; step++) await touch("touchMove", box.y + 20 + step * 40);
+    await touch("touchEnd", box.y + 260);
+    await expect(picker).toBeVisible();
+    expect(await picker.evaluate((el) => (el as HTMLElement).style.translate)).toBe("");
+  });
+
   test("a new topic sets its scope as it is added, in the same request", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page);
