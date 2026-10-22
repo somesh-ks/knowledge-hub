@@ -19,14 +19,12 @@ const GITHUB_SECRETS = [
   "BLOB_READ_WRITE_TOKEN",
   "VERCEL_TOKEN",
   "GEMINI_API_KEY",
+  "DATABASE_URL",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
 const GITHUB_VARIABLES = [
   "SPEECHIFY_VOICE_ID",
-  // The second host's voice: the site and the audio job must agree on it, or a pre-narrated turn is
-  // stored under a name the site never asks for, and paid for twice (D128).
-  "SPEECHIFY_VOICE_ID_B",
   "SPEECHIFY_MONTHLY_CHARS",
   "DISPATCH_GIT_NAME",
   "DISPATCH_GIT_EMAIL",
@@ -44,9 +42,6 @@ const VERCEL_ENV = [
   "GENERATE_PASSPHRASE_HASH",
   "SPEECHIFY_API_KEY",
   "SPEECHIFY_VOICE_ID",
-  // The second host's voice: the site and the audio job must agree on it, or a pre-narrated turn is
-  // stored under a name the site never asks for, and paid for twice (D128).
-  "SPEECHIFY_VOICE_ID_B",
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
   "ANTHROPIC_API_KEY",
@@ -54,6 +49,7 @@ const VERCEL_ENV = [
   // The topic emoji backup (Gemini Flash-Lite) runs on a site request.
   "GEMINI_API_KEY",
   "CRON_SECRET",
+  "DATABASE_URL",
 ];
 
 /** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */
