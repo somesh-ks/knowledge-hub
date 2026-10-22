@@ -356,14 +356,17 @@ function clearColumn(): void {
 function wireChart(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
   if (!plot) return;
-  plot.addEventListener("pointermove", (event) => {
+  // A pointer over a column shows it; a tap shows it too, since a touch may send no move first.
+  const point = (event: PointerEvent): void => {
     if (!drawn || drawn.data.report.total.usd === 0) return;
     const box = plot.getBoundingClientRect();
     const { band } = geometry(box.width, drawn.buckets.length);
     const index = Math.floor((event.clientX - box.left - PAD.left) / band);
     if (index < 0 || index >= drawn.buckets.length) return clearColumn();
     if (index !== active) focusColumn(index, false);
-  });
+  };
+  plot.addEventListener("pointermove", point);
+  plot.addEventListener("pointerdown", point);
   plot.addEventListener("pointerleave", clearColumn);
   plot.addEventListener("blur", clearColumn);
   plot.addEventListener("focus", () => {
