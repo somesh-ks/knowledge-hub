@@ -8,7 +8,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 
 | Fault | Detector | Self-healing |
 | --- | --- | --- |
-| A run failed, or the trigger missed one (D61) | `health`: `run_failed`, `run_overdue` | `health.yml` starts one scheduled run when the fault first appears |
+| A run failed, or the trigger missed one (D61) | `health`: `run_failed`, `run_overdue` | `health.yml` starts one scheduled run when the fault first appears; the `drill` input proves this path on a quiet day (a planted `run_overdue`, one dry run, the issue closed) |
 | Narration missing a day later | `audio_missing` | one `audio.yml` run (narrates every digest without audio) |
 | Narration file gone from Blob | `audio_unreachable` (HEAD of the newest file) | none: re-run `publish` |
 | A digest or state file that does not parse | `digest_invalid`, `state_invalid` | none: the guard should have refused it |
