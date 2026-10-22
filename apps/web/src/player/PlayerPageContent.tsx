@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { storyTurns } from "./core/storyTurns";
 import { usePlayerState } from "./hooks/usePlayer";
@@ -16,6 +16,7 @@ const LIST_VIEWS = [
   { value: "stories", label: "Stories" },
   { value: "upnext", label: "Up next" },
 ] as const;
+const UP_NEXT_ONLY = LIST_VIEWS.filter((tab) => tab.value === "upnext");
 
 /**
  * The player page's lazy half. Two groups, so a wide screen can set them side by side: the
@@ -33,16 +34,13 @@ export default function PlayerPageContent() {
   const id = digest?.id;
   // A choice belongs to the recording it was made on, so the next one opens on Stories.
   const [choice, setChoice] = useState<{ id: string | undefined; view: ListView } | null>(null);
-  const view = choice && choice.id === id ? choice.view : "stories";
   const offered = queued.length > 0 || Boolean(upNextId);
-  // When a recording ends the view turns to what is next: the queue starts by itself, and the
-  // previous briefing waits for a tap. The listener can turn back to Stories.
-  useEffect(() => {
-    if (status === "ended" && offered) setChoice({ id, view: "upnext" });
-  }, [status, offered, id]);
-  // Once it has ended only Up next shows, as YouTube Music's player does: no Stories tab to turn
-  // back to (D126). Playing it again brings the tabs back.
-  const endedOnUpNext = status === "ended" && offered;
+  // When a recording ends with something to offer, only Up next shows, as YouTube Music's player
+  // does (D126): the queue starts by itself, and the previous briefing waits for a tap. The tab line
+  // stays, holding one tab, so nothing below it moves and a focused Up next tab keeps its focus.
+  // Playing again brings Stories back, on the view the listener last chose.
+  const ended = status === "ended" && offered;
+  const view = ended ? "upnext" : choice && choice.id === id ? choice.view : "stories";
   return (
     <>
       <div className="player-controls">
@@ -53,34 +51,21 @@ export default function PlayerPageContent() {
         <PlayerNotice onRetry={() => getPlayerStore().retry()} />
       </div>
       <div className="player-list">
-        {endedOnUpNext ? (
-          <>
-            <h2 className="player-section-title" id={`${idBase}-upnext`}>
-              Up next
-            </h2>
-            <section className="player-panel" aria-labelledby={`${idBase}-upnext`}>
-              <UpNext />
-            </section>
-          </>
-        ) : (
-          <>
-            <PlayerTabs
-              label="Show"
-              idBase={idBase}
-              tabs={LIST_VIEWS}
-              value={view}
-              onChange={(next) => setChoice({ id, view: next })}
-            />
-            <div
-              className="player-panel"
-              role="tabpanel"
-              id={`${idBase}-panel-${view}`}
-              aria-labelledby={`${idBase}-tab-${view}`}
-            >
-              {view === "upnext" ? <UpNext /> : <StoryList turns={turns} />}
-            </div>
-          </>
-        )}
+        <PlayerTabs
+          label="Show"
+          idBase={idBase}
+          tabs={ended ? UP_NEXT_ONLY : LIST_VIEWS}
+          value={view}
+          onChange={(next) => setChoice({ id, view: next })}
+        />
+        <div
+          className="player-panel"
+          role="tabpanel"
+          id={`${idBase}-panel-${view}`}
+          aria-labelledby={`${idBase}-tab-${view}`}
+        >
+          {view === "upnext" ? <UpNext /> : <StoryList turns={turns} />}
+        </div>
       </div>
     </>
   );
