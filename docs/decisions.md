@@ -147,7 +147,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D133 | The second owner round: Up next is a player tab beside Stories (transcript only under the playing story; full-bleed tabs on a phone, the navigation control on a desktop); Settings in tonal card groups with About and a change log; one search field and one chip style everywhere, held by style rules; a flat navigation control; topic emoji from Jev; Other hidden; no Daily type; a Library bottom sheet on phones; plain outline icons | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
 | D135 | No batch API for the scheduled runs | active |
-| D136 | One model orchestrator: every model call goes through `config/models.json` (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite only; never Opus), each step with a fallback chain and the newest model of each family resolved per run; Nebius, temperature and the Settings model select are gone | active; replaces D46, D58, D113, D130 |
+| D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
 | D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
@@ -162,6 +162,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; off until set |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
+| D151 | CI fails on a high advisory; path-to-regexp overridden | active |
+| D152 | Full-screen phone sheets show Close | amends D144 |
+| D154 | Simple Analytics and a Privacy page | active |
 
 ---
 
@@ -1649,6 +1652,31 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-22
 - Decision: the per-minute caps of the open routes that spend (D41) are counted in one Neon table, `rate_limit_counters` (one row per bucket: the window number and its count; one atomic upsert per request; `engine/src/store/rateCounter.ts`, created by `dispatch config seed`). Buckets: `topic-emoji` (20 a minute; a request that would ask Jev or Gemini), `source-preview:jev` (20, checked before Jev's 3 s), `costs` (30), and a burst cap on the routes that start workflows, `generate` (8, deletes too), `podcast` (10, deletes too) and `config` (12), which answer 429 `cooldown` to the end of the minute past it; their handlers take the slot only after the origin, body and passphrase checks pass, so another site's requests cannot fill it. `server/rateLimit.ts` takes the instance's own slot first, so the shared count only tightens; with no `DATABASE_URL`, an error or no answer in 1 s the instance's slot stands alone and the counter is left alone for 30 s (5 s after a timeout). The counter needs only `DATABASE_URL`, not `DISPATCH_CONFIG_STORE`, so with a URL set the site loads the Neon driver for it (amends D149's "no module loads the driver").
 - Why: a cold start reset every per-instance cap; the Generate, Podcast and config caps count GitHub's run list, which lags a dispatch by seconds, so a burst could pass them together.
-- Cost: one query (about 20 to 50 ms) per limited request when the counter is up; nothing changes until the owner reruns `dispatch config seed`. A workflow route's slot is taken only after its passphrase passes, so with the passphrase on (D41 has it off) wrong guesses are not capped per minute, as before this change; with it off anyone can fill the minute, as anyone can spend the GitHub-counted daily caps. The `source-preview` check can add up to 1 s before Jev's 3 s.
+- Cost: one query (about 20 to 50 ms) per limited request when the counter is up; nothing changes until the owner reruns `dispatch config seed`. A workflow route's slot is taken only after its passphrase passes, so with the passphrase on (D41 has it off) wrong guesses are not capped per minute, as before this change; with it off anyone can fill the minute, as anyone can spend the GitHub-counted daily caps. The `source-preview` check can add up to 1 s before Jev's 3 s. Narration takes the same burst cap from 2026-10-22 (bucket `narrate`, `NARRATIONS_PER_MINUTE` in `pages/api/narrate.ts`), its slot taken the same way and before the store is opened, so a flood past it reads no Blob; but each segment request, about one per turn played, waits for the query (up to 1 s while Neon wakes, counted in the function's time), a listen keeps Neon awake, and with the passphrase off anyone who fills the minute makes the player fail the next turn, even one already narrated, until the minute ends (it shows a failed file with Try again: the player has no words for `cooldown`).
 - Rejected: Upstash or Vercel KV (a second store and key); a sliding log (a row per request).
-- Revisit if: the narration route needs a request cap (its spend is held by the daily digest cap and the monthly budget, both counted in Blob).
+- Revisit if: the narration route needs a request cap (its spend is held by the daily digest cap and the monthly budget, both counted in Blob). Met 2026-10-22: narration takes the burst cap (see Cost); revisit its size if a listener meets `cooldown`.
+
+## D151: CI fails on a high advisory in what ships; path-to-regexp is held at 6.3.0
+
+- Date: 2026-10-22
+- Decision: the CI audit step runs `npm audit --omit=dev --audit-level=high` (was `critical`). The one high advisory, GHSA-9wv6-86v2-598j in `path-to-regexp` 6.1.0 (an exact pin of `@vercel/routing-utils` under `@astrojs/vercel`), is answered by a root `overrides` entry that holds it at 6.3.0, the patched release of the same major.
+- Why: hardening.md recommended it; Dependabot cannot fix an exact pin, and the upstream fix was a major of the adapter.
+- Cost: routing-utils builds route regexes with 6.1.0 on purpose and compiles each with 6.3.0 only to log `[vc] PATH TO REGEXP PATH DIFF`; with both at 6.3.0 that warning can never fire, and a pattern with two parameters in one segment (`/:a-:b`) compiles differently. Today's output is identical (`.vercel/output/config.json` and every `.vc-config.json`, 39 routes) and the unoverridden build logged no diff. After a change to `vercel.json`'s sources or the adapter, diff `config.json` against `main`. A new high advisory with no fix in range turns every PR red until it is answered.
+- Revisit if: `@vercel/routing-utils` pins a patched `path-to-regexp` (drop the override), or a high advisory has no fix to take (decide then: an override, or accept it here by name).
+
+## D152: a full-screen phone sheet shows its Close
+
+- Date: 2026-10-22 (the owner, on the visual audit's item 8: full-screen sheets show the X on the right, as on desktop; partial bottom sheets keep none)
+- Decision: below 40rem a sheet that fills the screen (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows its Close at the end of its header row, as from 40rem. The partial sheets (the menu sheets, the emoji picker, the React drawers, the passphrase sheet) keep D144: no visible Close, a pull or a tap outside closes them. Pull to dismiss stays on every sheet. One selector in `create-sheet.css` under `SheetHeader.astro`.
+- Why: a full-screen sheet leaves no page showing to tap away to, so the only visible way out was a gesture with no affordance.
+- Amends: D144.
+
+## D154: cookieless visit counts with Simple Analytics, a few named events, and a Privacy page
+
+- Date: 2026-10-22
+- Decision: the site is for anyone with the link (the owner's call, 2026-10-22), so it counts visits with Simple Analytics, loaded by `lib/analytics.ts` on `news.someshks.work` alone and never for a browser that sends Do Not Track or Global Privacy Control. Nine events, each with a kind, topic or outcome and nothing about the reader: `share`, `listen_start`, `listen_half`, `listen_complete`, `story_open`, `vote`, `download`, `install`, `create_episode`. A shared link carries `?ref=share`. The page policy allows the script host and the queue host by name; no `'unsafe-inline'`, so no automated events and no `noscript` pixel. `/settings/privacy` says what is counted, kept and sent, from an inventory of the code. The loops and their numbers are in [specs/analytics.md](specs/analytics.md).
+- Why: the owner wants to see which loops (share, habit, taste, create) turn visitors into listeners and sharers. Simple Analytics counts in aggregate without cookies, storage or IP, so the site needs no consent banner and keeps its privacy. Sentry was considered and is an error monitor; the site's own `/api/report` covers errors.
+- Cost: about 7.5 KB of third-party script per session, outside the first-load budget (it loads async from another host); two hosts in the policy; counts are a floor (ad blockers) and unique visits run high (`no-referrer` makes a reload look new).
+- Rejected: the `noscript` pixel (mostly robots, by Simple Analytics' advice); automated events (need `'unsafe-inline'`); a per-device id for retention (identifies a reader; installs and `installed` page views stand in); PostHog or Sentry replay (record individuals).
+- Context: D153 (proposed the same day on another branch) counts events first-party in Neon instead and makes share links a public listen page. The two overlap on events; if D153 is approved, its events replace these and Simple Analytics keeps only visits and referrers, or goes.
+- Revisit if: retention per reader becomes the question (that needs accounts or an identifier, and a new privacy page), or ad blockers hide most visits (Simple Analytics' custom-domain proxy).

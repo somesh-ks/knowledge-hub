@@ -8,7 +8,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 
 | Fault | Detector | Self-healing |
 | --- | --- | --- |
-| A run failed, or the trigger missed one (D61) | `health`: `run_failed` (a scheduled or weekly job that failed anywhere before Commit records `failed` in run.yml's Record failure step, `run --record-failed`, through the write guard), `run_overdue` | `health.yml` starts one scheduled run when the fault first appears; the `drill` input proves this path on a quiet day (a planted `run_overdue`, one dry run, the issue closed) |
+| A run failed, or the trigger missed one (D61) | `health`: `run_failed` (a scheduled or weekly job that failed anywhere before Commit records `failed` in run.yml's Record failure step, `run --record-failed`, through the write guard), `run_overdue` | `health.yml` starts one scheduled run when the fault first appears; the `drill` input proves this path whatever real fault is open (`run_overdue` planted on a copy of the report without the real findings, an issue of its own labelled `health-drill`, one dry run, that issue closed; the `health` issue is never read or touched), refused while a run.yml run is under way or when run.yml's own gate says a briefing or the weekly pass is due today (so a real `run_failed` or `run_overdue` holds it back: its dry run would pay for models) |
 | Narration missing a day later | `audio_missing` | one `audio.yml` run (narrates every digest without audio) |
 | Narration file gone from Blob | `audio_unreachable` (HEAD of the newest file) | none: re-run `publish` |
 | A digest or state file that does not parse | `digest_invalid`, `state_invalid` | none: the guard should have refused it |
@@ -21,7 +21,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | A stop waiting on a device for weeks | `splitStaleBlocks` | dropped after 7 days with a toast |
 | A deploy that never reaches an open or installed app (2026-10-21, D145) | `site_update` (`/sw.js` cacheable, `/build.json` missing); the `serviceWorker.spec.ts` deploy journey | page loads go to the network first (sw.js v13); a page behind the site offers a newer build in a toast with Reload, on load and on return, at most once a minute (D146); without the Popover API the next navigation picks it up |
 | A stub story (a summary of a few words) | warning `story_short` (under a third of the writer's minimum) | none: rewrite or regenerate |
-| A critical advisory in what ships | CI `check` job: `npm audit --omit=dev --audit-level=critical` | Dependabot PRs |
+| A high or critical advisory in what ships | CI `check` job: `npm audit --omit=dev --audit-level=high` | Dependabot PRs |
 | Client errors and CSP violations on a phone | `/api/report` logs `[client-fault]` lines (path only, 30 a minute per instance) | none: read the Vercel log |
 | A run that died before it recorded an outcome (timeout, an on-demand run, a Record failure step that could not run) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a `cancelled` one is the warning `run_cancelled` (GitHub reports a job killed at its timeout and the owner's cancel alike); a briefing run under way stands either down only when it is newer | none: an alert only (D146); a missed briefing heals as `run_overdue` |
 | A broken episode | `episode_broken`: every Podcasts/ file parses and the shared reader narrates every turn; online, the newest settled episode's first segment has readable word marks once its audio is stored (`episode_unnarrated` warns when it is not stored) | none |
@@ -74,15 +74,21 @@ Recommend: record the sized target in the digest and compare (medium).
 - Open passphrase (D41): anyone with the URL can start runs inside the caps. Generate, Podcast,
   delete and config count GitHub's run list (or the store), narration the Blob usage document.
   The per-minute caps (topic-emoji's model asks, source-preview's Jev, costs, and a burst cap
-  on Generate, Podcast and config) are counted in Neon across instances (D150), with the
-  instance's own count as the floor when `DATABASE_URL` is unset or the counter errors or is slow.
-  Gap: the table exists only after `dispatch config seed`; narration has no request cap.
+  on Generate, Podcast, config and narration) are counted in Neon across instances (D150), with
+  the instance's own count as the floor when `DATABASE_URL` is unset or the counter errors or is
+  slow. Gap: the table exists only after `dispatch config seed`; with the passphrase off anyone can
+  fill a burst cap's minute, which for narration fails the owner's next turn until it ends.
 - SSRF: `source-preview` and `site-icon` check every resolved address and redirect hop. Known gap
   (documented there): DNS rebinding between check and connect.
 - Secrets: gitleaks in CI; the logger redacts key values; `/api/report` keeps paths only.
 - Dependencies: `npm audit` high for `vite` 8.3.2 (dev server; now 8.3.3 in the lockfile) and
-  `path-to-regexp` under `@astrojs/vercel` (build-time routing; the fix is a major, not taken).
-  Dependabot PRs auto-merge. Recommend: `npm audit --omit=dev --audit-level=high` in CI (small).
+  `path-to-regexp` under `@astrojs/vercel` (build-time routing). The root `overrides` holds
+  `@vercel/routing-utils`' `path-to-regexp` at 6.3.0 (patched, same major) over its exact pin
+  of 6.1.0 (D151). The emitted routes (`.vercel/output/config.json`) and function configs were
+  identical before and after, but the library's own diff warning between the two versions is now
+  silent: diff `config.json` after a change to `vercel.json`'s sources. CI fails on a high
+  advisory (`--audit-level=high`). Drop the override once routing-utils pins a patched version.
+  Dependabot PRs auto-merge.
 
 **Cost.** Before: the ledger and `dispatch costs`, the Speechify 90% stop, Firecrawl's ceiling.
 Added: a daily ceiling fault. Gap: Vercel-side Speechify spend has its own counter (Known risks).
@@ -115,7 +121,7 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 | Stale client | `site_update`; build compare on load and on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, a Reload offer per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
 | Performance | `checkBundle` (D141, 130 KB); the weekly lab probe (Mondays, D148), `perf_budget` and `perf_unmeasured` (D147) | CI build; `health.yml` | none: alert only | lab, not field: one throttled Chromium on a shared runner; real-user Web Vitals deferred (D147) |
 | Quality | `digest_thin`, `digest_unverified`, `model_fallback`, `source_failing`, `story_short`, `episode_broken`, `episode_unnarrated` | `health.yml` | none: a thin or stub briefing is the owner's to regenerate | a briefing short of its length; a briefing's own word marks; only the newest episode's first segment is fetched |
-| Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; the shared counter needs `dispatch config seed` |
+| Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | the path-to-regexp override must follow upstream; CSP violations are log lines with no count; the shared counter needs `dispatch config seed` |
 | Cost | `cost_over_ceiling`, `speech_budget`, the per-call caps | `health.yml`; every call | the caps stop the next call | Vercel-side Speechify spend has its own counter |
 | Data integrity | `digest_invalid`, `state_invalid`, `config_invalid`, the write guard | `health.yml`; every commit | none: the guard should refuse it | `config/alexandria.json`, `writer.json` and `profiles/` have no core schema to check |
 | Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life; the first Download asks for persistent storage | quota eviction of downloads is not detected where the browser refuses persistence |
