@@ -367,7 +367,14 @@ function wireChart(): void {
   };
   plot.addEventListener("pointermove", point);
   plot.addEventListener("pointerdown", point);
-  plot.addEventListener("pointerleave", clearColumn);
+  // A lifted finger leaves at once; a tapped column stays shown until a tap elsewhere on the page.
+  // Safari does not blur the plot on a tap outside it, so the page listens for that tap itself.
+  plot.addEventListener("pointerleave", (event) => {
+    if (event.pointerType !== "touch") clearColumn();
+  });
+  pick<HTMLElement>("[data-costs]")?.addEventListener("pointerdown", (event) => {
+    if (!plot.contains(event.target as Node)) clearColumn();
+  });
   plot.addEventListener("blur", clearColumn);
   plot.addEventListener("focus", () => {
     if (drawn && active < 0) focusColumn(drawn.buckets.length - 1, true);
