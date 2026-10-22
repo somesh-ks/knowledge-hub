@@ -213,4 +213,26 @@ test.describe("playback on a briefing", () => {
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(notice).toHaveCount(0);
   });
+
+  test("a held volume knob grows alone: the track and the bar keep their boxes @wide", async ({
+    player,
+    page,
+  }) => {
+    await player.open();
+    await player.play();
+    await player.dockSettled();
+    const slider = player.dock.getByRole("slider", { name: "Volume" });
+    await slider.hover();
+    const bar = player.dock;
+    const before = { track: await slider.boundingBox(), bar: await bar.boundingBox() };
+    const box = before.track;
+    if (!box) throw new Error("the volume slider has no box");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2);
+    // Held through the drag the knob grows by transform alone, so nothing around it moves.
+    expect(await slider.boundingBox()).toEqual(before.track);
+    expect(await bar.boundingBox()).toEqual(before.bar);
+    await page.mouse.up();
+  });
 });

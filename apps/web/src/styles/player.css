@@ -876,6 +876,7 @@
 .dock-seek {
   /* The thumb's own size, 12px: a dimension of the control, not a space between things. */
   --range-thumb: 0.75rem;
+  --range-thumb-active-scale: 1.25;
   position: absolute;
   /* Drawn along the bar's top edge and first in the markup: the first Tab stop, ahead of the rows
      that the bar's reading flow orders. */
@@ -915,7 +916,9 @@
   background: var(--color-accent);
   appearance: none;
   opacity: 0;
-  transition: opacity var(--duration-hover) var(--ease-hover);
+  transition:
+    opacity var(--duration-hover) var(--ease-hover),
+    scale var(--duration-hover) var(--ease-out);
 }
 
 .dock-seek::-moz-range-thumb {
@@ -927,7 +930,9 @@
   /* Firefox centres the thumb in the strip; it moves up onto the line like the one above. */
   transform: translateY(calc(var(--mini-player-progress-height) - var(--space-2)));
   opacity: 0;
-  transition: opacity var(--duration-hover) var(--ease-hover);
+  transition:
+    opacity var(--duration-hover) var(--ease-hover),
+    scale var(--duration-hover) var(--ease-out);
 }
 
 .dock-seek:is(:focus-visible, :active)::-webkit-slider-thumb {
@@ -1000,6 +1005,7 @@
 
 .dock-volume-level {
   --range-thumb: 0.75rem;
+  --range-thumb-active-scale: 1.25;
   width: 6rem;
   height: var(--size-touch);
   margin: 0;
@@ -1040,6 +1046,7 @@
   border-radius: var(--radius-round);
   background: var(--color-accent);
   appearance: none;
+  transition: scale var(--duration-hover) var(--ease-out);
 }
 
 .dock-volume-level::-moz-range-thumb {
@@ -1048,6 +1055,33 @@
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
+  transition: scale var(--duration-hover) var(--ease-out);
+}
+
+/* A knob taken hold of grows a little (2026-10-22), for the whole press and drag: the volume's and
+   the bar scrubber's. Only the thumb's own scale changes, never its size or margin, so the track,
+   the clock and the bar keep their boxes. :active stays set through a drag, not for the keyboard,
+   whose ring is :focus-visible. Reduced motion still grows it, without the transition. */
+.dock-seek:active::-webkit-slider-thumb,
+.dock-volume-level:active::-webkit-slider-thumb {
+  scale: var(--range-thumb-active-scale);
+}
+
+.dock-seek:active::-moz-range-thumb,
+.dock-volume-level:active::-moz-range-thumb {
+  scale: var(--range-thumb-active-scale);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-seek::-webkit-slider-thumb,
+  .dock-seek::-moz-range-thumb {
+    transition: opacity var(--duration-hover) var(--ease-hover);
+  }
+
+  .dock-volume-level::-webkit-slider-thumb,
+  .dock-volume-level::-moz-range-thumb {
+    transition: none;
+  }
 }
 
 .dock-btn {
