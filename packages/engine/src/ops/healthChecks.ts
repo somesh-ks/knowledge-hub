@@ -523,10 +523,12 @@ const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``
 
 /**
  * `client_faults` (D158), warnings only: the endpoint is open (D41), so anyone can forge a report,
- * and extensions inject scripts the CSP blocks. Judged over the last 24 hours across builds (content
- * commits redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,
- * or CLIENT_ERRORS_PER_DAY errors on one route (the opaque "Script error." aside), naming the route
- * and its commonest message. No table yet is nothing measured: no finding and no pass line.
+ * extensions inject scripts the CSP blocks, and a deploy or an upstream blip (Speechify, Anthropic)
+ * raises a burst of server errors. Judged over the last 24 hours across builds (content commits
+ * redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,
+ * CLIENT_ERRORS_PER_DAY page errors on one route (the opaque "Script error." aside), or
+ * SERVER_FAULTS_PER_DAY server faults (a 5xx a site function answered) on one route, naming the
+ * route and its commonest message or step. No table yet is nothing measured: no finding, no pass.
  */
 export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, sink: Sink): void {
   if (groups === null) return;
@@ -545,42 +547,38 @@ export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, si
       `${blocked} blocked scripts in 24 hours, most on ${code(top?.page ?? "")} from ${code(top?.blocked ?? "")} (builds ${builds(blocks)}): a feature broken, or something injecting.`,
     );
   }
-  const errors = new Map<string, ClientFaultGroup[]>();
-  const server = new Map<string, ClientFaultGroup[]>();
-  for (const group of day) {
-    if (group.kind === "csp" || group.message === OPAQUE_SCRIPT_ERROR) continue;
-    if (group.kind === "server") {
-      server.set(group.page, [...(server.get(group.page) ?? []), group]);
-      continue;
+  /** Warns for each route whose faults in `list` reach `least` in 24 hours; whether any did. */
+  const perRoute = (list: readonly ClientFaultGroup[], least: number, what: string): boolean => {
+    const routes = new Map<string, ClientFaultGroup[]>();
+    for (const group of list) routes.set(group.page, [...(routes.get(group.page) ?? []), group]);
+    let any = false;
+    for (const [route, alike] of routes) {
+      const count = alike.reduce((sum, group) => sum + group.day, 0);
+      if (count < least) continue;
+      any = true;
+      const top = [...alike].sort((a, b) => b.day - a.day)[0];
+      sink.warn(
+        "client_faults",
+        "reliability",
+        `${code(route)}: ${count} ${what} in 24 hours (builds ${builds(alike)}), most often ${code(top?.message ?? "")}.`,
+      );
     }
-    errors.set(group.page, [...(errors.get(group.page) ?? []), group]);
+    return any;
+  };
+  const pageErrors = day.filter(
+    (group) =>
+      (group.kind === "error" || group.kind === "rejection") &&
+      group.message !== OPAQUE_SCRIPT_ERROR,
+  );
+  const clientWarned = perRoute(pageErrors, CLIENT_ERRORS_PER_DAY, "client errors");
+  const serverWarned = perRoute(
+    day.filter((group) => group.kind === "server"),
+    SERVER_FAULTS_PER_DAY,
+    "server errors",
+  );
+  if (blocked < SCRIPT_BLOCKS_PER_DAY && !clientWarned && !serverWarned) {
+    sink.passed.push("no run of blocked scripts, client or server errors in 24 hours");
   }
-  let warned = blocked >= SCRIPT_BLOCKS_PER_DAY;
-  for (const [page, list] of errors) {
-    const count = list.reduce((sum, group) => sum + group.day, 0);
-    if (count < CLIENT_ERRORS_PER_DAY) continue;
-    warned = true;
-    const top = [...list].sort((a, b) => b.day - a.day)[0];
-    sink.warn(
-      "client_faults",
-      "reliability",
-      `${code(page)}: ${count} client errors in 24 hours (builds ${builds(list)}), most often ${code(top?.message ?? "")}.`,
-    );
-  }
-  // A 5xx a function answered (D158): a warning, since a deploy or an upstream blip (Speechify,
-  // Anthropic) can raise a burst.
-  for (const [route, list] of server) {
-    const count = list.reduce((sum, group) => sum + group.day, 0);
-    if (count < SERVER_FAULTS_PER_DAY) continue;
-    warned = true;
-    const top = [...list].sort((a, b) => b.day - a.day)[0];
-    sink.warn(
-      "client_faults",
-      "reliability",
-      `${code(route)}: ${count} server errors in 24 hours (builds ${builds(list)}), most often ${code(top?.message ?? "")}.`,
-    );
-  }
-  if (!warned) sink.passed.push("no run of blocked scripts, client or server errors in 24 hours");
 }
 
 /**

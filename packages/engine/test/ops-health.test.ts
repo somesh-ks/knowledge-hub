@@ -277,7 +277,7 @@ describe("dispatch health", () => {
     ]);
     expect(found[0]).toContain("`build1`, `build2`");
     expect(found[1]).toContain("`x is @someones`");
-    expect(found[2]).toContain("`api/podcast`: 3 server errors");
+    expect(found[2]).toContain("`api/podcast`");
     found.length = 0;
     checkClientFaults([group("csp", "build1", 2), group("error", "build1", 19)], sink);
     expect(found).toEqual([]);

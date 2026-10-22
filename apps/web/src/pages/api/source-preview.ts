@@ -40,7 +40,8 @@ const get: APIRoute = async ({ url, request }) =>
     ),
   );
 
-export const GET = recordingFaults("api/source-preview", get);
+// The caller picks the host this fetches, so its 502 and 504 are that host's, not the site's.
+export const GET = recordingFaults("api/source-preview", get, { ours: (status) => status === 500 });
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "GET" } });

@@ -35,7 +35,10 @@ export const FAULTS_SCHEMA_SQL = [
   "create index if not exists client_faults_at on client_faults (at)",
 ] as const;
 
-/** `server`: a 5xx a site function answered (http.ts answerWithRef), its page the route label. */
+/**
+ * `server`: a 5xx a site function answered (http.ts: answerWithRef or recordingFaults), its page
+ * the route label, its message the step code or a redacted throw's start; never sent by a page.
+ */
 export type ClientFaultKind = "error" | "rejection" | "csp" | "server";
 
 /** One fault as the server checked it (apps/web/src/server/faults.ts). */
