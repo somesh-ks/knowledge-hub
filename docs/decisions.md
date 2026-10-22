@@ -168,6 +168,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D155 | Software Engineering topic | active; amends D69 |
 | D156 | Field Vitals in Neon | amends D147 |
 | D157 | Health: store, drift, warnings | amends D146 |
+| D158 | Client faults | amends D157 |
 
 ---
 
@@ -1713,3 +1714,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: a late-briefing warning (built and removed: Vercel Cron starts the on-time run as a `workflow_dispatch`, D61, and run.yml makes skipped hourly `schedule` runs, so nothing tells late from on time or from a regenerate; it needs the trigger in the run record); site narration in the 24-hour ceiling (its records are per day); `store_degraded` and `site_behind` as faults (a waking Neon and Dependabot merges Hobby never deploys would open the issue); changing `ignoreCommand` to diff from `VERCEL_GIT_PREVIOUS_SHA` (unverified variable; a wrong fallback would skip every deploy).
 - Amends: D146 (warnings now reach the owner, weekly).
 - Revisit if: the `health-warnings` issue stays open for a month with the same codes (tune or drop them), or a run record gains its trigger and copy time (then `run_late` and a drift fault come back).
+
+## D158: client faults kept a week in Neon, judged as warnings
+
+- Date: 2026-10-22 (the Opus audit's second gap: a page error or a CSP violation on a phone reached only a log line, and Vercel Hobby keeps runtime logs for one hour)
+- Decision: `/api/report` keeps each client fault in Neon (`client_faults`, created on first write, 7 days, 120 rows an hour at most, never failing the beacon): the kind, the route template (never an address), the message's start only (cut before any quote, newline, digit, `@`, `/` or `www`, at most 60 characters, control characters removed), the CSP directive, the blocked and source origins or schemes, and the build the page loaded with (read once when `app.ts` starts). A report raised by a browser extension is dropped. `dispatch health` reads the last 24 hours across builds and only warns: 3 or more blocked scripts, or 20 or more errors on one route (an opaque cross-origin "Script error." does not count); route, message and build reach GitHub as inline code. A failed read is a warning; a missing table is no finding.
+- Why: a script the CSP blocks after a deploy, or a page that throws on phones, was invisible after an hour. Warnings, not faults: the endpoint is open (D41), so anyone can forge a report, and extensions trip the CSP on their own.
+- Privacy: no IP, user agent or identifier; fault reports are sent without D154's DNT and GPC opt-out, as before, and the Privacy page says so.
+- Rejected: storing the full message with quoted text removed by pairing quotes (review showed a reader's text survived: an email inside a JSON parse error, apostrophes, « » quotes); judging only the current build (content commits redeploy several times a day and wiped the history); a fault on one blocked script.
+- Revisit if: a warning turns out to be forged or extension noise (raise the threshold or add a per-page token), or the owner wants faults counted per reader.

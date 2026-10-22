@@ -1,6 +1,6 @@
 # Hardening round 4, and landing the finished branches
 
-2026-10-22. D155 (amended in review), D157; the map is [engineering/hardening.md](../engineering/hardening.md).
+2026-10-22. D155 (amended in review), D157, D158; the map is [engineering/hardening.md](../engineering/hardening.md).
 
 ## Asked
 
@@ -13,6 +13,7 @@ The standing goal: harden the app in every aspect, with systems that spot faults
 - #216's review put back the 6% cap on judged tool launches, which #209 had lifted as a "judgment call" against the owner's asks of 2026-10-15 and 2026-10-18. It also let engineering sources through the prefilter, kept the 2026-10-18 weekly valid, and let an old preferences row parse.
 - CI: the `browser` job gets 45 minutes (#216 needed 33.7; #213 was cut off at 30 with every test passing). The eval's rewrite skips a story the model left empty.
 - D157 (a dedicated Opus audit, then an Opus worker over three review rounds): Neon and stored-config faults and warnings, a deploy-behind warning, the site's narration in the month budget, one weekly `health-warnings` issue, and one newest-first order for site, status and health.
+- D158: client errors and CSP violations kept a week in Neon (the message's start only), judged as warnings over 24 hours; its first version leaked quoted text and faulted on one extension's blocked script, which review caught.
 
 ## What review caught
 

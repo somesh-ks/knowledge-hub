@@ -21,14 +21,14 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses until then); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: captions and Gemini worked on live videos (2026-10-19); no full run used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
-- D145 to D147, D156, D157 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
+- D145 to D147, D156 to D158 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` since #183, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - `?view=preferences` (D129) may flash Sources on load. closed when: a reload on a phone shows no Sources frame first.
 - Topic emoji from Jev (D133) never asked live. closed when: a topic added on news.someshks.work shows an emoji Jev chose.
 - D125: pull to close, sticky tabs, keyboard fit. closed when: each works on phone.
-- Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
+- Live runs of the 2026-10-18 changes (chapters seen): release news last, the sized weekly. closed when: a daily files Launches last; a Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120): a live run with spares and a one-outlet Science story. closed when: a committed digest has a Science story from one outlet and airs within 10% of its length.
 - Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
 - PWA (D123) on a device: Android bars after a reinstall, splash to launch-screen hand-off. closed when: both match the theme after an Android reinstall.
