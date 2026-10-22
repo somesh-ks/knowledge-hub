@@ -90,6 +90,10 @@ jobs:
           # Empty on a day without the probe, which health reads as nothing to judge.
           PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |
+          # GitHub runs bash with -e: health exits 1 on a fault, which ended the step before the
+          # report was read, so Report and heal was skipped on every real fault (the 2026-10-22
+          # drill found it). The exit code is printed and the report decides.
+          set +e
           set -uo pipefail
           runs="$RUNNER_TEMP/runs.json"
           # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
