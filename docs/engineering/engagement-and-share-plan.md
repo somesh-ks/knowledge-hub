@@ -1,6 +1,6 @@
 # User engagement and sharing: the plan
 
-Approved by the owner as written on 2026-10-22 ([D153](../decisions.md)); built one stage per PR, stage 0 first.
+Approved by the owner on 2026-10-22 ([D153](../decisions.md)), with the passphrase skipped (D157); built one stage per PR, link previews first.
 
 While this was scoped, D154 merged: Simple Analytics now counts visits, referrers and nine named events, with a Privacy page. Stage 2 moves those events into the first-party table below; whether Simple Analytics stays for visits and referrers, which this plan cannot see, is the owner's call there, and the Privacy page changes with it. Vendor facts were read from each vendor's page on 2026-10-22 (sources at the end); anything not confirmed there is marked unverified.
 
@@ -9,8 +9,8 @@ While this was scoped, D154 merged: Simple Analytics now counts visits, referrer
 - **Tool:** no vendor. Events go first-party into the Neon database the site already uses (D149, D150), through one beacon route, and the User engagement page reads them with SQL. Every vendor that could fill a Settings page puts its read API behind a paid plan, and a shared link's attribution comes from its token, not from referrers.
 - **Events:** `play`, `finish`, `download` in the app; `share_created`, `share_open`, `share_play`, `share_finish`, `share_cta` around a shared link. No cookie, no identifier, no IP stored.
 - **Share:** the owner makes one link per item; it opens a public listen page (`/s/<token>`) with the cover, Play, the stories with their sources, the transcript and one call to action. It plays stored audio only, so a stranger can never start narration.
-- **First:** lock the actions (stage 0). Today Share copies the app's own address, and with the passphrase off (D41) whoever opens it can narrate, generate, regenerate, delete and edit config, inside the caps.
-- **Order:** 0 lock actions, 1 engagement page from what exists, 2 first-party events, 3 share links and the listen page, 4 the call to action, 5 only on evidence.
+- **First:** link previews (stage 0). Share can only send a page's address today, so the card a chat app shows for it is the first thing a recipient sees. There is no passphrase (D157); the owner will gate actions with OAuth later and hide them from logged-out users.
+- **Order:** 0 link previews, 1 engagement page from what exists, 2 first-party events, 3 share links and the listen page, 4 the call to action, 5 only on evidence.
 
 ## 2. The analytics tool
 
@@ -72,7 +72,7 @@ Every row also carries `at`, `surface` (app or share), a `session` id made per p
 
 ## 5. Share an episode with anyone
 
-**Who makes a link.** The owner, from an unlocked device (stage 0). One active link per item, reused if it exists; it expires after 30 days (Blob drops audio after 120) and can be revoked from the engagement page. Only an item whose every segment is stored can be shared: `POST /api/share` checks each with a head and otherwise answers "Play it once to finish its audio, then share."
+**Who makes a link.** Anyone today, since nothing signs in (D157); the owner alone once OAuth lands. One active link per item, reused if it exists; it expires after 30 days (Blob drops audio after 120) and can be revoked from the engagement page. Only an item whose every segment is stored can be shared: `POST /api/share` checks each with a head and otherwise answers "Play it once to finish its audio, then share."
 
 **What it opens.** `/s/<token>`, rendered on the server and cached at the CDN for five minutes, so a revoke takes effect within that. The token is a random link id plus an HMAC of it under a new `SHARE_SECRET`, so a made-up token is refused before any database call.
 
@@ -97,9 +97,9 @@ Play asks `POST /api/share/play`, which checks the link, its play cap and the mo
 | Risk | How it happens | Answer |
 | :--- | :--- | :--- |
 | Blob transfer | Hobby includes 10 GB a month; past it Blob is locked for 30 days, which stops the owner's own playback. A 15 minute episode at 128 kbps is about 14 MB, so about 700 full plays | Shared plays stop at 4 GB a month (play starts times item size, counted in Neon) and 100 plays a link; the page says the limit is reached. Stage 5 adds a 64 kbps rendition, half the bytes |
-| Narration spend | A stranger's Play narrating missing segments | Never: stored audio only, links only for fully stored items, actions locked in stage 0 |
+| Narration spend | A stranger's Play narrating missing segments | Never from the listen page: stored audio only, links only for fully stored items. The app itself narrates for anyone, inside the daily cap and the monthly budget, until OAuth (D157) |
 | Functions and Neon | Scanners, bursts | HMAC before the database, CDN cache, D150 buckets on every new route |
-| The app behind the domain | The page names news.someshks.work | Stage 0 locks actions; reading stays open by URL as today; a page gate is stage 5 |
+| The app behind the domain | The page names news.someshks.work | Open to anyone until OAuth (D157): the owner will hide actions from logged-out users. The listen page links nowhere into the app meanwhile |
 | Listeners' privacy | Per-person tracking | One link per item, no per-recipient links, no identifier, the notice above |
 | Copyright | Episodes are narrated summaries of others' reporting; a public link publishes them past D9's "one reader" | Every story credited and linked, no article text, unlisted, expiring links. The owner accepts this or keeps sharing to friends. Not legal advice |
 | Reaction abuse | Spam notes | Caps per link and per minute, plain text, owner-only |
@@ -108,7 +108,7 @@ Play asks `POST /api/share/play`, which checks the link, its play cap and the mo
 
 One PR per stage, labelled `review` (D143); site PRs run both browser suites first.
 
-**Stage 0, lock the actions.** `PASSPHRASE_REQUIRED` true (D41's kept code); each device is asked once and remembers it (`dispatch:narrate-passphrase`). D150 notes that with the passphrase on, wrong guesses are not capped, so add a `passphrase-fail` bucket. Tests: un-skip the kept passphrase tests; one e2e: a fresh browser that presses Play on an unnarrated briefing is asked and nothing is narrated. Done when: an unlocked phone acts without a prompt and a fresh browser cannot spend.
+**Stage 0, link previews on today's pages.** Every briefing and episode page gets the card section 5 describes (title, summary, the 1024 px PNG cover, site name). `robots.txt` lets previewers fetch pages and covers while `noindex` keeps them out of search. Tests: one build test that every page in the build carries a card naming its own title and an existing cover file. Done when: a link pasted into WhatsApp, iMessage and Slack shows its card (which previewers honour `robots.txt` is unverified, so check each). The earlier stage 0, the passphrase, was dropped (D157).
 
 **Stage 1, the engagement page from what exists.** `/analytics/engagement`; a pure reducer from the device keys to counts; build-time counts of made items and profile totals. Tests: the reducer, named for the bug "a partly heard item counted as finished"; one e2e journey: play to the end, open the page, it reads one finished. Done when: the page shows this device's real numbers.
 
@@ -123,7 +123,7 @@ One PR per stage, labelled `review` (D143); site PRs run both browser suites fir
 ## 7. Decisions for the owner
 
 1. First-party events in Neon, no vendor (or add Vercel Web Analytics on Hobby for pageviews).
-2. The passphrase back on for actions, asked once per device (reverses D41).
+2. No passphrase (D157): actions stay open until OAuth, which will hide them from logged-out users.
 3. Vote and open totals on the engagement page (amends D108).
 4. What can be shared (episodes only, or briefings too), the 30-day expiry and the 4 GB monthly budget.
 5. Send it on and a reaction now; the waitlist later.
