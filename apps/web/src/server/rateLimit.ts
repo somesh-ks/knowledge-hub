@@ -111,14 +111,23 @@ export const sharedLimit: SharedLimiter = createSharedLimiter({
  * counter's minute. The handlers take it only after the origin, the body and the passphrase have
  * passed, so a request from another site cannot use up the owner's minute.
  */
+/** The 429 a workflow route answers while its burst cap is full. */
+export const cooldownRefusal = (wait: number) => ({
+  status: 429 as const,
+  headers: { "Retry-After": String(wait) },
+  body: { status: 429 as const, error: "cooldown" as const, retry_after_s: wait },
+});
+
 export function burstCap(
   bucket: string,
   perMinute: number,
   limit: SharedLimiter = sharedLimit,
   now: () => number = Date.now,
 ): () => Promise<number> {
-  return async () =>
-    (await limit(bucket, perMinute))
+  return async () => {
+    const at = now();
+    return (await limit(bucket, perMinute))
       ? 0
-      : Math.max(1, Math.ceil((60_000 - (now() % 60_000)) / 1000));
+      : Math.max(1, Math.ceil((60_000 - (at % 60_000)) / 1000));
+  };
 }

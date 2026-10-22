@@ -1,11 +1,17 @@
 import { PGlite } from "@electric-sql/pglite";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import type { SqlClient } from "./configPaths.js";
 import { RATE_LIMIT_SCHEMA_SQL, takeSharedSlot } from "./rateCounter.js";
+
+const open: PGlite[] = [];
+afterAll(async () => {
+  await Promise.all(open.map((db) => db.close()));
+});
 
 /** The counter's own SQL, run in an in-process Postgres (no network), so its window logic is tested. */
 async function counter(): Promise<SqlClient> {
   const db = new PGlite();
+  open.push(db);
   await db.query(RATE_LIMIT_SCHEMA_SQL);
   return {
     query: async (text, params) =>

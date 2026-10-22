@@ -113,12 +113,14 @@ describe("handleGenerate", () => {
     expect(burst).not.toHaveBeenCalled();
   });
 
-  it("answers 401 with a constant extra delay for a wrong passphrase", async () => {
-    const { deps, delays, github } = setup();
+  it("answers 401 with a constant extra delay for a wrong passphrase, and takes no burst slot", async () => {
+    const burst = vi.fn(async () => 0);
+    const { deps, delays, github } = setup({ burst });
     const result = await handleGenerate(input(body("not the passphrase")), deps);
     expect(result).toEqual({ status: 401, body: { status: 401, error: "wrong_passphrase" } });
     expect(delays).toEqual([WRONG_PASSPHRASE_DELAY_MS]);
     expect(github.requests).toHaveLength(0);
+    expect(burst).not.toHaveBeenCalled();
   });
 
   it("does not delay a correct passphrase", async () => {

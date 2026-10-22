@@ -7,6 +7,7 @@ import {
   SOURCE_FORMATS,
   scheduleZone,
 } from "@dispatch/core";
+
 import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
@@ -26,6 +27,7 @@ import {
   RUN_CRON_VARIABLE,
 } from "./github";
 import type { ApiResult } from "./http";
+import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
@@ -540,13 +542,7 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;
-  if (burstWait > 0) {
-    return {
-      status: 429,
-      headers: { "Retry-After": String(burstWait) },
-      body: { status: 429, error: "cooldown", retry_after_s: burstWait },
-    };
-  }
+  if (burstWait > 0) return cooldownRefusal(burstWait);
 
   const storeUrl = configStoreUrl(deps.env);
   if (storeUrl !== null) {
