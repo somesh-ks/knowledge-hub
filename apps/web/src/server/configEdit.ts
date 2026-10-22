@@ -7,9 +7,10 @@ import {
   SOURCE_FORMATS,
   scheduleZone,
 } from "@dispatch/core";
+import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
-import { missingSettings, readServerConfig, secretsOf } from "./config";
+import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
 import {
   type GenerateDeps,
@@ -44,7 +45,12 @@ export const CONFIG_COOLDOWN_MS = 10_000;
 const RUN_LOOKUP_ATTEMPTS = 1;
 const RUN_LOOKUP_DELAY_MS = 500;
 
-export type ConfigDeps = GenerateDeps;
+export interface ConfigDeps extends GenerateDeps {
+  /** Opens the config store (D149). Tests pass a fake; left out, the Neon driver is used. */
+  connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
+  /** Read-only files the edit is applied against besides the stored documents (the seed sources). */
+  baseFiles?: Readonly<Record<string, string>>;
+}
 
 export interface ConfigInput {
   bodyText: string;
@@ -425,7 +431,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
  * The daily hour of the last schedule.set that names one, or null when none does. The last one wins,
  * as it does when the engine applies them in order.
  */
-function scheduledTime(
+export function scheduledTime(
   op: ConfigOp | ConfigOp[],
 ): { hour: number | undefined; timezone: string | undefined } | null {
   let hour: number | undefined;
@@ -478,6 +484,39 @@ export function configCooldownSeconds(startedAt: readonly number[], now: number)
   return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
 }
 
+// -------------------------------------------------------------------------------------------- run time
+
+/**
+ * Move the repository variable run.yml compares against its schedule. The edit names the hour, the
+ * zone or both; the other comes from the stored schedule. The variable is in Stockholm time (run.yml's
+ * entries are), so the hour is moved there as of now. A token without "Variables: write" is refused;
+ * the rest of the edit is saved either way, so this answers false instead of failing.
+ */
+export async function updateRunTime(
+  config: ServerConfig,
+  deps: ConfigDeps,
+  time: { hour: number | undefined; timezone: string | undefined },
+  readSchedule: () => Promise<string | null>,
+): Promise<boolean> {
+  try {
+    let hour = time.hour;
+    let timezone = time.timezone;
+    if (hour === undefined || timezone === undefined) {
+      const text = await readSchedule();
+      const stored =
+        text === null ? DEFAULT_SCHEDULE : ScheduleFile.parse(JSON.parse(text) as unknown);
+      hour ??= stored.hour;
+      timezone ??= stored.timezone;
+    }
+    const runHour = fallbackCronHour(hour, scheduleZone(timezone), new Date(deps.now()));
+    await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${runHour} * * *`);
+    return true;
+  } catch (error) {
+    (deps.log ?? (() => {}))(`run time not changed: ${describeError(error, secretsOf(config))}`);
+    return false;
+  }
+}
+
 // -------------------------------------------------------------------------------------------- handler
 
 export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promise<ConfigResult> {
@@ -497,6 +536,13 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
   if (!isValid) {
     await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
+  }
+
+  const storeUrl = configStoreUrl(deps.env);
+  if (storeUrl !== null) {
+    // Loaded only with the store on, so the function never loads the driver while it is off.
+    const { saveToStore } = await import("./configStore");
+    return saveToStore(request, storeUrl, config, deps);
   }
 
   const github = createWorkflowDispatcher(config, deps.fetch, CONFIG_WORKFLOW_FILE);
@@ -534,28 +580,9 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
         body: { status: 202, ...(runId !== null ? { run_id: runId } : {}) },
       };
     }
-    let timeChanged = true;
-    try {
-      // The edit names the hour, the zone or both; the other comes from the schedule on main. The
-      // variable is in Stockholm time (run.yml's entries are), so the hour is moved there as of now.
-      let hour = time.hour;
-      let timezone = time.timezone;
-      if (hour === undefined || timezone === undefined) {
-        const text = await createGitHubClient(config, deps.fetch).readFile(
-          "config/schedule.json",
-          "main",
-        );
-        const stored =
-          text === null ? DEFAULT_SCHEDULE : ScheduleFile.parse(JSON.parse(text) as unknown);
-        hour ??= stored.hour;
-        timezone ??= stored.timezone;
-      }
-      const runHour = fallbackCronHour(hour, scheduleZone(timezone), new Date(deps.now()));
-      await createVariableWriter(config, deps.fetch)(RUN_CRON_VARIABLE, `13 ${runHour} * * *`);
-    } catch (error) {
-      timeChanged = false;
-      log(`run time not changed: ${describeError(error, secretsOf(config))}`);
-    }
+    const timeChanged = await updateRunTime(config, deps, time, () =>
+      createGitHubClient(config, deps.fetch).readFile("config/schedule.json", "main"),
+    );
     return {
       status: 202,
       body: {

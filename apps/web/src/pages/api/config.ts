@@ -1,4 +1,8 @@
+import { configStoreUrl } from "@dispatch/engine/config-paths";
 import type { APIRoute } from "astro";
+// The seed sources an edit is applied against besides the stored documents (D149), imported as text
+// so it travels inside the function. Read only with the config store on.
+import seedSources from "../../../../../config/sources.json?raw";
 import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
@@ -19,9 +23,22 @@ export const POST: APIRoute = ({ request, url }) =>
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         verifyPassphrase: passphraseCheck(),
         log,
+        baseFiles: { "config/sources.json": seedSources },
       },
     );
   });
 
-export const ALL: APIRoute = () =>
+const notAllowed = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });
+
+/** The owner's stored config for pages (D149); with the store off, the route is POST only as before. */
+export const GET: APIRoute = () => {
+  const storeUrl = configStoreUrl(process.env);
+  if (storeUrl === null) return notAllowed();
+  return answerWithRef("api/config", async (log) => {
+    const { handleConfigRead } = await import("../../server/configStore");
+    return handleConfigRead({ env: process.env, storeUrl, log });
+  });
+};
+
+export const ALL: APIRoute = () => notAllowed();

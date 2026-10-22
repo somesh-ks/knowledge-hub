@@ -1,4 +1,6 @@
+import { CATEGORIES } from "@dispatch/core";
 import { verifyPassphrase } from "@dispatch/core/passphrase";
+import type { SqlClient } from "@dispatch/engine/config-store";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
@@ -13,6 +15,7 @@ import {
   parseConfigOp,
   parseConfigRequest,
 } from "./configEdit";
+import { type ConfigReadBody, handleConfigRead } from "./configStore";
 import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
@@ -794,5 +797,99 @@ describe("handleConfig", () => {
     const { deps } = setup();
     const result = await handleConfig(input(body(upsert, "my private guess")), deps);
     expect(JSON.stringify(result)).not.toContain("my private guess");
+  });
+});
+
+/**
+ * An in-memory config_documents table that answers the statements the store sends, with the same
+ * version rule as the SQL: a write lands only if every document is still at the version read.
+ */
+function fakeStore(rows: { path: string; content: string; version: number }[]) {
+  let afterRead = () => {};
+  const sql: SqlClient = {
+    async query(text, params = []) {
+      if (text.startsWith("select path, content, version")) {
+        const copy = rows.map((row) => ({ ...row }));
+        afterRead();
+        return copy;
+      }
+      if (text.includes("max(updated_at)")) return [{ at: null }];
+      const [paths, contents, versions] = params as [string[], string[], (number | null)[]];
+      const fine = paths.every((path, index) => {
+        const row = rows.find((entry) => entry.path === path);
+        return versions[index] === null ? row === undefined : row?.version === versions[index];
+      });
+      if (!fine) return [{ written: 0 }];
+      paths.forEach((path, index) => {
+        const row = rows.find((entry) => entry.path === path);
+        if (row) Object.assign(row, { content: contents[index], version: row.version + 1 });
+        else rows.push({ path, content: contents[index] as string, version: 1 });
+      });
+      return [{ written: paths.length }];
+    },
+  };
+  return {
+    sql,
+    rows,
+    onRead: (hook: () => void) => {
+      afterRead = hook;
+    },
+  };
+}
+
+const PREFERENCES = JSON.stringify({
+  profile: "",
+  focus: "",
+  weights: Object.fromEntries(CATEGORIES.map((category) => [category, 0.5])),
+  preferred_keywords: [],
+  preferred_authors: [],
+  disliked_patterns: [],
+  feedback_history: [],
+});
+
+describe("handleConfig with the config store on (D149)", () => {
+  const block: ConfigOp = { op: "profile.block", domain: "spam.example" };
+  const storeDeps = (store: ReturnType<typeof fakeStore>): Partial<ConfigDeps> => ({
+    env: {
+      GITHUB_DISPATCH_TOKEN: TOKEN,
+      GITHUB_REPOSITORY: REPO,
+      GENERATE_PASSPHRASE_HASH: passphraseHash,
+      DATABASE_URL: "postgres://fake",
+      DISPATCH_CONFIG_STORE: "postgres",
+    },
+    connectConfigStore: async () => store.sql,
+    baseFiles: { "config/sources.json": JSON.stringify({ version: 1, sources: [] }) },
+  });
+
+  // The bugs: an edit that waits on a workflow and a rebuild, and a public read that hands out the
+  // owner's private history along with the settings.
+  it("saves the edit where every device reads it at once, and shows only what pages publish", async () => {
+    const store = fakeStore([
+      { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+    ]);
+    const { deps, github, logs } = setup(storeDeps(store));
+    const result = await handleConfig(input(body(block)), deps);
+    expect({ status: result.status, logs }).toEqual({ status: 202, logs: [] });
+    expect(github.requests).toHaveLength(0);
+    const read = await handleConfigRead({ ...deps, storeUrl: "postgres://fake" });
+    const profile = (read.body as ConfigReadBody).documents["config/profiles/owner.json"];
+    // Only what the built pages publish: no story votes or opens, no user id.
+    expect(profile?.data).toEqual({ blocked_domains: ["spam.example"] });
+  });
+
+  // The bug: two devices edit at once and the later write silently replaces the earlier one.
+  it("refuses an edit made on a version another edit has already replaced", async () => {
+    const store = fakeStore([
+      { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+    ]);
+    const { deps } = setup(storeDeps(store));
+    store.onRead(() =>
+      store.rows.push({ path: "config/profiles/owner.json", content: '{"other":1}', version: 1 }),
+    );
+    const result = await handleConfig(input(body(block)), deps);
+    expect(result.status).toBe(409);
+    expect(store.rows.find((row) => row.path === "config/profiles/owner.json")?.content).toBe(
+      '{"other":1}',
+    );
   });
 });

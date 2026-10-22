@@ -5,6 +5,9 @@ import { DEFAULT_SECOND_VOICE } from "@dispatch/engine/segments";
  * the first three; narrate uses the passphrase hash and everything below it.
  */
 export interface ServerEnv {
+  /** Neon Postgres (D149); the config store is used only with DISPATCH_CONFIG_STORE=postgres too. */
+  DATABASE_URL?: string;
+  DISPATCH_CONFIG_STORE?: string;
   GITHUB_DISPATCH_TOKEN?: string;
   GITHUB_REPOSITORY?: string;
   GENERATE_PASSPHRASE_HASH?: string;

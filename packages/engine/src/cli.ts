@@ -12,9 +12,18 @@ import {
   redact,
   secretsFromEnv,
 } from "./context.js";
+import {
+  configStoreUrl,
+  connectConfigStore,
+  hydrateConfig,
+  readsConfigAtStart,
+  type SqlClient,
+} from "./store/configDocs.js";
 
 /** Where the CLI prints and what it reads, so tests drive it without touching the process. */
 export interface CliIo {
+  /** Opens the config store when DATABASE_URL is set (D149). Tests pass a fake. */
+  connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
   /** Working directory the repository root is found from. */
   cwd?: string;
   /** Environment variables. Defaults to the process environment plus the repository's .env. */
@@ -199,6 +208,21 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     json: parsed.json,
     now: io.now ?? (() => new Date()),
   };
+
+  // The owner's edits live in Postgres once the store is switched on (D149): they replace the
+  // committed config files before the command reads them. The switch is separate from the URL,
+  // which `vercel env pull` also writes to a local .env. A database that cannot be reached costs
+  // freshness, not the briefing: the files from the last run's commit are used.
+  const storeUrl = configStoreUrl(env);
+  if (storeUrl !== null && readsConfigAtStart(spec.name, parsed.rest)) {
+    try {
+      const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
+      const changed = await hydrateConfig(root, sql, log);
+      log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
+    } catch (error) {
+      log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
+    }
+  }
 
   let run: CommandRun;
   try {

@@ -1,3 +1,4 @@
+import { CONFIG_DOCUMENT_PATHS } from "../store/configPaths.js";
 import type { ChangedPath, GitCommand } from "./guard.js";
 import {
   ALLOWLISTS,
@@ -52,6 +53,12 @@ export interface CommitAndPushInput {
   /** Selects the write allowlist. */
   command: GitCommand;
   push: boolean;
+  /**
+   * The config store is on (D149): `run` and `podcast` copied the owner's config from it over the
+   * config files, and their commit is the snapshot that keeps it in git, so those paths are allowed
+   * too. Off (the default), the allowlist is exactly ALLOWLISTS.
+   */
+  configStore?: boolean;
   identity?: BotIdentity;
   /** Injected for tests; defaults to real git in `root`. */
   git?: GitRunner;
@@ -112,7 +119,11 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   const changed = await readChangedPaths(run);
   if (changed.length === 0) return { status: "nothing_to_commit" };
 
-  const allowlist = ALLOWLISTS[input.command];
+  const snapshot =
+    input.configStore === true && (input.command === "run" || input.command === "podcast");
+  const allowlist = snapshot
+    ? [...ALLOWLISTS[input.command], ...CONFIG_DOCUMENT_PATHS]
+    : ALLOWLISTS[input.command];
   const offending = findViolations(changed, allowlist);
   if (offending.length === 0 && input.command === "publish") {
     offending.push(...(await findDigestContentViolations({ root: input.root, run, changed })));

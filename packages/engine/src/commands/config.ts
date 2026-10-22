@@ -26,6 +26,7 @@ import { loadSources, loadUserSources, serializeUserSources } from "../sources/r
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
 import { readSourceCandidates } from "../state/store.js";
+import { connectConfigStore, type SqlClient, seedConfigDocuments } from "../store/configDocs.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
 
 const USAGE = `Usage: dispatch config <command>
@@ -37,6 +38,8 @@ const USAGE = `Usage: dispatch config <command>
   commit --message <text> [--no-push]
                                      Commit the files apply may change as chore(config): <text>
                                      and push. The write guard refuses anything else.
+  seed [--dry-run]                   Create the config_documents table in DATABASE_URL and insert each
+                                     config file that has no row yet (D149). Never replaces a row.
 
 Ops (see ConfigOp in @dispatch/core):
   {"op":"topic.upsert","topic":{"name":"...","description":"...","keywords":["..."]}}
@@ -55,6 +58,8 @@ Ops (see ConfigOp in @dispatch/core):
 export interface ConfigDeps {
   /** Network client for source.add. Tests pass a fake. */
   http?: HttpClient;
+  /** Opens the config store for `seed`. Tests pass a fake. */
+  connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
 }
 
 function print(line: string): void {
@@ -79,7 +84,7 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
-async function readBundle(root: string): Promise<ConfigBundle> {
+export async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
   const [topics, schedule, sourcesUser, registry, queries, candidates, profile] = await Promise.all(
     [
@@ -105,7 +110,7 @@ async function readBundle(root: string): Promise<ConfigBundle> {
 }
 
 /** What each file would contain, in the form it is committed in. */
-function renderBundle(bundle: ConfigBundle): Record<string, string> {
+export function renderBundle(bundle: ConfigBundle): Record<string, string> {
   return {
     [CONFIG_FILES.topics]: serializeTopics(bundle.topics),
     [CONFIG_FILES.preferences]: serializePreferences(bundle.preferences),
@@ -131,6 +136,8 @@ export function makeConfigCommand(deps: ConfigDeps = {}): CommandRun {
           return await runApply(rest, ctx, deps);
         case "commit":
           return await runCommit(rest, ctx);
+        case "seed":
+          return await runSeed(rest, ctx, deps);
         case undefined:
           print(USAGE);
           return 2;
@@ -312,6 +319,31 @@ async function runCommit(argv: string[], ctx: CommandContext): Promise<number> {
       throw new Error(`Unhandled commit outcome ${JSON.stringify(unreachable)}`);
     }
   }
+}
+
+/**
+ * `dispatch config seed`: load the committed config files into Postgres (D149). Run by hand, once,
+ * by the owner; no workflow calls it. Rows that exist are kept, so it is safe to run again.
+ */
+async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): Promise<number> {
+  const { values } = parseArgs({
+    args: argv,
+    options: { "dry-run": { type: "boolean" } },
+    strict: true,
+  });
+  if (ctx.env.DATABASE_URL === undefined) {
+    ctx.log.error("DATABASE_URL is not set.");
+    return 1;
+  }
+  const sql = await (deps.connectConfigStore ?? connectConfigStore)(ctx.env.DATABASE_URL);
+  const dryRun = values["dry-run"] === true;
+  const inserted = await seedConfigDocuments(ctx.root, sql, { dryRun });
+  print(
+    ctx.json
+      ? JSON.stringify({ ok: true, inserted, dry_run: dryRun })
+      : `${dryRun ? "would insert" : "inserted"}: ${inserted.length === 0 ? "nothing" : inserted.join(", ")}`,
+  );
+  return 0;
 }
 
 export const run: CommandRun = makeConfigCommand();
