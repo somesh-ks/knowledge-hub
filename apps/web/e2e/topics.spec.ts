@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page, Route } from "@playwright/test";
+import { configHash } from "../src/lib/configHash";
 import { GAP_MS } from "../src/scripts/managePageSave";
 import { BUILT_FILES, routeConfigStore } from "./configServer";
 import { expect, test } from "./fixtures";
@@ -605,6 +606,7 @@ test.describe("a topic's page", () => {
       context,
       baseURL,
     }) => {
+      await page.clock.install();
       const { sent } = await setup(page);
       // On another device: Studio Notes switched off, and Kiln Weekly added under the same topic.
       const user = JSON.parse(BUILT_FILES["config/sources.user.json"] as string);
@@ -623,7 +625,7 @@ test.describe("a topic's page", () => {
       await routeConfigStore(page, () => stored);
       // The page as a build with the store switched on serves it (staticServer.mjs).
       await context.addCookies([
-        { name: "test-config-store", value: "postgres", url: `${baseURL}/` },
+        { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
       ]);
       await open(page, CRAFT);
       const box = source(page, "Studio Notes").getByRole("checkbox", { name: "Read Studio Notes" });
@@ -637,11 +639,33 @@ test.describe("a topic's page", () => {
         .poll(() => ops(sent))
         .toEqual([{ op: "source.set", id: "studio-notes", enabled: true }]);
 
+      // Deleting a row the store drew: it stays gone on a reload, though the store, its edge copy a
+      // second old, still lists it.
+      const kiln = source(page, "Kiln Weekly");
+      await page.getByRole("button", { name: "Edit Kiln Weekly" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
+      await page
+        .getByRole("dialog", { name: "Delete Kiln Weekly?" })
+        .getByRole("button", { name: "Delete", exact: true })
+        .click();
+      await expect(kiln).toBeHidden();
+      await page.clock.runFor(GAP_MS);
+      await expect
+        .poll(() => ops(sent))
+        .toEqual([
+          { op: "source.set", id: "studio-notes", enabled: true },
+          { op: "source.remove", id: "kiln-weekly" },
+        ]);
+      await page.reload();
+      await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+      await expect(box).toBeChecked();
+      await expect(kiln).toBeHidden();
+
       stored = null;
       await page.reload();
       await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
       await expect(box).toBeChecked();
-      await expect(source(page, "Kiln Weekly")).toHaveCount(0);
+      await expect(kiln).toBeHidden();
     });
   });
 

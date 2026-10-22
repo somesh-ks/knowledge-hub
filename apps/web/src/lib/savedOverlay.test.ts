@@ -82,6 +82,15 @@ describe("withStore", () => {
     expect(withStore(mine, { ops: [], written_at: T0 - 30_000 }, T0 + 1000)).toEqual([
       { op: "weights.set", weights: { design: 0.5 } },
     ]);
+    // Two writes 100 ms apart on the server, this device seeing its own answer later than that: the
+    // server's date for this device's write decides, not this device's clock.
+    const close = addSaved(
+      [],
+      [{ op: "weights.set", weights: { design: 0.5 } }],
+      T0 + 300,
+      T0 + 100,
+    );
+    expect(withStore(close, { ops: [later], written_at: T0 + 200 }, T0 + 1000)).toEqual([later]);
   });
 });
 

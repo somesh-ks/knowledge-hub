@@ -225,7 +225,9 @@ export function overlayTopics(
   store: ConfigReadBody | null = storeRead(),
 ): boolean {
   if (ops.length === 0 && !store?.sources.length) return false;
-  let shown = false;
+  // Rows the store adds come first, so this device's own edits, newer or still on their way (a
+  // removal, a switch, a rename), are laid over them as over any built row.
+  let shown = drawStored(root, store);
   for (const control of root.querySelectorAll<HTMLInputElement>("input[data-op]")) {
     let op: ConfigOp;
     try {
@@ -270,7 +272,6 @@ export function overlayTopics(
   }
   for (const [id, topic] of saved.topics) shown = renameTopic(root, id, topic) || shown;
   for (const [id, edit] of saved.sources) shown = editSource(root, id, edit) || shown;
-  shown = drawStored(root, store) || shown;
   for (const button of root.querySelectorAll<HTMLButtonElement>("button[data-suggested-add]")) {
     const offer = parseSuggestedAdd(button.dataset.suggestedAdd);
     if (offer && saved.feeds.has(offer.feed_url) && !button.disabled) {
@@ -498,7 +499,12 @@ function editSource(
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;
-  if (topicId !== undefined && topicId !== (facts.topic_id ?? "")) {
+  // A row drawn from the store is on the page it is filed under already (drawStored).
+  if (
+    topicId !== undefined &&
+    topicId !== (facts.topic_id ?? "") &&
+    row.dataset.stored === undefined
+  ) {
     const panel = document.querySelector<HTMLTemplateElement>("#topics-panel-template");
     const options = panel?.content.querySelectorAll<HTMLOptionElement>("[data-edit-topic] option");
     const chosen = [...(options ?? [])].find((option) => option.value === topicId);

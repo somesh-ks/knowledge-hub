@@ -81,4 +81,20 @@ describe("storeChanges: the stored config as edits over the built page (D149)", 
       ["studio-notes", "audio_interfaces"],
     ]);
   });
+
+  // The bug: a chip that stands for several topics takes a scope edit only when one op covers all of
+  // them, and the changes alone (here just the second topic) never did.
+  it("sends a changed scope list whole, so a chip of several topics reads it", () => {
+    const schedule = (skip: string[]) =>
+      JSON.stringify({ ...DEFAULT_SCHEDULE, skip_topics: skip, general_scoped: true });
+    const { ops } = storeChanges(
+      { ...built, "config/schedule.json": schedule(["design_engineering_craft"]) },
+      { "config/schedule.json": schedule(["design_engineering_craft", "product_design"]) },
+    );
+    expect(ops).toContainEqual({
+      op: "topic.scope",
+      ids: ["design_engineering_craft", "product_design"],
+      daily: false,
+    });
+  });
 });

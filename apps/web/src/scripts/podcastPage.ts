@@ -41,20 +41,46 @@ export async function mount(root: HTMLElement): Promise<void> {
   // An edit saved in the last few minutes is not in this page until the next build: the controls
   // show it before they are read as the starting point below, so it is not sent again.
   // With the config store on (D149), what it holds is laid over them the same way, first.
+  // The pointer waits for data-ready, the keys do not: a change made by key while the store is asked
+  // is kept over what was saved, and goes as a change from it.
   let saved: ConfigOp[] = [];
+  const chips = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")];
+  let startFields: FieldValues | undefined;
+  let startChips: boolean[] | undefined;
+  let typed = false;
   if (hasSaved() || storeOn()) {
+    const built = fields();
+    const builtChips = chips.map((chip) => chip.checked);
     const view = await import("./savedView").catch(() => null);
     if (storeOn()) await view?.loadStore();
+    const byKey = fields();
+    const byKeyChips = chips.map((chip) => chip.checked);
     saved = view?.readSaved() ?? [];
-    view?.overlayPodcast(root, controls, fields(), saved);
+    view?.overlayPodcast(root, controls, built, saved);
+    startFields = fields();
+    startChips = chips.map((chip) => chip.checked);
+    for (const [key, value] of Object.entries(byKey)) {
+      if (value === built[key]) continue;
+      typed = true;
+      for (const control of controls) {
+        if (control.dataset.f !== key) continue;
+        if (control instanceof HTMLSelectElement) control.value = value;
+        else if (control.type === "radio") control.checked = control.value === value;
+        else control.checked = value === "true";
+      }
+    }
+    chips.forEach((chip, index) => {
+      if (byKeyChips[index] === builtChips[index]) return;
+      typed = true;
+      chip.checked = Boolean(byKeyChips[index]);
+    });
   }
 
   /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
   // A chip of a topic removed since the build is gone (savedView.ts): it neither counts nor sends.
-  const scopeBoxes = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")].filter(
-    (box) => box.dataset.gone === undefined,
-  );
-  for (const box of scopeBoxes) box.dataset.was = String(box.checked);
+  const scopeBoxes = chips.filter((box) => box.dataset.gone === undefined);
+  for (const box of scopeBoxes)
+    box.dataset.was = String(startChips?.[chips.indexOf(box)] ?? box.checked);
   const scopeChanges = (): void => {
     for (const box of scopeBoxes) {
       const profile = box.dataset.scope === "weekly" ? "weekly" : "daily";
@@ -94,12 +120,15 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (target.closest("[data-profile]")) update();
   });
 
-  box.dataset.was = JSON.stringify(fields());
+  box.dataset.was = JSON.stringify(startFields ?? fields());
   showNoTopics();
+  if (typed) update();
   if (root.querySelector("[data-profile]")) {
     void import("./podcastProfiles").then((module) => {
       ops = module.scheduleOp;
       module.mountProfiles(root, () => update(false));
+      // A schedule change made by key during the wait is recorded once the diff can be made.
+      if (typed) update();
     });
     // The time zone and the voices are chosen from a list with a search field.
     void import("./picker").then((module) => module.mountPickers(root));

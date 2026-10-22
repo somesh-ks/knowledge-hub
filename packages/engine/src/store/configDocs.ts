@@ -183,7 +183,18 @@ export async function writeConfigDocuments(
   sql: SqlClient,
   writes: readonly DocumentWrite[],
 ): Promise<boolean> {
-  if (writes.length === 0) return true;
+  return (await writeConfigDocumentsAt(sql, writes)).written;
+}
+
+/**
+ * writeConfigDocuments, also answering when the write landed by the database's clock (the
+ * `updated_at` it gave the rows), so a page can compare its own edit with later ones on one clock.
+ */
+export async function writeConfigDocumentsAt(
+  sql: SqlClient,
+  writes: readonly DocumentWrite[],
+): Promise<{ written: boolean; at: number | null }> {
+  if (writes.length === 0) return { written: true, at: null };
   for (const write of writes) {
     if (!KNOWN.has(write.path)) throw new Error(`not a config document: ${write.path}`);
   }
@@ -215,7 +226,7 @@ export async function writeConfigDocuments(
        select case
          when (select count(*) from updated) + (select count(*) from inserted) = $4::int then $4::int
          else (select count(*) from updated)::int / 0
-       end as written`,
+       end as written, (extract(epoch from now()) * 1000)::float8 as at`,
       [
         writes.map((write) => write.path),
         writes.map((write) => write.content),
@@ -223,9 +234,13 @@ export async function writeConfigDocuments(
         writes.length,
       ],
     );
-    return Number(rows[0]?.written) === writes.length;
+    const at = rows[0]?.at;
+    return {
+      written: Number(rows[0]?.written) === writes.length,
+      at: typeof at === "number" || typeof at === "string" ? Number(at) : null,
+    };
   } catch (error) {
-    if ((error as { code?: unknown }).code === ROLLED_BACK) return false;
+    if ((error as { code?: unknown }).code === ROLLED_BACK) return { written: false, at: null };
     throw error;
   }
 }

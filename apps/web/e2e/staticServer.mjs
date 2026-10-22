@@ -149,13 +149,13 @@ export function startServer({ root, port }) {
       return;
     }
     // The config store switched on (D149), for one browser context only: its `test-config-store`
-    // cookie gives every page the tag a build with DISPATCH_CONFIG_STORE=postgres writes, so the
-    // pages ask /api/config, which the test answers.
-    const store = /(?:^|;\s*)test-config-store=postgres(?:;|$)/.test(request.headers.cookie ?? "");
+    // cookie gives every page the tag a build with DISPATCH_CONFIG_STORE=postgres writes, naming the
+    // config files the cookie names, so the pages ask /api/config, which the test answers.
+    const store = /(?:^|;\s*)test-config-store=([\w-]+)/.exec(request.headers.cookie ?? "")?.[1];
     if (file && store && file.endsWith(".html") && request.method === "GET") {
       const body = readFileSync(file, "utf8").replace(
         /(<meta name="dispatch-build" content="[^"]*" ?\/?>)/,
-        '$1<meta name="dispatch-config-store" content="postgres">',
+        `$1<meta name="dispatch-config-store" content="${store}">`,
       );
       response.writeHead(200, { "Content-Type": TYPES[".html"], ...headersFor(pathname) });
       response.end(body);

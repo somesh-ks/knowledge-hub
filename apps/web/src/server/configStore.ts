@@ -3,9 +3,10 @@ import {
   applyOpsToDocuments,
   lastConfigWrite,
   readConfigDocuments,
-  writeConfigDocuments,
+  writeConfigDocumentsAt,
 } from "@dispatch/engine/config-store";
 import { connectNeon } from "@dispatch/engine/neon";
+import { configHash } from "../lib/configHash";
 import type { ConfigOp, ConfigReadBody, ConfigResponse } from "../types/contracts";
 import { type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import { type ConfigDeps, configCooldownSeconds, scheduledTime, updateRunTime } from "./configEdit";
@@ -64,6 +65,7 @@ export async function saveToStore(
     const started = Date.now();
     let result: Awaited<ReturnType<typeof applyOpsToDocuments>> | undefined;
     let written = false;
+    let writtenAt: number | null = null;
     for (let attempt = 0; attempt < 2 && !written; attempt += 1) {
       const left = APPLY_DEADLINE_MS - (Date.now() - started);
       if (attempt > 0 && left < 1000) break;
@@ -82,16 +84,19 @@ export async function saveToStore(
         // A lookup that failed on our side, or ran out of time, can be sent again: the page keeps it pending.
         return result.retryable ? unavailable : invalid;
       }
-      written = await writeConfigDocuments(sql, result.writes);
+      ({ written, at: writtenAt } = await writeConfigDocumentsAt(sql, result.writes));
     }
     if (!written || !result?.ok) {
       return { status: 409, body: { status: 409, error: "conflict" } };
     }
+    // When it landed, by the database's clock: the page compares its copy of the edit with later
+    // ones from other devices on that clock, not its own (savedOverlay.ts, withStore).
+    const landed = writtenAt === null ? {} : { written_at: writtenAt };
     const time = scheduledTime(request.op);
-    if (time === null) return { status: 202, body: { status: 202 } };
+    if (time === null) return { status: 202, body: { status: 202, ...landed } };
     const schedule = result.documents["config/schedule.json"] ?? null;
     const timeChanged = await updateRunTime(config, deps, time, async () => schedule);
-    return { status: 202, body: { status: 202, time_changed: timeChanged } };
+    return { status: 202, body: { status: 202, ...landed, time_changed: timeChanged } };
   } catch (error) {
     log(`config store failed: ${describeError(error, secrets)}`);
     return unavailable;
@@ -130,6 +135,18 @@ export async function readStoredSchedule(
   return row?.content ?? null;
 }
 
+const builtHashes = new WeakMap<ConfigFiles, string>();
+
+/** The digest of the bundled files, once per set (they never change within a deployment). */
+function builtHash(files: ConfigFiles): string {
+  let hash = builtHashes.get(files);
+  if (hash === undefined) {
+    hash = configHash(files);
+    builtHashes.set(files, hash);
+  }
+  return hash;
+}
+
 /** GET /api/config with the store on (the route answers 405 with it off, as before). */
 export async function handleConfigRead(deps: {
   env: ServerEnv;
@@ -153,6 +170,7 @@ export async function handleConfigRead(deps: {
       headers: { "Cache-Control": READ_CACHE },
       body: {
         status: 200,
+        built: builtHash(deps.builtFiles),
         written_at: times.length > 0 ? Math.max(...times) : null,
         ...storeChanges(deps.builtFiles, stored),
       },

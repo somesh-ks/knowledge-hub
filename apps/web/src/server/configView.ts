@@ -184,7 +184,11 @@ function sourceChanges(
 
 type ScheduleSet = Extract<ConfigOp, { op: "schedule.set" }>;
 
-function scheduleOps(built: ScheduleView, stored: ScheduleView): ConfigOp[] {
+function scheduleOps(
+  built: ScheduleView,
+  stored: ScheduleView,
+  topicIds: readonly string[],
+): ConfigOp[] {
   const set: ScheduleSet = { op: "schedule.set" };
   if (built.timezone !== stored.timezone) set.timezone = stored.timezone;
   if (built.hour !== stored.hour) set.hour = stored.hour;
@@ -220,11 +224,13 @@ function scheduleOps(built: ScheduleView, stored: ScheduleView): ConfigOp[] {
     ["weekly", built.weekly.skip_topics, stored.weekly.skip_topics],
     ["custom", built.custom.skip_topics, stored.custom.skip_topics],
   ] as const;
+  // A chip stands for every topic it gathers and takes an edit only when one op covers all of them,
+  // so a list that changed is sent whole: everything it leaves out, then everything it keeps.
   for (const [scope, before, after] of lists) {
-    const out = after.filter((id) => !before.includes(id));
-    const back = before.filter((id) => !after.includes(id));
-    if (out.length > 0) ops.push({ op: "topic.scope", ids: out, [scope]: false });
-    if (back.length > 0) ops.push({ op: "topic.scope", ids: back, [scope]: true });
+    if (same([...before].sort(), [...after].sort())) continue;
+    const kept = topicIds.filter((id) => !after.includes(id));
+    if (after.length > 0) ops.push({ op: "topic.scope", ids: [...after], [scope]: false });
+    if (kept.length > 0) ops.push({ op: "topic.scope", ids: kept, [scope]: true });
   }
   return ops;
 }
@@ -245,26 +251,50 @@ function blockedOps(built: string[], stored: string[]): ConfigOp[] {
  * draw because the build lists them nowhere or on another page. A file the store has no row for, or
  * a row that is not JSON, is the build's (as the engine treats it).
  */
+interface ConfigView {
+  manage: ManageData;
+  schedule: ScheduleView;
+  blocked: string[];
+}
+
+function viewOf(files: ConfigFiles): ConfigView {
+  return {
+    manage: manageOf(files),
+    schedule: scheduleViewOf(json(files["config/schedule.json"])),
+    blocked: blockedDomainsIn(json(files["config/profiles/owner.json"])),
+  };
+}
+
+/** The build's side never changes within a deployment: laid out once per bundled set of files. */
+const builtViews = new WeakMap<ConfigFiles, ConfigView>();
+
+function builtView(built: ConfigFiles): ConfigView {
+  let view = builtViews.get(built);
+  if (!view) {
+    view = viewOf(built);
+    builtViews.set(built, view);
+  }
+  return view;
+}
+
 export function storeChanges(built: ConfigFiles, storedRows: ConfigFiles): StoreChanges {
   const stored: Record<string, string | undefined> = { ...built };
   for (const [path, text] of Object.entries(storedRows))
     if (text !== undefined && json(text) !== null) stored[path] = text;
-  const before = manageOf(built);
-  const after = manageOf(stored);
-  const sources = sourceChanges(before, after, feedsOf(stored));
+  const before = builtView(built);
+  const after = viewOf(stored);
+  const sources = sourceChanges(before.manage, after.manage, feedsOf(stored));
   return {
     ops: [
-      ...topicOps(before.topics, after.topics),
-      ...mixOps(before.typeMix, after.typeMix),
+      ...topicOps(before.manage.topics, after.manage.topics),
+      ...mixOps(before.manage.typeMix, after.manage.typeMix),
       ...sources.ops,
       ...scheduleOps(
-        scheduleViewOf(json(built["config/schedule.json"])),
-        scheduleViewOf(json(stored["config/schedule.json"])),
+        before.schedule,
+        after.schedule,
+        after.manage.topics.map((topic) => topic.id),
       ),
-      ...blockedOps(
-        blockedDomainsIn(json(built["config/profiles/owner.json"])),
-        blockedDomainsIn(json(stored["config/profiles/owner.json"])),
-      ),
+      ...blockedOps(before.blocked, after.blocked),
     ],
     sources: sources.sources,
   };

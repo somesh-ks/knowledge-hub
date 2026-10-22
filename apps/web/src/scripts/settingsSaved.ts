@@ -27,9 +27,10 @@ export const LOST_NOTE = "Your last change was not saved.";
  * following a left page's run still on its way.
  */
 export async function showSaved(root: HTMLElement): Promise<void> {
+  // Listening first: a left page's run can end while the store is asked.
+  followHeld(root);
   if (storeOn()) await loadStore();
   overlayIndex(root, readSaved());
-  followHeld(root);
 }
 
 /**

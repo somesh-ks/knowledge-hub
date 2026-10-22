@@ -23,13 +23,25 @@ let current: ConfigReadBody | null = null;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** Which config files this page was built from, as its config-store tag names them. */
+function builtHere(): string | null {
+  return (
+    document.querySelector<HTMLMetaElement>('meta[name="dispatch-config-store"]')?.content ?? null
+  );
+}
+
 function parseRead(body: unknown): ConfigReadBody | null {
   if (!isRecord(body) || body.status !== 200) return null;
-  const { written_at: writtenAt, ops, sources } = body;
+  const { written_at: writtenAt, ops, sources, built } = body;
   if (!Array.isArray(ops) || !Array.isArray(sources)) return null;
   if (writtenAt !== null && typeof writtenAt !== "number") return null;
+  // The edits are a diff from the files the answering deployment was built from. A page from
+  // another build (a kept copy, a tab open across a deploy) keeps its own copy instead; the deploy
+  // toast offers the current site.
+  if (typeof built !== "string" || built !== builtHere()) return null;
   return {
     status: 200,
+    built,
     written_at: writtenAt,
     ops: ops.filter((op): op is ConfigOp => isRecord(op) && typeof op.op === "string"),
     sources: sources.filter(
@@ -47,7 +59,8 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
   if (last && now - last.at < REUSE_MS) return last.read;
   const stop = new AbortController();
   const timer = setTimeout(() => stop.abort(), STORE_READ_TIMEOUT_MS);
-  const read = fetch("/api/config", {
+  const asked = { at: now } as { at: number; read: Promise<ConfigReadBody | null> };
+  asked.read = fetch("/api/config", {
     signal: stop.signal,
     headers: { Accept: "application/json" },
   })
@@ -56,11 +69,13 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
     .catch(() => null)
     .then((body) => {
       clearTimeout(timer);
-      current = body;
+      // Only the newest read speaks for the store: an older one that ends late, or fails, does not
+      // replace what a newer one found.
+      if (last === asked) current = body;
       return body;
     });
-  last = { at: now, read };
-  return read;
+  last = asked;
+  return asked.read;
 }
 
 /** What the last read found, or null before one answered (or when none could). */

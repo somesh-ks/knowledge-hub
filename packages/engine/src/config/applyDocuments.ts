@@ -21,6 +21,7 @@ export {
   readConfigDocuments,
   type SqlClient,
   writeConfigDocuments,
+  writeConfigDocumentsAt,
 } from "../store/configDocs.js";
 export { ConfigOpError } from "./applyOp.js";
 

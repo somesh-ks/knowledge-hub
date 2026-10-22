@@ -4,6 +4,7 @@
  * with the editor, never with the page.
  */
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
+import { readableUrl } from "../lib/readableUrl";
 import { searchText } from "../lib/sourceFilter";
 import { sourceInitial } from "../lib/sourceInitial";
 import type { StoreSource } from "../types/contracts";
@@ -131,16 +132,6 @@ export function topicRow(
   return row;
 }
 
-/** The address as a built row shows it (readableUrl in lib/manage.ts, which a page script cannot import). */
-function readableAddress(address: string | null, host: string): string {
-  try {
-    const url = new URL(address ?? "");
-    return `${url.hostname.replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}`;
-  } catch {
-    return host;
-  }
-}
-
 /**
  * A source the build does not list on this page, drawn from the config store (D149) the way
  * SourceRow.astro draws a built one: the edit button with its facts, the tile, the name and address,
@@ -153,6 +144,7 @@ export function storedSourceRow(
 ): HTMLLIElement {
   const row = element("li", "source-row");
   row.dataset.id = source.id;
+  row.dataset.stored = "";
   row.dataset.band = "new";
   row.dataset.score = "-1";
   row.dataset.name = source.name.toLowerCase();
@@ -181,7 +173,7 @@ export function storedSourceRow(
   const name = element("span", "source-name", source.name);
   name.id = `source-${source.id}`;
   const meta = element("span", "source-meta");
-  meta.append(element("span", "source-url", readableAddress(source.url, source.host)));
+  meta.append(element("span", "source-url", readableUrl(source.url) || source.host));
   text.append(name, meta);
   main.append(iconNode(source.favicon_url, source.name), text);
   const score = element("span", "score");

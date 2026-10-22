@@ -258,9 +258,10 @@ export function remember(
   ops: readonly ConfigOp[],
   now = Date.now(),
   waiting: readonly ConfigOp[] = heldOps(),
+  stored?: number,
 ): void {
   try {
-    const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now);
+    const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now, stored);
     const entries = waiting.length > 0 ? withPending(saved, waiting, now) : saved;
     if (entries.length > 0) localStorage.setItem(SAVED_KEY, JSON.stringify(entries));
     else localStorage.removeItem(SAVED_KEY);
@@ -596,7 +597,9 @@ export async function flush(
       try {
         settle(batch, changes);
       } finally {
-        remember(batch.ops, lastSent);
+        const body = answer.body as { written_at?: unknown } | undefined;
+        const stored = typeof body?.written_at === "number" ? body.written_at : undefined;
+        remember(batch.ops, lastSent, heldOps(), stored);
       }
       try {
         context.settled?.();
