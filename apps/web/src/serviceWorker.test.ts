@@ -238,9 +238,9 @@ describe("service worker: caching strategies", () => {
     const name = `dispatch-pages-${CURRENT_VERSION}`;
     const broken = await worker.caches.open(name);
     const match = worker.caches.match.bind(worker.caches);
-    worker.caches.match = async (key, options) => {
+    worker.caches.match = async (key: string | FakeRequest) => {
       if (key === "/latest.json") throw new Error("corrupt entry");
-      return match(key, options);
+      return match(key);
     };
     online = false;
     const answer = await worker.dispatchFetch(request("/latest.json?t=2"));

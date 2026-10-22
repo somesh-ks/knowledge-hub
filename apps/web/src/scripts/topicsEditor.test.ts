@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fillShellText,
   idText,
-  SHELL,
   parseSuggestedAdd,
   problemText,
+  SHELL,
   slugify,
   topicChanged,
   topicProblems,
@@ -370,6 +370,8 @@ describe("topicProblems", () => {
 describe("fillShellText", () => {
   it("keeps $ patterns in a topic name as typed", () => {
     const text = `${SHELL.name}|${SHELL.about}|${SHELL.id}`;
-    expect(fillShellText(text, { id: "x", name: "A $& B $$", about: "$1 $`" })).toBe("A $& B $$|$1 $`|x");
+    expect(fillShellText(text, { id: "x", name: "A $& B $$", about: "$1 $`" })).toBe(
+      "A $& B $$|$1 $`|x",
+    );
   });
 });

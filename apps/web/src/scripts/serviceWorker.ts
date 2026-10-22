@@ -47,27 +47,48 @@ function shouldReloadForBuild(
   return shouldActivateUpdate(playerState);
 }
 
-/** Asks the site which build it serves and loads it when the page on screen is older. */
-async function checkBuild(registration: ServiceWorkerRegistration): Promise<void> {
-  if (!navigator.onLine) return;
+/**
+ * Whether the page holds something a reload would throw away: an open dialog, menu or toast (the
+ * Undo of a removal waiting to be sent), a field being typed in, or text typed and not yet sent.
+ */
+function pageHoldsWork(): boolean {
+  if (document.querySelector("dialog[open], :popover-open")) return true;
+  const active = document.activeElement;
+  if (active?.matches("input:not([type=button], [type=submit]), textarea, [contenteditable]")) {
+    return true;
+  }
+  return [
+    ...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
+  ].some((field) => field.type !== "hidden" && field.value !== field.defaultValue);
+}
+
+/**
+ * Asks the site which build it serves and loads it when the page on screen is older. A page that
+ * holds work is left alone and the answer is `true`: the next return asks again, and a full
+ * navigation picks up the deploy by itself.
+ */
+async function checkBuild(registration: ServiceWorkerRegistration): Promise<boolean> {
+  if (!navigator.onLine) return false;
   const pageBuild =
     document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content || undefined;
   const response = await fetch("/build.json", { cache: "no-store" });
-  if (!response.ok) return;
+  if (!response.ok) return false;
   const siteBuild = ((await response.json()) as { build?: unknown }).build;
   let reloadedFor: string | null = null;
   try {
     reloadedFor = sessionStorage.getItem(RELOADED_FOR);
   } catch {
     // Storage blocked: no reload, since nothing would stop a second one.
-    return;
+    return false;
   }
   const playerState = document.documentElement.dataset.playerState;
-  if (!shouldReloadForBuild(pageBuild, siteBuild, playerState, reloadedFor)) return;
+  if (!shouldReloadForBuild(pageBuild, siteBuild, playerState, reloadedFor)) return false;
+  if (pageHoldsWork()) return true;
   sessionStorage.setItem(RELOADED_FOR, String(siteBuild));
   // The deploy may carry a new worker too. The reload's page load goes to the network either way.
   await registration.update().catch(() => {});
   location.reload();
+  return false;
 }
 
 function watchForUpdates(registration: ServiceWorkerRegistration): void {
@@ -85,9 +106,14 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
     }
     if (Date.now() - lastBuildCheck >= BUILD_CHECK_MS) {
       lastBuildCheck = Date.now();
-      checkBuild(registration).catch(() => {
-        // Offline or a failed read: the page on screen stays, and the next return asks again.
-      });
+      checkBuild(registration)
+        .then((deferred) => {
+          // A page that held work is asked about again on the next return, not after the wait.
+          if (deferred) lastBuildCheck = 0;
+        })
+        .catch(() => {
+          // Offline or a failed read: the page on screen stays, and the next return asks again.
+        });
     }
     if (shouldCheckForUpdate(Date.now(), lastCheck)) {
       lastCheck = Date.now();
