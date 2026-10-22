@@ -4,7 +4,9 @@
  * with the editor, never with the page.
  */
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
+import { searchText } from "../lib/sourceFilter";
 import { sourceInitial } from "../lib/sourceInitial";
+import type { StoreSource } from "../types/contracts";
 
 /** What GET /api/source-preview returns. */
 export interface SourcePreview {
@@ -126,5 +128,85 @@ export function topicRow(
     );
   };
   index.insertBefore(row, rows.find(after) ?? null);
+  return row;
+}
+
+/** The address as a built row shows it (readableUrl in lib/manage.ts, which a page script cannot import). */
+function readableAddress(address: string | null, host: string): string {
+  try {
+    const url = new URL(address ?? "");
+    return `${url.hostname.replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}`;
+  } catch {
+    return host;
+  }
+}
+
+/**
+ * A source the build does not list on this page, drawn from the config store (D149) the way
+ * SourceRow.astro draws a built one: the edit button with its facts, the tile, the name and address,
+ * New for its score until the build rates it, the checkbox and the hidden Delete. The editor then
+ * finds it as it finds a built row. `topic` is the topic the page files its sources under.
+ */
+export function storedSourceRow(
+  source: StoreSource,
+  topic: { id: string; name: string },
+): HTMLLIElement {
+  const row = element("li", "source-row");
+  row.dataset.id = source.id;
+  row.dataset.band = "new";
+  row.dataset.score = "-1";
+  row.dataset.name = source.name.toLowerCase();
+  row.dataset.text = searchText(source, topic.name);
+  row.dataset.format = source.format;
+  if (source.url) row.title = source.url;
+  const edit = element("button", "source-edit");
+  edit.type = "button";
+  edit.setAttribute("aria-label", `Edit ${source.name}`);
+  edit.dataset.editSource = JSON.stringify({
+    id: source.id,
+    name: source.name,
+    topic_id: topic.id,
+    topic_name: topic.name,
+    url: source.url,
+    host: source.host,
+    score: null,
+    label: "New",
+    parts: null,
+    format: source.format,
+    general: source.general,
+    lean: source.lean === null ? "" : String(source.lean),
+  });
+  const main = element("span", "source-main");
+  const text = element("span", "source-text");
+  const name = element("span", "source-name", source.name);
+  name.id = `source-${source.id}`;
+  const meta = element("span", "source-meta");
+  meta.append(element("span", "source-url", readableAddress(source.url, source.host)));
+  text.append(name, meta);
+  main.append(iconNode(source.favicon_url, source.name), text);
+  const score = element("span", "score");
+  score.dataset.label = "New";
+  score.title = "Not scored yet";
+  score.append(element("span", "score-new", "New"));
+  const check = element("label", "source-check");
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.autocomplete = "off";
+  box.checked = source.enabled;
+  box.defaultChecked = source.enabled;
+  box.setAttribute("aria-label", `Read ${source.name}`);
+  box.dataset.op = JSON.stringify({ op: "source.set", id: source.id, enabled: source.enabled });
+  box.dataset.field = "enabled";
+  const tick = element("span", "suggest-box");
+  tick.setAttribute("aria-hidden", "true");
+  check.append(box, tick);
+  const remove = element("button", "source-remove");
+  remove.type = "button";
+  remove.hidden = true;
+  remove.dataset.remove = "";
+  remove.dataset.name = source.name;
+  remove.dataset.label = `Delete ${source.name}`;
+  remove.dataset.op = JSON.stringify({ op: "source.remove", id: source.id });
+  row.append(edit, main, score, check, remove);
   return row;
 }

@@ -4,7 +4,7 @@
  * to: one schedule.set (every field that changed). autosave.ts sends it a moment later through
  * managePageSave.ts, the step the Topics page uses.
  */
-import { hasSaved } from "../lib/savedKey";
+import { hasSaved, storeOn } from "../lib/savedKey";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -40,9 +40,11 @@ export async function mount(root: HTMLElement): Promise<void> {
 
   // An edit saved in the last few minutes is not in this page until the next build: the controls
   // show it before they are read as the starting point below, so it is not sent again.
+  // With the config store on (D149), what it holds is laid over them the same way, first.
   let saved: ConfigOp[] = [];
-  if (hasSaved()) {
+  if (hasSaved() || storeOn()) {
     const view = await import("./savedView").catch(() => null);
+    if (storeOn()) await view?.loadStore();
     saved = view?.readSaved() ?? [];
     view?.overlayPodcast(root, controls, fields(), saved);
   }

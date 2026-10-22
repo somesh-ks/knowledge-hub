@@ -191,8 +191,10 @@ const facts = topic && {
     {/* A topic's page: its summary card, then its sources or how much it counts (the Preferences
          view's sliders). A topic is always on and
          available to every podcast, so there is no switch. The controls carry the edit they stand for
-         (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later. */}
-    <div class="manage topics topic-page" data-topics data-shell={shell ? "" : undefined} data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
+         (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later.
+         data-page names the page as a source's page is named (topicLayout), so a source the config
+         store files here is drawn on it (savedView.ts, D149). */}
+    <div class="manage topics topic-page" data-topics data-page={group?.id ?? topic?.id ?? OTHER_ID} data-shell={shell ? "" : undefined} data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>

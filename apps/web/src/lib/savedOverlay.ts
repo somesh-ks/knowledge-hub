@@ -12,7 +12,7 @@
  *
  * Pure: the caller reads and writes storage.
  */
-import type { ConfigOp } from "../types/contracts";
+import type { ConfigOp, ConfigReadBody } from "../types/contracts";
 
 /** How long a saved edit is shown over the page it was built with: the build takes about a minute. */
 export const SAVED_TTL_MS = 3 * 60 * 1000;
@@ -98,6 +98,30 @@ export function savedOps(entries: readonly SavedEntry[], now: number): ConfigOp[
   return entries
     .filter((entry) => fresh(entry.at, now, entry.pending))
     .flatMap((entry) => entry.ops);
+}
+
+/**
+ * Every edit a page shows with the config store on (D149): what the store holds over the build,
+ * then this device's own edits that the store may not show yet (on their way, or saved since its
+ * last write). A saved edit older than the store's last write is in the store already, or was
+ * replaced there by a later edit from another device, so it is left out: laid over the store, it
+ * would undo that later edit. Edits are at least ten seconds apart (the server's gap), wider than
+ * the clocks of a phone and the database drift. Without a store read, the saved edits alone.
+ */
+export function withStore(
+  entries: readonly SavedEntry[],
+  store: Pick<ConfigReadBody, "ops" | "written_at"> | null,
+  now: number,
+): ConfigOp[] {
+  if (store === null) return savedOps(entries, now);
+  const since = store.written_at ?? Number.NEGATIVE_INFINITY;
+  return [
+    ...store.ops,
+    ...savedOps(
+      entries.filter((entry) => entry.pending || entry.at >= since),
+      now,
+    ),
+  ];
 }
 
 // ------------------------------------------------------------------------------------- podcast pages
