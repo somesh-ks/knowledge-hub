@@ -13,6 +13,12 @@ describe("topic emoji", () => {
     }
   });
 
+  // Stemming "news" to "new" gave "New in CSS" the newspaper.
+  it("does not read the word new as news", () => {
+    expect(fallbackEmoji("New in CSS")).not.toBe("📰");
+    expect(fallbackEmoji("Tech news")).toBe("📰");
+  });
+
   it("shows the stored emoji first, then the shipped one, then the fallback", () => {
     expect(topicEmoji({ id: "x", name: "Music", emoji: "🍳" })).toBe("🍳");
     expect(topicEmoji({ id: "world", name: "World" })).toBe("🌍");

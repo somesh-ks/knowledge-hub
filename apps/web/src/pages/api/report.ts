@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { toResponse } from "../../server/http";
-import { handleReport, MAX_REPORT_CHARS, readCapped } from "../../server/report";
+import { handleReport, MAX_REPORT_CHARS, readReportBody } from "../../server/report";
 import { newVitalsBuffer, recordVital } from "../../server/vitalsStore";
 
 export const prerender = false;
@@ -14,11 +14,12 @@ const OIDC_HEADER = "x-vercel-oidc-token";
 const vitals = newVitalsBuffer();
 
 export const POST: APIRoute = async ({ request }) => {
-  // A body with no length, or past the cap, is refused; the stream is read to the cap and no further.
-  const length = request.headers.get("content-length");
-  const declared = length === null ? Number.NaN : Number(length);
-  const body =
-    declared <= MAX_REPORT_CHARS ? await readCapped(request.body, MAX_REPORT_CHARS) : null;
+  // A body past the cap is refused; the stream is read to the cap and no further.
+  const body = await readReportBody(
+    request.headers.get("content-length"),
+    request.body,
+    MAX_REPORT_CHARS,
+  );
   if (body === null) return toResponse({ status: 413, body: { error: "too_large" } });
   const log = (line: string): void => console.error(line);
   const result = handleReport(body, {

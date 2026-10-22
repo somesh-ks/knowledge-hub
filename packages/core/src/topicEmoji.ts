@@ -111,7 +111,9 @@ const CHOICES = Object.keys(TOPIC_EMOJIS);
 /** Lowercase words of a text, a plural "s" dropped, so "startups" and "startup" are one word. */
 const stems = (text: string): string[] =>
   (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).map((word) =>
-    word.length > 3 && word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word,
+    word.length > 3 && word.endsWith("s") && !word.endsWith("ss") && word !== "news"
+      ? word.slice(0, -1)
+      : word,
   );
 
 /** Every keyword phrase of every emoji but the catch-all, as stemmed words, with its emoji. */

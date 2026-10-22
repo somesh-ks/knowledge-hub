@@ -34,7 +34,7 @@ import {
   suggestSources,
   type TopicWords,
 } from "../lib/sourceCatalogMatch";
-import { parseSuggestedAdd, SHELL, type SuggestedAdd } from "../lib/topicText";
+import { fillShellText, parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import { drawStop, stopFor, weightOf } from "../lib/weightStops";
 import type { ConfigOp } from "../types/contracts";
 import { ADDED_SOURCE, HELD_EVENT, type Held, type Pending } from "./managePageSave";
@@ -292,10 +292,11 @@ export function fillShell(root: HTMLElement, ops = readSaved()): boolean {
   }
   const inJson = (text: string): string => JSON.stringify(text).slice(1, -1);
   const swap = (text: string, json: boolean): string =>
-    text
-      .replaceAll(SHELL.id, id)
-      .replaceAll(SHELL.name, json ? inJson(topic.name) : topic.name)
-      .replaceAll(SHELL.about, json ? inJson(topic.description) : topic.description);
+    fillShellText(text, {
+      id,
+      name: json ? inJson(topic.name) : topic.name,
+      about: json ? inJson(topic.description) : topic.description,
+    });
   const walker = document.createTreeWalker(
     document.body,
     NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,

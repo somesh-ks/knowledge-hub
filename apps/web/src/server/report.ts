@@ -52,6 +52,19 @@ export async function readCapped(
   }
 }
 
+/**
+ * The request's body as text, or null when it is too large. A declared length past the cap is
+ * refused at once; a missing one (chunked, HTTP/2) is unknown, and the stream is capped as it is read.
+ */
+export async function readReportBody(
+  contentLength: string | null,
+  body: ReadableStream<Uint8Array> | null,
+  maxBytes: number,
+): Promise<string | null> {
+  if (contentLength !== null && !(Number(contentLength) <= maxBytes)) return null;
+  return readCapped(body, maxBytes);
+}
+
 /** The path of a URL (or the text itself when it is not one), without query or fragment. */
 export function pathOnly(value: unknown): string {
   if (typeof value !== "string" || value === "") return "";

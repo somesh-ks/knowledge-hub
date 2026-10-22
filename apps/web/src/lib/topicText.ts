@@ -127,3 +127,17 @@ export function parseSuggestedAdd(json: string | undefined): SuggestedAdd | null
  */
 export const NEW_TOPIC_ID = "new";
 export const SHELL = { id: "__shell_id__", name: "__shell_name__", about: "__shell_about__" };
+
+/**
+ * `text` with the shell's stand-ins swapped for the topic's. The values go in as given: a function
+ * replacer, so `$&` or `$$` in a name is kept and not read as a replacement pattern.
+ */
+export function fillShellText(
+  text: string,
+  values: { id: string; name: string; about: string },
+): string {
+  return text
+    .replaceAll(SHELL.id, () => values.id)
+    .replaceAll(SHELL.name, () => values.name)
+    .replaceAll(SHELL.about, () => values.about);
+}
