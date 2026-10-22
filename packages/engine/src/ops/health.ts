@@ -395,8 +395,8 @@ async function checkSite(
   } catch {
     buildName = undefined;
   }
-  // The build carries the newest commit the site would deploy: a push whose last commit touches no
-  // watched path skips the deploy (vercel.json diffs HEAD^ only), and nothing says so.
+  // The build carries the newest commit the site would deploy. vercel.json diffs from the last
+  // deployed commit (HEAD^ when Vercel gives none), so a skipped deploy is rare; this says when.
   // A build named by its start time (no commit: the dev server, a build off Vercel) says nothing.
   // Such a name is all digits, so a commit prefix must hold a letter; an all-digit commit prefix
   // (rare) is skipped too. A warning: the owner can redeploy, and it may clear by itself.

@@ -13,6 +13,7 @@ The standing goal: harden the app in every aspect, with systems that spot faults
 - #216's review put back the 6% cap on judged tool launches, which #209 had lifted as a "judgment call" against the owner's asks of 2026-10-15 and 2026-10-18. It also let engineering sources through the prefilter, kept the 2026-10-18 weekly valid, and let an old preferences row parse.
 - CI: the `browser` job gets 45 minutes (#216 needed 33.7; #213 was cut off at 30 with every test passing). The eval's rewrite skips a story the model left empty.
 - D157 (a dedicated Opus audit, then an Opus worker over three review rounds): Neon and stored-config faults and warnings, a deploy-behind warning, the site's narration in the month budget, one weekly `health-warnings` issue, and one newest-first order for site, status and health.
+- `ignoreCommand` diffs from the last deployed commit (`VERCEL_GIT_PREVIOUS_SHA`), not only the push's last commit.
 - D158: client errors and CSP violations kept a week in Neon (the message's start only), judged as warnings over 24 hours; its first version leaked quoted text and faulted on one extension's blocked script, which review caught.
 
 ## What review caught
@@ -22,5 +23,4 @@ The standing goal: harden the app in every aspect, with systems that spot faults
 ## Left open
 
 - The passphrase-cap holes on `claude/lock-actions` (another session's branch) are with the owner to pass on.
-- `ignoreCommand` diffs only `HEAD^..HEAD`; `site_behind` reports a skipped deploy, nothing prevents one.
 - Function 5xx rates still need a log drain.

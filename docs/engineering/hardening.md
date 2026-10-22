@@ -29,7 +29,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | A config file that stopped parsing | `config_invalid`: doctor's offline config checks, `config/models.json`, and the core schemas of topics, schedule, prices, the catalogue and `sources.user.json` | none |
 | Neon unreachable (the site falls back to per-instance caps and drops vitals, silently) | warning `store_degraded`: with `DATABASE_URL` set, health's own connection or the rate counter's check fails (Neon may be waking, so not a fault); a missing `rate_limit_counters` is no finding; `field_unmeasured` stays the warning for no `DATABASE_URL` and thin samples | `takeSharedSlot` creates the table on its first request (42P01), as the vitals store does |
 | An owner edit in the config store that runs skip or never commit (D149) | with `DISPATCH_CONFIG_STORE=postgres`, only `CONFIG_DOCUMENT_PATHS`: `config_store_drift` faults a stored document not JSON or failing its core schema, and warns when one differs from the committed file though it was written before the last run record that is not a failure (that `at` is the commit, after the copy, so an edit during a run reads the same: a fault needs the copy time in the record); `config_store_unread` faults when the documents do not read (runs then keep the committed files) | none |
-| A deploy Vercel skipped because the push's last commit touched no watched path | warning `site_behind`: `/build.json`'s commit does not hold the newest non-bot commit on `origin/main` (else `main`) touching a path `apps/web/vercel.json`'s `ignoreCommand` watches, 45 minutes on; a build git does not know, or a name with no a-f letter (a start time), is no finding (`health.yml` fetches 100 commits) | none |
+| A deploy Vercel skipped (since D157 the `ignoreCommand` diffs from `VERCEL_GIT_PREVIOUS_SHA`, the last deployed commit, else `HEAD^`; an unknown commit errors, so Vercel builds) | warning `site_behind`: `/build.json`'s commit does not hold the newest non-bot commit on `origin/main` (else `main`) touching a path `apps/web/vercel.json`'s `ignoreCommand` watches, 45 minutes on; a build git does not know, or a name with no a-f letter (a start time), is no finding (`health.yml` fetches 100 commits) | none |
 | Warnings nobody sees (no issue) | Mondays: one issue labelled `health-warnings` lists the standing warnings, closed when none remain; an open `health` issue's daily comment leads with faults new since the last one | none |
 | Site narration spend | `speech_budget` adds the site's own month count (`state/usage-<month>.json` on Blob, read past the CDN, online); unreadable or holding another month is the warning `site_usage_unread`; not in `cost_over_ceiling` (its records are per day) | none |
 
@@ -112,8 +112,7 @@ Gap: the site's records are per day, so its narration is not in the 24-hour ceil
 a late-briefing check (built and removed: Vercel Cron starts the on-time briefing as a
 `workflow_dispatch` (D61) and run.yml makes skipped hourly `schedule` runs, so neither the run list
 nor the state can tell late from on time or from a regenerate; it needs the trigger recorded in
-the run record); `ignoreCommand` still
-diffs only `HEAD^..HEAD` (`site_behind` detects the skip, nothing prevents it); phones under GPC
+the run record); phones under GPC
 never report vitals, so `field_unmeasured` may warn for good.
 
 **Accessibility.** Detector: axe in the browser suites. Gap: no check on production. Recommend:
