@@ -575,8 +575,19 @@
   border-radius: var(--radius-sm);
 }
 
+/* A hairline keeps the tile's edge in sight on the page's own colour. Drawn over the tile, so the
+   letter and a loaded icon carry the same edge (2026-10-22). */
+.source-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
+  pointer-events: none;
+}
+
 /* The name's first letter, under the site's icon: what shows while the icon loads, and for good
-   when the site has none. A hairline keeps the tile's edge in sight on the page's own colour. */
+   when the site has none. */
 .source-initial {
   display: grid;
   place-items: center;
@@ -584,7 +595,6 @@
   height: 100%;
   border-radius: inherit;
   background: var(--color-surface-container);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-hairline);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-medium);

@@ -336,11 +336,21 @@ const RULES: Rule[] = [
   {
     name: "uses only system colors that forced-colors mode defines",
     offenders: () => {
-      const allowed = new Set(["GrayText", "Highlight", "CanvasText", "ButtonText"]);
+      // HighlightText only ever on a Highlight fill, its pair; ButtonBorder for a control's edge.
+      const allowed = new Set([
+        "GrayText",
+        "Highlight",
+        "HighlightText",
+        "CanvasText",
+        "ButtonText",
+        "ButtonBorder",
+      ]);
       return ownCss().flatMap(([file, css]) =>
         [
           ...css.matchAll(
-            /\b(Canvas|CanvasText|LinkText|GrayText|Highlight|ButtonText|ButtonFace|Field|Mark)\b/g,
+            // Every system colour keyword, the deprecated ones too, matched whole: `\bHighlight\b`
+            // alone let HighlightText through unchecked (2026-10-22).
+            /\b(AccentColor|AccentColorText|ActiveText|ButtonBorder|ButtonFace|ButtonText|Canvas|CanvasText|Field|FieldText|GrayText|Highlight|HighlightText|LinkText|Mark|MarkText|SelectedItem|SelectedItemText|VisitedText|ActiveBorder|ActiveCaption|AppWorkspace|Background|ButtonHighlight|ButtonShadow|CaptionText|InactiveBorder|InactiveCaption|InactiveCaptionText|InfoBackground|InfoText|Menu|MenuText|Scrollbar|ThreeDDarkShadow|ThreeDFace|ThreeDHighlight|ThreeDLightShadow|ThreeDShadow|Window|WindowFrame|WindowText)\b/g,
           ),
         ]
           .filter((match) => !allowed.has(match[1] ?? ""))
