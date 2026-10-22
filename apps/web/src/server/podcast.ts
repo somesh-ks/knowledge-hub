@@ -203,6 +203,16 @@ export async function handlePodcast(
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
 
+  // The shared burst cap (D150), taken only by a request that passed the checks above.
+  const burstWait = (await deps.burst?.()) ?? 0;
+  if (burstWait > 0) {
+    return {
+      status: 429,
+      headers: { "Retry-After": String(burstWait) },
+      body: { status: 429, error: "cooldown", retry_after_s: burstWait },
+    };
+  }
+
   // A new discussion's hosts are named after the voices that will read it. The lookup runs beside
   // the GitHub calls, is given up after a short wait and never throws; without names the engine uses
   // its gender-neutral pair, so this can neither fail nor hold up the request.

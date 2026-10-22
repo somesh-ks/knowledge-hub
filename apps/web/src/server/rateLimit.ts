@@ -1,11 +1,10 @@
 import { connectConfigStore, type SqlClient } from "@dispatch/engine/config-paths";
-import { takeSharedSlot } from "@dispatch/engine/rate-counter";
+import { takeSharedSlot, windowOf } from "@dispatch/engine/rate-counter";
 import { describeError } from "./redact";
 
 /**
- * A fixed-window rate limit for the open routes (D41: no passphrase), one per function instance: a
- * cold start resets it. It is the floor under the shared limit below, and the whole limit when the
- * shared counter is off or down.
+ * A fixed-window rate limit, one per function instance: a cold start resets it. For a route that
+ * spends nothing (`/api/report`); the paid routes use the shared limit below.
  */
 export interface WindowLimiter {
   windowStart: number;
@@ -56,7 +55,9 @@ export type SharedLimiter = (bucket: string, perMinute: number) => Promise<boole
 export function createSharedLimiter(deps: SharedLimiterDeps): SharedLimiter {
   const now = deps.now ?? Date.now;
   const log = deps.log ?? ((message: string) => console.error(`[rate-limit] ${message}`));
-  const local = new Map<string, WindowLimiter>();
+  // The instance's own count uses the counter's clock-aligned minutes, so a refusal's wait (to the
+  // end of the minute) is right whichever count refused.
+  const local = new Map<string, { window: number; count: number }>();
   let client: Promise<SqlClient> | null = null;
   let quietUntil = 0;
 
@@ -73,6 +74,8 @@ export function createSharedLimiter(deps: SharedLimiterDeps): SharedLimiter {
       };
       const answer = await Promise.race([take(), timeout]);
       if (answer !== slow) return answer;
+      // A connect that hangs must not be awaited by every later request: open a fresh one.
+      client = null;
       quietUntil = now() + SHARED_SLOW_BACKOFF_MS;
       log(`shared counter slow (over ${SHARED_TIMEOUT_MS} ms), counting per instance`);
       return true;
@@ -87,12 +90,11 @@ export function createSharedLimiter(deps: SharedLimiterDeps): SharedLimiter {
   }
 
   return async (bucket, perMinute) => {
-    let limiter = local.get(bucket);
-    if (limiter === undefined) {
-      limiter = newLimiter();
-      local.set(bucket, limiter);
-    }
-    if (!takeSlot(limiter, perMinute, now())) return false;
+    const window = windowOf(now(), 60_000);
+    const mine = local.get(bucket);
+    const count = mine?.window === window ? mine.count : 0;
+    if (count >= perMinute) return false;
+    local.set(bucket, { window, count: count + 1 });
     const url = deps.databaseUrl;
     if (url === undefined || url === "" || now() < quietUntil) return true;
     return sharedSlot(url, bucket, perMinute);
@@ -105,14 +107,18 @@ export const sharedLimit: SharedLimiter = createSharedLimiter({
 });
 
 /**
- * What a workflow route answers when its shared per-minute cap is full: the cooldown its page
- * knows, running to the end of the counter's minute.
+ * A burst cap for a route that starts a workflow: 0 to go ahead, or the seconds to the end of the
+ * counter's minute. The handlers take it only after the origin, the body and the passphrase have
+ * passed, so a request from another site cannot use up the owner's minute.
  */
-export function floodRefusal(now: number = Date.now()) {
-  const wait = Math.max(1, Math.ceil((60_000 - (now % 60_000)) / 1000));
-  return {
-    status: 429,
-    headers: { "Retry-After": String(wait) },
-    body: { status: 429, error: "cooldown", retry_after_s: wait },
-  };
+export function burstCap(
+  bucket: string,
+  perMinute: number,
+  limit: SharedLimiter = sharedLimit,
+  now: () => number = Date.now,
+): () => Promise<number> {
+  return async () =>
+    (await limit(bucket, perMinute))
+      ? 0
+      : Math.max(1, Math.ceil((60_000 - (now() % 60_000)) / 1000));
 }

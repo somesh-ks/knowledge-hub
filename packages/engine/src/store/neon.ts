@@ -3,8 +3,9 @@ import type { SqlClient } from "./configPaths.js";
 
 /**
  * A client over Neon's HTTP endpoint: one fetch per query, nothing to close. The only module that
- * imports the driver; it is loaded behind the store switch (D149), statically within this module so
- * Vercel's file tracing finds the package for the function that writes edits.
+ * imports the driver. It is loaded on demand: behind the store switch for config (D149), and on the
+ * site whenever DATABASE_URL is set, for the shared rate-limit counter (D150). The import is static
+ * within this module so Vercel's file tracing finds the package for the functions that use it.
  */
 export function connectNeon(databaseUrl: string): SqlClient {
   const sql = neon(databaseUrl);

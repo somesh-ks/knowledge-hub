@@ -26,15 +26,14 @@ export const GET: APIRoute = async ({ url, request }) =>
         log: (message) => console.error(`[api/source-preview] ${message}`),
         ...(classifier
           ? {
-              classify: async (preview) =>
-                (await sharedLimit("source-preview:jev", JEV_PER_MINUTE))
-                  ? classifier.classify({
-                      name: preview.name,
-                      url: preview.url,
-                      type: preview.type ?? "rss",
-                      titles: preview.sample_titles ?? [],
-                    })
-                  : null,
+              classify: (preview) =>
+                classifier.classify({
+                  name: preview.name,
+                  url: preview.url,
+                  type: preview.type ?? "rss",
+                  titles: preview.sample_titles ?? [],
+                }),
+              mayClassify: () => sharedLimit("source-preview:jev", JEV_PER_MINUTE),
             }
           : {}),
       },

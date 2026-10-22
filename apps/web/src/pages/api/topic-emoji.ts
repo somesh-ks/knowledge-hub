@@ -12,28 +12,21 @@ export const prerender = false;
 const jevKey = process.env.TYPESAFE_API_KEY;
 const geminiKey = process.env.GEMINI_API_KEY;
 
-// The route is open (D41) and each answer is a paid request, so a request takes a slot of a model's
-// per-minute cap, shared by every instance, before asking it; past a cap the next model, then the
-// free fallback, answers.
-const JEV_PER_MINUTE = 20;
-const GEMINI_PER_MINUTE = 20;
-const picker =
-  jevKey || geminiKey
-    ? createEmojiPicker(
-        { jev: jevKey, gemini: geminiKey },
-        {
-          jev: () => sharedLimit("topic-emoji:jev", JEV_PER_MINUTE),
-          backup: () => sharedLimit("topic-emoji:gemini", GEMINI_PER_MINUTE),
-        },
-      )
-    : null;
+// The route is open (D41) and an answer costs up to two paid requests (Jev, then Gemini), so a
+// request that would ask a model takes one slot of a per-minute cap shared by every instance; past
+// it the free fallback answers.
+const ASKS_PER_MINUTE = 20;
+const picker = jevKey || geminiKey ? createEmojiPicker({ jev: jevKey, gemini: geminiKey }) : null;
 
 export const GET: APIRoute = async ({ url }) => {
   const name = (url.searchParams.get("name") ?? "").trim().slice(0, 60);
   if (name === "") return toResponse({ status: 400, body: { error: "name_required" } });
   const description = (url.searchParams.get("description") ?? "").slice(0, 400);
+  const asks = picker !== null && !placeEmoji(name);
   const emoji =
-    picker && !placeEmoji(name) ? await picker.pick({ name, description }) : fallbackEmoji(name);
+    asks && (await sharedLimit("topic-emoji", ASKS_PER_MINUTE))
+      ? await picker.pick({ name, description })
+      : fallbackEmoji(name);
   return toResponse({ status: 200, body: { emoji } });
 };
 

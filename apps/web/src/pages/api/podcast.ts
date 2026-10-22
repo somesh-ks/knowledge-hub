@@ -4,7 +4,7 @@ import { bundledEpisodeIds } from "../../server/episodeSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { handlePodcast } from "../../server/podcast";
-import { floodRefusal, sharedLimit } from "../../server/rateLimit";
+import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route runs on demand, as a Vercel Function.
 export const prerender = false;
@@ -16,7 +16,6 @@ const REQUESTS_PER_MINUTE = 10;
 
 export const POST: APIRoute = ({ request, url }) =>
   answerWithRef("api/podcast", async (log) => {
-    if (!(await sharedLimit("podcast", REQUESTS_PER_MINUTE))) return floodRefusal();
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
     return handlePodcast(
@@ -27,6 +26,7 @@ export const POST: APIRoute = ({ request, url }) =>
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         verifyPassphrase: passphraseCheck(),
+        burst: burstCap("podcast", REQUESTS_PER_MINUTE),
         episodeIds: bundledEpisodeIds,
         log,
       },

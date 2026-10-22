@@ -538,9 +538,20 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
 
+  // The shared burst cap (D150), taken only by a request that passed the checks above.
+  const burstWait = (await deps.burst?.()) ?? 0;
+  if (burstWait > 0) {
+    return {
+      status: 429,
+      headers: { "Retry-After": String(burstWait) },
+      body: { status: 429, error: "cooldown", retry_after_s: burstWait },
+    };
+  }
+
   const storeUrl = configStoreUrl(deps.env);
   if (storeUrl !== null) {
-    // Loaded only with the store on, so the function never loads the driver while it is off.
+    // Loaded only with the store on. The driver itself also loads for the rate-limit counter
+    // whenever DATABASE_URL is set (D150), store on or off.
     const { saveToStore } = await import("./configStore");
     return saveToStore(request, storeUrl, config, deps);
   }

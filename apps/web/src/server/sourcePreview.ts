@@ -237,6 +237,8 @@ export interface SourcePreviewDeps {
   preview?: (url: string, fetchImpl: FetchImpl, signal: AbortSignal) => Promise<SourcePreview>;
   /** Asks Jev for the format; absent when the server has no key. It may be slow: the handler gives up after FORMAT_TIMEOUT_MS. */
   classify?: (preview: SourcePreview) => Promise<SourceFormat | null>;
+  /** The shared cap on asking Jev (D150), checked before the FORMAT_TIMEOUT_MS race starts. */
+  mayClassify?: () => Promise<boolean>;
 }
 
 const cache = new Map<string, { at: number; preview: FormattedPreview }>();
@@ -280,10 +282,14 @@ const defaultPreview: NonNullable<SourcePreviewDeps["preview"]> = (url, fetchImp
 async function withFormat(
   preview: SourcePreview,
   classify: SourcePreviewDeps["classify"],
+  mayClassify: SourcePreviewDeps["mayClassify"],
 ): Promise<FormattedPreview> {
   const rule = deriveSourceFormat(preview.type ?? "rss");
+  const byRule: FormattedPreview = { ...preview, format: rule, format_by: "rule" };
   // A type that decides its own format (video, releases, research, forum) is not asked about.
-  if (!classify || rule !== "blog") return { ...preview, format: rule, format_by: "rule" };
+  if (!classify || rule !== "blog") return byRule;
+  // Past the shared cap the rule stands; the check's own wait does not use up Jev's time.
+  if (mayClassify && !(await mayClassify())) return byRule;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const jev = await Promise.race([
     classify(preview).catch(() => null),
@@ -346,7 +352,7 @@ export async function handleSourcePreview(
       guardedFetch(deps.fetch, resolve),
       AbortSignal.timeout(OVERALL_TIMEOUT_MS),
     );
-    const formatted = await withFormat(preview, deps.classify);
+    const formatted = await withFormat(preview, deps.classify, deps.mayClassify);
     // A rule guess standing in for a Jev that failed or was slow is not kept, so a retry asks again.
     const settled = formatted.format_by === "jev" || !deps.classify || formatted.format !== "blog";
     if (settled) cache.set(key, { at: now, preview: formatted });
