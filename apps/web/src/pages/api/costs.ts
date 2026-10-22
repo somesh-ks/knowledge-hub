@@ -7,15 +7,14 @@ import { bundledCostRecords, bundledPrices } from "../../server/costSource";
 import { costBody, narrationRecords, parseCostQuery } from "../../server/costs";
 import { toResponse } from "../../server/http";
 import { parseState, usageKey } from "../../server/narrationState";
-import { newLimiter, takeSlot } from "../../server/rateLimit";
+import { sharedLimit } from "../../server/rateLimit";
 
 // Runs on demand: the report reads the narrate function's usage documents from Blob.
 export const prerender = false;
 
 // The route is open on purpose (the owner's passphrase is off site-wide, D41) and each answer reads
-// Blob, so an instance answers at most this many a minute; past it the answer is 429.
+// Blob, so the site answers at most this many a minute across instances; past it the answer is 429.
 const REPORTS_PER_MINUTE = 30;
-const asked = newLimiter();
 
 const OIDC_HEADER = "x-vercel-oidc-token";
 const log = (message: string): void => console.error(`[api/costs] ${message}`);
@@ -56,7 +55,7 @@ async function siteRecords(
 }
 
 export const GET: APIRoute = async ({ request, url }) => {
-  if (!takeSlot(asked, REPORTS_PER_MINUTE, Date.now())) {
+  if (!(await sharedLimit("costs", REPORTS_PER_MINUTE))) {
     return toResponse({
       status: 429,
       body: { error: "rate_limited" },

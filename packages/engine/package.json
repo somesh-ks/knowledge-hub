@@ -9,6 +9,7 @@
     "./config-paths": "./src/store/configPaths.ts",
     "./config-store": "./src/config/applyDocuments.ts",
     "./neon": "./src/store/neon.ts",
+    "./rate-counter": "./src/store/rateCounter.ts",
     "./gate": "./src/gate/decideRun.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts"

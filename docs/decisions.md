@@ -151,7 +151,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
 | D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
-| D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
+| D140 | The design system is enforced in three layers (design-check, an edit hook, the design-audit agent); Phosphor icons only | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 | D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
@@ -161,6 +161,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
+| D150 | Paid-route caps counted in Neon; per instance as the floor | active; amends D149 |
 
 ---
 
@@ -1642,3 +1643,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Read path: `GET /api/config` returns, with each version, only what the built pages already publish (topics, the added sources, the schedule, the weights and type mix, the blocked outlets), so it needs no passphrase; votes, opens, the learning history, the writer settings, the queries and the suggestions are never served. Pages do not read it yet (stage 1d): they still paint the build-time copy only.
 - Do not switch the store on in Vercel until the pages read it: without that, an edit saved to the database looks undone once the 3-minute pending overlay ends, and a toggle sent from that stale page can revert it.
 - Also before switching on (review round 2, 2026-10-22): the Vercel cron reads `schedule.json` from git, a run old; `source.add` reads an unknown host (`ENOTFOUND` under undici's `fetch failed`) as a retryable 503, one probe's timeout marks the whole batch retryable, and the 4 s lookup timeout does not reach `discoverFeed`; `learn` writes the store before its commit (a failed push then a rerun moves a weight twice) and falls back to the file alone (the next run reverts it); a run that copies config at its gate can hit a rebase conflict with a `learn` push, and the commit guard reads the switch at commit time, not from the gate; a version conflict should be retried on the server once, not answered 409; `GET` should select only the public paths and cache briefly.
+
+## D150: the paid routes' caps are counted in Neon, with the instance's own count as the floor
+
+- Date: 2026-10-22
+- Decision: the per-minute caps of the open routes that spend (D41) are counted in one Neon table, `rate_limit_counters` (one row per bucket: the window number and its count; one atomic upsert per request; `engine/src/store/rateCounter.ts`, created by `dispatch config seed`). Buckets: `topic-emoji:jev` and `topic-emoji:gemini` (20 a minute each), `source-preview:jev` (20), `costs` (30), and a burst cap on the routes that start workflows, `generate` (3), `podcast` (10, deletes too) and `config` (12), which answer 429 `cooldown` past it. `server/rateLimit.ts` takes the instance's own slot first, so the shared count only tightens; with no `DATABASE_URL`, an error or no answer in 400 ms the instance's slot stands alone and the counter is left alone for 30 s. The counter needs only `DATABASE_URL`, not `DISPATCH_CONFIG_STORE`, so with a URL set the site loads the Neon driver for it (amends D149's "no module loads the driver").
+- Why: a cold start reset every per-instance cap; the Generate, Podcast and config caps count GitHub's run list, which lags a dispatch by seconds, so a burst could pass them together.
+- Cost: one query (about 20 to 50 ms) per limited request when the counter is up; nothing changes until the owner reruns `dispatch config seed`.
+- Rejected: Upstash or Vercel KV (a second store and key); a sliding log (a row per request).
+- Revisit if: the narration route needs a request cap (its spend is held by the daily digest cap and the monthly budget, both counted in Blob).

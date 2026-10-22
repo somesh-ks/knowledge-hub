@@ -46,7 +46,7 @@ export interface EmojiPickerOptions {
   model?: string;
   secrets?: readonly string[];
   /** Asked before each paid call; false skips that model (the site's per-minute caps). */
-  allow?: { jev?: () => boolean; backup?: () => boolean };
+  allow?: { jev?: () => boolean | Promise<boolean>; backup?: () => boolean | Promise<boolean> };
   /** Called with the reason when Jev or the backup cannot answer. */
   onFailure?: (reason: string) => void;
 }
@@ -68,7 +68,7 @@ export class EmojiPicker {
     const place = placeEmoji(topic.name);
     if (place) return place;
     const { client, backup } = this.options;
-    if (client && (this.options.allow?.jev?.() ?? true)) {
+    if (client && ((await this.options.allow?.jev?.()) ?? true)) {
       try {
         const raw = await withRetry(
           () =>
@@ -90,7 +90,7 @@ export class EmojiPicker {
         this.options.onFailure?.(describeError(error, this.options.secrets));
       }
     }
-    if (backup && (this.options.allow?.backup?.() ?? true)) {
+    if (backup && ((await this.options.allow?.backup?.()) ?? true)) {
       try {
         const text = await backup({
           name: cleanText(topic.name, 120),

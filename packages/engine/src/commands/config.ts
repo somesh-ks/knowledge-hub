@@ -27,6 +27,7 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
 import { readSourceCandidates } from "../state/store.js";
 import { connectConfigStore, type SqlClient, seedConfigDocuments } from "../store/configDocs.js";
+import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
 
 const USAGE = `Usage: dispatch config <command>
@@ -322,8 +323,9 @@ async function runCommit(argv: string[], ctx: CommandContext): Promise<number> {
 }
 
 /**
- * `dispatch config seed`: load the committed config files into Postgres (D149). Run by hand, once,
- * by the owner; no workflow calls it. Rows that exist are kept, so it is safe to run again.
+ * `dispatch config seed`: load the committed config files into Postgres (D149) and create the site's
+ * rate-limit counter table. Run by hand by the owner; no workflow calls it. Rows that exist are
+ * kept, so it is safe to run again.
  */
 async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): Promise<number> {
   const { values } = parseArgs({
@@ -338,6 +340,9 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
   const sql = await (deps.connectConfigStore ?? connectConfigStore)(ctx.env.DATABASE_URL);
   const dryRun = values["dry-run"] === true;
   const inserted = await seedConfigDocuments(ctx.root, sql, { dryRun });
+  // The site's shared rate-limit counter lives in the same database; until it exists the site counts
+  // per instance.
+  if (!dryRun) await sql.query(RATE_LIMIT_SCHEMA_SQL);
   print(
     ctx.json
       ? JSON.stringify({ ok: true, inserted, dry_run: dryRun })
