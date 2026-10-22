@@ -25,12 +25,7 @@ import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
  * through the sink with a stable code, as health.ts's own checks do.
  */
 
-export type HealthAspect =
-  | "reliability"
-  | "quality"
-  | "cost"
-  | "security"
-  | "integrity";
+export type HealthAspect = "reliability" | "quality" | "cost" | "security" | "integrity";
 
 export interface Sink {
   fault: (code: string, aspect: HealthAspect, message: string) => void;

@@ -2,8 +2,8 @@
  * Registers the service worker after the page has loaded, so it never competes with first paint.
  * An update installs in the background and activates only while nothing is playing, so a new
  * version can never cut off narration. The page is not reloaded either: the next navigation simply
- * uses the new worker's caches. An installed app that comes back to the front with a page from an
- * older deploy loads the current one, unless something is playing (checkBuild below).
+ * uses the new worker's caches. A page from an older deploy offers the current one in a toast, on
+ * load and when the app comes back to the front; only the reader's Reload loads it (checkBuild).
  */
 
 /** A waiting worker may take over unless audio is playing or buffering. */
@@ -29,94 +29,55 @@ export function shouldCheckForUpdate(now: number, lastCheck: number): boolean {
 
 /** The site's build is asked for at most this often when the app comes back to the front. */
 const BUILD_CHECK_MS = 60 * 1000;
-const RELOADED_FOR = "dispatch:build-reload";
+/** The build this session was last offered, so a dismissed prompt does not come back for it. */
+const OFFERED = "dispatch:build-offered";
+/** The toast's event and its ready signal (sheets/toastStore.ts), spelled out: no store import. */
+const TOAST_EVENT = "dispatch:toast";
+const TOAST_READY = "dispatch:toast-ready";
+let offeredHere: string | null = null;
 
-/**
- * Whether the page on screen is from an older deploy than the site and should be loaded again: not
- * while narration plays, and once per build, so a page the network cannot replace (a slow answer
- * the worker gave up on) is not reloaded in a loop.
- */
-function shouldReloadForBuild(
-  pageBuild: string | undefined,
-  siteBuild: unknown,
-  playerState: string | undefined,
-  reloadedFor: string | null,
-): boolean {
-  if (!pageBuild || typeof siteBuild !== "string" || !siteBuild) return false;
-  if (siteBuild === pageBuild || siteBuild === reloadedFor) return false;
-  return shouldActivateUpdate(playerState);
-}
-
-/** What a reload would throw away, as readPageWork reads it from the page. */
-export interface PageWork {
-  /** `document.querySelector`, which throws for a selector the browser does not know. */
-  query: (selector: string) => unknown;
-  /** The focused element is a field the reader types in. */
-  typing: boolean;
-  /**
-   * Each text field: its value now, and its value when the reader first focused it (undefined when
-   * they never did). A script that fills a field from saved state on load (a passphrase, a search
-   * from ?q, a source filter) changes its value without the reader editing anything.
-   */
-  fields: ReadonlyArray<{ value: string; start: string | undefined }>;
-}
-
-/**
- * Whether the page holds something a reload would throw away: an open dialog, menu or toast (the
- * Undo of a removal waiting to be sent), a field being typed in, or text the reader changed and has
- * not sent. A browser without popovers (iOS 16 Safari) throws on `:popover-open`; that must not
- * stop the check, and such a browser has no open popover anyway.
- */
-export function holdsWork(page: PageWork): boolean {
-  if (page.query("dialog[open]")) return true;
+function readOffered(): string | null {
   try {
-    if (page.query(":popover-open")) return true;
+    return sessionStorage.getItem(OFFERED) ?? offeredHere;
   } catch {
-    // No popovers in this browser.
+    return offeredHere;
   }
-  if (page.typing) return true;
-  return page.fields.some((field) => field.start !== undefined && field.value !== field.start);
 }
 
-/** Fields the reader types in. A range, checkbox or select takes effect as it changes. */
-const TEXT_FIELD =
-  "textarea, input:not([type]), input[type=text], input[type=search], input[type=email], input[type=url], input[type=tel], input[type=password], input[type=number]";
-
-/** A text field's value when the reader first focused it. A sent or reset form forgets its fields. */
-const fieldStart = new WeakMap<Element, string>();
-
-function trackEdits(): void {
-  document.addEventListener(
-    "focusin",
-    (event) => {
-      const field = event.target;
-      if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
-      if (field.matches(TEXT_FIELD) && !fieldStart.has(field)) fieldStart.set(field, field.value);
-    },
-    true,
-  );
-  const forget = (event: Event): void => {
-    if (!(event.target instanceof HTMLFormElement)) return;
-    for (const field of event.target.elements) fieldStart.delete(field);
-  };
-  document.addEventListener("submit", forget, true);
-  document.addEventListener("reset", forget, true);
+function markOffered(build: string): void {
+  offeredHere = build;
+  try {
+    sessionStorage.setItem(OFFERED, build);
+  } catch {
+    // Storage blocked: the page's own memory keeps it to once per page.
+  }
 }
 
-function readPageWork(): PageWork {
-  return {
-    query: (selector) => document.querySelector(selector),
-    typing: Boolean(document.activeElement?.matches(`${TEXT_FIELD}, [contenteditable]`)),
-    fields: [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TEXT_FIELD)].map(
-      (field) => ({ value: field.value, start: fieldStart.get(field) }),
-    ),
-  };
+/** A toast is up (an Undo waiting to be sent, a saved notice): a new one would replace it. */
+function toastIsUp(): boolean {
+  try {
+    return document.querySelector(".toast:popover-open") !== null;
+  } catch {
+    // No popovers (Safari before 17): the toast is never shown there, so none is up.
+    return false;
+  }
 }
 
 /**
- * Asks the site which build it serves and loads it when the page on screen is older. A page that
- * holds work is left alone and the answer is `true`: the next return asks again, and a full
- * navigation picks up the deploy by itself.
+ * Hands the toast its content. The toast's store loads with the sheets at idle and takes the event
+ * by cancelling it; before it has loaded, the content waits for the store's ready signal.
+ */
+function toast(detail: object): void {
+  const send = (): boolean =>
+    !document.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail, cancelable: true }));
+  if (!send()) document.addEventListener(TOAST_READY, () => send(), { once: true });
+}
+
+/**
+ * Asks the site which build it serves and, when the page on screen is older, offers the current one
+ * with a Reload. It never reloads by itself: the reader may be typing, listening or holding an Undo.
+ * Offered once per build per session; the answer is `true` when the offer waits for a toast that
+ * is up, so the next return asks again.
  */
 async function checkBuild(registration: ServiceWorkerRegistration): Promise<boolean> {
   if (!navigator.onLine) return false;
@@ -125,20 +86,23 @@ async function checkBuild(registration: ServiceWorkerRegistration): Promise<bool
   const response = await fetch("/build.json", { cache: "no-store" });
   if (!response.ok) return false;
   const siteBuild = ((await response.json()) as { build?: unknown }).build;
-  let reloadedFor: string | null = null;
-  try {
-    reloadedFor = sessionStorage.getItem(RELOADED_FOR);
-  } catch {
-    // Storage blocked: no reload, since nothing would stop a second one.
+  if (!pageBuild || typeof siteBuild !== "string" || !siteBuild || siteBuild === pageBuild) {
     return false;
   }
-  const playerState = document.documentElement.dataset.playerState;
-  if (!shouldReloadForBuild(pageBuild, siteBuild, playerState, reloadedFor)) return false;
-  if (holdsWork(readPageWork())) return true;
-  sessionStorage.setItem(RELOADED_FOR, String(siteBuild));
-  // The deploy may carry a new worker too. The reload's page load goes to the network either way.
-  await registration.update().catch(() => {});
-  location.reload();
+  if (siteBuild === readOffered()) return false;
+  if (toastIsUp()) return true;
+  markOffered(siteBuild);
+  toast({
+    message: "New version available",
+    actionLabel: "Reload",
+    onAction: () => {
+      // The deploy may carry a new worker too. The reload's page load goes to the network either way.
+      void registration
+        .update()
+        .catch(() => {})
+        .then(() => location.reload());
+    },
+  });
   return false;
 }
 
@@ -150,22 +114,26 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
   // Try again whenever the page is hidden, so an update that waited out a long listen still lands.
   let lastCheck = Date.now();
   let lastBuildCheck = 0;
+  const askBuild = (): void => {
+    if (Date.now() - lastBuildCheck < BUILD_CHECK_MS) return;
+    lastBuildCheck = Date.now();
+    checkBuild(registration)
+      .then((deferred) => {
+        // An offer that waited for another toast is made on the next return, not after the wait.
+        if (deferred) lastBuildCheck = 0;
+      })
+      .catch(() => {
+        // Offline or a failed read: the page on screen stays, and the next return asks again.
+      });
+  };
+  // On load as well, outside the once-a-minute limit, which is for returns to the front.
+  checkBuild(registration).catch(() => {});
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       activateWhenIdle(registration);
       return;
     }
-    if (Date.now() - lastBuildCheck >= BUILD_CHECK_MS) {
-      lastBuildCheck = Date.now();
-      checkBuild(registration)
-        .then((deferred) => {
-          // A page that held work is asked about again on the next return, not after the wait.
-          if (deferred) lastBuildCheck = 0;
-        })
-        .catch(() => {
-          // Offline or a failed read: the page on screen stays, and the next return asks again.
-        });
-    }
+    askBuild();
     if (shouldCheckForUpdate(Date.now(), lastCheck)) {
       lastCheck = Date.now();
       registration.update().catch(() => {
@@ -178,7 +146,6 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
 export function registerServiceWorker(): void {
   // Development serves unhashed modules that a cache would keep stale.
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
-  trackEdits();
   const register = (): void => {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })

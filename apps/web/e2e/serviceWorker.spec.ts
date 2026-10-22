@@ -160,9 +160,9 @@ test.describe("service worker", () => {
   });
 
   // 2026-10-21: the owner's phone kept a saved briefing's old HTML, and the old stylesheets it names,
-  // after a deploy had changed both. A deploy must show on the next visit, and on an installed
-  // app's return to the front without one.
-  test("shows a deploy on the next visit to a saved briefing and when the app comes back", async ({
+  // after a deploy had changed both. A deploy must show on the next visit; an installed app's return
+  // to the front offers it, and never reloads by itself (it threw away a reader's typing and Undo).
+  test("shows a deploy on the next visit, and offers it without reloading when the app comes back", async ({
     page,
     context,
   }) => {
@@ -189,16 +189,23 @@ test.describe("service worker", () => {
     await page.reload();
     await page.waitForLoadState("networkidle");
     expect(await build()).not.toBe(deploy);
+    // A reload would drop this mark with the page.
+    await page.evaluate(() => {
+      (window as unknown as { kept: boolean }).kept = true;
+    });
     await ship();
+    const offer = page.locator(".toast").filter({ hasText: "New version available" });
     // The return to the front, told again until the page listens (it does once the worker registers).
     await expect
       .poll(async () => {
-        await page
-          .evaluate(() => document.dispatchEvent(new Event("visibilitychange")))
-          .catch(() => {});
-        return build().catch(() => "");
+        await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+        return offer.isVisible();
       })
-      .toBe(deploy);
+      .toBe(true);
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    expect(await build()).not.toBe(deploy);
+    await offer.getByRole("button", { name: "Reload" }).click();
+    await expect.poll(() => build().catch(() => "")).toBe(deploy);
   });
 
   test("serves the manifest with its icons", async ({ page, request }) => {

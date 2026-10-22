@@ -57,7 +57,11 @@ export function getToast(): ToastContent | null {
  */
 export const TOAST_EVENT = "dispatch:toast";
 globalThis.document?.addEventListener(TOAST_EVENT, (event) => {
+  // Taken: a sender that may run before this store loads (scripts/serviceWorker.ts) sees it was.
+  event.preventDefault();
   const detail = (event as CustomEvent).detail;
   if (detail?.dismiss === undefined) showToast(detail);
   else if (current?.message === detail.dismiss) dismissToast();
 });
+/** Told once this store listens, for a toast asked for before it loaded. */
+globalThis.document?.dispatchEvent(new Event("dispatch:toast-ready"));
