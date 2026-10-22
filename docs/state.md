@@ -10,11 +10,11 @@ Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run (commits for 2026-10-17, 18-weekly and 20); episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Deploy: the Vercel GitHub integration deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (`dispatch-verify`, `dispatch-worker` in `.claude/agents/`), `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
+- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes. Rules: `AGENTS.md`, [the postmortem](engineering/postmortem-test-suite.md). Cloud container setup: [learnings](learnings.md).
+Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes. Rules: `AGENTS.md`, [the postmortem](engineering/postmortem-test-suite.md).
 
 ## Not working or unverified
 
@@ -33,13 +33,14 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
 - PWA (D123) on a device: Android bars after a reinstall, splash to launch-screen hand-off. closed when: both match the theme after an Android reinstall.
 - Covers and header light (D110, D122): monthly covers on the deployed site; the light on a real GPU, Safari and Firefox; a theme switch past 400 ms. closed when: phone and desktop screenshots of production show each.
-- Real phone, Safari and WebKit: the player's iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has never run; its six old failures (flick up, long pull, three stuck paths, cover flight), drawn selects, the searchable list, device sounds and the address-bar move (#120) are the checklist. closed when: one pass on a real iPhone and one on Android works through the checklist.
+- Real phone, Safari and WebKit: the player's iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has never run; its six old failures, drawn selects, the searchable list, device sounds and the address-bar move (#120) are the checklist. closed when: one pass on a real iPhone and one on Android works through the checklist.
 - "Narration is not available right now" (2026-10-12) was not reproduced; the fault is in synthesis. closed when: the Vercel function log of a failing try names the step.
 - Scheduled trigger (D61): no 07:00 dispatch from Vercel Cron seen since `CRON_SECRET` was set (2026-10-13). closed when: the Cron Jobs page shows a 07:00 call that started `run.yml`.
 - Time zone (D100) only against fakes: not a non-Stockholm zone, a fallback entry or a clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still compare with Stockholm's today. closed when: a run across the 2026-10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no run has judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge stage reports the feeds.
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
+- Config store (D149): built, off; `run.yml` and `podcast.yml` must pass it (runbook 11). closed when: a phone's edit shows on a laptop and a run log names the store.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `dispatch` group); the handlers' limits race under concurrent requests; production's `GITHUB_DISPATCH_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit, and the race has a fix or a decision.
 - Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on news.someshks.work.
 - Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note's map.
