@@ -82,8 +82,8 @@ const nameOf = (by: string, key: string): string => {
   return NAMES[key] ?? key.charAt(0).toUpperCase() + key.slice(1).replaceAll("_", " ");
 };
 
-/** Dollars: cents from a dollar up, four places below one (a run often costs a fraction of a cent). */
-const usd = (n: number): string => (n === 0 ? "$0.00" : `$${n.toFixed(Math.abs(n) < 1 ? 4 : 2)}`);
+/** Dollars: cents from a dime up, four places below one (a call often costs a fraction of a cent). */
+const usd = (n: number): string => (n === 0 ? "$0.00" : `$${n.toFixed(Math.abs(n) < 0.1 ? 4 : 2)}`);
 /** An axis tick: as few places as the step needs. */
 const tick = (n: number, step: number): string =>
   `$${n.toFixed(step >= 1 ? 0 : step >= 0.01 ? 2 : 3)}`;
@@ -128,12 +128,13 @@ function windowBuckets(period: Period, days: number, zone: string): string[] {
   return [...out];
 }
 
-function bucketLabel(bucket: string, period: Period, long = false): string {
+/** A bucket's name; on the month axis the first label and every January carry the year. */
+function bucketLabel(bucket: string, period: Period, long = false, first = false): string {
   const at = new Date(`${bucket.length === 7 ? `${bucket}-01` : bucket}T00:00:00Z`);
   if (period === "month")
     return at.toLocaleDateString("en-GB", {
       month: long ? "long" : "short",
-      ...(long ? { year: "numeric" } : {}),
+      ...(long || first || at.getUTCMonth() === 0 ? { year: "numeric" } : {}),
       timeZone: "UTC",
     });
   const day = at.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -241,9 +242,11 @@ function draw(): void {
     "aria-hidden": "true",
   });
 
-  // Recessive frame: three solid hairlines and their ticks.
+  // Recessive frame: three solid hairlines and their ticks; an empty range keeps only the baseline,
+  // so no scale is invented for spend that does not exist.
   const grid = svgEl("g", { class: "costs-grid" });
-  for (const value of [0, step, top]) {
+  const empty = totals.every((total) => total === 0);
+  for (const value of empty ? [0] : [0, step, top]) {
     const at = Math.round(y(value)) + 0.5;
     grid.append(svgEl("line", { x1: PAD.left, x2: width - PAD.right, y1: at, y2: at }));
     const label = svgEl("text", { x: PAD.left - 8, y: at, "text-anchor": "end", dy: "0.32em" });
@@ -284,12 +287,12 @@ function draw(): void {
   const every = Math.ceil(buckets.length / fit);
   buckets.forEach((bucket, index) => {
     const last = index === buckets.length - 1;
-    if (!last && (index % every !== 0 || buckets.length - 1 - index < every / 2)) return;
+    if (!last && (index % every !== 0 || buckets.length - 1 - index < every)) return;
     const cx = PAD.left + index * band + band / 2;
     const anchor = last && band < 40 ? "end" : index === 0 && band < 40 ? "start" : "middle";
     const ax = anchor === "end" ? cx + barW / 2 : anchor === "start" ? cx - barW / 2 : cx;
     const text = svgEl("text", { x: ax, y: HEIGHT - 6, "text-anchor": anchor });
-    text.textContent = bucketLabel(bucket, period);
+    text.textContent = bucketLabel(bucket, period, false, index === 0);
     labels.append(text);
   });
   svg.append(labels);
@@ -345,8 +348,12 @@ function focusColumn(index: number, announce: boolean): void {
   tip.replaceChildren(head, ...rows);
   tip.hidden = false;
   const center = PAD.left + active * band + band / 2;
+  // Beside the column, never over it: to its right while there is room, else to its left.
   const tipW = tip.offsetWidth;
-  tip.style.translate = `${Math.round(Math.max(0, Math.min(width - tipW, center - tipW / 2)))}px 0`;
+  const right = center + band / 2 + 8;
+  const left = center - band / 2 - 8 - tipW;
+  const x = right + tipW <= width ? right : left >= 0 ? left : Math.max(0, width - tipW);
+  tip.style.translate = `${Math.round(x)}px 0`;
   if (announce) plot.setAttribute("aria-description", tip.textContent ?? "");
 }
 

@@ -66,7 +66,7 @@
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
   align-items: center;
-  margin-block-end: var(--space-6);
+  margin-block: var(--space-4) var(--space-6);
 }
 
 .costs-filters .costs-range {
@@ -104,7 +104,7 @@
   gap: var(--space-4) var(--space-8);
   align-items: flex-end;
   justify-content: space-between;
-  margin-block-end: var(--space-8);
+  margin-block-end: var(--space-4);
 }
 
 .costs-hero {
