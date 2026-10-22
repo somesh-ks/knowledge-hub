@@ -8,7 +8,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 
 | Fault | Detector | Self-healing |
 | --- | --- | --- |
-| A run failed, or the trigger missed one (D61) | `health`: `run_failed`, `run_overdue` | `health.yml` starts one scheduled run when the fault first appears; the `drill` input proves this path on a quiet day (a planted `run_overdue`, one dry run, the issue closed) |
+| A run failed, or the trigger missed one (D61) | `health`: `run_failed` (a scheduled or weekly job that failed anywhere before Commit records `failed` in run.yml's Record failure step, `run --record-failed`, through the write guard), `run_overdue` | `health.yml` starts one scheduled run when the fault first appears; the `drill` input proves this path on a quiet day (a planted `run_overdue`, one dry run, the issue closed) |
 | Narration missing a day later | `audio_missing` | one `audio.yml` run (narrates every digest without audio) |
 | Narration file gone from Blob | `audio_unreachable` (HEAD of the newest file) | none: re-run `publish` |
 | A digest or state file that does not parse | `digest_invalid`, `state_invalid` | none: the guard should have refused it |
@@ -23,7 +23,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | A stub story (a summary of a few words) | warning `story_short` (under a third of the writer's minimum) | none: rewrite or regenerate |
 | A critical advisory in what ships | CI `check` job: `npm audit --omit=dev --audit-level=critical` | Dependabot PRs |
 | Client errors and CSP violations on a phone | `/api/report` logs `[client-fault]` lines (path only, 30 a minute per instance) | none: read the Vercel log |
-| A run that died before it recorded an outcome (install, timeout, crash) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a `cancelled` one is the warning `run_cancelled` (GitHub reports a job killed at its timeout and the owner's cancel alike); a briefing run under way stands either down only when it is newer | none: an alert only (D146); a missed briefing heals as `run_overdue` |
+| A run that died before it recorded an outcome (timeout, an on-demand run, a Record failure step that could not run) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a `cancelled` one is the warning `run_cancelled` (GitHub reports a job killed at its timeout and the owner's cancel alike); a briefing run under way stands either down only when it is newer | none: an alert only (D146); a missed briefing heals as `run_overdue` |
 | A broken episode | `episode_broken`: every Podcasts/ file parses and the shared reader narrates every turn; online, the newest settled episode's first segment has readable word marks once its audio is stored (`episode_unnarrated` warns when it is not stored) | none |
 | A config file that stopped parsing | `config_invalid`: doctor's offline config checks, `config/models.json`, and the core schemas of topics, schedule, prices, the catalogue and `sources.user.json` | none |
 
@@ -36,9 +36,10 @@ day of the same fault only comments.
 `dispatch status` and the run's email; `smoke.yml` asked three API questions. The push retry missed
 GitHub's ref-lock race. Gap left: `config.yml` can be cancelled after a 202 (shared group, see the
 [reliability audit](reliability-audit-2026-10-15.md)); the Vercel Cron call is never verified
-(D61); `health` only sees the run's recorded outcome, so a run that died before Commit reads as the
-previous one (caught later by `run_overdue`). Recommend: a `failure()` step in `run.yml` that
-records `failed` (small; a workflow change).
+(D61). Added: a `failure()` step in `run.yml` (Record failure) records `failed` for what a
+scheduled or weekly run was due to make, so the next `health` reports `run_failed` and heals once
+instead of reading the run before; the record is newer than the run, so `run_died` stays quiet for
+it. Left: a timeout is a cancel and skips the step (`run_cancelled`, then `run_overdue`).
 
 **Reliability: the site and functions.** Before: `smoke.yml` after each deploy. Added: headers,
 `/latest.json` freshness, narration reachability. Gap: function latency and 5xx rates are only in
@@ -93,7 +94,9 @@ config checks into `health` (small).
 ## Round 3: episodes, config, died runs (2026-10-22)
 
 - Web Vitals: built and taken out again before merge (D146); replaced by the weekly lab probe (Mondays, D148) (D147).
-- Died runs: GitHub's run list is the start marker; nothing new is written by the engine.
+- Died runs: GitHub's run list is the start marker. Since then a failed scheduled or weekly job
+  records `failed` itself (run.yml's Record failure step), so `run_died` is left to what that step
+  cannot record.
 - Episodes and config: parsed daily by `health`, with doctor's config checks folded in.
 
 ## Coverage by aspect, round 2

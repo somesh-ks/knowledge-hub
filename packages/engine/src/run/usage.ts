@@ -1,7 +1,7 @@
 import { STAGES } from "./types.js";
 
 export const RUN_USAGE = `Usage: dispatch run [--mode scheduled|on-demand|weekly] [--force] [--since <iso>]
-                    [--dry-run] [--no-push] [--feedback <text>] [--topics <ids>] [--replace <id>] [--delete <id>] [--stage ${STAGES.join("|")}] [--run <id>]
+                    [--dry-run] [--no-push] [--feedback <text>] [--topics <ids>] [--replace <id>] [--delete <id>] [--record-failed] [--stage ${STAGES.join("|")}] [--run <id>]
 
 Runs the pipeline: gate, fetch, judge, write, validate, commit. With --stage it runs one stage,
 as a workflow step does; stages hand work to each other through .cache/run/. Without it every
@@ -22,6 +22,10 @@ stage runs in order and stops cleanly when the gate says nothing is due.
   --replace   gate: make digest <id> again over its own window and, once the new one is published,
               remove the old one in the same commit (Regenerate on a briefing).
   --delete    remove digest <id> and its narration timeline in one commit; no stage runs.
+  --record-failed
+              the job died before the commit stage (run.yml): record "failed" in state/last-run.json
+              for each kind the gate planned (or would plan), and commit it; never for a dry run, a
+              replacement or an on-demand run. No stage runs.
   --run       commit stage only: adopt this agent-mode run directory (.cache/run/<id>).
   --json      print one JSON document on stdout. gate: { due, reason, mode, passes, dry_run };
               commit: { outcome, digests, deploy, items }; a failed stage: { outcome: "failed",
