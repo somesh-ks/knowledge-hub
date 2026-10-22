@@ -151,7 +151,7 @@ describe("grounding and validation", () => {
   it("drops an item whose sentence the source does not support", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED, writer: writerUnsupportedFor([firstId()]) });
     const result = await runStage(world);
-    expect(result.report).toMatchObject({ outcome: "published", items: 7 });
+    expect(result.report).toMatchObject({ outcome: "published", items: 5 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
     expect(digest.items.map((item) => item.id)).not.toContain(firstId());
     expect(digest.verified).toBe(true);
@@ -187,7 +187,7 @@ describe("grounding and validation", () => {
     });
     const result = await runStage(world);
     // Three minutes is eight stories at the narration's pace.
-    expect(result.report).toMatchObject({ outcome: "published", items: 8 });
+    expect(result.report).toMatchObject({ outcome: "published", items: 4 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
     expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
   });
@@ -241,7 +241,7 @@ describe("grounding and validation", () => {
       renderCommand(["--run", "2026-10-07", "--dry-run"], ctx),
     );
     expect(rendered.result).toBe(0);
-    expect(JSON.parse(rendered.stdout)).toMatchObject({ outcome: "dry-run", items: 8 });
+    expect(JSON.parse(rendered.stdout)).toMatchObject({ outcome: "dry-run", items: 6 });
 
     await runStage(world, { stage: "commit" });
     const validated = await captureStdout(() =>

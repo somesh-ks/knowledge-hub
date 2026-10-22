@@ -15,6 +15,9 @@ interface Props {
 }
 
 const { offers, name, topicId } = Astro.props;
+// How many show at once. The rest wait hidden in the page: each one added leaves the list and the
+// next takes its place (topicsEditor.ts), so a refill needs no request.
+const SHOWN = 5;
 // What each + button carries, and topicsEditor.ts reads (topicText.ts, SuggestedAdd): the feed it
 // sends as source.add, the topic to file it under, and the icon its row shows until the build does.
 const adding = (offer: CatalogSource): string =>
@@ -30,17 +33,18 @@ const adding = (offer: CatalogSource): string =>
      Nothing that fits, no section. A row is a source's row with what is known before it is read: the
      site and what it covers in place of a score, and a button in place of the checkbox. The tile and
      the name are a source's own (SourceRow.astro). Pressing + adds the feed to the topic
-     (topicsEditor.ts) and the button shows it is done, in the space it already has. */}
+     (topicsEditor.ts): the row shimmers while the request goes, then leaves this list for the
+     topic's sources, and the next spare row takes its place. */}
 {
   offers.length > 0 && (
     <section class="topic-suggested" aria-labelledby="suggested-head">
       <h2 class="section-head" id="suggested-head">Suggested sources</h2>
       <ul class="topic-sources" role="list" data-suggested-sources aria-label={`Suggested sources for ${name}`}>
-        {offers.map((offer) => {
+        {offers.map((offer, index) => {
           const icon = faviconOf(offer.url ?? offer.feed_url);
           const cadence = cadenceLabel(offer.cadence);
           return (
-            <li class="source-row is-suggested">
+            <li class="source-row is-suggested" hidden={index >= SHOWN} data-spare={index >= SHOWN ? "" : undefined}>
               <span class="source-main">
                 <span class="source-icon" aria-hidden="true">
                   <span class="source-initial">{sourceInitial(offer.name)}</span>

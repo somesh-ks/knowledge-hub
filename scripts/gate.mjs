@@ -1,5 +1,6 @@
 // The fast checks in parallel: typecheck, the site's type check (astro check), lint and the unit tests,
-// plus the static site build with --build (it follows the site's type check: both write apps/web/.astro).
+// plus the static site build with --build (it follows the site's type check: both write apps/web/.astro),
+// and the docs check (scripts/docsCheck.mjs).
 // One process starts the others, so a shell that is slow to spawn (Git Bash on Windows: 3 to 8 s a
 // process, against 50 ms from PowerShell) pays once. Exit 1 if any step fails.
 //
@@ -11,6 +12,7 @@ const chains = [
   [{ name: "lint", command: "npm run lint" }],
   [{ name: "test", command: "npm test" }],
   [{ name: "site types", command: "npm run check -w @dispatch/web" }],
+  [{ name: "docs", command: "node scripts/docsCheck.mjs" }],
 ];
 if (process.argv.includes("--build")) {
   chains[3].push({ name: "build", command: "npm run build", env: { DISPATCH_STATIC_ONLY: "1" } });

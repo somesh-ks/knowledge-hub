@@ -10,6 +10,7 @@ import {
   VOICE_LIMITS,
   withGeneralTopics,
 } from "@dispatch/core";
+import { recordRunCosts } from "../cost/ledger.js";
 import {
   linkSourceIds,
   loadJudgments,
@@ -24,6 +25,7 @@ import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
+import { loadScheduleZone } from "../schedule/store.js";
 import { markSeen, pruneJudgments, pruneSeen } from "../state/prune.js";
 import { recordRun } from "../state/runRecord.js";
 import { recordSourceStats, type SourceCounts } from "../state/sourceStats.js";
@@ -325,6 +327,14 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   }
   if (statsTouched) await writeSourceStats(root, sourceStats);
   if (spend) lastRun = { ...lastRun, spend: { at: nowIso, ...spend } };
+  if (spend && deps.spend) {
+    await recordRunCosts(
+      root,
+      { requests: spend.requests, units: deps.spend.unitTotals() },
+      { runId: plan.created_at, at: nowIso, passKind: plan.passes[0]?.kind ?? "regular" },
+      await loadScheduleZone(root),
+    );
+  }
   await writeLastRun(root, lastRun);
 
   const message =

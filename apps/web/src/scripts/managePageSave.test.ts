@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PENDING_WRITER_KEY } from "../lib/pendingWriter";
 import { SAVED_KEY } from "../lib/savedKey";
 import { anyPending, parseSaved, savedOps } from "../lib/savedOverlay";
 import type { ConfigOp } from "../types/contracts";
@@ -424,39 +423,10 @@ describe("a left page's held run", () => {
     ]);
     expect(anyPending(pending(), Date.now())).toBe(false);
   });
-
-  it("stops showing a writer choice that no page took as saved", async () => {
-    const changes = new Map([
-      ["writer", change({ op: "writer.set", provider: "anthropic", model: "claude-x" })],
-    ]);
-    sessionStorage.setItem(
-      PENDING_WRITER_KEY,
-      JSON.stringify({ provider: "anthropic", model: "claude-x", timestamp: Date.now() }),
-    );
-    const { context: left } = page(changes);
-    answers.push(500);
-    const run = flush(left, "open");
-    keepWaiting(left);
-    // The Model page opened next says Saving: the held writer edit counts as pending.
-    expect(anyPending(pending(), Date.now())).toBe(true);
-    await run;
-    expect(heard[0]?.ok).toBe(false);
-    dropUnclaimed();
-    expect(sessionStorage.getItem(PENDING_WRITER_KEY)).toBeNull();
-  });
 });
 
 describe("remember", () => {
   afterEach(() => vi.unstubAllGlobals());
-
-  it("adds each request to what is kept, and forgets once nothing is left to show", () => {
-    vi.stubGlobal("localStorage", memoryStorage());
-    remember([{ op: "schedule.set", hour: 7 }], 1000);
-    remember([{ op: "weights.set", weights: { ui: 1 } }], 2000);
-    expect(savedOps(parseSaved(localStorage.getItem(SAVED_KEY), 3000), 3000)).toHaveLength(2);
-    remember([{ op: "writer.set", provider: "nebius", model: null }], 10 * 60 * 1000);
-    expect(localStorage.getItem(SAVED_KEY)).toBeNull();
-  });
 
   it("does not throw when storage is refused", () => {
     vi.stubGlobal("localStorage", {
@@ -465,36 +435,6 @@ describe("remember", () => {
       },
     });
     expect(() => remember([{ op: "schedule.set", hour: 7 }])).not.toThrow();
-  });
-});
-
-describe("the writer's note of a saved choice", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-  });
-
-  it("is written once the choice went through, never for a refused one", async () => {
-    // Far past any request an earlier test made: no wait out of the server's gap.
-    vi.useFakeTimers();
-    vi.setSystemTime(Date.now() + 1000 * 3_600_000);
-    vi.stubGlobal("localStorage", memoryStorage());
-    vi.stubGlobal("sessionStorage", memoryStorage());
-    const answer = (status: number) =>
-      vi.fn(async () => new Response(JSON.stringify({ status }), { status }));
-    const changes = new Map([
-      ["writer", change({ op: "writer.set", provider: "anthropic", model: "claude-x" })],
-    ]);
-    const context: SaveContext = { changes, dialog: null, show: () => {} };
-    vi.stubGlobal("fetch", answer(500));
-    await flush(context, "open");
-    expect(sessionStorage.getItem(PENDING_WRITER_KEY)).toBeNull();
-    vi.stubGlobal("fetch", answer(202));
-    await flush(context, "open");
-    expect(JSON.parse(sessionStorage.getItem(PENDING_WRITER_KEY) ?? "{}")).toMatchObject({
-      provider: "anthropic",
-      model: "claude-x",
-    });
   });
 });
 

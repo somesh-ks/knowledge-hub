@@ -27,14 +27,14 @@
   padding-block-end: var(--space-6);
 }
 
-/* Inside the form a heading is a field label, not a page heading: body size, medium weight, the
+/* Inside the form a heading is a field label, not a page heading: body size, regular weight, the
    text colour (an accent label would read as a link), little air. */
 .create-view .create-group .section-head {
-  padding-block: var(--space-4) var(--space-3);
+  padding-block: var(--space-4) var(--space-4);
   color: var(--color-on-surface);
   font-family: inherit;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   letter-spacing: normal;
   line-height: var(--font-leading-label);
 }
@@ -62,76 +62,22 @@
 .create-error > .icon {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
-  margin-block-start: var(--space-half);
+  block-size: 1lh;
 }
 
 .create-group > .create-error {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
 /* ------------------------------------------------------------------ segmented choices */
 
 /*
- * Tonal, as the app's other selected states are: the track is the control's container tone, the
- * chosen segment the accent container with its own words and a check, so the choice is a fill, a
- * colour and a mark at once. Full round, no ring. From 40rem the control hugs its options instead of
- * stretching one word across half the panel.
+ * Length, Look back, Format and Tone are the selection segmented control (primitives.css,
+ * .segmented-choice). From 40rem the control hugs its options instead of stretching one word across
+ * half the panel, and each segment keeps room for its check beside the words.
  */
 .create-view .create-choice {
   margin-block-start: 0;
-  border-radius: var(--radius-round);
-  background: var(--color-surface-container);
-}
-
-.create-view .create-choice::before {
-  border-radius: var(--radius-round);
-  background: var(--color-accent-container);
-}
-
-.create-view .create-choice .settings-segment {
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-round);
-  color: var(--color-on-surface);
-}
-
-.create-view .create-choice .settings-segment:has(input:checked) {
-  color: var(--color-on-accent-container);
-}
-
-/* A press is the state layer of the words' colour, on the segment's own fill. */
-.create-view .create-choice .settings-segment:active {
-  background-image: linear-gradient(
-    color-mix(in oklch, currentColor var(--state-press), transparent),
-    color-mix(in oklch, currentColor var(--state-press), transparent)
-  );
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .create-view .create-choice .settings-segment:hover {
-    background-image: linear-gradient(
-      color-mix(in oklch, currentColor var(--state-hover), transparent),
-      color-mix(in oklch, currentColor var(--state-hover), transparent)
-    );
-  }
-}
-
-/* A phone splits the track into equal columns: a four-way control leaves each about 80px, so the
-   segments keep a narrow inset and the chosen one's check and words fit at 360px. Below 22.5rem
-   (320px) a four-way control has no room for the check beside "15 min": the fill and the colour
-   mark the choice there, and the words do not move. */
-@media not all and (min-width: 40rem) {
-  .create-view .create-choice .settings-segment {
-    padding-inline: var(--space-2);
-  }
-}
-
-@media not all and (min-width: 22.5rem) {
-  .create-view
-    .create-choice:has(> .settings-segment:nth-of-type(4))
-    .settings-segment
-    > span::before {
-    display: none;
-  }
 }
 
 @media (min-width: 40rem) {
@@ -141,40 +87,8 @@
     max-inline-size: 100%;
   }
 
-  /* The check takes no room of its own, so the control keeps one width as the choice moves: it sits
-     outside its words, and the chosen words slide over by half of its room, as a filter chip's do. */
-  .create-view .create-choice .settings-segment > span {
-    position: relative;
-    transition: transform var(--duration-enter) var(--ease-out);
-  }
-
-  .create-view .create-choice .settings-segment > span::before {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-end: calc(100% + var(--space-1));
-    margin-block: auto;
-    margin-inline-end: 0;
-    inline-size: var(--size-icon-sm);
-  }
-
-  .create-view .create-choice .settings-segment:has(input:checked) > span {
-    transform: translateX(calc((var(--space-4) + var(--space-1)) / 2));
-  }
-}
-
-@media (min-width: 40rem) and (prefers-reduced-motion: reduce) {
-  .create-view .create-choice .settings-segment > span {
-    transition: none;
-  }
-}
-
-@media (forced-colors: active) {
-  .create-view .create-choice {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .create-view .create-choice .settings-segment:has(input:checked) {
-    color: Highlight;
+  .create-view .create-choice .segmented-choice-item {
+    padding-inline: var(--space-4);
   }
 }
 
@@ -192,8 +106,8 @@
   align-items: center;
   gap: var(--space-4);
   min-height: var(--fab-size);
-  margin-inline: calc(var(--space-3) * -1);
-  padding: var(--space-2) var(--space-3);
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--row-radius);
   list-style: none;
   cursor: pointer;
@@ -222,13 +136,13 @@
 .create-more-text {
   display: grid;
   flex: 1 1 auto;
-  gap: var(--space-half);
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .create-more-title {
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 
@@ -258,7 +172,7 @@
 
 /* Inside, the questions are a step quieter than the main ones above. */
 .create-view .create-more-body .create-group .section-head {
-  padding-block: var(--space-3) var(--space-2);
+  padding-block: var(--space-4) var(--space-2);
   font-size: var(--font-size-label);
 }
 
@@ -428,7 +342,7 @@
 
 .create-voice {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -538,7 +452,7 @@
   }
 
   .create-page .create-more-summary {
-    padding-block: var(--space-4) var(--space-3);
+    padding-block: var(--space-4) var(--space-4);
     min-height: 0;
   }
 
@@ -573,7 +487,7 @@
   }
 
   .create-page .create-more-body .create-group .section-head {
-    padding-block: var(--space-4) var(--space-3);
+    padding-block: var(--space-4) var(--space-4);
     font-size: var(--font-size-body);
   }
 }

@@ -16,6 +16,7 @@ import {
   subscribePageContent,
 } from "./pageContentLoader";
 import SourceLink from "./SourceLink";
+import Icon from "./ui/Icon";
 import PlayerCover, { PlayerCoverGlow } from "./ui/PlayerCover";
 
 const TITLE_ID = "dispatch-player-title";
@@ -159,14 +160,16 @@ export default function PlayerSurface() {
         >
           <div className="player-page-inner">
             <div className="player-drag" data-player-drag>
-              {/* No close glyph on screen: a drag, the bar, Back or Escape close the page. This one
-                  is for the keyboard and assistive technology, and shows only while focused. */}
+              {/* A chevron at the top left on a phone (owner, 2026-10-20), so a listener who does not
+                  know the page pulls down still sees how to put it away. From 64rem it shows only on
+                  keyboard focus, as before: the bar is on screen there. */}
               <button
-                className="player-collapse"
+                className="icon-btn player-collapse"
                 type="button"
+                aria-label="Close the player"
                 onClick={() => void playerSheet.collapse()}
               >
-                Close the player
+                <Icon name="chevronDown" className="icon" />
               </button>
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>

@@ -119,3 +119,25 @@ export function parseSuggestedAdd(json: string | undefined): SuggestedAdd | null
     topic_id: typeof topic_id === "string" ? topic_id : "",
   };
 }
+
+/**
+ * The page that shows a topic added since the build, before the build gives it its own (D142):
+ * pages/settings/topics/new, built once with these stand-ins for the topic's id, name and what counts,
+ * which savedView.ts (fillShell) swaps for the saved topic's. No topic may take its address.
+ */
+export const NEW_TOPIC_ID = "new";
+export const SHELL = { id: "__shell_id__", name: "__shell_name__", about: "__shell_about__" };
+
+/**
+ * `text` with the shell's stand-ins swapped for the topic's. The values go in as given: a function
+ * replacer, so `$&` or `$$` in a name is kept and not read as a replacement pattern.
+ */
+export function fillShellText(
+  text: string,
+  values: { id: string; name: string; about: string },
+): string {
+  return text
+    .replaceAll(SHELL.id, () => values.id)
+    .replaceAll(SHELL.name, () => values.name)
+    .replaceAll(SHELL.about, () => values.about);
+}

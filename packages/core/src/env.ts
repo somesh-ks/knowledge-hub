@@ -5,22 +5,21 @@ const optionalString = z.string().min(1).optional();
 
 export const Env = z.object({
   TYPESAFE_API_KEY: optionalString,
-  NEBIUS_API_KEY: optionalString,
   ANTHROPIC_API_KEY: optionalString,
-  NEBIUS_BASE_URL: z.string().url().default("https://api.tokenfactory.nebius.com/v1/"),
-  DISPATCH_MODEL: optionalString,
-  DISPATCH_FALLBACK_MODEL: optionalString,
   EXA_API_KEY: optionalString,
   FIRECRAWL_API_KEY: optionalString,
   SPEECHIFY_API_KEY: optionalString,
   SPEECHIFY_VOICE_ID: z.string().default("geffen_32"),
+  /** The second host's voice; `publish` narrates new episodes in it as the site would. */
+  SPEECHIFY_VOICE_ID_B: optionalString,
   BLOB_READ_WRITE_TOKEN: optionalString,
   /** Short-lived Blob credentials from `vercel env pull`; used when no long-lived token is set. */
   VERCEL_OIDC_TOKEN: optionalString,
   BLOB_STORE_ID: optionalString,
   /** Account token the audio workflow uses to run `vercel link` and `vercel env pull`. */
   VERCEL_TOKEN: optionalString,
-  COMPOSIO_API_KEY: optionalString,
+  /** Gemini API key: transcribes a YouTube finalist that has no subtitles. */
+  GEMINI_API_KEY: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */
   SPEECHIFY_MONTHLY_CHARS: z.coerce.number().int().positive().default(500_000),

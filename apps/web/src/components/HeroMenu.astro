@@ -1,6 +1,7 @@
 ---
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
+import MenuSheet from "./MenuSheet.astro";
 
 interface Props {
   /** Where Share points. A briefing's dated address, or the episode's own. */
@@ -42,9 +43,9 @@ const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
     <Icon name="moreVert" class="more-icon" />
     <Icon name="check" class="more-done" />
   </button>
-  <div class="hero-menu-list" id="hero-menu" popover role="menu" aria-label="More actions">
+  <MenuSheet id="hero-menu" title="More actions">
     <button class="hero-menu-item" type="button" role="menuitem" data-share={sharePath}>
-      Share
+      <Icon name="shareArrow" />Share
     </button>
     {
       episodeId ? (
@@ -54,7 +55,7 @@ const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
           role="menuitem"
           data-episode-action="regenerate"
         >
-          Regenerate
+          <Icon name="refresh" />Regenerate
         </button>
       ) : (
         <button
@@ -64,7 +65,7 @@ const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
           data-open="generate"
           aria-haspopup="dialog"
         >
-          Regenerate
+          <Icon name="refresh" />Regenerate
         </button>
       )
     }
@@ -76,11 +77,11 @@ const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
           role="menuitem"
           data-episode-action="delete"
         >
-          Delete
+          <Icon name="trash" />Delete
         </button>
       )
     }
-  </div>
+  </MenuSheet>
   <span class="sr-only" role="status" data-share-status></span>
   {
     episodeId && (

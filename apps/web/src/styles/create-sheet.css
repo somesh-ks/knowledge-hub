@@ -81,7 +81,7 @@
 
 /* ------------------------------------------------------------------ the floating button */
 
-/* On the root, so the toast (sheets.css) can keep clear of the button. */
+/* On the root, so other chrome can size against the button. */
 :root {
   --fab-size: 3.5rem;
 }
@@ -95,6 +95,7 @@
     var(--bottom-nav-height) +
     var(--dock-room) +
     var(--run-room) +
+    var(--fab-lift, 0px) +
     var(--space-4)
   );
   z-index: var(--z-header);
@@ -106,10 +107,10 @@
   min-width: var(--fab-size);
   height: var(--fab-size);
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
-  border: var(--stroke-hairline) solid transparent;
+  /* Flat: a hairline and a tonal step lift it off the page, no shadow (owner, 2026-10-21). */
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-accent-container-high);
-  box-shadow: var(--shadow-floating);
   color: var(--color-on-accent-container-high);
   text-decoration: none;
   /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
@@ -121,13 +122,6 @@
     background-color var(--duration-hover) var(--ease-hover),
     visibility 0s,
     inset-block-end var(--duration-enter) var(--ease-out);
-}
-
-/* The ring's gap stays round the button; the button's own shadow sits under it. */
-.create-fab:focus-visible {
-  box-shadow:
-    0 0 0 var(--stroke-ring-gap) var(--color-focus-gap),
-    var(--shadow-floating);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -182,7 +176,7 @@ html:has(dialog[open]) .create-fab {
 /* The word folds away while scrolling down to read, and comes back at the top and on the way up. */
 .create-fab-label {
   max-width: 6rem;
-  margin-inline: var(--space-3) var(--space-1);
+  margin-inline: var(--space-2) var(--space-1);
   overflow: hidden;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -204,7 +198,7 @@ html:has(dialog[open]) .create-fab {
 @media (prefers-reduced-motion: reduce) {
   .create-fab[data-folded] .create-fab-label {
     max-width: 6rem;
-    margin-inline: var(--space-3) var(--space-1);
+    margin-inline: var(--space-2) var(--space-1);
     opacity: 1;
   }
 }
@@ -273,8 +267,7 @@ html:has(dialog[open]) .create-fab {
    for the open player. It comes back once the bar holds something else. */
 /* It is a second face of the hero's Play, so while that is on screen it waits: two Play buttons
    at once say the same thing twice. briefingPage.ts sets data-hero-away once the hero's Play has
-   scrolled out of view, and the button comes in; scrolling back up to it sends the button away.
-   A toast is lifted over the button only while it shows (sheets.css repeats this condition). */
+   scrolled out of view, and the button comes in; scrolling back up to it sends the button away. */
 html:not([data-fab]) .play-fab,
 html:has(.hero-actions):not([data-hero-away]) .play-fab {
   visibility: hidden;
@@ -377,10 +370,11 @@ dialog.create-sheet[open]::backdrop {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-height: var(--app-bar-height);
   padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
-  padding-inline: max(var(--space-1), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  /* The title at the start, on the body's gutter; Close at the end, its 44px reaching the edge. */
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-1), var(--safe-right));
   background: var(--sheet-bg);
   transition: background-color var(--duration-state) var(--ease-out);
 }
@@ -391,6 +385,30 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
 
 .create-sheet-head > .sheet-title {
   min-width: 0;
+}
+
+/* Close sits at the row's end in every sheet, full screen or side (2026-10-20, SheetHeader.astro). */
+.create-sheet-head > .icon-btn {
+  flex: none;
+  margin-inline-start: auto;
+}
+
+/* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
+   The button stays for a keyboard and a screen reader, as the .sr-only utility. Doubled class so
+   it outranks the shared .icon-btn sizing wherever that loads. */
+@media (width < 40rem) {
+  .create-sheet-head > .icon-btn.icon-btn {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
 }
 
 .create-sheet-body {
@@ -496,11 +514,6 @@ dialog.create-sheet .create-submit > .btn-primary {
     padding-inline: var(--space-8) var(--space-4);
   }
 
-  .create-sheet-head > [data-create-close] {
-    order: 1;
-    margin-inline-start: auto;
-  }
-
   .create-sheet-body {
     --sheet-gutter: var(--space-8);
   }
@@ -573,7 +586,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   /* A fixed height, so a long line never grows the card into the Create button above it. */
   height: var(--run-height);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
@@ -676,7 +689,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   background: var(--color-accent);
   transform: scaleX(var(--run-to, 0));
   transform-origin: left center;
-  transition: transform var(--run-span, var(--duration-state)) linear;
+  transition: transform var(--run-span, var(--duration-state)) var(--ease-linear);
 }
 
 .run-card:dir(rtl) .run-fill {
@@ -725,7 +738,7 @@ html[data-player="open"] .run-status {
 
   .run-text {
     grid-area: text;
-    padding-inline-end: var(--space-1);
+    padding-inline-end: var(--space-2);
   }
 
   /* The column has room to grow, so the whole line shows. */
@@ -748,14 +761,14 @@ html[data-player="open"] .run-status {
   .run-retry {
     grid-area: extra;
     justify-self: start;
-    margin-inline-start: calc(-1 * var(--space-3));
+    margin-inline-start: calc(-1 * var(--space-4));
   }
 
   .run-bar {
     position: relative;
     inset: auto;
     grid-area: extra;
-    margin-block-start: var(--space-3);
+    margin-block-start: var(--space-4);
     border-radius: var(--radius-round);
     height: var(--space-1);
   }

@@ -20,7 +20,7 @@ import { agentSelectionJsonSchema, type WrittenFile } from "../curate/selectionF
 import { resolveWindow } from "../curate/window.js";
 import { mergeJudgments, pruneJudgments } from "../judge/cache.js";
 import { describeError } from "../llm/errors.js";
-import { loadTopicsFile } from "../topics/store.js";
+import { loadTopics } from "../topics/store.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { writtenText } from "../write/text.js";
@@ -155,7 +155,6 @@ async function runApi(
 ): Promise<number> {
   const { root, log } = ctx;
   // Fail before any work when a required key is missing.
-  requireKey(ctx.env, "NEBIUS_API_KEY");
   const paths = await resolvePaths(ctx, flags);
   const voice = await loadVoice(root);
   const linter = createLinter(voice);
@@ -315,7 +314,7 @@ async function runAgent(ctx: CommandContext, flags: Flags): Promise<number> {
     linter: createLinter(voice),
     kind,
     window,
-    topics: await loadTopicsFile(root),
+    topics: await loadTopics(root, await loadPreferences(root)),
   });
   if (!checked.ok) {
     ctx.log.error(`selection.json has ${checked.issues.length} problems`);

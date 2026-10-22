@@ -148,7 +148,7 @@ test.describe("service worker", () => {
     });
   });
 
-  test("serves a saved digest page while it checks for a newer one", async ({ page, context }) => {
+  test("serves a saved digest page offline", async ({ page, context }) => {
     await page.goto("/d/2026-10-05");
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.reload();
@@ -157,6 +157,66 @@ test.describe("service worker", () => {
     await page.goto("/d/2026-10-05");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Monday 5 October");
     await context.setOffline(false);
+  });
+
+  // 2026-10-21: the owner's phone kept a saved briefing's old HTML, and the old stylesheets it names,
+  // after a deploy had changed both. A deploy must show on the next visit; an installed app's return
+  // to the front offers it, and never reloads by itself (it threw away a reader's typing and Undo).
+  test("shows a deploy on the next visit, and offers it without reloading when the app comes back", async ({
+    page,
+    context,
+  }) => {
+    await page.clock.install();
+    await page.goto("/d/2026-10-05");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    // The deploy: every page names a new build, and so does /build.json (e2e/staticServer.mjs).
+    const deploy = "next-deploy";
+    const ship = () =>
+      context.addCookies([
+        { name: "test-build", value: deploy, url: new URL("/", page.url()).href },
+      ]);
+    const build = () =>
+      page.evaluate(
+        () => document.querySelector('meta[name="dispatch-build"]')?.getAttribute("content") ?? "",
+      );
+    await ship();
+    await page.goto("/");
+    await page.goto("/d/2026-10-05");
+    expect(await build()).toBe(deploy);
+    // An installed app comes back to the front with the page it left, a build behind the site.
+    await context.clearCookies();
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    expect(await build()).not.toBe(deploy);
+    // A reload would drop this mark with the page.
+    await page.evaluate(() => {
+      (window as unknown as { kept: boolean }).kept = true;
+    });
+    await ship();
+    // The offer: a status message that gains an action (a labelled button beside its icon Dismiss).
+    const status = page.getByRole("status");
+    const offer = status.getByRole("button").filter({ hasText: /\S/ });
+    // A return to the front, a minute past the last check, told again until the page listens
+    // (it does once the worker registers).
+    const comeBack = () =>
+      expect
+        .poll(async () => {
+          await page.clock.fastForward(61_000);
+          await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          return offer.isVisible();
+        })
+        .toBe(true);
+    await comeBack();
+    // Dismissed, it comes back on the next return while the site is still newer.
+    await status.getByRole("button", { name: "Dismiss" }).click();
+    await expect(offer).toBeHidden();
+    await comeBack();
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    expect(await build()).not.toBe(deploy);
+    await offer.click();
+    await expect.poll(() => build().catch(() => "")).toBe(deploy);
   });
 
   test("serves the manifest with its icons", async ({ page, request }) => {

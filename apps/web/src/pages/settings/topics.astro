@@ -1,7 +1,11 @@
 ---
+import { topicEmoji } from "@dispatch/core";
+import AddFab from "../../components/AddFab.astro";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
+import SourceFilter from "../../components/SourceFilter.astro";
+import SourceRow from "../../components/SourceRow.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { outletsSummary } from "../../lib/blockedOutlets";
@@ -15,6 +19,7 @@ import {
   topicLayout,
   topicSummary,
 } from "../../lib/topicPages";
+import { NEW_TOPIC_ID } from "../../lib/topicText";
 // The switch and the slider are the settings page's own; the form fields, the saving toast and the
 // passphrase dialog are manage.css; the rows and stars are topics.css.
 import "../../styles/settings.css";
@@ -37,6 +42,7 @@ const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
+    emoji: topicEmoji(group),
     hint: topicSummary(null, ...counts(group.id)),
     members: group.members.map((member) => member.id),
     never: undefined,
@@ -44,6 +50,7 @@ const rows = [
   ...[...layout.own, ...layout.general].map((topic) => ({
     id: topic.id,
     name: topic.name,
+    emoji: topicEmoji(topic),
     hint: topicSummary(topic, ...counts(topic.id)),
     members: [topic.id],
     never: topic.never_publish ? "" : undefined,
@@ -56,32 +63,44 @@ const spots = Object.fromEntries(
     list.map((source) => [source.id, { page, on: source.enabled }]),
   ),
 );
-const others = layout.sources.get(OTHER_ID) ?? [];
+// Every source once, by name, under the page it is filed on: the flat list the search shows. The
+// sources no topic page shows (the Other list) are included: the Other row is hidden, so the search is
+// the one way to reach them to switch one off or delete it.
+const pageNames = new Map(rows.map((row) => [row.id, row.name] as const));
+const library = new Map<string, { source: (typeof sources)[number]; page: string }>();
+for (const [page, list] of layout.sources) {
+  for (const source of list) library.set(source.id, { source, page });
+}
+const libraryRows = [...library.values()].sort((a, b) =>
+  a.source.name.localeCompare(b.source.name, "en"),
+);
 const choices = topicChoicesOf(layout);
 ---
 
-<BaseLayout title="Topics and sources" view="settings" skipLabel="Skip to topics and sources">
+<BaseLayout title="Sources" view="settings" skipLabel="Skip to sources">
   <main id="main" tabindex="-1">
     {/* One row per topic, each leading to its own page (topics/[id].astro) with its switch, its
-         weight and its sources. Here: Add, which opens one panel for a new topic or a new source,
-         chosen by a segmented control at its top. topicsPage.ts loads
+         weight and its sources. Here: a search over every source, and Add, which opens one panel for
+         a new topic or a new source, chosen by a segmented control at its top. topicsPage.ts loads
          the editor on first use; autosave.ts sends a change a moment later. */}
     <div
       class="manage topics"
       data-topics
-      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID].join(" ")}
+      data-taken={[...topics.map((topic) => topic.id), ...groups.map((group) => group.id), OTHER_ID, NEW_TOPIC_ID].join(" ")}
       data-names={JSON.stringify(choices.map((choice) => choice.name))}
     >
-      <SettingsHead title="Topics and sources" />
+      <SettingsHead title="Sources" />
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Topics</legend>
-        <div class="topics-head">
-          <h2 class="section-head">{`${rows.length} ${rows.length === 1 ? "topic" : "topics"}`}</h2>
+        {/* Search alone (2026-10-20): no count and no filters. Add is the floating button below
+             64rem (AddFab.astro) and a button beside the search from 64rem; one shows at a time. */}
+        <SourceFilter sources={libraryRows.map((row) => row.source)}>
           <button
+            slot="action"
             class="btn-secondary topic-add-source topics-add"
             type="button"
             aria-label="Add a topic or a source"
@@ -91,10 +110,9 @@ const choices = topicChoicesOf(layout);
             <Icon name="plus" />
             <span>Add</span>
           </button>
-        </div>
+        </SourceFilter>
 
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
-        <ul class="rows manage-queued" role="list" data-queued aria-label="Topics being added"></ul>
 
         <div class="rows topics-index" data-spots={JSON.stringify(spots)}>
           {
@@ -106,6 +124,7 @@ const choices = topicChoicesOf(layout);
                 data-members={row.members.join(" ")}
                 data-never={row.never}
               >
+                <span class="topic-emoji" aria-hidden="true">{row.emoji}</span>
                 <span class="settings-text">
                   <span class="settings-label">{row.name}</span>
                   <span class="settings-hint" data-hint>{row.hint}</span>
@@ -114,26 +133,32 @@ const choices = topicChoicesOf(layout);
               </a>
             ))
           }
-          {
-            others.length > 0 && (
-              <a class="row-action" href={`/settings/topics/${OTHER_ID}`} data-page={OTHER_ID}>
-                <span class="settings-text">
-                  <span class="settings-label">Other</span>
-                  <span class="settings-hint" data-hint>
-                    {topicSummary(null, others.length, others.filter((source) => source.enabled).length)}
-                  </span>
-                </span>
-                <Icon name="chevronRight" />
-              </a>
-            )
-          }
         </div>
 
-        {/* Outlets left out of every briefing and episode; its page is blocked-outlets.astro. */}
+        {/* Every source, shown in place of the topics while the search or a chip is set. */}
+        <ul class="topic-sources topics-library" role="list" hidden data-library data-all aria-label="Matching sources">
+          {
+            libraryRows.map(({ source, page }) => {
+              const group = groups.find((candidate) => candidate.id === page);
+              return (
+                <SourceRow
+                  source={source}
+                  topicName={pageNames.get(page) ?? ""}
+                  shownTopic={group ? { id: group.home, name: group.name } : undefined}
+                  labelled
+                />
+              );
+            })
+          }
+        </ul>
+
+        {/* Outlets left out of every briefing and episode, under a line of their own; their page is
+             blocked-outlets.astro. */}
         <div class="rows topics-more">
           <a class="row-action" href="/settings/blocked-outlets">
+            <span class="topic-emoji topic-blocked-mark" aria-hidden="true"><Icon name="blocked" /></span>
             <span class="settings-text">
-              <span class="settings-label">Blocked outlets</span>
+              <span class="settings-label">Blocked sources</span>
               <span class="settings-hint" data-blocked-hint data-blocked={JSON.stringify(blocked)}>
                 {outletsSummary(blocked.length)}
               </span>
@@ -144,6 +169,7 @@ const choices = topicChoicesOf(layout);
 
       </fieldset>
 
+      <AddFab label="Add a topic or a source" />
       <ManageChrome />
       <TopicsPanel topics={choices} />
     </div>

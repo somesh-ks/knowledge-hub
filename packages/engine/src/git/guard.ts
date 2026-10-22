@@ -14,9 +14,9 @@ export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config";
  */
 export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   run: ["Digests/", "state/"],
-  publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json"],
+  publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],
   learn: ["config/preferences.json"],
-  podcast: ["Podcasts/"],
+  podcast: ["Podcasts/", "state/costs-*.json"],
   // Exactly the files `dispatch config apply` and `dispatch sources suggest` write, and no others.
   config: [
     "config/topics.json",

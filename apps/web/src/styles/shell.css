@@ -191,7 +191,7 @@ html[data-mini="visible"] main {
 @supports (animation-timeline: scroll()) {
   .app-bar::after {
     animation-name: app-bar-line;
-    animation-timing-function: linear;
+    animation-timing-function: var(--ease-linear);
     animation-fill-mode: both;
     animation-timeline: scroll(root);
     animation-range: 0 var(--space-4);
@@ -286,6 +286,11 @@ html[data-mini="visible"] main {
 }
 
 .app-nav-brand {
+  display: none;
+}
+
+/* Only the side column has room for it (from 64rem, below). */
+.app-nav-updated {
   display: none;
 }
 
@@ -447,8 +452,8 @@ html[data-mini="visible"] main {
     gap: var(--space-4);
     width: var(--side-nav-width);
     height: auto;
-    padding-block: max(var(--space-3), var(--safe-top)) var(--space-4);
-    padding-inline: calc(var(--space-3) + var(--safe-left)) var(--space-3);
+    padding-block: max(var(--space-4), var(--safe-top)) var(--space-4);
+    padding-inline: calc(var(--space-2) + var(--safe-left)) var(--space-2);
     /* No divider: the column and the page share one surface, and the content starts well clear of
        the column's items. The transparent edge is there for forced colours to draw. */
     border-inline-end: var(--stroke-hairline) solid transparent;
@@ -469,11 +474,23 @@ html[data-mini="visible"] main {
     margin-block-end: var(--space-6);
   }
 
+  /* The foot of the column, level with the navigation's icons, clear of the player bar under it. */
+  .app-nav-updated {
+    display: block;
+    margin-block: auto var(--dock-room);
+    padding-inline: var(--space-4);
+    /* One line: the date wrapped under "Last updated" (2026-10-21). */
+    white-space: nowrap;
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-label);
+    line-height: var(--font-leading-caption);
+  }
+
   .app-nav-list {
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: auto;
-    gap: var(--space-1);
+    gap: var(--space-2);
     height: auto;
     max-width: none;
     margin-inline: 0;

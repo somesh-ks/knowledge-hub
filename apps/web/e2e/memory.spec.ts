@@ -23,7 +23,9 @@ async function narrateSilent(page: Page): Promise<void> {
     characters: 300,
     audio: { url: "/fixtures/audio.wav", duration_ms: 18_600, confirmed },
   });
-  await page.route("**/api/narrate?digest=*", (route) =>
+  // On the context, not the page: once the service worker controls the page it makes the narrate
+  // lookup itself (for a downloaded episode's offline copy), and only a context route sees that.
+  await page.context().route("**/api/narrate?digest=*", (route) =>
     route.fulfill({
       json: {
         status: 200,
@@ -34,7 +36,7 @@ async function narrateSilent(page: Page): Promise<void> {
       },
     }),
   );
-  await page.route("**/api/narrate", (route) => {
+  await page.context().route("**/api/narrate", (route) => {
     if (route.request().method() !== "POST") return route.fallback();
     const { segment: key } = route.request().postDataJSON() as { segment: string };
     return route.fulfill({ json: { status: 200, segment: segment(key, true) } });

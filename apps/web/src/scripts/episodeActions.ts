@@ -1,6 +1,8 @@
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { isChipOn } from "../lib/regenTopics";
 import { navigateTo } from "../player/core/navigation";
 import { libraryAddress } from "./libraryAddress";
+import { dismissOnScrim, sheetGestures } from "./pullDismiss";
 import { forgetRunAbout, startRun } from "./runStatus";
 
 /**
@@ -16,6 +18,9 @@ type Kind = "regenerate" | "delete";
 
 /** A confirm whose delete went through: its close leaves for the Library (openEpisodeAction). */
 const leaving = new WeakSet<HTMLDialogElement>();
+
+/** The row a dialog is open for: the Library shares one dialog between all its rows. */
+const rootOf = new WeakMap<HTMLDialogElement, HTMLElement>();
 
 const store = (run: (s: Storage) => unknown) => {
   try {
@@ -63,17 +68,10 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   dialog.querySelectorAll("[data-dialog-close]").forEach((button) => {
     button.addEventListener("click", () => dialog.close());
   });
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel. A press
-  // that starts inside and ends outside (selecting the feedback text) also clicks the dialog, so
-  // only one that began on the scrim closes it.
-  let fromScrim = false;
-  dialog.addEventListener("pointerdown", (event) => {
-    fromScrim = event.target === dialog;
-  });
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog && fromScrim) dialog.close();
-    fromScrim = false;
-  });
+  // The rewrite panel is a sheet: pulled down or tapped outside it closes. The confirm is a small
+  // dialog and closes on a tap outside only.
+  if (dialog.classList.contains("regen-sheet")) sheetGestures(dialog);
+  else dismissOnScrim(dialog);
 
   if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
 
@@ -93,7 +91,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     say();
-    let passphrase = root.dataset.openPassphrase ?? "";
+    const current = rootOf.get(dialog) ?? root;
+    let passphrase = current.dataset.openPassphrase ?? "";
     if (pass) {
       passphrase = pass.value.trim();
       if (!passphrase) {
@@ -103,8 +102,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       }
     }
     // On a briefing page the root names a digest and the request goes to /api/generate.
-    const briefing = root.dataset.briefing;
-    const id = briefing ?? root.dataset.episode ?? "";
+    const briefing = current.dataset.briefing ?? current.dataset.libraryBriefing;
+    const id = briefing ?? current.dataset.episode ?? "";
     let body: Record<string, unknown>;
     if (kind === "regenerate") {
       // The ticked chips are this regeneration's topics and nothing else: the saved schedule,
@@ -196,6 +195,19 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   const selector = kind === "delete" ? "dialog.confirm-dialog" : "dialog.regen-sheet";
   const dialog = document.querySelector<HTMLDialogElement>(selector) ?? build(kind, root);
   if (!dialog || dialog.open) return;
+  rootOf.set(dialog, root);
+  // One dialog serves every row of the Library, so it is set for the row that opened it.
+  if (kind === "delete") {
+    const noun = root.dataset.libraryBriefing ? "briefing" : "episode";
+    const title = dialog.querySelector("#delete-title");
+    if (title) title.textContent = `Delete this ${noun}?`;
+  } else if (root.dataset.topics !== undefined) {
+    const original = root.dataset.topics.split(" ").filter(Boolean);
+    for (const chip of dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')) {
+      const ids = (chip.dataset.ids ?? "").split(" ");
+      chip.checked = chip.defaultChecked = isChipOn({ ids }, original);
+    }
+  }
   // A pick from the menu hands focus back to the More button; the menu itself is closed by then.
   const back = () => {
     const target = trigger.closest("[popover]")

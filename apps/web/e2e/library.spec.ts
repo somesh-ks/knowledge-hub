@@ -318,7 +318,9 @@ test.describe("library fixes", () => {
     expect(visibility).toBe("visible");
   });
 
-  test("an episode deleted on this device stays gone after a new order", async ({ page }) => {
+  test("an episode deleted on this device stays gone after a new order", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.addInitScript(() =>
       localStorage.setItem(
         "dispatch:deleted-episodes",
@@ -332,13 +334,13 @@ test.describe("library fixes", () => {
     await expect(page.locator("[data-card]")).toHaveCount(4);
     expect(await titles(page)).not.toContain(HEADLINES);
     await expect(page.locator("[data-library-status]")).toHaveText("4 results");
-    await filter(page, "Custom");
+    await filter(page, "Catch up");
     expect(await titles(page)).toEqual([DISCUSSION]);
   });
 
-  test("keeps the search, the filter and the order in the address, and restores them", async ({
-    page,
-  }) => {
+  test("keeps the search, the filter and the order in the address, and restores them", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     await filter(page, "Daily");
@@ -358,7 +360,9 @@ test.describe("library fixes", () => {
     expect(await titles(page)).toEqual(["Monday 5 October"]);
   });
 
-  test("a filter or an order that is not the default looks chosen", async ({ page }) => {
+  test("a filter or an order that is not the default looks chosen", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const chip = show(page).locator(".filter-chip", { hasText: "Weekly" });
@@ -447,15 +451,15 @@ test.describe("library filters and order", () => {
     expect(await titles(page)).toEqual(["Wednesday 7 October", "Monday 5 October"]);
     await narrowedTo(page, 2, 5);
 
-    // Custom is what was made on request: only that shows, and the status counts it.
-    await filter(page, "Custom");
+    // Catch up is what was made on request: only that shows, and the status counts it.
+    await filter(page, "Catch up");
     await onlyPressed("custom");
     expect(await titles(page)).toEqual([DISCUSSION, HEADLINES]);
     await expect(page.locator("[data-card][data-kind='episode']:not([hidden])")).toHaveCount(2);
     await narrowedTo(page, 2, 5);
 
     // Pressing the ticked chip again shows everything, with Space as well as a press.
-    await chipOf(page, "Custom").focus();
+    await chipOf(page, "Catch up").focus();
     await page.keyboard.press("Space");
     await onlyPressed("All");
     expect(await titles(page)).toEqual(NEWEST_FIRST);
@@ -476,14 +480,25 @@ test.describe("library filters and order", () => {
     await filter(page, "Daily");
     expect(await titles(page)).toEqual(["Wednesday 7 October"]);
     // A word only the weekly briefing has, while the filter keeps the weekly out.
-    await filter(page, "Custom");
+    await filter(page, "Catch up");
     await page.getByRole("searchbox").fill("dither");
     await expect(page.locator("[data-card]:not([hidden])")).toHaveCount(0);
     await expect(page.locator("[data-library-status]")).toHaveText("No results");
     await expect(page.locator("[data-library-empty]")).toBeVisible();
   });
 
-  test("the sort reorders the cards, in the page as well as on screen", async ({ page }) => {
+  test("a phone offers no order, and one left in a link does not reorder the list unseen", async ({
+    page,
+  }) => {
+    await page.goto("/library?sort=oldest");
+    await ready(page);
+    await expect(page.getByRole("combobox", { name: "Sort" })).toBeHidden();
+    expect(await titles(page)).toEqual(NEWEST_FIRST);
+  });
+
+  test("the sort reorders the cards, in the page as well as on screen", {
+    tag: "@desktop",
+  }, async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     const sort = page.getByRole("combobox", { name: "Sort" });
@@ -599,19 +614,24 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-card]:not([hidden]) .card-match").first()).toBeVisible();
     const rows = await page.locator("[data-card]:not([hidden])").evaluateAll((cards) =>
       cards.map((card) => {
-        const link = card.querySelector(".card-link")?.getBoundingClientRect();
+        const linkElement = card.querySelector(".card-link");
+        const link = linkElement?.getBoundingClientRect();
+        const padding = linkElement
+          ? Number.parseFloat(getComputedStyle(linkElement).paddingTop)
+          : 0;
         const title = card.querySelector(".card-title")?.getBoundingClientRect();
         const cover = card.querySelector(".cover")?.getBoundingClientRect();
         const bar = card.querySelector<HTMLElement>(".card-progress");
         const box = bar && !bar.hidden ? bar.getBoundingClientRect() : null;
         return {
-          above: Math.round((title?.top ?? 0) - (link?.top ?? 0)),
+          // What sits above the title beyond the row's own padding (half-leading aside).
+          above: Math.round((title?.top ?? 0) - (link?.top ?? 0) - padding),
           barOnCover: box && cover ? box.bottom <= cover.bottom + 1 && box.top >= cover.top : null,
         };
       }),
     );
     // The row's padding is all there is above a title, with a match line or without one.
-    for (const row of rows) expect(row.above).toBeLessThanOrEqual(14);
+    for (const row of rows) expect(row.above).toBeLessThanOrEqual(2);
     expect(rows.some((row) => row.barOnCover === true)).toBe(true);
     expect(rows.every((row) => row.barOnCover !== false)).toBe(true);
   });

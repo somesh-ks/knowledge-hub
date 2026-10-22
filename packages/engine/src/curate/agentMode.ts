@@ -1,10 +1,10 @@
 import {
+  categoryIsOff,
   type DigestKind,
   hasOwnAllowance,
   homeSectionFor,
   type Item,
   isBuiltinCategory,
-  NEVER_PUBLISH,
   TECH_SECTION,
   type TopicsFile,
 } from "@dispatch/core";
@@ -67,7 +67,7 @@ export function validateAgentSelection(
       });
       continue;
     }
-    if (isBuiltinCategory(entry.category) && NEVER_PUBLISH.includes(entry.category)) {
+    if (categoryIsOff(context.topics, entry.category)) {
       issues.push({ id: entry.id, message: `The category ${entry.category} never publishes.` });
       continue;
     }

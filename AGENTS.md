@@ -4,18 +4,18 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 ## Read first
 
-1. [docs/state.md](docs/state.md): what works, what is broken, what is next. Rewritten, never appended.
-2. [docs/decisions.md](docs/decisions.md): read the Index table; open an entry only when you need its reasoning.
-3. [docs/learnings.md](docs/learnings.md): failures and gotchas. Search it before debugging.
-4. [docs/history/](docs/history/README.md): one note per session, only for the why behind a change.
-5. [docs/engineering/postmortem-test-suite.md](docs/engineering/postmortem-test-suite.md): how the test suite grew past its use and what it missed. Read it before you add, change or delete a test.
+1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
+2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
+3. [docs/decisions.md](docs/decisions.md): grep the Index; open an entry only for its reasoning.
+
+On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the code and tests win where they differ; fix a spec you find wrong), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` (in the gate) holds the docs to their budgets.
 
 [docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
 
 ## Commands
 
 - `npm run dispatch -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, the site's type check (`astro check`), lint, the unit tests and the static build, in parallel (about 80 s). All must pass; prefer it to running them one after another. `npm test`, `npm run typecheck` and `npm run lint` run alone.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, the unit tests, the docs check and the static build, in parallel (about 80 s). All must pass; prefer it to running them one after another. `npm test`, `npm run typecheck` and `npm run lint` run alone.
 - Run commands through PowerShell (`powershell -NoProfile -Command "Set-Location '<repo>'; ..."`), not the agent's Git Bash: each process Git Bash starts costs 3 to 8 s on this machine, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @dispatch/web` (about 6 minutes) and `npm run e2e:player -w @dispatch/web` (about 3): the browser suites. CI runs both (the `browser` job) when the site, `packages/core` or the tokens change; run them yourself first for a change to a page, a page script, the player or the service worker.
@@ -29,8 +29,9 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review: PRs get none by default. There are two ways to get one. (1) The `review` label on GitHub: add it to the PR when you open it; `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so a human merges it after the review lands (to re-review, remove and re-add the label). (2) The `/code-review` skill: run it on the branch or the commit range yourself, before the PR or after the merge.
+- Code review before every merge, no exceptions (D143). Open every PR with the `review` label: `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so it merges by hand only after the review lands and its blocking findings are fixed (re-add the label to re-review). For a large change, also run the `/code-review` skill on the branch before opening the PR.
 - TypeScript stays on 6.x.
+- UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook runs it on each UI edit), e2e/designSystem.spec.ts (CI), and the `design-audit` agent, run before the PR. Screenshot open states first.
 - Design fixes are load-bearing. A CSS rule or markup whose comment says why it exists (a date, a D-number, a sizer, "so ... stays put", a specificity bump) is never removed or rewritten to make another task work: extend it, or stop and ask. Before changing a selector in a shared stylesheet (`player.css`, `primitives.css`, `buttons.css`, the tokens), read its history (`git log -L '/<selector>/,+20:<file>'`) and search the [ledger](docs/design-engineering-ledger.md) for it. Unit tests never see CSS: only the browser suites do.
 - Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
 

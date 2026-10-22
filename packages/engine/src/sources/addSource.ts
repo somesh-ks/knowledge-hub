@@ -15,6 +15,8 @@ export interface AddSourceInput {
   url: string;
   origin: "manual" | "auto";
   topicIds?: readonly string[] | undefined;
+  /** An id the caller chose (already checked free); otherwise one is made from the address. */
+  id?: string | undefined;
   /** Display name; defaults to the host. */
   name?: string | undefined;
   /** Ids already in use, so the new id never collides with a seed or earlier added source. */
@@ -24,6 +26,9 @@ export interface AddSourceInput {
 }
 
 const LEADING_WWW = /^www\./;
+/** Sites Firecrawl does not scrape. YouTube and GitHub are read through their own feeds. */
+const SOCIAL_HOSTS =
+  /(^|\.)(x\.com|twitter\.com|facebook\.com|instagram\.com|linkedin\.com|tiktok\.com|threads\.net|threads\.com)$/;
 
 /** Readable host: no scheme, no "www.". */
 export function hostLabel(url: string): string {
@@ -97,7 +102,7 @@ export async function buildSourceFromUrl(
     if (dup) throw new AddSourceError(`Already a source: ${dup}.`);
     return {
       ...common,
-      id: sourceIdFor(`https://github.com/${repo}`, input.takenIds),
+      id: input.id ?? sourceIdFor(`https://github.com/${repo}`, input.takenIds),
       name: input.name ?? repo,
       type: "github",
       url: `https://github.com/${repo}/releases`,
@@ -108,13 +113,16 @@ export async function buildSourceFromUrl(
 
   if (host.endsWith("youtube.com")) {
     const channelId = await resolveYoutubeChannel(input.url, deps).catch(() => undefined);
-    if (!channelId) throw new AddSourceError("Could not find the YouTube channel id on that page.");
+    if (!channelId)
+      throw new AddSourceError(
+        "Could not find a YouTube channel there. Give a channel address such as youtube.com/@name.",
+      );
     const feed = channelFeedUrl(channelId);
     const dup = duplicateOf(input.existing, input.url, feed);
     if (dup) throw new AddSourceError(`Already a source: ${dup}.`);
     return {
       ...common,
-      id: sourceIdFor(input.url, input.takenIds),
+      id: input.id ?? sourceIdFor(input.url, input.takenIds),
       name: input.name ?? `${host} channel`,
       type: "youtube",
       url: input.url,
@@ -131,11 +139,18 @@ export async function buildSourceFromUrl(
     throw new AddSourceError(`That page is not reachable (${found.reason}).`);
   }
   const feedUrl = found.status === "feed" ? found.feedUrl : null;
+  // A scrape source is read with Firecrawl, which cannot read social media: refuse it here rather
+  // than add a source that fails every run. A social page with a feed (Reddit) is still a feed.
+  if (!feedUrl && SOCIAL_HOSTS.test(host)) {
+    throw new AddSourceError(
+      "Social media pages cannot be read. Add the site's own feed or home page instead.",
+    );
+  }
   const dup = duplicateOf(input.existing, input.url, feedUrl);
   if (dup) throw new AddSourceError(`Already a source: ${dup}.`);
   return {
     ...common,
-    id: sourceIdFor(input.url, input.takenIds),
+    id: input.id ?? sourceIdFor(input.url, input.takenIds),
     name: input.name ?? host,
     type: feedUrl ? "rss" : "firecrawl",
     url: input.url,

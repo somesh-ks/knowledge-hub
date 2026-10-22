@@ -140,7 +140,8 @@ describe("paths and sections", () => {
     expect(homeSection("developer_tool_launches", "rss")).toBe("ui-craft");
     // A video goes where its category goes; "watch" no longer receives stories.
     expect(homeSection("design_engineering_craft", "youtube")).toBe("ui-craft");
-    expect(homeSection("venture_capital_and_gossip", "rss")).toBeNull();
+    // Off, not a missing home, keeps a category out of a briefing.
+    expect(homeSection("venture_capital_and_gossip", "rss")).toBe("ai");
   });
 });
 
@@ -201,9 +202,12 @@ describe("digest file", () => {
 
 describe("digests committed before the four-beat voice", () => {
   it.each(["2026-10-06", "2026-10-07"])(
-    "parses Digests/2026/10/%s.md, which carries a why line on every item",
+    "parses the frozen copy of digest %s, which carries a why line on every item",
     (id) => {
-      const text = readFileSync(join(REPO_ROOT, digestRelPath(id)), "utf8");
+      const text = readFileSync(
+        join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`),
+        "utf8",
+      );
       const digest = parseDigestFile(text);
       expect(digest.id).toBe(id);
       expect(digest.items.length).toBeGreaterThanOrEqual(3);

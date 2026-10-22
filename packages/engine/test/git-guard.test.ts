@@ -17,9 +17,14 @@ describe("ALLOWLISTS", () => {
   it("names the four commands and their paths", () => {
     expect(ALLOWLISTS).toEqual({
       run: ["Digests/", "state/"],
-      publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json"],
+      publish: [
+        "Digests/**/*.audio.json",
+        "Digests/**/*.md",
+        "state/usage.json",
+        "state/costs-*.json",
+      ],
       learn: ["config/preferences.json"],
-      podcast: ["Podcasts/"],
+      podcast: ["Podcasts/", "state/costs-*.json"],
       config: [
         "config/topics.json",
         "config/sources.user.json",

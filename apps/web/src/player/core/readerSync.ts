@@ -110,6 +110,31 @@ export function createReaderSync(
   let pendingNarrate: string | null = null;
   /** Which stories were heard: the ones passed by playing on, not by a jump (readerMath.ts). */
   const tracker = createHeardTracker();
+  /** The page's audio file is saved on this device (Library > Download): the worker answers it
+   *  offline, so its chip is not shut. Read from Cache Storage, which the page cannot ask at once. */
+  let savedAudio: string | null = null;
+  let savedChecked: string | null = null;
+  let savedCheckedAt = Number.NEGATIVE_INFINITY;
+  function checkSaved(url: string): void {
+    // A download can be removed later (Library), so a finished answer is asked again every few seconds.
+    const now = Date.now();
+    if (savedChecked === url && now - savedCheckedAt < 3000) return;
+    savedChecked = url;
+    savedCheckedAt = now;
+    if (typeof caches === "undefined") return;
+    // Only a download (lib/downloads.ts) caches audio, so any cache holding it is that one.
+    caches.match(url).then(
+      (hit) => {
+        if (savedChecked !== url) return;
+        const next = hit ? url : null;
+        if (next !== savedAudio) {
+          savedAudio = next;
+          scheduleWrite();
+        }
+      },
+      () => undefined,
+    );
+  }
   /** The story the playhead was in before the last move, for the page to follow from. */
   let followFrom = -1;
 
@@ -228,12 +253,15 @@ export function createReaderSync(
           )
         : // What the device remembers, against the page's estimate (the minutes its card says).
           rememberedChip(rememberedFor(page), Number(chip.dataset.minutes) * 60, noun);
-      // Audio is never cached and narration is made from the network, so offline a chip that would
-      // have to fetch it cannot work. One that holds loaded audio still pauses and resumes.
+      // Narration is made from the network and audio is not cached unless downloaded, so offline a
+      // chip that would have to fetch it cannot work. One that holds loaded audio still pauses and
+      // resumes, and one whose file was downloaded plays from the saved copy.
+      if (audio && !navigator.onLine) checkSaved(audio.url);
+      const saved = audio !== null && savedAudio === audio.url;
       writeChip(
         chip,
         view,
-        !navigator.onLine && view.state !== "current" && view.state !== "preparing",
+        !navigator.onLine && !saved && view.state !== "current" && view.state !== "preparing",
       );
     }
     if (!audio) return;

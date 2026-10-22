@@ -287,14 +287,36 @@ async function probeCommonPaths(
 
 const CHANNEL_ID = /UC[\w-]{22}/;
 
+const CHANNEL_PATH = /^\/channel\/(UC[\w-]{22})/;
+
+/** The channel id YouTube's own resolver gives a handle or custom name: a small answer, no page. */
+async function resolveViaApi(handleUrl: string, deps: DiscoverDeps): Promise<string | undefined> {
+  const answer = (await deps.http.postJson(
+    "https://www.youtube.com/youtubei/v1/navigation/resolve_url",
+    {
+      url: handleUrl,
+      context: { client: { clientName: "WEB", clientVersion: "2.20241001.00.00", hl: "en" } },
+    },
+    { signal: deps.signal, headers: { "user-agent": "Mozilla/5.0" } },
+  )) as { endpoint?: { browseEndpoint?: { browseId?: unknown } } };
+  const id = answer.endpoint?.browseEndpoint?.browseId;
+  return typeof id === "string" && /^UC[\w-]{22}$/.test(id) ? id : undefined;
+}
+
 /**
- * YouTube channel id from a handle page, without an API key. Reads the advertised feed link or
- * the canonical channel link. The consent cookie avoids the EU interstitial that hides the page.
+ * YouTube channel id from a channel address, without an API key. A /channel/UC... address holds it;
+ * a handle or custom name goes to YouTube's resolver, which answers in about 1 KB. The channel page
+ * is the last resort: it is over 1 MB, so the preview's size cap refuses it. It reads the advertised
+ * feed link or the canonical channel link, with the consent cookie that avoids the EU interstitial.
  */
 export async function resolveYoutubeChannel(
   handleUrl: string,
   deps: DiscoverDeps,
 ): Promise<string | undefined> {
+  const direct = CHANNEL_PATH.exec(new URL(handleUrl).pathname)?.[1];
+  if (direct) return direct;
+  const resolved = await resolveViaApi(handleUrl, deps).catch(() => undefined);
+  if (resolved) return resolved;
   const page = await deps.http.fetchText(handleUrl, {
     signal: deps.signal,
     retries: 1,

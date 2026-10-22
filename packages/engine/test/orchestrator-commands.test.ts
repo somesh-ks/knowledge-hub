@@ -5,7 +5,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { makeEvalCommand } from "../src/commands/eval.js";
 import { extractIds, makeExtractCommand } from "../src/commands/extract.js";
 import { run as learn, prefsCommitMessage } from "../src/commands/learn.js";
-import { isTextModel, listModels, makeModelsCommand } from "../src/commands/models.js";
 import { makeRunCommand } from "../src/commands/run.js";
 import { run as status } from "../src/commands/status.js";
 import type { ExtractedText } from "../src/extract/extractText.js";
@@ -201,123 +200,6 @@ describe("dispatch status", () => {
 });
 
 // --- models ------------------------------------------------------------------------------------
-
-describe("dispatch models", () => {
-  const LIST = {
-    data: [
-      { id: "openai/gpt-oss-120b", context_length: 131_072 },
-      { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", context_length: 262_144 },
-      { id: "BAAI/bge-en-icl", type: "embedding" },
-      { id: "black-forest-labs/flux-dev" },
-      { id: "meta-llama/Llama-3.3-70B-Instruct", max_model_len: 128_000 },
-      { id: "acme/reranker-v2", type: "rerank" },
-    ],
-  };
-  const ENV = { NEBIUS_API_KEY: "nb-secret-0123456789abcdef" };
-
-  function modelsFetch(status = 200, body: unknown = LIST) {
-    const calls: Array<{ url: string; auth: string | null }> = [];
-    const fetchImpl: typeof fetch = async (input, init) => {
-      calls.push({ url: String(input), auth: new Headers(init?.headers).get("authorization") });
-      return new Response(JSON.stringify(body), { status });
-    };
-    return { fetchImpl, calls };
-  }
-
-  it("lists text models sorted, with context lengths, and hides the rest", async () => {
-    const net = modelsFetch();
-    const { ctx } = makeContext(scratch, { env: ENV, json: false });
-    const { result, stdout } = await captureStdout(() => makeModelsCommand(net.fetchImpl)([], ctx));
-    expect(result).toBe(0);
-    const lines = stdout.split("\n");
-    expect(lines.slice(0, 3)).toEqual([
-      "Qwen/Qwen3-235B-A22B-Instruct-2507  (262144 tokens)",
-      "meta-llama/Llama-3.3-70B-Instruct  (128000 tokens)",
-      "openai/gpt-oss-120b  (131072 tokens)",
-    ]);
-    expect(stdout).not.toContain("bge");
-    expect(stdout).not.toContain("flux");
-    expect(stdout).toContain("DISPATCH_MODEL");
-  });
-
-  it("asks the verbose endpoint with the key and never prints it", async () => {
-    const net = modelsFetch();
-    const { ctx } = makeContext(scratch, { env: ENV });
-    const { stdout } = await captureStdout(() => makeModelsCommand(net.fetchImpl)([], ctx));
-    expect(net.calls).toEqual([
-      {
-        url: "https://api.tokenfactory.nebius.com/v1/models?verbose=true",
-        auth: `Bearer ${ENV.NEBIUS_API_KEY}`,
-      },
-    ]);
-    expect(stdout).not.toContain(ENV.NEBIUS_API_KEY);
-  });
-
-  it("shows everything with --all", async () => {
-    const { ctx } = makeContext(scratch, { env: ENV });
-    const { stdout } = await captureStdout(() =>
-      makeModelsCommand(modelsFetch().fetchImpl)(["--all"], ctx),
-    );
-    expect(JSON.parse(stdout)).toMatchObject({ total: 6, shown: 6, truncated: false });
-  });
-
-  it("caps the output and says how much was cut", async () => {
-    const { ctx } = makeContext(scratch, { env: ENV });
-    const { stdout } = await captureStdout(() =>
-      makeModelsCommand(modelsFetch().fetchImpl)(["--limit", "2"], ctx),
-    );
-    const parsed = JSON.parse(stdout);
-    expect(parsed).toMatchObject({ total: 3, shown: 2, truncated: true });
-    expect(parsed.models.map((m: { id: string }) => m.id)).toEqual([
-      "Qwen/Qwen3-235B-A22B-Instruct-2507",
-      "meta-llama/Llama-3.3-70B-Instruct",
-    ]);
-    const text = makeContext(scratch, { env: ENV, json: false });
-    const human = await captureStdout(() =>
-      makeModelsCommand(modelsFetch().fetchImpl)(["--limit", "2"], text.ctx),
-    );
-    expect(human.stdout).toContain("... 1 more; raise --limit to see them");
-  });
-
-  it("exits 1 naming the variable when no key is set", async () => {
-    const { ctx, logs } = makeContext(scratch, { env: {} });
-    const { result } = await captureStdout(() =>
-      makeModelsCommand(modelsFetch().fetchImpl)([], ctx),
-    );
-    expect(result).toBe(1);
-    expect(logs.find((l) => l.level === "error")?.message).toContain("NEBIUS_API_KEY");
-  });
-
-  it("exits 1 with a hint when the key is rejected", async () => {
-    const { ctx, logs } = makeContext(scratch, { env: ENV });
-    const { result } = await captureStdout(() =>
-      makeModelsCommand(modelsFetch(401, {}).fetchImpl)([], ctx),
-    );
-    expect(result).toBe(1);
-    expect(logs.find((l) => l.level === "error")?.message).toContain("HTTP 401");
-  });
-
-  it("redacts a key that an error message contains", async () => {
-    const { ctx, logs } = makeContext(scratch, { env: ENV });
-    const boom: typeof fetch = async () => {
-      throw new Error(`socket closed for ${ENV.NEBIUS_API_KEY}`);
-    };
-    const { result } = await captureStdout(() => makeModelsCommand(boom)([], ctx));
-    expect(result).toBe(1);
-    expect(JSON.stringify(logs)).not.toContain(ENV.NEBIUS_API_KEY);
-  });
-
-  it("classifies models by id and type", () => {
-    expect(isTextModel({ id: "x/chat-model" })).toBe(true);
-    expect(isTextModel({ id: "x/Qwen3-Embedding-8B" })).toBe(false);
-    expect(isTextModel({ id: "x/model", type: "text2text" })).toBe(true);
-    expect(isTextModel({ id: "x/model", type: "text2image" })).toBe(false);
-    expect(listModels({ data: [{ id: "b", context_length: 1 }, { id: "a" }] }, false)).toEqual([
-      { id: "a", context_length: null },
-      { id: "b", context_length: 1 },
-    ]);
-  });
-});
 
 // --- extract -----------------------------------------------------------------------------------
 
@@ -575,7 +457,7 @@ describe("dispatch learn --commit", () => {
     const { code } = await apply(["--commit"]);
     expect(code).toBe(0);
     expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
-      "chore(prefs): weight css_canvas_motion_techniques: 0.88 to 0.93",
+      "chore(prefs): weight css_canvas_motion_techniques: 0.88 to 0.95",
     );
     expect(git(repo.root, "log", "-1", "--format=%b")).toContain("Input: more motion techniques");
     expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toBe(

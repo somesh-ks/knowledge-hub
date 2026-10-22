@@ -1,0 +1,126 @@
+name: health
+
+# Once a day, `dispatch health` checks the last runs, narration, the digests and state, the cost
+# ledger and the live site (docs/engineering/hardening.md). A fault opens one issue labelled
+# `health`, or updates it; a green run closes it. When a fault first appears (no open issue yet) it
+# heals once: a failed or missed briefing starts one scheduled run, missing narration starts one
+# audio run. GitHub's own run list is the record that a run started: one that failed with no
+# outcome in state/last-run.json after it is `run_died` and one cancelled is the warning
+# `run_cancelled`; both only alert (a missed briefing also reads as `run_overdue`, which heals).
+# While the issue stays open nothing is retried again, so a fault never loops.
+
+on:
+  schedule:
+    - cron: "41 9 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+
+      - name: Check
+        shell: bash
+        env:
+          SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
+          SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
+          SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
+          CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+        run: |
+          set -uo pipefail
+          runs="$RUNNER_TEMP/runs.json"
+          # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
+          since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
+          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          echo "exit=${PIPESTATUS[0]}"
+          jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
+
+      - name: Report and heal
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/health.json"
+          # A check that crashed is a fault of its own, reported like the others.
+          jq -e '.findings' "$report" >/dev/null 2>&1 ||
+            echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"dispatch health did not finish; see the run log."}]}' > "$report"
+          ok=$(jq -r '.ok' "$report")
+          codes=$(jq -r '[.findings[] | select(.severity == "fault") | .code] | unique | join(" ")' "$report")
+          gh label create health --color B60205 --description "Daily health check" --force >/dev/null
+          open_issue=$(gh issue list --label health --state open --limit 1 --json number,title --jq '.[0] // empty')
+          [ -n "$open_issue" ] || open_issue='{}'
+          issue=$(jq -r '.number // empty' <<<"$open_issue")
+          # The open issue's title ends with the faults already healed ("| healed: ..."): each heals
+          # once while it lasts. A fault that clears drops off the list, so a return heals again.
+          title=$(jq -r '.title // ""' <<<"$open_issue")
+          held=""
+          [[ "$title" == *"| healed: "* ]] && held="${title##*| healed: }"
+          new_fault() { [[ " $codes " == *" $1 "* && " $held " != *" $1 "* ]]; }
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          if [ "$ok" = "true" ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --comment "Green again on $(date -u +%F) ([run]($run_url))."
+            fi
+            exit 0
+          fi
+
+          healed=""
+          just_healed=""
+          # A fault heals once, when it first appears, even while the issue is open for another
+          # (run_died alone never heals: it is alert only). A run already queued or running is left alone.
+          busy=$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')
+          if { new_fault run_failed || new_fault run_overdue; } && [ "$busy" = "0" ]; then
+            if gh workflow run run.yml -f mode=scheduled; then
+              healed="${healed}- Started one scheduled run.\n"
+              for code in run_failed run_overdue; do new_fault "$code" && just_healed="$just_healed $code"; done
+            fi
+          fi
+          if new_fault audio_missing && gh workflow run audio.yml; then
+            healed="${healed}- Started one audio run.\n"
+            just_healed="$just_healed audio_missing"
+          fi
+          # Healed and still failing, or healed just now; a fault that cleared is forgotten.
+          keep=""
+          for code in $held $just_healed; do [[ " $codes " == *" $code "* ]] && keep="$keep $code"; done
+          keep=$(printf '%s\n' $keep | sort -u | xargs)
+          new_title="Health: ${codes}${keep:+ | healed: $keep}"
+
+          {
+            echo "Health check on $(date -u +%F): **faults** ([run]($run_url))."
+            echo
+            jq -r '.findings[] | "- \(.severity) [\(.aspect)] `\(.code)`: \(.message)"' "$report"
+            if [ -n "$healed" ]; then echo; echo "Self-healing (once):"; printf "%b" "$healed"; fi
+            echo
+            echo "Reproduce with the engine's health command; see docs/engineering/hardening.md."
+          } > "$RUNNER_TEMP/body.md"
+
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file "$RUNNER_TEMP/body.md"
+            gh issue edit "$issue" --title "$new_title"
+          else
+            gh issue create --title "$new_title" --label health --body-file "$RUNNER_TEMP/body.md"
+          fi

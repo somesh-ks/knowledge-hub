@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { STATE_FILES, UsageFile } from "@dispatch/core";
+import { type CostKind, STATE_FILES, UsageFile } from "@dispatch/core";
+import { recordPaidCalls } from "../cost/ledger.js";
+import { loadScheduleZone } from "../schedule/store.js";
 import { writeJsonAtomic } from "./atomicFile.js";
 import { addUsage, emptyUsage, rollOver, usageMonth } from "./budgetMath.js";
 
@@ -31,6 +34,8 @@ export interface RecordUsageInput {
   root: string;
   now: Date;
   characters: number;
+  /** Also records the characters in the cost ledger, for this run and kind. */
+  ledger?: { runId: string; kind: CostKind; product: string; user?: string };
 }
 
 /** Add billed characters to state/usage.json. Committed by `publish`, so it survives between runs. */
@@ -38,5 +43,26 @@ export async function recordUsage(input: RecordUsageInput): Promise<UsageFile> {
   const current = await loadUsage(input.root, input.now);
   const next = addUsage(current, input.now, input.characters);
   await saveUsage(input.root, next);
+  if (input.ledger && input.characters > 0) {
+    try {
+      await recordPaidCalls(input.root, [
+        {
+          at: input.now.toISOString(),
+          runId: input.ledger.runId,
+          kind: input.ledger.kind,
+          timezone: await loadScheduleZone(input.root),
+          user: input.ledger.user,
+          stage: "narration",
+          provider: "speechify",
+          product: input.ledger.product,
+          units: { characters: input.characters },
+          // Each recording is its own billing: usage.json adds it every time, so the ledger must too.
+          event: randomUUID(),
+        },
+      ]);
+    } catch {
+      // The ledger is a convenience; the character count above is what enforces the budget.
+    }
+  }
   return next;
 }

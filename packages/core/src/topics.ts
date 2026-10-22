@@ -8,14 +8,15 @@ import {
   IdString,
   isBuiltinCategory,
   isBuiltinSection,
-  NEVER_PUBLISH,
   SECTION_TITLES,
   SECTIONS,
   SectionId,
+  snapWeight,
   TRENDING_TOPIC_ID,
 } from "./categories.js";
 import { GENERAL_TOPICS, type GeneralTopicId, isGeneralTopicId } from "./generalTopics.js";
 import type { Preferences } from "./preferences.js";
+import { SourceFormat } from "./sources.js";
 
 /**
  * How a topic is scored beyond fit. "craft" and "launch" multiply the fit by the same depth
@@ -84,6 +85,63 @@ export const TopicSection = z.object({
 });
 export type TopicSection = z.infer<typeof TopicSection>;
 
+/**
+ * The five stops of the type mix. A stop multiplies the score of a story whose source has that
+ * format (type); Off keeps such stories out. Normal is the default and is left out of the file.
+ */
+export const MIX_STOPS = [
+  { name: "Off", factor: 0 },
+  { name: "Less", factor: 0.85 },
+  { name: "Normal", factor: 1 },
+  { name: "More", factor: 1.1 },
+  { name: "Most", factor: 1.2 },
+] as const;
+export const MixStop = z.enum(["Off", "Less", "Normal", "More", "Most"]);
+export type MixStop = z.infer<typeof MixStop>;
+/** The type mix, one for every topic (config/preferences.json): the stop of each format that is not Normal. */
+export const FormatMix = z.partialRecord(SourceFormat, MixStop);
+export type FormatMix = z.infer<typeof FormatMix>;
+
+/** The multiplier of a mix stop given by name or by its factor; anything else reads as Normal. */
+export function mixFactor(stop: string | number | undefined): number {
+  const found = MIX_STOPS.find((s) => s.name === stop || s.factor === stop);
+  return found?.factor ?? 1;
+}
+
+/** The stop nearest to a factor, by name. */
+export function mixStopOf(factor: number): MixStop {
+  let best: (typeof MIX_STOPS)[number] = MIX_STOPS[2];
+  for (const stop of MIX_STOPS) {
+    if (Math.abs(stop.factor - factor) < Math.abs(best.factor - factor)) best = stop;
+  }
+  return best.name;
+}
+
+/** The perspective stops, -2 to 2; Even (0) changes nothing and is left out of the file. */
+export const PERSPECTIVE_STOPS = [
+  { name: "Left", value: -2 },
+  { name: "Centre-left", value: -1 },
+  { name: "Even", value: 0 },
+  { name: "Centre-right", value: 1 },
+  { name: "Right", value: 2 },
+] as const;
+/** The most a perspective can move a story's score, either way. */
+export const PERSPECTIVE_REACH = 0.15;
+export const Perspective = z.number().int().min(-2).max(2);
+
+/**
+ * The multiplier perspective gives a general story: 1 + 15% x (perspective x mean lean) / 4, where
+ * lean runs -2 to 2. Unrated outlets count as Centre (0); no perspective, or Even, is exactly 1.
+ */
+export function perspectiveFactor(
+  perspective: number | undefined,
+  leans: readonly number[],
+): number {
+  if (!perspective || leans.length === 0) return 1;
+  const mean = leans.reduce((sum, lean) => sum + lean, 0) / leans.length;
+  return 1 + (PERSPECTIVE_REACH * perspective * mean) / 4;
+}
+
 export const Topic = z.object({
   /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
   id: IdString,
@@ -99,6 +157,10 @@ export const Topic = z.object({
   never_publish: z.boolean(),
   origin: TopicOrigin,
   depth: TopicDepth,
+  /** One emoji shown beside the topic on the Sources page. Built-in topics have theirs in the site's code. */
+  emoji: z.string().trim().min(1).max(16).optional(),
+  /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
+  perspective: Perspective.optional(),
 });
 export type Topic = z.infer<typeof Topic>;
 
@@ -192,72 +254,61 @@ export const BUILTIN_SECTIONS: readonly TopicSection[] = SECTIONS.map((id, order
   order,
 }));
 
-/** Name, description and depth of each built-in category. Weights come from the preferences. */
+/** Name, one-line hint (kept as the description) and depth of each built-in category. Weights come from the preferences. */
 const BUILTIN_META: Record<Category, { name: string; description: string; depth: TopicDepth }> = {
   design_engineering_craft: {
-    name: "Design engineering craft",
-    description:
-      "How an interface detail was built: implementation technique, craft process or a worked teardown of a polished UI.",
+    name: "Build breakdowns",
+    description: "How a detail was made, with code",
     depth: "craft",
   },
   hci_empirical_research: {
-    name: "HCI research",
-    description:
-      "Human-computer interaction research with a method and results: user studies, experiments and papers on interaction techniques.",
+    name: "User studies",
+    description: "Research with a method and results",
     depth: "craft",
   },
   ui_component_primitives: {
-    name: "UI components and primitives",
-    description:
-      "Accessible building blocks and component libraries such as dialog, popover, drawer, combobox and design tokens, including their releases.",
+    name: "Components",
+    description: "Dialogs, popovers, component libraries",
     depth: "craft",
   },
   ai_ux_interaction_patterns: {
-    name: "AI interaction patterns",
-    description:
-      "Interface and interaction patterns for AI products: chat and agent interfaces, streaming, correction, interruption and generative UI.",
+    name: "AI interface patterns",
+    description: "Chat, agents, streaming UI",
     depth: "craft",
   },
   css_canvas_motion_techniques: {
-    name: "CSS, canvas and motion",
-    description:
-      "Concrete techniques in CSS, SVG, canvas, WebGL, shaders or animation, with code or a demo.",
+    name: "Motion and CSS",
+    description: "Techniques with a demo",
     depth: "craft",
   },
   frontier_model_releases: {
-    name: "Frontier model releases",
-    description:
-      "A release, model card, benchmark result or technical report for a frontier AI model.",
+    name: "Model releases",
+    description: "Model cards, benchmarks, reports",
     depth: "craft",
   },
   developer_tool_launches: {
-    name: "Developer tool launches",
-    description:
-      "A launch or major release of a developer tool, framework, library, editor, CLI or platform feature.",
+    name: "Tool launches",
+    description: "New frameworks, editors, CLIs",
     depth: "craft",
   },
   taste_and_design_philosophy: {
-    name: "Taste and design philosophy",
-    description:
-      "Essays and talks about taste, craft, design principles and how to think about designing and building interfaces.",
+    name: "Design essays",
+    description: "Taste, principles, how to think",
     depth: "craft",
   },
   venture_capital_and_gossip: {
-    name: "Venture capital and gossip",
-    description:
-      "Funding rounds, valuations, acquisitions, investor commentary and industry gossip.",
+    name: "Funding and gossip",
+    description: "Rounds, valuations, acquisitions",
     depth: "fit_only",
   },
   generic_ai_hype_listicles: {
-    name: "Generic AI hype",
-    description:
-      "Top-N tool lists, productivity promises and marketing language with no specific technique or finding.",
+    name: "AI hype lists",
+    description: "Top-10 tools, no technique",
     depth: "fit_only",
   },
   consumer_tech_releases: {
-    name: "Consumer tech releases",
-    description:
-      "Consumer technology releases and the news around them: phones, laptops, wearables, chips, operating systems and the rules that shape them.",
+    name: "Device launches",
+    description: "Phones, laptops, chips, OS updates",
     depth: "launch",
   },
 };
@@ -267,15 +318,16 @@ export function builtinTopics(weights: Readonly<Record<Category, number>>): Topi
   return CATEGORIES.map((id): Topic => {
     const meta = BUILTIN_META[id];
     const section = homeSection(id, "rss");
+    const weight = snapWeight(weights[id]);
     return {
       id,
       name: meta.name,
       description: meta.description,
-      weight: weights[id],
+      weight,
       enabled: true,
       keywords: [],
       section_id: section ?? "top",
-      never_publish: NEVER_PUBLISH.includes(id),
+      never_publish: weight === 0,
       origin: "builtin",
       depth: meta.depth,
     };
@@ -393,7 +445,8 @@ export function resolveTopics(
     // (D39) reaches a topics.json written before it.
     return {
       ...topic,
-      weight: preferences.weights[topic.id],
+      weight: snapWeight(preferences.weights[topic.id]),
+      never_publish: snapWeight(preferences.weights[topic.id]) === 0,
       section_id: seed.get(topic.id)?.section_id ?? topic.section_id,
     };
   });
@@ -460,6 +513,12 @@ export function homeSectionFor(
   const topic = topics?.topics.find((candidate) => candidate.id === id);
   if (!topic || topic.never_publish) return null;
   return publishSection(topic);
+}
+
+/** True when a built-in category sits at Off (weight 0) in the topics a run works from. */
+export function categoryIsOff(topics: TopicsFile | null | undefined, id: string): boolean {
+  const topic = topics?.topics.find((candidate) => candidate.id === id);
+  return topic?.origin === "builtin" && (topic.weight <= 0 || topic.never_publish);
 }
 
 /**

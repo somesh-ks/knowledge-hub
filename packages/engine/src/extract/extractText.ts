@@ -15,7 +15,14 @@ export const MIN_ACCEPT_CHARS = 200;
  */
 export const FEED_TEXT_ENOUGH_CHARS = 600;
 
-export type ExtractMethod = "content" | "snippet" | "readability" | "scrape";
+export type ExtractMethod =
+  | "content"
+  | "snippet"
+  | "readability"
+  | "scrape"
+  | "captions"
+  | "transcription"
+  | "alexandria";
 
 export interface ExtractedText {
   /** Plain text, at most about 10,000 characters, cut at a paragraph boundary. */

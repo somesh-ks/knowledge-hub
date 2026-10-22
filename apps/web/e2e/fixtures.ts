@@ -24,6 +24,9 @@ export const test = base.extend<Options & { problems: Problems }>({
       await page.route("**/api/stream?**", (route) =>
         route.fulfill({ status: 200, json: { status: "waiting", turns: [] } }),
       );
+      // The page's own reports (client errors and CSP violations) go to /api/report, which the
+      // static site does not have; the API takes them with 204.
+      await page.route("**/api/report", (route) => route.fulfill({ status: 204 }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>
@@ -86,6 +89,25 @@ export const ROUTES = [
   { name: "offline page", path: "/offline" },
   { name: "not found", path: "/does-not-exist" },
 ] as const;
+
+/** One page of each kind the app has, for sweeps that must hold on every page. */
+export const SITE_PAGES = [
+  "/",
+  "/d/2026-10-07",
+  "/e/ep-20261007-1930",
+  "/library",
+  "/create",
+  "/settings",
+  "/settings/daily",
+  "/settings/weekly",
+  "/settings/voice",
+  "/settings/sounds",
+  "/settings/preferences",
+  "/settings/blocked-outlets",
+  "/settings/topics",
+  "/settings/topics/audio_interfaces",
+  "/settings/topics/other",
+];
 
 /**
  * Seeds storage before the first page of the test loads, and only then: a page saves its own state

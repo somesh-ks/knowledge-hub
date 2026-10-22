@@ -15,7 +15,6 @@ import {
   type TopicsFile,
   TopicsFile as TopicsSchema,
   topicIdFromName,
-  type WriterFile,
   withGeneralScope,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
@@ -37,7 +36,6 @@ export interface ConfigBundle {
   topics: TopicsFile;
   preferences: Preferences;
   schedule: ScheduleFile;
-  writer: WriterFile;
   sourcesUser: SourcesUserFile;
   /** The merged registry, read only: used to find ids and pages that already exist. */
   registry: SourcesFile;
@@ -136,6 +134,7 @@ function upsertTopic(
       : `set weight of ${tidy(existing.name)}`;
     existing.name = input.name;
     existing.weight = input.weight;
+    existing.never_publish = input.weight === 0;
     existing.keywords = input.keywords;
     if (isBuiltinCategory(existing.id)) next.preferences.weights[existing.id] = input.weight;
     return { next, summary, topic_id: id, new_topic: false };
@@ -205,6 +204,8 @@ function upsertTopic(
     origin: "custom",
     depth: input.depth,
   };
+  const emoji = input.emoji ?? existing?.emoji;
+  if (emoji !== undefined) topic.emoji = emoji;
   const wasNew = existing === undefined;
   // Queries follow the wording: written once for a new topic, and again when the wording changed.
   const reworded =
@@ -308,21 +309,26 @@ async function addSource(
   for (const id of op.topic_ids ?? []) {
     if (!known.has(id)) throw new ConfigOpError(`There is no topic ${id}.`);
   }
+  const taken = new Set([
+    ...next.registry.sources.map((s) => s.id),
+    ...next.sourcesUser.added.map((s) => s.id),
+  ]);
+  if (op.id !== undefined && taken.has(op.id))
+    throw new ConfigOpError(`There is already a source ${op.id}.`);
   const source = await buildSourceFromUrl(
     {
+      id: op.id,
       url: op.url,
       origin: "manual",
       topicIds: op.topic_ids,
-      takenIds: new Set([
-        ...next.registry.sources.map((s) => s.id),
-        ...next.sourcesUser.added.map((s) => s.id),
-      ]),
+      takenIds: taken,
       existing: [...next.registry.sources, ...next.sourcesUser.added],
     },
     deps.discover,
   ).catch((error: unknown) => {
     throw new ConfigOpError(error instanceof Error ? error.message : String(error));
   });
+  if (op.format !== undefined) source.format = op.format;
   next.sourcesUser.added.push(source);
   return { next, summary: `add source ${tidy(source.name)}` };
 }
@@ -374,9 +380,13 @@ function updateSource(
       if (topicIds.length > 0) added.topic_ids = topicIds;
       else delete added.topic_ids;
     }
+    if (op.format !== undefined) added.format = op.format;
+    if (op.lean !== undefined) added.lean = op.lean;
   } else {
     next.sourcesUser.overrides[op.id] = {
       ...next.sourcesUser.overrides[op.id],
+      ...(op.format === undefined ? {} : { format: op.format }),
+      ...(op.lean === undefined ? {} : { lean: op.lean }),
       ...(op.name === undefined ? {} : { name: op.name }),
       ...(topicIds === undefined ? {} : { topic_ids: topicIds }),
     };
@@ -384,7 +394,9 @@ function updateSource(
   const where = topicNames.length > 0 ? listInWords(topicNames) : "no topic";
   const rename = op.name === undefined ? null : `rename source ${tidy(before)} to ${tidy(op.name)}`;
   let summary: string;
-  if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
+  if (rename === null && topicIds === undefined) {
+    summary = `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
+  } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
   return { next, summary };
@@ -417,10 +429,40 @@ function setWeights(
     const topic = next.topics.topics.find((t) => t.id === id);
     if (!topic) throw new ConfigOpError(`There is no topic ${id}.`);
     topic.weight = weight;
+    if (topic.origin === "builtin") topic.never_publish = weight === 0;
     if (topic.origin === "builtin" && isBuiltinCategory(id)) next.preferences.weights[id] = weight;
   }
   const count = Object.keys(op.weights).length;
   return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
+}
+
+function setMix(op: Extract<ParsedConfigOp, { op: "topic.mix" }>, bundle: ConfigBundle): OpOutcome {
+  const next = clone(bundle);
+  const topic = next.topics.topics.find((t) => t.id === op.id);
+  if (!topic) throw new ConfigOpError(`There is no topic ${op.id}.`);
+  if (op.perspective !== 0 && topic.origin !== "general") {
+    throw new ConfigOpError("Only a general news topic has a perspective.");
+  }
+  if (op.perspective === 0) delete topic.perspective;
+  else topic.perspective = op.perspective;
+  return { next, summary: `set the perspective of ${tidy(topic.name)}`, topic_id: topic.id };
+}
+
+/** The one type mix, kept in the preferences and read for every topic. */
+function setFormatMix(
+  op: Extract<ParsedConfigOp, { op: "mix.set" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  const mix = { ...next.preferences.format_mix };
+  for (const [format, stop] of Object.entries(op.format_mix)) {
+    if (stop === "Normal") delete mix[format as keyof typeof mix];
+    else mix[format as keyof typeof mix] = stop;
+  }
+  if (Object.keys(mix).length > 0) next.preferences.format_mix = mix;
+  else delete next.preferences.format_mix;
+  const count = Object.keys(op.format_mix).length;
+  return { next, summary: `set the type mix of ${count} type${count === 1 ? "" : "s"}` };
 }
 
 /** The topics an episode leaves out, checked against the known ones, each once. */
@@ -456,7 +498,6 @@ function setSchedule(
     hour,
     cadence_days: cadence,
     skip_topics: skip,
-    format: op.format ?? current.format,
     length_minutes: op.length_minutes ?? current.length_minutes,
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
@@ -466,6 +507,13 @@ function setSchedule(
   };
   if (op.custom?.skip_topics !== undefined) {
     next.schedule.custom.skip_topics = skippedTopics(op.custom.skip_topics, next);
+  }
+  // The top-level pair is every podcast's voice (podcastVoices): saving it clears a weekly or Create
+  // voice left from before, so Default there means Default everywhere.
+  for (const key of ["voice_id", "voice_id_b"] as const) {
+    if (op[key] === undefined) continue;
+    if (op.weekly?.[key] === undefined) next.schedule.weekly[key] = null;
+    if (op.custom?.[key] === undefined) next.schedule.custom[key] = null;
   }
   const parts: string[] = [];
   if (op.timezone !== undefined) {
@@ -516,19 +564,6 @@ function definedOnly<T extends object>(value: T | undefined): Partial<T> {
   return Object.fromEntries(
     Object.entries(value ?? {}).filter(([, entry]) => entry !== undefined),
   ) as Partial<T>;
-}
-
-function setWriter(
-  op: Extract<ParsedConfigOp, { op: "writer.set" }>,
-  bundle: ConfigBundle,
-): OpOutcome {
-  const next = clone(bundle);
-  next.writer = { version: 1, provider: op.provider, model: op.model };
-  return {
-    next,
-    summary:
-      op.model === null ? "set the writer to automatic" : `set the writer to ${tidy(op.model)}`,
-  };
 }
 
 function blockDomain(
@@ -611,12 +646,14 @@ export async function applyConfigOp(
       return removeSource(op, bundle);
     case "weights.set":
       return setWeights(op, bundle);
+    case "topic.mix":
+      return setMix(op, bundle);
+    case "mix.set":
+      return setFormatMix(op, bundle);
     case "schedule.set":
       return setSchedule(op, bundle);
     case "topic.scope":
       return setScope(op, bundle);
-    case "writer.set":
-      return setWriter(op, bundle);
     case "profile.block":
       return blockDomain(op, bundle);
     case "profile.vote":

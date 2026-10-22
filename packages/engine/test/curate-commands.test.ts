@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { JudgmentsFile, parseDigestFile } from "@dispatch/core";
+import { JudgmentsFile, parseDigestFile, seedTopicsFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeCurateCommand } from "../src/commands/curate.js";
 import { makeRenderCommand } from "../src/commands/render.js";
@@ -24,6 +24,7 @@ import {
   writeRunFile,
 } from "./curate-helpers.js";
 import { buildFixtureDigest, COVER, makeFixture } from "./render-factories.js";
+import { plainPreferences } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const RUN = "2026-10-07-regular";
@@ -58,7 +59,7 @@ function factoryFor(
       grounder: options.grounded === false ? null : keywordGrounder,
       extract: async (item) => longText(item),
       judgeFailures: [],
-      usage: () => ({ nebiusTokens: 1234, nebiusTokenLimit: 400_000 }),
+      usage: () => ({ tokens: 1234, tokenLimit: 400_000 }),
     }),
   };
 }
@@ -96,10 +97,10 @@ describe("dispatch curate: api mode", () => {
     ).toHaveLength(6);
     const report = (await readJson(runPath("curate-report.json"))) as {
       counts: { final: number };
-      usage: { nebiusTokens: number };
+      usage: { tokens: number };
     };
     expect(report.counts.final).toBe(6);
-    expect(report.usage.nebiusTokens).toBe(1234);
+    expect(report.usage.tokens).toBe(1234);
   });
 
   it("never writes a key or fetched text to any output file", async () => {
@@ -234,24 +235,13 @@ describe("dispatch curate: errors", () => {
     ).toBe(true);
   });
 
-  it("fails clearly when NEBIUS_API_KEY is missing, without printing any value", async () => {
-    await seedPool(5);
-    const { ctx, logs } = makeContext(tr.root, {
-      env: { TYPESAFE_API_KEY: "tsk-secret-9876543210" },
-    });
-    expect(await cmd([], ctx)).toBe(1);
-    const text = JSON.stringify(logs);
-    expect(text).toContain("NEBIUS_API_KEY is not set");
-    expect(text).not.toContain("tsk-secret-9876543210");
-  });
-
-  it("fails clearly when DISPATCH_MODEL is missing, using the real runtime", async () => {
+  it("fails clearly when no model key is set, using the real runtime, without printing any value", async () => {
     await seedPool(5);
     const real = makeCurateCommand();
-    const { ctx, logs } = makeContext(tr.root, { env: { NEBIUS_API_KEY: SECRET } });
+    const { ctx, logs } = makeContext(tr.root, { env: { TYPESAFE_API_KEY: SECRET } });
     expect(await real([], ctx)).toBe(1);
     const text = JSON.stringify(logs);
-    expect(text).toContain("DISPATCH_MODEL is not set");
+    expect(text).toContain("ANTHROPIC_API_KEY or GEMINI_API_KEY");
     expect(text).not.toContain(SECRET);
   });
 
@@ -392,6 +382,11 @@ describe("dispatch curate: agent mode", () => {
 
   it("rejects ids outside the pool, banned vocabulary and never-publish categories, and leaves the file alone", async () => {
     const pool = await seedPool(5);
+    await mkdir(join(tr.root, "config"), { recursive: true });
+    await writeFile(
+      join(tr.root, "config", "topics.json"),
+      JSON.stringify(seedTopicsFile(plainPreferences().weights)),
+    );
     const items = agentItems(pool);
     items[0] = { ...items[0], id: "ffffffffffff" } as (typeof items)[number];
     items[1] = { ...items[1], headline: "An incredible release!" } as (typeof items)[number];

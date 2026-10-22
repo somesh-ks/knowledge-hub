@@ -103,7 +103,7 @@ export function charsForMinutes(minutes: number): number {
 
 /**
  * The ids to leave out so the briefing's narration fills `lengthChars`, measured from what was
- * written rather than the 364-character average: Sonnet tells a story longer than Nebius did, and a
+ * written rather than the 364-character average: Sonnet tells a longer story than the earlier models did, and a
  * five-minute replay ran 5.7 minutes on the average alone. Stories are cut in the reverse of how
  * selection fills a briefing: the lowest-scored story of a topic that has another goes first, so
  * every topic keeps its best story; only then the lowest-scored overall. A cut is made only while

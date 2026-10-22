@@ -1,0 +1,38 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+
+const title = "Interface sounds";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the sound settings">
+  <main id="main" tabindex="-1">
+    {/* The switch and the slider are kept in this browser, so nothing is set here: settingsPage.ts
+         fills them in and marks the page ready, as on the Settings index. */}
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} note="The small sounds the app makes as you use it." />
+      <noscript>
+        <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
+      </noscript>
+      <section>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="settings-sounds">Interface sounds</label>
+            <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="settings-volume">Volume</label>
+            <input class="settings-range" id="settings-volume" name="volume" type="range" min="0" max="1" step="0.05" />
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSettingsPage } from "../../scripts/settingsPage";
+
+  installSettingsPage();
+</script>

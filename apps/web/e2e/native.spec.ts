@@ -28,7 +28,7 @@ async function serveNarration(page: Page): Promise<void> {
     const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
     return (data.items as { id: string }[]).map((item) => item.id);
   });
-  await page.route("**/api/narrate?digest=*", (route) =>
+  await page.context().route("**/api/narrate?digest=*", (route) =>
     route.fulfill({
       json: {
         status: 200,
@@ -44,7 +44,7 @@ async function serveNarration(page: Page): Promise<void> {
       },
     }),
   );
-  await page.route("**/api/narrate", (route) => {
+  await page.context().route("**/api/narrate", (route) => {
     if (route.request().method() !== "POST") return route.fallback();
     const { segment } = route.request().postDataJSON() as { segment: string };
     return route.fulfill({
@@ -62,7 +62,7 @@ async function serveNarration(page: Page): Promise<void> {
 }
 
 test.describe("the floating button", () => {
-  test("is Create on the Library, Play on Today, a briefing or an episode, and absent elsewhere", async ({
+  test("is Create on the Library, Play on Today, a briefing or an episode, Add on Topics and sources, and absent elsewhere", async ({
     page,
   }) => {
     // Short enough that even an episode's page scrolls its hero's Play out of view.
@@ -91,10 +91,13 @@ test.describe("the floating button", () => {
       await expect(createFab(page), path).toHaveCount(0);
       await expect(page.locator("html"), path).toHaveAttribute("data-fab", "");
     }
-    for (const path of ["/settings", "/settings/daily", "/settings/topics", "/create"]) {
+    for (const path of ["/settings", "/settings/daily", "/create"]) {
       await page.goto(path);
       await expect(page.locator(".create-fab"), path).toHaveCount(0);
     }
+    await page.goto("/settings/topics");
+    await expect(page.locator(".create-fab")).toHaveCount(1);
+    await expect(page.locator("html")).toHaveAttribute("data-fab", "");
   });
 
   test("Play waits while the hero's Play is on screen, and comes and goes with it", async ({

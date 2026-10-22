@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestId, digestRelPath } from "@dispatch/core";
+import { DigestId, digestRelPath, EpisodeId, episodeRelPath } from "@dispatch/core";
 import { describeRefusal } from "../audio/budget.js";
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import type { CommandContext, CommandRun } from "../context.js";
@@ -17,10 +17,12 @@ import { createGitRunner } from "../git/runGit.js";
 import type { BlobClient } from "../publish/blob.js";
 import type { DigestAudioOutcome, PublishAudioResult } from "../publish/publishAudio.js";
 import { listPendingDigests, publishAudio } from "../publish/publishAudio.js";
+import { listEpisodeCandidates, publishEpisodeAudio } from "../publish/publishEpisodes.js";
 import type { AudioCommandDeps } from "./audio.js";
 import { defaultAudioDeps } from "./audio.js";
 
-const USAGE = "usage: dispatch publish [--digest <id>] [--prune <days>] [--no-push]";
+const USAGE =
+  "usage: dispatch publish [--digest <id> | --episode <ep-id>] [--prune <days>] [--no-push]";
 
 const fileExists = (path: string): Promise<boolean> =>
   access(path).then(
@@ -97,8 +99,9 @@ function commitFailed(outcome: CommitOutcome): boolean {
 }
 
 /**
- * `dispatch publish`: narrate every digest that lacks audio, upload it, and commit the timeline
- * files and usage count through the write guard. A failed narration leaves that digest's audio
+ * `dispatch publish`: narrate every digest that lacks audio, and every turn of a recent episode
+ * that has none stored (publishEpisodes.ts), upload it, and commit the timeline files and usage
+ * count through the write guard. A failed narration leaves that digest's audio
  * null, is reported, and does not fail the command, so the text digest still ships (plan 7.9). A
  * refused commit or a failed push does fail it.
  */
@@ -106,12 +109,13 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
   const deps: AudioCommandDeps = { ...defaultAudioDeps, ...overrides };
 
   return async (argv, ctx) => {
-    let values: { digest?: string; prune?: string; "no-push"?: boolean };
+    let values: { digest?: string; episode?: string; prune?: string; "no-push"?: boolean };
     try {
       ({ values } = parseArgs({
         args: argv,
         options: {
           digest: { type: "string" },
+          episode: { type: "string" },
           prune: { type: "string" },
           "no-push": { type: "boolean" },
         },
@@ -137,6 +141,19 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         return 1;
       }
     }
+    let episodeId: string | undefined;
+    if (values.episode !== undefined) {
+      const parsed = EpisodeId.safeParse(values.episode);
+      if (!parsed.success || digestId !== undefined) {
+        ctx.log.error(`--episode needs one episode id such as ep-20261007-1930. ${USAGE}`);
+        return 2;
+      }
+      episodeId = parsed.data;
+      if (!(await fileExists(join(ctx.root, episodeRelPath(episodeId))))) {
+        ctx.log.error(`No episode ${episodeId} found at ${episodeRelPath(episodeId)}`);
+        return 1;
+      }
+    }
     let pruneDays: number | undefined;
     if (values.prune !== undefined) {
       pruneDays = Number(values.prune);
@@ -147,8 +164,14 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
     }
 
     const git = createGitRunner(ctx.root);
-    const pending = await listPendingDigests(ctx.root, digestId === undefined ? {} : { digestId });
-    if (pending.length === 0 && pruneDays === undefined) {
+    // A named episode narrates that episode only; a named digest, that digest only.
+    const pending =
+      episodeId === undefined
+        ? await listPendingDigests(ctx.root, digestId === undefined ? {} : { digestId })
+        : [];
+    const episodes =
+      digestId === undefined ? await listEpisodeCandidates(ctx.root, ctx.now(), episodeId) : [];
+    if (pending.length === 0 && episodes.length === 0 && pruneDays === undefined) {
       emit(
         ctx,
         deps,
@@ -186,7 +209,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
     if ("error" in keys) {
       // Missing credentials block narration, never the text digest: report and carry on.
       result = {
-        outcomes: pending.map((id) => ({
+        outcomes: [...pending, ...episodes].map((id) => ({
           status: "failed",
           digestId: id,
           stage: "credentials",
@@ -196,21 +219,30 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         changedPaths: [],
       };
     } else {
-      result = await publishAudio(
-        {
-          root: ctx.root,
-          speech: keys.speech,
-          blob: keys.blob,
-          log: ctx.log,
-          now: ctx.now,
-          monthlyChars: keys.monthlyChars,
-          voiceId: ctx.env.SPEECHIFY_VOICE_ID,
-        },
-        {
-          ...(digestId !== undefined ? { digestId } : {}),
-          ...(pruneDays !== undefined ? { pruneDays } : {}),
-        },
-      );
+      const audioDeps = {
+        root: ctx.root,
+        speech: keys.speech,
+        blob: keys.blob,
+        log: ctx.log,
+        now: ctx.now,
+        monthlyChars: keys.monthlyChars,
+        voiceId: ctx.env.SPEECHIFY_VOICE_ID,
+      };
+      const digests: PublishAudioResult =
+        episodeId === undefined
+          ? await publishAudio(audioDeps, {
+              ...(digestId !== undefined ? { digestId } : {}),
+              ...(pruneDays !== undefined ? { pruneDays } : {}),
+            })
+          : { outcomes: [], warnings: [], changedPaths: [] };
+      // After the briefings, so a tight month favours them: the budget then refuses an episode.
+      const told = await publishEpisodeAudio(audioDeps, ctx.env, episodes);
+      result = {
+        ...digests,
+        outcomes: [...digests.outcomes, ...told.outcomes],
+        warnings: [...digests.warnings, ...told.warnings],
+        changedPaths: [...new Set([...digests.changedPaths, ...told.changedPaths])].sort(),
+      };
     }
     for (const warning of result.warnings) ctx.log.warn(warning);
 

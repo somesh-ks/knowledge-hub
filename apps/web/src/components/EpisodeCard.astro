@@ -5,6 +5,7 @@ import { EPISODE_KIND, FACT_SEPARATOR } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
+import LibraryItemMenu from "./LibraryItemMenu.astro";
 
 interface Props {
   entry: EpisodeEntry;
@@ -49,4 +50,12 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/e/${entry.id}`} title={episode.title} />
+  <LibraryItemMenu
+    id={entry.id}
+    title={episode.title}
+    path={`/e/${entry.id}`}
+    kind="episode"
+    audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}
+    topics={episode.request.topic_ids}
+  />
 </li>

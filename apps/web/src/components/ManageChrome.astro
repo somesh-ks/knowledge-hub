@@ -4,23 +4,12 @@ import Icon from "./Icon.astro";
 ---
 
 {/* What the settings pages share besides their rows: the live regions the script writes to (one
-     polite, one for errors), the row it copies for a topic added on the page, the toast that comes up
+     polite, one for errors), the toast that comes up
      when saving needs the owner (scripts/autosave.ts; it looks and sits like every toast, and leaves speaking to the
      regions), and the dialog that asks for the passphrase once. All of it is inert until the page's
      script mounts. */}
 <p class="sr-only" role="status" data-live></p>
 <p class="sr-only" role="alert" data-alert></p>
-
-<template>
-  <li class="manage-row" data-queued-row>
-    <div class="manage-main">
-      <div class="manage-text">
-        <span class="settings-label" data-q-name></span>
-        <span class="manage-quiet">Adding</span>
-      </div>
-    </div>
-  </li>
-</template>
 
 <div class="toast manage-bar" popover="manual" data-bar data-state="saved">
   <Icon name="check" class="toast-icon manage-bar-done" />

@@ -72,8 +72,7 @@ export function addSaved(
   now: number,
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
-  const own = ops.filter((op) => op.op !== "writer.set");
-  return own.length > 0 ? [...kept, { at: now, ops: own }] : kept;
+  return ops.length > 0 ? [...kept, { at: now, ops: [...ops] }] : kept;
 }
 
 /**
@@ -87,19 +86,6 @@ export function withPending(
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
   return ops.length > 0 ? [...kept, { at: now, ops: [...ops], pending: true }] : kept;
-}
-
-type WriterChoice = Pick<Extract<ConfigOp, { op: "writer.set" }>, "provider" | "model">;
-
-/**
- * The writer choice still on its way among `ops` (only a pending entry keeps a writer.set), the
- * latest one, or null when none is.
- */
-export function heldWriter(ops: readonly ConfigOp[]): WriterChoice | null {
-  let found: WriterChoice | null = null;
-  for (const op of ops)
-    if (op.op === "writer.set") found = { provider: op.provider, model: op.model };
-  return found;
 }
 
 /** Whether any edit shown is still on its way, so the page says Saving rather than Saved. */
@@ -200,6 +186,14 @@ export function savedControl(
       if (typeof value === "boolean") found = String(value);
     } else if (op.op === "weights.set" && saved.op === "weights.set" && outer === "weights") {
       const value = saved.weights[inner];
+      if (typeof value === "number") found = String(value);
+    } else if (op.op === "mix.set" && saved.op === "mix.set" && outer === "format_mix") {
+      // A type slider takes the last saved factor for its format.
+      const value = saved.format_mix[inner];
+      if (typeof value === "number") found = String(value);
+    } else if (op.op === "topic.mix" && saved.op === "topic.mix" && saved.id === op.id) {
+      // A perspective slider takes the last saved perspective.
+      const value = saved.perspective;
       if (typeof value === "number") found = String(value);
     } else if (
       op.op === "topic.upsert" &&

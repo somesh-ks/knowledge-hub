@@ -12,6 +12,7 @@ describe("house rules for authored files", () => {
 
   const roots = [
     "docs/design",
+    "docs/specs",
     "scripts",
     "packages/sound/src",
     "apps/web/src/styles",

@@ -48,7 +48,7 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-3) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
+  padding-inline: var(--space-4) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
   text-align: end;
@@ -177,7 +177,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: var(--space-2);
   padding-inline: var(--space-4);
   block-size: var(--field-height);
@@ -238,7 +238,7 @@
 .picker-note {
   flex: none;
   margin: 0;
-  padding: var(--space-1) var(--space-4) var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
@@ -248,9 +248,9 @@
   display: grid;
   flex: 1 1 auto;
   align-content: start;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-block-size: 0;
-  padding: var(--space-1) var(--space-2) var(--space-2);
+  padding: var(--space-2);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -260,10 +260,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--size-icon);
   align-items: center;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   min-block-size: var(--size-touch);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   cursor: pointer;
   user-select: none;
@@ -311,7 +311,7 @@
 
 .picker-empty {
   margin: 0;
-  padding: var(--space-3);
+  padding: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-body);
 }
@@ -332,32 +332,45 @@
 /* A round button that plays the voice's sample. It keeps its room when the voice has no sample yet,
    so nothing moves when the list arrives. */
 .podcast-sample {
+  position: relative;
   display: grid;
   flex: none;
   place-items: center;
-  inline-size: var(--size-touch);
-  block-size: var(--size-touch);
+  /* The target stays 48px; the disc drawn in it is 40px (2026-10-21: the button was too big). */
+  inline-size: var(--size-touch-comfortable);
+  block-size: var(--size-touch-comfortable);
+  color: var(--color-on-accent-container);
+}
+
+.podcast-sample::before {
+  content: "";
+  position: absolute;
+  /* Centred in the 48px target: a 40px disc. */
+  inset: calc((var(--size-touch-comfortable) - var(--space-8) - var(--space-2)) / 2);
   border-radius: var(--radius-round);
   background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* A voice with no sample, or a list not in yet: the button stays in its place, dimmed, not pressable. */
+.podcast-sample > .icon {
+  position: relative;
+}
+
+/* A voice with no sample, or a list not in yet: the button stays in its place and keeps its colours,
+   only quieter, not pressable. A grey glyph on a disc as dark as the card read as broken in the dark
+   theme (2026-10-21). It shows what a press does next: play, or pause while the sample plays. */
 .podcast-sample:disabled {
-  background: var(--color-surface-container);
-  color: var(--color-on-surface-disabled);
+  opacity: 0.6;
   cursor: default;
 }
 
-/* It shows what a press does next: play, or pause while the sample plays. */
 .podcast-sample[aria-pressed="true"] .sample-play,
 .podcast-sample:not([aria-pressed="true"]) .sample-pause {
   display: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .podcast-sample:not(:disabled):hover {
+  .podcast-sample:not(:disabled):hover::before {
     background: color-mix(
       in oklch,
       var(--color-accent-container),
@@ -366,7 +379,7 @@
   }
 }
 
-.podcast-sample:not(:disabled):active {
+.podcast-sample:not(:disabled):active::before {
   background: color-mix(
     in oklch,
     var(--color-accent-container),

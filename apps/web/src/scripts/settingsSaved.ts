@@ -12,7 +12,7 @@ import {
   savedTopicCount,
   sourceCounts,
 } from "../lib/savedOverlay";
-import { dailySummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { dropUnclaimed, HELD_EVENT, type Held } from "./managePageSave";
 import { readSaved } from "./savedView";
@@ -68,11 +68,14 @@ function say(target: HTMLElement | null, text: string): boolean {
 export function overlayIndex(root: ParentNode, ops: readonly ConfigOp[]): boolean {
   const daily = row(root, "daily");
   const weekly = row(root, "weekly");
+  const voice = row(root, "voice");
+  // The shared voices are top-level fields of schedule.set, which savedFields files under "daily".
   const baked: FieldValues = {
+    "daily.voice": voice?.dataset.voice ?? "",
+    "daily.voice_b": voice?.dataset.voiceB ?? "",
     "daily.hour": daily?.dataset.hour ?? "",
     "daily.cadence": daily?.dataset.cadence ?? "",
     "daily.timezone": daily?.dataset.timezone ?? "",
-    "weekly.enabled": weekly?.dataset.enabled ?? "",
     "weekly.day": weekly?.dataset.day ?? "",
     "weekly.hour": weekly?.dataset.hour ?? "",
     "weekly.timezone": weekly?.dataset.timezone ?? "",
@@ -94,12 +97,14 @@ export function overlayIndex(root: ParentNode, ops: readonly ConfigOp[]): boolea
       say(
         weekly,
         weeklySummary({
-          enabled: now["weekly.enabled"] === "true",
           day: Number(now["weekly.day"]),
           hour: Number(now["weekly.hour"]),
           timezone: now["weekly.timezone"],
         }),
       ) || shown;
+  if (voice)
+    shown =
+      say(voice, voicesSummary(now["daily.voice"] ?? "", now["daily.voice_b"] ?? "")) || shown;
 
   const topics = row(root, "topics");
   if (topics) {

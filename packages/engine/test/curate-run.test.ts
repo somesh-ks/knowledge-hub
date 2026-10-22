@@ -55,7 +55,7 @@ const factoryFor =
     grounder: keywordGrounder,
     extract: async (item) => longText(item),
     judgeFailures: [],
-    usage: () => ({ nebiusTokens: 1, nebiusTokenLimit: 400_000 }),
+    usage: () => ({ tokens: 1, tokenLimit: 400_000 }),
   });
 
 describe("parsePool", () => {

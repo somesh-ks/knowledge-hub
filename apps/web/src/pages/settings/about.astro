@@ -1,0 +1,27 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+
+const title = "About";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the about page">
+  <main id="main" tabindex="-1">
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} />
+      <section>
+        <h2 class="section-head">Singularity</h2>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <span class="settings-label">Author</span>
+            <span class="settings-hint">Somesh</span>
+          </div>
+          <p class="settings-about">
+            Created to help people cut through the noise and get high value news: it picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>

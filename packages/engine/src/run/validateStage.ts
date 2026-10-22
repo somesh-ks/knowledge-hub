@@ -1,10 +1,10 @@
-import { type Digest, VOICE_LIMITS, withGeneralTopics } from "@dispatch/core";
+import { type Digest, VOICE_LIMITS } from "@dispatch/core";
 import { buildSpokenText } from "../audio/spokenText.js";
-import { linkSourceIds, loadSources, sourceNameMap } from "../curate/inputs.js";
+import { linkSourceIds, loadPreferences, loadSources, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { readLastRun } from "../state/store.js";
-import { loadTopicsFile } from "../topics/store.js";
+import { loadTopics } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
@@ -41,7 +41,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
   const linter = createLinter(await loadVoice(deps.root));
   const [sources, lastRun] = await Promise.all([loadSources(deps.root), readLastRun(deps.root)]);
   const sourceNames = sourceNameMap(sources);
-  const topics = withGeneralTopics(await loadTopicsFile(deps.root));
+  const topics = await loadTopics(deps.root, await loadPreferences(deps.root));
   const coverPicker = makeCoverPicker(deps.pickCover, lastRun.last_cover);
   if (runtime.grounder === null) {
     deps.log.warn("No grounding check ran: the digest will be marked unverified");

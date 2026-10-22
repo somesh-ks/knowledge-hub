@@ -12,7 +12,7 @@
 .blocked-add-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .blocked-add-row > .manage-input {
@@ -24,7 +24,7 @@
   flex: none;
   width: auto;
   min-height: var(--field-height);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   font-size: var(--font-size-label);
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
@@ -35,21 +35,36 @@
   padding-block-start: var(--space-4);
 }
 
+/* The card keeps the padding-inline of .card-group, so the domain does not sit on the card's edge. */
 .blocked-list > ul {
   margin: 0;
-  padding: 0;
   list-style: none;
 }
 
-/* A row that is the domain at the start and its remove control flush with the gutter at the end. */
+/* The row is the .settings-row inside it, which carries the padding: the item adds none, or the
+   card is twice as tall as the others in Settings. */
+.blocked-row {
+  padding-block: 0;
+}
+
+/* Rows in a card are divided by a hairline, as in the other cards (manage.css turns them off). */
+.blocked-row:not([data-removing], [data-gone])
+~ .blocked-row:not([data-removing], [data-gone])::before {
+  content: "";
+}
+
+/* A row that is the domain at the start and its remove control at the end. The label shrinks and
+   wraps (2026-10-21): .settings-row > .settings-label is flex: 1 0 auto, so a long domain kept its
+   full width and made the page wider than the phone. */
 .blocked-row .settings-label {
+  flex: 1 1 0;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .blocked-row .icon-btn {
   flex: none;
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 /* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list. */
