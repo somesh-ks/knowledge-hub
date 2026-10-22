@@ -257,7 +257,7 @@ describe("sections and top picks", () => {
     expect(bySection[a.item.id]).toBe("top");
     expect(bySection[b.item.id]).toBe("top");
     expect(bySection[c.item.id]).toBe("top");
-    // A tool launch with no version in its headline competes in Software Engineering (D151).
+    // A tool launch with no version in its headline competes in Software Engineering (D155).
     expect(bySection[d.item.id]).toBe("software");
     expect(bySection[e.item.id]).toBe("ui-craft");
     expect(result.selected.filter((s) => s.section === "top")).toHaveLength(3);
@@ -502,7 +502,7 @@ describe("release notes", () => {
     expect(result.selected.at(-1)?.section).toBe("launches");
   });
 
-  // D151: Software Engineering takes tool launches uncapped; only a version in the headline is a release note.
+  // D155: Software Engineering takes tool launches uncapped; only a version in the headline is a release note.
   it("lets tool launches without a version compete in Software Engineering, uncapped and never read last", () => {
     const launches = Array.from({ length: 6 }, (_, i) =>
       scored("developer_tool_launches", 0.9 - i * 0.01, { title: `Acme ships tool ${i}` }),

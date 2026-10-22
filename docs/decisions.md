@@ -162,9 +162,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
-| D151 | Software Engineering topic | active; amends D69 |
 | D152 | Full-screen phone sheets show Close | amends D144 |
 | D154 | Simple Analytics and a Privacy page | active |
+| D155 | Software Engineering topic | active; amends D69 |
 
 ---
 
@@ -1673,7 +1673,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Context: D153 (proposed the same day on another branch) counts events first-party in Neon instead and makes share links a public listen page. The two overlap on events; if D153 is approved, its events replace these and Simple Analytics keeps only visits and referrers, or goes.
 - Revisit if: retention per reader becomes the question (that needs accounts or an identifier, and a new privacy page), or ad blockers hide most visits (Simple Analytics' custom-domain proxy).
 
-## D151: Software Engineering is the owner's fourth topic, with its own section and an engineering-depth judge category
+## D155: Software Engineering is the owner's fourth topic, with its own section and an engineering-depth judge category
 
 - Date: 2026-10-22
 - Decision: a built-in group `software` (name Software Engineering, emoji 💻, home `developer_tool_launches`) with its own briefing section `software`, ordered right after `ui-craft` in `SECTIONS` (and in `config/topics.json`). It competes like Design and AI: no allowance of its own, no special cap. A twelfth category `software_engineering_depth` ("Engineering deep dives", craft depth, weight 0.85) is appended to `CATEGORIES`; `developer_tool_launches` homes to `software` too. The page `/settings/topics/software` has generated topic art; the two categories' old page URLs redirect to it.

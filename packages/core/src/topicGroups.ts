@@ -1,7 +1,7 @@
 import { DESIGN_TOPIC_ID, TECH_CATEGORY } from "./categories.js";
 
 /**
- * The owner's four topics (D69, D151): what the app shows as Design, AI, Technology and Software Engineering. Each gathers
+ * The owner's four topics (D69, D155): what the app shows as Design, AI, Technology and Software Engineering. Each gathers
  * the judge's finer topics by the briefing section they publish to, so the twelve built-in
  * categories, the app's Design topic and any custom topic in those sections stay the judge's
  * questions underneath while a person sees four. `home` is where a source added to the group is
