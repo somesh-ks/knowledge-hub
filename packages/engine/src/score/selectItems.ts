@@ -152,7 +152,7 @@ export function hasOwnSection(candidate: Pick<Candidate, "home">): boolean {
 }
 
 /**
- * Median of the preference weights. With an even number of categories (twelve since D150) it is
+ * Median of the preference weights. With an even number of categories (twelve since D151) it is
  * the mean of the middle two.
  */
 export function medianWeight(weights: Record<Category, number>): number {

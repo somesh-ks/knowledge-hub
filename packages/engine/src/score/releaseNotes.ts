@@ -25,7 +25,7 @@ export const RELEASE_SECTION = "launches";
 
 /**
  * True for changelog news: a GitHub release or a headline that names a version number. Such a
- * story never becomes a Top pick and is read at the end. Since D150 a tool launch the judge files
+ * story never becomes a Top pick and is read at the end. Since D151 a tool launch the judge files
  * under developer_tool_launches no longer counts by its category alone: it competes in Software
  * Engineering like any other story and is a release story only when its headline is a version.
  */
