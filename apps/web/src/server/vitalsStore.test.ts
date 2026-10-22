@@ -1,8 +1,7 @@
-import { VITALS_DAY_MAX_SAMPLES } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import type { BlobEntry, NarrateBlobStore } from "./blobStore";
 import { handleReport } from "./report";
-import { newVitalsBuffer, recordVital, VITALS_FLUSH_MS } from "./vitalsStore";
+import { newVitalsMemo, recordVital, VITALS_DAY_CAP } from "./vitalsStore";
 
 /** An in-memory store that counts the ADVANCED operations (puts) it is asked for. */
 function memoryStore() {
@@ -32,42 +31,36 @@ function memoryStore() {
 }
 
 describe("real-user Web Vitals", () => {
-  // Each put spends one of the store's 2,000 ADVANCED operations a month, which narration needs:
-  // a flood of beacons must not write once per beacon, nor grow the day's file without end.
-  it("writes a day's samples at most once per window and stops once the file is full", async () => {
+  // A quiet site lost every sample an instance held for a write it never made; and each put spends
+  // one of the 2,000 ADVANCED operations a month narration needs, so all instances together stop at
+  // the day's cap, read from the file.
+  it("stores each sample as it arrives and stops every instance once the day's file is full", async () => {
     const memory = memoryStore();
-    const buffer = newVitalsBuffer();
-    let now = Date.parse("2026-10-21T10:00:00Z");
+    const [first, second] = [newVitalsMemo(), newVitalsMemo()];
+    const now = Date.parse("2026-10-21T10:00:00Z");
     const deps = { openBlob: () => memory.store, now: () => now, log: () => undefined };
-    const vital = (sample: Parameters<typeof recordVital>[0]) => recordVital(sample, buffer, deps);
+    const stored = () => memory.files.get("health/vitals-2026-10-21.json") ?? "";
     const body = JSON.stringify({ kind: "vitals", page: "/?key=secret-value", lcp: 1800, inp: 90 });
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 2; i++) {
       await handleReport(
         body,
-        { log: () => undefined, now: () => now, vital },
+        {
+          log: () => undefined,
+          now: () => now,
+          vital: (sample) => recordVital(sample, first, deps),
+        },
         { windowStart: 0, count: 0 },
       ).work;
     }
-    expect(memory.puts()).toBe(1);
-    now += VITALS_FLUSH_MS;
-    await vital({ at: now, page: "/", cls: 0.02 });
-    expect(memory.puts()).toBe(2);
-    const stored = memory.files.get("health/vitals-2026-10-21.json") ?? "";
-    expect(JSON.parse(stored).samples).toHaveLength(51);
-    expect(stored).not.toContain("secret-value");
+    expect(JSON.parse(stored()).samples).toHaveLength(2);
+    expect(stored()).not.toContain("secret-value");
 
-    for (let i = 0; i < VITALS_DAY_MAX_SAMPLES * 2; i++) {
-      await vital({ at: now, page: "/", lcp: 1000 });
+    for (let i = 0; i < VITALS_DAY_CAP * 2; i++) {
+      await recordVital({ at: now, page: "/", cls: 0.02 }, i % 2 ? first : second, deps);
     }
-    now += VITALS_FLUSH_MS;
-    await vital({ at: now, page: "/", lcp: 1000 });
-    now += VITALS_FLUSH_MS;
-    await vital({ at: now, page: "/", lcp: 1000 });
-    expect(
-      JSON.parse(memory.files.get("health/vitals-2026-10-21.json") ?? "").samples,
-    ).toHaveLength(VITALS_DAY_MAX_SAMPLES);
-    expect(memory.puts()).toBe(3);
+    expect(JSON.parse(stored()).samples).toHaveLength(VITALS_DAY_CAP);
+    expect(memory.puts()).toBe(VITALS_DAY_CAP);
   });
 
   // A forged beacon must not land in the file and skew the p75 health reads.

@@ -16,7 +16,7 @@ export const VITAL_GOOD: Record<VitalMetric, number> = { lcp: 2500, inp: 200, cl
 /** Upper bounds a real measurement stays under; anything past is a broken or forged report. */
 export const VITAL_MAX: Record<VitalMetric, number> = { lcp: 60_000, inp: 30_000, cls: 10 };
 
-/** One day's file keeps at most this many samples, so a flood cannot grow it or its writes. */
+/** The most samples a day's file may hold to parse. The site writes fewer (vitalsStore.ts's cap). */
 export const VITALS_DAY_MAX_SAMPLES = 300;
 
 export const VitalSample = z.object({

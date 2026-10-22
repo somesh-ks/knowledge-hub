@@ -96,11 +96,12 @@ config checks into `health` (small).
 
 - Web Vitals: `scripts/vitals.ts` (loaded at idle from `app.ts`, so not first-load script) observes
   LCP, CLS (largest session window) and INP (slowest interaction) with buffered
-  `PerformanceObserver`s and sends one `vitals` beacon at page hide. `/api/report` checks each value
+  `PerformanceObserver`s and sends one `vitals` beacon per page, at page hide or when a soft navigation replaces it (the next page is measured afresh). `/api/report` checks each value
   against a plausible range (core `vitals.ts`) and hands it to `server/vitalsStore.ts`, which keeps
-  one public Blob file a UTC day (`health/vitals-YYYY-MM-DD.json`, 300 samples at most). A put is an
-  ADVANCED operation, shared with narration, so an instance writes at most every 15 minutes and 24
-  times a day, holding what arrives meanwhile, and stops once the day's file is full. `health` reads
+  one public Blob file a UTC day (`health/vitals-YYYY-MM-DD.json`). Each sample is written when it
+  arrives, until the day's file itself holds 20 (a cap every instance reads), and the page sends from
+  half of all views so the cap fills across the day. A put is an ADVANCED operation shared with
+  narration: 620 a month at worst, under a third of the 2,000. `health` reads
   the last eight files by the store's public URL (from the newest narration URL; no secret).
 - Died runs: GitHub's run list is the start marker; nothing new is written by the engine.
 - Episodes and config: parsed daily by `health`, with doctor's config checks folded in.
@@ -122,5 +123,5 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 | Data integrity | `digest_invalid`, `state_invalid`, `config_invalid`, the write guard | `health.yml`; every commit | none: the guard should refuse it | `config/alexandria.json`, `writer.json` and `profiles/` have no core schema to check |
 | Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life | quota eviction of downloads is not detected |
 
-Next by value: a per-page split of the vitals (and soft navigations), a briefing that aired short
+Next by value: a per-page split of the vitals in `health`, a briefing that aired short
 of its length, function 5xx rates (needs a log drain), and a KV counter for the paid routes.

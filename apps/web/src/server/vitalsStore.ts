@@ -1,29 +1,33 @@
-import { VITALS_DAY_MAX_SAMPLES, type VitalSample, VitalsDay, vitalsPath } from "@dispatch/core";
+import { type VitalSample, VitalsDay, vitalsPath } from "@dispatch/core";
 import { type NarrateBlobStore, readFresh } from "./blobStore";
 
 /**
  * Where /api/report keeps real-user Web Vitals: one public Blob file per UTC day
- * (health/vitals-YYYY-MM-DD.json), which `dispatch health` reads by URL. A put is an ADVANCED
- * operation (2,000 a month, shared with narration; blobStore.ts), so an instance writes at most
- * once every VITALS_FLUSH_MS and VITALS_FLUSHES_PER_DAY times a day, holds what arrives meanwhile
- * for its next write, and stops for the day once the file is full. Two instances writing in the
- * same moment can lose one batch: these are samples, not records.
+ * (health/vitals-YYYY-MM-DD.json), which `dispatch health` reads by URL. Each accepted sample is
+ * written when it arrives, so a quiet site loses none to an instance that never writes again.
+ *
+ * A put is an ADVANCED operation (2,000 a month, shared with narration; blobStore.ts). The cap is
+ * global because it is read from the day's file itself: once the file holds VITALS_DAY_CAP samples
+ * every instance stops writing for the day, and remembers so it stops reading too. scripts/vitals.ts
+ * sends from half of all page views, so the cap fills across the day instead of in its first hour.
+ * Worst case: 20 puts a day, 620 in a 31-day month, under a third of the budget, and 2 SIMPLE
+ * operations (of 10,000) per write. Two instances writing in the same moment can lose a sample and
+ * spend a put on it; an instance writes at most VITALS_DAY_CAP times a day, so even that stays
+ * bounded. These are samples, not records.
  */
 
-export const VITALS_FLUSH_MS = 15 * 60_000;
-export const VITALS_FLUSHES_PER_DAY = 24;
+export const VITALS_DAY_CAP = 20;
 
-export interface VitalsBuffer {
-  pending: VitalSample[];
-  lastFlush: number;
+/** What one instance remembers between requests: the writes it spent today, and a full day. */
+export interface VitalsMemo {
   day: string;
-  flushes: number;
-  /** The day whose file is full: nothing more is kept or written for it. */
+  writes: number;
+  /** The day whose file is full: nothing more is read or written for it. */
   fullDay: string | null;
 }
 
-export function newVitalsBuffer(): VitalsBuffer {
-  return { pending: [], lastFlush: Number.NEGATIVE_INFINITY, day: "", flushes: 0, fullDay: null };
+export function newVitalsMemo(): VitalsMemo {
+  return { day: "", writes: 0, fullDay: null };
 }
 
 export interface VitalsDeps {
@@ -35,44 +39,34 @@ export interface VitalsDeps {
 
 export async function recordVital(
   sample: VitalSample,
-  buffer: VitalsBuffer,
+  memo: VitalsMemo,
   deps: VitalsDeps,
 ): Promise<void> {
-  const now = deps.now();
-  const day = new Date(now).toISOString().slice(0, 10);
-  if (buffer.fullDay === day) return;
-  if (buffer.pending.length < VITALS_DAY_MAX_SAMPLES) buffer.pending.push(sample);
-  if (buffer.day !== day) {
-    buffer.day = day;
-    buffer.flushes = 0;
+  const day = new Date(deps.now()).toISOString().slice(0, 10);
+  if (memo.day !== day) {
+    memo.day = day;
+    memo.writes = 0;
   }
-  if (now - buffer.lastFlush < VITALS_FLUSH_MS || buffer.flushes >= VITALS_FLUSHES_PER_DAY) return;
+  if (memo.fullDay === day || memo.writes >= VITALS_DAY_CAP) return;
   const blob = deps.openBlob();
-  if (blob === null) {
-    buffer.pending = [];
-    return;
-  }
-  // Taken before the first await, so a second request in the meantime holds its sample instead.
-  buffer.lastFlush = now;
-  buffer.flushes += 1;
-  const batch = buffer.pending;
-  buffer.pending = [];
+  if (blob === null) return;
+  // Counted before the first await, so a burst of requests cannot pass the cap together.
+  memo.writes += 1;
   try {
     const path = vitalsPath(day);
     const stored = await readFresh(blob, path);
     const parsed = stored ? VitalsDay.safeParse(JSON.parse(stored.text)) : null;
     const kept = parsed?.success ? parsed.data.samples : [];
-    if (kept.length >= VITALS_DAY_MAX_SAMPLES) {
-      buffer.fullDay = day;
+    if (kept.length >= VITALS_DAY_CAP) {
+      memo.fullDay = day;
       return;
     }
-    const samples = [...kept, ...batch].slice(0, VITALS_DAY_MAX_SAMPLES);
-    const file: VitalsDay = { version: 1, day, samples };
+    const file: VitalsDay = { version: 1, day, samples: [...kept, sample] };
     await blob.put(path, JSON.stringify(file), {
       contentType: "application/json",
       cacheSeconds: 60,
     });
-    if (samples.length >= VITALS_DAY_MAX_SAMPLES) buffer.fullDay = day;
+    if (file.samples.length >= VITALS_DAY_CAP) memo.fullDay = day;
   } catch (error) {
     deps.log(`[client-vitals] not stored: ${error instanceof Error ? error.name : "error"}`);
   }

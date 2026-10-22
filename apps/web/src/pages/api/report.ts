@@ -4,14 +4,14 @@ import { createVercelBlobStore } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { toResponse } from "../../server/http";
 import { handleReport, MAX_REPORT_CHARS, readReportBody } from "../../server/report";
-import { newVitalsBuffer, recordVital } from "../../server/vitalsStore";
+import { newVitalsMemo, recordVital } from "../../server/vitalsStore";
 
 export const prerender = false;
 
 /** Where Vercel puts a function's OIDC token, when the store is connected that way (as /api/narrate). */
 const OIDC_HEADER = "x-vercel-oidc-token";
-/** Per instance: the Web Vitals held between two writes to the store (vitalsStore.ts). */
-const vitals = newVitalsBuffer();
+/** Per instance: today's Web Vitals writes and whether the day's file is full (vitalsStore.ts). */
+const vitals = newVitalsMemo();
 
 export const POST: APIRoute = async ({ request }) => {
   // A body past the cap is refused; the stream is read to the cap and no further.
