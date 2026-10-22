@@ -503,12 +503,13 @@ function editSource(
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;
-  // A row drawn from the store is on the page its stored topics file it under (drawStored): only a
-  // later move, made here, is one still to come.
+  // A row drawn from the store is on the page that lists it (drawStored): a move to any topic this
+  // page stands for is no move. Only a later one, made here, is still to come.
+  const here = (root.dataset.members ?? "").split(" ");
   if (
     topicId !== undefined &&
     topicId !== (facts.topic_id ?? "") &&
-    row.dataset.stored !== JSON.stringify(edit.topic_ids)
+    !(row.dataset.stored !== undefined && here.includes(topicId))
   ) {
     const panel = document.querySelector<HTMLTemplateElement>("#topics-panel-template");
     const options = panel?.content.querySelectorAll<HTMLOptionElement>("[data-edit-topic] option");

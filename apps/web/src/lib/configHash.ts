@@ -39,12 +39,13 @@ export async function loadConfigHash(
   const env = options.env ?? process.env;
   const repo = options.root ?? findRepoRoot(process.cwd(), env);
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
-  const files: Record<string, string | undefined> = {};
-  for (const path of BUILT_CONFIG_PATHS) {
-    files[path] = await readFile(join(base, path), "utf8").catch((error: unknown) => {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-      throw error;
-    });
-  }
-  return configHash(files);
+  const texts = await Promise.all(
+    BUILT_CONFIG_PATHS.map((path) =>
+      readFile(join(base, path), "utf8").catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+        throw error;
+      }),
+    ),
+  );
+  return configHash(Object.fromEntries(BUILT_CONFIG_PATHS.map((path, i) => [path, texts[i]])));
 }

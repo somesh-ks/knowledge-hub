@@ -134,7 +134,6 @@ function sketch(source: ManageSource, page: string): StoreSource {
     enabled: source.enabled,
     lean: source.lean,
     general: source.topic_ids.some((id) => isGeneralTopicId(id)),
-    topic_ids: source.topic_ids,
   };
 }
 

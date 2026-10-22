@@ -117,7 +117,11 @@ export function prefsCommitMessage(input: string, changes: readonly string[]): s
 }
 
 /** Why a commit must not start, or null when it may. */
-async function commitRefusal(root: string, push: boolean): Promise<string | null> {
+async function commitRefusal(
+  root: string,
+  push: boolean,
+  storeOn: boolean,
+): Promise<string | null> {
   if (!(await isTreeClean(root))) {
     return "The working tree has uncommitted changes. Commit or stash them first: --commit stages config/preferences.json only.";
   }
@@ -131,9 +135,18 @@ async function commitRefusal(root: string, push: boolean): Promise<string | null
     return `Cannot reach the remote to check whether the branch is behind (${detail}). Fix the connection, or use --no-push.`;
   }
   // A learn whose push failed left its commit here: a rerun would find nothing to commit and say so
-  // as if all were well, while the commit never reached the remote and the store was never written.
-  if (await isAheadOfRemote(root).catch(() => false)) {
-    return "The branch has commits its remote does not have. Push them (git push), then run learn again so the config store gets the change.";
+  // as if all were well, while the commit never reached the remote (nor, with the store on, the
+  // store). Push, and only with the store on run learn again: the file already holds the change.
+  const ahead = await isAheadOfRemote(root).then(
+    (value) => (value ? "yes" : "no"),
+    () => "unknown",
+  );
+  if (ahead === "unknown")
+    return "Cannot tell whether the branch has unpushed commits. Check git status first.";
+  if (ahead === "yes") {
+    return storeOn
+      ? "The branch has commits its remote does not have. Push them (git push), then run learn again so the config store gets the change."
+      : "The branch has commits its remote does not have. Push them (git push); a learn commit among them is already made, so do not run it again.";
   }
   return null;
 }
@@ -236,7 +249,7 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
   if (argv.includes("--dry-run")) return 0;
   if (commit) {
     // Checked before anything is written, so a refusal leaves the tree exactly as it was.
-    const refusal = await commitRefusal(ctx.root, !noPush);
+    const refusal = await commitRefusal(ctx.root, !noPush, store !== null);
     if (refusal) {
       ctx.log.error(refusal);
       return 1;

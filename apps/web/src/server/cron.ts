@@ -43,8 +43,11 @@ export interface CronDeps {
   connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
 }
 
-/** How long the cron waits for the config store before it reads main instead. */
-export const STORE_READ_TIMEOUT_MS = 3000;
+/**
+ * How long the cron waits for the config store, a cold start's module load included, before it reads
+ * main instead: well inside the function's limit.
+ */
+export const STORE_READ_TIMEOUT_MS = 5000;
 
 /**
  * The schedule's text: from the config store when it is on (D149), where an edit to the hour lands

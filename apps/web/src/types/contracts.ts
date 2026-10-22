@@ -494,8 +494,6 @@ export interface StoreSource {
   lean: number | null;
   /** Whether it feeds a general news topic (its edit panel offers a lean). */
   general: boolean;
-  /** The topics it feeds, as stored: a move the store already made is not shown as one to come. */
-  topic_ids: string[];
 }
 
 /** GET /api/config with the config store on (D149): what it holds, over the build's copy. */

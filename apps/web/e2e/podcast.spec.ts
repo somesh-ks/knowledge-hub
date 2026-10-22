@@ -281,6 +281,7 @@ test.describe("with the config store on", () => {
     context,
     baseURL,
   }) => {
+    await page.clock.install();
     const sent = await mockConfig(page);
     let answer: () => void = () => {};
     const asked = new Promise<void>((resolve) => {
@@ -302,10 +303,16 @@ test.describe("with the config store on", () => {
     await context.addCookies([
       { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
     ]);
+    // The change is made once the page is asking the store, and before it answers.
+    const asking = page.waitForRequest(
+      (request) => request.url().endsWith("/api/config") && request.method() === "GET",
+    );
     await page.goto("/settings/daily");
+    await asking;
     await page.locator("#daily-hour").selectOption("9");
     answer();
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
+    await page.clock.runFor(2000);
     await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", hour: 9 });
   });
 });

@@ -227,15 +227,13 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     ).then(
       () => true,
       (error: unknown) => {
-        log.warn(
-          `config store skipped, the run's note cannot be written: ${firstLine(String(error))}`,
-        );
+        log.warn(`the config-store note cannot be written: ${firstLine(String(error))}`);
         return false;
       },
     );
     // With the store off, a note left by an earlier run that cannot be removed would let this run's
     // commit carry config files: stop rather than trust it.
-    if (storeUrl === null && !noted) {
+    if (storeUrl === null && !noted && !parsed.rest.includes("--dry-run")) {
       err("dispatch: .cache/config-store.json cannot be removed; remove it, then run again.\n");
       return 1;
     }

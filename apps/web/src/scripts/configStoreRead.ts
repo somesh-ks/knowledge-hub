@@ -56,7 +56,8 @@ function parseRead(body: unknown): ConfigReadBody | null {
 
 /** Asks the store, once per page view; null when it is off, down, slow or unreadable. */
 export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
-  if (last && now - last.at < REUSE_MS) return last.read;
+  // A read reused within the second answers as storeRead does: for the page now in the document.
+  if (last && now - last.at < REUSE_MS) return last.read.then(() => storeRead());
   const stop = new AbortController();
   const timer = setTimeout(() => stop.abort(), STORE_READ_TIMEOUT_MS);
   const asked = { at: now } as { at: number; read: Promise<ConfigReadBody | null> };
