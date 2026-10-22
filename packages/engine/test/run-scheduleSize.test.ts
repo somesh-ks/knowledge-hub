@@ -1,5 +1,6 @@
 import { DEFAULT_SCHEDULE, VOICE_LIMITS } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
+import { MAX_SPOKEN_CHARS } from "../src/audio/spokenText.js";
 import { DEFAULT_CAP } from "../src/prefilter/prefilter.js";
 import {
   lengthMinutesFor,
@@ -8,6 +9,8 @@ import {
   storiesForMinutes,
   withSpares,
 } from "../src/run/scheduleSize.js";
+import { narrationLength } from "../src/run/validateStage.js";
+import { makeDigest } from "./audio-fixtures.js";
 
 describe("sizing a briefing by its length", () => {
   // The 2026-10-18 weekly, set to 15 minutes, aired 14 stories and 5 minutes: the judge saw the
@@ -45,5 +48,17 @@ describe("sizing a briefing by its length", () => {
     expect(sparesOverLength(stories, 4840, 3, narration)).toEqual([]);
     // Past the length, the real measure still trims the lowest-scored story.
     expect(sparesOverLength(stories, 3600, 3, narration)).toEqual(["s10", "s9"]);
+  });
+
+  // A 15-minute weekly's untrimmed spares run past the 19,000 characters one narration request
+  // takes, and buildSpokenText refuses them: measuring them must not fail the run.
+  it("measures a narration past the one-request limit instead of failing", () => {
+    const base = makeDigest({}, 40);
+    const digest = {
+      ...base,
+      items: base.items.map((item) => ({ ...item, spoken: "A long telling. ".repeat(40) })),
+    };
+    const all = new Set(digest.items.map((item) => item.id));
+    expect(narrationLength(digest, all)).toBeGreaterThan(MAX_SPOKEN_CHARS);
   });
 });

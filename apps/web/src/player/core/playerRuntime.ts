@@ -63,8 +63,16 @@ let playerAudio: SwitchableAudio | null = null;
  * never placed in the DOM, so a router that swaps the page cannot take it down with the markup.
  */
 export function getPlayerAudio(): SwitchableAudio {
-  // The element a Play pressed before the player loaded has already unlocked, when there is one.
-  playerAudio ??= createSwitchableAudio(takeEarlyAudio() ?? new Audio());
+  if (!playerAudio) {
+    // The element a Play pressed before the player loaded has already unlocked, when there is one.
+    const element = takeEarlyAudio() ?? new Audio();
+    // CORS mode (an early element already asked for it, from its first load). The audio lives on the Blob host, another origin, and
+    // Chrome takes the worker's saved copy of a no-cors cross-origin file for the first read only:
+    // the next range read failed, so a downloaded briefing stopped after a second offline
+    // (2026-10-22, the owner's phone). The Blob host answers with Access-Control-Allow-Origin: *.
+    element.crossOrigin = "anonymous";
+    playerAudio = createSwitchableAudio(element);
+  }
   return playerAudio;
 }
 

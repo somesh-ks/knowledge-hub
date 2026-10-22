@@ -44,6 +44,7 @@ export function secretsFromEnv(env: Env): string[] {
     env.BLOB_READ_WRITE_TOKEN,
     env.VERCEL_OIDC_TOKEN,
     env.VERCEL_TOKEN,
+    env.DATABASE_URL,
   ];
   return keys.filter((value): value is string => typeof value === "string" && value.length > 0);
 }

@@ -32,6 +32,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       topics: { type: "string" },
       replace: { type: "string" },
       delete: { type: "string" },
+      "record-failed": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -44,6 +45,12 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   }
   if (values.run !== undefined && values.stage !== "commit") {
     throw new Error("--run only applies with --stage commit");
+  }
+  if (
+    values["record-failed"] &&
+    (values.stage !== undefined || values.delete !== undefined || values.run !== undefined)
+  ) {
+    throw new Error("--record-failed runs alone: no --stage, --delete or --run");
   }
   // Blank means none (the workflow passes an empty input); otherwise the podcast regenerate's rules:
   // control characters become spaces, 1 to 500 characters.
@@ -76,6 +83,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       run: values.run,
       replace: values.replace,
       delete: values.delete,
+      recordFailed: values["record-failed"] === true,
       feedback: feedback?.success ? feedback.data : undefined,
       topics: topics && topics.length > 0 ? topics : undefined,
     },

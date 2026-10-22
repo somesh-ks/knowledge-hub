@@ -40,6 +40,8 @@ export interface RunOptions {
   replace: string | undefined;
   /** Remove this digest, its timeline included, in one guarded commit. No other stage runs. */
   delete: string | undefined;
+  /** The job died before the commit stage: record `failed` for what was due (run.yml). No stage runs. */
+  recordFailed: boolean;
 }
 
 export const DEFAULT_RUN_OPTIONS: RunOptions = {
@@ -54,6 +56,7 @@ export const DEFAULT_RUN_OPTIONS: RunOptions = {
   run: undefined,
   replace: undefined,
   delete: undefined,
+  recordFailed: false,
 };
 
 /** What the cover package's pickCover accepts. Declared here so only buildDeps imports the package. */
@@ -104,6 +107,8 @@ export interface RunDeps {
   runtime: () => Promise<ApiRuntime>;
   pickCover: CoverPickFn;
   git: GitRunner;
+  /** The config store is on (D149): the run may commit the config files it copied from it. */
+  configStore?: boolean;
   /** Counts paid requests and holds the Firecrawl ceiling for the run. Absent in most tests. */
   spend?: SpendTracker;
 }

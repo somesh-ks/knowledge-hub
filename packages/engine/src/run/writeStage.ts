@@ -68,9 +68,7 @@ import {
   charsForMinutes,
   lengthMinutesFor,
   overNarrationLimit,
-  sparesOverLength,
   storiesForMinutes,
-  toldChars,
   WRITE_MAX,
   withSpares,
 } from "./scheduleSize.js";
@@ -179,7 +177,7 @@ export async function writeStage(
 
 interface PassResult {
   report: PassReport;
-  /** Ids the pass will publish. */
+  /** Ids the pass wrote, spares included: a later pass of the run leaves them all. */
   kept: string[];
 }
 
@@ -234,7 +232,7 @@ async function writePass(
     const item = byId.get(entry.item_id);
     if (!item) continue;
     if (claimed.has(item.id)) {
-      drop(item.id, "select", "already chosen for an earlier digest of this run");
+      drop(item.id, "select", "written for an earlier digest of this run");
       continue;
     }
     base.push(
@@ -288,7 +286,7 @@ async function writePass(
     })
   ).filter((candidate) => {
     if (!claimed.has(candidate.item.id)) return true;
-    drop(candidate.item.id, "select", "already chosen for an earlier digest of this run");
+    drop(candidate.item.id, "select", "written for an earlier digest of this run");
     return false;
   });
 
@@ -390,23 +388,11 @@ async function writePass(
     await writeJson(file("materials.json"), { version: 1, items: materials });
     const outcome = survivors.length === 0 ? "nothing" : "selected";
     await markStage(deps.root, pass, "write", { at: deps.now().toISOString(), outcome });
-    const spares =
-      lengthOf === null
-        ? []
-        : sparesOverLength(
-            survivors.map((s) => ({ ...s, chars: toldChars(texts.get(s.id) as WrittenText) })),
-            charsForMinutes(lengthOf),
-            VOICE_LIMITS.items.floor,
-          );
     return {
-      // A later pass of the run may still use the spares: it loses only the stories expected to
-      // air, and never more than the length's count, as before spares (a weekly on the same day
-      // shares the pool).
-      kept: survivors
-        .filter((s) => !spares.includes(s.id))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, wanted ?? survivors.length)
-        .map((s) => s.id),
+      // A later pass of the run (a weekly on the same day shares the pool) loses every story this
+      // one wrote: which spares air is known only once validation measures the narration, and
+      // releasing them by an estimate let a forced Sunday run air four daily stories in its weekly.
+      kept: survivors.map((s) => s.id),
       report: {
         id: pass.id,
         kind: pass.kind,
