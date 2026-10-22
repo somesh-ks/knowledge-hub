@@ -56,7 +56,9 @@ export interface ClientFault {
 const RECORD_SQL = `with gone as (
   delete from client_faults where at <= to_timestamp($1::float8 / 1000) - $10::int * interval '1 day'
 ), recent as (
+  -- Server faults and client reports each have their own hour, so forged reports cannot crowd out a server's.
   select count(*) as n from client_faults where at > to_timestamp($1::float8 / 1000) - interval '1 hour'
+    and (kind = 'server') = ($2::text = 'server')
 )
 insert into client_faults (at, kind, page, message, directive, blocked, source, build)
 select to_timestamp($1::float8 / 1000), $2, $3, $4, $5, $6, $7, $8 from recent

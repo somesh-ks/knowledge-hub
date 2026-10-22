@@ -45,6 +45,10 @@ describe("the client faults store", () => {
     expect(await recordClientFault(sql, fault, NOW - 2 * 24 * HOUR)).toBe(1);
     expect(await recordClientFault(sql, fault, NOW, 1)).toBe(1);
     expect(await recordClientFault(sql, fault, NOW, 1)).toBe(0);
+    // A full hour of client reports (anyone can send one) never crowds out a server fault.
+    const server: ClientFault = { ...fault, kind: "server", directive: "", blocked: "" };
+    expect(await recordClientFault(sql, server, NOW, 1)).toBe(1);
+    await db.query("delete from client_faults where kind = 'server'");
     expect(await readClientFaults(sql, NOW)).toEqual([{ ...fault, total: 2, day: 1 }]);
     await pruneClientFaults(sql, NOW + 6 * 24 * HOUR);
     const left = await db.query<{ n: number }>("select count(*)::int as n from client_faults");

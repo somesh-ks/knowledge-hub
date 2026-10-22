@@ -86,6 +86,18 @@ describe("handleReport", () => {
       deps,
       limiters(),
     );
+    // Firefox and CSP3 reports give an extension's URL as its bare scheme, with no colon.
+    await handleReport(
+      JSON.stringify({
+        kind: "csp",
+        page: "/",
+        directive: "script-src-elem",
+        blocked: "moz-extension",
+        source: "moz-extension",
+      }),
+      deps,
+      limiters(),
+    );
     expect(stored).toEqual([
       {
         kind: "error",

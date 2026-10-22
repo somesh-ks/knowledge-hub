@@ -45,8 +45,12 @@ export function scrubMessage(value: unknown): string {
   return cut === "" ? NO_MESSAGE : cut;
 }
 
-/** Schemes a browser extension's own scripts and pages load from. */
-const EXTENSION = /^(?:chrome|moz|safari|safari-web|ms-browser|edge)-extension:$/;
+/**
+ * Schemes a browser extension's own scripts and pages load from. A report gives a non-web URL as
+ * its bare scheme (CSP3 strips it), with or without the colon.
+ */
+const EXTENSION =
+  /^(?:(?:chrome|moz|safari|safari-web|ms-browser|edge)-extension|webkit-masked-url):?$/;
 
 /** A URL as its origin (http, https) or its scheme; a keyword (`inline`, `eval`) as itself. */
 export function originOf(value: unknown): string {

@@ -1,5 +1,5 @@
 import type { SqlClient } from "./configPaths.js";
-import { lostCreateRace, missingTable } from "./pgErrors.js";
+import { withTable } from "./pgErrors.js";
 
 /**
  * A rate-limit counter every serverless instance shares, in the same Neon database as the config
@@ -40,20 +40,11 @@ export async function takeSharedSlot(
   now: number,
   windowMs = 60_000,
 ): Promise<boolean> {
-  const take = () => sql.query(TAKE_SQL, [bucket, windowOf(now, windowMs)]);
-  let rows: Record<string, unknown>[];
-  try {
-    rows = await take();
-  } catch (error) {
-    // Nothing created the table, so every request fell back to per-instance caps (2026-10-22).
-    // The first capped request creates it, as vitalsStore.ts does; `if not exists` makes a race
-    // between two first requests harmless, and the take after says whether the table is there.
-    if (!missingTable(error)) throw error;
-    await sql.query(RATE_LIMIT_SCHEMA_SQL).catch((raced: unknown) => {
-      if (!lostCreateRace(raced)) throw raced;
-    });
-    rows = await take();
-  }
+  // Nothing created the table, so every request fell back to per-instance caps (2026-10-22). The
+  // first capped request creates it, as the vitals and faults stores do.
+  const rows = await withTable(sql, [RATE_LIMIT_SCHEMA_SQL], () =>
+    sql.query(TAKE_SQL, [bucket, windowOf(now, windowMs)]),
+  );
   const count = Number(rows[0]?.count);
   if (!Number.isFinite(count)) throw new Error("rate counter: the upsert returned no count");
   return count <= perWindow;
