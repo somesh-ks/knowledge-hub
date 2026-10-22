@@ -47,19 +47,70 @@ function shouldReloadForBuild(
   return shouldActivateUpdate(playerState);
 }
 
+/** What a reload would throw away, as readPageWork reads it from the page. */
+export interface PageWork {
+  /** `document.querySelector`, which throws for a selector the browser does not know. */
+  query: (selector: string) => unknown;
+  /** The focused element is a field the reader types in. */
+  typing: boolean;
+  /**
+   * Each text field: its value now, and its value when the reader first focused it (undefined when
+   * they never did). A script that fills a field from saved state on load (a passphrase, a search
+   * from ?q, a source filter) changes its value without the reader editing anything.
+   */
+  fields: ReadonlyArray<{ value: string; start: string | undefined }>;
+}
+
 /**
  * Whether the page holds something a reload would throw away: an open dialog, menu or toast (the
- * Undo of a removal waiting to be sent), a field being typed in, or text typed and not yet sent.
+ * Undo of a removal waiting to be sent), a field being typed in, or text the reader changed and has
+ * not sent. A browser without popovers (iOS 16 Safari) throws on `:popover-open`; that must not
+ * stop the check, and such a browser has no open popover anyway.
  */
-function pageHoldsWork(): boolean {
-  if (document.querySelector("dialog[open], :popover-open")) return true;
-  const active = document.activeElement;
-  if (active?.matches("input:not([type=button], [type=submit]), textarea, [contenteditable]")) {
-    return true;
+export function holdsWork(page: PageWork): boolean {
+  if (page.query("dialog[open]")) return true;
+  try {
+    if (page.query(":popover-open")) return true;
+  } catch {
+    // No popovers in this browser.
   }
-  return [
-    ...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
-  ].some((field) => field.type !== "hidden" && field.value !== field.defaultValue);
+  if (page.typing) return true;
+  return page.fields.some((field) => field.start !== undefined && field.value !== field.start);
+}
+
+/** Fields the reader types in. A range, checkbox or select takes effect as it changes. */
+const TEXT_FIELD =
+  "textarea, input:not([type]), input[type=text], input[type=search], input[type=email], input[type=url], input[type=tel], input[type=password], input[type=number]";
+
+/** A text field's value when the reader first focused it. A sent or reset form forgets its fields. */
+const fieldStart = new WeakMap<Element, string>();
+
+function trackEdits(): void {
+  document.addEventListener(
+    "focusin",
+    (event) => {
+      const field = event.target;
+      if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+      if (field.matches(TEXT_FIELD) && !fieldStart.has(field)) fieldStart.set(field, field.value);
+    },
+    true,
+  );
+  const forget = (event: Event): void => {
+    if (!(event.target instanceof HTMLFormElement)) return;
+    for (const field of event.target.elements) fieldStart.delete(field);
+  };
+  document.addEventListener("submit", forget, true);
+  document.addEventListener("reset", forget, true);
+}
+
+function readPageWork(): PageWork {
+  return {
+    query: (selector) => document.querySelector(selector),
+    typing: Boolean(document.activeElement?.matches(`${TEXT_FIELD}, [contenteditable]`)),
+    fields: [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TEXT_FIELD)].map(
+      (field) => ({ value: field.value, start: fieldStart.get(field) }),
+    ),
+  };
 }
 
 /**
@@ -83,7 +134,7 @@ async function checkBuild(registration: ServiceWorkerRegistration): Promise<bool
   }
   const playerState = document.documentElement.dataset.playerState;
   if (!shouldReloadForBuild(pageBuild, siteBuild, playerState, reloadedFor)) return false;
-  if (pageHoldsWork()) return true;
+  if (holdsWork(readPageWork())) return true;
   sessionStorage.setItem(RELOADED_FOR, String(siteBuild));
   // The deploy may carry a new worker too. The reload's page load goes to the network either way.
   await registration.update().catch(() => {});
@@ -127,6 +178,7 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
 export function registerServiceWorker(): void {
   // Development serves unhashed modules that a cache would keep stale.
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+  trackEdits();
   const register = (): void => {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })

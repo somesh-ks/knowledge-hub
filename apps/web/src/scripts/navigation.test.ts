@@ -7,7 +7,13 @@ import {
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
-import { shouldActivateUpdate, shouldCheckForUpdate, UPDATE_CHECK_MS } from "./serviceWorker";
+import {
+  holdsWork,
+  type PageWork,
+  shouldActivateUpdate,
+  shouldCheckForUpdate,
+  UPDATE_CHECK_MS,
+} from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
 
@@ -133,6 +139,27 @@ describe("shouldActivateUpdate", () => {
     for (const state of ["idle", "paused", "ended", "error", undefined]) {
       expect(shouldActivateUpdate(state)).toBe(true);
     }
+  });
+});
+
+describe("holdsWork", () => {
+  const page = (fields: PageWork["fields"], open: string[] = []): PageWork => ({
+    query: (selector) => {
+      // iOS 16 Safari knows no popovers and throws on the selector.
+      if (selector.includes(":popover-open")) throw new SyntaxError(selector);
+      return open.includes(selector) ? {} : null;
+    },
+    typing: false,
+    fields,
+  });
+
+  // A page that fills a field from saved state on load never took the deploy reload, and a browser
+  // without popovers threw before it got that far.
+  it("reloads a page whose fields were filled from state, and keeps one the reader edited", () => {
+    expect(holdsWork(page([{ value: "correct horse", start: undefined }]))).toBe(false);
+    expect(holdsWork(page([{ value: "design", start: "design" }]))).toBe(false);
+    expect(holdsWork(page([{ value: "design sys", start: "design" }]))).toBe(true);
+    expect(holdsWork(page([], ["dialog[open]"]))).toBe(true);
   });
 });
 
