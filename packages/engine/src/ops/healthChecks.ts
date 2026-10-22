@@ -105,6 +105,12 @@ export interface WatchedHead {
    * null when the checkout cannot tell (it does not know that commit: the site is newer).
    */
   includes: (build: string) => Promise<boolean | null>;
+  /**
+   * The commit time (epoch ms) of the oldest watched commit up to this one that the build lacks,
+   * so a newer push does not restart the clock on a deploy that keeps failing; null when the
+   * checkout cannot tell.
+   */
+  missingSince: (build: string) => Promise<number | null>;
 }
 
 /**
@@ -137,6 +143,28 @@ export async function readWatchedHead(root: string): Promise<WatchedHead | undef
     return {
       sha,
       at: Number(seconds) * 1000,
+      // Main's own line only (--first-parent): a squash merge's time is when it landed, never when
+      // its branch was written. A build off main's line (a rewritten main) cannot tell.
+      missingSince: async (build) => {
+        try {
+          await git("merge-base", "--is-ancestor", build, sha);
+          const out = await git(
+            "log",
+            "--first-parent",
+            "--format=%ct %an <%ae>",
+            `${build}..${sha}`,
+            "--",
+            ...watched,
+          );
+          const times = out
+            .split("\n")
+            .filter((line) => line !== "" && !line.includes("[bot]"))
+            .map((line) => Number(line.split(" ")[0]) * 1000);
+          return times.length > 0 ? Math.min(...times) : null;
+        } catch {
+          return null;
+        }
+      },
       // Exit 1 is "not an ancestor"; 128 (an unknown commit) and the rest cannot tell.
       includes: (build) =>
         git("merge-base", "--is-ancestor", sha, build).then(

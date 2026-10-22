@@ -169,6 +169,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D156 | Field Vitals in Neon | amends D147 |
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
+| D159 | Deploy alerts | amends D157 |
 
 ---
 
@@ -1723,3 +1724,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Privacy: no IP, user agent or identifier; fault reports are sent without D154's DNT and GPC opt-out, as before, and the Privacy page says so.
 - Rejected: storing the full message with quoted text removed by pairing quotes (review showed a reader's text survived: an email inside a JSON parse error, apostrophes, « » quotes); judging only the current build (content commits redeploy several times a day and wiped the history); a fault on one blocked script.
 - Revisit if: a warning turns out to be forged or extension noise (raise the threshold or add a per-page token), or the owner wants faults counted per reader.
+
+## D159: a missing deploy is a fault a day on, and a failed smoke check opens an issue
+
+- Date: 2026-10-22 (#220's `vercel.json` failed Vercel's schema and every production deploy for hours; nothing told the owner)
+- Decision: `site_behind` stays a warning at first and becomes a fault (the `health` issue) once the oldest watched commit the live build lacks is a day old, counted from that commit, not the newest, since digests land daily. `smoke.yml` opens or comments on one issue labelled `smoke` when the live site fails its check, and the next passing run closes it; Vercel's other events (pending, previews) no longer cancel a failing check.
+- Why: D157 kept `site_behind` a warning because the next push may clear it, and warnings reach the owner on Mondays; a deploy that stays missing a day will not clear. A smoke run Vercel starts belongs to `vercel[bot]`, so its failure email reached no one.
+- Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
+- Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.

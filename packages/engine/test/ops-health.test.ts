@@ -158,16 +158,22 @@ describe("dispatch health", () => {
       }
       return answer(200, "<html>", { "x-content-type-options": "nosniff" });
     };
-    const report = await collectHealth({
+    const options = {
       root,
       now: NOW,
       monthlyChars: 500_000,
       ceilingUsd: 50,
       site: "https://news.example",
       fetch: fake,
-      // A push whose last commit touched no watched path: Vercel skipped the one that did.
-      main: { sha: "fedcba9876543210", at: NOW.getTime() - 3_600_000, includes: async () => false },
+    };
+    // A push whose last commit touched no watched path: Vercel skipped the one that did.
+    const skipped = (oldestMissingHours: number) => ({
+      sha: "fedcba9876543210",
+      at: NOW.getTime() - 3_600_000,
+      includes: async () => false,
+      missingSince: async () => NOW.getTime() - oldestMissingHours * 3_600_000,
     });
+    const report = await collectHealth({ ...options, main: skipped(1) });
     expect(codes(report.findings, "fault")).toEqual(
       expect.arrayContaining([
         "site_headers",
@@ -180,6 +186,11 @@ describe("dispatch health", () => {
     expect(codes(report.findings, "warning")).toContain("site_behind");
     expect(codes(report.findings, "fault")).not.toContain("site_api");
     expect(asked).toContain(`HEAD ${AUDIO}`);
+    // #220's vercel.json failed every deploy for hours, and a warning reaches the owner only on
+    // Mondays: a deploy missing a day is a fault, though a digest an hour old keeps landing.
+    const dayOn = await collectHealth({ ...options, main: skipped(25) });
+    expect(codes(dayOn.findings, "fault")).toContain("site_behind");
+    expect(codes(dayOn.findings, "warning")).not.toContain("site_behind");
   });
 
   // Regenerating an older briefing keeps its date and id but writes a new generated_at; the site
@@ -233,6 +244,22 @@ describe("dispatch health", () => {
     expect(head?.sha).toBe(onMain);
     expect(await head?.includes(onFeature)).toBe(true);
     expect(await head?.includes("0123456789ab")).toBeNull();
+    // A daily digest restarted site_behind's clock on a deploy that kept failing: it runs from the
+    // oldest commit the build lacks.
+    git(root, "checkout", "-q", "main");
+    await put("Digests/first.md", "x");
+    process.env.GIT_COMMITTER_DATE = "2026-10-20T07:00:00Z";
+    try {
+      await commitAll(root, "chore: never deployed");
+    } finally {
+      delete process.env.GIT_COMMITTER_DATE;
+    }
+    await put("Digests/second.md", "x");
+    const newest = await commitAll(root, "chore: nor this");
+    const behind = await readWatchedHead(root);
+    expect(behind?.sha).toBe(newest);
+    expect(await behind?.missingSince(onMain)).toBe(Date.parse("2026-10-20T07:00:00Z"));
+    expect(await behind?.missingSince("0123456789ab")).toBeNull();
   });
 
   // Client signals are forgeable and extensions trip the CSP, so they only warn, past a threshold,
