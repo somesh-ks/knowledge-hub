@@ -10,6 +10,7 @@ import {
   zonedDate,
   zonedHour,
 } from "@dispatch/core";
+import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { decideRun } from "@dispatch/engine/gate";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
@@ -38,6 +39,31 @@ export interface CronDeps {
   fetch: FetchLike;
   now: () => Date;
   log?: (message: string) => void;
+  /** Opens the config store (D149). Tests pass a fake; left out, the Neon driver is used. */
+  connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
+}
+
+/**
+ * The schedule's text: from the config store when it is on (D149), where an edit to the hour lands
+ * at once, while main has it only after the next run; from main when the store is off or cannot
+ * be read, so a database outage costs at most an edit's freshness, never the briefing.
+ */
+async function readSchedule(
+  deps: CronDeps,
+  github: ReturnType<typeof createGitHubClient>,
+): Promise<string | null> {
+  const storeUrl = configStoreUrl(deps.env);
+  if (storeUrl !== null) {
+    try {
+      // Loaded only with the store on, so the function never loads the driver while it is off.
+      const { readStoredSchedule } = await import("./configStore");
+      const stored = await readStoredSchedule(storeUrl, deps);
+      if (stored !== null) return stored;
+    } catch (error) {
+      deps.log?.(`config store unreachable, reading main: ${describeError(error, [storeUrl])}`);
+    }
+  }
+  return github.readFile("config/schedule.json", "main");
 }
 
 /** Vercel asks for at least 16 characters; anything shorter is treated as not configured. */
@@ -118,7 +144,7 @@ export async function handleCron(
   const now = deps.now();
   const github = createGitHubClient(config, deps.fetch);
   try {
-    const scheduleText = await github.readFile("config/schedule.json", "main");
+    const scheduleText = await readSchedule(deps, github);
     const schedule =
       scheduleText === null
         ? DEFAULT_SCHEDULE

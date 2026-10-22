@@ -27,6 +27,8 @@ export interface ConfigDocument {
   path: string;
   content: string;
   version: number;
+  /** When it was last written, in epoch milliseconds (absent from a test's fake rows). */
+  updatedAt?: number;
 }
 
 export interface DocumentWrite {

@@ -50,7 +50,11 @@ export async function loadScheduleView(
   const env = options.env ?? process.env;
   const repo = options.root ?? findRepoRoot(process.cwd(), env);
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
-  const scheduleFile = await readJson(join(base, "config", "schedule.json"));
+  return scheduleViewOf(await readJson(join(base, "config", "schedule.json")));
+}
+
+/** The view of a schedule file as parsed JSON, or of the defaults when it is not a valid one. */
+export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
   const schedule = ScheduleFile.safeParse(scheduleFile);
   const file = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
   const {

@@ -28,13 +28,27 @@ export const CONFIG_SCHEMA_SQL = `create table if not exists config_documents (
   updated_at timestamptz not null default now()
 )`;
 
-/** Every stored document, as the database holds it. */
-export async function readConfigDocuments(sql: SqlClient): Promise<ConfigDocument[]> {
-  const rows = await sql.query("select path, content, version from config_documents");
+/** Every stored document, as the database holds it; only those at `paths` when they are given. */
+export async function readConfigDocuments(
+  sql: SqlClient,
+  paths?: readonly string[],
+): Promise<ConfigDocument[]> {
+  const rows =
+    paths === undefined
+      ? await sql.query(
+          "select path, content, version, (extract(epoch from updated_at) * 1000)::float8 as at from config_documents",
+        )
+      : await sql.query(
+          "select path, content, version, (extract(epoch from updated_at) * 1000)::float8 as at from config_documents where path = any($1::text[])",
+          [[...paths]],
+        );
   return rows.map((row) => ({
     path: String(row.path),
     content: String(row.content),
     version: Number(row.version),
+    ...(typeof row.at === "number" || typeof row.at === "string"
+      ? { updatedAt: Number(row.at) }
+      : {}),
   }));
 }
 

@@ -688,6 +688,26 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
     readJson(join(base, "state", "source-candidates.json")),
   ]);
 
+  return buildManage({ topicsFile, preferences, registry, user, stats, health, candidates });
+}
+
+/** What the files hold, parsed as loadManage reads them; null for a file that is missing. */
+export interface ManageFiles {
+  topicsFile: unknown;
+  preferences: unknown;
+  registry: unknown;
+  user: unknown;
+  stats: unknown;
+  health: unknown;
+  candidates: unknown;
+}
+
+/**
+ * The pages' data from the files: the build calls it through loadManage, and /api/config on the
+ * stored files, so a page shows an edit the way its next build would (D149).
+ */
+export function buildManage(files: ManageFiles): ManageData {
+  const { topicsFile, preferences, registry, user, stats, health, candidates } = files;
   const parsed = parseTopicsFile(topicsFile);
   const topics = withGeneralTopics(parsed?.topics ?? fallbackTopics(preferences));
   const sections = parsed?.sections ?? fallbackSections();

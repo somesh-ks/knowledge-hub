@@ -5,9 +5,13 @@ import {
   writeConfigDocuments,
 } from "@dispatch/engine/config-store";
 import { connectNeon } from "@dispatch/engine/neon";
-import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import type { ConfigOp, ConfigReadBody, ConfigResponse } from "../types/contracts";
 import { type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import { type ConfigDeps, configCooldownSeconds, scheduledTime, updateRunTime } from "./configEdit";
+import { type ConfigFiles, storeChanges } from "./configView";
+
+export type { ConfigReadBody };
+
 import type { ApiResult } from "./http";
 import { describeError } from "./redact";
 
@@ -51,19 +55,26 @@ export async function saveToStore(
         body: { status: 429, error: "cooldown", retry_after_s: wait },
       };
     }
-    const result = await applyOpsToDocuments({
-      ops: request.op,
-      documents: await readConfigDocuments(sql),
-      baseFiles: deps.baseFiles ?? {},
-    });
-    if (!result.ok) {
-      log(
-        `config ${result.retryable ? "not applied" : "refused"}: ${describeError(result.message, secrets)}`,
-      );
-      // A lookup that failed on our side, or ran out of time, can be sent again: the page keeps it pending.
-      return result.retryable ? unavailable : invalid;
+    // Another edit (another device, or `learn`) can land between the read and the write. The ops
+    // are applied once more on top of it before the page is told 409, which it cannot resolve.
+    let result: Awaited<ReturnType<typeof applyOpsToDocuments>> | undefined;
+    let written = false;
+    for (let attempt = 0; attempt < 2 && !written; attempt += 1) {
+      result = await applyOpsToDocuments({
+        ops: request.op,
+        documents: await readConfigDocuments(sql),
+        baseFiles: deps.baseFiles ?? {},
+      });
+      if (!result.ok) {
+        log(
+          `config ${result.retryable ? "not applied" : "refused"}: ${describeError(result.message, secrets)}`,
+        );
+        // A lookup that failed on our side, or ran out of time, can be sent again: the page keeps it pending.
+        return result.retryable ? unavailable : invalid;
+      }
+      written = await writeConfigDocuments(sql, result.writes);
     }
-    if (!(await writeConfigDocuments(sql, result.writes))) {
+    if (!written || !result?.ok) {
       return { status: 409, body: { status: 409, error: "conflict" } };
     }
     const time = scheduledTime(request.op);
@@ -77,50 +88,64 @@ export async function saveToStore(
   }
 }
 
-export interface ConfigReadBody {
-  status: 200;
-  /** Each stored config file the built pages publish, with the version an edit to it was made on. */
-  documents: Record<string, { version: number; data: unknown }>;
-}
+/**
+ * The files a page shows: the only rows GET /api/config selects. The writer settings, the
+ * discovery queries and the suggestions stay out, and of these only what the pages publish is
+ * turned into ops (configView.ts): never votes, opens or the learning history.
+ */
+const PUBLIC_PATHS = [
+  "config/topics.json",
+  "config/sources.user.json",
+  "config/schedule.json",
+  "config/preferences.json",
+  "config/profiles/owner.json",
+] as const;
 
 /**
- * What GET /api/config may show, file by file: exactly what the built pages already publish, so the
- * route needs no passphrase (a device without one must still see the owner's settings, as the pages
- * show them). Files no page shows (the writer settings, the discovery queries, the suggestions) and
- * the private parts of the others (story votes and opens, the learning history) are left out.
+ * How long Vercel's edge may answer from its copy: an edit shows on every device within about a
+ * second, and a burst of page loads costs one database read a second at most. Browsers keep none.
  */
-const PUBLIC_VIEW: Record<string, ((data: Record<string, unknown>) => unknown) | undefined> = {
-  "config/topics.json": (data) => data,
-  "config/sources.user.json": (data) => data,
-  "config/schedule.json": (data) => data,
-  "config/preferences.json": (data) => ({ weights: data.weights, format_mix: data.format_mix }),
-  "config/profiles/owner.json": (data) => ({ blocked_domains: data.blocked_domains }),
-};
+const READ_CACHE = "public, max-age=0, s-maxage=1";
+
+/**
+ * The stored schedule's text, for the cron (D149): with the store on, an edit to the hour is in the
+ * database at once and in git only after the next run. Null when the store holds no schedule.
+ */
+export async function readStoredSchedule(
+  storeUrl: string,
+  deps: { connectConfigStore?: ConfigDeps["connectConfigStore"] },
+): Promise<string | null> {
+  const sql = await open(deps, storeUrl);
+  const [row] = await readConfigDocuments(sql, ["config/schedule.json"]);
+  return row?.content ?? null;
+}
 
 /** GET /api/config with the store on (the route answers 405 with it off, as before). */
 export async function handleConfigRead(deps: {
   env: ServerEnv;
   storeUrl: string;
+  /** The public files the pages were built from, bundled with the function. */
+  builtFiles: ConfigFiles;
   log?: (message: string) => void;
   connectConfigStore?: ConfigDeps["connectConfigStore"];
 }): Promise<ApiResult<ConfigReadBody | { status: 503; error: "unavailable" }>> {
   try {
     const sql = await open(deps, deps.storeUrl);
-    const documents: ConfigReadBody["documents"] = {};
-    for (const document of await readConfigDocuments(sql)) {
-      const view = PUBLIC_VIEW[document.path];
-      if (view === undefined) continue;
-      try {
-        const data = JSON.parse(document.content) as Record<string, unknown>;
-        documents[document.path] = { version: document.version, data: view(data) };
-      } catch {
-        // A row that is not JSON is left out; the page keeps its built copy of that file.
-      }
-    }
+    const documents = await readConfigDocuments(sql, PUBLIC_PATHS);
+    const stored = Object.fromEntries(
+      documents.map((document) => [document.path, document.content]),
+    );
+    const times = documents.flatMap((document) =>
+      document.updatedAt === undefined ? [] : [document.updatedAt],
+    );
     return {
       status: 200,
-      headers: { "Cache-Control": "no-store" },
-      body: { status: 200, documents },
+      headers: { "Cache-Control": READ_CACHE },
+      body: {
+        status: 200,
+        written_at: times.length > 0 ? Math.max(...times) : null,
+        ...storeChanges(deps.builtFiles, stored),
+      },
     };
   } catch (error) {
     (deps.log ?? (() => {}))(`config read failed: ${describeError(error, [deps.storeUrl])}`);

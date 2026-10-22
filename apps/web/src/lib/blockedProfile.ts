@@ -15,18 +15,22 @@ export async function loadBlockedDomains(
   const repo = options.root ?? findRepoRoot(process.cwd(), env);
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
   try {
-    const file: unknown = JSON.parse(
-      await readFile(join(base, "config", "profiles", "owner.json"), "utf8"),
+    return blockedDomainsIn(
+      JSON.parse(await readFile(join(base, "config", "profiles", "owner.json"), "utf8")),
     );
-    const list = (file as { blocked_domains?: unknown } | null)?.blocked_domains;
-    if (!Array.isArray(list)) return [];
-    const seen = new Set<string>();
-    for (const entry of list) {
-      const domain = typeof entry === "string" ? blockedDomainOf(entry) : null;
-      if (domain) seen.add(domain);
-    }
-    return [...seen].sort();
   } catch {
     return [];
   }
+}
+
+/** The blocked domains a parsed profile holds, as its domains, sorted; none when it holds none. */
+export function blockedDomainsIn(file: unknown): string[] {
+  const list = (file as { blocked_domains?: unknown } | null)?.blocked_domains;
+  if (!Array.isArray(list)) return [];
+  const seen = new Set<string>();
+  for (const entry of list) {
+    const domain = typeof entry === "string" ? blockedDomainOf(entry) : null;
+    if (domain) seen.add(domain);
+  }
+  return [...seen].sort();
 }
