@@ -1,6 +1,6 @@
 # User engagement and sharing: the plan
 
-Proposed 2026-10-22 for the owner's approval ([D153](../decisions.md)). Nothing here is built. Vendor facts were read from each vendor's page on 2026-10-22 (sources at the end); anything not confirmed there is marked unverified.
+Approved by the owner as written on 2026-10-22 ([D153](../decisions.md)); built one stage per PR, stage 0 first. Vendor facts were read from each vendor's page on 2026-10-22 (sources at the end); anything not confirmed there is marked unverified.
 
 ## 1. Bottom line
 

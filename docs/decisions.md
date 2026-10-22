@@ -162,7 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
-| D153 | Engagement and sharing | proposed |
+| D153 | Engagement and sharing | approved |
 
 ---
 
@@ -1657,7 +1657,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 ## D153: user engagement is counted first-party in Neon, and the owner shares an episode as a public listen link
 
 - Date: 2026-10-22 (the owner: a "User engagement" item under Settings, Analytics, "open to a lightweight analytics tool", and growth loops "starting with sharing episodes with anyone")
-- Status: proposed; nothing is built until the owner approves or changes it. The plan, the vendor comparison and the stages with test points: [engagement-and-share-plan.md](engineering/engagement-and-share-plan.md).
+- Status: approved by the owner as written on 2026-10-22; built stage by stage, stage 0 first. The plan, the vendor comparison and the stages with test points: [engagement-and-share-plan.md](engineering/engagement-and-share-plan.md).
 - Decision:
   - No analytics vendor. A fixed set of events (`play`, `finish`, `download`, and `share_created`, `share_open`, `share_play`, `share_finish`, `share_cta`) goes by `sendBeacon` to `POST /api/events` and into one Neon table beside D150's counters; no cookie, no identifier, nothing stored on the device for analytics, no IP or user agent kept. `/analytics/engagement`, linked as User engagement under Settings, Analytics, reads them through an owner-only `GET /api/engagement`, and shows this device's listening from what it already stores (stage 1, before any event exists).
   - Actions are locked first: `PASSPHRASE_REQUIRED` back on, asked once per device, with failed guesses capped (reverses D41).
