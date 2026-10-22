@@ -87,3 +87,16 @@ describe("workflow calls", () => {
     expect(code, err).not.toBe(2);
   });
 });
+
+// run_died started a paid run on a guess (a cancel, a timeout) that nothing confirmed: it alerts only.
+describe("health.yml's heal", () => {
+  it("starts a briefing run for run_failed and run_overdue only", () => {
+    const yml = readFileSync(join(dir, "health.yml"), "utf8").split("\n");
+    const start = yml.findIndex((line) => line.includes("gh workflow run run.yml"));
+    const condition = yml[start - 1] ?? "";
+    expect([...condition.matchAll(/\*" (\w+) "\*/g)].map((match) => match[1])).toEqual([
+      "run_failed",
+      "run_overdue",
+    ]);
+  });
+});

@@ -35,7 +35,7 @@ export const run: CommandRun = async (argv, ctx) => {
     return 2;
   }
   // run.yml's recent runs, as `gh run list --json databaseId,status,conclusion,createdAt,event,displayTitle`
-  // wrote them (health.yml), for `run_died`. A file that does not read is a usage error.
+  // wrote them (health.yml), for `run_died` and `run_cancelled`. A file that does not read is a usage error.
   let runs: WorkflowRun[] | undefined;
   if (values.runs !== undefined) {
     try {

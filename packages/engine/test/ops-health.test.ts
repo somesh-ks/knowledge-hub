@@ -172,30 +172,27 @@ describe("dispatch health", () => {
     );
   });
 
-  // A dry run, a delete or an owner's cancel writes no record, and read as died, starting a paid
-  // run; a run killed at run.yml's timeout-minutes also reads `cancelled`, and was missed.
-  it("counts a cancelled run as died only when it ran to the timeout, never a dry run or a delete", () => {
-    const run = (databaseId: number, conclusion: string, displayTitle: string, minutes = 5) => ({
+  // A dry run or a delete writes no record and read as died; a cancel (the owner's, or a timeout:
+  // GitHub reports both alike) is only a warning, so it never opens a fault on a guess.
+  it("warns on a cancelled briefing run and never counts a dry run or a delete", () => {
+    const run = (databaseId: number, conclusion: string, displayTitle: string) => ({
       databaseId,
       status: "completed",
       conclusion,
       createdAt: "2026-10-21T07:13:00Z",
-      startedAt: "2026-10-21T07:13:00Z",
-      updatedAt: new Date(Date.parse("2026-10-21T07:13:00Z") + minutes * 60_000).toISOString(),
       displayTitle,
     });
     const faults: string[] = [];
-    const sink = { fault: (code: string) => faults.push(code), warn: () => {}, passed: [] };
+    const warnings: string[] = [];
+    const sink = {
+      fault: (code: string) => faults.push(code),
+      warn: (code: string) => warnings.push(code),
+      passed: [],
+    };
     const records = [{ at: "2026-10-20T07:13:00Z" }];
-    const quiet = [
-      run(1, "failure", "dry run"),
-      run(2, "failure", "delete 2026-10-20"),
-      run(3, "cancelled", "run"),
-    ];
-    checkRunsDied(records, quiet, NOW, sink);
-    expect(faults).toEqual([]);
-    checkRunsDied(records, [...quiet, run(4, "cancelled", "run", 25)], NOW, sink);
-    expect(faults).toEqual(["run_died"]);
+    const quiet = [run(1, "failure", "dry run"), run(2, "failure", "delete 2026-10-20")];
+    checkRunsDied(records, [...quiet, run(3, "cancelled", "run")], NOW, sink);
+    expect({ faults, warnings }).toEqual({ faults: [], warnings: ["run_cancelled"] });
   });
 
   // Any run under way silenced the check, so an hourly run in progress hid one that died before it.

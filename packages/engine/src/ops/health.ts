@@ -31,7 +31,7 @@ export type { HealthAspect, HealthFetch, WorkflowRun };
  * `dispatch health`: the faults that fail silently today, from the repository files and the live
  * site. A fault exits non-zero; a warning is listed and does not. The `code` of each finding is a
  * contract: `health.yml` retries a run on `run_failed` or `run_overdue` and narration on
- * `audio_missing`, once, when the fault first appears; `run_died` starts one run as well.
+ * `audio_missing`, once, when the fault first appears; `run_died` only alerts and `run_cancelled` is a warning.
  */
 
 export interface HealthFinding {

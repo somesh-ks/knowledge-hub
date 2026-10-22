@@ -1,7 +1,7 @@
 name: run
 
 # A delete run is named for what it does, so the site's rate limit on Regenerate does not count it,
-# and a dry run too, so health.yml's run_died (which starts a paid run) counts neither: they write no record.
+# and a dry run too, so health.yml's run_died and run_cancelled count neither: they write no record.
 run-name: ${{ inputs.delete != '' && format('delete {0}', inputs.delete) || inputs.dry_run && 'dry run' || 'run' }}
 
 # Produces a digest on the chosen cadence (schedule), on demand (workflow_dispatch), and the weekly pass.

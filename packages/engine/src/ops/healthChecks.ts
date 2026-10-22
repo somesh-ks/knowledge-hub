@@ -144,48 +144,35 @@ export async function checkEpisodes(
 }
 
 /**
- * One run of run.yml, as `gh run list --json
- * databaseId,status,conclusion,createdAt,startedAt,updatedAt,event,displayTitle` lists it (health.yml).
- * run.yml names a briefing run "run", a dry run "dry run" and a delete "delete <id>".
+ * One run of run.yml, as `gh run list --json databaseId,status,conclusion,createdAt,event,displayTitle`
+ * lists it (health.yml). run.yml names a briefing run "run", a dry run "dry run" and a delete
+ * "delete <id>".
  */
 export interface WorkflowRun {
   databaseId: number;
   status: string;
   conclusion: string | null;
   createdAt: string;
-  /** When this attempt started; a completed run's `updatedAt` is when it ended. */
-  startedAt?: string;
-  updatedAt?: string;
   event?: string;
   displayTitle?: string;
 }
 
 /** A run older than this that died is left to `run_overdue`: the next run has had its chance. */
 export const RUN_DIED_WINDOW_MS = 3 * DAY_MS;
-/** run.yml's `run` job `timeout-minutes` (25); keep the two equal. */
-export const RUN_TIMEOUT_MS = 25 * 60_000;
 const DIED = new Set(["failure", "timed_out", "startup_failure"]);
 
 const isBriefing = (run: WorkflowRun): boolean => (run.displayTitle ?? "run") === "run";
 
 /**
- * GitHub reports a job killed at its `timeout-minutes` as `cancelled`, the same as a press that
- * collapsed into the pending run or one the owner stopped. Only a cancel that ran to the timeout
- * died; a shorter one was the owner's.
- */
-function ranToTimeout(run: WorkflowRun): boolean {
-  const ended = Date.parse(run.updatedAt ?? "");
-  const started = Date.parse(run.startedAt ?? run.createdAt);
-  return ended - started >= RUN_TIMEOUT_MS;
-}
-
-/**
- * `run_died`: a run.yml run that ended badly with no run record written after it started. A run
- * that fails inside the engine records `failed` (and reads as `run_failed`); one that dies before
- * (install, a timeout, a crash past the engine's own catch) wrote nothing, so the last record still
- * reads as the run before. Only a briefing run counts: a dry run or a delete never writes a record,
- * and healing starts a paid run. A briefing run under way that is newer than the one that died may
- * still record, so nothing is said until it ends.
+ * `run_died`: a briefing run of run.yml that failed or timed out with no run record written after
+ * it started. A run that fails inside the engine records `failed` (and reads as `run_failed`); one
+ * that dies before (install, a crash past the engine's own catch) wrote nothing, so the last record
+ * still reads as the run before. It only alerts: health.yml heals `run_failed` and `run_overdue`,
+ * never this, so no paid run rides on it. A `cancelled` briefing run with no record after it is
+ * `run_cancelled`, a warning: GitHub reports a job killed at its timeout the same as one the owner
+ * stopped, and a missed briefing reads as `run_overdue` anyway. A dry run or a delete never writes
+ * a record, so neither counts. A briefing run under way that is newer may still record, so nothing
+ * is said until it ends.
  */
 export function checkRunsDied(
   records: ReadonlyArray<{ at: string } | null>,
@@ -197,28 +184,32 @@ export function checkRunsDied(
     Number.NEGATIVE_INFINITY,
     ...records.flatMap((record) => (record ? [Date.parse(record.at)] : [])),
   );
-  const died = runs
-    .filter(
-      (run) =>
-        run.status === "completed" &&
-        (DIED.has(run.conclusion ?? "") || (run.conclusion === "cancelled" && ranToTimeout(run))) &&
-        isBriefing(run) &&
-        now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS &&
-        Date.parse(run.createdAt) > recorded,
-    )
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
-  if (died) {
-    const after = Date.parse(died.createdAt);
-    const healing = runs.some(
+  // The newest briefing run that ended this way with no record after it, unless a newer one is under way.
+  const unrecorded = (ended: (conclusion: string) => boolean): WorkflowRun | undefined => {
+    const last = runs
+      .filter(
+        (run) =>
+          run.status === "completed" &&
+          ended(run.conclusion ?? "") &&
+          isBriefing(run) &&
+          now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS &&
+          Date.parse(run.createdAt) > recorded,
+      )
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+    if (!last) return undefined;
+    const after = Date.parse(last.createdAt);
+    const underWay = runs.some(
       (run) => run.status !== "completed" && isBriefing(run) && Date.parse(run.createdAt) > after,
     );
-    if (healing) return;
-    sink.fault(
-      "run_died",
-      "reliability",
-      `Run ${died.databaseId} (${died.event ?? "run"}, ${died.createdAt}) ended ${died.conclusion} before it recorded an outcome.`,
-    );
-  } else if (runs.length > 0) {
+    return underWay ? undefined : last;
+  };
+  const text = (run: WorkflowRun) =>
+    `Run ${run.databaseId} (${run.event ?? "run"}, ${run.createdAt}) ended ${run.conclusion} before it recorded an outcome.`;
+  const died = unrecorded((conclusion) => DIED.has(conclusion));
+  const cancelled = unrecorded((conclusion) => conclusion === "cancelled");
+  if (died) sink.fault("run_died", "reliability", text(died));
+  if (cancelled) sink.warn("run_cancelled", "reliability", text(cancelled));
+  if (!died && !cancelled && runs.length > 0) {
     sink.passed.push("every recent run recorded its outcome");
   }
 }
