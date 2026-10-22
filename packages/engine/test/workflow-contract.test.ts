@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +10,8 @@ import { REPO_ROOT } from "./score-factories.js";
 // This reads every `dispatch -- <args>` call in .github/workflows and runs its literal arguments
 // through the CLI in an empty folder with no keys: any exit is fine except 2, the usage error that a
 // missing command or an unknown flag produces. Shell variables get a plausible value each.
+const RUNS_FILE = join(tmpdir(), `dispatch-contract-runs-${process.pid}.json`);
+writeFileSync(RUNS_FILE, "[]");
 const PLACEHOLDERS: Record<string, string[]> = {
   '"${args[@]}"': [
     "--mode",
@@ -25,6 +27,8 @@ const PLACEHOLDERS: Record<string, string[]> = {
   // Offline here: the contract run must not reach the live site.
   '"$CEILING"': ["5", "--offline"],
   '"$DELETE_ID"': ["2026-10-01"],
+  // health.yml's `gh run list` output: an empty list.
+  '"$runs"': [RUNS_FILE],
   '"$FEEDBACK"': ["Shorter summaries"],
   '"$TOPICS"': ["ai,design"],
   '"$OP"': ['{"op":"weights.set","weights":{"design_engineering_craft":0.9}}'],

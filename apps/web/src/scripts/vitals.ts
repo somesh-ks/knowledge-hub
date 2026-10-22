@@ -73,3 +73,6 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") send();
 });
 addEventListener("pagehide", send);
+
+/** A module, so app.ts can load it with import(). */
+export {};
