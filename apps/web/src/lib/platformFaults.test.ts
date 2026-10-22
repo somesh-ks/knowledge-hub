@@ -22,6 +22,12 @@ describe("watchPlatformFaults", () => {
         "An error occurred with your deployment\n\nFUNCTION_INVOCATION_TIMEOUT\n\niad1::abcde-123\n",
         { status: 504, headers: { "content-type": "text/plain; charset=utf-8" } },
       ),
+      // The HTML form puts the code inside tags, after the page's styles.
+      "/api/voices": new Response(
+        `<!doctype html><html><head><style>${"p{margin:0}\n".repeat(300)}</style></head><body>` +
+          "<h1>500: INTERNAL_SERVER_ERROR</h1><p><code>INTERNAL_FUNCTION_INVOCATION_FAILED</code></p></body></html>",
+        { status: 500, headers: { "content-type": "text/html; charset=utf-8" } },
+      ),
     };
     const target = {
       fetch: (async (input: RequestInfo | URL) => {
@@ -40,10 +46,12 @@ describe("watchPlatformFaults", () => {
     const page = await target.fetch("/api/stream");
     // The caller's body is untouched by the copy read off its path.
     expect(await page.text()).toContain("An error occurred");
-    await vi.waitFor(() => expect(reported).toHaveLength(2));
+    await target.fetch("/api/voices");
+    await vi.waitFor(() => expect(reported).toHaveLength(3));
     expect(reported).toEqual([
       { kind: "platform", route: "/api/narrate", message: "FUNCTION_INVOCATION_TIMEOUT" },
       { kind: "platform", route: "/api/stream", message: "FUNCTION_INVOCATION_TIMEOUT" },
+      { kind: "platform", route: "/api/voices", message: "INTERNAL_FUNCTION_INVOCATION_FAILED" },
     ]);
   });
 });

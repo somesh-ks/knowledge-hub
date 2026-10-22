@@ -124,6 +124,8 @@ export async function handleReport(
   const line = {
     kind: data.kind,
     page: pathOnly(data.page),
+    // A platform fault's API route, so the log names the function Vercel killed.
+    route: pathOnly(data.route),
     message: text(data.message),
     source: pathOnly(data.source),
     line: typeof data.line === "number" ? data.line : undefined,
