@@ -12,7 +12,7 @@ import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
 
 const NOT_A_DOMAIN =
-  "Enter a domain like example.com, or paste the address of a page on the outlet.";
+  "Enter a domain like example.com, or paste the address of a page on the source.";
 
 /** The edits saved in the last few minutes, oldest first; none when storage is refused. */
 function readSaved() {
@@ -59,7 +59,7 @@ function mount(root: HTMLElement): void {
     removing() {
       const names = removals();
       if (names.length === 0) return null;
-      return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} outlets`;
+      return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} sources`;
     },
     undo() {
       for (const domain of removals()) {

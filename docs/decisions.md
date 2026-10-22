@@ -162,6 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
+| D152 | Full-screen phone sheets show Close | amends D144 |
 | D154 | Simple Analytics and a Privacy page | active |
 
 ---
@@ -1653,6 +1654,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: one query (about 20 to 50 ms) per limited request when the counter is up; nothing changes until the owner reruns `dispatch config seed`. A workflow route's slot is taken only after its passphrase passes, so with the passphrase on (D41 has it off) wrong guesses are not capped per minute, as before this change; with it off anyone can fill the minute, as anyone can spend the GitHub-counted daily caps. The `source-preview` check can add up to 1 s before Jev's 3 s.
 - Rejected: Upstash or Vercel KV (a second store and key); a sliding log (a row per request).
 - Revisit if: the narration route needs a request cap (its spend is held by the daily digest cap and the monthly budget, both counted in Blob).
+
+## D152: a full-screen phone sheet shows its Close
+
+- Date: 2026-10-22 (the owner, on the visual audit's item 8: full-screen sheets show the X on the right, as on desktop; partial bottom sheets keep none)
+- Decision: below 40rem a sheet that fills the screen (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows its Close at the end of its header row, as from 40rem. The partial sheets (the menu sheets, the emoji picker, the React drawers, the passphrase sheet) keep D144: no visible Close, a pull or a tap outside closes them. Pull to dismiss stays on every sheet. One selector in `create-sheet.css` under `SheetHeader.astro`.
+- Why: a full-screen sheet leaves no page showing to tap away to, so the only visible way out was a gesture with no affordance.
+- Amends: D144.
 
 ## D154: cookieless visit counts with Simple Analytics, a few named events, and a Privacy page
 

@@ -18,12 +18,6 @@ const schedule = await loadScheduleView();
 const title = "Podcast voice";
 // The pair is a top-level field of schedule.set, which scheduleOp and savedFields file under
 // "daily" (podcastProfiles.ts, lib/savedOverlay.ts): that is the controls' prefix, for every podcast.
-// Until a shared pair is chosen here, a Weekly voice saved before voices were shared still reads the
-// weekly podcast (podcastVoices), so the page says so rather than show Default as the whole story.
-const weeklyKeepsOld =
-  !schedule.voiceId &&
-  !schedule.voiceIdB &&
-  Boolean(schedule.weekly.voice_id || schedule.weekly.voice_id_b);
 const VOICES = [
   { key: "voice", saved: schedule.voiceId, name: "Primary voice" },
   { key: "voice_b", saved: schedule.voiceIdB, name: "Secondary voice" },
@@ -40,11 +34,6 @@ const VOICES = [
         title={title}
         note="Daily, Weekly and Catch up episodes are read in these voices."
       />
-      {weeklyKeepsOld && (
-        <p class="settings-note" data-weekly-keeps-old>
-          Weekly keeps the voice it had before until you choose voices here.
-        </p>
-      )}
       <noscript>
         <p class="manage-note">Changing these settings needs JavaScript, which is turned off in this browser.</p>
       </noscript>
