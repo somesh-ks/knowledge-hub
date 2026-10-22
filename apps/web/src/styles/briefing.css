@@ -223,13 +223,14 @@ html[data-has-tabs] {
   color: var(--color-on-surface);
 }
 
-/* Play, then the publisher, then the story controls at the trailing edge. The publisher is the
-   attribution and the chip the call to act, so neither gives way: when the line is full the controls
-   wrap to the trailing edge of the next line. A name shortens only when it is wider than the line
-   itself. The chip hugs its label. */
+/* Play, then the publisher, then the story controls at the trailing edge. The chip hugs its label.
+   One line on every width (owner, 2026-10-22: "one line, name cut"): the chip and the controls are
+   fixed tracks and the publisher is the flexible one between them, so a long name shortens with an
+   ellipsis (its full name stays in the link's words and title) and the controls keep one home in
+   every story instead of wrapping to an orphan line. */
 .story-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
@@ -244,6 +245,7 @@ html[data-has-tabs] {
 /* The publisher is attribution, not a second call to act: muted words at the label size, so the
    chip is the one accent in a story. Its hover layer is the muted ink's, like any quiet control. */
 .story-source {
+  flex: 0 1 auto;
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
 }

@@ -656,10 +656,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.source-meta > .source-host:not(:empty) + .score::before {
-  content: "\00b7" / "";
-  margin-inline: var(--space-1);
-}
+/* The dot between the site and the score is the one separator (primitives.css). */
 
 .source-name {
   min-width: 0;
@@ -1225,10 +1222,7 @@
   flex: 1 1 0;
 }
 
-.source-meta > .source-host:not(:empty) + .source-cadence::before {
-  content: "\00b7" / "";
-  margin-inline: var(--space-1);
-}
+/* Its dot is the one separator (primitives.css). */
 
 .source-line {
   display: none;
