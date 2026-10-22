@@ -140,6 +140,23 @@ describe("color contrast", () => {
     }
   });
 
+  it.each(MODES)(
+    "the reading ink is AAA on the page, 4.5:1 on every surface, and a step under the headline's (%s)",
+    (mode) => {
+      for (const surface of surfaces) {
+        const background = colorOf(`semantic.color.${surface}`, mode);
+        const reading = contrastRatio(colorOf("semantic.color.on-surface-reading", mode), background);
+        expect(reading, `on-surface-reading on ${surface} (${mode})`).toBeGreaterThanOrEqual(
+          surface === "surface" ? 7 : 4.5,
+        );
+        expect(
+          contrastRatio(colorOf("semantic.color.on-surface", mode), background),
+          `the headline leads its summary on ${surface} (${mode})`,
+        ).toBeGreaterThan(reading * 1.2);
+      }
+    },
+  );
+
   it.each(MODES)("accent text and body text clear the accent tint (%s)", (mode) => {
     const tint = colorOf("semantic.color.accent-subtle", mode);
     for (const foreground of ["on-surface", "accent"]) {
@@ -363,18 +380,23 @@ describe("motion tokens", () => {
     expect(ms("stagger")).toBeLessThanOrEqual(80);
   });
 
-  it("never uses an ease-in and remaps only movement durations under reduced motion", () => {
+  it("never uses an ease-in, and reduced motion removes travel but keeps the fades", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.path[1] === "ease")) {
       expect(String(token.value)).not.toMatch(/ease-in(?!-out)/);
     }
     const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
     expect(reduced.length).toBeGreaterThan(0);
+    // Durations collapse only where the travel is not a token (a sheet's 100%, a spring's scale).
+    const still: Record<string, string> = { duration: "0.01ms", number: "1", dimension: "0px" };
     for (const token of reduced) {
-      expect(token.type).toBe("duration");
-      expect(token.reducedMotion).toBe("0.01ms");
+      expect(token.reducedMotion, token.dotPath).toBe(still[token.type]);
     }
-    for (const kept of ["press-in", "press-out", "hover", "state", "progress", "theme"]) {
-      expect(doc.byPath.get(`primitive.duration.${kept}`)?.reducedMotion).toBeUndefined();
+    for (const travel of ["distance.micro", "distance.base", "distance.medium", "scale.enter"]) {
+      expect(doc.byPath.get(`primitive.${travel}`)?.reducedMotion, travel).toBeDefined();
+    }
+    // A sheet or dialog that should fade must not snap in: its opacity timing survives.
+    for (const kept of ["press-in", "press-out", "hover", "state", "enter", "exit", "stagger"]) {
+      expect(doc.byPath.get(`primitive.duration.${kept}`)?.reducedMotion, kept).toBeUndefined();
     }
   });
 });
