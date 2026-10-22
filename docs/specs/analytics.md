@@ -46,6 +46,16 @@ What would change a decision:
 4. A podcast feed, which brings readers back through their own podcast app (its plays are not counted here: the audio comes from Blob).
 5. A share prompt when "Episode ready" shows.
 
+## Field Web Vitals
+
+Real visits' LCP, INP and CLS (D156), first-party like the fault reports, so a page that turns slow on real phones reaches `dispatch health`. They take the opt-outs above (`counted()`: the production host, no Do Not Track, no Global Privacy Control).
+
+- Where `counted()` allows, `apps/web/src/scripts/app.ts` loads `apps/web/src/scripts/vitals.ts` at idle or at the first visibility change. It reads the browser's PerformanceObserver (buffered) and sends one beacon to `/api/report` (kind `vitals`) when the page is first hidden, or at `pagehide`: the landing page's LCP (none painted after a hide), CLS and INP over the page's life to then (moves inside the app included), the route template (`vitalPage`: `/d/[id]`, `/e/[id]`, `/settings/topics/[id]`, a named page, else `other`), `device` (`mobile` for a coarse pointer) and `connection` (the effective type, Chromium only). Nothing else; a metric the browser does not measure is left out.
+- The server applies the template and the bounds again, takes 30 a minute per instance apart from the faults' 30, and keeps one row per metric in Neon's `web_vitals` for 7 days, 600 rows an hour at most. A store that is down or slow drops the sample; the beacon always gets 204.
+- `dispatch health` reads each metric's 7-day p75 per device class daily: `field_vitals` warns past Google's "needs improvement" line and faults past "poor"; `field_unmeasured` warns when phones gave a metric under 20 samples, or the store cannot be read.
+
+Scenario: a reader opens a briefing in the installed app, taps Play and switches to another app. One report goes then; presses after returning to it are not sent.
+
 ## Limits
 
 - Ad blockers often block the script host: counts are a floor. Simple Analytics' custom domain proxy would recover them.
@@ -59,3 +69,4 @@ What would change a decision:
 - `apps/web/src/lib/analytics.ts`, `apps/web/src/player/core/listenEvents.ts`, `apps/web/src/scripts/shareLink.ts`
 - `apps/web/astro.config.mjs` and `apps/web/vercel.json` (the policies)
 - `apps/web/src/pages/settings/privacy.astro`
+- Field Web Vitals: `apps/web/src/scripts/vitals.ts`, `apps/web/src/server/vitals.ts`, `packages/core/src/vitals.ts`, `packages/engine/src/store/vitalsStore.ts`, `checkFieldVitals` in `packages/engine/src/ops/healthChecks.ts`
