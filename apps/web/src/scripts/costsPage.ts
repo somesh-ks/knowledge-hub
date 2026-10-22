@@ -362,8 +362,8 @@ function wireChart(): void {
     const box = plot.getBoundingClientRect();
     const { band } = geometry(box.width, drawn.buckets.length);
     const index = Math.floor((event.clientX - box.left - PAD.left) / band);
-    if (index < 0 || index >= drawn.buckets.length) return clearColumn();
-    if (index !== active) focusColumn(index, false);
+    if (index < 0 || index >= drawn.buckets.length) clearColumn();
+    else if (index !== active) focusColumn(index, false);
   };
   plot.addEventListener("pointermove", point);
   plot.addEventListener("pointerdown", point);

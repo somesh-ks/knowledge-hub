@@ -101,7 +101,10 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".segmented-choice-item", "the check glyph beside its own segment label"],
   [".segmented-nav", "a segmented track: the pill inset by its 4px track padding"],
   [".settings-text", "title onto its subtitle inside one row"],
-  [".costs-answer", "a figure's label onto the figure, and the figure onto its line, inside one block"],
+  [
+    ".costs-answer",
+    "a figure's label onto the figure, and the figure onto its line, inside one block",
+  ],
   [".sheet-hint-title", "title onto its body inside one card"],
   [".toast", "the action's hit area reaching the toast's edge"],
   [".app-bar-back", "the back button's hit area, offset to the edge"],
