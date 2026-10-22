@@ -58,44 +58,22 @@
   --costs-series: var(--costs-s0);
 }
 
-/* ------------------------------------------------------------------ the filters */
-
-/* One row above everything it scopes: the range, then the split. Stacks on a phone. */
-.costs-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  align-items: center;
-  margin-block: var(--space-4) var(--space-6);
-}
-
-.costs-filters .costs-range {
-  flex: 1 1 100%;
-}
-
-.costs-filters .costs-by {
-  flex: 1 1 100%;
-}
-
-@media (min-width: 40rem) {
-  .costs-filters .costs-range {
-    flex: 0 1 var(--settings-control-width);
-  }
-
-  .costs-filters .costs-by {
-    flex: 0 1 auto;
-  }
-}
-
 /* ------------------------------------------------------------------ the answer */
 
-/* While a refetch runs the last frame holds, dimmed: no skeleton, no jump. */
-.costs-body {
+/* While a refetch runs the last frame holds, dimmed: no skeleton, no jump. The controls stay lit. */
+.costs-data {
   transition: opacity var(--duration-state) var(--ease-out);
 }
 
-.costs-body[data-loading] {
+.costs[data-loading] .costs-data {
   opacity: 0.6;
+}
+
+/* Cards that hold content rather than rows take the rows' block padding, so every edge matches. */
+.costs-summary,
+.costs-chart,
+.costs-rank {
+  padding-block: var(--space-4);
 }
 
 .costs-summary {
@@ -104,7 +82,6 @@
   gap: var(--space-4) var(--space-8);
   align-items: flex-end;
   justify-content: space-between;
-  margin-block-end: var(--space-4);
 }
 
 .costs-hero {
@@ -126,10 +103,10 @@
 /* The one number the page leads with: the same sans, proportional figures. */
 .costs-hero-value {
   font-family: var(--text-display-family);
-  font-size: calc(var(--font-size-display) * 1.5);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: var(--font-tracking-display);
-  line-height: var(--font-leading-display);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
 }
 
 .costs-kpis {
@@ -166,18 +143,14 @@
 
 /* ------------------------------------------------------------------ the chart */
 
-.costs-card {
+.costs-chart {
   position: relative;
-  padding: var(--space-4);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface-container);
 }
 
 .costs-plot {
   position: relative;
   /* As tall as the drawn chart, before and after it draws, so nothing below moves. */
-  block-size: 200px;
-  border-radius: var(--radius-sm);
+  block-size: calc(var(--space-24) * 2);
 }
 
 .costs-plot:focus-visible {
@@ -280,7 +253,7 @@
 
 .costs-rank-row {
   display: grid;
-  grid-template-columns: var(--space-2) minmax(0, 1fr) auto 3rem;
+  grid-template-columns: var(--space-2) minmax(0, 1fr) auto var(--space-12);
   column-gap: var(--space-2);
   row-gap: var(--space-2);
   align-items: center;
@@ -388,7 +361,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .costs-body {
+  .costs-data {
     transition: none;
   }
 }

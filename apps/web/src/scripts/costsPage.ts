@@ -38,7 +38,8 @@ interface Series {
 const SVG = "http://www.w3.org/2000/svg";
 // Past four series the tail folds into "Other": a fifth hue would not stay distinct.
 const MAX_SERIES = 4;
-const HEIGHT = 200;
+// 12rem, the plot box in costs.css: two --space-24.
+const HEIGHT = 192;
 const PAD = { top: 8, right: 0, bottom: 24, left: 48 };
 const BAR_MAX = 24;
 const GAP = 2;
@@ -550,7 +551,7 @@ async function load(): Promise<void> {
   const period = (range?.value ?? "day") as Period;
   const days = Number(range?.dataset.days ?? "30");
   const by = pick<HTMLSelectElement>("#costs-by")?.value ?? "provider";
-  const body = pick<HTMLElement>("[data-costs-body]");
+  const body = pick<HTMLElement>("[data-costs]");
   const ask = ++asked;
   // A refetch keeps the last frame, dimmed, so nothing jumps while the numbers change.
   body?.setAttribute("data-loading", "");
