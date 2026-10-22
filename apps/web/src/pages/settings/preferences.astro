@@ -28,10 +28,7 @@ const rows = SOURCE_FORMATS.map((format) => ({
     {/* The sliders that count for every topic alike. The topics editor (topicsPage.ts) records a
          change and autosave.ts sends every slider moved in one mix.set a moment later. */}
     <div class="manage topics preferences-page" data-topics>
-      <SettingsHead
-        title="Preferences"
-        note="How much each type of source counts."
-      />
+      <SettingsHead title="Preferences" />
       <noscript>
         <p class="manage-note">Changing preferences needs JavaScript, which is turned off in this browser.</p>
       </noscript>

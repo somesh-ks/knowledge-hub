@@ -1,7 +1,7 @@
 import { fallbackEmoji, placeEmoji } from "@dispatch/core";
 import { createEmojiPicker } from "@dispatch/engine/source-preview";
 import type { APIRoute } from "astro";
-import { toResponse } from "../../server/http";
+import { recordingFaults, toResponse } from "../../server/http";
 import { sharedLimit } from "../../server/rateLimit";
 
 export const prerender = false;
@@ -18,7 +18,7 @@ const geminiKey = process.env.GEMINI_API_KEY;
 const ASKS_PER_MINUTE = 20;
 const picker = jevKey || geminiKey ? createEmojiPicker({ jev: jevKey, gemini: geminiKey }) : null;
 
-export const GET: APIRoute = async ({ url }) => {
+const get: APIRoute = async ({ url }) => {
   const name = (url.searchParams.get("name") ?? "").trim().slice(0, 60);
   if (name === "") return toResponse({ status: 400, body: { error: "name_required" } });
   const description = (url.searchParams.get("description") ?? "").slice(0, 400);
@@ -29,6 +29,8 @@ export const GET: APIRoute = async ({ url }) => {
       : fallbackEmoji(name);
   return toResponse({ status: 200, body: { emoji } });
 };
+
+export const GET = recordingFaults("api/topic-emoji", get);
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "GET" } });

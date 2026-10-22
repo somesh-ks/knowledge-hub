@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
-import { readFieldVitals } from "../ops/healthChecks.js";
+import { readStore, readWatchedHead } from "../ops/healthChecks.js";
+import { configStoreUrl } from "../store/configPaths.js";
 
 const USAGE =
   "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--perf <perf.json>] [--json]";
@@ -68,8 +69,18 @@ export const run: CommandRun = async (argv, ctx) => {
       .then((text) => JSON.parse(text) as unknown)
       .catch(() => null);
   }
-  // Field Web Vitals (D156) from the store /api/report writes, read over the network like the site.
-  const field = site === null ? undefined : await readFieldVitals(ctx.env.DATABASE_URL, ctx.now());
+  // The Neon store, read over the network like the site: field Web Vitals (D156), the shared rate
+  // counter and, with the config store switched on (D149), its documents.
+  // With them, the newest commit Vercel would deploy, for `site_behind` (health.yml fetches history).
+  const [store, main] =
+    site === null
+      ? [undefined, undefined]
+      : await Promise.all([
+          readStore(ctx.env.DATABASE_URL, ctx.now(), {
+            configStore: configStoreUrl(ctx.env) !== null,
+          }),
+          readWatchedHead(ctx.root),
+        ]);
   const report = await collectHealth({
     root: ctx.root,
     now: ctx.now(),
@@ -78,7 +89,8 @@ export const run: CommandRun = async (argv, ctx) => {
     site,
     ...(runs ? { runs } : {}),
     ...(perfPath ? { perf } : {}),
-    ...(field ? { field } : {}),
+    ...(store ? { store } : {}),
+    ...(main ? { main } : {}),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
       SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,

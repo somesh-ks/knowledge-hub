@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  compareNewestFirst,
   type Digest,
   Digest as DigestSchema,
   daysBetween,
@@ -232,4 +233,19 @@ describe("digests committed before the four-beat voice", () => {
       expect(parseDigestFile(again)).toEqual(digest);
     },
   );
+});
+
+// The one order of briefings (the site, `dispatch status`, `dispatch health`). Ordering by
+// generated_at alone took a regenerated older briefing for the newest and faulted site_stale.
+describe("compareNewestFirst", () => {
+  it("orders by date, then by when a same-day briefing was written", () => {
+    const older = { id: "2026-10-05", date: "2026-10-05", generated_at: "2026-10-22T09:00:00Z" };
+    const newer = { id: "2026-10-07", date: "2026-10-07", generated_at: "2026-10-07T05:00:00Z" };
+    const second = { id: "2026-10-07-2", date: "2026-10-07", generated_at: "2026-10-07T16:00:00Z" };
+    expect([older, newer, second].sort(compareNewestFirst).map((each) => each.id)).toEqual([
+      "2026-10-07-2",
+      "2026-10-07",
+      "2026-10-05",
+    ]);
+  });
 });

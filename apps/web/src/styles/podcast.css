@@ -12,7 +12,7 @@
   padding-block: var(--space-4) 0;
 }
 
-/* On a phone the selects stack under their label at full width, so "Every second day" and
+/* On a phone the selects stack under their label at full width, so "Every other day" and
    "Wednesday" are never cut, at any text size. From 40rem they sit side by side at the end of the
    row: the time takes two fifths beside the cadence, and three beside the weekday, which comes first.
    Every control in the column, segmented choices included, is one width and starts at one edge. */
@@ -41,14 +41,15 @@
   display: grid;
 }
 
+/* The voice page's one card has no head: with the panel's 16px it sits 24px under the page's note,
+   the air a head gives a card elsewhere (2026-10-22). */
+.podcast-profile[data-profile="voice"] > .card-group:first-child {
+  margin-block-start: var(--space-2);
+}
+
 /* A quiet line under a group's name or its rows. */
 .podcast-hint {
   padding-block-start: var(--space-2);
-}
-
-/* The topics are a wrapped row of filter chips, with the room a row of chips has above and below. */
-.podcast-topics {
-  padding-block: var(--space-4) var(--space-2);
 }
 
 /* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its

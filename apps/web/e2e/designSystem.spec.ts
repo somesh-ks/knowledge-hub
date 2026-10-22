@@ -44,6 +44,8 @@ const EXEMPT = [
   ".player-dock",
   // An optical nudge sized by the glyph's own side bearing, so its edge meets the switches'.
   ".row-action .icon",
+  // The same nudge inside a select on the index (Theme), so its value ends where the link rows' do.
+  ".settings-view .value-select > select.manage-input",
 ];
 
 const PAGES = [

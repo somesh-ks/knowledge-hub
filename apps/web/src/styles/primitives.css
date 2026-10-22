@@ -1065,9 +1065,32 @@
    inner room is the first and last row's. Its rows sit 16px in from its edge, and a row's hover tile
    keeps clear of the corners. */
 .card-group {
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-xl);
+  padding-inline: var(--card-padding);
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
+}
+
+/* What a card holds is concentric with its corners (2026-10-22): a surface one inset in from the
+   edge (a row's tile, a select's fill) takes the inner radius, content one padding in (a chip, a
+   button) the content radius. A row's tile sits the inset clear of the card's edges and of the next
+   row's tile, so it never runs into a corner. */
+.card-group > .row-action::after {
+  inset-block: var(--card-inset);
+  inset-inline: calc(var(--card-inset) - var(--card-padding));
+  border-radius: var(--card-inner-radius);
+}
+
+.card-group .btn {
+  border-radius: var(--card-content-radius);
+}
+
+/* A card of chips has the same room on all four sides (2026-10-22: the bottom was half the top). */
+.card-group.filter-chips {
+  padding: var(--card-padding);
+}
+
+.card-group .filter-chip {
+  border-radius: var(--card-content-radius);
 }
 
 /* A card sits on the container tone, so an unticked chip in it needs one step up to show. The step
@@ -1105,4 +1128,10 @@
 /* The muted ink fails 4.5 to 1 on the container tone; a quiet value in a card takes the full ink. */
 .card-group .settings-row[data-models] .value-select > select.manage-input {
   color: var(--color-on-surface);
+}
+
+/* A select's fill sits one inset in from the card's edge, as a row's tile does, so it takes the same
+   inner radius rather than the pill a select has outside a card (2026-10-22). */
+.card-group .settings-row .value-select > :is(select.manage-input, .picker-trigger) {
+  border-radius: var(--card-inner-radius);
 }

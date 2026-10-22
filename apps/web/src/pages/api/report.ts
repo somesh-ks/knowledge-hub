@@ -1,11 +1,12 @@
 import type { APIRoute } from "astro";
-import { toResponse } from "../../server/http";
+import { storeFault } from "../../server/faults";
+import { recordingFaults, toResponse } from "../../server/http";
 import { handleReport, MAX_REPORT_CHARS, readReportBody } from "../../server/report";
 import { storeVitals } from "../../server/vitals";
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request }) => {
+const post: APIRoute = async ({ request }) => {
   // A body past the cap is refused; the stream is read to the cap and no further.
   const body = await readReportBody(
     request.headers.get("content-length"),
@@ -17,9 +18,12 @@ export const POST: APIRoute = async ({ request }) => {
     log: (line) => console.error(line),
     now: Date.now,
     storeVitals,
+    storeFault,
   });
   return result.status === 204 ? new Response(null, { status: 204 }) : toResponse(result);
 };
+
+export const POST = recordingFaults("api/report", post);
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });
