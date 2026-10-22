@@ -4,7 +4,6 @@ import { type ApiRuntime, createApiRuntime } from "../curate/apiRuntime.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient } from "../http.js";
 import { meterExa } from "../llm/requestMeter.js";
-import { configStoreUrl } from "../store/configPaths.js";
 import { loadVoice } from "../voice/voice.js";
 import { SpendTracker } from "./spend.js";
 import type { RunDeps } from "./types.js";
@@ -24,7 +23,6 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     now: ctx.now,
     log: ctx.log,
     secrets: secretsFromEnv(ctx.env),
-    configStore: configStoreUrl(ctx.env) !== null,
     fetch: {
       http: meterExa(createHttpClient({ retries: 2 }), spend.meter),
       exaKey: ctx.env.EXA_API_KEY,

@@ -1,5 +1,7 @@
 import type { Page, Route } from "@playwright/test";
+import { configHash } from "../src/lib/configHash";
 import { GAP_MS } from "../src/scripts/managePageSave";
+import { BUILT_FILES } from "./configServer";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
@@ -268,6 +270,50 @@ test.describe("the profile pages", () => {
     for (const chip of (await chips.all()).slice(0, 4)) {
       await expect(chip.locator("input")).toBeChecked();
     }
+  });
+});
+
+test.describe("with the config store on", () => {
+  // The bug (D149): Daily waited for the store before it read its starting point, and a change made
+  // by key in that wait became the starting point itself, so it was never sent.
+  test("a change made by key while the store is asked is still saved", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page);
+    let answer: () => void = () => {};
+    const asked = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    await page.route("**/api/config", async (route: Route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await asked;
+      await route.fulfill({
+        json: {
+          status: 200,
+          built: configHash(BUILT_FILES),
+          written_at: null,
+          ops: [],
+          sources: [],
+        },
+      });
+    });
+    await context.addCookies([
+      { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+    ]);
+    // The change is made once the page is asking the store, and before it answers.
+    const asking = page.waitForRequest(
+      (request) => request.url().endsWith("/api/config") && request.method() === "GET",
+    );
+    await page.goto("/settings/daily");
+    await asking;
+    await page.locator("#daily-hour").selectOption("9");
+    answer();
+    await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
+    await page.clock.runFor(2000);
+    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", hour: 9 });
   });
 });
 

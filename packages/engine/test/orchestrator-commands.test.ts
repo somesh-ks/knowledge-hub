@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeEvalCommand } from "../src/commands/eval.js";
 import { extractIds, makeExtractCommand } from "../src/commands/extract.js";
-import { run as learn, prefsCommitMessage } from "../src/commands/learn.js";
+import { run as learn, makeLearn, prefsCommitMessage } from "../src/commands/learn.js";
 import { makeRunCommand } from "../src/commands/run.js";
 import { run as status } from "../src/commands/status.js";
 import type { ExtractedText } from "../src/extract/extractText.js";
@@ -519,6 +519,55 @@ describe("dispatch learn --commit", () => {
     expect(code).toBe(1);
     expect(logs.find((l) => l.level === "error")?.message).toContain("behind");
     expect(await prefs()).toBe(before);
+  });
+
+  // The bug (D149, review round 2): learn wrote the store before its commit, so a push that failed
+  // and a rerun moved each weight two stops; and with the store down it wrote the file alone, which
+  // the next run then undid. The store now follows the commit, and a store it cannot read stops it.
+  it("with the config store on, writes the store only after the push lands", LONG, async () => {
+    const stored = { content: await prefs(), version: 1 };
+    let reachable = true;
+    const sql = {
+      async query(text: string, params: unknown[] = []) {
+        if (!reachable) throw new Error("connect ECONNREFUSED");
+        if (text.startsWith("select path, content, version"))
+          return [{ path: "config/preferences.json", ...stored }];
+        const [, contents, versions] = params as [string[], string[], number[]];
+        if (versions[0] !== stored.version) return [{ written: 0 }];
+        Object.assign(stored, { content: contents[0], version: stored.version + 1 });
+        return [{ written: 1 }];
+      },
+    };
+    const env = { DATABASE_URL: "postgres://fake", DISPATCH_CONFIG_STORE: "postgres" };
+    const withStore = async (extra: string[]) => {
+      const { ctx } = makeContext(repo.root, { env, json: false });
+      const run = makeLearn({ connectConfigStore: async () => sql });
+      return (await captureStdout(async () => run(["--apply", await patchFile(), ...extra], ctx)))
+        .result;
+    };
+    const weight = () =>
+      (JSON.parse(stored.content) as { weights: Record<string, number> }).weights
+        .css_canvas_motion_techniques;
+
+    reachable = false;
+    expect(await withStore([])).toBe(1);
+    expect(git(repo.root, "status", "--porcelain")).toBe("");
+    reachable = true;
+
+    const before = weight();
+    await writeFile(join(repo.remote, "hooks", "pre-receive"), "#!/bin/sh\nexit 1\n", {
+      mode: 0o755,
+    });
+    expect(await withStore(["--commit"])).toBe(1);
+    expect(weight()).toBe(before);
+    await rm(join(repo.remote, "hooks", "pre-receive"));
+    // A rerun says the earlier commit is still unpushed rather than report success without it.
+    expect(await withStore(["--commit"])).toBe(1);
+    expect(weight()).toBe(before);
+    git(repo.root, "push", "-q", "origin", "main");
+    expect(await withStore(["--commit"])).toBe(0);
+    expect(weight()).toBe(0.95);
+    expect(stored.version).toBe(2);
   });
 
   it("rejects --commit with --dry-run and --no-push without --commit", LONG, async () => {

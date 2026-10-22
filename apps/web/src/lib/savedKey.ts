@@ -12,3 +12,12 @@ export function hasSaved(): boolean {
     return false;
   }
 }
+
+/**
+ * Whether the owner's config is in the store (D149): then a settings page asks /api/config for what
+ * it holds and lays it over the copy it was built with (scripts/configStoreRead.ts), before the
+ * editor reads its starting point. The build says so in a meta tag; without it nothing is asked.
+ */
+export function storeOn(): boolean {
+  return document.querySelector('meta[name="dispatch-config-store"]') !== null;
+}

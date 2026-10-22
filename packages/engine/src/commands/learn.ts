@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { CommandContext, CommandRun } from "../context.js";
 import { type BotIdentity, type CommitOutcome, commitAndPush } from "../git/commit.js";
 import { createGitRunner, gitOutput } from "../git/runGit.js";
-import { isBehindRemote, isTreeClean } from "../git/status.js";
+import { isAheadOfRemote, isBehindRemote, isTreeClean } from "../git/status.js";
 import { applyPatch, PreferencesPatch } from "../learn/patch.js";
 import {
   type ConfigDocument,
@@ -16,21 +16,69 @@ import {
   writeConfigDocument,
 } from "../store/configDocs.js";
 
-/** The store and the stored preferences, or null when the store is off or cannot be reached. */
+type Connect = (databaseUrl: string) => Promise<SqlClient>;
+
+/**
+ * The store and the stored preferences; null when the store is off, "unreachable" when it is on and
+ * cannot be read. Learning then stops: a weight written to the file alone would be undone by the next
+ * run, which copies the store over the file (D149).
+ */
 async function openPreferencesStore(
   ctx: CommandContext,
-): Promise<{ sql: SqlClient; stored: ConfigDocument | undefined } | null> {
+  connect: Connect,
+): Promise<{ sql: SqlClient; stored: ConfigDocument | undefined } | "unreachable" | null> {
   const url = configStoreUrl(ctx.env);
   if (url === null) return null;
   try {
-    const sql = await connectConfigStore(url);
+    const sql = await connect(url);
     const documents = await readConfigDocuments(sql);
     return { sql, stored: documents.find((d) => d.path === CONFIG_FILES.preferences) };
   } catch (error) {
-    ctx.log.warn(
-      `Config store unreachable, using the file: ${error instanceof Error ? error.message : String(error)}`,
+    ctx.log.error(
+      `Config store unreachable, so nothing was learned (a file-only weight would be undone by the next run). Run learn again: ${error instanceof Error ? error.message : String(error)}`,
     );
-    return null;
+    return "unreachable";
+  }
+}
+
+const preferencesText = (data: unknown): string => `${JSON.stringify(data, null, 2)}\n`;
+
+/**
+ * Write the learned preferences to the store on the version read. An edit made in the app since the
+ * read is kept: the patch is applied once more on top of it, once. False when it could not be written.
+ */
+async function writeStored(
+  store: { sql: SqlClient; stored: ConfigDocument | undefined },
+  current: Preferences,
+  next: Preferences,
+  reapply: (current: Preferences) => Preferences,
+  ctx: CommandContext,
+): Promise<boolean> {
+  try {
+    const path = CONFIG_FILES.preferences;
+    if (
+      await writeConfigDocument(
+        store.sql,
+        path,
+        preferencesText(next),
+        store.stored?.version ?? null,
+      )
+    )
+      return true;
+    const again = (await readConfigDocuments(store.sql)).find((d) => d.path === path);
+    // A row gone meanwhile is written afresh from what was read, never from `next` (that would move twice).
+    const merged = reapply(again ? Preferences.parse(JSON.parse(again.content)) : current);
+    return await writeConfigDocument(
+      store.sql,
+      path,
+      preferencesText(merged),
+      again?.version ?? null,
+    );
+  } catch (error) {
+    ctx.log.warn(
+      `Config store write failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return false;
   }
 }
 
@@ -50,7 +98,7 @@ function value(argv: string[], flag: string): string | undefined {
 /** Atomic write with a stable two-space format and trailing newline, so git diffs stay clean. */
 function writeJson(path: string, data: unknown): void {
   const tmp = `${path}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  writeFileSync(tmp, preferencesText(data), "utf8");
   renameSync(tmp, path);
 }
 
@@ -69,7 +117,11 @@ export function prefsCommitMessage(input: string, changes: readonly string[]): s
 }
 
 /** Why a commit must not start, or null when it may. */
-async function commitRefusal(root: string, push: boolean): Promise<string | null> {
+async function commitRefusal(
+  root: string,
+  push: boolean,
+  storeOn: boolean,
+): Promise<string | null> {
   if (!(await isTreeClean(root))) {
     return "The working tree has uncommitted changes. Commit or stash them first: --commit stages config/preferences.json only.";
   }
@@ -81,6 +133,20 @@ async function commitRefusal(root: string, push: boolean): Promise<string | null
   } catch (error) {
     const detail = error instanceof Error ? (error.message.split("\n")[0] ?? "") : "";
     return `Cannot reach the remote to check whether the branch is behind (${detail}). Fix the connection, or use --no-push.`;
+  }
+  // A learn whose push failed left its commit here: a rerun would find nothing to commit and say so
+  // as if all were well, while the commit never reached the remote (nor, with the store on, the
+  // store). Push, and only with the store on run learn again: the file already holds the change.
+  const ahead = await isAheadOfRemote(root).then(
+    (value) => (value ? "yes" : "no"),
+    () => "unknown",
+  );
+  if (ahead === "unknown")
+    return "Cannot tell whether the branch has unpushed commits. Check git status first.";
+  if (ahead === "yes") {
+    return storeOn
+      ? "The branch has commits its remote does not have. Push them (git push), then run learn again so the config store gets the change."
+      : "The branch has commits its remote does not have. Push them (git push); a learn commit among them is already made, so do not run it again.";
   }
   return null;
 }
@@ -122,7 +188,14 @@ function describeCommit(outcome: CommitOutcome): { ok: boolean; line: string } {
   }
 }
 
-export const run: CommandRun = async (argv, ctx) => {
+/** `dispatch learn`; the store is injected so tests drive it without a database. */
+export function makeLearn(deps: { connectConfigStore?: Connect } = {}): CommandRun {
+  return (argv, ctx) => learn(argv, ctx, deps.connectConfigStore ?? connectConfigStore);
+}
+
+export const run: CommandRun = makeLearn();
+
+async function learn(argv: string[], ctx: CommandContext, connect: Connect): Promise<number> {
   if (argv.includes("--schema")) {
     console.log(JSON.stringify(z.toJSONSchema(PreferencesPatch), null, 2));
     return 0;
@@ -140,9 +213,9 @@ export const run: CommandRun = async (argv, ctx) => {
     return 2;
   }
   const prefsPath = join(ctx.root, CONFIG_FILES.preferences);
-  // With the config store on (D149) the stored preferences are the current ones, not the file. A
-  // store that cannot be reached is a warning, as at the start of a run: the file is used.
-  const store = await openPreferencesStore(ctx);
+  // With the config store on (D149) the stored preferences are the current ones, not the file.
+  const store = await openPreferencesStore(ctx, connect);
+  if (store === "unreachable") return 1;
   const current = Preferences.parse(
     JSON.parse(store?.stored?.content ?? readFileSync(prefsPath, "utf8")),
   );
@@ -176,51 +249,45 @@ export const run: CommandRun = async (argv, ctx) => {
   if (argv.includes("--dry-run")) return 0;
   if (commit) {
     // Checked before anything is written, so a refusal leaves the tree exactly as it was.
-    const refusal = await commitRefusal(ctx.root, !noPush);
+    const refusal = await commitRefusal(ctx.root, !noPush, store !== null);
     if (refusal) {
       ctx.log.error(refusal);
       return 1;
     }
   }
-  // The store first, on the version read: a run copies it over the file, so a weight written only
-  // to the file would be undone, and an edit made in the app since the read must not be lost.
+  writeJson(prefsPath, next);
+  if (commit) {
+    const identity = await committerIdentity(ctx.root);
+    const outcome = await commitAndPush({
+      root: ctx.root,
+      message: prefsCommitMessage(patch.input, changes),
+      command: "learn",
+      push: !noPush,
+      ...(identity ? { identity } : {}),
+    });
+    const { ok, line } = describeCommit(outcome);
+    if (!ok) {
+      // The store is written only once the commit is in: a rerun after a failed push then starts
+      // from the same stored weights and moves each one stop, not two.
+      ctx.log.error(line);
+      return 1;
+    }
+    ctx.log.info(line);
+  }
   if (store !== null) {
-    try {
-      const written = await writeConfigDocument(
-        store.sql,
-        CONFIG_FILES.preferences,
-        `${JSON.stringify(next, null, 2)}\n`,
-        store.stored?.version ?? null,
+    const reapply = (stored: Preferences) =>
+      applyPatch(stored, patch, stockholmDate(ctx.now())).next;
+    if (!(await writeStored(store, current, next, reapply, ctx))) {
+      ctx.log.error(
+        `${CONFIG_FILES.preferences} is updated but the config store is not, so the next run will use the stored preferences. Run learn again.`,
       );
-      if (!written) {
-        ctx.log.error(
-          "The stored preferences changed while learn ran (an edit in the app). Nothing was written; run learn again.",
-        );
-        return 1;
-      }
-    } catch (error) {
-      ctx.log.warn(
-        `Config store unreachable, writing the file only: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      return 1;
     }
   }
-  writeJson(prefsPath, next);
   if (!commit) {
     ctx.log.info(
       `Updated ${CONFIG_FILES.preferences}. Review the diff, then commit as "chore(prefs): ...".`,
     );
-    return 0;
   }
-  const identity = await committerIdentity(ctx.root);
-  const outcome = await commitAndPush({
-    root: ctx.root,
-    message: prefsCommitMessage(patch.input, changes),
-    command: "learn",
-    push: !noPush,
-    ...(identity ? { identity } : {}),
-  });
-  const { ok, line } = describeCommit(outcome);
-  if (ok) ctx.log.info(line);
-  else ctx.log.error(line);
-  return ok ? 0 : 1;
-};
+  return 0;
+}

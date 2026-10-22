@@ -24,8 +24,8 @@ import { buildSourceFromUrl } from "../sources/addSource.js";
 import type { DiscoverDeps } from "../sources/discover.js";
 
 export class ConfigOpError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
     this.name = "ConfigOpError";
   }
 }
@@ -326,7 +326,9 @@ async function addSource(
     },
     deps.discover,
   ).catch((error: unknown) => {
-    throw new ConfigOpError(error instanceof Error ? error.message : String(error));
+    throw new ConfigOpError(error instanceof Error ? error.message : String(error), {
+      cause: error,
+    });
   });
   if (op.format !== undefined) source.format = op.format;
   next.sourcesUser.added.push(source);

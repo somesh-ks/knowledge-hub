@@ -25,7 +25,6 @@ import {
 } from "../podcast/types.js";
 import { type BlobClient, createVercelBlobClient } from "../publish/blob.js";
 import { loadScheduleZone } from "../schedule/store.js";
-import { configStoreUrl } from "../store/configPaths.js";
 
 export const PODCAST_USAGE =
   'Usage: dispatch podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
@@ -168,7 +167,6 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           root: ctx.root,
           message: `chore(podcast): remove ${command.id}`,
           command: "podcast",
-          configStore: configStoreUrl(ctx.env) !== null,
           push: values["no-push"] !== true,
         });
         const failure = commitFailure(outcome);
@@ -278,7 +276,6 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           ? `feat(podcast): replace ${replaced.episode.id} with ${episode.id}`
           : `feat(podcast): add ${episode.id}`,
         command: "podcast",
-        configStore: configStoreUrl(ctx.env) !== null,
         push: values["no-push"] !== true,
       });
       const failure = commitFailure(outcome);

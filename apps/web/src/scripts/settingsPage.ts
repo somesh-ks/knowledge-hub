@@ -6,7 +6,7 @@
  * The pure parts (parsing a control's value, what the controls should show, the order of the sound
  * cue and the preference) are exported and tested; the rest is wiring.
  */
-import { hasSaved } from "../lib/savedKey";
+import { hasSaved, storeOn } from "../lib/savedKey";
 import {
   dismissInstallHint,
   isStandaloneDisplay,
@@ -117,8 +117,9 @@ function mountSettings(root: HTMLElement): () => void {
   const installApp = root.querySelector<HTMLElement>("[data-install-app]");
 
   // An edit saved in the last few minutes is not in this page until the next build: the rows' lines
-  // say it, so Back from a page never lands on a summary that contradicts it.
-  if (hasSaved()) {
+  // say it, so Back from a page never lands on a summary that contradicts it. With the config store
+  // on (D149), so does what it holds.
+  if (hasSaved() || storeOn()) {
     void import("./settingsSaved").then((index) => index.showSaved(root)).catch(() => {});
   }
 

@@ -10,11 +10,11 @@ Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run; episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Deploy: the Vercel GitHub integration deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (`dispatch-verify`, `dispatch-worker` in `.claude/agents/`), `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
+- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes. Rules: `AGENTS.md`, [the postmortem](engineering/postmortem-test-suite.md). Cloud container setup: [learnings](learnings.md).
+Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes. Rules: `AGENTS.md`, [the postmortem](engineering/postmortem-test-suite.md).
 
 ## Not working or unverified
 
@@ -40,6 +40,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - General topics (D66 to D69, D102): no run judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge stage reports the feeds.
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
+- Config store (D149): built, off; `run.yml` and `podcast.yml` must pass it (runbook 11). closed when: a phone's edit shows on a laptop and a run log names the store.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `dispatch` group); production's `GITHUB_DISPATCH_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
 - Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on news.someshks.work.
 - Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note's map.

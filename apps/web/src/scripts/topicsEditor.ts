@@ -13,6 +13,7 @@
 import type { SourceFormat } from "@dispatch/core";
 import { topicEmoji } from "@dispatch/core/topicEmoji";
 import { pickEmoji } from "../lib/pickEmoji";
+import { readableUrl } from "../lib/readableUrl";
 import { sourcesSummary } from "../lib/settingsSummary";
 import type { HeldSource } from "../lib/sourceCatalogMatch";
 import { parseSuggestedAdd, type SuggestedAdd, slugify } from "../lib/topicText";
@@ -203,16 +204,6 @@ export function mountEditor(root: HTMLElement): Editor {
    * The row for a source being added, in its topic's list and tinted. On the list page, or for a topic
    * not built yet, it waits under the list until the build files it under its topic.
    */
-  /** The address as a built row shows it (readableUrl in lib/manage.ts, which a page script cannot import). */
-  const readableUrl = (address: string): string => {
-    try {
-      const url = new URL(address);
-      return `${url.hostname.replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}`;
-    } catch {
-      return "";
-    }
-  };
-
   /** A source row built from what is known of the source, and the line a screen reader hears its save in. */
   const buildRow = (
     shown: {

@@ -345,7 +345,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     root,
     message,
     command: "run",
-    configStore: deps.configStore === true,
     push: !options.noPush,
     git: deps.git,
   });
@@ -424,7 +423,6 @@ async function commitGated(
       root: deps.root,
       message,
       command: "run",
-      configStore: deps.configStore === true,
       push: !options.noPush,
       git: deps.git,
     });

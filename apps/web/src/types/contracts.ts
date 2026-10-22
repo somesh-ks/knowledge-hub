@@ -406,6 +406,8 @@ export type ConfigResponse =
   | {
       status: 202;
       run_id?: number;
+      /** With the config store on (D149): when the edit landed, by the database's clock. */
+      written_at?: number;
       /**
        * Only for an edit that carried schedule.set: false when the site could not change the
        * briefing time (its GitHub token may lack permission to write repository variables). The
@@ -476,3 +478,39 @@ export type PodcastCreateResponse =
   | { status: 401; error: "wrong_passphrase" }
   | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
   | { status: 503; error: "unavailable" };
+
+/**
+ * A source a topic page draws from the config store (D149): the build lists it nowhere, or on
+ * another page. What its row needs, as SourceRow.astro draws a built one.
+ */
+export interface StoreSource {
+  /** The topic page that lists it now (a group, a topic, or Other), as the next build would. */
+  page: string;
+  id: string;
+  name: string;
+  host: string;
+  url: string | null;
+  favicon_url: string | null;
+  format: SourceFormat;
+  enabled: boolean;
+  /** A general source's lean, -2 to 2, or null. */
+  lean: number | null;
+  /** Whether it feeds a general news topic (its edit panel offers a lean). */
+  general: boolean;
+}
+
+/** GET /api/config with the config store on (D149): what it holds, over the build's copy. */
+export interface ConfigReadBody {
+  status: 200;
+  /**
+   * Which config files the edits are a diff from (lib/configHash.ts): a page built from other files
+   * lays none of them over itself.
+   */
+  built: string;
+  /** When the newest stored file was written, in epoch milliseconds; null for an empty store. */
+  written_at: number | null;
+  /** The edits that turn the files the pages were built from into the stored ones. */
+  ops: ConfigOp[];
+  /** The sources a topic page draws: the build lists them nowhere, or on another page. */
+  sources: StoreSource[];
+}

@@ -26,7 +26,13 @@ import { loadSources, loadUserSources, serializeUserSources } from "../sources/r
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
 import { readSourceCandidates } from "../state/store.js";
-import { connectConfigStore, type SqlClient, seedConfigDocuments } from "../store/configDocs.js";
+import {
+  configStoreUrl,
+  connectConfigStore,
+  copiedFromStore,
+  type SqlClient,
+  seedConfigDocuments,
+} from "../store/configDocs.js";
 import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
 
@@ -39,8 +45,13 @@ const USAGE = `Usage: dispatch config <command>
   commit --message <text> [--no-push]
                                      Commit the files apply may change as chore(config): <text>
                                      and push. The write guard refuses anything else.
-  seed [--dry-run]                   Create the config_documents table in DATABASE_URL and insert each
-                                     config file that has no row yet (D149). Never replaces a row.
+  seed [--dry-run] [--replace [--force]]
+                                     Create the config_documents table in DATABASE_URL and insert each
+                                     config file that has no row yet (D149). Never replaces a row,
+                                     unless --replace: then a row that differs from the committed file
+                                     is rewritten from it (--dry-run lists those). Refused while the
+                                     store is on here (the switch, or a run's note that it copied),
+                                     as it would undo edits made in the app; --force overrides.
 
 Ops (see ConfigOp in @dispatch/core):
   {"op":"topic.upsert","topic":{"name":"...","description":"...","keywords":["..."]}}
@@ -325,28 +336,52 @@ async function runCommit(argv: string[], ctx: CommandContext): Promise<number> {
 /**
  * `dispatch config seed`: load the committed config files into Postgres (D149) and create the site's
  * rate-limit counter table. Run by hand by the owner; no workflow calls it. Rows that exist are
- * kept, so it is safe to run again.
+ * kept, so it is safe to run again; `--replace` refreshes the differing ones before switch-on.
  */
 async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): Promise<number> {
   const { values } = parseArgs({
     args: argv,
-    options: { "dry-run": { type: "boolean" } },
+    options: {
+      "dry-run": { type: "boolean" },
+      replace: { type: "boolean" },
+      force: { type: "boolean" },
+    },
     strict: true,
   });
   if (ctx.env.DATABASE_URL === undefined) {
     ctx.log.error("DATABASE_URL is not set.");
     return 1;
   }
-  const sql = await (deps.connectConfigStore ?? connectConfigStore)(ctx.env.DATABASE_URL);
   const dryRun = values["dry-run"] === true;
-  const inserted = await seedConfigDocuments(ctx.root, sql, { dryRun });
+  const replace = values.replace === true;
+  // Replacing is for a store seeded before switch-on, which only the files have written to. Once
+  // the store is on, the app's edits live there alone, and the files are a run old.
+  if (
+    replace &&
+    !dryRun &&
+    values.force !== true &&
+    (configStoreUrl(ctx.env) !== null || (await copiedFromStore(ctx.root)))
+  ) {
+    ctx.log.error(
+      "The config store is on here (DISPATCH_CONFIG_STORE, or a run noted it copied the store), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
+    );
+    return 1;
+  }
+  const sql = await (deps.connectConfigStore ?? connectConfigStore)(ctx.env.DATABASE_URL);
+  const inserted = await seedConfigDocuments(ctx.root, sql, { dryRun, replace });
   // The site's shared rate-limit counter lives in the same database; until it exists the site counts
   // per instance.
   if (!dryRun) await sql.query(RATE_LIMIT_SCHEMA_SQL);
   print(
     ctx.json
-      ? JSON.stringify({ ok: true, inserted, rate_limit_table: !dryRun, dry_run: dryRun })
-      : `${dryRun ? "would insert" : "inserted"}: ${inserted.length === 0 ? "nothing" : inserted.join(", ")}\nrate-limit table: ${dryRun ? "would create if missing" : "ready"}`,
+      ? JSON.stringify({
+          ok: true,
+          inserted,
+          replace,
+          rate_limit_table: !dryRun,
+          dry_run: dryRun,
+        })
+      : `${dryRun ? "would write" : "written"}${replace ? " (new or differing)" : " (new)"}: ${inserted.length === 0 ? "nothing" : inserted.join(", ")}\nrate-limit table: ${dryRun ? "would create if missing" : "ready"}`,
   );
   return 0;
 }

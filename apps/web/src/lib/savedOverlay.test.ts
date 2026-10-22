@@ -15,6 +15,7 @@ import {
   savedTopics,
   sourceCounts,
   withPending,
+  withStore,
 } from "./savedOverlay";
 
 const T0 = 1_760_000_000_000;
@@ -64,6 +65,32 @@ describe("keeping what was saved", () => {
     expect(parseSaved(JSON.stringify([{ at: T0, ops: [{ op: "x" }, 3, null] }]), T0)).toEqual([
       { at: T0, ops: [{ op: "x" }] },
     ]);
+  });
+});
+
+describe("withStore", () => {
+  // The bug (D149): this device's copy of an edit, kept three minutes, was laid over the store, so a
+  // later edit made on another device looked undone here, and the next toggle sent the old value.
+  it("lays this device's newer edits over the store, never older ones", () => {
+    const mine = addSaved([], [{ op: "weights.set", weights: { design: 0.5 } }], T0);
+    const waiting = withPending(mine, [{ op: "source.set", id: "a", enabled: false }], T0 + 1000);
+    const later = { op: "weights.set", weights: { design: 0.95 } } as const;
+    expect(withStore(waiting, { ops: [later], written_at: T0 + 30_000 }, T0 + 40_000)).toEqual([
+      later,
+      { op: "source.set", id: "a", enabled: false },
+    ]);
+    expect(withStore(mine, { ops: [], written_at: T0 - 30_000 }, T0 + 1000)).toEqual([
+      { op: "weights.set", weights: { design: 0.5 } },
+    ]);
+    // Two writes 100 ms apart on the server, this device seeing its own answer later than that: the
+    // server's date for this device's write decides, not this device's clock.
+    const close = addSaved(
+      [],
+      [{ op: "weights.set", weights: { design: 0.5 } }],
+      T0 + 300,
+      T0 + 100,
+    );
+    expect(withStore(close, { ops: [later], written_at: T0 + 200 }, T0 + 1000)).toEqual([later]);
   });
 });
 

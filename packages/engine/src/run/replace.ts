@@ -88,7 +88,6 @@ export async function deleteDigest(
     root: deps.root,
     message: `chore(digest): remove ${id}`,
     command: "run",
-    configStore: deps.configStore === true,
     push: !options.noPush,
     git: deps.git,
   });
