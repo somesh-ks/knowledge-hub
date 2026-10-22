@@ -82,7 +82,25 @@ export const THINKING_HEADROOM = 8_000;
 interface AnthropicBody {
   stop_reason?: string;
   content?: Array<{ type?: string; text?: string }>;
-  usage?: { input_tokens?: number; output_tokens?: number };
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  };
+}
+
+/**
+ * The whole prompt: `input_tokens` is only its uncached part. The budget checks a request by its
+ * whole prompt, so it records the same; the cost ledger then prices a cache read as a full input
+ * token, an overstatement on a hit and never an undercount.
+ */
+function promptTokens(usage: AnthropicBody["usage"]): number {
+  return (
+    (usage?.input_tokens ?? 0) +
+    (usage?.cache_creation_input_tokens ?? 0) +
+    (usage?.cache_read_input_tokens ?? 0)
+  );
 }
 
 /**
@@ -108,7 +126,16 @@ export function createAnthropicApi(options: {
         model: request.model,
         max_tokens: request.maxTokens + THINKING_HEADROOM,
         messages: request.messages,
-        ...(request.system ? { system: request.system } : {}),
+        // The breakpoint ends the system prompt, which is the same on every request of a kind (the
+        // boundary token lives in the user message), so the requests after the first read it from
+        // cache.
+        ...(request.system
+          ? {
+              system: [
+                { type: "text", text: request.system, cache_control: { type: "ephemeral" } },
+              ],
+            }
+          : {}),
         ...(Object.keys(outputConfig).length > 0 ? { output_config: outputConfig } : {}),
       };
       options.onRequest?.();
@@ -145,7 +172,7 @@ export function createAnthropicApi(options: {
       return {
         text,
         stopReason,
-        inputTokens: json.usage?.input_tokens ?? 0,
+        inputTokens: promptTokens(json.usage),
         outputTokens: json.usage?.output_tokens ?? 0,
       };
     },

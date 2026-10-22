@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { pickNewest, resolveFamilies } from "../src/llm/modelResolver.js";
 import { createModelRouter } from "../src/llm/modelRouter.js";
+import { createAnthropicApi } from "../src/llm/providers.js";
 import { TokenBudget } from "../src/llm/tokenBudget.js";
 import { captureLog, NO_WAIT } from "./write-fakes.js";
 
@@ -130,6 +131,43 @@ describe("the model chain", () => {
     };
     expect(body.output_config?.effort).toBe("medium");
     expect(body.output_config?.format?.type).toBe("json_schema");
+  });
+});
+
+describe("Claude's prompt cache", () => {
+  // Every request once embedded its random boundary in the system prompt and sent no breakpoint,
+  // so nothing was ever read from cache; and input_tokens alone is only the uncached tail, so a
+  // cached run would have looked nearly free in the budget and the cost ledger.
+  it("marks the system prompt cacheable and counts the cached part of the prompt", async () => {
+    let sent: Record<string, unknown> = {};
+    const api = createAnthropicApi({
+      apiKey: "a",
+      fetch: async (_url, init) => {
+        sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return json({
+          stop_reason: "end_turn",
+          content: [{ type: "text", text: "ok" }],
+          usage: {
+            input_tokens: 100,
+            output_tokens: 3,
+            cache_creation_input_tokens: 1000,
+            cache_read_input_tokens: 2000,
+          },
+        });
+      },
+    });
+    const reply = await api.call({
+      model: "claude-sonnet-5-5",
+      system: "be brief",
+      messages: [{ role: "user", content: "x" }],
+      maxTokens: 10,
+      schema: null,
+      timeoutMs: 1000,
+    });
+    expect(sent.system).toEqual([
+      { type: "text", text: "be brief", cache_control: { type: "ephemeral" } },
+    ]);
+    expect(reply.inputTokens).toBe(3100);
   });
 });
 

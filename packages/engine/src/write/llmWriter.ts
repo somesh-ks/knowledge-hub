@@ -139,7 +139,7 @@ export class LlmWriter implements Writer {
         schema: WriterOutput,
         schemaName: "dispatch_items",
         messages: [
-          { role: "system", content: writerSystemPrompt(this.options.voice, boundary) },
+          { role: "system", content: writerSystemPrompt(this.options.voice) },
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
         ],
         step: "story_writer",
@@ -179,7 +179,7 @@ export class LlmWriter implements Writer {
         schema: RewriteOutput,
         schemaName: "dispatch_rewrite",
         messages: [
-          { role: "system", content: rewriteSystemPrompt(this.options.voice, boundary) },
+          { role: "system", content: rewriteSystemPrompt(this.options.voice) },
           { role: "user", content: rewriteUserMessage(request, boundary) },
         ],
         step: "story_rewrite",

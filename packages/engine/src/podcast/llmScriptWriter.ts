@@ -60,7 +60,7 @@ export class LlmScriptWriter implements ScriptWriter {
       schema: ScriptReply,
       schemaName: "singularity_script",
       messages: [
-        { role: "system", content: scriptSystemPrompt(input, boundary) },
+        { role: "system", content: scriptSystemPrompt(input) },
         { role: "user", content: scriptUserMessage(input, boundary, problems) },
       ],
       step: "podcast_script",
@@ -80,7 +80,7 @@ export class LlmScriptWriter implements ScriptWriter {
       messages: [
         {
           role: "system",
-          content: `${scriptSystemPrompt(input, boundary)}\n${OPENING_INSTRUCTION}`,
+          content: `${scriptSystemPrompt(input)}\n${OPENING_INSTRUCTION}`,
         },
         { role: "user", content: scriptUserMessage(input, boundary, []) },
       ],
@@ -99,7 +99,7 @@ export class LlmScriptWriter implements ScriptWriter {
         schema: RewriteReply,
         schemaName: "singularity_rewrite",
         messages: [
-          { role: "system", content: rewriteSystemPrompt(boundary) },
+          { role: "system", content: rewriteSystemPrompt() },
           { role: "user", content: rewriteUserMessage(input, boundary) },
         ],
         step: "podcast_rewrite",
