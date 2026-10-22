@@ -524,16 +524,15 @@
 /* Reduced motion: movement durations collapse, fades and color changes keep their timing. */
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --duration-enter: 0.01ms;
+    --duration-exit: 0.01ms;
     --duration-sheet-in: 0.01ms;
     --duration-sheet-out: 0.01ms;
     --duration-drawer-full: 0.01ms;
+    --duration-stagger: 0.01ms;
     --duration-spring-settle: 0.01ms;
     --duration-spring-release: 0.01ms;
     --duration-spring-pop: 0.01ms;
-    --scale-enter: 1;
-    --distance-micro: 0px;
-    --distance-base: 0px;
-    --distance-medium: 0px;
   }
 }
 

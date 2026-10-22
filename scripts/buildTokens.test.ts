@@ -405,23 +405,18 @@ describe("motion tokens", () => {
     expect(ms("stagger")).toBeLessThanOrEqual(80);
   });
 
-  it("never uses an ease-in, and reduced motion removes travel but keeps the fades", () => {
+  it("never uses an ease-in and remaps only movement durations under reduced motion", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.path[1] === "ease")) {
       expect(String(token.value)).not.toMatch(/ease-in(?!-out)/);
     }
     const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
     expect(reduced.length).toBeGreaterThan(0);
-    // Durations collapse only where the travel is not a token (a sheet's 100%, a spring's scale).
-    const still: Record<string, string> = { duration: "0.01ms", number: "1", dimension: "0px" };
     for (const token of reduced) {
-      expect(token.reducedMotion, token.dotPath).toBe(still[token.type]);
+      expect(token.type).toBe("duration");
+      expect(token.reducedMotion).toBe("0.01ms");
     }
-    for (const travel of ["distance.micro", "distance.base", "distance.medium", "scale.enter"]) {
-      expect(doc.byPath.get(`primitive.${travel}`)?.reducedMotion, travel).toBeDefined();
-    }
-    // A sheet or dialog that should fade must not snap in: its opacity timing survives.
-    for (const kept of ["press-in", "press-out", "hover", "state", "enter", "exit", "stagger"]) {
-      expect(doc.byPath.get(`primitive.duration.${kept}`)?.reducedMotion, kept).toBeUndefined();
+    for (const kept of ["press-in", "press-out", "hover", "state", "progress", "theme"]) {
+      expect(doc.byPath.get(`primitive.duration.${kept}`)?.reducedMotion).toBeUndefined();
     }
   });
 });
