@@ -118,6 +118,7 @@ jobs:
   # shared stylesheet, for Dependabot's pull requests (nobody runs those locally) and for one
   # labelled `browser` (the label must be on before the push). Everyone runs both suites before
   # opening a pull request (AGENTS.md, D148).
+  # After check: a run that fails it is blocked anyway, and the suites would only spend minutes.
   browser:
     needs: check
     if: >-
