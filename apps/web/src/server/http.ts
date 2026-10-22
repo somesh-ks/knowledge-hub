@@ -30,6 +30,7 @@ const SECRET_SETTINGS = [
   "BLOB_READ_WRITE_TOKEN",
   "VERCEL_OIDC_TOKEN",
   "CRON_SECRET",
+  "DATABASE_URL",
 ];
 
 /** Six hex characters: short enough to read out, enough to find one request in a day of logs. */

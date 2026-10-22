@@ -4,9 +4,15 @@ import { bundledEpisodeIds } from "../../server/episodeSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { handlePodcast } from "../../server/podcast";
+import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route runs on demand, as a Vercel Function.
 export const prerender = false;
+
+// Episodes and deletes are counted from GitHub's run list, which lags a dispatch by seconds, so a
+// burst could pass the caps together; this shared per-minute cap bounds that burst, and the GitHub
+// calls a flood would spend, across instances. Above the ordinary pace (a delete every 10 s).
+const REQUESTS_PER_MINUTE = 10;
 
 export const POST: APIRoute = ({ request, url }) =>
   answerWithRef("api/podcast", async (log) => {
@@ -20,6 +26,7 @@ export const POST: APIRoute = ({ request, url }) =>
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         verifyPassphrase: passphraseCheck(),
+        burst: burstCap("podcast", REQUESTS_PER_MINUTE),
         episodeIds: bundledEpisodeIds,
         log,
       },

@@ -6,9 +6,15 @@ import seedSources from "../../../../../config/sources.json?raw";
 import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
+import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route alone runs on demand, as a Vercel Function.
 export const prerender = false;
+
+// Edits wait 10 s for each other, counted from GitHub's run list or the store, either of which can
+// lag a burst; this shared per-minute cap bounds it, and the calls a flood would spend, across
+// instances.
+const EDITS_PER_MINUTE = 12;
 
 export const POST: APIRoute = ({ request, url }) =>
   answerWithRef("api/config", async (log) => {
@@ -22,6 +28,7 @@ export const POST: APIRoute = ({ request, url }) =>
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         verifyPassphrase: passphraseCheck(),
+        burst: burstCap("config", EDITS_PER_MINUTE),
         log,
         baseFiles: { "config/sources.json": seedSources },
       },
