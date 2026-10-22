@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { toResponse } from "../../server/http";
 import { handleReport, MAX_REPORT_CHARS, readReportBody } from "../../server/report";
+import { storeVitals } from "../../server/vitals";
 
 export const prerender = false;
 
@@ -12,7 +13,11 @@ export const POST: APIRoute = async ({ request }) => {
     MAX_REPORT_CHARS,
   );
   if (body === null) return toResponse({ status: 413, body: { error: "too_large" } });
-  const result = handleReport(body, { log: (line) => console.error(line), now: Date.now });
+  const result = await handleReport(body, {
+    log: (line) => console.error(line),
+    now: Date.now,
+    storeVitals,
+  });
   return result.status === 204 ? new Response(null, { status: 204 }) : toResponse(result);
 };
 

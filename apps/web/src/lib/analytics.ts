@@ -44,7 +44,11 @@ export function sharedUrl(address: string, base: string): string {
   return url.href;
 }
 
-function counted(): boolean {
+/**
+ * Whether this browser may be counted at all: on the production host, with no Do Not Track or Global
+ * Privacy Control. Field Web Vitals (D156) take the same opt-outs.
+ */
+export function counted(): boolean {
   if (typeof window === "undefined" || window.location.hostname !== ANALYTICS_HOST) return false;
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
   return nav.doNotTrack !== "1" && nav.globalPrivacyControl !== true;

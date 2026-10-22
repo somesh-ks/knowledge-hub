@@ -6,16 +6,24 @@ import {
   PriceTable,
   parseEpisodeFile,
   parseSourceCatalog,
+  rateVital,
   ScheduleFile,
   SourcesUserFile,
   TopicsFile,
+  VITAL_DEVICES,
+  VITAL_METRICS,
+  VITAL_THRESHOLDS,
+  type VitalMetric,
 } from "@dispatch/core";
 import {
   type EpisodeVoiceEnv,
   planEpisodeNarration,
   segmentMarksPath,
 } from "../audio/segmentStore.js";
+import { redact } from "../context.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
+import { connectConfigStore, type SqlClient } from "../store/configPaths.js";
+import { readVitals, VITALS_WINDOW_DAYS, type VitalSummary } from "../store/vitalsStore.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
 
@@ -267,5 +275,105 @@ export function checkPerf(perf: unknown, sink: Sink): void {
     } else {
       sink.passed.push(`${page} within the lab budget: ${reading}`);
     }
+  }
+}
+
+/** What health read from the field store (D156): each metric's p75 per device class, or why not. */
+export type FieldReading = { summaries: readonly VitalSummary[] } | { error: string };
+
+/** A p75 of fewer samples than this says more about one visit than about the site. */
+export const FIELD_MIN_SAMPLES = 20;
+/** Neon may be waking from idle; past this the store reads as unmeasured. */
+const FIELD_TIMEOUT_MS = 15_000;
+
+/**
+ * Reads the field store the site writes (packages/engine/src/store/vitalsStore.ts). Never throws: no
+ * URL, an error or no answer in time is a reading that says why, with the URL taken out of it.
+ */
+export async function readFieldVitals(
+  databaseUrl: string | undefined,
+  now: Date,
+  connect: (url: string) => Promise<SqlClient> = connectConfigStore,
+): Promise<FieldReading> {
+  if (!databaseUrl) return { error: "DATABASE_URL is not set" };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const read = connect(databaseUrl).then((sql) => readVitals(sql, now.getTime()));
+    const late = new Promise<never>((_, fail) => {
+      timer = setTimeout(
+        () => fail(new Error(`no answer in ${FIELD_TIMEOUT_MS} ms`)),
+        FIELD_TIMEOUT_MS,
+      );
+    });
+    return { summaries: await Promise.race([read, late]) };
+  } catch (error) {
+    let password = "";
+    try {
+      password = decodeURIComponent(new URL(databaseUrl).password);
+    } catch {
+      // Not a URL: the whole value is redacted below.
+    }
+    return { error: redact(message(error), [databaseUrl, password]) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const FIELD_LABEL: Record<VitalMetric, string> = { lcp: "LCP", inp: "INP", cls: "CLS" };
+const fieldValue = (metric: VitalMetric, value: number): string =>
+  metric === "cls" ? value.toFixed(2) : `${Math.round(value)} ms`;
+
+/**
+ * Field Web Vitals (D156): each metric's 7-day p75 from real visits, per device class, against
+ * Google's lines. Needs improvement is the warning `field_vitals`, poor the fault `field_vitals`,
+ * which opens the health issue (nothing heals it). Phones are the site's readers, so too few phone
+ * samples for a metric is `field_unmeasured`, never a pass; desktops are judged once they have
+ * enough. A store that could not be read is `field_unmeasured` too. Daily: one query.
+ */
+export function checkFieldVitals(reading: FieldReading, sink: Sink): void {
+  if ("error" in reading) {
+    sink.warn(
+      "field_unmeasured",
+      "performance",
+      `The field vitals store could not be read: ${reading.error}.`,
+    );
+    return;
+  }
+  const thin: string[] = [];
+  for (const metric of VITAL_METRICS) {
+    for (const device of VITAL_DEVICES) {
+      const summary = reading.summaries.find(
+        (each) => each.metric === metric && each.device === device,
+      );
+      if (!summary || summary.samples < FIELD_MIN_SAMPLES) {
+        if (device === "mobile") thin.push(`${FIELD_LABEL[metric]} ${summary?.samples ?? 0}`);
+        continue;
+      }
+      const [good, poor] = VITAL_THRESHOLDS[metric];
+      const line = `field ${FIELD_LABEL[metric]} on ${device === "mobile" ? "phones" : "desktops"}: p75 ${fieldValue(metric, summary.p75)} over ${summary.samples} samples in ${VITALS_WINDOW_DAYS} days`;
+      const rating = rateVital(metric, summary.p75);
+      if (rating === "poor") {
+        sink.fault(
+          "field_vitals",
+          "performance",
+          `${line}, poor (over ${fieldValue(metric, poor)}).`,
+        );
+      } else if (rating === "needs-improvement") {
+        sink.warn(
+          "field_vitals",
+          "performance",
+          `${line}, needs improvement (over ${fieldValue(metric, good)}).`,
+        );
+      } else {
+        sink.passed.push(`${line}, good`);
+      }
+    }
+  }
+  if (thin.length > 0) {
+    sink.warn(
+      "field_unmeasured",
+      "performance",
+      `Too few phone samples in ${VITALS_WINDOW_DAYS} days for a p75 (${FIELD_MIN_SAMPLES} needed): ${thin.join(", ")}.`,
+    );
   }
 }
