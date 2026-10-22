@@ -112,11 +112,26 @@ jobs:
           # A check that crashed is a fault of its own, reported like the others.
           jq -e '.findings' "$report" >/dev/null 2>&1 ||
             echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"dispatch health did not finish; see the run log."}]}' > "$report"
+          gh label create health --color B60205 --description "Daily health check" --force >/dev/null
+          open_issue=$(gh issue list --label health --state open --limit 1 --json number,title --jq '.[0] // empty')
+          [ -n "$open_issue" ] || open_issue='{}'
+          issue=$(jq -r '.number // empty' <<<"$open_issue")
           heal_args=()
           prefix=""
           if [ "$DRILL" = "true" ]; then
-            if [ -n "$(gh issue list --label health --state open --limit 1 --json number --jq '.[0].number // empty')" ]; then
-              echo "A real health issue is open: no drill."
+            # A drill only runs on a quiet day: a real fault keeps its own issue and its one heal,
+            # and on a day a briefing is due the dry run would go past the gate and pay for models.
+            refuse=""
+            [ -n "$issue" ] && refuse="a health issue is open"
+            if [ -z "$refuse" ] && [ "$(jq '[.findings[] | select(.severity == "fault")] | length' "$report")" != "0" ]; then
+              refuse="today's report already has a fault"
+            fi
+            due=$(jq -r '[.passed[] | capture("briefing due (?<d>[0-9]{4}-[0-9]{2}-[0-9]{2})").d] | min // empty' "$report")
+            if [ -z "$refuse" ] && [ -n "$due" ] && [[ ! "$due" > "$(date -u +%F)" ]]; then
+              refuse="a briefing is due today, so its dry run would pay for model calls"
+            fi
+            if [ -n "$refuse" ]; then
+              echo "::warning title=Drill refused::No drill: $refuse."
               exit 0
             fi
             jq '.ok = false | .findings += [{"severity":"fault","aspect":"reliability","code":"run_overdue","message":"Drill: a planted fault (health.yml, drill input). Nothing is wrong."}]' "$report" > "$report.drill"
@@ -126,10 +141,6 @@ jobs:
           fi
           ok=$(jq -r '.ok' "$report")
           codes=$(jq -r '[.findings[] | select(.severity == "fault") | .code] | unique | join(" ")' "$report")
-          gh label create health --color B60205 --description "Daily health check" --force >/dev/null
-          open_issue=$(gh issue list --label health --state open --limit 1 --json number,title --jq '.[0] // empty')
-          [ -n "$open_issue" ] || open_issue='{}'
-          issue=$(jq -r '.number // empty' <<<"$open_issue")
           # The open issue's title ends with the faults already healed ("| healed: ..."): each heals
           # once while it lasts. A fault that clears drops off the list, so a return heals again.
           title=$(jq -r '.title // ""' <<<"$open_issue")
@@ -181,7 +192,14 @@ jobs:
           else
             issue=$(gh issue create --title "$new_title" --label health --body-file "$RUNNER_TEMP/body.md" | grep -oE '[0-9]+$')
           fi
-          # A drill leaves nothing open: the issue and the dry run it started are the proof.
+          # A drill leaves nothing open: the issue and the dry run it started are the proof. One
+          # that could not start the dry run (a run.yml run busy, a failed dispatch) proved nothing.
           if [ "$DRILL" = "true" ]; then
-            gh issue close "$issue" --comment "Drill finished: the planted fault opened this issue${healed:+ and started one dry run}. ([run]($run_url))"
+            if [ -n "$healed" ]; then
+              gh issue close "$issue" --comment "Drill finished: the planted fault opened this issue and started one dry run. ([run]($run_url))"
+            else
+              gh issue close "$issue" --comment "Drill failed: the planted fault opened this issue but no dry run started. ([run]($run_url))"
+              echo "::error title=Drill failed::The healing path did not start a run (a run.yml run was busy or the dispatch failed)."
+              exit 1
+            fi
           fi
