@@ -121,6 +121,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # What ships, read from the lockfile (no install). The high advisories are known and taken
       # (path-to-regexp under @astrojs/vercel, build-time routing: docs/engineering/hardening.md),
-      # so only a critical one fails the check.
+      # so only a critical one fails the check. The registry's audit service being down (a 503 on
+      # 2026-10-22, seven minutes then a failure) is not a finding: it warns and the check passes.
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=critical
+        shell: bash
+        run: |
+          set +e
+          out=$(timeout 150 npm audit --omit=dev --audit-level=critical --json 2>/dev/null)
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then exit 0; fi
+          if ! jq -e '.metadata.vulnerabilities' >/dev/null 2>&1 <<<"$out"; then
+            echo "::warning::npm's audit service did not answer; dependencies were not audited this run"
+            exit 0
+          fi
+          jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical") | "critical: \(.key)"' <<<"$out"
+          exit 1
