@@ -43,6 +43,9 @@ export interface CronDeps {
   connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
 }
 
+/** How long the cron waits for the config store before it reads main instead. */
+export const STORE_READ_TIMEOUT_MS = 3000;
+
 /**
  * The schedule's text: from the config store when it is on (D149), where an edit to the hour lands
  * at once, while main has it only after the next run; from main when the store is off or cannot
@@ -57,7 +60,14 @@ async function readSchedule(
     try {
       // Loaded only with the store on, so the function never loads the driver while it is off.
       const { readStoredSchedule } = await import("./configStore");
-      const stored = await readStoredSchedule(storeUrl, deps);
+      // A database that hangs must not spend the call: Vercel makes one an hour.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const late = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("no answer in time")), STORE_READ_TIMEOUT_MS);
+      });
+      const stored = await Promise.race([readStoredSchedule(storeUrl, deps), late]).finally(() =>
+        clearTimeout(timer),
+      );
       // A row that is not JSON is skipped, as the run's own copy skips it: main's file stands.
       if (stored !== null && parseJson(stored, (value) => value) !== null) return stored;
     } catch (error) {
