@@ -110,11 +110,14 @@ await mapConcurrent(batches, 4, async (batch) => {
   });
   models.add(served.model);
   for (const row of value.items) {
-    written.set(row.id, {
+    const text = {
       headline: cleanField("headline", row.headline),
       summary: cleanField("summary", row.summary),
       spoken: cleanField("spoken", row.spoken),
-    });
+    };
+    // A row with an empty field is a story the model did not write: it stays out, as a missing
+    // row does (an empty one failed the digest schema in #216's eval, 2026-10-22).
+    if (text.headline && text.summary && text.spoken) written.set(row.id, text);
   }
 });
 

@@ -13,6 +13,7 @@ const BIAS: Record<Category | "watch", readonly TemplateId[]> = {
   frontier_model_releases: ["dither"],
   hci_empirical_research: ["contour", "lattice"],
   developer_tool_launches: ["lattice", "aperture"],
+  software_engineering_depth: ["lattice", "contour"],
   taste_and_design_philosophy: ["orbit", "numeral"],
   // Hardware and model numbers: a lens and a large numeral. Tech stories never take a Top pick
   // slot, so one leads only a digest that holds nothing else.

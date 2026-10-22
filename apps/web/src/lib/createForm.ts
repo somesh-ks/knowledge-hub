@@ -63,7 +63,7 @@ export interface TopicOption {
   label: string;
   /** What the chip adds to the request: briefing section ids or general topic ids, in order. */
   ids: readonly string[];
-  /** Ticked when the form opens: the owner's three, Design, AI and Technology. */
+  /** Ticked when the form opens: the owner's four, Design, AI, Technology and Software Engineering. */
   ticked: boolean;
 }
 
@@ -90,6 +90,13 @@ const CHIPS: readonly (TopicOption & { group: string })[] = [
     ticked: true,
     group: "tech",
   },
+  {
+    value: "software",
+    label: "Software Engineering",
+    ids: ["software"],
+    ticked: true,
+    group: "software",
+  },
 ];
 
 /** What topicOptions needs to know of a topic in config/topics.json. */
@@ -103,11 +110,11 @@ export interface TopicInfo {
 }
 
 /**
- * The chips to offer: Design, AI and Technology, then the general news topics that are on (World,
+ * The chips to offer: Design, AI, Technology and Software Engineering, then the general news topics that are on (World,
  * Business, Science, Culture, Sports, in the app's order, named as config/topics.json names them, so
  * a rename shows and a switched-off one is left out), then the owner's own topics (the custom ones
  * that are on), each by the section it publishes to and only when no chip already sends that
- * section. Their titles come from config/topics.json. Only the first three start ticked.
+ * section. Their titles come from config/topics.json. Only the first four start ticked.
  */
 export function topicOptions(
   sections: ReadonlyArray<{ id: string; title: string }>,

@@ -166,7 +166,7 @@ export const ConfigOp = z.discriminatedUnion("op", [
       },
     ),
   // Where topics play (D69): each scope that is given puts the topics in (true) or takes them out
-  // (false) of the daily podcast, the weekly one or the Create panel. One of the owner's three
+  // (false) of the daily podcast, the weekly one or the Create panel. One of the owner's four
   // topics sends every judge topic it gathers. It edits the lists in place, so two pages built
   // before either change never undo each other.
   z

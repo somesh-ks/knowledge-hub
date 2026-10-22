@@ -59,7 +59,7 @@ describe("fallback judge answer mapping", () => {
     expect(probs.ui_component_primitives).toBe(second);
     const total = Object.values(probs).reduce((a, b) => a + b, 0);
     expect(total).toBeCloseTo(1, 2);
-    expect(Object.keys(probs)).toHaveLength(12);
+    expect(Object.keys(probs)).toHaveLength(13);
     expect(probs.consumer_tech_releases).toBeGreaterThan(0);
   });
 
