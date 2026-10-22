@@ -26,7 +26,10 @@ if (!window.dispatchEarlyPlay) {
     chip.dataset.state = "preparing";
     chip.setAttribute("aria-busy", "true");
     try {
-      const audio = new Audio("/silence.wav");
+      const audio = new Audio();
+      // CORS mode from the first load, as the player's own element (playerRuntime.ts).
+      audio.crossOrigin = "anonymous";
+      audio.src = "/silence.wav";
       early.audio = audio;
       audio.play().then(
         () => audio.pause(),
