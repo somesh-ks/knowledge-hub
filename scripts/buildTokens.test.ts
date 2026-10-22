@@ -145,7 +145,10 @@ describe("color contrast", () => {
     (mode) => {
       for (const surface of surfaces) {
         const background = colorOf(`semantic.color.${surface}`, mode);
-        const reading = contrastRatio(colorOf("semantic.color.on-surface-reading", mode), background);
+        const reading = contrastRatio(
+          colorOf("semantic.color.on-surface-reading", mode),
+          background,
+        );
         expect(reading, `on-surface-reading on ${surface} (${mode})`).toBeGreaterThanOrEqual(
           surface === "surface" ? 7 : 4.5,
         );
