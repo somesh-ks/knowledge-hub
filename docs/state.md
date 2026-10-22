@@ -14,7 +14,7 @@ Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes.
+Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 371 runs on 2026-10-22, about 15 minutes. Player e2e: 71 runs, about 3 minutes.
 
 ## Not working or unverified
 
@@ -68,7 +68,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide: general topics start ticked? a photograph for a topic's picture? a group override (emoji, More menu) for the four groups? briefings as discussions? and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (iOS startup images, the iOS light status bar) and in the cost note (`git show 91bc533:docs/state.md`) (feeds for 17 sources, `MAX_TEXT_CHARS`).
+1. Owner: keep the title indent? Revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide: general topics start ticked? a photograph for a topic's picture? a group override (emoji, More menu) for the four groups? briefings as discussions? and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (iOS startup images, the iOS light status bar) and in the cost note (`git show 91bc533:docs/state.md`) (feeds for 17 sources, `MAX_TEXT_CHARS`).
 2. Parked by the owner (2026-10-14): no island eager at first load (cut 1 in [first-load-js.md](engineering/first-load-js.md), about 73 KB). Do not build it until asked.
 3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the first-load cuts (item 2) within 130 KB (D141).
 4. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
