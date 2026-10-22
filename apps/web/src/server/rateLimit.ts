@@ -106,18 +106,19 @@ export const sharedLimit: SharedLimiter = createSharedLimiter({
   databaseUrl: process.env.DATABASE_URL,
 });
 
-/**
- * A burst cap for a route that starts a workflow: 0 to go ahead, or the seconds to the end of the
- * counter's minute. The handlers take it only after the origin, the body and the passphrase have
- * passed, so a request from another site cannot use up the owner's minute.
- */
-/** The 429 a workflow route answers while its burst cap is full. */
+/** The 429 a route answers while its burst cap is full. */
 export const cooldownRefusal = (wait: number) => ({
   status: 429 as const,
   headers: { "Retry-After": String(wait) },
   body: { status: 429 as const, error: "cooldown" as const, retry_after_s: wait },
 });
 
+/**
+ * A burst cap for a paid route (the ones that start a workflow, and narration): 0 to go ahead, or
+ * the seconds to the end of the counter's minute. The handlers take it only after the origin, the
+ * body and the passphrase have passed, so a request from another site cannot use up the owner's
+ * minute.
+ */
 export function burstCap(
   bucket: string,
   perMinute: number,

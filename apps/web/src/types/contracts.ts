@@ -223,6 +223,9 @@ export type NarrateError =
   // Too many digests were first narrated today (a Stockholm day; `retry_after_s` runs to midnight
   // there). A digest that was already narrated this month, in part or whole, is never refused.
   | { status: 429; error: "daily_cap"; retry_after_s: number }
+  // POST only: more narration requests this minute than the site takes, from every visitor together
+  // (D150). `retry_after_s` runs to the end of the minute; trying again then is safe.
+  | { status: 429; error: "cooldown"; retry_after_s: number }
   // The month's voice allowance has no room for this digest. A digest is charged whole the first
   // time any part of it is narrated, and again after a failed attempt or a change of voice. It
   // resets with the calendar month.
