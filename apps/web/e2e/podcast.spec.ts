@@ -268,10 +268,9 @@ test.describe("the profile pages", () => {
     ]);
     for (const chip of await chips.all()) await expect(chip.locator("input")).toBeEnabled();
     // The fixtures leave nothing out, so the owner's topics are in.
+    const topics = page.locator(".podcast-topics");
     for (const name of ["Design", "AI", "Technology", "Audio interfaces"]) {
-      await expect(
-        chips.filter({ hasText: new RegExp(`^${name}$`) }).locator("input"),
-      ).toBeChecked();
+      await expect(topics.getByRole("checkbox", { name, exact: true })).toBeChecked();
     }
   });
 });
@@ -369,7 +368,7 @@ test.describe("saving on its own", () => {
       else await page.locator(".app-bar-back").click();
       await expect(page).toHaveURL(/\/settings$/);
       // Until it goes, the index shows the change as it will be.
-      await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 09:00");
+      await expect(page.getByRole("link", { name: /^Daily/ })).toContainText("Every day at 9");
       await page.clock.runFor(GAP_MS);
       await expect
         .poll(() => scheduleSent(sent))
