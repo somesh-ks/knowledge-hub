@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { digestRelPath, serializeDigestFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
-import { checkRunsDied } from "../src/ops/healthChecks.js";
+import { checkPerf, checkRunsDied } from "../src/ops/healthChecks.js";
 import { makeDigest } from "./audio-fixtures.js";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
@@ -212,5 +212,34 @@ describe("dispatch health", () => {
     expect(faults).toEqual(["run_died"]);
     checkRunsDied(records, [died, run(3, "queued", "2026-10-21T08:13:00Z")], NOW, sink);
     expect(faults).toEqual(["run_died"]);
+  });
+
+  // A slow or shifting page reached the owner's phone with nothing saying so; a probe that could
+  // not run must say so too, never read as a pass.
+  it("warns on a page over a budget, passes one inside it and never faults", () => {
+    const warnings: string[] = [];
+    const sink = {
+      fault: (code: string) => warnings.push(`fault ${code}`),
+      warn: (code: string, _aspect: string, message: string) => warnings.push(`${code} ${message}`),
+      passed: [] as string[],
+    };
+    const page = (path: string, lcp_ms: number, cls: number, tbt_ms: number) => ({
+      page: path,
+      lcp_ms,
+      cls,
+      tbt_ms,
+    });
+    checkPerf({ pages: [page("/", 900, 0.01, 40), page("/library", 9000, 0.6, 2000)] }, sink);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/^perf_budget .*\/library/);
+    expect(sink.passed).toHaveLength(1);
+    warnings.length = 0;
+    checkPerf({ pages: [page("/", 900, 0.01, 40)] }, sink);
+    expect(warnings).toEqual([]);
+    for (const unreadable of [null, { pages: [] }, { pages: [{ page: "/" }] }]) {
+      warnings.length = 0;
+      checkPerf(unreadable, sink);
+      expect(warnings.map((line) => line.split(" ")[0])).toEqual(["perf_unmeasured"]);
+    }
   });
 });

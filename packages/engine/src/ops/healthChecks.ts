@@ -25,7 +25,13 @@ import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
  * through the sink with a stable code, as health.ts's own checks do.
  */
 
-export type HealthAspect = "reliability" | "quality" | "cost" | "security" | "integrity";
+export type HealthAspect =
+  | "reliability"
+  | "quality"
+  | "cost"
+  | "security"
+  | "integrity"
+  | "performance";
 
 export interface Sink {
   fault: (code: string, aspect: HealthAspect, message: string) => void;
@@ -211,5 +217,54 @@ export function checkRunsDied(
   if (cancelled) sink.warn("run_cancelled", "reliability", text(cancelled));
   if (!died && !cancelled && runs.length > 0) {
     sink.passed.push("every recent run recorded its outcome");
+  }
+}
+
+/** One page as scripts/perfProbe.ts measured it: the median of its cold loads. */
+export interface PerfPage {
+  page: string;
+  lcp_ms: number;
+  cls: number;
+  tbt_ms: number;
+}
+
+/**
+ * The lab budgets, under the probe's throttling (a phone viewport, 4x CPU, Fast 4G; scripts/perfProbe.ts).
+ * LCP and CLS are web.dev's "good" thresholds (2.5 s, 0.1); TBT, the lab stand-in for INP, has no
+ * web.dev line, so 300 ms leaves the shared runner some headroom over Lighthouse's 200 ms "good".
+ */
+export const PERF_BUDGET = { lcp_ms: 2500, cls: 0.1, tbt_ms: 300 } as const;
+
+/**
+ * The daily lab probe's pages (D147): a page over a budget is `perf_budget`, a warning that never
+ * heals. No readable measurement (the probe failed, so health.yml passed a file it never wrote) is
+ * `perf_unmeasured`, so a probe that stopped working never reads as a pass.
+ */
+export function checkPerf(perf: unknown, sink: Sink): void {
+  const pages = (perf as { pages?: unknown } | null)?.pages;
+  const valid =
+    Array.isArray(pages) &&
+    pages.length > 0 &&
+    pages.every(
+      (each: Partial<PerfPage> | null) =>
+        typeof each?.page === "string" &&
+        [each.lcp_ms, each.cls, each.tbt_ms].every((value) => Number.isFinite(value)),
+    );
+  if (!valid) {
+    sink.warn("perf_unmeasured", "performance", "The lab probe wrote no readable measurement.");
+    return;
+  }
+  for (const { page, lcp_ms, cls, tbt_ms } of pages as PerfPage[]) {
+    const reading = `LCP ${Math.round(lcp_ms)} ms, CLS ${cls.toFixed(3)}, TBT ${Math.round(tbt_ms)} ms`;
+    const over = [
+      lcp_ms > PERF_BUDGET.lcp_ms && `LCP over ${PERF_BUDGET.lcp_ms} ms`,
+      cls > PERF_BUDGET.cls && `CLS over ${PERF_BUDGET.cls}`,
+      tbt_ms > PERF_BUDGET.tbt_ms && `TBT over ${PERF_BUDGET.tbt_ms} ms`,
+    ].filter((each): each is string => typeof each === "string");
+    if (over.length > 0) {
+      sink.warn("perf_budget", "performance", `${page}: ${reading} (${over.join(", ")}).`);
+    } else {
+      sink.passed.push(`${page} within the lab budget: ${reading}`);
+    }
   }
 }
