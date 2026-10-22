@@ -21,6 +21,8 @@ const leaving = new WeakSet<HTMLDialogElement>();
 
 /** The row a dialog is open for: the Library shares one dialog between all its rows. */
 const rootOf = new WeakMap<HTMLDialogElement, HTMLElement>();
+/** Sets each dialog's passphrase field from what the device remembers, every time it opens. */
+const passOf = new WeakMap<HTMLDialogElement, () => void>();
 
 const store = (run: (s: Storage) => unknown) => {
   try {
@@ -73,7 +75,15 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   if (dialog.classList.contains("regen-sheet")) sheetGestures(dialog);
   else dismissOnScrim(dialog);
 
-  if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
+  // Each device is asked once (D153): while it remembers a passphrase, the field is not shown.
+  const passField = pass?.closest<HTMLElement>(".sheet-field") ?? null;
+  const showPass = (): void => {
+    if (!pass) return;
+    pass.value = String(store((s) => s.getItem(KEY)) ?? "");
+    if (passField) passField.hidden = pass.value !== "";
+  };
+  passOf.set(dialog, showPass);
+  showPass();
 
   dialog.addEventListener("change", () => say());
 
@@ -141,7 +151,9 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     if (res?.status === 401 && pass) {
       store((s) => s.removeItem(KEY));
       say(copy("401"));
-      pass.select();
+      pass.value = "";
+      if (passField) passField.hidden = false;
+      pass.focus();
       return;
     }
     if (res?.status !== 202 || !reply.run_id) {
@@ -182,6 +194,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       { body: again, ...(pass ? {} : { open: passphrase }) },
     );
     form.reset();
+    showPass();
     if (count) count.hidden = true;
     dialog.close();
   });
@@ -196,6 +209,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   const dialog = document.querySelector<HTMLDialogElement>(selector) ?? build(kind, root);
   if (!dialog || dialog.open) return;
   rootOf.set(dialog, root);
+  passOf.get(dialog)?.();
   // One dialog serves every row of the Library, so it is set for the row that opened it.
   if (kind === "delete") {
     const noun = root.dataset.libraryBriefing ? "briefing" : "episode";

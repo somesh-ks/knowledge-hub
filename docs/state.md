@@ -25,9 +25,9 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run yet; `podcast.yml` calls `audio.yml` since #183, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - `?view=preferences` (D129) may flash Sources on load. closed when: a reload on a phone shows no Sources frame first.
-- Topic emoji from Jev (D133) never asked live. closed when: a topic added on news.someshks.work shows an emoji Jev chose.
+- Topic emoji from Jev (D133) never asked live. closed when: a topic added on production shows Jev's emoji.
 - D125: pull to close, sticky tabs, keyboard fit. closed when: each works on phone.
-- The `browser` CI job never ran on GitHub. closed when: a PR touching `apps/web` shows the job green on GitHub.
+- The `browser` CI job never ran on GitHub. closed when: a PR touching `apps/web` shows it green.
 - Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120): a live run with spares and a one-outlet Science story. closed when: a committed digest has a Science story from one outlet and airs within 10% of its length.
 - Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
@@ -55,11 +55,12 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - Costs (D137): every price in `config/prices.json` is unconfirmed and no run has filled the ledger. closed when: the owner confirms the prices and /analytics shows a real run.
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
 - `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
+- D153 stage 0 untried live. closed when: a phone acts unasked and a fresh browser is asked first.
 - Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes.
 
 ## Known risks
 
-- With the passphrase off (D41), anyone who opens the site (a shared link does, D153) can start a briefing, an episode, narration or a config edit, inside the caps.
+- Passphrase on (D153): 11 wrong guesses a minute lock actions for all until it ends.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
 - A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).

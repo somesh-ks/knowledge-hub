@@ -1,6 +1,11 @@
 import type { Page } from "@playwright/test";
-import { OPEN_PASSPHRASE } from "../src/lib/access";
-import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
+import {
+  expect,
+  expectNoViolationsInEitherScheme,
+  hydrated,
+  TEST_PASSPHRASE,
+  test,
+} from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
 const sheet = (page: Page) => page.locator("dialog.create-sheet");
@@ -140,7 +145,7 @@ test.describe("Create as the primary action", () => {
     await sheet(page).locator("[data-submit]").click();
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: OPEN_PASSPHRASE,
+      passphrase: TEST_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["design", "ui-craft", "ai", "tech"],

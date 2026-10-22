@@ -281,8 +281,23 @@ export async function expectConsistent(page: Page): Promise<void> {
   expect(problems, "the player is in a consistent state").toEqual([]);
 }
 
-export const test = base.extend<{ player: PlayerPage; audio: AudioProbe; finger: Finger }>({
-  page: async ({ page }, use) => {
+export const test = base.extend<{
+  player: PlayerPage;
+  audio: AudioProbe;
+  finger: Finger;
+  /** The device remembers the passphrase, as the owner's do after the first ask (D153). */
+  unlocked: boolean;
+}>({
+  unlocked: [true, { option: true }],
+  page: async ({ page, unlocked }, use) => {
+    if (unlocked) {
+      // Once per tab, so a page that forgets a refused passphrase is not handed it back on reload.
+      await page.addInitScript(() => {
+        if (sessionStorage.getItem("test:unlocked")) return;
+        sessionStorage.setItem("test:unlocked", "1");
+        localStorage.setItem("dispatch:narrate-passphrase", "secret");
+      });
+    }
     // Any console error or warning from the page is a failure.
     const problems: string[] = [];
     page.on("console", (message) => {

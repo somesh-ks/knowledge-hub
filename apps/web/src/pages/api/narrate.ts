@@ -1,6 +1,6 @@
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
-import { passphraseCheck } from "../../server/access";
+import { guessGate, passphraseCheck } from "../../server/access";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { withSecondVoice } from "../../server/config";
 import { bundledDigests } from "../../server/digestSource";
@@ -59,6 +59,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       now: Date.now,
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       verifyPassphrase: passphraseCheck(),
+      guesses: guessGate,
       startDeadline,
     },
   );

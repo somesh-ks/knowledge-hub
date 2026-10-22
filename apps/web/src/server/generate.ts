@@ -1,4 +1,5 @@
 import type { GenerateResponse } from "../types/contracts";
+import { type GuessGate, refusePassphrase } from "./access";
 import { missingSettings, readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
@@ -13,8 +14,7 @@ import { describeError } from "./redact";
  * whole flow is tested with fakes and no network.
  */
 
-/** A wrong guess costs the caller this much extra time, on top of the scrypt work. */
-export const WRONG_PASSPHRASE_DELAY_MS = 750;
+export { WRONG_PASSPHRASE_DELAY_MS } from "./access";
 export const MAX_BODY_CHARS = 2048;
 export const MAX_PASSPHRASE_CHARS = 256;
 /** How long to wait for GitHub to list a run it was just asked to start, when dispatch gave no id. */
@@ -29,6 +29,8 @@ export interface GenerateDeps {
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
   verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
+  /** The cap on wrong passphrases across the routes (D153); left out, every one is checked. */
+  guesses?: GuessGate;
   /** The digests this build knows; Regenerate and Delete on a briefing refuse any other id. */
   digestIds?: () => readonly string[];
   /** A digest's kind ("regular", "weekly", "on-demand"); Delete refuses the scheduled ones. */
@@ -159,11 +161,8 @@ export async function handleGenerate(
     if (kind === "regular" || kind === "weekly") return invalid;
   }
 
-  const isValid = await deps.verifyPassphrase(passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
+  const refused = await refusePassphrase(passphrase, config.passphraseHash, deps);
+  if (refused) return refused;
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

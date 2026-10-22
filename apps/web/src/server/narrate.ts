@@ -34,6 +34,7 @@ import type {
   NarrateSegmentResponse,
   NarrationSegment,
 } from "../types/contracts";
+import { type GuessGate, refusePassphrase } from "./access";
 import { type BlobWriteOptions, type NarrateBlobStore, readFresh } from "./blobStore";
 import {
   type BlobCredentials,
@@ -54,12 +55,7 @@ import {
   PRE_SYNTHESIS_BOUND_MS,
   SYNTHESIS_DEADLINE_MS,
 } from "./functionLimits.mjs";
-import {
-  isSameOrigin,
-  MAX_BODY_CHARS,
-  MAX_PASSPHRASE_CHARS,
-  WRONG_PASSPHRASE_DELAY_MS,
-} from "./generate";
+import { isSameOrigin, MAX_BODY_CHARS, MAX_PASSPHRASE_CHARS } from "./generate";
 import type { FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
@@ -234,6 +230,8 @@ export interface NarrateDeps {
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
   verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
+  /** The cap on wrong passphrases across the routes (D153); left out, every one is checked. */
+  guesses?: GuessGate;
   openBlob: (credentials: BlobCredentials) => NarrateBlobStore;
   digests: DigestSource;
   /** Podcast episodes. Left out, no episode can be found. */
@@ -1303,11 +1301,8 @@ export async function handleNarrate(
   const request = parseNarrateRequest(input.bodyText);
   if (request === null) return invalid;
 
-  const isValid = await deps.verifyPassphrase(request.passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
+  const refused = await refusePassphrase(request.passphrase, config.passphraseHash, deps);
+  if (refused) return refused;
 
   // A briefing is read in the voice its schedule names; the body of the request never picks one.
   const scheduled = await scheduledVoice(deps.digests, request.digest);

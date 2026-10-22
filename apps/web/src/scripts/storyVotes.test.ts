@@ -142,6 +142,8 @@ beforeEach(async () => {
   });
   vi.stubGlobal("HTMLElement", FakeElement);
   vi.stubGlobal("localStorage", memoryStorage());
+  // A device that was asked for the passphrase once and remembers it (D153).
+  localStorage.setItem("dispatch:narrate-passphrase", "secret");
   vi.stubGlobal("fetch", sitefetch(network));
   vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
     errors.push(args.map(String).join(" "));
@@ -235,7 +237,8 @@ describe("stopFailure", () => {
       "later",
       "later",
       "no",
-      "no",
+      // A 401 means this device needs the passphrase (D153): once it has it, pressing again helps.
+      "later",
       "later",
     ]);
     for (const failure of failures) expect(failure.message).toContain("reveneau.com");

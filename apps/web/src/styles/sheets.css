@@ -216,6 +216,12 @@
   margin-block-start: var(--space-4);
 }
 
+/* The passphrase field hides while the device remembers one (D153); the grid above outranks the
+   layered [hidden] reset, so it is said again here. */
+.sheet-field[hidden] {
+  display: none;
+}
+
 /* A group of choices is a field like any other: no frame of the browser's own. */
 fieldset.sheet-field {
   min-width: 0;

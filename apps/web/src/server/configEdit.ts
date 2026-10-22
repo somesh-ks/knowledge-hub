@@ -11,14 +11,10 @@ import {
 import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
+import { refusePassphrase } from "./access";
 import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
-import {
-  type GenerateDeps,
-  isSameOrigin,
-  MAX_PASSPHRASE_CHARS,
-  WRONG_PASSPHRASE_DELAY_MS,
-} from "./generate";
+import { type GenerateDeps, isSameOrigin, MAX_PASSPHRASE_CHARS } from "./generate";
 import {
   CONFIG_WORKFLOW_FILE,
   createGitHubClient,
@@ -534,11 +530,8 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
   const request = parseConfigRequest(input.bodyText);
   if (request === null) return invalid;
 
-  const isValid = await deps.verifyPassphrase(request.passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
+  const refused = await refusePassphrase(request.passphrase, config.passphraseHash, deps);
+  if (refused) return refused;
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

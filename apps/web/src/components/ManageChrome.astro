@@ -38,7 +38,8 @@ import Icon from "./Icon.astro";
       />
     </div>
     <label class="manage-check">
-      <input type="checkbox" data-remember />
+      {/* Ticked: each device is asked once (D153). */}
+      <input type="checkbox" data-remember checked />
       <span>Remember on this device</span>
     </label>
     <div class="manage-dialog-actions">

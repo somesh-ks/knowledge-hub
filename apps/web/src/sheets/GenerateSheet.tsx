@@ -3,9 +3,11 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
+import { createPassphraseMemory } from "../narration/passphraseMemory";
 import Icon from "../player/ui/LazyIcon";
 import GenerateResult from "./GenerateResult";
 import GenerateSteps from "./GenerateSteps";
+import { MESSAGES } from "./generate/generateClient";
 import { getGenerateStore } from "./generate/generateRuntime";
 import { useGenerateState } from "./generate/useGenerate";
 import SheetFrame from "./SheetFrame";
@@ -17,6 +19,15 @@ const FEEDBACK_MAX = 500;
 interface PageTopics {
   chips: RegenChip[];
   selected: string[];
+}
+
+/** localStorage, or null where the device refuses it (private mode); memory still works then. */
+function deviceStorage(): Storage | null {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
 }
 
 function readPageTopics(): PageTopics | null {
@@ -47,6 +58,9 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [topicError, setTopicError] = useState(false);
+  const memory = useRef(createPassphraseMemory(deviceStorage()));
+  /** The passphrase this device remembers: each device is asked once (D153), so no field then. */
+  const [saved, setSaved] = useState<string | null>(null);
   const starting = state.phase === "starting";
   const running = state.phase === "running";
   const busy = starting || running;
@@ -66,6 +80,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   // toast's Details) there are none, and the run keeps its own.
   useEffect(() => {
     if (!open) return;
+    if (PASSPHRASE_REQUIRED) setSaved(memory.current.get());
     const topics = readPageTopics();
     setPage(topics);
     setTicked(
@@ -106,11 +121,18 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
       const changed = original.size !== ticked.size || [...ticked].some((v) => !original.has(v));
       if (changed) topics = idsOfChips(page.chips.filter((c) => ticked.has(c.value)));
     }
-    void store.submit(
-      PASSPHRASE_REQUIRED ? (inputRef.current?.value ?? "") : OPEN_PASSPHRASE,
-      feedbackRef.current?.value ?? "",
-      topics,
-    );
+    const given = PASSPHRASE_REQUIRED
+      ? (saved ?? (inputRef.current?.value ?? "").trim())
+      : OPEN_PASSPHRASE;
+    void store.submit(given, feedbackRef.current?.value ?? "", topics).then(() => {
+      if (!PASSPHRASE_REQUIRED || !given) return;
+      // Kept once the server takes it, forgotten once it refuses it, so the field comes back.
+      const { fieldError } = store.getState();
+      if (fieldError === MESSAGES.wrongPassphrase) {
+        memory.current.clear();
+        setSaved(null);
+      } else if (fieldError === null) memory.current.set({ value: given, remember: true });
+    });
   }
 
   function tryAgain(): void {
@@ -179,7 +201,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
               disabled={busy}
             />
           </Field.Root>
-          {PASSPHRASE_REQUIRED ? (
+          {PASSPHRASE_REQUIRED && saved === null ? (
             <Field.Root invalid={Boolean(state.fieldError)} disabled={busy} className="sheet-field">
               <Field.Label className="sheet-field-label">Passphrase</Field.Label>
               <Field.Control

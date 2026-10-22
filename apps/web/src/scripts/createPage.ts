@@ -376,10 +376,18 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       return;
     }
     say("dialog");
+    // Each device is asked once (D153): a remembered passphrase goes without the dialog, and only
+    // a refusal of it brings the dialog up, saying why.
+    const remembered = String(store((s) => s.getItem(KEY)) ?? "");
+    if (remembered) {
+      if ((await post(remembered, $("[data-submit]") as HTMLButtonElement)) !== "wrong") return;
+      store((s) => s.removeItem(KEY));
+      say("dialog", copy("401"));
+    }
     const pass = dialog.querySelector<HTMLInputElement>('[name="passphrase"]');
     const remember = dialog.querySelector<HTMLInputElement>('[name="remember"]');
-    if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
-    if (remember) remember.checked = pass?.value !== "";
+    if (pass) pass.value = "";
+    if (remember) remember.checked = true;
     dialog.showModal();
   });
 

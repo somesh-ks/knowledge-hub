@@ -21,6 +21,45 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(page.locator(".dock-btn[data-primary]")).toHaveAttribute("data-loading", "false");
   });
 
+  test.describe("on a device never given the passphrase", () => {
+    test.use({ unlocked: false });
+
+    // Bug it prevents: with the passphrase back on (D153), Play on a shared link narrated for
+    // anyone, or a device was asked again on every briefing.
+    test("asks before anything is narrated, then plays without asking after a reload", async ({
+      player,
+      finger,
+      page,
+    }) => {
+      const sent: string[] = [];
+      page.on("request", (request) => {
+        if (request.method() === "POST" && new URL(request.url()).pathname === "/api/narrate")
+          sent.push((request.postDataJSON() as { passphrase: string }).passphrase);
+      });
+      await player.open(`/d/${SITE.earlier}`);
+      await serveNarration(page, 300);
+      await finger.press(player.cta);
+      const sheet = page.getByRole("dialog", { name: "Make the audio" });
+      await expect(sheet).toBeVisible();
+      expect(sent).toEqual([]);
+      await sheet.getByLabel("Passphrase").fill("typed once");
+      await finger.press(sheet.getByRole("button", { name: "Make audio and play" }));
+      await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+        timeout: 8_000,
+      });
+      expect(sent.length).toBeGreaterThan(0);
+      expect(new Set(sent)).toEqual(new Set(["typed once"]));
+
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForFunction(() => document.querySelector("astro-island[ssr]") === null);
+      await finger.press(player.cta);
+      await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing", {
+        timeout: 8_000,
+      });
+      await expect(sheet).toBeHidden();
+    });
+  });
+
   test("Up next at the end narrates and plays a briefing with no audio", async ({
     player,
     audio,

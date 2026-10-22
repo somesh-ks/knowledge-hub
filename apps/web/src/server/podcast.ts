@@ -1,4 +1,5 @@
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
+import { refusePassphrase } from "./access";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
 import {
   type GenerateDeps,
@@ -6,7 +7,6 @@ import {
   isSameOrigin,
   MAX_BODY_CHARS,
   MAX_PASSPHRASE_CHARS,
-  WRONG_PASSPHRASE_DELAY_MS,
 } from "./generate";
 import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
@@ -198,11 +198,8 @@ export async function handlePodcast(
   if (body === null) return invalid;
   if ("action" in body && !(deps.episodeIds?.() ?? []).includes(body.id)) return invalid;
 
-  const isValid = await deps.verifyPassphrase(body.passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
+  const refused = await refusePassphrase(body.passphrase, config.passphraseHash, deps);
+  if (refused) return refused;
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

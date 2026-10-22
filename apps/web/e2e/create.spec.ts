@@ -1,6 +1,11 @@
 import type { Page, Route } from "@playwright/test";
-import { OPEN_PASSPHRASE } from "../src/lib/access";
-import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
+import {
+  expect,
+  expectNoViolationsInEitherScheme,
+  seedStorage,
+  TEST_PASSPHRASE,
+  test,
+} from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
 const EPISODE = "/e/ep-20261007-1930";
@@ -204,20 +209,50 @@ test.describe("the Create page", () => {
     expect(order).toBe(true);
   });
 
-  test("with the passphrase step off, Create sends straight away and mentions none", async ({
+  test("on an unlocked device, Create sends straight away and asks for nothing", async ({
     page,
   }) => {
     // The clock is held, so the page never gets as far as asking after the run.
     await page.clock.install();
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 5, started_at: "x" });
     await openCreate(page);
-    // Visible text only: the form keeps every message it can show in its markup, hidden until used.
-    await expect(page.getByText(/passphrase/i).filter({ visible: true })).toHaveCount(0);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.passphrase).toBe(OPEN_PASSPHRASE);
+    expect(mock.bodies[0]?.passphrase).toBe(TEST_PASSPHRASE);
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test.describe("on a device never given the passphrase", () => {
+    test.use({ unlocked: false });
+
+    // Bug it prevents: with the passphrase back on (D153), a device was asked on every Create, or
+    // a press sent nothing and said nothing.
+    test("Create asks before it sends, then remembers the passphrase for every page", async ({
+      page,
+    }) => {
+      await page.clock.install();
+      const mock = await mockPodcast(page, 202, { status: 202, run_id: 6, started_at: "x" });
+      // The run it starts is followed after the reload; the static site has no status route.
+      await page.route("**/api/status?**", (route) =>
+        route.fulfill({ json: { run_id: 6, state: "queued", step: null } }),
+      );
+      await openCreate(page);
+      await page.locator("[data-submit]").click();
+      const dialog = page.getByRole("dialog", { name: "Enter the passphrase" });
+      await expect(dialog).toBeVisible();
+      expect(mock.bodies).toHaveLength(0);
+      await dialog.getByLabel("Passphrase").fill("typed once");
+      await dialog.getByRole("button", { name: "Create episode" }).click();
+      await expect.poll(() => mock.bodies.length).toBe(1);
+      expect(mock.bodies[0]?.passphrase).toBe("typed once");
+      await expect(dialog).toBeHidden();
+      // One key for every page that sends one (narration, settings, votes, Try again).
+      await page.reload();
+      expect(await page.evaluate(() => localStorage.getItem("dispatch:narrate-passphrase"))).toBe(
+        "typed once",
+      );
+    });
   });
 
   test("sends the choices and the passphrase, then follows the run to the end", async ({
@@ -259,7 +294,7 @@ test.describe("the Create page", () => {
     // The request is exactly what was chosen, and the passphrase rides beside it.
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]).toEqual({
-      passphrase: OPEN_PASSPHRASE,
+      passphrase: TEST_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["ai", "tech", "world"],

@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 // The seed sources an edit is applied against besides the stored documents (D149), imported as text
 // so it travels inside the function. Read only with the config store on.
 import seedSources from "../../../../../config/sources.json?raw";
-import { passphraseCheck } from "../../server/access";
+import { guessGate, passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
 import { burstCap } from "../../server/rateLimit";
@@ -28,6 +28,7 @@ export const POST: APIRoute = ({ request, url }) =>
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         verifyPassphrase: passphraseCheck(),
+        guesses: guessGate,
         burst: burstCap("config", EDITS_PER_MINUTE),
         log,
         baseFiles: { "config/sources.json": seedSources },

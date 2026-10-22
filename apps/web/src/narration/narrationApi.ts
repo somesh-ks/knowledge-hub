@@ -26,6 +26,7 @@ export type LookupResult =
 /** The server's refusals that mean something specific to a listener. Every other one is "failed". */
 const KNOWN: Record<string, NarrationFailure> = {
   wrong_passphrase: "wrong_passphrase",
+  cooldown: "cooldown",
   daily_cap: "daily_cap",
   monthly_budget: "monthly_budget",
   not_narratable: "not_narratable",
@@ -184,6 +185,8 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
       return null;
     case "wrong_passphrase":
       return "That passphrase is not right. Check it and try again.";
+    case "cooldown":
+      return "Too many wrong passphrases were tried. Wait a minute, then try again.";
     case "daily_cap":
       return "Daily narration limit reached. Try again tomorrow.";
     case "monthly_budget":

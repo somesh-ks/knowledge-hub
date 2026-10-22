@@ -8,6 +8,7 @@
  * not yet sent. Only a story's final state is sent.
  */
 import type { ConfigOp } from "@dispatch/core";
+import { PASSPHRASE_REQUIRED } from "./access";
 
 export const VOTES_KEY = "dispatch:story-votes";
 /** How long the first unsent vote may wait before the batch goes. */
@@ -367,7 +368,13 @@ export function stopFailure(outlet: string, status: number): { message: string; 
     case 400:
       return { message: `Could not stop ${outlet}: its address was not accepted.`, retry: "no" };
     case 401:
-      return { message: `Could not stop ${outlet}: the change was refused.`, retry: "no" };
+      // With the passphrase on (D153), the device has none yet or a stale one, and no prompt here.
+      return PASSPHRASE_REQUIRED
+        ? {
+            message: `Could not stop ${outlet}: this device needs the passphrase. Enter it once where Play or a settings save asks, then try again.`,
+            retry: "later",
+          }
+        : { message: `Could not stop ${outlet}: the change was refused.`, retry: "no" };
     default:
       return {
         message: `Could not stop ${outlet}: the site answered ${status}. Try again later.`,

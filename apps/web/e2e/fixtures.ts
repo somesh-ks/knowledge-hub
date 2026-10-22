@@ -13,12 +13,29 @@ export interface Problems {
 interface Options {
   /** Set for a test that goes offline on purpose, where failed requests are expected. */
   allowNetworkErrors: boolean;
+  /**
+   * The device remembers the passphrase, as the owner's do after the first ask (D153). Off for a
+   * test of a fresh device, which is asked.
+   */
+  unlocked: boolean;
 }
+
+/** The passphrase an unlocked test device remembers; the fakes take any value. */
+export const TEST_PASSPHRASE = "secret";
 
 export const test = base.extend<Options & { problems: Problems }>({
   allowNetworkErrors: [false, { option: true }],
+  unlocked: [true, { option: true }],
   problems: [
-    async ({ page, allowNetworkErrors }, use) => {
+    async ({ page, allowNetworkErrors, unlocked }, use) => {
+      if (unlocked) {
+        // Once per tab, so a page that forgets a refused passphrase is not handed it back on reload.
+        await page.addInitScript((value) => {
+          if (sessionStorage.getItem("test:unlocked")) return;
+          sessionStorage.setItem("test:unlocked", "1");
+          localStorage.setItem("dispatch:narrate-passphrase", value);
+        }, TEST_PASSPHRASE);
+      }
       const problems: Problems = { messages: [] };
       // A new episode's live copy (D105): the static site has no API, and nothing is written yet.
       await page.route("**/api/stream?**", (route) =>

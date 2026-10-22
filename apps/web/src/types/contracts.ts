@@ -213,6 +213,9 @@ export type NarrateError =
   // No digest id, a malformed id, segment key or body, or a request from another origin.
   | { status: 400; error: "invalid_request" }
   | { status: 401; error: "wrong_passphrase" }
+  // Too many wrong passphrases this minute, on any route that takes one (D153): the passphrase was
+  // not checked. Try again after `retry_after_s`; keep the passphrase.
+  | { status: 429; error: "cooldown"; retry_after_s: number }
   // This deployment has no such digest, or the digest has no segment with that key (the page's list
   // is out of date: ask GET again).
   | { status: 404; error: "digest_not_found" | "segment_not_found" }

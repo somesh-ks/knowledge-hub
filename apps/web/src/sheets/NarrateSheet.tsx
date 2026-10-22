@@ -86,7 +86,8 @@ export default function NarrateSheet({ open, onOpenChange }: NarrateSheetProps) 
           </Field.Error>
         </Field.Root>
         <label className="sheet-check">
-          <input type="checkbox" name="remember" />
+          {/* Ticked: each device is asked once (D153); untick it on a device that is not yours. */}
+          <input type="checkbox" name="remember" defaultChecked />
           <span>Remember on this device</span>
         </label>
         <div className="sheet-actions">

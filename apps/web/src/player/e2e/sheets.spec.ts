@@ -37,10 +37,8 @@ test("Regenerate: the run request, the six steps while it goes, then the new bri
   // The sheet polls on the page clock, so the run's minutes pass in a moment.
   await page.clock.install();
   const dialog = await player.openGenerate();
-  if (!PASSPHRASE_REQUIRED) {
-    // With the passphrase step off (D41) the sheet asks for nothing.
-    await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
-  }
+  // The device remembers the passphrase (D153), so the sheet asks for nothing.
+  await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
   await enterPassphrase(dialog);
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   const steps = dialog.getByRole("list", { name: "Progress" }).getByRole("listitem");

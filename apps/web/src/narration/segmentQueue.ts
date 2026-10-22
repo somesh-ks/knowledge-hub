@@ -16,6 +16,7 @@ import type { Playlist, TrackSegment } from "./trackAudio";
 export type NarrationFailure =
   | "passphrase_required"
   | "wrong_passphrase"
+  | "cooldown"
   | "daily_cap"
   | "monthly_budget"
   | "not_narratable"

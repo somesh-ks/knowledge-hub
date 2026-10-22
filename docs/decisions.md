@@ -52,7 +52,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
 | D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
-| D41 | The passphrase step is switched off, with its code kept | active |
+| D41 | The passphrase step is switched off, with its code kept | superseded by D153 |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
@@ -162,7 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
-| D153 | Engagement and sharing | approved |
+| D153 | Engagement and sharing | active |
 
 ---
 
@@ -1660,7 +1660,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Status: approved by the owner as written on 2026-10-22; built stage by stage, stage 0 first. The plan, the vendor comparison and the stages with test points: [engagement-and-share-plan.md](engineering/engagement-and-share-plan.md).
 - Decision:
   - No analytics vendor. A fixed set of events (`play`, `finish`, `download`, and `share_created`, `share_open`, `share_play`, `share_finish`, `share_cta`) goes by `sendBeacon` to `POST /api/events` and into one Neon table beside D150's counters; no cookie, no identifier, nothing stored on the device for analytics, no IP or user agent kept. `/analytics/engagement`, linked as User engagement under Settings, Analytics, reads them through an owner-only `GET /api/engagement`, and shows this device's listening from what it already stores (stage 1, before any event exists).
-  - Actions are locked first: `PASSPHRASE_REQUIRED` back on, asked once per device, with failed guesses capped (reverses D41).
+  - Actions are locked first: `PASSPHRASE_REQUIRED` back on, asked once per device, with failed guesses capped (reverses D41). Built as stage 0: past 10 wrong passphrases a minute on the four routes together (bucket `passphrase-fail` in the D150 counter), an instance answers 429 `cooldown` without checking, never 401, so the owner's remembered passphrase is not forgotten for a stranger's guesses; a right passphrase never touches the counter. One remembered key (`dispatch:narrate-passphrase`) serves every page; Remember is ticked by default; Create, Regenerate and Delete show no field while the device remembers one, and a 401 forgets it and asks again.
   - The owner makes one expiring, revocable link per item whose audio is fully stored. `/s/<token>` (an HMAC-checked token, rendered on the server, CDN-cached five minutes) shows the cover, Play, the stories with their sources, the transcript, Send it to someone and a reaction; it plays stored audio only and never narrates; it has no app shell, service worker or search indexing, and an Open Graph card. Shared plays stop at 4 GB of Blob transfer a month and 100 a link.
 - Why: Vercel Web Analytics has no custom events on Hobby, and Plausible and Umami put the read API the page needs behind a paid plan; a shared link's attribution is its token, since messaging apps send no referrer. Today's Share copies the app's own address, and with D41 the recipient can spend and edit.
 - Cost: no traffic sources or device breakdowns; a beacon route, a table and its caps to build and keep; the passphrase prompt returns once per device; public links publish narrated summaries of others' reporting beyond D9's one reader; Blob's Hobby lockout is the ceiling the budget guards.

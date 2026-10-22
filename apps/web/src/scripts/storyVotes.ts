@@ -154,6 +154,14 @@ async function post(ops: ConfigOp[]): Promise<Answer> {
       error?: string;
     };
     const status = body.status ?? response.status;
+    // A refused remembered passphrase is forgotten, as every other page does, so the next prompt asks.
+    if (status === 401 && PASSPHRASE_REQUIRED) {
+      try {
+        localStorage.removeItem(PASSPHRASE_KEY);
+      } catch {
+        // Nothing could be kept, so nothing is left to forget.
+      }
+    }
     return {
       status,
       wait: status === 429 ? body.retry_after_s || 10 : 0,
