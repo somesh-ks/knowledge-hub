@@ -165,7 +165,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D151 | CI fails on a high advisory; path-to-regexp overridden | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
 | D154 | Simple Analytics and a Privacy page | active |
-| D156 | Field Vitals judged by health | active; amends D147 |
+| D156 | Field Vitals in Neon | amends D147 |
 
 ---
 
