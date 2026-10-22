@@ -1,6 +1,7 @@
 import type { ClientFault } from "@dispatch/engine/faults-store";
 import type { VitalsReport } from "@dispatch/engine/vitals-store";
 import { describe, expect, it } from "vitest";
+import { parseClientFault } from "./faults";
 import {
   handleReport,
   REPORTS_PER_MINUTE,
@@ -68,6 +69,19 @@ describe("handleReport", () => {
         page: "/settings",
         directive: "script-src-elem",
         blocked: "https://evil.example/path/secret-value.js?key=secret-value",
+        source: "https://news.example/_astro/app.js?key=secret-value",
+      }),
+      deps,
+      limiters(),
+    );
+    // An extension's own script is not the site's fault.
+    await handleReport(
+      JSON.stringify({
+        kind: "csp",
+        page: "/",
+        directive: "script-src",
+        blocked: "inline",
+        source: "chrome-extension://abc/inject.js",
       }),
       deps,
       limiters(),
@@ -76,9 +90,10 @@ describe("handleReport", () => {
       {
         kind: "error",
         page: "/d/[id]",
-        message: "Cannot find … at <url> line N",
+        message: "Cannot find",
         directive: "",
         blocked: "",
+        source: "",
         build: "0123456789ab",
       },
       {
@@ -87,9 +102,33 @@ describe("handleReport", () => {
         message: "",
         directive: "script-src-elem",
         blocked: "https://evil.example",
+        source: "https://news.example",
         build: "",
       },
     ]);
+  });
+
+  // Pairing quotes left to right kept a reader's text: V8 quotes the input JSON.parse failed on,
+  // an apostrophe opens a "quote" that never closes, and a quote can span a line or be « ».
+  it("keeps only a message's start, before anything a reader typed could be", () => {
+    const cases: Array<[unknown, string]> = [
+      [`Unexpected token 'j', "jo@x.io" is not valid JSON`, "Unexpected token"],
+      ["Can't save 'my private topic'", "Can"],
+      ['Failed "first line\nsecond line"', "Failed"],
+      ["Échec «mon sujet privé»", "Échec"],
+      [`${"a".repeat(59)}😀 tail`, `${"a".repeat(59)}😀`],
+      ["Bad\u0000 value", "Bad value"],
+      ["Visit www.example.com now", "Visit"],
+      ["Script error.", "cross-origin script error"],
+      ["'only quoted'", "no message text"],
+      [undefined, "no message text"],
+    ];
+    for (const [message, kept] of cases) {
+      const fault = parseClientFault({ kind: "error", page: "/", message });
+      expect(fault?.message).toBe(kept);
+      expect(fault?.message).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/);
+    }
+    expect(parseClientFault({ kind: "error" })?.page).toBe("other");
   });
 
   // Vitals reports, and kinds the log does not know, spent the fault log's slots (D146), so a busy

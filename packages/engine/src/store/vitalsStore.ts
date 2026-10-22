@@ -1,6 +1,6 @@
 import { VITAL_METRICS, type VitalDevice, type VitalMetric } from "@dispatch/core/vitals";
 import type { SqlClient } from "./configPaths.js";
-import { lostCreateRace, missingTable } from "./pgErrors.js";
+import { missingTable, withTable } from "./pgErrors.js";
 
 /**
  * Field Web Vitals in Neon (D156), in the database the config store and the rate-limit counter use
@@ -86,20 +86,11 @@ export async function recordVitals(
     perHour,
     VITALS_WINDOW_DAYS,
   ];
-  const insert = async () => (await sql.query(RECORD_SQL, params)).length;
-  try {
-    return await insert();
-  } catch (error) {
-    if (!missingTable(error)) throw error;
-    // Two first reports at once can race to create it, and Postgres then refuses one `if not
-    // exists` with a duplicate; the insert after says whether the table is there.
-    for (const statement of VITALS_SCHEMA_SQL) {
-      await sql.query(statement).catch((raced: unknown) => {
-        if (!lostCreateRace(raced)) throw raced;
-      });
-    }
-    return insert();
-  }
+  return withTable(
+    sql,
+    VITALS_SCHEMA_SQL,
+    async () => (await sql.query(RECORD_SQL, params)).length,
+  );
 }
 
 /** One metric on one device class over the window: how many samples, and their 75th percentile. */

@@ -22,6 +22,7 @@ const fault: ClientFault = {
   message: "",
   directive: "script-src-elem",
   blocked: "https://evil.example",
+  source: "",
   build: "0123456789ab",
 };
 

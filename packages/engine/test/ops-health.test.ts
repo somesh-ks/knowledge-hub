@@ -235,37 +235,50 @@ describe("dispatch health", () => {
     expect(await head?.includes("0123456789ab")).toBeNull();
   });
 
-  // A blocked script on phones, or a run of errors after a deploy, was a log line Hobby kept an
-  // hour (D158). Judged on the build the site serves: a fault a deploy fixed stops counting.
-  it("faults a script the current build blocked, warns on a run of errors, and forgets older builds", () => {
-    const group = (kind: "csp" | "error", build: string, day: number, directive = "") => ({
+  // Client signals are forgeable and extensions trip the CSP, so they only warn, past a threshold,
+  // over 24 hours across builds (content commits redeploy several times a day), and a stored
+  // message reaches the issue as inline code, so an @mention in it pings no one.
+  it("warns on a run of blocked scripts or errors across builds, and never faults", () => {
+    const group = (kind: "csp" | "error", build: string, day: number, extra = {}) => ({
       kind,
       page: "/settings",
-      message: kind === "error" ? "x is undefined" : "",
-      directive,
+      message: kind === "error" ? "x is @someone`s" : "",
+      directive: kind === "csp" ? "script-src-elem" : "",
       blocked: kind === "csp" ? "https://evil.example" : "",
+      source: "",
       build,
       total: day,
       day,
+      ...extra,
     });
     const found: string[] = [];
     const sink = {
-      fault: (code: string) => found.push(`fault ${code}`),
-      warn: (code: string) => found.push(`warn ${code}`),
+      fault: (code: string, _: string, text: string) => found.push(`fault ${code} ${text}`),
+      warn: (code: string, _: string, text: string) => found.push(`warn ${code} ${text}`),
       passed: [] as string[],
     };
-    const week = [
-      group("csp", "newbuild1", 1, "script-src-elem"),
-      group("csp", "newbuild1", 4, "img-src"),
-      group("error", "newbuild1", 6),
-      group("csp", "oldbuild1", 9, "script-src"),
-      group("error", "oldbuild1", 40),
-    ];
-    checkClientFaults(week, "newbuild1", sink);
-    expect(found).toEqual(["fault client_faults", "warn client_faults"]);
+    checkClientFaults(
+      [
+        group("csp", "build1", 2),
+        group("csp", "build2", 1),
+        group("error", "build1", 12),
+        group("error", "build2", 8),
+        group("error", "build2", 50, { message: "cross-origin script error" }),
+        group("csp", "build0", 0, { total: 9 }),
+      ],
+      sink,
+    );
+    expect(found.map((line) => line.split(" ").slice(0, 2).join(" "))).toEqual([
+      "warn client_faults",
+      "warn client_faults",
+    ]);
+    expect(found[0]).toContain("`build1`, `build2`");
+    expect(found[1]).toContain("`x is @someones`");
     found.length = 0;
-    checkClientFaults(week, "fixedbuild", sink);
+    checkClientFaults([group("csp", "build1", 2), group("error", "build1", 19)], sink);
     expect(found).toEqual([]);
+    checkClientFaults(null, sink);
+    expect(sink.passed).toHaveLength(1);
   });
 
   // A run that died in install or on a timeout wrote nothing, so the last record still read as the
