@@ -3,10 +3,9 @@ import Icon from "../components/Icon.astro";
 import ManageChrome from "../components/ManageChrome.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { buildDay } from "../lib/buildDay";
-import { APP_VERSION } from "../lib/changelog";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
-import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, sourcesSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
@@ -15,19 +14,20 @@ import "../styles/settings.css";
 import "../styles/manage.css";
 
 const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
-// The topics a person sees (D69): the owner's four, any of their own apart from those, and the
-// general news topics; the judge's finer topics are inside the four.
+// Where every source shows, so the Sources row can count an edit saved since the build.
 const layout = topicLayout(manage.topics, manage.sources);
-const shownTopics = [...layout.groups, ...layout.own, ...layout.general].map((topic) => topic.id);
 const spots = Object.fromEntries(
   [...layout.sources].flatMap(([page, list]) =>
     list.map((source) => [source.id, { page, on: source.enabled }]),
   ),
 );
+type Row = { href: string; label: string; hint?: string; data: Record<string, string | number> };
+
 // Each row leads to the one page that sets it, and says its current state in a few words. What the
 // words are worked out from rides along as data, so an edit saved since the build can be shown in
-// them (scripts/settingsSaved.ts, loaded only when one is kept).
-const PODCAST = [
+// them (scripts/settingsSaved.ts, loaded only when one is kept). A row with nothing to say has no
+// line (2026-10-22): its name is enough.
+const PODCAST: Row[] = [
   {
     href: "/settings/daily",
     label: "Daily",
@@ -53,30 +53,19 @@ const PODCAST = [
   {
     href: "/settings/topics",
     label: "Sources",
-    hint: topicsSummary(shownTopics.length, manage.sources.length),
-    data: {
-      summary: "topics",
-      shown: shownTopics.join(" "),
-      taken: manage.topics.map((topic) => topic.id).join(" "),
-      sources: JSON.stringify(spots),
-    },
+    hint: sourcesSummary({ total: manage.sources.length }),
+    data: { summary: "sources", sources: JSON.stringify(spots) },
   },
   {
     href: "/settings/preferences",
     label: "Preferences",
-    hint: "Story types",
     data: {},
   },
 ];
 // The voices every podcast is read in, and the interface's own sounds, each on a page of its own.
 // Whether sounds are on is kept in this browser, so settingsPage.ts writes that row's line.
-const SOUND = [
-  {
-    href: "/settings/voice",
-    label: "Podcast voice",
-    hint: voicesSummary(schedule.voiceId ?? "", schedule.voiceIdB ?? ""),
-    data: { summary: "voice", voice: schedule.voiceId ?? "", "voice-b": schedule.voiceIdB ?? "" },
-  },
+const SOUND: Row[] = [
+  { href: "/settings/voice", label: "Podcast voice", data: {} },
   { href: "/settings/sounds", label: "Interface sounds", hint: "On", data: { "sounds-hint": "" } },
 ];
 
@@ -113,7 +102,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               >
                 <span class="settings-text">
                   <span class="settings-label">{row.label}</span>
-                  <span class="settings-hint" data-hint>{row.hint}</span>
+                  {row.hint !== undefined && <span class="settings-hint" data-hint>{row.hint}</span>}
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -134,7 +123,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               >
                 <span class="settings-text">
                   <span class="settings-label">{row.label}</span>
-                  <span class="settings-hint" data-hint>{row.hint}</span>
+                  {row.hint !== undefined && <span class="settings-hint" data-hint>{row.hint}</span>}
                 </span>
                 <Icon name="chevronRight" />
               </a>
@@ -167,7 +156,6 @@ const THEME_LABELS: Record<ThemePreference, string> = {
           <a class="row-action" href="/analytics">
             <span class="settings-text">
               <span class="settings-label">Costs</span>
-              <span class="settings-hint">What paid services cost, by day, week or month</span>
             </span>
             <Icon name="chevronRight" />
           </a>
@@ -180,21 +168,18 @@ const THEME_LABELS: Record<ThemePreference, string> = {
           <a class="row-action" href="/settings/about">
             <span class="settings-text">
               <span class="settings-label">About</span>
-              <span class="settings-hint">Author and purpose</span>
             </span>
             <Icon name="chevronRight" />
           </a>
           <a class="row-action" href="/settings/privacy">
             <span class="settings-text">
               <span class="settings-label">Privacy</span>
-              <span class="settings-hint">What is counted, kept and sent</span>
             </span>
             <Icon name="chevronRight" />
           </a>
           <a class="row-action" href="/settings/changelog">
             <span class="settings-text">
               <span class="settings-label">Change log</span>
-              <span class="settings-hint">Version {APP_VERSION}</span>
             </span>
             <Icon name="chevronRight" />
           </a>

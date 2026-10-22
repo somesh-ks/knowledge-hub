@@ -11,10 +11,9 @@ import {
   type SourceSpot,
   savedFields,
   savedSources,
-  savedTopicCount,
   sourceCounts,
 } from "../lib/savedOverlay";
-import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, sourcesSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { dropUnclaimed, HELD_EVENT, type Held } from "./managePageSave";
 import { loadStore, readSaved } from "./savedView";
@@ -75,11 +74,7 @@ function say(target: HTMLElement | null, text: string): boolean {
 export function overlayIndex(root: ParentNode, ops: readonly ConfigOp[]): boolean {
   const daily = row(root, "daily");
   const weekly = row(root, "weekly");
-  const voice = row(root, "voice");
-  // The shared voices are top-level fields of schedule.set, which savedFields files under "daily".
   const baked: FieldValues = {
-    "daily.voice": voice?.dataset.voice ?? "",
-    "daily.voice_b": voice?.dataset.voiceB ?? "",
     "daily.hour": daily?.dataset.hour ?? "",
     "daily.cadence": daily?.dataset.cadence ?? "",
     "daily.timezone": daily?.dataset.timezone ?? "",
@@ -109,23 +104,18 @@ export function overlayIndex(root: ParentNode, ops: readonly ConfigOp[]): boolea
           timezone: now["weekly.timezone"],
         }),
       ) || shown;
-  if (voice)
-    shown =
-      say(voice, voicesSummary(now["daily.voice"] ?? "", now["daily.voice_b"] ?? "")) || shown;
 
-  const topics = row(root, "topics");
-  if (topics) {
-    const words = (value: string | undefined): string[] => (value ?? "").split(" ").filter(Boolean);
+  // The Sources row says how many sources there are (2026-10-22: no topic count beside it).
+  const sources = row(root, "sources");
+  if (sources) {
     let base: Record<string, SourceSpot> = {};
     try {
-      base = JSON.parse(topics.dataset.sources ?? "{}");
+      base = JSON.parse(sources.dataset.sources ?? "{}");
     } catch {
       base = {};
     }
-    // A source moved since the build is filed under the topic it moved to: that topic's page.
     const spots = savedSources(base, ops, (id) => id ?? "");
-    const count = savedTopicCount(words(topics.dataset.shown), words(topics.dataset.taken), ops);
-    shown = say(topics, topicsSummary(count, sourceCounts(spots).total)) || shown;
+    shown = say(sources, sourcesSummary({ total: sourceCounts(spots).total })) || shown;
   }
 
   return shown;
