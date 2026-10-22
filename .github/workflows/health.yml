@@ -11,9 +11,11 @@ name: health
 # lab probe (D147): cold loads of three pages on a throttled phone, judged as warnings only.
 #
 # A drill (Run workflow, drill ticked) proves the healing path on the real repository without a
-# real fault: it plants `run_overdue`, opens the issue, starts one scheduled run as a dry run
-# (on a day nothing is due it stops at the gate and writes nothing), then closes the issue. It
-# never runs while a real health issue is open.
+# real fault: on a copy of the report with the real findings taken out it plants `run_overdue`,
+# opens an issue of its own (labelled `health-drill`), starts one scheduled run as a dry run (on a
+# day nothing is due it stops at the gate and writes nothing), then closes that issue. It never
+# reads or touches the `health` issue, so a real fault open for days does not hold it back. It is
+# refused while a run.yml run is queued or running and on a day a briefing is due.
 
 on:
   schedule:
@@ -116,33 +118,42 @@ jobs:
           # A check that crashed is a fault of its own, reported like the others.
           jq -e '.findings' "$report" >/dev/null 2>&1 ||
             echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"dispatch health did not finish; see the run log."}]}' > "$report"
-          gh label create health --color B60205 --description "Daily health check" --force >/dev/null
-          open_issue=$(gh issue list --label health --state open --limit 1 --json number,title --jq '.[0] // empty')
-          [ -n "$open_issue" ] || open_issue='{}'
-          issue=$(jq -r '.number // empty' <<<"$open_issue")
+          label=health
           heal_args=()
           prefix=""
           if [ "$DRILL" = "true" ]; then
-            # A drill only runs on a quiet day: a real fault keeps its own issue and its one heal,
-            # and on a day a briefing is due the dry run would go past the gate and pay for models.
+            # A drill is its own case: its own issue (label health-drill, never the health issue,
+            # which it does not read) and its own report, today's with the real findings taken out
+            # and run_overdue planted, so a real fault neither holds it back nor changes what it
+            # tests. It runs only when its dry run can start and costs nothing: on a day a briefing
+            # is due or overdue (or the check did not finish, so nobody knows) the dry run would go
+            # past the gate and pay for models.
             refuse=""
-            [ -n "$issue" ] && refuse="a health issue is open"
-            if [ -z "$refuse" ] && [ "$(jq '[.findings[] | select(.severity == "fault")] | length' "$report")" != "0" ]; then
-              refuse="today's report already has a fault"
-            fi
-            due=$(jq -r '[.passed[] | capture("briefing due (?<d>[0-9]{4}-[0-9]{2}-[0-9]{2})").d] | min // empty' "$report")
-            if [ -z "$refuse" ] && [ -n "$due" ] && [[ ! "$due" > "$(date -u +%F)" ]]; then
+            due=$(jq -r '[(.passed // [])[] | capture("briefing due (?<d>[0-9]{4}-[0-9]{2}-[0-9]{2})").d] | min // empty' "$report")
+            if [ -z "$due" ]; then
+              refuse="the report names no next briefing (one is overdue, or the check did not finish), so its dry run could pay for model calls"
+            elif [[ ! "$due" > "$(date -u +%F)" ]]; then
               refuse="a briefing is due today, so its dry run would pay for model calls"
+            elif [ "$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')" != "0" ]; then
+              refuse="a run.yml run is queued or running"
             fi
             if [ -n "$refuse" ]; then
               echo "::warning title=Drill refused::No drill: $refuse."
               exit 0
             fi
-            jq '.ok = false | .findings += [{"severity":"fault","aspect":"reliability","code":"run_overdue","message":"Drill: a planted fault (health.yml, drill input). Nothing is wrong."}]' "$report" > "$report.drill"
-            mv "$report.drill" "$report"
+            jq '.ok = false | .findings = [{"severity":"fault","aspect":"reliability","code":"run_overdue","message":"Drill: a planted fault (health.yml, drill input). Nothing is wrong."}]' "$report" > "$RUNNER_TEMP/drill.json"
+            report="$RUNNER_TEMP/drill.json"
+            label=health-drill
             heal_args=(-f dry_run=true)
             prefix="Drill: "
+            gh label create health-drill --color FBCA04 --description "health.yml drill: a planted fault, nothing is wrong" --force >/dev/null
+            open_issue='{}'
+          else
+            gh label create health --color B60205 --description "Daily health check" --force >/dev/null
+            open_issue=$(gh issue list --label health --state open --limit 1 --json number,title --jq '.[0] // empty')
+            [ -n "$open_issue" ] || open_issue='{}'
           fi
+          issue=$(jq -r '.number // empty' <<<"$open_issue")
           ok=$(jq -r '.ok' "$report")
           codes=$(jq -r '[.findings[] | select(.severity == "fault") | .code] | unique | join(" ")' "$report")
           # The open issue's title ends with the faults already healed ("| healed: ..."): each heals
@@ -194,10 +205,11 @@ jobs:
             gh issue comment "$issue" --body-file "$RUNNER_TEMP/body.md"
             gh issue edit "$issue" --title "$new_title"
           else
-            issue=$(gh issue create --title "$new_title" --label health --body-file "$RUNNER_TEMP/body.md" | grep -oE '[0-9]+$')
+            issue=$(gh issue create --title "$new_title" --label "$label" --body-file "$RUNNER_TEMP/body.md" | grep -oE '[0-9]+$')
           fi
-          # A drill leaves nothing open: the issue and the dry run it started are the proof. One
-          # that could not start the dry run (a run.yml run busy, a failed dispatch) proved nothing.
+          # A drill leaves nothing open: its issue and the dry run it started are the proof. One
+          # that could not start the dry run (a run.yml run started since the guard, a failed
+          # dispatch) proved nothing.
           if [ "$DRILL" = "true" ]; then
             if [ -n "$healed" ]; then
               gh issue close "$issue" --comment "Drill finished: the planted fault opened this issue and started one dry run. ([run]($run_url))"
