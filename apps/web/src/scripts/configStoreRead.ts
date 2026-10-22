@@ -80,5 +80,6 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
 
 /** What the last read found, or null before one answered (or when none could). */
 export function storeRead(): ConfigReadBody | null {
-  return current;
+  // Checked again for the page now in the document: the read may have been made for another one.
+  return current !== null && current.built === builtHere() ? current : null;
 }

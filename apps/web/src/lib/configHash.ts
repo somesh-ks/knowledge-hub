@@ -19,31 +19,32 @@ export const BUILT_CONFIG_PATHS = [
   "config/profiles/owner.json",
 ] as const;
 
+/** The bundled files a deployment's function diffs from, by path: exactly BUILT_CONFIG_PATHS. */
+export type BuiltConfigFiles = Readonly<Record<(typeof BUILT_CONFIG_PATHS)[number], string>>;
+
 /** A short digest of the files, a missing one read as empty. */
 export function configHash(files: Readonly<Record<string, string | undefined>>): string {
   const text = JSON.stringify(BUILT_CONFIG_PATHS.map((path) => [path, files[path] ?? ""]));
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-let loaded: Promise<string> | undefined;
-
 /**
  * The digest of the files this build reads (the fixtures with DISPATCH_FIXTURES=1), as the pages
- * read them; read once per build.
+ * read them. A file that is missing reads as empty; any other read error fails the build rather than
+ * give its pages a digest no answer matches.
  */
-export function loadConfigHash(): Promise<string> {
-  loaded ??= readConfigHash();
-  return loaded;
-}
-
-async function readConfigHash(
+export async function loadConfigHash(
   options: { root?: string; env?: Record<string, string | undefined> } = {},
 ): Promise<string> {
   const env = options.env ?? process.env;
   const repo = options.root ?? findRepoRoot(process.cwd(), env);
   const base = usesFixtures(env) ? join(repo, "apps", "web", "src", "fixtures") : repo;
   const files: Record<string, string | undefined> = {};
-  for (const path of BUILT_CONFIG_PATHS)
-    files[path] = await readFile(join(base, path), "utf8").catch(() => undefined);
+  for (const path of BUILT_CONFIG_PATHS) {
+    files[path] = await readFile(join(base, path), "utf8").catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw error;
+    });
+  }
   return configHash(files);
 }

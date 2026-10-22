@@ -6,11 +6,10 @@ import {
   writeConfigDocumentsAt,
 } from "@dispatch/engine/config-store";
 import { connectNeon } from "@dispatch/engine/neon";
-import { configHash } from "../lib/configHash";
 import type { ConfigOp, ConfigReadBody, ConfigResponse } from "../types/contracts";
 import { type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import { type ConfigDeps, configCooldownSeconds, scheduledTime, updateRunTime } from "./configEdit";
-import { type ConfigFiles, storeChanges } from "./configView";
+import { builtHash, type ConfigFiles, storeChanges } from "./configView";
 
 export type { ConfigReadBody };
 
@@ -133,18 +132,6 @@ export async function readStoredSchedule(
   const sql = await open(deps, storeUrl);
   const [row] = await readConfigDocuments(sql, ["config/schedule.json"]);
   return row?.content ?? null;
-}
-
-const builtHashes = new WeakMap<ConfigFiles, string>();
-
-/** The digest of the bundled files, once per set (they never change within a deployment). */
-function builtHash(files: ConfigFiles): string {
-  let hash = builtHashes.get(files);
-  if (hash === undefined) {
-    hash = configHash(files);
-    builtHashes.set(files, hash);
-  }
-  return hash;
 }
 
 /** GET /api/config with the store on (the route answers 405 with it off, as before). */

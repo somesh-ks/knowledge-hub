@@ -144,7 +144,8 @@ export function storedSourceRow(
 ): HTMLLIElement {
   const row = element("li", "source-row");
   row.dataset.id = source.id;
-  row.dataset.stored = "";
+  // The topics the store files it under: a move to them is no move (editSource, savedView.ts).
+  row.dataset.stored = JSON.stringify(source.topic_ids);
   row.dataset.band = "new";
   row.dataset.score = "-1";
   row.dataset.name = source.name.toLowerCase();

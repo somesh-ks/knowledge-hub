@@ -1,5 +1,5 @@
 import { CATEGORIES } from "@dispatch/core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type HttpClient, HttpError } from "../http.js";
 import { applyOpsToDocuments } from "./applyDocuments.js";
 
@@ -111,11 +111,13 @@ describe("applyOpsToDocuments: source.add in the function", () => {
       postJson: async () => ({}),
     };
     const deadline = 9000;
+    // The clock stands still, so the time the deadline leaves does not depend on the machine.
+    vi.useFakeTimers({ toFake: ["Date"] });
     const added = await addSource(
       slowPage,
       { op: "source.add", url: "https://slow.example/" },
       deadline,
-    );
+    ).finally(() => vi.useRealTimers());
     expect(added.ok && added.documents["config/sources.user.json"]).toContain(
       '"feed_url": "https://slow.example/feeds/main.xml"',
     );

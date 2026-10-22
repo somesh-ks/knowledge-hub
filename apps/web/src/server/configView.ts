@@ -1,5 +1,6 @@
 import { isGeneralTopicId, MIX_STOPS } from "@dispatch/core";
 import { blockedDomainsIn } from "../lib/blockedProfile";
+import { configHash } from "../lib/configHash";
 import { buildManage, type ManageData, type ManageSource, type ManageTopic } from "../lib/manage";
 import { type ScheduleView, scheduleViewOf } from "../lib/schedule";
 import { OTHER_ID, topicLayout } from "../lib/topicPages";
@@ -133,6 +134,7 @@ function sketch(source: ManageSource, page: string): StoreSource {
     enabled: source.enabled,
     lean: source.lean,
     general: source.topic_ids.some((id) => isGeneralTopicId(id)),
+    topic_ids: source.topic_ids,
   };
 }
 
@@ -246,15 +248,15 @@ function blockedOps(built: string[], stored: string[]): ConfigOp[] {
   ];
 }
 
-/**
- * The edits that turn the build's public files into the stored ones, and the sources a page must
- * draw because the build lists them nowhere or on another page. A file the store has no row for, or
- * a row that is not JSON, is the build's (as the engine treats it).
- */
 interface ConfigView {
   manage: ManageData;
   schedule: ScheduleView;
   blocked: string[];
+}
+
+interface BuiltView extends ConfigView {
+  /** Which files they are (lib/configHash.ts), for the page to check against its own. */
+  hash: string;
 }
 
 function viewOf(files: ConfigFiles): ConfigView {
@@ -266,17 +268,27 @@ function viewOf(files: ConfigFiles): ConfigView {
 }
 
 /** The build's side never changes within a deployment: laid out once per bundled set of files. */
-const builtViews = new WeakMap<ConfigFiles, ConfigView>();
+const builtViews = new WeakMap<ConfigFiles, BuiltView>();
 
-function builtView(built: ConfigFiles): ConfigView {
+function builtView(built: ConfigFiles): BuiltView {
   let view = builtViews.get(built);
   if (!view) {
-    view = viewOf(built);
+    view = { ...viewOf(built), hash: configHash(built) };
     builtViews.set(built, view);
   }
   return view;
 }
 
+/** The digest of the files the edits are a diff from (the build's), once per deployment. */
+export function builtHash(built: ConfigFiles): string {
+  return builtView(built).hash;
+}
+
+/**
+ * The edits that turn the build's public files into the stored ones, and the sources a page must
+ * draw because the build lists them nowhere or on another page. A file the store has no row for, or
+ * a row that is not JSON, is the build's (as the engine treats it).
+ */
 export function storeChanges(built: ConfigFiles, storedRows: ConfigFiles): StoreChanges {
   const stored: Record<string, string | undefined> = { ...built };
   for (const [path, text] of Object.entries(storedRows))

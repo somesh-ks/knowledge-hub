@@ -59,15 +59,16 @@ async function readSchedule(
   if (storeUrl !== null) {
     try {
       // Loaded only with the store on, so the function never loads the driver while it is off.
-      const { readStoredSchedule } = await import("./configStore");
-      // A database that hangs must not spend the call: Vercel makes one an hour.
+      // A database that hangs must not spend the call: Vercel makes one an hour. The wait counts
+      // from before the store module loads.
       let timer: ReturnType<typeof setTimeout> | undefined;
       const late = new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error("no answer in time")), STORE_READ_TIMEOUT_MS);
       });
-      const stored = await Promise.race([readStoredSchedule(storeUrl, deps), late]).finally(() =>
-        clearTimeout(timer),
+      const read = import("./configStore").then(({ readStoredSchedule }) =>
+        readStoredSchedule(storeUrl, deps),
       );
+      const stored = await Promise.race([read, late]).finally(() => clearTimeout(timer));
       // A row that is not JSON is skipped, as the run's own copy skips it: main's file stands.
       if (stored !== null && parseJson(stored, (value) => value) !== null) return stored;
     } catch (error) {

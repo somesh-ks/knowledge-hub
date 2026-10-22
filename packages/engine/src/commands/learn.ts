@@ -126,14 +126,14 @@ async function commitRefusal(root: string, push: boolean): Promise<string | null
     if (await isBehindRemote(root)) {
       return "The branch is behind its remote. Run git pull --ff-only first.";
     }
-    // A learn whose push failed left its commit here: a rerun would find nothing to commit and say
-    // so as if all were well, while the commit never reached the remote.
-    if (await isAheadOfRemote(root)) {
-      return "The branch has commits its remote does not (a push that failed?). Run git push first.";
-    }
   } catch (error) {
     const detail = error instanceof Error ? (error.message.split("\n")[0] ?? "") : "";
     return `Cannot reach the remote to check whether the branch is behind (${detail}). Fix the connection, or use --no-push.`;
+  }
+  // A learn whose push failed left its commit here: a rerun would find nothing to commit and say so
+  // as if all were well, while the commit never reached the remote and the store was never written.
+  if (await isAheadOfRemote(root).catch(() => false)) {
+    return "The branch has commits its remote does not have. Push them (git push), then run learn again so the config store gets the change.";
   }
   return null;
 }

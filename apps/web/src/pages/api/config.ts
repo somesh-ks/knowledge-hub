@@ -10,6 +10,7 @@ import builtSchedule from "../../../../../config/schedule.json?raw";
 import seedSources from "../../../../../config/sources.json?raw";
 import builtSourcesUser from "../../../../../config/sources.user.json?raw";
 import builtTopics from "../../../../../config/topics.json?raw";
+import type { BuiltConfigFiles } from "../../lib/configHash";
 import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
@@ -45,7 +46,8 @@ export const POST: APIRoute = ({ request, url }) =>
 const notAllowed = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });
 
-const builtFiles = {
+// Typed by BUILT_CONFIG_PATHS, so the digest the pages carry covers exactly the files diffed from.
+const builtFiles: BuiltConfigFiles = {
   "config/topics.json": builtTopics,
   "config/sources.json": seedSources,
   "config/sources.user.json": builtSourcesUser,

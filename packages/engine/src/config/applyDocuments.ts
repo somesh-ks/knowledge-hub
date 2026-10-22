@@ -59,12 +59,15 @@ const DEADLINE_MARGIN_MS = 250;
 const lookupOptions = (
   options: RequestOptions | undefined,
   deadlineAt: number,
+  deadline: AbortSignal,
 ): RequestOptions => ({
   ...options,
   timeoutMs: Math.max(
     1,
     Math.min(options?.timeoutMs ?? LOOKUP_TIMEOUT_MS, deadlineAt - Date.now() - DEADLINE_MARGIN_MS),
   ),
+  // Discovery's retry gets the time left too: once the deadline passes, nothing is asked again.
+  signal: options?.signal ? AbortSignal.any([options.signal, deadline]) : deadline,
 });
 
 /**
@@ -77,6 +80,7 @@ function watchNetwork(
   failed: { network: boolean },
   deadlineAt: number,
 ): HttpClient {
+  const deadline = AbortSignal.timeout(Math.max(1, deadlineAt - Date.now()));
   const watch = <T>(call: Promise<T>): Promise<T> =>
     call.catch((error: unknown) => {
       const status = (error as { status?: unknown }).status;
@@ -86,10 +90,12 @@ function watchNetwork(
       throw error;
     });
   return {
-    fetchText: (url, options) => watch(http.fetchText(url, lookupOptions(options, deadlineAt))),
-    getJson: (url, options) => watch(http.getJson(url, lookupOptions(options, deadlineAt))),
+    fetchText: (url, options) =>
+      watch(http.fetchText(url, lookupOptions(options, deadlineAt, deadline))),
+    getJson: (url, options) =>
+      watch(http.getJson(url, lookupOptions(options, deadlineAt, deadline))),
     postJson: (url, body, options) =>
-      watch(http.postJson(url, body, lookupOptions(options, deadlineAt))),
+      watch(http.postJson(url, body, lookupOptions(options, deadlineAt, deadline))),
   };
 }
 

@@ -55,19 +55,25 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (storeOn()) await view?.loadStore();
     const byKey = fields();
     const byKeyChips = chips.map((chip) => chip.checked);
+    // The starting point is the build with what was saved laid over it, never a value typed meanwhile:
+    // the controls go back to the build, take the overlay, and only then the typed values again.
+    for (const control of controls) {
+      const value = built[control.dataset.f ?? ""];
+      if (value !== undefined) view?.setControl(control, value);
+    }
+    chips.forEach((chip, index) => {
+      chip.checked = Boolean(builtChips[index]);
+    });
     saved = view?.readSaved() ?? [];
     view?.overlayPodcast(root, controls, built, saved);
     startFields = fields();
     startChips = chips.map((chip) => chip.checked);
-    for (const [key, value] of Object.entries(byKey)) {
-      if (value === built[key]) continue;
+    for (const control of controls) {
+      const key = control.dataset.f ?? "";
+      const value = byKey[key];
+      if (value === undefined || value === built[key]) continue;
       typed = true;
-      for (const control of controls) {
-        if (control.dataset.f !== key) continue;
-        if (control instanceof HTMLSelectElement) control.value = value;
-        else if (control.type === "radio") control.checked = control.value === value;
-        else control.checked = value === "true";
-      }
+      view?.setControl(control, value);
     }
     chips.forEach((chip, index) => {
       if (byKeyChips[index] === builtChips[index]) return;

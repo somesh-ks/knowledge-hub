@@ -233,6 +233,12 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
         return false;
       },
     );
+    // With the store off, a note left by an earlier run that cannot be removed would let this run's
+    // commit carry config files: stop rather than trust it.
+    if (storeUrl === null && !noted) {
+      err("dispatch: .cache/config-store.json cannot be removed; remove it, then run again.\n");
+      return 1;
+    }
     if (storeUrl !== null && noted) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);

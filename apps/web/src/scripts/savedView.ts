@@ -147,6 +147,17 @@ function addedLines(root: HTMLElement, op: ConfigOp): [Element, string][] {
 
 // ------------------------------------------------------------------------------------- podcast pages
 
+/** Puts a value in a schedule control, as the editor reads one ("9", "true", a voice id). */
+export function setControl(control: HTMLInputElement | HTMLSelectElement, value: string): void {
+  if (control instanceof HTMLSelectElement) {
+    // A voice the page was not built with: listed as the page lists a saved one until the list loads.
+    if (![...control.options].some((option) => option.value === value))
+      control.append(new Option("Saved voice", value));
+    control.value = value;
+  } else if (control.type === "radio") control.checked = control.value === value;
+  else control.checked = value === "true";
+}
+
 /**
  * A podcast page: the schedule controls and the topic chips take what was saved. `baked` is what the
  * controls hold as built. Runs before the editor reads its starting point. True when anything showed.
@@ -161,14 +172,7 @@ export function overlayPodcast(
   let shown = Object.keys(saved).length > 0;
   for (const control of controls) {
     const value = saved[control.dataset.f ?? ""];
-    if (value === undefined) continue;
-    if (control instanceof HTMLSelectElement) {
-      // A voice the page was not built with: listed as the page lists a saved one until the list loads.
-      if (![...control.options].some((option) => option.value === value))
-        control.append(new Option("Saved voice", value));
-      control.value = value;
-    } else if (control.type === "radio") control.checked = control.value === value;
-    else control.checked = value === "true";
+    if (value !== undefined) setControl(control, value);
   }
   const { removedTopics } = savedTopics(ops);
   for (const box of root.querySelectorAll<HTMLInputElement>("input[data-scope]")) {
@@ -499,11 +503,12 @@ function editSource(
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;
-  // A row drawn from the store is on the page it is filed under already (drawStored).
+  // A row drawn from the store is on the page its stored topics file it under (drawStored): only a
+  // later move, made here, is one still to come.
   if (
     topicId !== undefined &&
     topicId !== (facts.topic_id ?? "") &&
-    row.dataset.stored === undefined
+    row.dataset.stored !== JSON.stringify(edit.topic_ids)
   ) {
     const panel = document.querySelector<HTMLTemplateElement>("#topics-panel-template");
     const options = panel?.content.querySelectorAll<HTMLOptionElement>("[data-edit-topic] option");
