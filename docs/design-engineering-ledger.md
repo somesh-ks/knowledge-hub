@@ -245,7 +245,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Chapter gaps are masked into the track.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
-- **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126).
+- **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126). The ended view had kept the Stories tab (audit, 2026-10-22): the tab line now holds Up next alone, so nothing under it moves and a focused tab keeps focus, until the recording plays again; `firstPlay.spec.ts` asserts no Stories tab at the end.
 
 ### The bottom stack on a phone
 
@@ -287,6 +287,7 @@ The navigation bar, the player bar, the floating button, the run indicator and t
   - Every element of the stack is held by its bottom edge, and the player box is `100dvh`. The stack now moves with mobile Chrome's address bar in the same frame instead of drifting apart and snapping back.
   - Not verifiable headless; it needs a phone recording.
 - **One control, the whole bar** (D102). No chevron; the whole bar opens and closes the player; a keyboard Close exists at every width. The bar's Tab order follows its drawn order (`reading-flow`, D97).
+- **Close on a full-screen phone sheet** (owner, 2026-10-22). D152: D144 hid the X on every phone sheet; a full-screen one (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows it again at the row's end, as on a desktop. The partial sheets (menu sheets, the emoji picker, the React drawers) keep no X and close by pull or a tap outside. One selector in `create-sheet.css`, under `SheetHeader.astro`.
 - **Create is an action, not a place** (2026-10-08). An agent added it as a navigation tab; the owner made it a solid button, then the floating button. It opens a native `<dialog>`, full screen on a phone and a 28rem panel from 40rem, cloned on first press. A history entry lets Back close it (`createSheet.ts:79-90`). The floating button hides while the player or a dialog is open. "Quite cramped" led to a wider panel with spaced groups and the unlabelled mode switch on top (2026-10-12, D114).
 - **Run progress is a line, not a page** ("so we dont take an entire page", 2026-10-08). It sits bottom-left of the side column, or as a thin bar over the player bar on a phone. It persists across moves through `sessionStorage` and `transition:persist`, with `role="status"` (`RunStatus.astro:47`). A failed run shows an alert glyph in the danger colour at the same card height, clamped to two lines; dismissing it sends focus to Create, not to `body`.
 - **Tablet and phone gaps.** A 56px gap opened under the bar on a tablet while the player was open, and the player's story rows jumped 6px when the story changed; both fixed after screenshot review (2026-10-08).
@@ -333,6 +334,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Glyphs and art.**
   - The plus and the More dots were too thin. Now Phosphor bold, with More as three drawn circles of radius 20 (2026-10-10).
   - Icon swaps scale from 0.95, not 0.6 (2026-10-11 audit).
+  - Latest is Phosphor FireSimple, rest and current: a plain outline with no inner lick, as "simple outline ones and not have inner details" asked (D133; built 2026-10-22 in `tokens/glyphs.json`).
   - Covers are `draggable="false"`, so a mouse flick closes the player instead of dragging an image (2026-10-10).
   - A cover that cannot load shows its palette, never the broken-image glyph (D93).
   - A headline keeps a hyphenated word whole with `inline-block`, so `text-wrap: balance` still works (D93).
@@ -389,7 +391,11 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Topics are always available: no locked or disabled choices. A locked chip at opacity 0.32 read at about 1.5:1 (2026-10-12).
   - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).
   - The add-topic form uses `novalidate` with inline messages; an emoji-only name no longer becomes the id "topic" (2026-10-08).
-  - Model headings sit on the left in regular weight (D113, #125).
+  - Model headings sit on the left in regular weight (D113, #125). The emoji picker's section labels are h3s and were bold by the browser's default; they are regular (audit, 2026-10-22, `topics.css .emoji-label`).
+  - The Listen in list on a phone opened under the sticky search block (one under the header), hiding Catch up; the card that holds the open list is lifted to the header's level (audit, 2026-10-22, `topics.css`).
+  - Unticked chips in a `.card-group` take the overlay tone, not the raised one: in dark the raised tone equals the card's, so Daily and Weekly's topic chips read as bare text (audit, 2026-10-22, `primitives.css`).
+  - The Podcast voice subtitle is only "Daily, Weekly and Catch up episodes are read in these voices." (owner, 2026-10-21); the "Weekly keeps the voice it had before" note is gone (2026-10-22).
+  - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
@@ -544,6 +550,7 @@ Each is a chat ask with no later record of being built or dropped. Check the cod
 - The Apple touch icon's alpha: iOS composites it on black (DD-006).
 - The played chip growing 11px with a mouse (state.md).
 - A real-phone check of the bottom stack, and Safari 27 and WebKit for everything; neither has run.
+- An emoji picker on the three group pages (AI, Design, Technology), asked as "edit emojis with a picker" (2026-10-21). Not a rule: a group is not a stored topic, so the picker has no record to save to. It needs a group emoji in the config and its read path, which waits on the owner's group override question (`state.md` Next 1; audit, 2026-10-22).
 - Settings changes reaching pages other than Settings instantly. Today they take about a minute through commit and redeploy (D79).
 
 ## 9. Dreams
