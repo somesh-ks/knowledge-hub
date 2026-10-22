@@ -480,10 +480,10 @@ async function downloadedApi(request) {
  * asset leaves every saved page alone. Downloads (AUDIO_CACHE) are kept.
  */
 let healing = false;
-function healed(event, answer) {
+function healed(event, answer, probe = event.request) {
   return answer.catch(async (error) => {
     const response = await fetch(event.request);
-    const readable = await caches.match(event.request).then(
+    const readable = await caches.match(probe).then(
       () => true,
       () => false,
     );
@@ -542,6 +542,7 @@ self.addEventListener("fetch", (event) => {
       healed(
         event,
         networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+        LATEST_PATH,
       ),
     );
   } else if (isPage(request)) {

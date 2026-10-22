@@ -223,6 +223,31 @@ describe("service worker: caching strategies", () => {
     expect(await worker.caches.open(name)).not.toBe(broken);
   });
 
+  // /latest.json is stored under its bare path: probing the request (with its query) never saw the
+  // corrupt entry, so it was never healed.
+  it("rebuilds its caches when only the saved /latest.json entry is unreadable", async () => {
+    let online = true;
+    const worker = load(() => {
+      if (!online) {
+        online = true;
+        throw new TypeError("network blip");
+      }
+      return new Response("{}");
+    });
+    await worker.dispatchFetch(request("/latest.json?t=1"));
+    const name = `dispatch-pages-${CURRENT_VERSION}`;
+    const broken = await worker.caches.open(name);
+    const match = worker.caches.match.bind(worker.caches);
+    worker.caches.match = async (key, options) => {
+      if (key === "/latest.json") throw new Error("corrupt entry");
+      return match(key, options);
+    };
+    online = false;
+    const answer = await worker.dispatchFetch(request("/latest.json?t=2"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(name)).not.toBe(broken);
+  });
+
   // A dropped connection on an uncached asset once emptied the shell, pages and media caches: the
   // saved briefings the person reads offline went with it.
   it("keeps every saved page when a network blip rejects a strategy and the retry answers", async () => {

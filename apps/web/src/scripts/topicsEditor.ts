@@ -535,8 +535,8 @@ export function mountEditor(root: HTMLElement): Editor {
 
   /**
    * A source deleted in the panel: Delete asks first, over the panel, and says whether it was
-   * confirmed. Confirmed, the row leaves the list at once and the removal is sent now, with no wait
-   * and no Undo (a topic's removal keeps its own). The row stays gone on a reload before the build
+   * confirmed. Confirmed, the row leaves the list at once and the removal waits behind an Undo
+   * toast (deleteNow) before it is sent. The row stays gone on a reload before the build
    * (savedView.ts reads the saved removal).
    */
   const removeSource = (id: string): Promise<boolean> => {

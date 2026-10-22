@@ -53,7 +53,7 @@ jobs:
           gh run list --workflow run.yml --limit 20 --json databaseId,status,conclusion,createdAt,event > "$runs" || echo '[]' > "$runs"
           npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
-          jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json"
+          jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
 
       - name: Report and heal
         shell: bash
