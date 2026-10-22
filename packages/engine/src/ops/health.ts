@@ -101,6 +101,12 @@ export const SHORT_EPISODE_FAULT = 0.75;
 export const SHORT_STORY_WORDS = Math.floor(VOICE_LIMITS.summaryMinWords / 3);
 /** A deploy that has not picked up a new digest after this long has failed (Hobby author check). */
 export const DEPLOY_LAG_MS = 45 * 60_000;
+/**
+ * A deploy missing this long will not clear by itself: a fault (D159). #220's vercel.json failed
+ * Vercel's schema and every deploy for hours, and a warning reaches the owner only on Mondays (the
+ * `health-warnings` issue). Counted from the oldest commit the site lacks, since digests land daily.
+ */
+export const DEPLOY_MISSING_FAULT_MS = 24 * 60 * 60_000;
 const DAY_MS = 86_400_000;
 const TIMEOUT_MS = 20_000;
 
@@ -399,7 +405,8 @@ async function checkSite(
   // watched path skips the deploy (vercel.json diffs HEAD^ only), and this says so.
   // A build named by its start time (no commit: the dev server, a build off Vercel) says nothing.
   // Such a name is all digits, so a commit prefix must hold a letter; an all-digit commit prefix
-  // (rare) is skipped too. A warning: the owner can redeploy, and it may clear by itself.
+  // (rare) is skipped too. A warning at first, since the next push may clear it; a fault once the
+  // oldest commit it lacks is a day old (DEPLOY_MISSING_FAULT_MS).
   if (
     main &&
     typeof buildName === "string" &&
@@ -410,11 +417,17 @@ async function checkSite(
     if (holds === true) {
       sink.passed.push(`the site's build holds ${main.sha.slice(0, 12)}`);
     } else if (holds === false) {
-      sink.warn(
-        "site_behind",
-        "reliability",
-        `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, committed ${Math.round((now.getTime() - main.at) / 60_000)} minutes ago: that deploy did not happen.`,
-      );
+      const lag = now.getTime() - ((await main.missingSince(buildName)) ?? main.at);
+      const text = `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, nor commits from ${Math.round(lag / 60_000)} minutes ago on: those deploys did not happen.`;
+      if (lag > DEPLOY_MISSING_FAULT_MS) {
+        sink.fault(
+          "site_behind",
+          "reliability",
+          `${text} Read the deployment's log on Vercel, then redeploy.`,
+        );
+      } else {
+        sink.warn("site_behind", "reliability", text);
+      }
     }
   }
   if (worker && build) {

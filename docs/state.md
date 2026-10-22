@@ -10,7 +10,7 @@ Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run; episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Deploy: Vercel deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
+- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`.
 
 ## Tests
 

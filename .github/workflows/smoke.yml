@@ -3,7 +3,10 @@ name: smoke
 # Asks the live site three read-only questions after every production deploy and once a day: does
 # the server load, does it have its settings, and does GitHub accept its token. On 2026-10-14 an
 # adapter update made every API route answer 500 for a day while CI stayed green, because nothing
-# looked at the deployed site (docs/learnings.md). A failed run emails the repository owner.
+# looked at the deployed site (docs/learnings.md). A run Vercel started belongs to vercel[bot], whose
+# failure email reaches no one, so a failed run opens or comments on one issue labelled `smoke` and
+# the next passing run closes it (D159). A failed deploy leaves the last good one live, which this
+# cannot tell from a skipped one: `dispatch health` faults `site_behind` for it a day on.
 
 on:
   deployment_status:
@@ -13,9 +16,15 @@ on:
 
 permissions:
   actions: read
+  issues: write
 
+# A newer check of the live site replaces an older one; Vercel's other events (a pending deploy, a
+# preview) skip the job and get a group of their own, so they never cancel a check that is failing.
 concurrency:
-  group: smoke
+  group: >-
+    smoke-${{ (github.event_name != 'deployment_status' ||
+    (github.event.deployment_status.state == 'success' &&
+    github.event.deployment.environment == 'Production')) && 'live' || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -59,3 +68,29 @@ jobs:
             [ "$attempt" = 3 ] || sleep 20
           done
           exit 1
+
+      - name: Tell the owner
+        # A cancelled run (a newer check took over) says nothing either way.
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          if ! open_issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --label smoke --state open --limit 1 --json number --jq '.[0].number // empty'); then
+            echo "::warning::Could not read the smoke issue; this run's result reaches no one."
+            exit 1
+          fi
+          if [ "$STATUS" = "success" ]; then
+            [ -z "$open_issue" ] || gh issue close "$open_issue" --repo "$GITHUB_REPOSITORY" --comment "The live site passed on $(date -u +%F) ([run]($RUN_URL))."
+            exit 0
+          fi
+          [ "$STATUS" = "failure" ] || exit 0
+          body="The live site failed its smoke check on $(date -u '+%F %H:%M') UTC; the run names the question it failed: [run]($RUN_URL)."
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh label create smoke --repo "$GITHUB_REPOSITORY" --color B60205 --description "smoke.yml: the live site failed its smoke check" --force >/dev/null
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "Smoke: the live site failed" --label smoke --body "$body" >/dev/null
+          fi
