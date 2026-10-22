@@ -104,7 +104,8 @@ export const DEPLOY_LAG_MS = 45 * 60_000;
 /**
  * A deploy missing this long will not clear by itself: a fault (D159). #220's vercel.json failed
  * Vercel's schema and every deploy for hours, and a warning reaches the owner only on Mondays (the
- * `health-warnings` issue). Counted from the oldest commit the site lacks, since digests land daily.
+ * `health-warnings` issue). Counted from the oldest commit the site lacks, since a digest lands every
+ * second day and would restart a clock counted from the newest.
  */
 export const DEPLOY_MISSING_FAULT_MS = 24 * 60 * 60_000;
 const DAY_MS = 86_400_000;
@@ -418,12 +419,16 @@ async function checkSite(
       sink.passed.push(`the site's build holds ${main.sha.slice(0, 12)}`);
     } else if (holds === false) {
       const lag = now.getTime() - ((await main.missingSince(buildName)) ?? main.at);
-      const text = `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, nor commits from ${Math.round(lag / 60_000)} minutes ago on: those deploys did not happen.`;
+      const ago =
+        lag >= 2 * 3_600_000
+          ? `${Math.round(lag / 3_600_000)} hours`
+          : `${Math.round(lag / 60_000)} minutes`;
+      const text = `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, nor commits from ${ago} ago on: those deploys did not happen.`;
       if (lag > DEPLOY_MISSING_FAULT_MS) {
         sink.fault(
           "site_behind",
           "reliability",
-          `${text} Read the deployment's log on Vercel, then redeploy.`,
+          `${text} Redeploy from Vercel; its log says whether the build failed or was skipped.`,
         );
       } else {
         sink.warn("site_behind", "reliability", text);

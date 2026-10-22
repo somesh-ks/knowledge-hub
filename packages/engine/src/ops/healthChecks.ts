@@ -143,17 +143,28 @@ export async function readWatchedHead(root: string): Promise<WatchedHead | undef
     return {
       sha,
       at: Number(seconds) * 1000,
-      missingSince: (build) =>
-        git("log", "--format=%ct %an <%ae>", `${build}..${sha}`, "--", ...watched).then(
-          (out) => {
-            const times = out
-              .split("\n")
-              .filter((line) => line !== "" && !line.includes("[bot]"))
-              .map((line) => Number(line.split(" ")[0]) * 1000);
-            return times.length > 0 ? Math.min(...times) : null;
-          },
-          () => null,
-        ),
+      // Main's own line only (--first-parent): a squash merge's time is when it landed, never when
+      // its branch was written. A build off main's line (a rewritten main) cannot tell.
+      missingSince: async (build) => {
+        try {
+          await git("merge-base", "--is-ancestor", build, sha);
+          const out = await git(
+            "log",
+            "--first-parent",
+            "--format=%ct %an <%ae>",
+            `${build}..${sha}`,
+            "--",
+            ...watched,
+          );
+          const times = out
+            .split("\n")
+            .filter((line) => line !== "" && !line.includes("[bot]"))
+            .map((line) => Number(line.split(" ")[0]) * 1000);
+          return times.length > 0 ? Math.min(...times) : null;
+        } catch {
+          return null;
+        }
+      },
       // Exit 1 is "not an ancestor"; 128 (an unknown commit) and the rest cannot tell.
       includes: (build) =>
         git("merge-base", "--is-ancestor", sha, build).then(

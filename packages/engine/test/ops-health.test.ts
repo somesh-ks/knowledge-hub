@@ -249,8 +249,11 @@ describe("dispatch health", () => {
     git(root, "checkout", "-q", "main");
     await put("Digests/first.md", "x");
     process.env.GIT_COMMITTER_DATE = "2026-10-20T07:00:00Z";
-    await commitAll(root, "chore: never deployed");
-    delete process.env.GIT_COMMITTER_DATE;
+    try {
+      await commitAll(root, "chore: never deployed");
+    } finally {
+      delete process.env.GIT_COMMITTER_DATE;
+    }
     await put("Digests/second.md", "x");
     const newest = await commitAll(root, "chore: nor this");
     const behind = await readWatchedHead(root);

@@ -18,14 +18,15 @@ permissions:
   actions: read
   issues: write
 
-# A newer check of the live site replaces an older one; Vercel's other events (a pending deploy, a
-# preview) skip the job and get a group of their own, so they never cancel a check that is failing.
+# One check of the live site at a time, never cancelled, so a failing one always files its issue; a
+# newer one waits. Vercel's other events (a pending deploy, a preview) skip the job and get a group
+# of their own, so they never take a waiting check's place.
 concurrency:
   group: >-
     smoke-${{ (github.event_name != 'deployment_status' ||
     (github.event.deployment_status.state == 'success' &&
     github.event.deployment.environment == 'Production')) && 'live' || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   smoke:
@@ -70,7 +71,6 @@ jobs:
           exit 1
 
       - name: Tell the owner
-        # A cancelled run (a newer check took over) says nothing either way.
         if: always()
         env:
           STATUS: ${{ job.status }}
@@ -78,12 +78,16 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
+          # A GitHub hiccup here is a warning on the run, never the site's failure.
           if ! open_issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --label smoke --state open --limit 1 --json number --jq '.[0].number // empty'); then
             echo "::warning::Could not read the smoke issue; this run's result reaches no one."
-            exit 1
+            exit 0
           fi
           if [ "$STATUS" = "success" ]; then
-            [ -z "$open_issue" ] || gh issue close "$open_issue" --repo "$GITHUB_REPOSITORY" --comment "The live site passed on $(date -u +%F) ([run]($RUN_URL))."
+            if [ -n "$open_issue" ]; then
+              gh issue close "$open_issue" --repo "$GITHUB_REPOSITORY" --comment "The live site passed on $(date -u +%F) ([run]($RUN_URL))." ||
+                echo "::warning::Could not close smoke issue #$open_issue."
+            fi
             exit 0
           fi
           [ "$STATUS" = "failure" ] || exit 0
