@@ -162,6 +162,10 @@ jobs:
           SINCE: ${{ inputs.since }}
           REPLACE: ${{ inputs.replace }}
           DRY: ${{ inputs.dry_run }}
+          # The config store (D149): with the switch on, the gate copies the stored config over
+          # config/ before the run reads it. Either one unset leaves the run on the committed files.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
         run: |
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
