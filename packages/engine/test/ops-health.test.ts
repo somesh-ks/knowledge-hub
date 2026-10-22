@@ -239,7 +239,7 @@ describe("dispatch health", () => {
   // over 24 hours across builds (content commits redeploy several times a day), and a stored
   // message reaches the issue as inline code, so an @mention in it pings no one.
   it("warns on a run of blocked scripts or errors across builds, and never faults", () => {
-    const group = (kind: "csp" | "error", build: string, day: number, extra = {}) => ({
+    const group = (kind: "csp" | "error" | "server", build: string, day: number, extra = {}) => ({
       kind,
       page: "/settings",
       message: kind === "error" ? "x is @someone`s" : "",
@@ -265,15 +265,19 @@ describe("dispatch health", () => {
         group("error", "build2", 8),
         group("error", "build2", 50, { message: "cross-origin script error" }),
         group("csp", "build0", 0, { total: 9 }),
+        // A burst of 5xx a function answered: a warning, never a fault (a deploy or upstream blip).
+        group("server", "build2", 3, { page: "api/podcast", message: "status 503" }),
       ],
       sink,
     );
     expect(found.map((line) => line.split(" ").slice(0, 2).join(" "))).toEqual([
       "warn client_faults",
       "warn client_faults",
+      "warn client_faults",
     ]);
     expect(found[0]).toContain("`build1`, `build2`");
     expect(found[1]).toContain("`x is @someones`");
+    expect(found[2]).toContain("`api/podcast`: 3 server errors");
     found.length = 0;
     checkClientFaults([group("csp", "build1", 2), group("error", "build1", 19)], sink);
     expect(found).toEqual([]);

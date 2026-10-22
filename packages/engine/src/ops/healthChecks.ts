@@ -513,6 +513,8 @@ export async function readStore(
 export const SCRIPT_BLOCKS_PER_DAY = 3;
 /** Client errors on one route in 24 hours from this many on are a warning (opaque ones not counted). */
 export const CLIENT_ERRORS_PER_DAY = 20;
+/** Server errors (a 5xx a site function answered) on one route in 24 hours from this many on warn. */
+export const SERVER_FAULTS_PER_DAY = 3;
 /** CSP directives whose violation means a script did not run: a feature broken, or an injection. */
 const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 
@@ -544,8 +546,13 @@ export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, si
     );
   }
   const errors = new Map<string, ClientFaultGroup[]>();
+  const server = new Map<string, ClientFaultGroup[]>();
   for (const group of day) {
     if (group.kind === "csp" || group.message === OPAQUE_SCRIPT_ERROR) continue;
+    if (group.kind === "server") {
+      server.set(group.page, [...(server.get(group.page) ?? []), group]);
+      continue;
+    }
     errors.set(group.page, [...(errors.get(group.page) ?? []), group]);
   }
   let warned = blocked >= SCRIPT_BLOCKS_PER_DAY;
@@ -560,7 +567,20 @@ export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, si
       `${code(page)}: ${count} client errors in 24 hours (builds ${builds(list)}), most often ${code(top?.message ?? "")}.`,
     );
   }
-  if (!warned) sink.passed.push("no run of blocked scripts or client errors in 24 hours");
+  // A 5xx a function answered (D158): a warning, since a deploy or an upstream blip (Speechify,
+  // Anthropic) can raise a burst.
+  for (const [route, list] of server) {
+    const count = list.reduce((sum, group) => sum + group.day, 0);
+    if (count < SERVER_FAULTS_PER_DAY) continue;
+    warned = true;
+    const top = [...list].sort((a, b) => b.day - a.day)[0];
+    sink.warn(
+      "client_faults",
+      "reliability",
+      `${code(route)}: ${count} server errors in 24 hours (builds ${builds(list)}), most often ${code(top?.message ?? "")}.`,
+    );
+  }
+  if (!warned) sink.passed.push("no run of blocked scripts, client or server errors in 24 hours");
 }
 
 /**

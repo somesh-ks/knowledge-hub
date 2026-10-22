@@ -1,3 +1,4 @@
+import type { ClientFault } from "@dispatch/engine/faults-store";
 import { describe, expect, it, vi } from "vitest";
 import { answerWithRef, toResponse } from "./http";
 
@@ -62,6 +63,36 @@ describe("answerWithRef", () => {
       body: { error: "wrong_passphrase" },
     }));
     expect(await refused.json()).toEqual({ error: "wrong_passphrase" });
+    spy.mockRestore();
+  });
+
+  // A 5xx lived only in a log Hobby keeps an hour (D158). It is kept as a fault, by route label and
+  // the start of its message, without ever holding the answer: a store that hangs delays nothing.
+  it("keeps a server failure as a fault without waiting on the store", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const kept: ClientFault[] = [];
+    const hangs = (fault: ClientFault) => {
+      kept.push(fault);
+      return new Promise<void>(() => undefined);
+    };
+    const crashed = await answerWithRef(
+      "api/x",
+      () => Promise.reject(new TypeError("Cannot read 'secret' of undefined")),
+      "0a0b0c",
+      hangs,
+    );
+    expect(crashed.status).toBe(500);
+    await answerWithRef(
+      "api/x",
+      async () => ({ status: 503, body: { error: "unavailable" } }),
+      "0a0b0d",
+      hangs,
+    );
+    await answerWithRef("api/x", async () => ({ status: 401, body: {} }), "0a0b0e", hangs);
+    expect(kept.map(({ kind, page, message }) => ({ kind, page, message }))).toEqual([
+      { kind: "server", page: "api/x", message: "Cannot read" },
+      { kind: "server", page: "api/x", message: "status 503" },
+    ]);
     spy.mockRestore();
   });
 });
