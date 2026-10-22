@@ -79,7 +79,6 @@ export function handleReport(
   deps: ReportDeps,
   limiter: WindowLimiter = shared,
 ): ApiResult<null | { error: string }> {
-  if (!takeSlot(limiter, REPORTS_PER_MINUTE, deps.now())) return { status: 204, body: null };
   if (body.length > MAX_REPORT_CHARS) return { status: 413, body: { error: "too_large" } };
   let data: Record<string, unknown>;
   try {
@@ -87,9 +86,12 @@ export function handleReport(
   } catch {
     return { status: 400, body: { error: "invalid_json" } };
   }
-  if (typeof data !== "object" || data === null || !KINDS.has(data.kind as string)) {
+  if (typeof data !== "object" || data === null || typeof data.kind !== "string") {
     return { status: 400, body: { error: "invalid_report" } };
   }
+  // A kind this build no longer logs (an old bundle's "vitals") is answered before it spends a slot.
+  if (!KINDS.has(data.kind)) return { status: 204, body: null };
+  if (!takeSlot(limiter, REPORTS_PER_MINUTE, deps.now())) return { status: 204, body: null };
   const line = {
     kind: data.kind,
     page: pathOnly(data.page),

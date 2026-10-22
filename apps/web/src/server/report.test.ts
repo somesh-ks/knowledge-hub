@@ -28,6 +28,19 @@ describe("handleReport", () => {
     expect(lines).toHaveLength(REPORTS_PER_MINUTE + 1);
   });
 
+  // A page still on an old bundle sends "vitals" reports; each spent a slot, crowding out real faults.
+  it("answers a kind it no longer knows without spending a slot", () => {
+    const lines: string[] = [];
+    const limiter = { windowStart: 0, count: 0 };
+    const deps = { log: (line: string) => lines.push(line), now: () => 1_000_000 };
+    const old = JSON.stringify({ kind: "vitals", page: "/", metrics: [] });
+    for (let i = 0; i < REPORTS_PER_MINUTE; i++) {
+      expect(handleReport(old, deps, limiter).status).toBe(204);
+    }
+    handleReport(JSON.stringify({ kind: "error", page: "/", message: "boom" }), deps, limiter);
+    expect(lines).toHaveLength(1);
+  });
+
   // A body past the cap must stop being read at the cap, not be buffered whole first.
   it("stops reading a body at the byte cap", async () => {
     let pulled = 0;
