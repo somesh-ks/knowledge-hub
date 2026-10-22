@@ -29,6 +29,8 @@ const PLACEHOLDERS: Record<string, string[]> = {
   '"$DELETE_ID"': ["2026-10-01"],
   // health.yml's `gh run list` output: an empty list.
   '"$runs"': [RUNS_FILE],
+  // health.yml's probe output; one that failed wrote none, which must not be a usage error.
+  '"$perf"': [join(tmpdir(), `dispatch-contract-perf-${process.pid}-missing.json`)],
   '"$FEEDBACK"': ["Shorter summaries"],
   '"$TOPICS"': ["ai,design"],
   '"$OP"': ['{"op":"weights.set","weights":{"design_engineering_craft":0.9}}'],
