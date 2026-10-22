@@ -245,7 +245,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Chapter gaps are masked into the track.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
-- **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126). The ended view had kept the Stories tab (audit, 2026-10-22): it now draws a plain "Up next" title (`.player-section-title`) and no tabs until the recording plays again; `firstPlay.spec.ts` asserts no Stories tab at the end.
+- **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126). The ended view had kept the Stories tab (audit, 2026-10-22): the tab line now holds Up next alone, so nothing under it moves and a focused tab keeps focus, until the recording plays again; `firstPlay.spec.ts` asserts no Stories tab at the end.
 
 ### The bottom stack on a phone
 
@@ -287,7 +287,7 @@ The navigation bar, the player bar, the floating button, the run indicator and t
   - Every element of the stack is held by its bottom edge, and the player box is `100dvh`. The stack now moves with mobile Chrome's address bar in the same frame instead of drifting apart and snapping back.
   - Not verifiable headless; it needs a phone recording.
 - **One control, the whole bar** (D102). No chevron; the whole bar opens and closes the player; a keyboard Close exists at every width. The bar's Tab order follows its drawn order (`reading-flow`, D97).
-- **Close on a full-screen phone sheet** (owner, 2026-10-22). D144 hid the X on every phone sheet; a full-screen one (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows it again at the row's end, as on a desktop. The partial sheets (menu sheets, the emoji picker, the React drawers) keep no X and close by pull or a tap outside. One selector in `create-sheet.css`, under `SheetHeader.astro`.
+- **Close on a full-screen phone sheet** (owner, 2026-10-22). D150: D144 hid the X on every phone sheet; a full-screen one (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows it again at the row's end, as on a desktop. The partial sheets (menu sheets, the emoji picker, the React drawers) keep no X and close by pull or a tap outside. One selector in `create-sheet.css`, under `SheetHeader.astro`.
 - **Create is an action, not a place** (2026-10-08). An agent added it as a navigation tab; the owner made it a solid button, then the floating button. It opens a native `<dialog>`, full screen on a phone and a 28rem panel from 40rem, cloned on first press. A history entry lets Back close it (`createSheet.ts:79-90`). The floating button hides while the player or a dialog is open. "Quite cramped" led to a wider panel with spaced groups and the unlabelled mode switch on top (2026-10-12, D114).
 - **Run progress is a line, not a page** ("so we dont take an entire page", 2026-10-08). It sits bottom-left of the side column, or as a thin bar over the player bar on a phone. It persists across moves through `sessionStorage` and `transition:persist`, with `role="status"` (`RunStatus.astro:47`). A failed run shows an alert glyph in the danger colour at the same card height, clamped to two lines; dismissing it sends focus to Create, not to `body`.
 - **Tablet and phone gaps.** A 56px gap opened under the bar on a tablet while the player was open, and the player's story rows jumped 6px when the story changed; both fixed after screenshot review (2026-10-08).
@@ -550,7 +550,7 @@ Each is a chat ask with no later record of being built or dropped. Check the cod
 - The Apple touch icon's alpha: iOS composites it on black (DD-006).
 - The played chip growing 11px with a mouse (state.md).
 - A real-phone check of the bottom stack, and Safari 27 and WebKit for everything; neither has run.
-- An emoji picker on the three group pages (AI, Design, Technology), asked as "edit emojis with a picker" (2026-10-21). Not a rule: a group is not a stored topic, so the picker has no record to save to. It needs a group emoji in the config and its read path (audit, 2026-10-22).
+- An emoji picker on the three group pages (AI, Design, Technology), asked as "edit emojis with a picker" (2026-10-21). Not a rule: a group is not a stored topic, so the picker has no record to save to. It needs a group emoji in the config and its read path, which waits on the owner's group override question (`state.md` Next 1; audit, 2026-10-22).
 - Settings changes reaching pages other than Settings instantly. Today they take about a minute through commit and redeploy (D79).
 
 ## 9. Dreams

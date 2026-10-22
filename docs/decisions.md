@@ -161,6 +161,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
+| D150 | Full-screen phone sheets show Close | amends D144 |
 
 ---
 
@@ -1642,3 +1643,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Read path: `GET /api/config` returns, with each version, only what the built pages already publish (topics, the added sources, the schedule, the weights and type mix, the blocked outlets), so it needs no passphrase; votes, opens, the learning history, the writer settings, the queries and the suggestions are never served. Pages do not read it yet (stage 1d): they still paint the build-time copy only.
 - Do not switch the store on in Vercel until the pages read it: without that, an edit saved to the database looks undone once the 3-minute pending overlay ends, and a toggle sent from that stale page can revert it.
 - Also before switching on (review round 2, 2026-10-22): the Vercel cron reads `schedule.json` from git, a run old; `source.add` reads an unknown host (`ENOTFOUND` under undici's `fetch failed`) as a retryable 503, one probe's timeout marks the whole batch retryable, and the 4 s lookup timeout does not reach `discoverFeed`; `learn` writes the store before its commit (a failed push then a rerun moves a weight twice) and falls back to the file alone (the next run reverts it); a run that copies config at its gate can hit a rebase conflict with a `learn` push, and the commit guard reads the switch at commit time, not from the gate; a version conflict should be retried on the server once, not answered 409; `GET` should select only the public paths and cache briefly.
+
+## D150: a full-screen phone sheet shows its Close
+
+- Date: 2026-10-22 (the owner, on the visual audit's item 8: full-screen sheets show the X on the right, as on desktop; partial bottom sheets keep none)
+- Decision: below 40rem a sheet that fills the screen (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows its Close at the end of its header row, as from 40rem. The partial sheets (the menu sheets, the emoji picker, the React drawers, the passphrase sheet) keep D144: no visible Close, a pull or a tap outside closes them. Pull to dismiss stays on every sheet. One selector in `create-sheet.css` under `SheetHeader.astro`.
+- Why: a full-screen sheet leaves no page showing to tap away to, so the only visible way out was a gesture with no affordance.
+- Amends: D144.
