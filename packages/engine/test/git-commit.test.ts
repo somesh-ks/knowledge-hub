@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { serializeDigestFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commitAndPush, DEFAULT_BOT, identityFromEnv } from "../src/git/commit.js";
+import { markCopiedFromStore } from "../src/store/configDocs.js";
 import { digestFor, must } from "./audio-fixtures.js";
 import type { RepoPair } from "./git-testRepo.js";
 import {
@@ -460,6 +461,33 @@ describe("commitAndPush: pushing", () => {
     expect(await exists(join(pair.a, ".git", "rebase-apply"))).toBe(false);
     expect(git(pair.a, "log", "-1", "--format=%s")).toBe("chore(audio): record speechify usage");
     expect(git(pair.a, "status", "--porcelain")).toBe("");
+  });
+
+  // The bug (D149, review round 2): a run that copied the stored config at its gate committed it as
+  // the snapshot, a `learn` push changed the same file meanwhile, and the rebase conflict failed the
+  // briefing's push. The snapshot gives way: the store, not this copy, is what the next run reads.
+  it("lands a run whose config snapshot conflicts with a push made meanwhile", async () => {
+    await put(pair.b, "config/preferences.json", '{ "weights": { "a": 0.95 } }\n');
+    await commitAll(pair.b, "chore(prefs): weight a");
+    git(pair.b, "push", "-q", "origin", "main");
+
+    // The repository ignores .cache/, where the gate notes that it copied the store.
+    await put(pair.a, ".git/info/exclude", ".cache/\n");
+    await markCopiedFromStore(pair.a, true);
+    await put(pair.a, "config/preferences.json", '{ "weights": { "a": 0.7 } }\n');
+    await put(pair.a, "state/seen.json", '{ "version": 1, "items": { "a": "2026-10-07" } }\n');
+    const outcome = await commitAndPush({
+      root: pair.a,
+      message: MESSAGE,
+      command: "run",
+      push: true,
+    });
+
+    expect(outcome.status).toBe("pushed");
+    expect(git(pair.remote, "show", "refs/heads/main:config/preferences.json")).toContain("0.95");
+    expect(git(pair.remote, "show", "--name-only", "--format=", "refs/heads/main")).toBe(
+      "state/seen.json",
+    );
   });
 
   it("says so when a conflicted rebase cannot be aborted", async () => {

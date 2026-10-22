@@ -1,3 +1,4 @@
+import { copiedFromStore } from "../store/configDocs.js";
 import { CONFIG_DOCUMENT_PATHS } from "../store/configPaths.js";
 import type { ChangedPath, GitCommand } from "./guard.js";
 import {
@@ -53,12 +54,6 @@ export interface CommitAndPushInput {
   /** Selects the write allowlist. */
   command: GitCommand;
   push: boolean;
-  /**
-   * The config store is on (D149): `run` and `podcast` copied the owner's config from it over the
-   * config files, and their commit is the snapshot that keeps it in git, so those paths are allowed
-   * too. Off (the default), the allowlist is exactly ALLOWLISTS.
-   */
-  configStore?: boolean;
   identity?: BotIdentity;
   /** Injected for tests; defaults to real git in `root`. */
   git?: GitRunner;
@@ -119,8 +114,12 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   const changed = await readChangedPaths(run);
   if (changed.length === 0) return { status: "nothing_to_commit" };
 
+  // With the config store on (D149), `run` and `podcast` copy the owner's config from it over the
+  // config files at their start, and their commit is the snapshot that keeps it in git, so those
+  // paths are allowed too, when this run copied them (noted at its start, not read from the switch
+  // now). Otherwise the allowlist is exactly ALLOWLISTS.
   const snapshot =
-    input.configStore === true && (input.command === "run" || input.command === "podcast");
+    (input.command === "run" || input.command === "podcast") && (await copiedFromStore(input.root));
   const allowlist = snapshot
     ? [...ALLOWLISTS[input.command], ...CONFIG_DOCUMENT_PATHS]
     : ALLOWLISTS[input.command];
@@ -157,6 +156,7 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
     maxRetries: DEFAULT_PUSH_RETRIES,
     sha,
     paths,
+    snapshot,
   });
 }
 
@@ -167,6 +167,39 @@ interface PushInput {
   maxRetries: number;
   sha: string;
   paths: string[];
+  /** The commit carries a config snapshot from the store (D149). */
+  snapshot: boolean;
+}
+
+const SNAPSHOT_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
+
+/**
+ * A rebase that stopped only on config files this run copied from the store: those files take what
+ * the branch already holds (a `learn` push, say), and the rebase goes on. The store, not this copy,
+ * is what the next run reads, so the snapshot loses nothing that matters. True when the rebase ended.
+ */
+async function keepUpstreamConfig(run: GitRunner, identity: BotIdentity): Promise<boolean> {
+  for (let step = 0; step < 4; step++) {
+    const unmerged = await run(["diff", "--name-only", "--diff-filter=U"]);
+    const conflicts = unmerged.stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (conflicts.length === 0 || !conflicts.every((path) => SNAPSHOT_PATHS.has(path)))
+      return false;
+    // In a rebase "ours" is the branch being rebased onto: the remote's copy.
+    if ((await run(["checkout", "--ours", "--", ...conflicts])).code !== 0) return false;
+    if ((await run(["add", "--", ...conflicts])).code !== 0) return false;
+    const next = await run([
+      ...identityFlags(identity),
+      "-c",
+      "core.editor=true",
+      "rebase",
+      "--continue",
+    ]);
+    if (next.code === 0) return true;
+  }
+  return false;
 }
 
 async function pushWithRebase(input: PushInput): Promise<CommitOutcome> {
@@ -215,6 +248,10 @@ async function pushWithRebase(input: PushInput): Promise<CommitOutcome> {
       remote,
       branch,
     ]);
+    if (pulled.code !== 0 && input.snapshot && (await keepUpstreamConfig(run, input.identity))) {
+      sha = (await gitOutput(run, ["rev-parse", "HEAD"])).trim();
+      continue;
+    }
     if (pulled.code !== 0) {
       const unmerged = await run(["diff", "--name-only", "--diff-filter=U"]);
       const conflicts = unmerged.stdout

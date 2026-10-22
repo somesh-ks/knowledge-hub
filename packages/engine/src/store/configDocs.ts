@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import type { Logger } from "../context.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import {
@@ -70,6 +70,31 @@ export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): 
     changed.push(document.path);
   }
   return changed;
+}
+
+/**
+ * Where the command that copied the store notes that it did: `run --stage gate` copies, and the
+ * commit stage, a later process of the same job, reads it, so the guard follows what this run did
+ * and not the switch as it reads when the commit is made. Under `.cache/`, which git ignores.
+ */
+const COPIED_MARKER = join(".cache", "config-store.json");
+
+/** Notes whether this run's config came from the store; false removes any note an older run left. */
+export async function markCopiedFromStore(root: string, copied: boolean): Promise<void> {
+  const file = join(root, COPIED_MARKER);
+  if (!copied) return rm(file, { force: true });
+  await mkdir(dirname(file), { recursive: true });
+  await writeFileAtomic(file, `${JSON.stringify({ copied: true })}\n`);
+}
+
+/** Whether this run copied the owner's config from the store, so its commit may carry it. */
+export async function copiedFromStore(root: string): Promise<boolean> {
+  const text = await readText(join(root, COPIED_MARKER)).catch(() => null);
+  try {
+    return text !== null && (JSON.parse(text) as { copied?: unknown }).copied === true;
+  } catch {
+    return false;
+  }
 }
 
 async function readText(path: string): Promise<string | null> {

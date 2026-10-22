@@ -16,6 +16,7 @@ import {
   configStoreUrl,
   connectConfigStore,
   hydrateConfig,
+  markCopiedFromStore,
   readsConfigAtStart,
   type SqlClient,
 } from "./store/configDocs.js";
@@ -213,15 +214,21 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   // committed config files before the command reads them. The switch is separate from the URL,
   // which `vercel env pull` also writes to a local .env. A database that cannot be reached costs
   // freshness, not the briefing: the files from the last run's commit are used.
-  const storeUrl = configStoreUrl(env);
-  if (storeUrl !== null && readsConfigAtStart(spec.name, parsed.rest)) {
-    try {
-      const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
-      const changed = await hydrateConfig(root, sql, log);
-      log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
-    } catch (error) {
-      log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
+  // Whether it did is noted for the commit, which a later stage of the same run makes.
+  if (readsConfigAtStart(spec.name, parsed.rest)) {
+    const storeUrl = configStoreUrl(env);
+    let copied = false;
+    if (storeUrl !== null) {
+      try {
+        const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
+        const changed = await hydrateConfig(root, sql, log);
+        log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
+        copied = true;
+      } catch (error) {
+        log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
+      }
     }
+    await markCopiedFromStore(root, copied).catch(() => {});
   }
 
   let run: CommandRun;
