@@ -1,7 +1,10 @@
 import { PGlite } from "@electric-sql/pglite";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import type { SqlClient } from "./configPaths.js";
 import { RATE_LIMIT_SCHEMA_SQL, takeSharedSlot } from "./rateCounter.js";
+
+// An in-process Postgres takes over 5 s to start when the three store files start theirs at once.
+vi.setConfig({ testTimeout: 30_000 });
 
 const open: PGlite[] = [];
 afterAll(async () => {
