@@ -1,4 +1,4 @@
-import { type VitalSample, VITALS_DAY_MAX_SAMPLES, VitalsDay, vitalsPath } from "@dispatch/core";
+import { VITALS_DAY_MAX_SAMPLES, type VitalSample, VitalsDay, vitalsPath } from "@dispatch/core";
 import { type NarrateBlobStore, readFresh } from "./blobStore";
 
 /**

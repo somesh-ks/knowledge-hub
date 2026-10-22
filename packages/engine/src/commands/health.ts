@@ -3,7 +3,8 @@ import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
 
-const USAGE = "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--json]";
+const USAGE =
+  "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 const DEFAULT_CEILING_USD = 5;

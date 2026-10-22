@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type Digest, parseDigestFile, VOICE_LIMITS } from "@dispatch/core";
+import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
@@ -13,7 +14,6 @@ import {
   readTopicJudgments,
   readUsage,
 } from "../state/store.js";
-import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import {
   checkConfig,
   checkEpisodes,
@@ -118,12 +118,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
 
   if (options.runs) {
     const records = [status.last_run.regular, status.last_run.weekly, status.last_run.on_demand];
-    checkRunsDied(
-      records,
-      options.runs,
-      now,
-      { fault, warn, passed },
-    );
+    checkRunsDied(records, options.runs, now, { fault, warn, passed });
   }
 
   // Integrity: every digest parses, and every state file reads against its schema.

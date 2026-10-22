@@ -3,8 +3,9 @@ name: health
 # Once a day, `dispatch health` checks the last runs, narration, the digests and state, the cost
 # ledger and the live site (docs/engineering/hardening.md). A fault opens one issue labelled
 # `health`, or updates it; a green run closes it. When a fault first appears (no open issue yet) it
-# heals once: a failed or missed briefing starts one scheduled run, missing narration starts one
-# audio run. While the issue stays open nothing is retried again, so a fault never loops.
+# heals once: a failed, missed or died briefing starts one scheduled run, missing narration starts
+# one audio run. GitHub's own run list is the record that a run started: one that ended badly with
+# no outcome in state/last-run.json after it is `run_died`. While the issue stays open nothing is retried again, so a fault never loops.
 
 on:
   schedule:
@@ -43,10 +44,14 @@ jobs:
         shell: bash
         env:
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
+          SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
+          SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
         run: |
           set -uo pipefail
-          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          runs="$RUNNER_TEMP/runs.json"
+          gh run list --workflow run.yml --limit 20 --json databaseId,status,conclusion,createdAt,event > "$runs" || echo '[]' > "$runs"
+          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json"
 
@@ -75,7 +80,7 @@ jobs:
           if [ -z "$issue" ]; then
             # The fault is new: heal once. A run that is already queued or running is left alone.
             busy=$(gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length')
-            if [[ " $codes " == *" run_failed "* || " $codes " == *" run_overdue "* ]] && [ "$busy" = "0" ]; then
+            if [[ " $codes " == *" run_failed "* || " $codes " == *" run_overdue "* || " $codes " == *" run_died "* ]] && [ "$busy" = "0" ]; then
               gh workflow run run.yml -f mode=scheduled && healed="${healed}- Started one scheduled run.\n"
             fi
             if [[ " $codes " == *" audio_missing "* ]]; then

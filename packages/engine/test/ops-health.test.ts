@@ -142,4 +142,61 @@ describe("dispatch health", () => {
     expect(codes(report.findings, "fault")).not.toContain("site_api");
     expect(asked).toContain(`HEAD ${AUDIO}`);
   });
+
+  // A run that died in install or on a timeout wrote nothing, so the last record still read as the
+  // run before it; an episode or a config file that stopped parsing was found only when used.
+  it("faults a run that died before it recorded anything, a broken episode and an invalid config file", async () => {
+    await put("Podcasts/2026/10/ep-20261020-0900.md", "---\nid: ep-20261020-0900\n---\n\nHello.\n");
+    await put("config/topics.json", JSON.stringify({ version: 9 }));
+    const report = await collectHealth({
+      root,
+      now: NOW,
+      monthlyChars: 500_000,
+      ceilingUsd: 50,
+      site: null,
+      runs: [
+        {
+          databaseId: 7,
+          status: "completed",
+          conclusion: "failure",
+          createdAt: "2026-10-21T07:13:00Z",
+        },
+      ],
+    });
+    expect(codes(report.findings, "fault")).toEqual(
+      expect.arrayContaining(["run_died", "episode_broken", "config_invalid"]),
+    );
+    expect(report.findings.some((each) => each.message.startsWith("config/topics.json"))).toBe(
+      true,
+    );
+  });
+
+  // Real phones were never measured: a slow deploy read as fine while CI's bundle size held.
+  it("warns when the last day's real-user p75 is past good or well past the week before", async () => {
+    const loads = (iso: string, lcp: number, inp: number) =>
+      Array.from({ length: 6 }, (_, i) => ({ at: Date.parse(iso) + i, page: "/", lcp, inp }));
+    const files: Record<string, object[]> = {
+      "2026-10-21": loads("2026-10-21T10:00:00Z", 4000, 150),
+      "2026-10-18": loads("2026-10-18T10:00:00Z", 1000, 60),
+    };
+    const fake: HealthFetch = async (url) => {
+      const day = /\/health\/vitals-(\d{4}-\d{2}-\d{2})\.json$/.exec(url)?.[1] ?? "";
+      const samples = files[day];
+      return {
+        status: samples ? 200 : 404,
+        headers: { get: () => null },
+        text: async () => JSON.stringify({ version: 1, day, samples }),
+      };
+    };
+    const report = await collectHealth({
+      root,
+      now: NOW,
+      monthlyChars: 500_000,
+      ceilingUsd: 50,
+      site: "https://news.example",
+      fetch: fake,
+    });
+    const perf = report.findings.filter((each) => each.code === "perf_regression");
+    expect(perf.map((each) => each.message.slice(0, 3))).toEqual(["LCP", "INP"]);
+  });
 });

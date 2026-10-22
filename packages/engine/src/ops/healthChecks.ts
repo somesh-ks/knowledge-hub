@@ -3,10 +3,10 @@ import { join } from "node:path";
 import {
   episodeRelPath,
   loadModelRouting,
+  PriceTable,
   p75,
   parseEpisodeFile,
   parseSourceCatalog,
-  PriceTable,
   ScheduleFile,
   SourcesUserFile,
   TopicsFile,
@@ -17,7 +17,11 @@ import {
   VitalsDay,
   vitalsPath,
 } from "@dispatch/core";
-import { type EpisodeVoiceEnv, planEpisodeNarration, segmentMarksPath } from "../audio/segmentStore.js";
+import {
+  type EpisodeVoiceEnv,
+  planEpisodeNarration,
+  segmentMarksPath,
+} from "../audio/segmentStore.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
