@@ -10,5 +10,6 @@ What each capability does now, one file each. A spec states requirements in the 
 | Settings | [settings.md](settings.md) | `apps/web/src/pages/settings` |
 | Engine | [engine.md](engine.md) | `packages/engine/src` |
 | Narration | [narration.md](narration.md) | `apps/web/src/narration` |
+| Costs | [costs.md](costs.md) | `packages/core/src/costs.ts` |
 | Navigation and offline | [navigation-and-offline.md](navigation-and-offline.md) | `apps/web/public/sw.js` |
 | Look and sound | [look-and-sound.md](look-and-sound.md) | `apps/web/src/styles` |

@@ -1,10 +1,10 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "sea-lingonberry",
-    "template": "spring"
+    "palette": "saffron-ink",
+    "template": "contour"
   },
-  "last_fetch_at": "2026-10-18T05:37:40.079Z",
+  "last_fetch_at": "2026-10-22T05:37:42.713Z",
   "on_demand": {
     "at": "2026-10-06T14:36:15.964Z",
     "digest_id": "2026-10-06",
@@ -12,23 +12,21 @@
     "outcome": "published"
   },
   "regular": {
-    "at": "2026-10-17T05:40:47.548Z",
-    "digest_id": "2026-10-17",
-    "items": 10,
+    "at": "2026-10-22T05:41:30.487Z",
+    "digest_id": "2026-10-22",
+    "items": 9,
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-10-18T05:42:13.841Z",
+    "at": "2026-10-22T05:41:30.487Z",
     "firecrawl_rate_limited": 0,
-    "firecrawl_skipped": [
-      "toools-newsletter"
-    ],
+    "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 29,
+      "anthropic": 19,
       "exa": 12,
-      "firecrawl_listing": 16,
-      "firecrawl_scrape": 7,
-      "jev": 582
+      "firecrawl_listing": 15,
+      "firecrawl_scrape": 4,
+      "jev": 610
     }
   },
   "weekly": {

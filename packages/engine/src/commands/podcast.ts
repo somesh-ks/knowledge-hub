@@ -1,18 +1,20 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { type PodcastRequest, requireKey } from "@dispatch/core";
+import { loadModelRouting, type PodcastRequest } from "@dispatch/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
+import { recordRunCosts } from "../cost/ledger.js";
 import { emit } from "../curate/output.js";
 import { type CommitOutcome, commitAndPush } from "../git/commit.js";
 import type { HttpClient } from "../http.js";
 import { describeError } from "../llm/errors.js";
-import { createOpenAiChatApi } from "../llm/openAiChatApi.js";
+import { resolveFamilies } from "../llm/modelResolver.js";
+import { createModelRouter } from "../llm/modelRouter.js";
+import { RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
-import { createWriterLlm } from "../llm/writerLlm.js";
 import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js";
 import { generateEpisode } from "../podcast/generate.js";
-import { NebiusScriptWriter } from "../podcast/nebiusScriptWriter.js";
+import { LlmScriptWriter } from "../podcast/llmScriptWriter.js";
 import { planPodcast } from "../podcast/plan.js";
 import { createStreamPublisher, pruneStreams, type StreamPublisher } from "../podcast/stream.js";
 import {
@@ -22,6 +24,7 @@ import {
   type ScriptWriter,
 } from "../podcast/types.js";
 import { type BlobClient, createVercelBlobClient } from "../publish/blob.js";
+import { loadScheduleZone } from "../schedule/store.js";
 
 export const PODCAST_USAGE =
   'Usage: dispatch podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
@@ -33,7 +36,7 @@ function isInside(root: string, path: string): boolean {
 }
 
 export interface PodcastDeps {
-  /** The script writer. Defaults to a Nebius model from DISPATCH_MODEL. */
+  /** The script writer. Defaults to the routed podcast models (config/models.json). */
   makeWriter?: (ctx: CommandContext) => ScriptWriter;
   /** Reads the news feeds of a general episode. Defaults to the engine's HTTP client. */
   http?: HttpClient;
@@ -45,14 +48,25 @@ function blobClientFrom(token: string | undefined): BlobClient | null {
   return token ? createVercelBlobClient(token) : null;
 }
 
-/** The Nebius writer, with the same models and failover the digest writer uses. */
-function nebiusWriter(ctx: CommandContext): ScriptWriter {
+/** The script writer: the podcast_script chain (Sonnet, then Gemini Flash), with its own opening and rewrite steps. */
+function scriptWriter(ctx: CommandContext, meter: RequestMeter): ScriptWriter {
   const { env, log } = ctx;
-  requireKey(env, "NEBIUS_API_KEY");
-  const budget = new TokenBudget(env.MAX_TOKENS_PER_RUN);
-  const api = createOpenAiChatApi(env);
-  return new NebiusScriptWriter({
-    llm: createWriterLlm({ root: ctx.root, env, api, budget, log }),
+  const routing = loadModelRouting(ctx.root);
+  const router = createModelRouter({
+    routing,
+    resolve: () => resolveFamilies({ routing, env, log }),
+    env,
+    budget: new TokenBudget(env.MAX_TOKENS_PER_RUN),
+    log,
+    onRequest: (provider) => meter.add(provider),
+    onUsage: (usage) => {
+      meter.addUnits(usage.provider, usage.model, "input_tokens", usage.inputTokens);
+      meter.addUnits(usage.provider, usage.model, "output_tokens", usage.outputTokens);
+    },
+    onFallback: () => meter.add("model_fallback"),
+  });
+  return new LlmScriptWriter({
+    llm: router.llmFor("podcast_script"),
     log,
     secrets: secretsFromEnv(env),
   });
@@ -125,6 +139,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       }
     }
 
+    const meter = new RequestMeter();
     let now = ctx.now();
     if (values.now !== undefined) {
       now = new Date(values.now);
@@ -206,7 +221,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         root: ctx.root,
         request,
         now,
-        makeWriter: () => (deps.makeWriter ?? nebiusWriter)(ctx),
+        makeWriter: () => (deps.makeWriter ? deps.makeWriter(ctx) : scriptWriter(ctx, meter)),
         ...(deps.http ? { http: deps.http } : {}),
         log: ctx.log,
         dryRun,
@@ -246,6 +261,13 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         );
         return 0;
       }
+      // The writer's tokens are the episode's cost: it belongs to whoever asked for it.
+      await recordRunCosts(
+        ctx.root,
+        { requests: {}, units: meter.peekUnits() },
+        { runId: episode.id, at: ctx.now().toISOString(), passKind: "on-demand" },
+        await loadScheduleZone(ctx.root),
+      );
       // The old file goes only now: generation has succeeded and the new file is written.
       if (replaced) await rm(join(ctx.root, replaced.relPath));
       const outcome = await commitAndPush({

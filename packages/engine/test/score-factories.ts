@@ -22,13 +22,15 @@ let counter = 0;
 
 export function makeItem(overrides: Partial<Item> = {}): Item {
   counter += 1;
-  const url = overrides.url ?? `https://example.com/post-${counter}`;
+  // One host per item, so the outlet cap (OUTLET_CAP, by host) never decides a test about something else.
+  const url = overrides.url ?? `https://outlet-${counter}.example/post-${counter}`;
   return Item.parse({
     id: itemId(url),
     url,
     canonical_url: url,
     title: `Post ${counter}`,
-    source_id: "example-blog",
+    // One source per item, so the outlet cap (OUTLET_CAP) never decides a test about something else.
+    source_id: `example-blog-${counter}`,
     source_type: "rss",
     fetched_at: "2026-10-05T05:00:00Z",
     snippet: "",

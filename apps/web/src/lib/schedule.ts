@@ -4,7 +4,7 @@ import {
   type CustomDefaults,
   DEFAULT_SCHEDULE,
   effectiveSkipTopics,
-  type PodcastFormat,
+  podcastVoices,
   ScheduleFile,
   scheduleZone,
   type WeeklySchedule,
@@ -27,12 +27,12 @@ export interface ScheduleView {
   cadenceDays: number;
   /** Topic ids the daily briefing leaves out. */
   skipTopics: string[];
-  format: PodcastFormat;
   lengthMinutes: number;
-  /** Speechify voice ids of the daily podcast; null is the engine's default. */
+  /** Speechify voice ids of every podcast (the Podcast voice page); null is the engine's default. */
   voiceId: string | null;
   voiceIdB: string | null;
   weekly: WeeklySchedule;
+  /** The Create panel's defaults, its voices the shared pair (podcastVoices). */
   custom: CustomDefaults;
 }
 
@@ -57,7 +57,6 @@ export async function loadScheduleView(
     timezone: storedZone,
     hour,
     cadence_days: cadenceDays,
-    format,
     length_minutes: lengthMinutes,
     voice_id: voiceId,
     voice_id_b: voiceIdB,
@@ -73,11 +72,10 @@ export async function loadScheduleView(
     hour,
     cadenceDays,
     skipTopics,
-    format,
     lengthMinutes,
     voiceId,
     voiceIdB,
     weekly,
-    custom,
+    custom: { ...custom, ...podcastVoices(file, "custom") },
   };
 }

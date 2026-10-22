@@ -190,7 +190,7 @@ test.describe("Try again on a failed run", () => {
     await openSheet(page);
     const chosen = (name: string) =>
       sheet(page).locator(".filter-chip", { hasText: name }).locator("input");
-    await sheet(page).locator(".settings-segment", { hasText: "10 min" }).click();
+    await sheet(page).getByRole("radio", { name: "10 min", exact: true }).click();
     await sheet(page).locator(".filter-chip", { hasText: "Design" }).click();
     await expect(chosen("Design")).not.toBeChecked();
     await sheet(page).locator("[data-submit]").click();

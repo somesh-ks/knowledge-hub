@@ -25,11 +25,32 @@ export type Category = z.infer<typeof Category>;
 export const CategoryOrNone = z.enum([...CATEGORIES, "none"]);
 export type CategoryOrNone = z.infer<typeof CategoryOrNone>;
 
-/** Categories that never publish, whatever their score. */
-export const NEVER_PUBLISH: readonly Category[] = [
-  "venture_capital_and_gossip",
-  "generic_ai_hype_listicles",
-];
+/**
+ * The five weights a topic can have, in order. Off (0) is the never-publish rule: a topic at Off
+ * never airs. A stored value between two stops snaps to the nearest one (`snapWeight`).
+ */
+export const WEIGHT_STOPS = [
+  { name: "Off", weight: 0, means: "Never in a briefing" },
+  { name: "Less", weight: 0.5, means: "Only a strong story" },
+  { name: "Normal", weight: 0.7, means: "Competes on merit" },
+  { name: "More", weight: 0.85, means: "Preferred at equal quality" },
+  { name: "Most", weight: 0.95, means: "First pick in its topic" },
+] as const;
+
+/** Index in WEIGHT_STOPS of the stop nearest to a weight; a non-number reads as Normal. */
+export function stopIndex(weight: number): number {
+  if (!Number.isFinite(weight)) return 2;
+  let best = 0;
+  for (const [index, stop] of WEIGHT_STOPS.entries()) {
+    if (Math.abs(stop.weight - weight) < Math.abs((WEIGHT_STOPS[best]?.weight ?? 0) - weight))
+      best = index;
+  }
+  return best;
+}
+
+export function snapWeight(weight: number): number {
+  return WEIGHT_STOPS[stopIndex(weight)]?.weight ?? 0.7;
+}
 
 export const SECTIONS = [
   "top",
@@ -104,8 +125,8 @@ const HOME_SECTION: Record<Category, Section | null> = {
   ai_ux_interaction_patterns: "ai",
   frontier_model_releases: "ai",
   hci_empirical_research: "design",
-  venture_capital_and_gossip: null,
-  generic_ai_hype_listicles: null,
+  venture_capital_and_gossip: "ai",
+  generic_ai_hype_listicles: "ai",
   consumer_tech_releases: "tech",
 };
 
@@ -140,7 +161,7 @@ export function hasOwnAllowance(section: string): boolean {
 /**
  * Home section for a category. A video goes to the section of its category like any other story;
  * "watch" no longer receives stories (D39). The source type stays in the signature so callers
- * need not change. Returns null for categories that never publish.
+ * need not change. Every category has one: a category never publishes by sitting at weight 0, not by having no home.
  */
 export function homeSection(category: Category, _sourceType?: string): Section | null {
   return HOME_SECTION[category];

@@ -3,7 +3,11 @@
  * own popover. The listeners sit on the document, so they outlive a client-side navigation that
  * swaps the menu for another page's. Loaded by the briefing and episode pages.
  */
-const LIST = ".hero-menu-list";
+import { pullToDismiss } from "./pullDismiss";
+
+// The emoji picker (data-picker) is the same popover but its own: its keys, focus and Close are emojiPicker.ts.
+const LIST = ".hero-menu-list:not([data-picker])";
+const wired = new WeakSet<Element>();
 
 const itemsOf = (list: Element): HTMLElement[] =>
   Array.from(list.querySelectorAll<HTMLElement>('[role="menuitem"]'));
@@ -17,12 +21,30 @@ export function installHeroMenu(): void {
   if (installed) return;
   installed = true;
 
+  // A light dismiss: the press that closed the menu landed outside it and its button.
+  let pressedOutside = false;
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      const target = event.target as Element;
+      pressedOutside = !target.closest?.(`${LIST}, [data-hero-more]`);
+    },
+    true,
+  );
+
   // toggle events do not bubble, so they are caught on the way down.
   document.addEventListener(
     "beforetoggle",
     (event) => {
       const list = event.target as HTMLElement;
-      if (!list.matches?.(LIST) || (event as ToggleEvent).newState !== "open") return;
+      if ((event as ToggleEvent).newState !== "open") return;
+      // A phone shows the menu, and the emoji picker, as a sheet: pulled down, it closes (light
+      // dismiss is the popover's own).
+      if (list.matches?.(".hero-menu-list.menu-sheet") && !wired.has(list)) {
+        wired.add(list);
+        pullToDismiss(list, () => list.hidePopover());
+      }
+      if (!list.matches?.(LIST)) return;
       // Without anchor positioning the menu is placed from the button's box.
       if (CSS.supports("top", "anchor(bottom)")) return;
       const box = moreOf(list)?.getBoundingClientRect();
@@ -41,9 +63,17 @@ export function installHeroMenu(): void {
     (event) => {
       const list = event.target as HTMLElement;
       if (!list.matches?.(LIST)) return;
-      if ((event as ToggleEvent).newState === "open") itemsOf(list)[0]?.focus();
-      // Escape or a pick: focus goes back to the button. A press elsewhere keeps its own focus.
-      else if (list.contains(document.activeElement) || document.activeElement === document.body)
+      if ((event as ToggleEvent).newState === "open") {
+        pressedOutside = false;
+        itemsOf(list)[0]?.focus();
+      }
+      // Escape or a pick: focus goes back to the button. A press elsewhere keeps its own focus,
+      // even when it landed on nothing focusable: a button left focused that way took the next
+      // Space, which opened the menu again instead of playing (2026-10-20).
+      else if (
+        list.contains(document.activeElement) ||
+        (document.activeElement === document.body && !pressedOutside)
+      )
         moreOf(list)?.focus();
     },
     true,
@@ -76,6 +106,12 @@ export function installHeroMenu(): void {
     if (list && next && !list.contains(next) && next !== moreOf(list)) {
       (list as HTMLElement).hidePopover();
     }
+  });
+
+  // The sheet's Close (the header of a phone's menu).
+  document.addEventListener("click", (event) => {
+    const close = (event.target as Element).closest?.("[data-menu-close]");
+    close?.closest<HTMLElement>("[popover]")?.hidePopover();
   });
 
   // A pick closes the menu first; what it opened (the share sheet, a panel) comes after. A disabled

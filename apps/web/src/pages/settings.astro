@@ -2,22 +2,19 @@
 import Icon from "../components/Icon.astro";
 import ManageChrome from "../components/ManageChrome.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { buildDay } from "../lib/buildDay";
+import { APP_VERSION } from "../lib/changelog";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
-import { dailySummary, topicsSummary, weeklySummary } from "../lib/settingsSummary";
+import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
-import { loadWriterView, writerLabel } from "../lib/writer";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
 import "../styles/manage.css";
 
-const [schedule, writer, manage] = await Promise.all([
-  loadScheduleView(),
-  loadWriterView(),
-  loadManage(),
-]);
+const [schedule, manage] = await Promise.all([loadScheduleView(), loadManage()]);
 // The topics a person sees (D69): the owner's three, any of their own apart from those, and the
 // general news topics; the judge's finer topics are inside the three.
 const layout = topicLayout(manage.topics, manage.sources);
@@ -48,7 +45,6 @@ const PODCAST = [
     hint: weeklySummary({ ...schedule.weekly, timezone: schedule.timezone }),
     data: {
       summary: "weekly",
-      enabled: String(schedule.weekly.enabled),
       day: schedule.weekly.day,
       hour: schedule.weekly.hour,
       timezone: schedule.timezone,
@@ -56,7 +52,7 @@ const PODCAST = [
   },
   {
     href: "/settings/topics",
-    label: "Topics and sources",
+    label: "Sources",
     hint: topicsSummary(shownTopics.length, manage.sources.length),
     data: {
       summary: "topics",
@@ -65,15 +61,26 @@ const PODCAST = [
       sources: JSON.stringify(spots),
     },
   },
+  {
+    href: "/settings/preferences",
+    label: "Preferences",
+    hint: "Story types",
+    data: {},
+  },
+];
+// The voices every podcast is read in, and the interface's own sounds, each on a page of its own.
+// Whether sounds are on is kept in this browser, so settingsPage.ts writes that row's line.
+const SOUND = [
+  {
+    href: "/settings/voice",
+    label: "Podcast voice",
+    hint: voicesSummary(schedule.voiceId ?? "", schedule.voiceIdB ?? ""),
+    data: { summary: "voice", voice: schedule.voiceId ?? "", "voice-b": schedule.voiceIdB ?? "" },
+  },
+  { href: "/settings/sounds", label: "Interface sounds", hint: "On", data: { "sounds-hint": "" } },
 ];
 
-// The day this build was made, which is what changes when the site does.
-const updated = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Stockholm",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-}).format(new Date());
+const updated = buildDay();
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "System",
@@ -94,11 +101,9 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      {/* The Podcast section is also the model editor's root: scripts/podcastEntry.ts loads it after
-           first paint and fills the select, and autosave.ts sends a pick a moment later. */}
-      <section data-manage="podcast">
+      <section>
         <h2 class="section-head">Podcast</h2>
-        <div class="rows">
+        <div class="rows card-group">
           {
             PODCAST.map((row) => (
               <a
@@ -114,61 +119,80 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               </a>
             ))
           }
-          <div class="settings-row" data-models data-saved={writer.model ?? ""} data-provider={writer.provider}>
-            <label class="settings-label" for="model-select">AI model</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="model-select" name="model" autocomplete="off">
-                <option value={writer.model ?? ""} selected>{writerLabel(writer.model, writer.provider)}</option>
-              </select>
-              <Icon name="chevronDown" />
-            </span>
-          </div>
         </div>
-        <ManageChrome />
       </section>
 
       <section>
         <h2 class="section-head">Sound</h2>
-        <div class="rows">
-          <div class="settings-row">
-            <label class="settings-label" for="settings-sounds">Interface sounds</label>
-            <input class="settings-switch" id="settings-sounds" name="sounds" type="checkbox" role="switch" />
-          </div>
-          <div class="settings-row">
-            <label class="settings-label" for="settings-volume">Volume</label>
-            <input class="settings-range" id="settings-volume" name="volume" type="range" min="0" max="1" step="0.05" />
-          </div>
+        <div class="rows card-group">
+          {
+            SOUND.map((row) => (
+              <a
+                class="row-action"
+                href={row.href}
+                {...Object.fromEntries(Object.entries(row.data).map(([key, value]) => [`data-${key}`, value]))}
+              >
+                <span class="settings-text">
+                  <span class="settings-label">{row.label}</span>
+                  <span class="settings-hint" data-hint>{row.hint}</span>
+                </span>
+                <Icon name="chevronRight" />
+              </a>
+            ))
+          }
         </div>
       </section>
 
       <section>
         <h2 class="section-head">Appearance</h2>
-        <div class="rows">
-          <div class="settings-row" data-layout="choice">
-            <div class="settings-text">
-              <span class="settings-label" id="settings-theme-label">Theme</span>
-            </div>
-            <fieldset class="settings-choice" role="radiogroup" aria-labelledby="settings-theme-label">
-              {
-                THEME_PREFERENCES.map((theme) => (
-                  <label class="settings-segment">
-                    <input type="radio" name="theme" value={theme} />
-                    <span>{THEME_LABELS[theme]}</span>
-                  </label>
-                ))
-              }
-            </fieldset>
+        <div class="rows card-group">
+          {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
+               settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
+               Dark never shows System first. */}
+          <div class="settings-row">
+            <label class="settings-label" for="settings-theme">Theme</label>
+            <span class="manage-select value-select theme-select">
+              <select class="manage-input" id="settings-theme" name="theme" autocomplete="off">
+                {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </div>
         </div>
       </section>
 
       <section>
+        <h2 class="section-head">Analytics</h2>
+        <div class="rows card-group">
+          <a class="row-action" href="/analytics">
+            <span class="settings-text">
+              <span class="settings-label">Costs</span>
+              <span class="settings-hint">What paid services cost, by day, week or month</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+        </div>
+      </section>
+
+      <section>
         <h2 class="section-head">About</h2>
-        <p class="settings-about">
-          Singularity is a hobby project by Somesh Kesarla Suresh. It picks stories from chosen news outlets and topics and turns them into a podcast, on its own.
-        </p>
-        <div class="rows">
-          <div class="settings-row">
+        <div class="rows card-group">
+          <a class="row-action" href="/settings/about">
+            <span class="settings-text">
+              <span class="settings-label">About</span>
+              <span class="settings-hint">Author and purpose</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href="/settings/changelog">
+            <span class="settings-text">
+              <span class="settings-label">Change log</span>
+              <span class="settings-hint">Version {APP_VERSION}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          {/* From 64rem the date sits at the foot of the side column (AppNav), so it shows here on a phone alone. */}
+          <div class="settings-row settings-updated">
             <span class="settings-label">Last updated</span>
             <span class="settings-hint">{updated}</span>
           </div>
@@ -179,7 +203,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
            the section starts hidden and the script shows it where it applies. */}
       {/* Chrome and Edge on Android hand the page an install prompt; the row shows only while one is held. */}
       <section data-install-app hidden>
-        <div class="rows">
+        <div class="rows card-group card-group-accent">
           <div class="settings-row">
             <div class="settings-text">
               <span class="settings-label">Install Singularity</span>
@@ -191,7 +215,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section data-install-hint hidden>
-        <div class="rows">
+        <div class="rows card-group card-group-accent">
           <div class="settings-row">
             <div class="settings-text">
               <span class="settings-label">Add Singularity to your Home Screen</span>

@@ -4,11 +4,58 @@ import { SourceType } from "./item.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 
+/** What kind of publication a source is. Company and lab announcements are `blog`. */
+export const SOURCE_FORMATS = [
+  "blog",
+  "news",
+  "forum",
+  "video",
+  "research",
+  "releases",
+  "podcast",
+] as const;
+export const SourceFormat = z.enum(SOURCE_FORMATS);
+export type SourceFormat = z.infer<typeof SourceFormat>;
+
+/** The format the type decides by itself; anything else reads as a blog until Jev or a person says otherwise. */
+export function deriveSourceFormat(type: SourceType): SourceFormat {
+  switch (type) {
+    case "youtube":
+      return "video";
+    case "github":
+    case "producthunt":
+      return "releases";
+    case "arxiv":
+    case "crossref":
+      return "research";
+    case "hn":
+    case "lobsters":
+      return "forum";
+    default:
+      return "blog";
+  }
+}
+
+/** A source's format: the one it carries, else the rule's. Old files without the field read the same as new ones. */
+export function sourceFormat(source: {
+  type: SourceType;
+  format?: SourceFormat | undefined;
+}): SourceFormat {
+  return source.format ?? deriveSourceFormat(source.type);
+}
+
 /** One entry of config/sources.json, generated from config/Sources.md plus feed discovery. */
 export const Source = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   name: z.string().min(1),
   type: SourceType,
+  /** Optional in the file so older configs parse; read it through `sourceFormat`, which falls back to the type's rule. */
+  format: SourceFormat.optional(),
+  /**
+   * A general news source's political lean, -2 (Left) to 2 (Right); null or absent is unrated and
+   * counts as Centre. Rated once by Jev (`classify-lean`), editable in the source panel.
+   */
+  lean: z.number().int().min(-2).max(2).nullable().optional(),
   /** Human-facing page. */
   url: z.string().url(),
   /** Machine feed or API URL. Null when none was found (a scrape source). */
@@ -56,6 +103,10 @@ export const SourceOverride = z.object({
   name: z.string().trim().min(1).max(SOURCE_NAME_MAX).optional(),
   /** Replaces the topics the source feeds; an empty list means none of its own. */
   topic_ids: z.array(IdString).optional(),
+  /** Replaces the source's own format. */
+  format: SourceFormat.optional(),
+  /** Replaces the source's own lean; null clears it. */
+  lean: z.number().int().min(-2).max(2).nullable().optional(),
 });
 export type SourceOverride = z.infer<typeof SourceOverride>;
 

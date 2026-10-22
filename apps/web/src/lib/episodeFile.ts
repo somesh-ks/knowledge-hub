@@ -1,5 +1,13 @@
-import { HOST_NAME_PATTERN, stockholmDate } from "@dispatch/core";
-import { parse } from "yaml";
+import {
+  type EpisodeScriptTurn,
+  episodeFieldText,
+  HOST_NAME_PATTERN,
+  isFieldRecord,
+  readEpisodeFrontmatter,
+  readEpisodeTurns,
+  readEpisodeVoice,
+  stockholmDate,
+} from "@dispatch/core";
 import type { PodcastRequest } from "../types/contracts";
 
 /**
@@ -21,13 +29,8 @@ export interface EpisodeSource {
   source: string;
 }
 
-export interface EpisodeTurn {
-  idx: number;
-  speaker: "a" | "b";
-  text: string;
-  /** The story this turn is about, or null for a greeting, a link between stories or a sign-off. */
-  item_id: string | null;
-}
+/** Read by @dispatch/core, which the engine shares, so both narrate a turn from the same words. */
+export type EpisodeTurn = EpisodeScriptTurn;
 
 export interface EpisodeCover {
   palette: string;
@@ -52,7 +55,6 @@ export interface Episode {
   cover: EpisodeCover | null;
 }
 
-const FENCE = "---";
 const LENGTHS = [3, 5, 10, 15] as const;
 const FORMATS = ["readout", "discussion", "headlines"] as const;
 const WINDOWS = [2, 7, 30] as const;
@@ -60,15 +62,8 @@ const TONES = ["neutral", "energetic"] as const;
 /** Narration pace, in characters a minute. The estimate on the Create page uses the same figure. */
 export const CHARS_PER_MINUTE = 960;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function text(value: unknown): string | null {
-  if (typeof value === "string") return value.trim() || null;
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return null;
-}
+const isRecord = isFieldRecord;
+const text = episodeFieldText;
 
 function oneOf<T extends string | number>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.find((candidate) => candidate === value) ?? fallback;
@@ -79,12 +74,7 @@ function instant(value: unknown): string | null {
   return raw !== null && Number.isFinite(Date.parse(raw)) ? new Date(raw).toISOString() : null;
 }
 
-/** A Speechify voice id as the engine accepts one; anything else reads as "the default". */
-const VOICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
-function voice(value: unknown): string | null {
-  const id = text(value);
-  return id !== null && VOICE_ID.test(id) ? id : null;
-}
+const voice = readEpisodeVoice;
 
 /**
  * The names a discussion was written with, as the engine stores them. Null when the file has none
@@ -139,30 +129,7 @@ function readSources(value: unknown): EpisodeSource[] {
   return sources;
 }
 
-function readTurns(value: unknown): EpisodeTurn[] {
-  if (!Array.isArray(value)) return [];
-  const turns: EpisodeTurn[] = [];
-  value.forEach((entry, position) => {
-    if (!isRecord(entry)) return;
-    const body = text(entry.text);
-    if (!body) return;
-    const idx =
-      typeof entry.idx === "number" && Number.isInteger(entry.idx) && entry.idx >= 0
-        ? entry.idx
-        : position;
-    turns.push({
-      idx,
-      speaker: entry.speaker === "b" ? "b" : "a",
-      text: body,
-      item_id: text(entry.item_id),
-    });
-  });
-  // The file's own numbering decides the order; a repeated number keeps the first.
-  const seen = new Set<number>();
-  return turns
-    .sort((a, b) => a.idx - b.idx)
-    .filter((turn) => !seen.has(turn.idx) && seen.add(turn.idx));
-}
+const readTurns = readEpisodeTurns;
 
 function readCover(value: unknown): EpisodeCover | null {
   if (!isRecord(value)) return null;
@@ -175,12 +142,7 @@ function readCover(value: unknown): EpisodeCover | null {
 
 /** The episode in a file's text. Throws a one-line error when it cannot be one. */
 export function parseEpisodeFile(fileText: string): Episode {
-  const normalized = fileText.replace(/\r\n/g, "\n");
-  if (!normalized.startsWith(`${FENCE}\n`)) throw new Error("Episode file has no frontmatter");
-  const end = normalized.indexOf(`\n${FENCE}`, FENCE.length);
-  if (end < 0) throw new Error("Episode frontmatter is not closed");
-  const raw: unknown = parse(normalized.slice(FENCE.length + 1, end));
-  if (!isRecord(raw)) throw new Error("Episode frontmatter is not a mapping");
+  const raw = readEpisodeFrontmatter(fileText);
 
   const id = text(raw.id);
   if (!id || !EPISODE_ID.test(id))

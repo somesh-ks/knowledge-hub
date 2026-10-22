@@ -4,6 +4,10 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-21 | [Second owner round](2026-10-21-second-owner-round.md) | Offline Play, Library sheet, Settings cards, shared search and chips, Up next as a tab, old briefings cleared (D133 to D135) |
+| 2026-10-21 | [The owner's backlog, built in parallel](2026-10-21-owner-backlog-in-parallel.md) | A play queue and Up next, Library row menu and downloads, episode pre-narration, the Settings restructure, no Kimi models; how it was split and what review caught (D126 to D130) |
+| 2026-10-20 | [Settings and Podcast redesign](2026-10-20-settings-and-podcast-redesign.md) | Headings never bold, 22px Settings H2s, an Intelligence section, Topics and sources as a search with a floating Add, format tabs, folded weight groups, pull down to close the source panel (D125) |
+| 2026-10-20 | [Sources and weights](2026-10-20-sources-and-weights.md) | Named weight stops, source formats with search and filters, a format mix per page, a Perspective slider and an outlet cap; what review caught (D124) |
 | 2026-10-19 | The agent-first record | State became a status page, behaviour moved to specs/, learnings were regrouped, the first build's plans retired, and the docs check joined the gate; the old files are in `git show 91bc533:docs/` |
 | 2026-10-16 | [One model select, Android bars, a launch screen](2026-10-16-pwa-launch-and-one-model-select.md) | One AI model select on Settings, a manifest without colours so Android follows the system theme, a launch screen, the playing cover's light, and a PWA audit (D123) |
 | 2026-10-16 | [Brighter covers and a cover light](2026-10-16-brighter-covers-and-cover-light.md) | Covers a step brighter, the header light read from the drawn cover as three round drifting lights, and a theme switch that waits for its covers and fades as one picture (D122) |

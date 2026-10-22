@@ -5,6 +5,7 @@ import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
 import { isChipOn, type RegenChip } from "../lib/regenTopics";
 import Icon from "./Icon.astro";
+import SheetHeader from "./SheetHeader.astro";
 import "../styles/episode-actions.css";
 
 interface Props {
@@ -62,12 +63,7 @@ const COPY = {
     <template id={templateId}>
       {kind === "regenerate" ? (
         <dialog class="create-sheet regen-sheet" aria-labelledby="regen-title">
-          <div class="create-sheet-head">
-            <button class="icon-btn press" type="button" data-dialog-close aria-label="Close">
-              <Icon name="close" class="icon-lg" />
-            </button>
-            <h2 class="sheet-title" id="regen-title">Regenerate this episode</h2>
-          </div>
+          <SheetHeader title="Regenerate this episode" titleId="regen-title" close="data-dialog-close" />
           <div class="create-sheet-body">
             <form class="regen-form" data-regen-form novalidate>
               <p class="create-hint regen-lede">

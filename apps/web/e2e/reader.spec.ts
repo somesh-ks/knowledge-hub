@@ -47,7 +47,7 @@ test.describe("the briefing header", () => {
     page,
   }) => {
     const asked: string[] = [];
-    await page.route("**/api/narrate?digest=*", async (route) => {
+    await page.context().route("**/api/narrate?digest=*", async (route) => {
       const ids: string[] = await page.evaluate(() => {
         const data = JSON.parse(
           document.getElementById("dispatch-digest-data")?.textContent ?? "{}",
@@ -69,7 +69,7 @@ test.describe("the briefing header", () => {
         },
       });
     });
-    await page.route("**/api/narrate", async (route) => {
+    await page.context().route("**/api/narrate", async (route) => {
       if (route.request().method() !== "POST") return route.fallback();
       const { segment } = route.request().postDataJSON() as { segment: string };
       asked.push(segment);
@@ -107,7 +107,7 @@ test.describe("the briefing header", () => {
       return (data.items as { id: string }[]).map((item) => item.id);
     });
     // The server knows where each story's file would be. Here every one already exists.
-    await page.route("**/api/narrate?digest=*", (route) =>
+    await page.context().route("**/api/narrate?digest=*", (route) =>
       route.fulfill({
         json: {
           status: 200,
@@ -124,7 +124,7 @@ test.describe("the briefing header", () => {
       }),
     );
     // Asked about the first one, the server answers that it exists.
-    await page.route("**/api/narrate", (route) => {
+    await page.context().route("**/api/narrate", (route) => {
       if (route.request().method() !== "POST") return route.fallback();
       const { segment } = route.request().postDataJSON() as { segment: string };
       return route.fulfill({
@@ -233,7 +233,7 @@ test.describe("sections and stories", () => {
     await page.goto("/");
     const sections = page.locator("[data-chapter]");
     await expect(sections).toHaveCount(6);
-    await expect(sections.locator("h2")).toHaveText([
+    await expect(sections.locator("h2.section-head")).toHaveText([
       "Top picks",
       "Design engineering",
       "AI products",
@@ -244,7 +244,7 @@ test.describe("sections and stories", () => {
     await expect(page.locator(".story")).toHaveCount(12);
     // A section header is its title alone: no listening time beside it.
     await expect(page.locator(".head-fact")).toHaveCount(0);
-    await expect(sections.first().locator("h2")).toHaveText("Top picks");
+    await expect(sections.first().locator("h2.section-head")).toHaveText("Top picks");
   });
 
   test("keeps headings in order: the date, then sections, then stories", async ({ page }) => {
@@ -890,16 +890,19 @@ test.describe("the app bar's Back", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
   });
 
-  test("Back keeps the Library's order, as system Back does", async ({ page }) => {
+  test("Back keeps the Library's filter, as system Back does", async ({ page }) => {
     await narrow(page);
     await page.goto("/library");
     await hydrated(page);
-    await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
-    await expect(page).toHaveURL(/sort=oldest/);
+    // A phone has no sort since D127; the filter is the state a phone leaves the Library in.
+    await page.locator(".filter-chip", { hasText: "Catch up" }).click();
+    await expect(page).toHaveURL(/show=custom/);
     await page.locator('a.card-link[href^="/e/"]').first().click();
     await expect(page).toHaveURL(/\/e\//);
     await page.locator(".app-bar-back").click();
-    await expect(page).toHaveURL(/\/library\?sort=oldest$/);
-    await expect(page.getByRole("combobox", { name: "Sort" })).toHaveValue("oldest");
+    await expect(page).toHaveURL(/\/library\?show=custom$/);
+    await expect(
+      page.locator(".filter-chip", { hasText: "Catch up" }).locator("input"),
+    ).toBeChecked();
   });
 });

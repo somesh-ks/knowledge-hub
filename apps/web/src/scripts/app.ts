@@ -76,6 +76,29 @@ document.addEventListener("astro:after-swap", holdGutter);
 // that persists across in-app moves never plays again. A little after its 0.9 seconds.
 const launch = document.querySelector<HTMLElement>(".launch");
 if (launch) setTimeout(() => (launch.hidden = true), 1200);
+// Uncaught errors and policy violations go to /api/report (server/report.ts), at most five a page
+// load, so a fault on a phone reaches the function log instead of vanishing. Kept a few hundred
+// bytes: it is on every page's first load.
+let reports = 0;
+const report = (fault: object): void => {
+  if (reports++ < 5)
+    navigator.sendBeacon?.("/api/report", JSON.stringify({ ...fault, page: location.pathname }));
+};
+addEventListener("error", (event) =>
+  report({ kind: "error", message: event.message, source: event.filename, line: event.lineno }),
+);
+addEventListener("unhandledrejection", (event) =>
+  report({ kind: "rejection", message: String(event.reason?.message ?? event.reason) }),
+);
+document.addEventListener("securitypolicyviolation", (event) =>
+  report({
+    kind: "csp",
+    directive: event.effectiveDirective,
+    blocked: event.blockedURI,
+    source: event.sourceFile,
+    line: event.lineNumber,
+  }),
+);
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.

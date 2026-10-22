@@ -22,7 +22,7 @@ function hide(kind: "offline"): void {
   bannerStack()?.querySelector(`[data-banner="${kind}"]`)?.remove();
 }
 
-/** The banner's own line says why (BaseLayout.astro); a disabled control points at it. */
+/** The banner's title says why (BaseLayout.astro); a disabled control points at it. */
 const OFFLINE_REASON = "offline-reason";
 
 /**

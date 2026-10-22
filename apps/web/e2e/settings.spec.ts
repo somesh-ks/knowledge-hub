@@ -12,12 +12,14 @@ function stored(page: Page): Promise<Record<string, unknown>> {
 }
 
 /** Opens the page and waits until its script has filled the controls in. */
-async function openSettings(page: Page): Promise<void> {
-  await page.goto("/settings");
+async function openSettings(page: Page, path = "/settings"): Promise<void> {
+  await page.goto(path);
   await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
 }
 
-const theme = (page: Page) => page.getByRole("radiogroup", { name: "Theme" });
+/** The Interface sounds page, where the switch and the volume live. */
+const SOUNDS = "/settings/sounds";
+const theme = (page: Page) => page.getByRole("combobox", { name: "Theme" });
 const sounds = (page: Page) => page.getByRole("switch", { name: "Interface sounds", exact: true });
 const volume = (page: Page) => page.getByRole("slider", { name: "Volume" });
 const settingsLink = (page: Page) =>
@@ -43,6 +45,9 @@ test.describe("settings page", () => {
     const main = html.slice(html.indexOf("<main"), html.indexOf("</main>"));
     expect(main).toContain("data-settings");
     expect(main).not.toMatch(/\schecked\b/);
+    // The Theme select ships with no option chosen; the model select's saved value is known here.
+    const themeSelect = main.slice(main.indexOf('id="settings-theme"'));
+    expect(themeSelect.slice(0, themeSelect.indexOf("</select>"))).not.toMatch(/\sselected\b/);
     expect(main).not.toContain("data-ready");
     expect(main).toMatch(/<section[^>]*data-install-hint[^>]*hidden/);
   });
@@ -51,34 +56,34 @@ test.describe("settings page", () => {
     await page.emulateMedia({ colorScheme: "light" });
     await openSettings(page);
     const root = page.locator("html");
-    await expect(theme(page).getByRole("radio", { name: "System" })).toBeChecked();
+    await expect(theme(page)).toHaveValue("system");
     await expect(root).not.toHaveAttribute("data-theme", /.*/);
 
-    await theme(page).getByRole("radio", { name: "Dark" }).check();
+    await theme(page).selectOption("dark");
     await expect(root).toHaveAttribute("data-theme", "dark");
     await expect.poll(async () => (await stored(page)).theme).toBe("dark");
     await page.reload();
     await expect(root).toHaveAttribute("data-theme", "dark");
-    await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
+    await expect(theme(page)).toHaveValue("dark");
 
-    await theme(page).getByRole("radio", { name: "Light" }).check();
+    await theme(page).selectOption("light");
     await expect(root).toHaveAttribute("data-theme", "light");
     await page.reload();
     await expect(root).toHaveAttribute("data-theme", "light");
-    await expect(theme(page).getByRole("radio", { name: "Light" })).toBeChecked();
+    await expect(theme(page)).toHaveValue("light");
 
-    await theme(page).getByRole("radio", { name: "System" }).check();
+    await theme(page).selectOption("system");
     await expect(root).not.toHaveAttribute("data-theme", /.*/);
     await expect.poll(async () => (await stored(page)).theme).toBe("system");
     await page.reload();
     await expect(root).not.toHaveAttribute("data-theme", /.*/);
-    await expect(theme(page).getByRole("radio", { name: "System" })).toBeChecked();
+    await expect(theme(page)).toHaveValue("system");
   });
 
   test("turning interface sounds off disables the volume, and back on enables it", async ({
     page,
   }) => {
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(sounds(page)).toBeChecked();
     await expect(volume(page)).toBeEnabled();
 
@@ -100,7 +105,7 @@ test.describe("settings page", () => {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
   });
@@ -108,7 +113,7 @@ test.describe("settings page", () => {
   test("sets the volume from the keyboard, fills the track to match and persists it", async ({
     page,
   }) => {
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(volume(page)).toHaveValue("0.8");
     await expect(volume(page)).toHaveAttribute("aria-valuetext", "80%");
     await volume(page).focus();
@@ -149,7 +154,10 @@ test.describe("settings page", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeFocused();
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
+    await expect(theme(page)).toHaveValue("dark");
+    await expect(page.getByRole("link", { name: /^Interface sounds/ })).toContainText("Off");
+    await page.getByRole("link", { name: /^Interface sounds/ }).click();
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
     await expect(volume(page)).toHaveValue("0.35");
@@ -157,7 +165,7 @@ test.describe("settings page", () => {
 
   test("the controls still work on a second visit in the same session", async ({ page }) => {
     await openSettings(page);
-    await theme(page).getByRole("radio", { name: "Dark" }).check();
+    await theme(page).selectOption("dark");
     await expect.poll(async () => (await stored(page)).theme).toBe("dark");
 
     await page
@@ -169,12 +177,10 @@ test.describe("settings page", () => {
     await settingsLink(page).click();
     await expect(page).toHaveURL(/\/settings$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await expect(theme(page).getByRole("radio", { name: "Dark" })).toBeChecked();
+    await expect(theme(page)).toHaveValue("dark");
 
-    await theme(page).getByRole("radio", { name: "Light" }).check();
+    await theme(page).selectOption("light");
     await expect.poll(async () => (await stored(page)).theme).toBe("light");
-    await sounds(page).click();
-    await expect(volume(page)).toBeDisabled();
   });
 });
 
@@ -214,7 +220,7 @@ test.describe("settings page, axe", () => {
     await openSettings(page);
     await expectNoViolationsInEitherScheme(page);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openSettings(page);
+    await openSettings(page, SOUNDS);
     await expect(volume(page)).toBeDisabled();
     await expectNoViolationsInEitherScheme(page);
   });

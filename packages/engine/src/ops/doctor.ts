@@ -1,16 +1,8 @@
 import type { CommandContext } from "../context.js";
-import { loadWriterChoice } from "../writer/store.js";
 import { offlineChecks } from "./doctorOffline.js";
 import { onlineChecks } from "./doctorOnline.js";
 import type { Check, CheckStatus, DoctorDeps, DoctorReport } from "./doctorTypes.js";
 
-/** The Nebius model chosen in Settings; an Anthropic pick is not checked against the Nebius list. */
-function nebiusPick(root: string): string | null {
-  const choice = loadWriterChoice(root);
-  return choice?.provider === "nebius" ? choice.model : null;
-}
-
-export { similarModels } from "./doctorOnline.js";
 export type { Check, CheckStatus, DoctorDeps, DoctorReport } from "./doctorTypes.js";
 
 export function summarizeChecks(checks: readonly Check[], online: boolean): DoctorReport {
@@ -41,6 +33,6 @@ export async function runDoctor(
   secrets: readonly string[],
 ): Promise<DoctorReport> {
   const checks = await offlineChecks(ctx.root, ctx.env, deps);
-  if (online) checks.push(...(await onlineChecks(ctx.env, deps, secrets, nebiusPick(ctx.root))));
+  if (online) checks.push(...(await onlineChecks(ctx.env, deps, secrets)));
   return summarizeChecks(checks, online);
 }

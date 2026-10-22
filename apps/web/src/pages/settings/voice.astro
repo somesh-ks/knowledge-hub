@@ -1,0 +1,110 @@
+---
+import Icon from "../../components/Icon.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadScheduleView } from "../../lib/schedule";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/podcast.css";
+import "../../styles/picker.css";
+
+/**
+ * The voices every podcast is read in: the daily and weekly ones and a Catch up episode (whose
+ * Create panel starts from them). They are the schedule's top-level pair (podcastVoices in
+ * @dispatch/core), which the site and the engine both read, so a stored segment keeps its name.
+ */
+const schedule = await loadScheduleView();
+const title = "Podcast voice";
+// The pair is a top-level field of schedule.set, which scheduleOp and savedFields file under
+// "daily" (podcastProfiles.ts, lib/savedOverlay.ts): that is the controls' prefix, for every podcast.
+// Until a shared pair is chosen here, a Weekly voice saved before voices were shared still reads the
+// weekly podcast (podcastVoices), so the page says so rather than show Default as the whole story.
+const weeklyKeepsOld =
+  !schedule.voiceId &&
+  !schedule.voiceIdB &&
+  Boolean(schedule.weekly.voice_id || schedule.weekly.voice_id_b);
+const VOICES = [
+  { key: "voice", saved: schedule.voiceId, name: "Primary voice" },
+  { key: "voice_b", saved: schedule.voiceIdB, name: "Secondary voice" },
+] as const;
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the voice settings">
+  <main id="main" tabindex="-1">
+    {/* Static HTML with the saved voices written in. scripts/podcastPage.ts records a change and
+         autosave.ts sends it a moment later; the voice list loads into the rows, which are as tall
+         as the real ones. */}
+    <div class="manage" data-manage="podcast">
+      <SettingsHead
+        title={title}
+        note="Daily, Weekly and Catch up episodes are read in these voices."
+      />
+      {weeklyKeepsOld && (
+        <p class="settings-note" data-weekly-keeps-old>
+          Weekly keeps the voice it had before until you choose voices here.
+        </p>
+      )}
+      <noscript>
+        <p class="manage-note">Changing these settings needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <fieldset class="manage-fields" data-fields>
+        <legend class="sr-only">{title}</legend>
+        <div class="daily-panel" data-panel>
+          <div class="podcast-profile" data-profile="voice">
+            <div class="rows card-group">
+              {
+                VOICES.map((voice) => (
+                  <div class="settings-row" data-voice-row={voice.key}>
+                    <label class="settings-label" for={`podcast-${voice.key}`}>{voice.name}</label>
+                    <div class="podcast-voice">
+                      <span class="manage-select value-select">
+                        <select
+                          class="manage-input"
+                          id={`podcast-${voice.key}`}
+                          data-f={`daily.${voice.key}`}
+                          data-saved={voice.saved ?? ""}
+                          data-picker="voice"
+                          autocomplete="off"
+                        >
+                          <option value="">Default</option>
+                          {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                        </select>
+                        <Icon name="chevronDown" />
+                      </span>
+                      {/* A round play button on every voice row, as every play control in the app is
+                           drawn. Choosing a voice plays its sample too. While the voice has no sample
+                           (or the list has not arrived) the button stays, dimmed and not pressable,
+                           so the select never moves. */}
+                      <button
+                        class="podcast-sample"
+                        type="button"
+                        data-preview
+                        data-sample-name={voice.name.toLowerCase()}
+                        disabled
+                        aria-pressed="false"
+                        aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
+                      >
+                        <Icon name="playOutline" class="sample-play" />
+                        <Icon name="pause" class="sample-pause" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installPodcastPage } from "../../scripts/podcastEntry";
+
+  installPodcastPage();
+</script>

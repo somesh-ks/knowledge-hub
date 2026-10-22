@@ -248,6 +248,29 @@ export function pendingOps(state: VoteState, now: number = Date.now()): VoteOp[]
 export interface PendingBlock {
   domain: string;
   outlet: string;
+  /** When it was stopped, in ms; older stored blocks have none and are dated on their next read. */
+  at?: number;
+}
+
+/** A stop still waiting after this long is dropped with a note, not sent weeks late. */
+export const STALE_BLOCK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * The waiting blocks split into those still worth sending and those left too long: a device that
+ * comes back after weeks offline would otherwise stop an outlet the reader may have forgiven since.
+ * An undated block counts as stopped now.
+ */
+export function splitStaleBlocks(
+  blocks: readonly PendingBlock[],
+  now: number,
+): { fresh: PendingBlock[]; stale: PendingBlock[] } {
+  const fresh: PendingBlock[] = [];
+  const stale: PendingBlock[] = [];
+  for (const block of blocks) {
+    const at = typeof block.at === "number" ? block.at : now;
+    (now - at > STALE_BLOCK_MS ? stale : fresh).push({ ...block, at });
+  }
+  return { fresh, stale };
 }
 
 /** The stored outlets waiting to be stopped, or none when the text is missing or not ours. */

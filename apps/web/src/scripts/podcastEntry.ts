@@ -8,7 +8,6 @@ export function installPodcastPage(): void {
     const root = document.querySelector<HTMLElement>("[data-manage=podcast]");
     if (!root || root.dataset.mounting !== undefined) return;
     root.dataset.mounting = "";
-    void import("../lib/combobox");
     void import("./podcastPage").then((editor) => editor.mount(root));
   };
   document.addEventListener("astro:page-load", sync);

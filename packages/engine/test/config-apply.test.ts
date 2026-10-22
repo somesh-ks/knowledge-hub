@@ -203,13 +203,12 @@ describe("topic.upsert", () => {
       },
     });
     expect(code).toBe(0);
-    expect(report.summary).toBe("rename topic Design engineering craft to UI craft");
+    expect(report.summary).toBe("rename topic Build breakdowns to UI craft");
     const topics = await repo.readJson<TopicsFile>("config/topics.json");
     const builtin = topics.topics.find((t) => t.id === "design_engineering_craft");
     expect(builtin).toMatchObject({
       name: "UI craft",
-      description:
-        "How an interface detail was built: implementation technique, craft process or a worked teardown of a polished UI.",
+      description: "How a detail was made, with code",
       weight: 0.5,
       keywords: ["springs"],
       never_publish: false,
@@ -280,15 +279,27 @@ describe("weights.set", () => {
     await apply(QUANTUM);
     const { code, report } = await apply({
       op: "weights.set",
-      weights: { quantum_computing: 0.3, taste_and_design_philosophy: 0.4 },
+      weights: { quantum_computing: 0.5, taste_and_design_philosophy: 0.85 },
     });
     expect(code).toBe(0);
     expect(report.summary).toBe("set 2 topic weights");
     const prefs = await repo.readJson<Preferences>("config/preferences.json");
-    expect(prefs.weights.taste_and_design_philosophy).toBe(0.4);
+    expect(prefs.weights.taste_and_design_philosophy).toBe(0.85);
     const topics = await repo.readJson<TopicsFile>("config/topics.json");
-    expect(topics.topics.find((t) => t.id === "quantum_computing")?.weight).toBe(0.3);
-    expect(topics.topics.find((t) => t.id === "taste_and_design_philosophy")?.weight).toBe(0.4);
+    expect(topics.topics.find((t) => t.id === "quantum_computing")?.weight).toBe(0.5);
+    expect(topics.topics.find((t) => t.id === "taste_and_design_philosophy")?.weight).toBe(0.85);
+  });
+});
+
+describe("mix.set", () => {
+  // The one type mix lives in the preferences, which the engine reads for every topic; a write the
+  // preferences file dropped would leave the sliders saved and never applied.
+  it("keeps the type mix in the preferences, and Normal takes a type out", async () => {
+    const first = await apply({ op: "mix.set", format_mix: { video: "Off", forum: 1.1 } });
+    expect(first.code).toBe(0);
+    expect((await apply({ op: "mix.set", format_mix: { forum: "Normal" } })).code).toBe(0);
+    const prefs = await repo.readJson<Preferences>("config/preferences.json");
+    expect(prefs.format_mix).toEqual({ video: "Off" });
   });
 });
 
@@ -310,7 +321,7 @@ describe("topic.scope", () => {
     const general = ["world", "business", "science", "culture", "sports"];
     let result = await apply({ op: "topic.scope", ids: craft, daily: false, custom: false });
     expect(result.code).toBe(0);
-    expect(result.report.summary).toBe("set where Design engineering craft plays");
+    expect(result.report.summary).toBe("set where Build breakdowns plays");
     expect(await lists()).toEqual([[...general, ...craft], general, craft]);
     // Another page built before that change adds its own topic without undoing the first.
     result = await apply({ op: "topic.scope", ids: ["frontier_model_releases"], daily: false });
@@ -342,7 +353,6 @@ describe("schedule.set", () => {
       hour: 9,
       cadence_days: 3,
       skip_topics: [],
-      format: "readout",
       length_minutes: 10,
       voice_id: null,
       voice_id_b: null,
@@ -399,16 +409,12 @@ describe("schedule.set", () => {
     });
   });
 
-  it("saves the podcast format and length, and keeps them when a later edit leaves them out", async () => {
-    await apply({ ...SET, format: "headlines", length_minutes: 5 });
-    expect(await repo.readJson("config/schedule.json")).toMatchObject({
-      format: "headlines",
-      length_minutes: 5,
-    });
+  it("saves the podcast length, and keeps it when a later edit leaves it out", async () => {
+    await apply({ ...SET, length_minutes: 5 });
+    expect(await repo.readJson("config/schedule.json")).toMatchObject({ length_minutes: 5 });
     await apply({ ...SET, hour: 10 });
     expect(await repo.readJson("config/schedule.json")).toMatchObject({
       hour: 10,
-      format: "headlines",
       length_minutes: 5,
     });
   });
@@ -520,86 +526,6 @@ describe("profile.vote", () => {
     expect((await apply({ op: "profile.vote", votes: [vote(2, "up"), bad] })).code).toBe(1);
     expect((await apply({ op: "profile.vote", votes: [] })).code).toBe(1);
     expect(repo.dirty()).toEqual([]);
-  });
-});
-
-describe("writer.set", () => {
-  const SET = { op: "writer.set", provider: "nebius", model: "meta-llama/Llama-3.3-70B-Instruct" };
-
-  it("writes config/writer.json and nothing else", async () => {
-    const { code, report } = await apply(SET);
-    expect(code).toBe(0);
-    expect(report.files).toEqual(["config/writer.json"]);
-    expect(report.summary).toBe("set the writer to meta-llama/Llama-3.3-70B-Instruct");
-    expect(await repo.readJson("config/writer.json")).toEqual({
-      version: 1,
-      provider: "nebius",
-      model: "meta-llama/Llama-3.3-70B-Instruct",
-    });
-  });
-
-  it("does not create the file for the default writer", async () => {
-    const { code, report } = await apply({
-      op: "writer.set",
-      provider: "anthropic",
-      model: "claude-sonnet-5-5",
-    });
-    expect(code).toBe(0);
-    expect(report.files).toEqual([]);
-    expect(repo.dirty()).toEqual([]);
-  });
-
-  it("returns to automatic after a pick", async () => {
-    await apply(SET);
-    const { report } = await apply({ ...SET, model: null });
-    expect(report.summary).toBe("set the writer to automatic");
-    expect(await repo.readJson("config/writer.json")).toMatchObject({ model: null });
-  });
-
-  it("writes an Anthropic pick and refuses a Claude id on Nebius or a malformed one on Anthropic", async () => {
-    const { code, report } = await apply({
-      op: "writer.set",
-      provider: "anthropic",
-      model: "claude-haiku-5-5",
-    });
-    expect(code).toBe(0);
-    expect(await repo.readJson("config/writer.json")).toEqual({
-      version: 1,
-      provider: "anthropic",
-      model: "claude-haiku-5-5",
-    });
-    expect(report.summary).toBe("set the writer to claude-haiku-5-5");
-    for (const bad of [
-      { ...SET, model: "claude-haiku-5-5" },
-      { ...SET, provider: "anthropic", model: "claude opus" },
-      { ...SET, provider: "anthropic", model: null },
-    ]) {
-      expect((await apply(bad)).code, JSON.stringify(bad)).toBe(1);
-    }
-  });
-
-  it("a broken config/writer.json does not block an edit to something else", async () => {
-    await writeFileIn("config/writer.json", "{ not json");
-    const { code, report } = await apply({
-      op: "schedule.set",
-      hour: 9,
-      cadence_days: 3,
-    });
-    expect(code).toBe(0);
-    // The schedule is saved, and the broken file is left for the next pick of a model to replace.
-    expect(report.files).toEqual(["config/schedule.json"]);
-  });
-
-  it("picking a model replaces a broken config/writer.json", async () => {
-    await writeFileIn("config/writer.json", '{ "version": 1, "provider": "someone-else" }');
-    const { code, report } = await apply(SET);
-    expect(code).toBe(0);
-    expect(report.files).toEqual(["config/writer.json"]);
-    expect(await repo.readJson("config/writer.json")).toEqual({
-      version: 1,
-      provider: "nebius",
-      model: "meta-llama/Llama-3.3-70B-Instruct",
-    });
   });
 });
 
@@ -776,7 +702,7 @@ describe("source ops", () => {
       topic_ids: ["design_engineering_craft", "quantum_computing", "design_engineering_craft"],
     });
     expect(moved.report.summary).toBe(
-      "move source New Weekly to Design engineering craft and Quantum computing",
+      "move source New Weekly to Build breakdowns and Quantum computing",
     );
     user = await loadUserSources(repo.root);
     expect(user.added[0]?.topic_ids).toEqual(["design_engineering_craft", "quantum_computing"]);
@@ -837,7 +763,7 @@ describe("source ops", () => {
     expect((await apply({ op: "source.update", id: "alpha", topic_ids: ["nope"] })).code).toBe(1);
     expect(repo.errors.join("\n")).toContain("There is no topic nope.");
     expect((await apply({ op: "source.update", id: "alpha" })).code).toBe(1);
-    expect(repo.errors.join("\n")).toContain("set name, topic_ids or both");
+    expect(repo.errors.join("\n")).toContain("set name, topic_ids, format, lean or any of them");
     expect(repo.dirty()).toEqual([]);
   });
 

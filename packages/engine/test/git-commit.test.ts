@@ -563,6 +563,31 @@ describe("commitAndPush: pushing", () => {
     expect(spy.of("pull")).toHaveLength(3);
   });
 
+  // 2026-10-21: an episode delete pushed in the same instant as a briefing delete. GitHub refused
+  // it with a ref-lock race, which reads as "remote rejected", not "[rejected]", so it never retried.
+  it("rebases and retries a push that lost the remote's ref lock to a simultaneous push", async () => {
+    const lockRace = {
+      code: 1,
+      stdout: "",
+      stderr:
+        " ! [remote rejected] HEAD -> main (cannot lock ref 'refs/heads/main': is at 1a2b3c but expected 4d5e6f)\nerror: failed to push some refs",
+    };
+    let pushes = 0;
+    const spy = spyRunner(pair.a, (args) =>
+      args.includes("push") && pushes++ === 0 ? lockRace : undefined,
+    );
+    await put(pair.a, "state/seen.json", "{}\n");
+    const outcome = await commitAndPush({
+      root: pair.a,
+      message: MESSAGE,
+      command: "run",
+      push: true,
+      git: spy.run,
+    });
+    expect(outcome).toMatchObject({ status: "pushed", retries: 1 });
+    expect(remoteHead()).toBe(head(pair.a));
+  });
+
   it("does not rebase for a failure that is not a rejection", async () => {
     git(pair.a, "remote", "set-url", "origin", join(pair.remote, "..", "missing.git"));
     const spy = spyRunner(pair.a);

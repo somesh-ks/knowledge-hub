@@ -58,3 +58,11 @@ export function describeError(error: unknown, secrets: readonly string[] = []): 
   const head = status === undefined ? name : `${name} (HTTP ${status})`;
   return `${head}: ${message}`;
 }
+
+/** The model declined to answer (a Claude refusal stop, a Gemini safety stop). The chain moves on. */
+export class ModelRefusalError extends Error {
+  constructor(message = "The model refused the request.") {
+    super(message);
+    this.name = "ModelRefusalError";
+  }
+}

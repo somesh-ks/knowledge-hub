@@ -27,7 +27,6 @@ describe("loadSchedule", () => {
       hour: 9,
       cadence_days: 7 as const,
       skip_topics: ["trending"],
-      format: "headlines" as const,
       length_minutes: 5 as const,
       voice_id: "ada",
       voice_id_b: null,
@@ -39,7 +38,7 @@ describe("loadSchedule", () => {
     expect(await loadSchedule(root)).toEqual(saved);
   });
 
-  it("reads a file written before format and length existed", async () => {
+  it("reads a file written before length existed", async () => {
     const old = { version: 1, hour: 9, cadence_days: 7 };
     // A file of that age still carried `sections`, always null in use, which is dropped.
     await writeFile(
@@ -49,7 +48,6 @@ describe("loadSchedule", () => {
     expect(await loadSchedule(root)).toEqual({
       ...old,
       skip_topics: [],
-      format: "readout",
       length_minutes: 10,
       voice_id: null,
       voice_id_b: null,

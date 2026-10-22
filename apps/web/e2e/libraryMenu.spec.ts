@@ -1,0 +1,304 @@
+import { expect, test } from "./fixtures";
+
+/** The briefing with an audio file: the only kind a row can download. */
+const AUDIO_ID = "2026-10-07";
+const row = (page: import("@playwright/test").Page, id: string) =>
+  page.locator(`[data-card][data-id="${id}"]`);
+
+async function openMenu(page: import("@playwright/test").Page, id: string) {
+  await row(page, id).locator("[data-hero-more]").click();
+  await expect(row(page, id).locator(".hero-menu-list")).toBeVisible();
+}
+
+test("a row's menu shares a link when the browser has no share sheet, and queues the item without opening it", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
+    const copied: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: async (text: string) => void copied.push(text) },
+      configurable: true,
+    });
+    Object.assign(window, { copied, queued: [] as string[] });
+    document.addEventListener("dispatch:queue-add", (event) =>
+      (window as unknown as { queued: string[] }).queued.push((event as CustomEvent).detail.id),
+    );
+  });
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Share" }).click();
+  await expect(page.getByText("Link copied")).toBeVisible();
+  const copied = await page.evaluate(() => (window as unknown as { copied: string[] }).copied);
+  expect(copied[0]).toContain(`/d/${AUDIO_ID}`);
+
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Add to queue" }).click();
+  await expect(page.getByText("Added to queue")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { queued: string[] }).queued)).toEqual([
+    AUDIO_ID,
+  ]);
+  // The menu is not the card's link: the pick left the Library where it was.
+  expect(new URL(page.url()).pathname).toBe("/library");
+});
+
+test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const card = row(page, AUDIO_ID);
+  const more = card.locator("[data-hero-more]");
+  const boxes = async () =>
+    Promise.all(
+      [card, card.locator(".card-title"), more.locator("svg")].map((n) => n.boundingBox()),
+    );
+  const rest = await boxes();
+  const dots = (await more.boundingBox()) as {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  await page.mouse.move(dots.x + dots.width / 2, dots.y + dots.height / 2);
+  await page.mouse.down();
+  // Past the press's transition: a scale would have settled by now.
+  await page.waitForTimeout(300);
+  expect(await boxes()).toEqual(rest);
+  await page.mouse.up();
+  // The dots sit beside the title, not over the art: below the cover, level with the title's first line.
+  const cover = (await card.locator(".cover").first().boundingBox()) as {
+    y: number;
+    height: number;
+  };
+  const title = rest[1] as { y: number };
+  expect(dots.y + dots.height / 2).toBeGreaterThan(cover.y + cover.height);
+  expect(Math.abs(dots.y + dots.height / 2 - (title.y + 12))).toBeLessThan(8);
+});
+
+test.describe("a briefing download", () => {
+  // Offline, a cover the download did not save fails to load; the player's art is not under test.
+  test.use({ allowNetworkErrors: true });
+
+  test("a downloaded briefing opens offline and its audio is answered from the saved file, Range included", async ({
+    page,
+    context,
+  }) => {
+    await page.addInitScript(() => {
+      // The player's audio element is never in the page: take hold of the one it makes.
+      const Original = window.Audio;
+      window.Audio = class extends Original {
+        constructor(src?: string) {
+          super(src);
+          Object.assign(window, { played: this });
+        }
+      } as typeof Audio;
+    });
+    await page.goto("/library");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+
+    await openMenu(page, AUDIO_ID);
+    await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
+    await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toContainText(
+      "Downloaded",
+    );
+
+    // Still marked after a reload: the state comes from Cache Storage, not from the page.
+    await page.reload();
+    await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+    const audio = await row(page, AUDIO_ID)
+      .locator("[data-library-menu]")
+      .getAttribute("data-audio");
+
+    // A deploy that updates the worker drops every cache but the downloads, and renames the hashed
+    // scripts and styles, so the saved page's own files are nowhere else: a download stands on what
+    // it saved (2026-10-22, the player did not start offline on the owner's phone).
+    await page.evaluate(async () => {
+      for (const name of await caches.keys()) if (!name.includes("audio")) await caches.delete(name);
+    });
+    await context.setOffline(true);
+    // Offline does not always reach the worker's own requests here (it does on CI): covers and the
+    // hashed files fail as they would on a phone.
+    await context.route("**/covers/**", (route) => route.abort());
+    await context.route("**/_astro/**", (route) => route.abort());
+    if (audio)
+      await context.route(`**${new URL(audio, "http://x").pathname}`, (route) => route.abort());
+    await page.goto(`/d/${AUDIO_ID}`);
+    await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
+    // Every cover the page may show for this item (each theme, the player's 1024 included) answers
+    // offline: a download once saved only the covers the page does not show.
+    const covers = await page.evaluate(async (id) => {
+      const urls = new Set<string>();
+      for (const image of document.querySelectorAll<HTMLImageElement>(`img[srcset*="${id}"]`))
+        for (const part of image.srcset.split(",")) urls.add(part.trim().split(/\s+/)[0] ?? "");
+      const statuses = await Promise.all(
+        [...urls].map((url) =>
+          // Past the browser's HTTP cache, which a phone may have emptied: the worker must answer.
+          fetch(url, { cache: "no-store" }).then(
+            (res) => res.status,
+            () => 0,
+          ),
+        ),
+      );
+      return [...urls].map((url, index) => `${statuses[index]} ${url}`);
+    }, AUDIO_ID);
+    expect(covers.some((line) => line.includes("1024"))).toBe(true);
+    expect(covers.filter((line) => !line.startsWith("200 "))).toEqual([]);
+    const answer = await page.evaluate(async (url) => {
+      const res = await fetch(url, { headers: { Range: "bytes=10-19" } });
+      return {
+        status: res.status,
+        range: res.headers.get("content-range"),
+        size: (await res.arrayBuffer()).byteLength,
+      };
+    }, audio ?? "");
+    expect(answer.status).toBe(206);
+    expect(answer.range).toMatch(/^bytes 10-19\//);
+    expect(answer.size).toBe(10);
+
+    // Pressing Play offline plays the saved file: the chip is not shut for want of a connection
+    // (it was, whatever the device held).
+    const chip = page.locator("[data-play-digest]").first();
+    await expect(chip).not.toHaveAttribute("aria-disabled", "true");
+    await chip.click();
+    await expect(chip).toHaveAttribute("data-playing", "true");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { played?: HTMLMediaElement }).played?.currentTime ?? 0,
+        ),
+      )
+      .toBeGreaterThan(0.3);
+    await context.setOffline(false);
+  });
+});
+
+const EPISODE_ID = "ep-20261007-1930";
+
+test.describe("an episode download", () => {
+  // The turn not stored yet is a 404 the page logs; it is the case under test.
+  test.use({ allowNetworkErrors: true });
+
+  test("a downloaded episode plays offline from its saved turns, and one with a turn not stored yet says so and saves nothing", async ({
+    page,
+    context,
+  }) => {
+    const turns = ["t0", "t1"].map((key) => ({
+      key,
+      item_id: null,
+      characters: 10,
+      audio: {
+        url: `/audio/${EPISODE_ID}/seg/${key}.abc.mp3`,
+        duration_ms: 1000,
+        confirmed: false,
+      },
+    }));
+    let missing = true;
+    let offline = false;
+    await context.route("**/api/narrate?digest=*", (route) =>
+      offline
+        ? route.abort()
+        : route.fulfill({
+            json: {
+              status: 200,
+              audio: null,
+              timeline: null,
+              segments: turns,
+              ms_per_character: 50,
+            },
+          }),
+    );
+    await context.route("**/api/narrate-marks?*", (route) =>
+      route.fulfill({ json: { words: [] } }),
+    );
+    await context.route("**/audio/*/seg/*.mp3", (route) =>
+      missing && route.request().url().includes("t1")
+        ? route.fulfill({ status: 404 })
+        : route.fulfill({ body: Buffer.alloc(64, 1), contentType: "audio/mpeg" }),
+    );
+    await page.goto("/library");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+
+    await openMenu(page, EPISODE_ID);
+    await row(page, EPISODE_ID).getByRole("menuitem", { name: "Download" }).click();
+    await expect(page.getByText("Not ready offline yet")).toBeVisible();
+    await expect(row(page, EPISODE_ID)).not.toHaveAttribute("data-downloaded", "");
+
+    missing = false;
+    await page.reload();
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+    await openMenu(page, EPISODE_ID);
+    await row(page, EPISODE_ID).getByRole("menuitem", { name: "Download" }).click();
+    await expect(row(page, EPISODE_ID)).toHaveAttribute("data-downloaded", "");
+
+    offline = true;
+    await context.setOffline(true);
+    await page.goto(`/e/${EPISODE_ID}`);
+    const lookup = await page.evaluate(async (id) => {
+      const res = await fetch(`/api/narrate?digest=${id}`);
+      const body = await res.json();
+      const file = await fetch(body.segments[1].audio.url, { headers: { Range: "bytes=0-9" } });
+      return {
+        confirmed: body.segments.every((s: { audio: { confirmed: boolean } }) => s.audio.confirmed),
+        file: file.status,
+      };
+    }, EPISODE_ID);
+    expect(lookup).toEqual({ confirmed: true, file: 206 });
+    await context.setOffline(false);
+  });
+});
+
+test("a phone's menu sheet has no visible Close, a short pull springs back to the same box, a long pull or a tap outside closes it and focus returns to the dots", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", y: number) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: type === "touchEnd" ? [] : [{ x: 195, y }],
+    });
+  const pull = async (from: number, by: number) => {
+    await touch("touchStart", from);
+    for (let step = 1; step <= 6; step++) await touch("touchMove", from + (by * step) / 6);
+    await touch("touchEnd", from + by);
+  };
+  const sheet = row(page, AUDIO_ID).locator(".hero-menu-list");
+  const dots = row(page, AUDIO_ID).locator("[data-hero-more]");
+
+  await openMenu(page, AUDIO_ID);
+  // Keyboard and screen readers keep a Close; it takes no room a finger could see.
+  const close = sheet.locator("[data-menu-close]");
+  expect(((await close.boundingBox()) ?? { width: 99 }).width).toBeLessThan(2);
+  // The sheet slides up when it opens: its rest box and its head are read, and the finger lands on
+  // the head, only once the slide is over (a slow runner was still mid-slide).
+  const settled = () =>
+    sheet.evaluate((el) =>
+      Promise.allSettled(el.getAnimations().map((animation) => animation.finished)),
+    );
+  await settled();
+  const rest = await sheet.boundingBox();
+  const head = (await sheet.locator(".create-sheet-head").boundingBox()) as { y: number };
+
+  await pull(head.y + 8, 40);
+  await expect.poll(() => sheet.boundingBox()).toEqual(rest);
+  await expect(sheet).toBeVisible();
+  // The spring-back runs on its own clock: the next finger waits for it, or lands above the head.
+  await settled();
+
+  await pull(head.y + 8, 200);
+  await expect(sheet).toBeHidden();
+  await expect(dots).toBeFocused();
+
+  await openMenu(page, AUDIO_ID);
+  await page.touchscreen.tap(195, 40);
+  await expect(sheet).toBeHidden();
+});

@@ -22,7 +22,7 @@ async function mockPodcast(page: Page, status: number, body: unknown): Promise<M
 }
 
 const chip = (page: Page, name: string) => page.locator(".filter-chip:visible", { hasText: name });
-const segment = (page: Page, name: string) => page.locator(".settings-segment", { hasText: name });
+const segment = (page: Page, name: string) => page.getByRole("radio", { name, exact: true });
 const submit = (page: Page) => page.locator("[data-submit]");
 
 /** Unticks every chip, for a test that starts from no topic. */

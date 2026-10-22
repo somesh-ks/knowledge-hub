@@ -1,4 +1,4 @@
-import type { ConfigOp as CoreConfigOp, DigestKind } from "@dispatch/core";
+import type { ConfigOp as CoreConfigOp, DigestKind, SourceFormat } from "@dispatch/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -302,10 +302,12 @@ export type ConfigOp =
         enabled: boolean;
         keywords: string[];
         section_id: string;
+        /** Its row's emoji (core configOps); left out keeps the stored one. */
+        emoji?: string;
       };
     }
   | { op: "topic.remove"; id: string }
-  | { op: "source.add"; url: string; topic_ids?: string[]; id?: string }
+  | { op: "source.add"; url: string; topic_ids?: string[]; id?: string; format?: SourceFormat }
   | { op: "source.set"; id: string; enabled?: boolean; pinned?: boolean }
   | {
       op: "source.update";
@@ -314,12 +316,26 @@ export type ConfigOp =
       name?: string;
       /**
        * Every topic the source feeds, custom or built-in, up to 12; an empty list files it under
-       * Other. At least one of `name` and `topic_ids` is required.
+       * Other. At least one of `name`, `topic_ids` and `format` is required.
        */
       topic_ids?: string[];
+      format?: SourceFormat;
+      /** A general source's lean, -2 to 2; null clears it. */
+      lean?: number | null;
     }
   | { op: "source.remove"; id: string }
   | { op: "weights.set"; weights: Record<string, number> }
+  | {
+      op: "topic.mix";
+      id: string;
+      /** A general topic's perspective, -2 (Left) to 2 (Right); 0 is Even. */
+      perspective: number;
+    }
+  | {
+      op: "mix.set";
+      /** The type mix, one for every topic: source format to its multiplier (0, 0.85, 1, 1.1 or 1.2); 1 is Normal and removes it. */
+      format_mix: Record<string, number>;
+    }
   | {
       op: "schedule.set";
       /** Any subset of these; a field left out keeps what the file holds. At least one is required. */
@@ -331,8 +347,6 @@ export type ConfigOp =
       cadence_days?: 1 | 2 | 3 | 7;
       /** Topic ids the daily briefing leaves out. */
       skip_topics?: string[];
-      /** Podcast type of the daily briefing. */
-      format?: PodcastRequest["format"];
       /** Minutes the daily podcast runs. */
       length_minutes?: PodcastRequest["length_minutes"];
       /** Speechify voice ids of the daily podcast; null means the engine's default. */
@@ -372,12 +386,6 @@ export type ConfigOp =
       daily?: boolean;
       weekly?: boolean;
       custom?: boolean;
-    }
-  | {
-      op: "writer.set";
-      provider: "nebius" | "anthropic";
-      /** A Nebius model id or null for the engine's own setting; Anthropic needs one of its two ids. */
-      model: string | null;
     }
   /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
   | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;

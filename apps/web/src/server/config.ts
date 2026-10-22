@@ -1,3 +1,5 @@
+import { DEFAULT_SECOND_VOICE } from "@dispatch/engine/segments";
+
 /**
  * The environment the API routes need. All are Vercel environment variables. Generate and status use
  * the first three; narrate uses the passphrase hash and everything below it.
@@ -17,8 +19,6 @@ export interface ServerEnv {
   BLOB_STORE_ID?: string;
   VERCEL_OIDC_TOKEN?: string;
   /** Only /api/models reads these three, to list the models the Model picker offers. */
-  NEBIUS_API_KEY?: string;
-  NEBIUS_BASE_URL?: string;
   ANTHROPIC_API_KEY?: string;
   /** What Vercel Cron sends as a bearer token to /api/cron/run. Unset, the route refuses every call. */
   CRON_SECRET?: string;
@@ -131,12 +131,8 @@ export function readVoiceId(env: ServerEnv): string | undefined | null {
   return VOICE_ID.test(voiceId) ? voiceId : null;
 }
 
-/**
- * The second host's voice when SPEECHIFY_VOICE_ID_B is not set at all: a deeper male voice from the
- * same generation as the default first voice (geffen_32), so a discussion sounds like two people.
- * Checked against the Speechify catalogue on 2026-10-08.
- */
-export const DEFAULT_SECOND_VOICE = "dominic_32";
+/** The second host's voice when SPEECHIFY_VOICE_ID_B is not set at all; the engine uses it too. */
+export { DEFAULT_SECOND_VOICE };
 
 /** The environment a narration route reads, with the second voice filled in when nothing sets it. */
 export function withSecondVoice<T extends ServerEnv>(env: T): T {

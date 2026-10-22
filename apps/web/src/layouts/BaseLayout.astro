@@ -10,6 +10,7 @@ import PlayFab, { type PageAudio } from "../components/PlayFab.astro";
 import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
+import { BUILD_ID } from "../lib/buildId";
 import { fabFor } from "../lib/fab";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
@@ -81,7 +82,8 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // that action is the next thing to do (lib/fab.ts, D60). Create belongs to the Library, the list
 // where making an episode is next. On a page with audio of its own, Today, an older briefing or an
 // episode, the next thing is to hear it, so it floats Play: the hero chip scrolls away with the
-// page, and the button keeps the page's audio one press away from anywhere on it. Settings, Create
+// page, and the button keeps the page's audio one press away from anywhere on it. Topics and
+// sources and a topic's page float Add, which the page draws itself. Other Settings pages, Create
 // itself, offline and not found would only be cluttered by one; the side column carries Create on
 // wide screens everywhere. data-fab keeps room for the button while it shows. Play steps aside
 // while the bar holds the page's audio, as the bar is then its control and two controls for one
@@ -126,6 +128,7 @@ const back =
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
     <meta name="description" content={description} />
+    <meta name="dispatch-build" content={BUILD_ID} />
     <title>{pageTitle}</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -149,7 +152,6 @@ const back =
         tone="warning"
         icon="wifiOff"
         title="You are offline"
-        body="Audio and new episodes need a connection."
         bodyId="offline-reason"
       />
     </template>

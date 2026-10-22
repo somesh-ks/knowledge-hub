@@ -12,23 +12,30 @@
 
 /* ------------------------------------------------------------------ the top of the page */
 
-/* A source is a two-line list item (name, then its site), M3's 72px. */
-.topics {
+/* A source is a two-line list item (name, then its site), M3's 72px. The row holds its own height,
+   so it keeps it outside a topics page too: the Add source panel is appended to the body
+   (2026-10-20, its suggestions touched on a phone). */
+:is(.topics, .source-row) {
   --source-row: 4.5rem;
 }
 
-/* The list's head (D103): "9 topics" at the start and Add at the end of one line, Add the same
-   compact outline button as a topic page's Add source. */
-.topics-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-block: var(--space-6) var(--space-2);
+/* ------------------------------------------------------------------ the add action */
+
+/* Below 64rem a page's add action is the floating button (AddFab.astro), which draws itself as New
+   episode does; from 64rem there is no floating button and the page's own button shows: Add beside
+   the index's search, Add source beside a topic's Sources heading. One of the two at a time, so a
+   name is never said twice. */
+@media (width < 64rem) {
+  .topics
+    :is(.topics-add, .filter-row > .topic-add-source, .topic-sources-head > .topic-add-source) {
+    display: none;
+  }
 }
 
-.topics-head > .section-head {
-  padding-block: 0;
+.add-fab {
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
 }
 
 /* ------------------------------------------------------------------ the list of topics */
@@ -77,7 +84,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "art menu"
-    "text text";
+    "text text"
+    "foot foot";
   align-items: start;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -86,7 +94,6 @@
 }
 
 .topic-card-art {
-  grid-area: art;
   width: var(--cover-size-hero);
   height: var(--cover-size-hero);
   overflow: hidden;
@@ -115,34 +122,143 @@
   margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
 }
 
-/* The way up, over the card, where the wide layout has no app bar to hold a back arrow. */
-.topic-up {
+/* Listen in closes the card under a line that runs its full width, edge to edge through the card's
+   padding (2026-10-20). */
+.topic-card:has(.topic-card-foot) {
+  padding-block-end: var(--space-2);
+}
+
+.topic-card-foot {
+  grid-area: foot;
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-4) var(--space-4) 0;
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+@media (min-width: 40rem) {
+  .topic-card-foot {
+    margin-inline: calc(var(--space-6) * -1);
+    padding-inline: var(--space-6);
+  }
+}
+
+/* Listen in keeps one line in the card (2026-10-20): its label and value never wrap, and the value
+   is a step quieter, at the label size and regular weight, so "Weekly and Catch up" fits a phone.
+   This outweighs multiselect.css's phone rule that lets a long value take a second line elsewhere. */
+.topic-card-foot.settings-row {
+  flex-wrap: nowrap;
+}
+
+.topic-card-foot .multiselect-trigger {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+}
+
+.topic-card-foot .multiselect-trigger .multiselect-value {
+  white-space: nowrap;
+  text-wrap: nowrap;
+}
+
+/* ------------------------------------------------------------------ Sources or Preferences */
+
+/* A topic's page shows its sources or its sliders, never both (2026-10-20). Each pane takes no box of
+   its own, so the rules for what is inside it hold as they did before the switch. The floating Add is
+   for sources and shows with them. Before the script, the page is its sources. */
+/* The switch and what it shows sit in one card, as an Android settings screen groups a section
+   (2026-10-21), a step further from the topic card than the rows are from each other. The switch's
+   track is the page's own surface, so it reads against the card. */
+.topic-panel {
+  margin-block-start: var(--space-8);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+}
+
+/* On the card's fill the switch's track, the field, the Add button and the chips take the page's own
+   surface, so they read against the card. */
+.topic-panel > .topic-view,
+.topic-panel .search-field,
+.topic-panel .filter-row > .topic-add-source,
+.topic-panel .filter-chip:not(:has(input:checked)) {
+  background: var(--color-surface);
+}
+
+/* Suggested sources follow the sources block inside the card, so the card's divider replaces the
+   page's 32px of air (`.topic .topic-suggested`); `.topic` keeps this above that rule. */
+.topic .topic-panel .topic-suggested {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-2);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.topic-view {
+  margin-block-start: 0;
+}
+
+/* A topic's emoji at the start of its row on the Sources page: a fixed box, so names line up. */
+.topic-emoji {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-icon-lg);
+  font-size: var(--font-size-title);
+  line-height: 1;
+}
+
+/* Blocked sources: the skip mark in the danger colour and a line above the group, so the outlets
+   the owner shut out are told apart from the topics they listen to (2026-10-21). */
+.topics-more {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.topic-blocked-mark {
+  color: var(--color-danger);
+}
+
+/* Outweighs the row's quiet, pulled-out chevron rule (.topics .row-action .icon). */
+.topics .row-action .topic-blocked-mark > .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  margin: 0;
+  color: var(--color-danger);
+}
+
+.topic-view-pane {
+  display: contents;
+}
+
+.topics:not([data-view="preferences"]) .topic-view-preferences,
+.topics[data-view="preferences"] :is(.topic-view-sources, .add-fab) {
   display: none;
 }
 
-@media (min-width: 64rem) {
-  .topic-up {
-    display: block;
-    padding-block-end: var(--space-4);
-  }
-
-  .topic-up .settings-up {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    font-size: var(--font-size-label);
-    line-height: var(--font-leading-label);
+/* Until topicsPage.ts has read ?view= and set data-view, neither pane shows, so a Preferences load
+   never flashes the sources first (2026-10-20). The sources keep their room meanwhile, as
+   .manage:not([data-ready]) keeps the controls', so nothing moves. Without a script the page is its
+   sources, as before. */
+@media (scripting: enabled) {
+  .topics:has([data-topic-view]):not([data-view]) :is(.topic-view-pane, .add-fab) {
+    visibility: hidden;
   }
 }
 
-.topic-card + .topic-controls {
-  margin-block-start: var(--space-4);
+/* Each group of sliders under its heading, as a section of a settings page. */
+.topic-weights > .section-head {
+  padding-block: var(--space-8) var(--space-4);
+}
+
+.topic-weights > .topic-controls {
+  padding-block-start: 0;
 }
 
 @media (min-width: 40rem) {
   .topic-card {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "art text menu";
+    grid-template-areas:
+      "art text menu"
+      "foot foot foot";
     align-items: center;
     column-gap: var(--space-6);
     padding: var(--space-6);
@@ -203,12 +319,33 @@
   }
 }
 
-.topic-percent {
-  font-variant-numeric: tabular-nums;
+/* Five fixed stops under the thumb, each a small dot on the track (2026-10-21: tall tick lines read
+   as heavy; the owner asked for a calmer slider). Each dot is drawn in a thumb-sized box placed by
+   percent, which the browser measures over the track less one thumb: the same travel the thumb takes,
+   so a dot sits under the thumb's centre at its stop. */
+.settings-range[data-stops] {
+  --stop-dot: radial-gradient(
+    circle at center,
+    var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
+    transparent calc(var(--stroke-hairline) * 3 + 0.5px)
+  );
+  background-image:
+    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot);
+  background-repeat: no-repeat;
+  background-size: var(--scrubber-thumb) var(--scrubber-thumb);
+  background-position:
+    0% center,
+    25% center,
+    50% center,
+    75% center,
+    100% center;
 }
 
-.topic-never {
-  padding-block: var(--space-2);
+/* On the Preferences page a row has more air: 16px above and below, and 8px between the name and
+   its slider on a phone. */
+.preferences-page .topic .topic-weight {
+  row-gap: var(--space-2);
+  padding-block: var(--space-4);
 }
 
 .topic-sources {
@@ -234,13 +371,19 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-block: var(--space-8) var(--space-1);
+  padding-block: var(--space-8) var(--space-4);
 }
 
 /* Air between the two lists: the suggestions' heading has its own space above it, and this adds
    to it. */
 .topic .topic-suggested {
   margin-block-start: var(--space-8);
+}
+
+/* Under the tabs with nothing else on its line (the heading is for screen readers), the row gives
+   up its room, so the search sits a tab bar's step under the tabs. */
+.topic .topic-sources-head[data-quiet]:not(:has(> button)) {
+  padding-block: var(--space-6) 0;
 }
 
 .topic .topic-sources-head > .section-head {
@@ -254,7 +397,7 @@
   flex: none;
   width: auto;
   min-height: calc(var(--size-touch) - var(--space-2));
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   font-size: var(--font-size-label);
   border: var(--stroke-hairline) solid var(--color-border-control);
   background: transparent;
@@ -296,7 +439,8 @@
   pointer-events: none;
 }
 
-/* Once the removal is in the repository, the page says so and keeps nothing else. */
+/* Once the removal is confirmed (D142: at once, with Undo in the toast), the page says so and keeps
+   nothing else. */
 .topic[data-gone] > :not(.topic-gone),
 .topic:not([data-gone]) > .topic-gone {
   display: none;
@@ -304,6 +448,12 @@
 
 .topics li[data-gone] {
   display: none;
+}
+
+/* The page for a topic not built yet (D142) shows none of its stand-ins before savedView.ts fills
+   it, a moment after it opens. */
+[data-shell]:not([data-filled]) .manage-fields {
+  visibility: hidden;
 }
 
 /* ------------------------------------------------------------------ a source */
@@ -315,6 +465,9 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   column-gap: var(--space-2);
+  /* The row carries its own rhythm: M3's 72px two-line item, as tall in the Add source panel as on
+     the page (outside a .rows list the suggestions once touched). Padding on top of it made a row
+     104px (2026-10-21). */
   min-height: var(--source-row);
   border-radius: var(--radius-md);
 }
@@ -326,7 +479,7 @@
   position: absolute;
   z-index: var(--z-base);
   inset-block: 0;
-  inset-inline: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+  inset-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -362,7 +515,7 @@
 .source-main {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
   min-height: var(--source-row);
 }
@@ -451,7 +604,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   min-width: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
@@ -512,7 +665,7 @@
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  margin-inline-end: calc(var(--space-3) * -1);
+  margin-inline-end: calc(var(--space-2) * -1);
   border-radius: var(--radius-round);
   cursor: pointer;
   transition: background-color var(--duration-hover) var(--ease-hover);
@@ -605,7 +758,7 @@
 .source-sheet-foot {
   display: flex;
   flex: none;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
@@ -625,6 +778,15 @@
 
 /* Topic or Source, under the title: the segmented control of Settings, across the panel. It never
    grows along the sheet's column, at any width (it swelled to a 350px oval on phones). */
+/* On a phone the panel fills the screen above the keyboard and no further (keyboardFit.ts writes the
+   two lengths), so its head stays at the top while a field is typed in (2026-10-20). */
+@media (width < 40rem) {
+  dialog.create-sheet.topics-panel {
+    inset-block: var(--keyboard-top, 0px) auto;
+    height: calc(100dvh - var(--keyboard, 0px) - var(--keyboard-top, 0px));
+  }
+}
+
 .topics-panel-kind {
   flex: none;
   margin-block-start: var(--space-4);
@@ -635,11 +797,18 @@
   padding-block: var(--space-4);
 }
 
-/* The panel's selects are tonal, as every select and chip is: the container's fill, no outline (a
+/* Every field in the panel is tonal, as every select and chip is: the container's fill, no outline (a
    transparent edge keeps the size, and forced colours draw it), a state layer under the pointer. The
-   text fields keep their outline: that is what says they take typing. */
+   text fields were outlined while the selects were filled; one style now (owner, 2026-10-21). A
+   focused or failed text field keeps its accent or danger edge. */
 .topics-panel select.manage-input,
-.topics-panel .multiselect-trigger {
+.topics-panel .multiselect-trigger,
+.topics-panel
+  :is(input, textarea).manage-input:not(
+    :focus-visible,
+    [readonly],
+    [aria-invalid]:not([aria-invalid="false"])
+  ) {
   border-color: transparent;
   border-radius: var(--field-radius);
   background: var(--color-surface-container);
@@ -648,7 +817,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .topics-panel select.manage-input:hover,
-  .topics-panel .multiselect-trigger:hover {
+  .topics-panel .multiselect-trigger:hover,
+  .topics-panel
+    :is(input, textarea).manage-input:not(
+      :focus-visible,
+      [readonly],
+      [aria-invalid]:not([aria-invalid="false"])
+    ):hover {
     border-color: transparent;
     background: color-mix(
       in oklch,
@@ -745,7 +920,7 @@
 .score-card-title {
   margin: 0;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 
@@ -759,7 +934,7 @@
 
 .score-parts {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin: 0;
   font-size: var(--font-size-label);
 }
@@ -777,7 +952,7 @@
 .score-parts dd {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
 }
 
@@ -832,7 +1007,7 @@
 .score-card-empty-title {
   margin: 0;
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
 
@@ -865,7 +1040,7 @@
 .source-card-head {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
 }
 
@@ -1128,16 +1303,43 @@
   margin-block-start: var(--space-2);
 }
 
-/* The Blocked outlets row under the topics (D103 list), set apart from them by air. */
-.topics-more {
-  padding-block-start: var(--space-6);
+/* A suggestion being added: a light sweeps across its row while the request goes, so the press is
+   answered where it was made and the row stays until the source is in the list. Only the
+   gradient's position moves. Reduced motion keeps the tint and drops the sweep. */
+.source-row.is-suggested[data-adding]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent) 50%,
+      transparent 70%
+    )
+    100% 0 / 250% 100% no-repeat,
+    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  animation: source-shimmer calc(var(--duration-progress) * 5) var(--ease-linear) infinite;
 }
 
-/* A source deleted in the edit panel: quiet while its Undo waits, gone once it is saved. */
-.source-row:has(> .source-remove[data-pressed="true"]) {
-  opacity: var(--opacity-disabled);
+@keyframes source-shimmer {
+  to {
+    background-position:
+      0% 0,
+      0 0;
+  }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .source-row.is-suggested[data-adding]::after {
+    animation: none;
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  }
+}
+
+.source-row[hidden],
 .source-row[data-gone] {
   display: none;
 }
@@ -1145,4 +1347,237 @@
 /* Delete source sits at the start of the panel's foot, before Save. */
 .topics-panel-foot > [data-panel-delete]:not([hidden]) {
   flex: none;
+}
+
+/* ------------------------------------------------------------------ search and format tabs */
+
+/* The search field over a list of sources and, on a topic's page, a tab bar of its formats, All
+   first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20). */
+.source-filter {
+  display: grid;
+  /* One column that may shrink below its content: otherwise the tab strip's full width sets the
+     column, the filter grows past the screen and a phone zooms the whole page out (2026-10-20). */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+/* The index starts with its search (2026-10-20), a group's step under the title. */
+.topics:not(.topic-page) .source-filter {
+  margin-block-start: var(--space-6);
+}
+
+/* The field and, from 64rem, the page's add action at its end. */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The field is the Library's (.search-field, library.css), in a column that may shrink. */
+.filter-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Add source and Add match the field's height and shape (2026-10-21): the same pill, the same tonal
+   fill, so the row reads as one bar. Outweighs the outline button (.topic-add-source) below. */
+.filter-row > .topic-add-source {
+  min-height: var(--field-height);
+  padding-inline: var(--space-6);
+  border-color: transparent;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter-row > .topic-add-source:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.filter-row > .topic-add-source::after {
+  inset-block: 0;
+}
+
+/* Below 64rem the field and the chips stick under the app bar as one block, so both stay in reach
+   down a long list. Inside the topic card the block takes the card's fill and runs to its edges. */
+@media (width < 64rem) {
+  .source-filter[data-chips] {
+    position: sticky;
+    inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
+    z-index: calc(var(--z-header) - 1);
+    margin-inline: calc(var(--space-4) * -1);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-surface-container);
+  }
+
+  .source-filter[data-chips] .filter-none {
+    padding-block: var(--space-2);
+  }
+
+  /* An anchor or a focused row lands below the stuck block, not under it. */
+  html:has(.source-filter[data-chips]) {
+    scroll-padding-block-start: calc(
+      var(--sticky-top) +
+      var(--field-height) +
+      var(--chip-height) +
+      var(--space-6)
+    );
+  }
+}
+
+.filter-none {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  color: var(--color-on-surface-muted);
+}
+
+/* On the index's flat list the second line says what the source is and where it is filed. */
+.source-kind {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The Add source panel's suggestions for the topic chosen: the topic page's rows under a heading of
+   their own, and nothing at all when the topic has none (Other, or all added). */
+.panel-suggested {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+
+.panel-suggested:not(:has(li:not([hidden]))) {
+  display: none;
+}
+
+.panel-suggested-head {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+}
+
+/* The topic's emoji at the picture's corner (2026-10-21): a 44px button over the picture that opens
+   the emoji picker. The picture keeps its size; the lead only gives the button a corner to sit in. */
+.topic-card-lead {
+  position: relative;
+  grid-area: art;
+  justify-self: start;
+}
+
+.topic-card-lead .topic-emoji-pick {
+  position: absolute;
+  inset-block-end: var(--space-2);
+  inset-inline-end: var(--space-2);
+  anchor-name: --emoji-pick;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-surface-raised);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
+  font-size: var(--font-size-title);
+  line-height: 1;
+}
+
+/* The emoji picker: the More menu's popover (hero.css, .menu-sheet) holding a search field and the
+   emoji by category. From 40rem it hangs under the emoji button, start edges level; the phone's
+   bottom sheet is taller and rides above the keyboard (keyboardFit.ts writes --keyboard). The extra
+   class beats the menu's own rules, which it reuses for the surface, the slide and the scrim. */
+.hero-menu-list.emoji-picker {
+  --emoji-bg: var(--color-surface-overlay);
+  inset-inline: var(--menu-left, 0) auto;
+  flex-direction: column;
+  width: min(22rem, calc(100vw - var(--space-8)));
+  height: min(28rem, 70dvh);
+  padding: 0;
+}
+
+@supports (top: anchor(bottom)) {
+  .hero-menu-list.emoji-picker {
+    position-anchor: --emoji-pick;
+    inset-inline: anchor(left) auto;
+  }
+}
+
+.hero-menu-list.emoji-picker:popover-open {
+  display: flex;
+}
+
+@media (width < 40rem) {
+  .hero-menu-list.menu-sheet.emoji-picker,
+  .hero-menu-list.menu-sheet.emoji-picker:popover-open {
+    --emoji-bg: var(--sheet-bg);
+    inset: auto 0 var(--keyboard, 0px) 0;
+    width: min(100%, var(--layout-column));
+    height: min(36rem, calc(100dvh - var(--keyboard, 0px) - var(--space-16)));
+    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+  }
+}
+
+.emoji-search {
+  flex: none;
+  margin: var(--space-2);
+}
+
+.emoji-body {
+  flex: 1;
+  min-height: 0;
+  padding-inline: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* A category's name stays at the top while its emoji scroll under it. */
+.emoji-label {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-raised);
+  margin: 0;
+  padding-block: var(--space-2);
+  background: var(--emoji-bg);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-touch), 1fr));
+}
+
+.emoji-cell {
+  display: grid;
+  place-items: center;
+  min-height: var(--size-touch);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-title);
+  line-height: 1;
+}
+
+.emoji-cell[aria-current="true"] {
+  background: var(--color-surface-container);
+  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
+}
+
+.emoji-cell:focus-visible {
+  outline-offset: calc(var(--stroke-ring) * -1);
+  box-shadow: none;
+}
+
+.emoji-note {
+  margin: 0;
+  padding: var(--space-4) var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
 }

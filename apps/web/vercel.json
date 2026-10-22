@@ -114,6 +114,10 @@
           "value": "nosniff"
         },
         {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        },
+        {
           "key": "Referrer-Policy",
           "value": "no-referrer"
         },
@@ -131,7 +135,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "img-src 'self' data:; font-src 'self'; media-src 'self' https://*.public.blob.vercel-storage.com; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          "value": "img-src 'self' data:; font-src 'self'; media-src 'self' https://*.public.blob.vercel-storage.com; connect-src 'self' https://*.public.blob.vercel-storage.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         }
       ]
     },
@@ -221,6 +225,15 @@
         {
           "key": "Cache-Control",
           "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/build.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
         }
       ]
     },

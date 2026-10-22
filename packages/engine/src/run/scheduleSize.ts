@@ -103,7 +103,7 @@ export function charsForMinutes(minutes: number): number {
 
 /**
  * The ids to leave out so the briefing's narration fills `lengthChars`, measured from what was
- * written rather than the 364-character average: Sonnet tells a story longer than Nebius did, and a
+ * written rather than the 364-character average: Sonnet tells a longer story than the earlier models did, and a
  * five-minute replay ran 5.7 minutes on the average alone. Stories are cut in the reverse of how
  * selection fills a briefing: the lowest-scored story of a topic that has another goes first, so
  * every topic keeps its best story; only then the lowest-scored overall. A cut is made only while
@@ -113,6 +113,13 @@ export function sparesOverLength(
   stories: readonly { id: string; category: string; score: number; chars: number }[],
   lengthChars: number,
   floor = 1,
+  /**
+   * The narration's real length for these stories, when the caller can build it. The estimate
+   * below over-counts the host's frame by 730 to 1,340 characters an episode (2026-10 episodes:
+   * 7 to 47 characters a story, not 60), so it cut a story the length still had room for: the
+   * 2026-10-17 daily aired 10 of 11 at 3.7 of its 5 minutes.
+   */
+  measure?: (ids: ReadonlySet<string>) => number,
 ): string[] {
   const left = [...stories].sort((a, b) => a.score - b.score);
   const airtime = (): number =>
@@ -126,7 +133,10 @@ export function sparesOverLength(
       left.findIndex((story) => (perTopic.get(story.category) ?? 0) > 1),
     );
     const next = left[index] as { id: string; chars: number };
-    if (airtime() - next.chars - STORY_FRAME_CHARS < lengthChars) break;
+    const without = measure
+      ? measure(new Set(left.filter((story) => story !== next).map((story) => story.id)))
+      : airtime() - next.chars - STORY_FRAME_CHARS;
+    if (without < lengthChars) break;
     left.splice(index, 1);
     cut.push(next.id);
   }

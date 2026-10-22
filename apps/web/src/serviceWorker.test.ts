@@ -33,13 +33,18 @@ function request(path: string, overrides: Partial<FakeRequest> = {}): FakeReques
   };
 }
 
+function urlOf(key: FakeRequest | string): string {
+  if (typeof key !== "string") return key.url;
+  return key.startsWith("http") ? key : `${ORIGIN}${key}`;
+}
+
 class FakeCache {
   entries = new Map<string, Response>();
   async put(key: FakeRequest | string, response: Response) {
-    this.entries.set(typeof key === "string" ? `${ORIGIN}${key}` : key.url, response);
+    this.entries.set(urlOf(key), response);
   }
   async match(key: FakeRequest | string) {
-    return this.entries.get(typeof key === "string" ? `${ORIGIN}${key}` : key.url)?.clone();
+    return this.entries.get(urlOf(key))?.clone();
   }
   async keys() {
     return [...this.entries.keys()].map((url) => ({ url }));
@@ -150,21 +155,10 @@ function load(network: (url: string) => Response | Promise<Response> = () => new
 }
 
 describe("service worker: requests it passes straight through", () => {
-  // Audio is never cached or touched; the API, other methods and other origins are not its business.
+  // Video, ranged page reads, the API, other methods and other origins are not its business.
   // Each request sits on a path the worker would otherwise serve (/d/, /_astro/, /covers/, a page).
   const ranged = { headers: new Headers({ Range: "bytes=0-1" }) };
   it.each([
-    [
-      "cross-origin audio",
-      request("https://abc.public.blob.vercel-storage.com/audio/2026-10-07.mp3", {
-        destination: "audio",
-      }),
-    ],
-    ["same-origin audio by extension: mp3", request("/d/x.mp3")],
-    ["same-origin audio by extension: wav", request("/_astro/audio.wav")],
-    ["same-origin audio by extension: m4a", request("/covers/a.m4a")],
-    ["same-origin audio by extension: upper-case OGG", request("/d/b.OGG")],
-    ["audio by destination", request("/d/stream", { destination: "audio" })],
     ["video by destination", request("/d/clip", { destination: "video" })],
     ["a Range request, so Safari seeking works", request("/d/2026-10-07", ranged)],
     ["a POST", request("/d/2026-10-07", { method: "POST" })],
@@ -180,32 +174,25 @@ describe("service worker: requests it passes straight through", () => {
 });
 
 describe("service worker: what it leaves alone", () => {
-  it("never answers or stores /api/narrate, so a narration shows up the moment it exists", async () => {
+  it("never stores /api/narrate, so a narration shows up the moment it exists, and leaves a POST alone", async () => {
     let audioExists = false;
     const worker = load(
       () => new Response(audioExists ? "audio" : "none", { status: audioExists ? 200 : 404 }),
     );
-    const lookups = [
-      request("/api/narrate?digest=2026-10-07"),
-      // However the page asks: as a navigation, or accepting HTML, it is still the API.
-      request("/api/narrate?digest=2026-10-07", { mode: "navigate" }),
-      request("/api/narrate?digest=2026-10-07", {
-        headers: new Headers({ Accept: "text/html" }),
-      }),
-      request("/api/narrate", { method: "POST" }),
-    ];
-    for (const lookup of lookups) {
-      expect((await worker.dispatchFetch(lookup)).handled).toBe(false);
-    }
-    // The same question after the narration exists still goes to the network.
+    // A POST spends narration: it always goes straight to the network.
+    expect((await worker.dispatchFetch(request("/api/narrate", { method: "POST" }))).handled).toBe(
+      false,
+    );
+    // A lookup for anything not downloaded is not the worker's: it goes straight to the network,
+    // before and after the narration exists, and nothing is kept.
+    const lookup = request("/api/narrate?digest=2026-10-07", { mode: "navigate" });
+    expect((await worker.dispatchFetch(lookup)).handled).toBe(false);
     audioExists = true;
-    expect((await worker.dispatchFetch(lookups[0] ?? request("/"))).handled).toBe(false);
-    // The worker neither fetched on the page's behalf nor kept anything.
-    expect(worker.fetched).toEqual([]);
+    expect((await worker.dispatchFetch(lookup)).handled).toBe(false);
     expect(worker.caches.stored()).toEqual([]);
   });
 
-  it("does not bring a cached page back for /api/narrate when the network is down", async () => {
+  it("does not bring a cached page back for /api/narrate when the network is down and nothing was downloaded", async () => {
     let online = true;
     const worker = load(() => {
       if (!online) throw new TypeError("offline");
@@ -215,12 +202,72 @@ describe("service worker: what it leaves alone", () => {
     online = false;
     // A page request would fall back to /offline here. The API must not.
     const result = await worker.dispatchFetch(request("/api/narrate?digest=2026-10-07"));
-    expect(result.handled).toBe(false);
-    expect(result.response).toBeUndefined();
+    // Either the worker leaves it to the network, or it answers with an error: never a page.
+    if (result.handled) expect(result.response?.type).toBe("error");
+    expect(await result.response?.text()).not.toBe("page");
   });
 });
 
 describe("service worker: caching strategies", () => {
+  // A cache entry the browser broke made every load of the file fail, online, until the worker changed.
+  it("answers from the network when a cache read throws, and rebuilds its caches", async () => {
+    const worker = load();
+    await worker.dispatchFetch(request("/_astro/app.abc.css"));
+    const name = `dispatch-shell-${CURRENT_VERSION}`;
+    const broken = await worker.caches.open(name);
+    worker.caches.match = async () => {
+      throw new Error("corrupt entry");
+    };
+    const answer = await worker.dispatchFetch(request("/_astro/app.abc.css"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(name)).not.toBe(broken);
+  });
+
+  // /latest.json is stored under its bare path: probing the request (with its query) never saw the
+  // corrupt entry, so it was never healed.
+  it("rebuilds its caches when only the saved /latest.json entry is unreadable", async () => {
+    let online = true;
+    const worker = load(() => {
+      if (!online) {
+        online = true;
+        throw new TypeError("network blip");
+      }
+      return new Response("{}");
+    });
+    await worker.dispatchFetch(request("/latest.json?t=1"));
+    const name = `dispatch-pages-${CURRENT_VERSION}`;
+    const broken = await worker.caches.open(name);
+    const match = worker.caches.match.bind(worker.caches);
+    worker.caches.match = async (key: string | FakeRequest) => {
+      if (key === "/latest.json") throw new Error("corrupt entry");
+      return match(key);
+    };
+    online = false;
+    const answer = await worker.dispatchFetch(request("/latest.json?t=2"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(name)).not.toBe(broken);
+  });
+
+  // A dropped connection on an uncached asset once emptied the shell, pages and media caches: the
+  // saved briefings the person reads offline went with it.
+  it("keeps every saved page when a network blip rejects a strategy and the retry answers", async () => {
+    let blip = false;
+    const worker = load(() => {
+      if (blip) {
+        blip = false;
+        throw new TypeError("network blip");
+      }
+      return new Response("body");
+    });
+    await worker.dispatchFetch(request("/d/2026-10-07"));
+    const pages = await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`);
+    blip = true;
+    const answer = await worker.dispatchFetch(request("/_astro/uncached.abc.js"));
+    expect(answer.response?.status).toBe(200);
+    expect(await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`)).toBe(pages);
+    expect(await pages.match("/d/2026-10-07")).toBeDefined();
+  });
+
   it("serves hashed assets cache first", async () => {
     const worker = load();
     await worker.dispatchFetch(request("/_astro/app.abc.css"));
@@ -229,25 +276,14 @@ describe("service worker: caching strategies", () => {
     expect(worker.fetched).toEqual([`${ORIGIN}/_astro/app.abc.css`]);
   });
 
-  it("serves a digest page stale while it revalidates", async () => {
+  // A briefing's saved page names the old deploy's stylesheets: answered first, it showed the old layout.
+  it.each(["/", "/d/2026-10-07"])("goes to the network first for a load of %s", async (path) => {
     let version = 1;
     const worker = load(() => new Response(`page v${version}`));
-    const first = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await first.response?.text()).toBe("page v1");
+    await worker.dispatchFetch(request(path, { mode: "navigate" }));
     version = 2;
-    const second = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await second.response?.text()).toBe("page v1");
-    const third = await worker.dispatchFetch(request("/d/2026-10-07"));
-    expect(await third.response?.text()).toBe("page v2");
-  });
-
-  it("goes to the network first for the home page", async () => {
-    let version = 1;
-    const worker = load(() => new Response(`home v${version}`));
-    await worker.dispatchFetch(request("/", { mode: "navigate" }));
-    version = 2;
-    const next = await worker.dispatchFetch(request("/", { mode: "navigate" }));
-    expect(await next.response?.text()).toBe("home v2");
+    const next = await worker.dispatchFetch(request(path, { mode: "navigate" }));
+    expect(await next.response?.text()).toBe("page v2");
   });
 
   // A preload the worker ignores is a second request for the same page and a console warning.
@@ -527,5 +563,72 @@ describe("service worker: install and update", () => {
     expect(names).toContain("someone-elses-cache");
     expect(names).toContain(`dispatch-shell-${CURRENT_VERSION}`);
     expect(worker.claim).toHaveBeenCalled();
+  });
+});
+
+describe("service worker: audio the person downloaded", () => {
+  const AUDIO = "https://abc.public.blob.vercel-storage.com/audio/2026-10-07.mp3";
+  const body = "0123456789";
+  async function withDownload() {
+    const worker = load(() => new Response("network audio"));
+    const cache = await worker.caches.open("dispatch-audio-v1");
+    await cache.put(AUDIO, new Response(body, { headers: { "content-type": "audio/mpeg" } }));
+    // The page tells the worker its downloads changed; the worker reads them before answering.
+    const done: Promise<unknown>[] = [];
+    worker.handlers.get("message")?.({
+      data: { type: "DOWNLOADS_CHANGED" },
+      waitUntil: (promise: Promise<unknown>) => done.push(promise),
+    });
+    await Promise.all(done);
+    return worker;
+  }
+  const ask = (range?: string) =>
+    request(AUDIO, {
+      destination: "audio",
+      ...(range ? { headers: new Headers({ Range: range }) } : {}),
+    });
+
+  it("answers a Range request from the saved file with 206 and Content-Range, which seeking needs", async () => {
+    const worker = await withDownload();
+    for (const [range, text, header] of [
+      ["bytes=2-5", "2345", "bytes 2-5/10"],
+      ["bytes=7-", "789", "bytes 7-9/10"],
+      ["bytes=-3", "789", "bytes 7-9/10"],
+      ["bytes=8-99", "89", "bytes 8-9/10"],
+    ] as const) {
+      const { response } = await worker.dispatchFetch(ask(range));
+      expect(response?.status).toBe(206);
+      expect(await response?.text()).toBe(text);
+      expect(response?.headers.get("content-range")).toBe(header);
+    }
+    expect(worker.fetched).toEqual([]);
+  });
+
+  it("answers the whole file without a Range header, and 416 for a range past the end", async () => {
+    const worker = await withDownload();
+    const whole = (await worker.dispatchFetch(ask())).response;
+    expect(whole?.status).toBe(200);
+    expect(await whole?.text()).toBe(body);
+    const past = (await worker.dispatchFetch(ask("bytes=50-60"))).response;
+    expect(past?.status).toBe(416);
+    expect(past?.headers.get("content-range")).toBe("bytes */10");
+  });
+
+  // Bug it prevents: every seek of a stream the person never downloaded paid a cache lookup and a
+  // worker-proxied fetch on the playback path (the review of 2026-10-21).
+  it("leaves audio that was not downloaded to the network, unanswered, and keeps nothing", async () => {
+    const worker = load(() => new Response("network audio"));
+    const { response } = await worker.dispatchFetch(request("/d/2026-10-07.mp3"));
+    expect(response).toBeUndefined();
+    expect(worker.fetched).toEqual([]);
+    expect(worker.caches.stored()).toEqual([]);
+  });
+
+  it("keeps the downloads when a new version of the worker takes over", async () => {
+    const worker = await withDownload();
+    await (await worker.caches.open("dispatch-shell-v1")).put("/x", new Response("old"));
+    await worker.lifecycle("activate");
+    expect(worker.caches.stored()).toContain(AUDIO);
+    expect(worker.caches.stored()).not.toContain(`${ORIGIN}/x`);
   });
 });

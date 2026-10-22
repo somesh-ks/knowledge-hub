@@ -3,16 +3,16 @@
   "focus": "Product Design & Design Engineering (0 -> 1)",
   "weights": {
     "design_engineering_craft": 0.95,
-    "hci_empirical_research": 0.92,
+    "hci_empirical_research": 0.95,
     "ui_component_primitives": 0.7,
     "ai_ux_interaction_patterns": 0.85,
-    "css_canvas_motion_techniques": 0.88,
+    "css_canvas_motion_techniques": 0.85,
     "frontier_model_releases": 0.85,
-    "developer_tool_launches": 0.82,
+    "developer_tool_launches": 0.85,
     "taste_and_design_philosophy": 0.85,
-    "venture_capital_and_gossip": 0.1,
-    "generic_ai_hype_listicles": 0.02,
-    "consumer_tech_releases": 0.8
+    "venture_capital_and_gossip": 0,
+    "generic_ai_hype_listicles": 0.7,
+    "consumer_tech_releases": 0.85
   },
   "preferred_keywords": [
     "taste",

@@ -8,12 +8,11 @@ describe("settings summaries", () => {
     expect(dailySummary({ hour: 9, cadenceDays: 2, timezone: "Europe/Stockholm" })).toBe(
       "Every second day at 09:00",
     );
-    expect(weeklySummary({ enabled: true, day: 1, hour: 7, timezone: "Asia/Kolkata" })).toBe(
+    expect(weeklySummary({ day: 1, hour: 7, timezone: "Asia/Kolkata" })).toBe(
       "Mondays at 07:00 (India)",
     );
     expect(dailySummary({ hour: 7, cadenceDays: 5 })).toBe("Every 5 days at 07:00");
-    expect(weeklySummary({ enabled: true, day: 1, hour: 7 })).toBe("Mondays at 07:00");
-    expect(weeklySummary({ enabled: false, day: 1, hour: 7 })).toBe("Off");
+    expect(weeklySummary({ day: 1, hour: 7 })).toBe("Mondays at 07:00");
   });
 
   it("count only the sources that are on", () => {

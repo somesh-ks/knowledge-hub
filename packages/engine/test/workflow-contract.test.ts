@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +10,8 @@ import { REPO_ROOT } from "./score-factories.js";
 // This reads every `dispatch -- <args>` call in .github/workflows and runs its literal arguments
 // through the CLI in an empty folder with no keys: any exit is fine except 2, the usage error that a
 // missing command or an unknown flag produces. Shell variables get a plausible value each.
+const RUNS_FILE = join(tmpdir(), `dispatch-contract-runs-${process.pid}.json`);
+writeFileSync(RUNS_FILE, "[]");
 const PLACEHOLDERS: Record<string, string[]> = {
   '"${args[@]}"': [
     "--mode",
@@ -22,7 +24,11 @@ const PLACEHOLDERS: Record<string, string[]> = {
     "2026-10-01",
     "--dry-run",
   ],
+  // Offline here: the contract run must not reach the live site.
+  '"$CEILING"': ["5", "--offline"],
   '"$DELETE_ID"': ["2026-10-01"],
+  // health.yml's `gh run list` output: an empty list.
+  '"$runs"': [RUNS_FILE],
   '"$FEEDBACK"': ["Shorter summaries"],
   '"$TOPICS"': ["ai,design"],
   '"$OP"': ['{"op":"weights.set","weights":{"design_engineering_craft":0.9}}'],
@@ -79,5 +85,18 @@ describe("workflow calls", () => {
       },
     });
     expect(code, err).not.toBe(2);
+  });
+});
+
+// run_died started a paid run on a guess (a cancel, a timeout) that nothing confirmed: it alerts only.
+describe("health.yml's heal", () => {
+  it("starts a briefing run for run_failed and run_overdue only", () => {
+    const yml = readFileSync(join(dir, "health.yml"), "utf8").split("\n");
+    const start = yml.findIndex((line) => line.includes("gh workflow run run.yml"));
+    const condition = yml[start - 1] ?? "";
+    expect([...condition.matchAll(/new_fault (\w+)/g)].map((match) => match[1])).toEqual([
+      "run_failed",
+      "run_overdue",
+    ]);
   });
 });

@@ -170,7 +170,7 @@
   inset-inline-end: var(--menu-right, 0);
   min-width: 10rem;
   margin: 0;
-  padding: var(--space-1);
+  padding: var(--space-2);
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-surface-overlay);
@@ -195,7 +195,7 @@
     position-anchor: --hero-more;
     inset-block-start: anchor(bottom);
     inset-inline-end: anchor(right);
-    margin-block-start: var(--space-1);
+    margin-block-start: var(--space-2);
     position-try-fallbacks: flip-block;
   }
 }
@@ -243,7 +243,7 @@
   align-items: center;
   width: 100%;
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--radius-sm);
   color: var(--color-on-surface);
   font-size: var(--font-size-body);
@@ -276,6 +276,83 @@
 .hero-menu-item[aria-disabled="true"] {
   color: var(--color-on-surface-disabled);
   cursor: default;
+}
+
+/* An item of the menu: its icon at the start, then the word. */
+.menu-sheet .hero-menu-item {
+  gap: var(--space-4);
+}
+
+.menu-sheet .hero-menu-item .icon {
+  flex: none;
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+/* From 40rem the header is the sheet's alone. */
+.menu-sheet > .create-sheet-head {
+  display: none;
+}
+
+/* A phone shows the menu as a bottom sheet (owner, 2026-10-21, every ⋮ menu): the popover pinned to the bottom edge
+   on the sheet surface, its header the shared SheetHeader, a scrim behind. It slides up like
+   dialog.sheet (foundations.css) and is as specific as the popover's own open rules (hero.css). */
+@media (width < 40rem) {
+  .hero-menu-list.menu-sheet,
+  .hero-menu-list.menu-sheet:popover-open {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: min(100%, var(--layout-column));
+    max-width: none;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    background: var(--sheet-bg);
+    box-shadow: var(--sheet-shadow);
+    --color-focus-gap: var(--sheet-bg);
+    opacity: 1;
+    transform: translateY(105%);
+    transform-origin: bottom;
+    transition:
+      transform var(--duration-sheet-out) var(--ease-drawer),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
+  }
+
+  .hero-menu-list.menu-sheet:popover-open {
+    display: block;
+    transform: none;
+    transition-duration: var(--duration-sheet-in);
+  }
+
+  @starting-style {
+    .hero-menu-list.menu-sheet:popover-open {
+      transform: translateY(105%);
+    }
+  }
+
+  .menu-sheet::backdrop {
+    background: var(--color-scrim);
+  }
+
+  .menu-sheet > .create-sheet-head {
+    display: flex;
+    padding-block: var(--space-1);
+    padding-inline: var(--space-2) var(--space-1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-menu-list.menu-sheet,
+    .hero-menu-list.menu-sheet:popover-open {
+      transform: none;
+      transition-duration: var(--duration-state);
+    }
+
+    .hero-menu-list.menu-sheet:not(:popover-open) {
+      opacity: 0;
+    }
+  }
 }
 
 @media (min-width: 40rem) {

@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { clamp01, round4 } from "../src/score/numbers.js";
 import { craftFactor, penaltyFactor, scoreItem } from "../src/score/scoreItem.js";
 import {
+  applyFormatMix,
   applyTopics,
   FIT_EXPONENT,
   fitCurve,
@@ -362,5 +363,54 @@ describe("the seed file", () => {
     // The two shipped topics have origin "app" and are not counted as custom.
     expect(seed.topics.every((topic) => topic.origin !== "custom")).toBe(true);
     expect(seed.topics.filter((topic) => topic.origin === "app")).toHaveLength(2);
+  });
+});
+
+describe("type mix and perspective", () => {
+  const entry = (item: Item): JudgmentEntry => makeEntry(item, { category: "none" });
+
+  // Before the one type mix, a mix lived on a topic and a story outside it kept its score.
+  it("applies the one type mix to a story of every topic: a built-in category and a custom one", () => {
+    const topic = customTopic();
+    const mix = { video: "Off", forum: "More" } as const;
+    const scoredAs = (type: "youtube" | "rss", winner: "builtin" | "custom") => {
+      const item = makeItem({ source_type: type });
+      const base =
+        winner === "builtin"
+          ? scoreItem(
+              makeEntry(item, { category: "design_engineering_craft", p: 0.9 }),
+              preferences,
+              item,
+            )
+          : applyTopics(
+              scoreItem(entry(item), preferences, item),
+              layerOf([topic], { [item.id]: { [topic.id]: 1 } }),
+            );
+      return { base, after: applyFormatMix(base, mix, undefined) };
+    };
+    for (const winner of ["builtin", "custom"] as const) {
+      const video = scoredAs("youtube", winner);
+      expect(video.base.score).toBeGreaterThan(0.4);
+      expect(video.after.score).toBe(0);
+      const blog = scoredAs("rss", winner);
+      expect(blog.after).toBe(blog.base);
+    }
+    const forum = { format: "forum" as const };
+    const item = makeItem();
+    const base = scoreItem(entry(item), preferences, item);
+    expect(applyFormatMix({ ...base, score: 0.5 }, mix, { [item.source_id]: forum }).score).toBe(
+      0.55,
+    );
+  });
+
+  it("does not move any score at Even, however the outlets lean", () => {
+    const item = makeItem();
+    const general = customTopic({ origin: "general", depth: "fit_only" });
+    const leans = { leans: [2, 2] };
+    const plain = topicScore(general, 1, entry(item), item, leans);
+    const even = topicScore({ ...general, perspective: 0 }, 1, entry(item), item, leans);
+    expect(even?.score).toBe(plain?.score);
+    const right = topicScore({ ...general, perspective: 2 }, 1, entry(item), item, leans);
+    expect(right?.score).toBeGreaterThan(plain?.score ?? 0);
   });
 });

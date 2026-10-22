@@ -17,8 +17,8 @@ import { dirname, join, resolve } from "node:path";
 
 // Mirrors LEARN_LIMITS (core, preferences.ts) and the patch schema (engine, learn/patch.ts).
 // If those change, change these constants with them.
-const PER_WEIGHT = 0.05;
-const PER_CALL = 0.15;
+const STOPS = [0, 0.5, 0.7, 0.85, 0.95]; // Off, Less, Normal, More, Most
+const MAX_MOVES = 3;
 const MAX_INPUT = 500;
 const MAX_LIST = 10;
 
@@ -82,40 +82,26 @@ try {
   fail(`cannot read ${options.prefs}; run from the repository root or pass --prefs`);
 }
 
-// Weights: validate, clamp per weight, then spend the per-call budget in the order given.
+// Weights: validate, then move each one whole stop in the direction of its sign, up to MAX_MOVES.
+const nearest = (w) => STOPS.reduce((best, stop, i) => (Math.abs(stop - w) < Math.abs(STOPS[best] - w) ? i : best), 0);
 const weightDeltas = {};
-let budget = PER_CALL;
 for (const [category, wanted] of options.weights) {
   const before = prefs.weights?.[category];
   if (typeof before !== "number") {
     fail(`unknown category "${category}"; use a key of weights in ${options.prefs}`);
   }
   if (category in weightDeltas) fail(`--weight ${category} given twice`);
-  let delta = Math.max(-PER_WEIGHT, Math.min(PER_WEIGHT, wanted));
-  if (delta !== wanted) {
-    note(`capped: ${category} asked ${signed(wanted)}, limit is ${PER_WEIGHT} per weight`);
-  }
-  delta = truncate2(delta);
-  const reachable = round2(Math.min(1, Math.max(0, before + delta)) - before);
-  if (reachable !== delta) {
-    note(`headroom: ${category} is ${before}, so ${signed(delta)} becomes ${signed(reachable)}`);
-    delta = reachable;
-  }
-  if (delta === 0) {
+  const direction = Math.sign(wanted);
+  const at = nearest(before);
+  if (direction === 0 || STOPS[at + direction] === undefined) {
     note(`skipped: ${category} cannot move from ${before}`);
     continue;
   }
-  if (budget < 0.01) {
-    note(`deferred: ${category} ${signed(delta)}, the ${PER_CALL} per-call budget is spent`);
+  if (Object.keys(weightDeltas).length >= MAX_MOVES) {
+    note(`deferred: ${category}, ${MAX_MOVES} moves per call`);
     continue;
   }
-  if (Math.abs(delta) > budget) {
-    const fitted = truncate2(Math.sign(delta) * budget);
-    note(`deferred: ${category} cut from ${signed(delta)} to ${signed(fitted)} by the per-call budget`);
-    delta = fitted;
-  }
-  budget = round2(budget - Math.abs(delta));
-  weightDeltas[category] = delta;
+  weightDeltas[category] = direction;
 }
 
 // Lists: drop no-ops and contradictions, enforce the CLI's length and size limits.
@@ -153,7 +139,6 @@ const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15);
 const out = resolve(options.out ?? join(tmpdir(), `dispatch-learn-${stamp}.json`));
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, `${JSON.stringify(patch, null, 2)}\n`, "utf8");
-const total = round2(Object.values(weightDeltas).reduce((sum, d) => sum + Math.abs(d), 0));
-const moved = Object.entries(weightDeltas).map(([category, d]) => `${category} ${signed(d)}`);
-console.log(`weights: ${moved.join(", ") || "none"} (total ${total} of ${PER_CALL})`);
+const moved = Object.entries(weightDeltas).map(([category, d]) => `${category} ${d > 0 ? "up" : "down"} one stop`);
+console.log(`weights: ${moved.join(", ") || "none"} (${moved.length} of ${MAX_MOVES} moves)`);
 console.log(`patch: ${out}`);

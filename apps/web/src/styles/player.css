@@ -510,10 +510,10 @@
 .player-section-title {
   margin: 0;
   padding-block: var(--space-2) 0;
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .segmented-legend {
@@ -529,7 +529,7 @@
 .player-fallback {
   display: grid;
   justify-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding-block: var(--space-8);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -750,7 +750,7 @@
   visibility: hidden;
   transition:
     translate var(--duration-sheet-out) var(--ease-drawer),
-    visibility 0s linear var(--duration-sheet-out);
+    visibility 0s var(--ease-linear) var(--duration-sheet-out);
 }
 
 /* Both lines are cut into chapters by a mask the components compute (chapterMask.ts). */
@@ -783,7 +783,7 @@
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--mini-player-control-size);
   padding-inline-end: var(--space-2);
   border-radius: var(--mini-player-control-radius);
@@ -841,7 +841,7 @@
 .dock-title {
   overflow: hidden;
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -874,16 +874,18 @@
  * from the edge).
  */
 .dock-seek {
+  /* The thumb's own size, 12px: a dimension of the control, not a space between things. */
+  --range-thumb: 0.75rem;
   position: absolute;
   /* Drawn along the bar's top edge and first in the markup: the first Tab stop, ahead of the rows
      that the bar's reading flow orders. */
   reading-order: -1;
   /* Half a thumb in from each edge, so the thumb and its ring at 0 and 100 percent are not cut. */
-  inset-inline: calc(var(--space-3) / 2);
+  inset-inline: calc(var(--range-thumb) / 2);
   inset-block-start: 0;
   z-index: var(--z-raised);
   display: none;
-  width: calc(100% - var(--space-3));
+  width: calc(100% - var(--range-thumb));
   height: var(--space-4);
   margin: 0;
   padding: 0;
@@ -905,9 +907,9 @@
 }
 
 .dock-seek::-webkit-slider-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
-  margin-block-start: calc(var(--mini-player-progress-height) - var(--space-3) / 2);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-block-start: calc(var(--mini-player-progress-height) - var(--range-thumb) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -917,8 +919,8 @@
 }
 
 .dock-seek::-moz-range-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -997,6 +999,7 @@
 }
 
 .dock-volume-level {
+  --range-thumb: 0.75rem;
   width: 6rem;
   height: var(--size-touch);
   margin: 0;
@@ -1030,9 +1033,9 @@
 }
 
 .dock-volume-level::-webkit-slider-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
-  margin-block-start: calc((var(--scrubber-track) - var(--space-3)) / 2);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-block-start: calc((var(--scrubber-track) - var(--range-thumb)) / 2);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -1040,8 +1043,8 @@
 }
 
 .dock-volume-level::-moz-range-thumb {
-  width: var(--space-3);
-  height: var(--space-3);
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border: 0;
   border-radius: var(--radius-round);
   background: var(--color-accent);
@@ -1237,7 +1240,7 @@
 
   .dock-text {
     transform: translate3d(
-      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-3))),
+      calc(var(--dock-p, 0) * -1 * (var(--mini-player-cover-size) + var(--space-4))),
       0,
       0
     );
@@ -1324,6 +1327,16 @@
 
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
     background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+  }
+
+  /* A mouse press on the bar is a quiet tonal layer, as light as a hover and eased in and out:
+     the 12% touch layer over the whole wide bar read as a flash (owner, 2026-10-21). */
+  .dock-open::after {
+    transition: background-color var(--duration-state) var(--ease-out);
+  }
+
+  .dock-open:active::after {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
@@ -1457,7 +1470,8 @@
     contain: size;
   }
 
-  .player-list > :is(.player-script, .story-list) {
+  .player-panel > .story-list {
+    position: relative;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -1599,7 +1613,7 @@
 .scrubber-times {
   display: flex;
   justify-content: space-between;
-  margin-block-start: calc(var(--space-3) * -1);
+  margin-block-start: calc(var(--space-2) * -1);
   pointer-events: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -1613,7 +1627,9 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  row-gap: var(--space-3);
+  /* The speed pill belongs to the transport above it: one control's inner step, 8px. At 16px the
+     two-column player overflowed a 1024x768 window by 4px (2026-10-21). */
+  row-gap: var(--space-2);
   padding-block: var(--space-4) var(--space-2);
 }
 
@@ -1728,9 +1744,9 @@
 .speed-btn {
   display: grid;
   place-items: center;
-  min-width: calc(5ch + var(--space-3) * 2);
+  min-width: calc(5ch + var(--space-2) * 2);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   border-radius: var(--button-radius);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
@@ -1776,13 +1792,13 @@
   --panel-center: 50vw;
   --panel-width: 16rem;
   --panel-left: clamp(
-    var(--space-3),
+    var(--space-4),
     var(--panel-center) -
     var(--panel-width) /
     2,
     100vw -
     var(--panel-width) -
-    var(--space-3)
+    var(--space-4)
   );
   --panel-scale: var(--scale-enter);
   --color-focus-gap: var(--color-surface-overlay);
@@ -1934,7 +1950,7 @@
 .speed-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .speed-preset {
@@ -1994,8 +2010,8 @@
   display: grid;
   gap: var(--space-1);
   width: 100%;
-  padding-block: var(--space-3);
-  padding-inline: var(--space-3);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
@@ -2044,6 +2060,22 @@
   line-height: var(--font-leading-label);
 }
 
+/* Inside the Stories list the story's own row, in the accent container above, already names the story
+   and marks it as the one being read: its turns carry no second fill and no second headline. The
+   word being said keeps its fill, and the turns still to come stay muted. */
+.story-list .script-turn[aria-current="true"] {
+  background: transparent;
+}
+
+.story-list .script-turn[aria-current="true"] :is(.script-text, .script-speaker),
+.story-list .script-turn[aria-current="true"][data-tone] .script-speaker {
+  color: var(--color-on-surface);
+}
+
+.story-list .script-story {
+  display: none;
+}
+
 .script-text {
   color: var(--color-on-surface);
   font-size: var(--font-size-reading);
@@ -2073,7 +2105,7 @@
 .script-word[data-spoken] {
   --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
   background: var(--spoken-fill);
-  box-shadow: 0 0 0 var(--space-half) var(--spoken-fill);
+  box-shadow: 0 0 0 0.125rem var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
   transition: none;
 }
@@ -2116,32 +2148,89 @@
 /* Said where a view has nothing to show, so a tab is never an empty page. */
 .player-empty {
   padding-block: var(--space-6);
+  /* The Stories rows' own inset, so the words start where theirs do (2026-10-21). */
+  padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-body);
 }
 
-/* Stories and the transcript: always the two tabs of the list, past the top margin the list keeps. */
-.segmented-group.player-views {
+/*
+ * The list's two views, Stories and Up next, are a tablist in .segmented-nav's markup
+ * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
+ * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
+ * the status bar's room as the page scrolls), the tabs share the width, a hairline runs under them
+ * and a bar in the accent slides under the chosen one. Same buttons, same arrow keys; only the
+ * look differs, so nothing here restyles .segmented-nav itself.
+ */
+.segmented-nav.player-tabs {
+  flex: none;
   margin-block-end: var(--space-4);
 }
 
-/* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
-   the page and move the switch from under the finger. Only one column: from 64rem the list is a
-   column exactly as tall as the page, and this would push its end under the bar, past its fade. */
+.player-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.player-panel > .story-list {
+  flex: 1 1 auto;
+}
+
 @media (max-width: 63.9375rem) {
-  .player-list:has(.player-views) {
+  /* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
+     the page and move the tabs from under the finger. Only one column: from 64rem the list is a
+     column exactly as tall as the page, and this would push its end under the bar, past its fade. */
+  .player-list {
     min-height: 100cqb;
   }
 
-  /* The switch stays under the status bar's room while the page scrolls, on the page's own colour so
-     the words passing under it do not show. Its gap is padding, so the colour covers it too. */
-  .segmented-group.player-views {
+  /* Stays under the status bar's room while the page scrolls, on the page's own colour so the words
+     passing under it do not show. */
+  .segmented-nav.player-tabs {
+    --tab-bar: calc(var(--stroke-rail) * 1.5);
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
+    flex: none;
+    margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
+      calc(max(var(--player-padding), var(--safe-right)) * -1);
     margin-block-end: 0;
-    padding-block-end: var(--space-4);
+    border-radius: 0;
     background: var(--color-surface);
+    box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  }
+
+  /* The pill becomes the bar under the chosen tab: one column wide, at the foot of the line. */
+  .segmented-nav.player-tabs::before {
+    inset-block: auto 0;
+    inset-inline-start: 0;
+    width: calc(100% / var(--seg-n));
+    height: var(--tab-bar);
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    background: var(--color-accent);
+    box-shadow: none;
+    transform: translateX(calc(var(--seg-i) * 100%));
+  }
+
+  .player-tabs .segmented-nav-tab {
+    min-height: var(--tabs-height);
+    border-radius: 0;
+  }
+
+  /* The press layer covers the whole tab, in the page's ink. */
+  .player-tabs .segmented-nav-tab::after {
+    inset: 0;
+  }
+
+  .player-tabs .segmented-nav-tab:focus-visible {
+    border-radius: var(--radius-sm);
+  }
+
+  /* The list's own room under the tab line. */
+  .player-panel {
+    padding-block-start: var(--space-4);
   }
 }
 
@@ -2149,7 +2238,7 @@
   position: sticky;
   inset-block-end: max(var(--space-4), calc(var(--safe-bottom) + var(--space-2)));
   display: block;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   margin-inline: auto;
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
@@ -2271,7 +2360,7 @@
   @supports (animation-timeline: scroll()) {
     .list-scroll {
       animation-name: list-fade-start, list-fade-end;
-      animation-timing-function: linear;
+      animation-timing-function: var(--ease-linear);
       animation-fill-mode: both;
       animation-timeline: scroll(self block), scroll(self block);
       animation-range:
@@ -2287,7 +2376,7 @@
   }
 
   /* Over the list, not in it: inside the scroller the fade would take the button with it. */
-  .player-script > .script-back {
+  .story-list > .script-back {
     position: absolute;
     inset-block-start: auto;
     inset-block-end: var(--space-4);
@@ -2451,50 +2540,6 @@
   }
 }
 
-/*
- * The same radios as tabs (Chapters, Transcript): text on the page with a hairline under the row,
- * and a bar under the chosen one that slides between them as the thumb does. No track, no raised
- * segment, no ring around the choice; the chosen label is in full ink and the bar is the accent.
- */
-.segmented.segmented-tabs {
-  --segmented-padding: 0px;
-  border-radius: 0;
-  background: none;
-  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
-}
-
-.segmented-tabs label {
-  min-height: var(--tabs-height);
-  border-radius: 0;
-}
-
-/* The ring is rounded and drawn inside the tab, as the app's other rings are. */
-.segmented-tabs label:has(input:focus-visible) {
-  border-radius: var(--radius-sm);
-  outline-offset: calc(var(--stroke-ring) * -1);
-}
-
-/* As tabs the chosen label is the page's full ink; the bar under it carries the accent. */
-.segmented-tabs label:has(input:checked) {
-  color: var(--color-on-surface);
-}
-
-.segmented-tabs::before {
-  inset-block: auto 0;
-  height: calc(var(--stroke-rail) * 1.5);
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-  background: var(--color-accent);
-  box-shadow: none;
-}
-
-/* A tab's state layers cover the whole tab, in the page's ink. */
-.segmented-tabs label:active {
-  background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
-    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
-  );
-}
-
 /* ------------------------------------------------------------------ source, stories, notice, up next */
 
 .player-source-link {
@@ -2503,7 +2548,7 @@
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--button-radius);
   color: var(--color-accent);
   /* The story's size, so the block under the title keeps to two type sizes. */
@@ -2534,11 +2579,11 @@
 
 /* A section's name: quiet text in sentence case over its rows, as a list's heading is elsewhere. */
 .story-group-title {
-  padding-block: var(--space-4) var(--space-1);
-  padding-inline: var(--space-3);
+  padding-block: var(--space-4) var(--space-2);
+  padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
 }
 
 .story-rows {
@@ -2554,11 +2599,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
@@ -2586,8 +2631,42 @@
    is everywhere in the app. The title keeps its weight, because a heavier one wraps differently and
    would move every row below it each time the story changes. */
 .story-row[aria-current="true"] {
-  background: var(--color-accent-container);
   color: var(--color-on-accent-container);
+}
+
+/* The story and its transcript are one card: the open item carries the fill and the radius, and the
+   row and the turns under it sit on it without a fill of their own, so there is no second card and
+   no seam between them. The transcript is set at the meta size under the headline's reading size. */
+.story-rows > [data-open] {
+  background: var(--color-accent-container);
+  border-radius: var(--row-radius);
+}
+
+.story-rows > [data-open] .script-turn {
+  padding-block: var(--space-2);
+}
+
+.story-rows > [data-open] .player-script {
+  padding-block-end: var(--space-2);
+}
+
+.story-rows > [data-open] .script-turns .script-turn .script-text {
+  color: var(--color-on-accent-container);
+  font-size: var(--font-size-meta);
+  line-height: var(--font-leading-body);
+}
+
+.story-rows
+  > [data-open]
+  .script-turns[data-following]
+  .script-turn:not([data-said], [aria-current="true"])
+  .script-text {
+  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+}
+
+/* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
+.story-rows > [data-open] .script-turns .script-turn .script-speaker {
+  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
 }
 
 .story-row[aria-current="true"] .story-row-time {
@@ -2600,11 +2679,12 @@
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 
-  .story-row[aria-current="true"]:hover {
+  .story-row[aria-current="true"]:hover,
+  .story-rows > [data-open] .script-turn:not([aria-disabled="true"]):hover {
     background: color-mix(
       in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
+      var(--color-on-accent-container) var(--state-hover),
+      transparent
     );
   }
 
@@ -2630,12 +2710,9 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-.story-row[aria-current="true"]:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+.story-row[aria-current="true"]:active,
+.story-rows > [data-open] .script-turn:not([aria-disabled="true"]):active {
+  background: color-mix(in oklch, var(--color-on-accent-container) var(--state-press), transparent);
 }
 
 .player-upnext-row:active {
@@ -2651,7 +2728,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-block-end: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--radius-lg);
@@ -2696,20 +2773,16 @@
   background: color-mix(in oklch, var(--tone) var(--state-press), transparent);
 }
 
-.player-upnext {
-  margin-block-end: var(--space-6);
-}
-
 .player-upnext-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
   background: var(--color-surface-container);
   text-align: start;
@@ -2727,6 +2800,122 @@
 .player-upnext-hint {
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
+}
+
+/* ------------------------------------------------------------------ the collapse chevron */
+
+/* Below 64rem the close button is a chevron at the top left of the open player (owner, 2026-10-20):
+   a 44px icon button whose glyph lines up with the page's left edge, centred in the room above the
+   art that the handle once took (D111), so the art does not move. The rule above still hides it
+   from 64rem until the keyboard reaches it. */
+@media (max-width: 63.9375rem) {
+  .player .player-collapse {
+    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+    padding: 0;
+    background: transparent;
+    color: var(--color-on-surface-muted);
+    translate: none;
+    clip-path: none;
+  }
+
+  .player .player-collapse:active {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (max-width: 63.9375rem) {
+  .player .player-collapse:hover:not(:active) {
+    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    color: var(--color-on-surface);
+  }
+}
+
+/* ------------------------------------------------------------------ the queue */
+
+/* The queue (the Up next view): a row is the item's thumbnail and title, with a remove button and a
+   drag handle after it. */
+.player-queue-row {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: var(--size-touch-comfortable);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-2);
+  border-radius: var(--row-radius);
+  text-align: start;
+  transition: background-color var(--duration-press-in) var(--ease-out);
+}
+
+.player-queue-row .player-upnext-text {
+  min-width: 0;
+}
+
+.player-queue-row .player-upnext-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-queue-thumb {
+  flex: none;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.player-queue-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-queue-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--row-radius);
+  background: var(--color-surface);
+}
+
+/* The row being dragged rides over its neighbours on the container tone, with no shadow. */
+.player-queue-item[data-dragging] {
+  z-index: var(--z-raised);
+  background: var(--color-surface-container);
+}
+
+.player-queue-handle {
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.player-queue-item[data-dragging] .player-queue-handle {
+  cursor: grabbing;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-row:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.player-queue-row:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
 }
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
@@ -2870,7 +3059,7 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     translate: none;
     transition:
       opacity var(--duration-state) var(--ease-out),
-      visibility 0s linear var(--duration-state);
+      visibility 0s var(--ease-linear) var(--duration-state);
   }
 
   .glyph-swap > .ui-icon {

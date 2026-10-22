@@ -29,8 +29,9 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review: PRs get none by default. There are two ways to get one. (1) The `review` label on GitHub: add it to the PR when you open it; `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so a human merges it after the review lands (to re-review, remove and re-add the label). (2) The `/code-review` skill: run it on the branch or the commit range yourself, before the PR or after the merge.
+- Code review before every merge, no exceptions (D143). Open every PR with the `review` label: `claude-code-review.yml` runs the review and `automerge.yml` skips a labelled PR, so it merges by hand only after the review lands and its blocking findings are fixed (re-add the label to re-review). For a large change, also run the `/code-review` skill on the branch before opening the PR.
 - TypeScript stays on 6.x.
+- UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook runs it on each UI edit), e2e/designSystem.spec.ts (CI), and the `design-audit` agent, run before the PR. Screenshot open states first.
 - Design fixes are load-bearing. A CSS rule or markup whose comment says why it exists (a date, a D-number, a sizer, "so ... stays put", a specificity bump) is never removed or rewritten to make another task work: extend it, or stop and ask. Before changing a selector in a shared stylesheet (`player.css`, `primitives.css`, `buttons.css`, the tokens), read its history (`git log -L '/<selector>/,+20:<file>'`) and search the [ledger](docs/design-engineering-ledger.md) for it. Unit tests never see CSS: only the browser suites do.
 - Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
 

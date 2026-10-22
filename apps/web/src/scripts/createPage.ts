@@ -1,5 +1,6 @@
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import type { Voice } from "../lib/voices";
+import { sheetGestures } from "./pullDismiss";
 import { startRun } from "./runStatus";
 import { mountSamples } from "./voiceSamples";
 
@@ -388,6 +389,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const remember = dform.elements.namedItem("remember") as HTMLInputElement;
     const send = $("[data-dialog-submit]") as HTMLButtonElement;
     $("[data-cancel]").addEventListener("click", () => dialog.close());
+    sheetGestures(dialog);
 
     dform.addEventListener("submit", async (event) => {
       event.preventDefault();

@@ -1,9 +1,16 @@
-import { CATEGORIES, type Category, LEARN_LIMITS, type Preferences } from "@dispatch/core";
+import {
+  CATEGORIES,
+  LEARN_LIMITS,
+  type Preferences,
+  stopIndex,
+  WEIGHT_STOPS,
+} from "@dispatch/core";
 import { z } from "zod";
 
 /** What the session model produces from a sentence such as "more shaders, less VC funding". */
 export const PreferencesPatch = z.object({
   input: z.string().min(1).max(500),
+  /** Direction only: below 0 moves a weight down one stop, above 0 up one. */
   weight_deltas: z.partialRecord(z.enum(CATEGORIES), z.number().min(-1).max(1)).default({}),
   add_keywords: z.array(z.string().min(1).max(60)).max(10).default([]),
   remove_keywords: z.array(z.string().min(1).max(60)).max(10).default([]),
@@ -18,15 +25,9 @@ export interface PatchResult {
   next: Preferences;
   /** Human-readable change lines, also stored in feedback_history. */
   changes: string[];
-  /** Notes about deltas that were clamped or scaled to stay within bounds. */
+  /** Notes about weight moves left out to stay within bounds. */
   clamped: string[];
 }
-
-const round2 = (n: number): number => Math.round(n * 100) / 100;
-/** Truncate toward zero at two decimals, so rounding can never push a total past its limit. */
-const truncate2 = (n: number): number =>
-  (Math.sign(n) * Math.floor(Math.abs(n) * 100 + 1e-9)) / 100;
-const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n));
 
 function applyList(
   current: string[],
@@ -54,8 +55,9 @@ function applyList(
 }
 
 /**
- * Apply a patch within the learn limits: at most `perWeight` per category and `perCall` in total
- * (deltas are scaled down proportionally when the total is exceeded). Pure; the caller writes.
+ * Apply a patch within the learn limits: a weight moves one whole stop up or down (the sign of its
+ * delta says which, its size does not matter), and at most `maxMoves` weights move per call, in
+ * category order. Pure; the caller writes.
  */
 export function applyPatch(
   current: Preferences,
@@ -66,27 +68,23 @@ export function applyPatch(
   const changes: string[] = [];
   const clamped: string[] = [];
 
-  const deltas = new Map<Category, number>();
+  const weights = { ...current.weights };
+  let moves = 0;
   for (const category of CATEGORIES) {
     const wanted = patch.weight_deltas[category];
     if (wanted === undefined || wanted === 0) continue;
-    const limited = clamp(wanted, -LEARN_LIMITS.perWeight, LEARN_LIMITS.perWeight);
-    if (limited !== wanted) clamped.push(`${category}: ${wanted} limited to ${limited}`);
-    deltas.set(category, limited);
-  }
-  const total = [...deltas.values()].reduce((sum, d) => sum + Math.abs(d), 0);
-  // The epsilon absorbs float error: three deltas of 0.05 sum to 0.15000000000000002.
-  const scale = total > LEARN_LIMITS.perCall + 1e-9 ? LEARN_LIMITS.perCall / total : 1;
-  if (scale < 1) clamped.push(`total change ${round2(total)} scaled to ${LEARN_LIMITS.perCall}`);
-
-  const weights = { ...current.weights };
-  for (const [category, delta] of deltas) {
     const before = weights[category];
-    const after = round2(clamp(before + truncate2(delta * scale), 0, 1));
-    if (after !== before) {
-      weights[category] = after;
-      changes.push(`weight ${category}: ${before} to ${after}`);
+    const at = stopIndex(before);
+    const to = Math.min(WEIGHT_STOPS.length - 1, Math.max(0, at + Math.sign(wanted)));
+    if (to === at) continue;
+    if (moves >= LEARN_LIMITS.maxMoves) {
+      clamped.push(`${category}: left for a later call, ${LEARN_LIMITS.maxMoves} moves per call`);
+      continue;
     }
+    moves += 1;
+    const after = WEIGHT_STOPS[to]?.weight ?? before;
+    weights[category] = after;
+    changes.push(`weight ${category}: ${before} to ${after}`);
   }
 
   const next: Preferences = {

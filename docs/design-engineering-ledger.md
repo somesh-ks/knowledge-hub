@@ -245,6 +245,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Chapter gaps are masked into the track.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
+- **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126).
 
 ### The bottom stack on a phone
 
@@ -365,6 +366,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Titles clamp to two lines (`library.css:98`) and generated names stay short ("AI Products, Design and 2 more"), with a tooltip for a truncated title under a mouse (2026-10-08).
   - Filters All, Daily, Weekly and Custom; Oldest first reverses same-day cards too; the count reads "1 of 5 results"; a touch-only Clear text button (2026-10-08).
   - Deleting an episode hides it at once on this device and lands on the Library while the 2 to 3 minute workflow runs (2026-10-08).
+  - A three-dots menu per row (Download, Add to queue, Regenerate, Share, Delete); a downloaded row has a filled check-circle with a hidden "Downloaded" (D127). A phone has no sort, and the chips (16px side padding) share a line with the view switch, scrolling at 360px (2026-10-21).
 
 ### Settings and forms
 - **Structure.**
@@ -381,12 +383,15 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Voices are auditioned in place (D105); the owner also asked for preview in the New episode form (2026-10-12).
 - **Lists.**
   - Lists come first with their counts; add forms sit in `<details>`; repeated hints and the Generate row went (2026-10-08).
-  - "N topics" heads the list with a mid-size Add on the same row; a topic shows seven sources, then "Show N more" (2026-10-13).
+  - "N topics" heads the list with a mid-size Add on the same row; a topic shows seven sources, then "Show N more" (2026-10-13). Reversed by D125: no count, no filters, a floating Add on a phone and an Add at the end of the search row from 64rem.
+  - Headings: never bold, anywhere; Settings group heads are 18 to 20px regular H2s (22px was too big), apart from the title by size and space only (D125). A topic's sliders fold into Topic weightage, Formats and Perspective groups; its formats are tabs, All first; Listen in sits in the card (D125).
   - Daily and Weekly share one component, so a change lands on both (2026-10-13).
   - Topics are always available: no locked or disabled choices. A locked chip at opacity 0.32 read at about 1.5:1 (2026-10-12).
   - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).
   - The add-topic form uses `novalidate` with inline messages; an emoji-only name no longer becomes the id "topic" (2026-10-08).
   - Model headings sit on the left in regular weight (D113, #125).
+  - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
+  - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
 
 ### Sound
@@ -429,7 +434,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 | Source names as links, then plain text | D69, D83 | One element, one job: the row opens the editor. |
 | Saved toast and "Live in about a minute" line, then silence | D79, D115 | Truthful status the owner did not ask to see is noise. |
 | General audience and its preset Undo, then retired | D67, D87, D114 | A mode one person never uses is cost, not choice. |
-| First-load budget 110, 150, then 109 KB | D53, D103, D112 | A loose ceiling lets pages grow by a third unnoticed. |
+| First-load budget 110, 150, 109, then 130 KB | D53, D103, D112, D141 | A loose ceiling lets pages grow by a third unnoticed. |
 | Player corners round in travel, then square throughout | D32, D111 | One edge throughout reads as one object. |
 | Default (automatic) model row, then removed | D106, D113 | A choice that names nothing hides what is happening. |
 | Timeline rail, Schibsted and Literata, then Google Podcasts, then tonal Material | 2026-10-05, D31, D72 | An invented identity loses to a familiar reference. |

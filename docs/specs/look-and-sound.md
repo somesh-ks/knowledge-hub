@@ -1,15 +1,16 @@
 # Look and sound
 
-Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D31, D48, D54, D72, D73, D86, D96, D101, D110, D122; history: docs/history/.
+Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D31, D48, D54, D72, D73, D86, D96, D101, D110, D122, D125, D129; history: docs/history/.
 
 ## Requirements
 
 ### Visual language
 - The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons and chips, 12px rows, no outline except on text fields.
-- Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings 22px regular (D73).
+- Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a rounded hover and press tile clear of the hairlines (`.row-action`). Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
 - Scroll edge fade masks on tabs and shelf; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
 - Dropdowns share one chevron gap.
+- Latest's navigation icon is a fire (outline, filled when current) (D129). Theme is a select in Appearance and draws no value until the stored one is set, so the page never flashes the default (D129).
 
 ### Covers and the header light
 - Covers dated 2026-10 or later are drawn monthly (D110, `packages/cover/src/season.ts`, `MONTHLY_FROM`): one colour scheme a month; Daily and Weekly with set layouts (the weekly shows its ISO week number and Monday to Sunday range); On demand and episodes as a round plate on a matte; every draw held to 4.5:1 for type and 3:1 for form in code. Earlier covers keep mixed palettes.
@@ -29,8 +30,15 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Every enabled control makes one: an action button a soft tap, a dialog or popover its open and close including Escape, a toast its outcome. The first press of a page is queued until the engine is ready. A save that went through is silent.
 
 ### Style rules
-- Style tests forbid raw lengths for spacing, type size and radius, and reading a custom property nothing defines. Unpinned: copy, geometry.
+- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths and undefined custom properties. Unpinned: copy, geometry.
 - Design fixes with a commented reason are extended, never rewritten.
+
+### Design system enforcement
+Three layers, each catching what the others miss (the owner's ask, 2026-10-21):
+- Static: `npm run design-check` (`styles.test.ts`, about 2 s). Colour, type, space, radius, easing and z-index only from tokens; no colour literal in markup or script; icons only through the Icon component; a button, chip, pill or fab is a shared class or a named entry in `BESPOKE_CONTROLS`; no shadow on a control. Each rule's comment names the drift it prevents; an allowlist entry carries a reason.
+- Hook: `.claude/hooks/design-check.mjs`, a PostToolUse hook on Edit, Write and MultiEdit for `apps/web/src/**` and `tokens/**`; silent when green, exit 2 with the failing rules when not.
+- Audit: the `design-audit` agent (`.claude/agents/design-audit.md`) screenshots the touched pages at phone and desktop in light and dark and judges them against the ledger. A UI change runs it before the PR; `/close-session` checks it ran.
+CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser job on any PR touching `apps/web`, `packages` or `tokens`.
 
 ## Code
 - `apps/web/src/styles/tokens.css`
@@ -41,3 +49,4 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - `packages/cover/src/season.ts`
 - `packages/sound/src/engine.ts`
 - `apps/web/src/scripts/uiSound.ts`
+- Segmented controls come in two kinds (D132): a choice with a check for picking a value, and a sliding-pill tablist for switching views. Every full-screen sheet closes from the top right (`SheetHeader.astro`).

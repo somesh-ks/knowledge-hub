@@ -57,13 +57,6 @@ describe("keeping what was saved", () => {
     expect(parseSaved(JSON.stringify(left), T0 + 1000 + PENDING_TTL_MS)).toHaveLength(1);
   });
 
-  it("leaves the writer to its own note, but counts a writer edit on its way as pending", () => {
-    const writer: ConfigOp = { op: "writer.set", provider: "nebius", model: null };
-    expect(addSaved([], [writer], T0)).toEqual([]);
-    // The Model page opened while it waits says Saving, not Saved.
-    expect(anyPending(withPending([], [writer], T0), T0 + 1000)).toBe(true);
-  });
-
   it("reads nothing from storage it does not understand", () => {
     for (const raw of [null, "", "{", "{}", "[1]", '[{"at":"x","ops":[]}]']) {
       expect(parseSaved(raw, T0)).toEqual([]);
@@ -81,7 +74,6 @@ describe("savedFields", () => {
     "daily.length": "5",
     "daily.voice": "",
     "daily.voice_b": "",
-    "daily.format": "readout",
   };
 
   it("lays each schedule edit over what the page was built with", () => {
@@ -92,7 +84,6 @@ describe("savedFields", () => {
         cadence_days: 3,
         voice_id: "ava",
         voice_id_b: "leo",
-        format: "discussion",
       },
     ];
     expect(savedFields(baked, ops)).toEqual({
@@ -100,7 +91,6 @@ describe("savedFields", () => {
       "daily.cadence": "3",
       "daily.voice": "ava",
       "daily.voice_b": "leo",
-      "daily.format": "discussion",
     });
   });
 

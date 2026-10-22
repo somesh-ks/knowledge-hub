@@ -1,3 +1,4 @@
+import type { ModelStep } from "@dispatch/core";
 import type { z } from "zod";
 
 export interface ChatMessage {
@@ -17,8 +18,8 @@ export interface JsonRequest<T> {
   /** Model-visible name of the schema. */
   schemaName: string;
   messages: readonly ChatMessage[];
-  /** Defaults to 0.2. */
-  temperature?: number;
+  /** The routing step this call belongs to, when it differs from the step its client was made for. */
+  step?: ModelStep;
   /** Upper bound on the reply, also used for the spend estimate. */
   maxTokens?: number;
   /** Short name of the call, used in logs. */

@@ -90,7 +90,7 @@ describe("published run", () => {
           },
         ],
       });
-      expect(commit).toHaveProperty("items", 8);
+      expect(commit).toHaveProperty("items", 6);
 
       // The digest file, with a cover from the cover package and no why line.
       const digest = await readDigest(repo.root, DIGEST_PATH);
@@ -102,7 +102,7 @@ describe("published run", () => {
         audio: null,
         generated_at: WED.toISOString(),
       });
-      expect(digest.items).toHaveLength(8);
+      expect(digest.items).toHaveLength(6);
       expect(digest.items.filter((item) => item.section === "top")).toHaveLength(3);
       for (const item of digest.items) {
         expect(item).not.toHaveProperty("why");
@@ -124,7 +124,7 @@ describe("published run", () => {
         at: WED.toISOString(),
         outcome: "published",
         digest_id: "2026-10-07",
-        items: 8,
+        items: 6,
       });
       expect(lastRun.last_fetch_at).toBe(WED.toISOString());
       expect(lastRun.weekly).toBeUndefined();
@@ -264,7 +264,7 @@ describe("published run", () => {
     const world = makeWorld(repo.root, { now: WED });
     const result = await runStage(world);
     expect(result.code).toBe(0);
-    expect(result.report).toMatchObject({ outcome: "published", deploy: true, items: 8 });
+    expect(result.report).toMatchObject({ outcome: "published", deploy: true, items: 6 });
     expect(result.report).toHaveProperty("commit.status", "pushed");
     expect(await exists(repo.root, DIGEST_PATH)).toBe(true);
   });
@@ -393,7 +393,11 @@ describe("nothing outcome", () => {
     async () => {
       const world = makeWorld(repo.root, {
         now: WED,
-        feeds: { "blog-a": sourceItems("blog-a", 5, "w") },
+        feeds: {
+          "blog-a": sourceItems("blog-a", 2, "w"),
+          "blog-b": sourceItems("blog-b", 2, "x"),
+          "blog-c": sourceItems("blog-c", 1, "y"),
+        },
       });
       const writer = (await world.deps.runtime()).writer;
       writer.write = async (items) => ({
@@ -850,9 +854,9 @@ describe("tech releases in a published run", () => {
       const techPool = pool.items.filter((item) => item.source_id.startsWith("outlet-"));
       expect(techPool[0]?.title).toContain("iPad");
 
-      // The digest: eight craft items, plus five tech stories on top of them.
+      // The digest: six craft items (two an outlet, OUTLET_CAP), plus five tech stories on top of them.
       const digest = await readDigest(repo.root, DIGEST_PATH);
-      expect(digest.items).toHaveLength(13);
+      expect(digest.items).toHaveLength(11);
       const tech = digest.items.filter((item) => item.section === "tech");
       expect(tech).toHaveLength(5);
       expect(tech.every((item) => item.category === "consumer_tech_releases")).toBe(true);

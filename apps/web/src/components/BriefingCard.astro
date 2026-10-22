@@ -5,14 +5,17 @@ import { FACT_SEPARATOR } from "../lib/library";
 import { cardFacts } from "../lib/libraryCard";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
+import LibraryItemMenu from "./LibraryItemMenu.astro";
 
 interface Props {
   entry: DigestEntry;
   /** The first row of a grid loads its covers at once; the rest wait until they are near. */
   priority?: boolean;
+  /** The Library's card carries the menu; the shelf on a briefing page does not. */
+  menu?: boolean;
 }
 
-const { entry, priority = false } = Astro.props;
+const { entry, priority = false, menu = false } = Astro.props;
 const { digest } = entry;
 const facts = cardFacts(entry);
 // Kind, story count, length: the count is its own span, so the narrow shelf on Today can leave it out,
@@ -55,4 +58,16 @@ const hasCount = segments.length > 2;
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />
+  {
+    menu && (
+      <LibraryItemMenu
+        id={entry.id}
+        title={longDateTitle(digest.date)}
+        path={`/d/${entry.id}`}
+        kind="briefing"
+        audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
+        deletable={digest.kind === "on-demand"}
+      />
+    )
+  }
 </li>

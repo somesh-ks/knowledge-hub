@@ -23,6 +23,8 @@ import {
   textHasWords,
 } from "../lib/library";
 
+import { whenIdle } from "./idle";
+
 const VIEW_KEY = "dispatch:library-view";
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
 const LIBRARY_URL_KEY = "dispatch:library-url";
@@ -76,6 +78,11 @@ function install(): void {
   const emptyButton = root.querySelector<HTMLButtonElement>("[data-library-clear]");
   let emptyReset: "search" | "everything" = "search";
   if (!grid) return;
+  // Whether the order is offered here (library.css hides it on a phone). getComputedStyle, not
+  // checkVisibility(), which Safari only has from 17.4.
+  const sortField = select?.closest<HTMLElement>(".sort-field") ?? null;
+  const sortShown = (): boolean =>
+    sortField !== null && getComputedStyle(sortField).display !== "none";
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
 
   /** The full text of every card, once fetched. Until then, and if it never comes, only the card's own lines are searched. */
@@ -170,7 +177,8 @@ function install(): void {
     const query = input?.value ?? "";
     const searching = query.trim() !== "";
     if (clearText) clearText.hidden = query === "";
-    const sort = (select?.value ?? "newest") as LibrarySort;
+    // A phone offers no order (library.css hides it), so one left in a link never reorders it unseen.
+    const sort = (sortShown() ? (select?.value ?? "newest") : "newest") as LibrarySort;
     const filter = chipFilter(chips.filter((chip) => chip.checked).map((chip) => chip.value));
     // A narrowed order says so on its control, as a chosen chip does.
     select?.closest(".sort-field")?.toggleAttribute("data-active", sort !== "newest");
@@ -302,6 +310,13 @@ function install(): void {
     });
   }
   window.addEventListener("resize", () => requestAnimationFrame(markTruncated));
+  // Turning a phone to landscape (40rem and up) offers the order again: apply what it holds. The
+  // listener goes with the page, so visits do not pile up listeners on detached pages.
+  const wide = matchMedia("(width < 40rem)");
+  wide.addEventListener("change", apply);
+  document.addEventListener("astro:before-swap", () => wide.removeEventListener("change", apply), {
+    once: true,
+  });
 
   // Episodes this device deleted may be taken out of the page after this script has counted it.
   document.addEventListener("dispatch:library-pruned", apply);
@@ -309,4 +324,20 @@ function install(): void {
 }
 
 document.addEventListener("astro:page-load", install);
+
+// The row menus' code (keys, Download, Share, the dialogs) is not the page's first load: it comes at
+// idle, or at the first touch of a row's menu, whichever is first. A pick takes longer than that.
+let menuLoaded = false;
+function loadMenus(): void {
+  if (menuLoaded) return;
+  menuLoaded = true;
+  void import("./libraryMenu").then((menu) => menu.installLibraryMenu());
+}
+whenIdle(loadMenus);
+document.addEventListener("pointerdown", (event) => {
+  if ((event.target as Element).closest?.("[data-library-menu]")) loadMenus();
+});
+document.addEventListener("focusin", (event) => {
+  if ((event.target as Element).closest?.("[data-library-menu]")) loadMenus();
+});
 install();

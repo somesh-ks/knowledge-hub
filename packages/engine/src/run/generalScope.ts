@@ -1,9 +1,11 @@
 import {
   type DigestKind,
   effectiveSkipTopics,
+  type FormatMix,
   GENERAL_TOPICS,
   type Item,
   type JudgmentEntry,
+  mixFactor,
   publishSection,
   type ScheduleFile,
   type Topic,
@@ -12,7 +14,7 @@ import { readJsonIfExists } from "../curate/inputs.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { neutralEntry } from "../judge/topicOnly.js";
 import { clamp01, round4 } from "../score/numbers.js";
-import { topicScore } from "../score/scoreTopics.js";
+import { type SourceFacts, storyFacts, topicScore } from "../score/scoreTopics.js";
 import type { ScoredItem } from "../score/types.js";
 import { GeneralJudgedFile, GeneralPoolFile } from "./generalNews.js";
 
@@ -46,6 +48,10 @@ export async function generalCandidates(input: {
   poolPath: string;
   judgedPath: string;
   topics: readonly Topic[];
+  /** The type mix (config/preferences.json), the same for every topic. */
+  formatMix?: FormatMix;
+  /** Source facts by id, for the type mix and perspective. */
+  sources?: Readonly<Record<string, SourceFacts>>;
   publish: readonly string[];
   inPool: ReadonlySet<string>;
   seen: Readonly<Record<string, unknown>>;
@@ -67,10 +73,13 @@ export async function generalCandidates(input: {
     const entry = neutral(item, answer.flags, input);
     let best: { topic: Topic; fit: number; score: number; depth: number; penalty: number } | null =
       null;
+    const facts = storyFacts(item, input.sources, pool.data.carriers[item.id]);
+    const mix = mixFactor(facts.format && input.formatMix?.[facts.format]);
     for (const topic of topics) {
       if (item.topic_ids?.includes(topic.id) !== true) continue;
       const fit = answer.fits[topic.id];
-      const result = topicScore(topic, fit, entry, item);
+      const scored = topicScore(topic, fit, entry, item, facts);
+      const result = scored && { ...scored, score: round4(clamp01(scored.score * mix)) };
       if (result === null || fit === undefined) continue;
       if (best === null || result.score > best.score) {
         best = { topic, fit, score: result.score, depth: result.depth, penalty: result.penalty };

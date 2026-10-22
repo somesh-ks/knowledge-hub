@@ -8,7 +8,19 @@
  * modal dialog gives the scrim, the focus trap and Escape; browser Back closes it the way it closes
  * the Create panel. Loaded the first time it is opened.
  */
-import { problemText, topicChanged, topicProblems, webAddress } from "../lib/topicText";
+import type { SourceFormat } from "@dispatch/core";
+import type { HeldSource } from "../lib/sourceCatalogMatch";
+import {
+  parseSuggestedAdd,
+  problemText,
+  type SuggestedAdd,
+  topicChanged,
+  topicProblems,
+  webAddress,
+} from "../lib/topicText";
+import { fitAboveKeyboard } from "./keyboardFit";
+import { sheetGestures } from "./pullDismiss";
+import { mountSegmentedNav, selectTab } from "./segmentedNav";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -28,6 +40,8 @@ export interface Chosen {
   /** The chosen topic's id; empty for Other. */
   topic_id: string;
   preview: SourcePreview;
+  /** The format select's value: the guess, Jev's answer, or the person's choice. */
+  format: string;
 }
 
 /** What changed about a source: only the fields that did. */
@@ -35,6 +49,9 @@ export interface SourceEdit {
   id: string;
   name?: string;
   topic_ids?: string[];
+  format?: SourceFormat;
+  /** -2 to 2, or null to clear it. */
+  lean?: number | null;
 }
 
 /** What a source's row tells the panel about it. */
@@ -49,6 +66,10 @@ export interface SourceFacts {
   host: string;
   score: number | null;
   label: string;
+  format: string;
+  general: boolean;
+  /** -2 to 2 as text; empty is unrated. */
+  lean: string;
   /** Each part 0 to 1; trust is null until enough items were checked for hype and sponsorship. */
   parts: { health: number; quality: number; trust: number | null } | null;
 }
@@ -73,12 +94,16 @@ export interface TopicEdit extends NewTopic {
 }
 
 export interface PanelHandlers {
-  addTopic(topic: NewTopic): void;
+  addTopic(topic: NewTopic): void | Promise<void>;
   editTopic(edit: TopicEdit): void;
   addSource(pick: Chosen): void;
   editSource(edit: SourceEdit): void;
-  /** Deletes a source, with an Undo in the toast. */
-  removeSource(id: string): void;
+  /** A suggestion's + pressed in the panel: the editor adds it to its topic like one on the page. */
+  addSuggested(button: HTMLButtonElement, suggestion: SuggestedAdd): void;
+  /** The sources the page lists, so the panel does not suggest one already there. */
+  held(): HeldSource[];
+  /** Asks to delete a source and, once confirmed, deletes it at once. True when it did. */
+  removeSource(id: string): Promise<boolean>;
 }
 
 export type PanelStart =
@@ -89,14 +114,39 @@ export type PanelStart =
 
 /** What changed between a source and the edit panel's fields, or null when nothing did. */
 export function editOf(
-  source: Pick<SourceFacts, "id" | "name" | "topic_id">,
-  fields: { name: string; topic: string },
+  source: Pick<SourceFacts, "id" | "name" | "topic_id" | "format"> &
+    Partial<Pick<SourceFacts, "general" | "lean">>,
+  fields: { name: string; topic: string; format: string; lean?: string },
 ): SourceEdit | null {
   const edit: SourceEdit = { id: source.id };
   const name = fields.name.trim();
   if (name && name !== source.name) edit.name = name;
   if (fields.topic !== source.topic_id) edit.topic_ids = fields.topic ? [fields.topic] : [];
-  return edit.name === undefined && edit.topic_ids === undefined ? null : edit;
+  if (fields.format !== source.format) edit.format = fields.format as SourceFormat;
+  if (source.general && fields.lean !== undefined && fields.lean !== source.lean) {
+    edit.lean = fields.lean === "" ? null : Number(fields.lean);
+  }
+  return edit.name === undefined &&
+    edit.topic_ids === undefined &&
+    edit.format === undefined &&
+    edit.lean === undefined
+    ? null
+    : edit;
+}
+
+/** The format a web address implies before anything is fetched: the same rule as the type's, read from the host. */
+export function guessFormat(address: string): string {
+  let host = "";
+  try {
+    host = new URL(address).hostname.replace(/^www./, "");
+  } catch {
+    return "blog";
+  }
+  if (/(^|.)(youtube.com|youtu.be)$/.test(host)) return "video";
+  if (/(^|.)(github.com|producthunt.com)$/.test(host)) return "releases";
+  if (/(^|.)(arxiv.org|crossref.org)$/.test(host)) return "research";
+  if (/(^|.)(news.ycombinator.com|lobste.rs)$/.test(host)) return "forum";
+  return "blog";
 }
 
 type Outcome = { preview: SourcePreview } | { status: number };
@@ -203,7 +253,7 @@ export function openPanel(
 
   const one = <T extends Element>(selector: string): T => panel.querySelector(selector) as T;
   const title = one<HTMLElement>("[data-panel-title]");
-  const kinds = one<HTMLFieldSetElement>("[data-panel-kind]");
+  const kinds = one<HTMLElement>("[data-panel-kind]");
   const topicPane = one<HTMLFormElement>('[data-pane="topic"]');
   const sourcePane = one<HTMLElement>('[data-pane="source"]');
   const editPane = one<HTMLElement>('[data-pane="edit"]');
@@ -234,7 +284,7 @@ export function openPanel(
     } catch {
       listed = [];
     }
-    const added = [...document.querySelectorAll("[data-queued] [data-q-name]")].map(
+    const added = [...document.querySelectorAll("[data-new-topic] .settings-label")].map(
       (node) => node.textContent ?? "",
     );
     const own = editedTopic?.name.trim().toLowerCase();
@@ -292,10 +342,61 @@ export function openPanel(
   const address = one<HTMLInputElement>("[data-source-url]");
   const sourceTopic = one<HTMLSelectElement>("[data-source-topic]");
   const area = one<HTMLElement>("[data-source-preview]");
+  const sourceFormat = one<HTMLSelectElement>("[data-source-format]");
+  // Once the person has chosen a format, neither the guess nor Jev's answer replaces it.
+  let picked = false;
+  sourceFormat.addEventListener("change", () => {
+    picked = true;
+  });
   let loaded: { url: string; preview: SourcePreview } | null = null;
   let timer = 0;
   let seq = 0;
   if (start.kind === "source") sourceTopic.value = start.topicId;
+
+  // The feeds that fit the topic chosen, under the address: up to ten drawn, five shown, and the rest
+  // wait hidden for the places the added ones leave (topicsEditor.ts, addSuggested).
+  const suggestList = one<HTMLElement>("[data-panel-suggested-list]");
+  let suggestSeq = 0;
+  const suggest = async (): Promise<void> => {
+    suggestSeq += 1;
+    const mine = suggestSeq;
+    suggestList.replaceChildren();
+    const topic = sourceTopic.value;
+    if (!topic) return;
+    const [view, match] = await Promise.all([
+      import("./savedView"),
+      import("../lib/sourceCatalogMatch"),
+    ]);
+    const catalog = await view.loadCatalog();
+    const template = document.querySelector<HTMLTemplateElement>("#suggested-template");
+    const item = template?.content.children[1];
+    if (mine !== suggestSeq || !catalog || !item || !panel.isConnected) return;
+    const name = sourceTopic.selectedOptions[0]?.text ?? "";
+    const offers = match.suggestSources(
+      catalog.sources,
+      [...catalog.held, ...handlers.held()],
+      { id: topic, name },
+      10,
+    );
+    suggestList.setAttribute("aria-label", `Suggested sources for ${name}`);
+    offers.forEach((offer, index) => {
+      const line = view.suggestionLine(item, offer, topic);
+      if (index >= 5) {
+        line.hidden = true;
+        line.dataset.spare = "";
+      }
+      suggestList.append(line);
+    });
+  };
+  sourceTopic.addEventListener("change", () => void suggest());
+  suggestList.addEventListener("click", (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>(
+      "button[data-suggested-add]",
+    );
+    const suggestion = parseSuggestedAdd(button?.dataset.suggestedAdd);
+    if (button && suggestion) handlers.addSuggested(button, suggestion);
+  });
+  if (start.kind === "source") void suggest();
 
   const addressError = one<HTMLElement>('[data-error="url"]');
   const show = (state: string, node?: HTMLElement): void => {
@@ -320,11 +421,14 @@ export function openPanel(
       show("idle");
       return;
     }
+    if (!picked) sourceFormat.value = guessFormat(url);
     show("loading", skeleton());
     void look(url).then((outcome) => {
       if (turn !== seq) return;
       if ("preview" in outcome) {
         loaded = { url, preview: outcome.preview };
+        const answered = (outcome.preview as SourcePreview & { format?: string }).format;
+        if (!picked && answered) sourceFormat.value = answered;
         show("ready", card(outcome.preview));
       } else {
         show("idle");
@@ -352,6 +456,8 @@ export function openPanel(
 
   const editName = one<HTMLInputElement>("[data-edit-name]");
   const editTopic = one<HTMLSelectElement>("[data-edit-topic]");
+  const editFormat = one<HTMLSelectElement>("[data-edit-format]");
+  const editLean = one<HTMLSelectElement>("[data-edit-lean]");
   const editNote = one<HTMLElement>('[data-error="edit-name"]');
   const edited = start.kind === "edit" ? start.source : null;
   if (edited) {
@@ -361,6 +467,10 @@ export function openPanel(
       editTopic.add(new Option(edited.topic_name || edited.topic_id, edited.topic_id), 0);
     }
     editTopic.value = edited.topic_id;
+    editFormat.value = edited.format;
+    // Only a general news source has a lean to rate.
+    one<HTMLElement>("[data-edit-lean-field]").hidden = !edited.general;
+    editLean.value = edited.lean;
     const open = one<HTMLAnchorElement>("[data-edit-open]");
     const where = one<HTMLElement>(".edit-address");
     if (edited.url) {
@@ -394,7 +504,14 @@ export function openPanel(
     }
   }
   const editNow = (): SourceEdit | null =>
-    edited ? editOf(edited, { name: editName.value, topic: editTopic.value }) : null;
+    edited
+      ? editOf(edited, {
+          name: editName.value,
+          topic: editTopic.value,
+          format: editFormat.value,
+          lean: editLean.value,
+        })
+      : null;
   editName.addEventListener("input", () => {
     if (editName.value.trim()) {
       editNote.hidden = true;
@@ -403,6 +520,7 @@ export function openPanel(
     render();
   });
   editTopic.addEventListener("change", render);
+  editFormat.addEventListener("change", render);
 
   // ---------------------------------------------------------------------------------- the frame
 
@@ -439,10 +557,10 @@ export function openPanel(
   const firstField = (): HTMLElement =>
     mode === "topic" ? (topicField("name") as HTMLElement) : mode === "source" ? address : editName;
 
-  kinds.addEventListener("change", (event) => {
-    const value = (event.target as HTMLInputElement).value;
+  mountSegmentedNav(kinds, (value) => {
     mode = value === "source" ? "source" : "topic";
     render();
+    void suggest();
   });
 
   go.addEventListener("click", () => {
@@ -466,7 +584,12 @@ export function openPanel(
       panel.close();
     } else if (mode === "source") {
       if (!loaded) return;
-      handlers.addSource({ url: loaded.url, topic_id: sourceTopic.value, preview: loaded.preview });
+      handlers.addSource({
+        url: loaded.url,
+        topic_id: sourceTopic.value,
+        preview: loaded.preview,
+        format: sourceFormat.value,
+      });
       panel.close();
     } else {
       if (!editName.value.trim()) {
@@ -497,21 +620,16 @@ export function openPanel(
 
   remove.addEventListener("click", () => {
     if (start.kind !== "edit") return;
-    handlers.removeSource(start.source.id);
-    panel.close();
+    void handlers.removeSource(start.source.id).then((confirmed) => {
+      if (confirmed) panel.close();
+    });
   });
 
   panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
-  // A press on the scrim lands on the dialog itself; everything else is inside its panel. Only a press
-  // that also began on the scrim closes it: a drag out of a field ends there too.
-  let fromScrim = false;
-  panel.addEventListener("pointerdown", (event) => {
-    fromScrim = event.target === panel;
-  });
-  panel.addEventListener("click", (event) => {
-    if (event.target === panel && fromScrim) panel.close();
-    fromScrim = false;
-  });
+  // On a phone the full-screen panel also closes when pulled down; a tap on the scrim closes it.
+  sheetGestures(panel);
+  // On a phone the full-screen panel ends where the keyboard begins, so the screen never pans.
+  const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(panel) : () => {};
 
   // Browser Back closes the panel and stays on the page; the panel takes one history entry.
   let entry = true;
@@ -529,6 +647,7 @@ export function openPanel(
     () => {
       clearTimeout(timer);
       seq += 1;
+      unfit();
       if (trigger?.isConnected) trigger.focus();
       // It slides out as the Create panel does, then goes. Only its transitions are waited on: a
       // loading card's shimmer never ends.
@@ -543,12 +662,13 @@ export function openPanel(
   );
 
   if (mode === "source") {
-    const radio = kinds.querySelector<HTMLInputElement>('input[value="source"]');
-    if (radio) radio.checked = true;
+    selectTab(kinds, "source");
   }
   render();
   panel.showModal();
   // Adding starts with typing, so the first field takes focus. Editing starts with reading, so the
   // panel keeps the browser's own first focus, and a phone's keyboard does not cover what is there.
-  if (mode === "topic" || mode === "source") firstField().focus();
+  // The panel is still sliding up from below the screen: a plain focus would scroll to reach the
+  // field mid-slide, and the page jumped as the keyboard came up.
+  if (mode === "topic" || mode === "source") firstField().focus({ preventScroll: true });
 }

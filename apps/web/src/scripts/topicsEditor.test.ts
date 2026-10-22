@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  fillShellText,
   idText,
   parseSuggestedAdd,
   problemText,
+  SHELL,
   slugify,
   topicChanged,
   topicProblems,
@@ -361,5 +363,15 @@ describe("topicProblems", () => {
       name: "",
       description: "",
     });
+  });
+});
+
+// A topic named "Cash $& carry" came out with the placeholder spliced into its name.
+describe("fillShellText", () => {
+  it("keeps $ patterns in a topic name as typed", () => {
+    const text = `${SHELL.name}|${SHELL.about}|${SHELL.id}`;
+    expect(fillShellText(text, { id: "x", name: "A $& B $$", about: "$1 $`" })).toBe(
+      "A $& B $$|$1 $`|x",
+    );
   });
 });

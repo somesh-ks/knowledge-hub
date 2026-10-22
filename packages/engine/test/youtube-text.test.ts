@@ -6,7 +6,11 @@ import { createVideoText, withVideoText } from "../src/extract/youtubeText.js";
 import { makeItem } from "./score-factories.js";
 
 const speech = "Today we look at the new release and what it changes for designers. ".repeat(6);
-const watchPage = `<script>{"captionTracks":[{"baseUrl":"https://www.youtube.com/api/timedtext?v=abcdefghijk&lang=en","languageCode":"en","kind":"asr"}],"audioTracks":[]}</script>`;
+const track = {
+  baseUrl: "https://www.youtube.com/api/timedtext?v=abcdefghijk&lang=en",
+  languageCode: "en",
+  kind: "asr",
+};
 const video = makeItem({
   url: "https://www.youtube.com/watch?v=abcdefghijk",
   source_type: "youtube",
@@ -21,7 +25,10 @@ function fakeNet(opts: { captions: boolean }) {
     if (url.startsWith("https://generativelanguage")) {
       return Response.json({ candidates: [{ content: { parts: [{ text: speech }] } }] });
     }
-    if (url.includes("/watch")) return new Response(opts.captions ? watchPage : "<html></html>");
+    if (url.includes("/youtubei/v1/player")) {
+      const captionTracks = opts.captions ? [track] : [];
+      return Response.json({ captions: { playerCaptionsTracklistRenderer: { captionTracks } } });
+    }
     return Response.json({ events: [{ segs: [{ utf8: speech }] }] });
   }) as typeof fetch;
   return { fn, calls };
@@ -31,12 +38,22 @@ describe("YouTube video text", () => {
   it("reads captions first, transcribes only without them, and never repeats a video", async () => {
     const cachePath = join(mkdtempSync(join(tmpdir(), "video-text-")), "video-text.json");
     const withCaptions = fakeNet({ captions: true });
-    const first = createVideoText({ apiKey: "k", cachePath, fetchImpl: withCaptions.fn });
+    const first = createVideoText({
+      apiKey: "k",
+      models: async () => ["m"],
+      cachePath,
+      fetchImpl: withCaptions.fn,
+    });
     expect((await first(video))?.method).toBe("captions");
     expect(withCaptions.calls).not.toContain("gemini");
 
     const again = fakeNet({ captions: true });
-    const second = createVideoText({ apiKey: "k", cachePath, fetchImpl: again.fn });
+    const second = createVideoText({
+      apiKey: "k",
+      models: async () => ["m"],
+      cachePath,
+      fetchImpl: again.fn,
+    });
     expect((await second(video))?.method).toBe("captions");
     expect(again.calls).toEqual([]);
 
@@ -45,7 +62,12 @@ describe("YouTube video text", () => {
       url: "https://www.youtube.com/watch?v=zzzzzzzzzzz",
       source_type: "youtube",
     });
-    const third = createVideoText({ apiKey: "k", cachePath, fetchImpl: none.fn });
+    const third = createVideoText({
+      apiKey: "k",
+      models: async () => ["m"],
+      cachePath,
+      fetchImpl: none.fn,
+    });
     expect((await third(other))?.method).toBe("transcription");
     expect(none.calls).toContain("gemini");
   });
@@ -59,5 +81,44 @@ describe("YouTube video text", () => {
     const described = makeItem({ ...video, snippet: "d".repeat(300) });
     expect((await extract(described))?.method).toBe("snippet");
     expect(general).not.toHaveBeenCalled();
+  });
+
+  it("counts every paid transcription attempt against the cap, and stops at a short answer", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "video-text-"));
+    const gemini = { calls: 0, reply: (): string | null => null };
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      if (String(input).includes("/youtubei/v1/player")) {
+        return Response.json({
+          captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } },
+        });
+      }
+      gemini.calls += 1;
+      return Response.json({ candidates: [{ content: { parts: [{ text: gemini.reply() }] } }] });
+    }) as typeof fetch;
+    const make = (maxTranscriptions: number) =>
+      createVideoText({
+        apiKey: "k",
+        models: async () => ["a", "b"],
+        cachePath: join(dir, `${maxTranscriptions}.json`),
+        fetchImpl,
+        maxTranscriptions,
+      });
+    const other = (id: string) =>
+      makeItem({ url: `https://www.youtube.com/watch?v=${id}`, source_type: "youtube" });
+
+    // A short answer was paid for: the second model is not tried.
+    gemini.reply = () => "too short";
+    expect(await make(5)(other("aaaaaaaaaaa"))).toBeNull();
+    expect(gemini.calls).toBe(1);
+
+    // Both models fail on the first video; the cap of two is spent, so the next video costs nothing.
+    gemini.calls = 0;
+    gemini.reply = () => {
+      throw new Error("down");
+    };
+    const capped = make(2);
+    await capped(other("bbbbbbbbbbb"));
+    await capped(other("ccccccccccc"));
+    expect(gemini.calls).toBe(2);
   });
 });

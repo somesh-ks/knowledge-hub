@@ -1,9 +1,15 @@
 import { z } from "zod";
-import { IdString, SectionId } from "./categories.js";
+import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
-import { SOURCE_NAME_MAX } from "./sources.js";
-import { MAX_KEYWORDS, TOPIC_DEPTHS, TOPIC_ORIGINS } from "./topics.js";
-import { WriterSettingsShape, writerModelProblem } from "./writer.js";
+import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
+import {
+  MAX_KEYWORDS,
+  MixStop,
+  mixStopOf,
+  Perspective,
+  TOPIC_DEPTHS,
+  TOPIC_ORIGINS,
+} from "./topics.js";
 
 /** A like or dislike of one story, as the app sends it. */
 export const VoteInput = z.object({
@@ -30,7 +36,8 @@ export const MAX_VOTES_PER_OP = 50;
 export const OpenInput = VoteInput.omit({ value: true });
 export const MAX_OPENS_PER_OP = 50;
 
-const weight = z.number().min(0).max(1);
+/** Any number from 0 to 1 is read as the nearest of the five weight stops. */
+const weight = z.number().min(0).max(1).transform(snapWeight);
 
 /**
  * A topic as the app submits it. Only `name` and `description` are required: the id comes from
@@ -50,6 +57,8 @@ export const TopicInput = z.object({
   /** Title for a section this op creates. Defaults to the topic name. */
   section_title: z.string().trim().min(1).max(60).optional(),
   never_publish: z.boolean().default(false),
+  /** One emoji for the topic's row; Jev picks it when the owner adds a topic. Left out keeps the stored one. */
+  emoji: z.string().trim().min(1).max(16).optional(),
   origin: z.enum(TOPIC_ORIGINS).optional(),
   depth: z.enum(TOPIC_DEPTHS).default("fit_only"),
 });
@@ -70,14 +79,15 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   wins over the seed's own name and topics. An empty topic list leaves it feeding none of its
  *   own. Unknown source or topic ids are refused.
  * - source.remove: delete an added source, or hide a seed source.
+ * - topic.mix: set a general topic's perspective (-2 Left to 2 Right).
+ * - mix.set: set the type mix, one stop per source format, for every topic alike, in
+ *   config/preferences.json. Formats left out keep their stop; Normal removes one.
  * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set any of the time zone (one of SUPPORTED_TIMEZONES), the daily hour, cadence,
- *   topics left out (`skip_topics`), podcast type, length and voices, the weekly podcast (`weekly`:
+ *   topics left out (`skip_topics`), length and voices, the weekly podcast (`weekly`:
  *   on/off, day, hour, topics left out, type, length, voices) and the Create panel defaults
  *   (`custom`), in config/schedule.json, in one write. Fields left out keep what the file holds.
  *   Unknown topic ids and zones outside the list are refused.
- * - writer.set: set the writer's provider and model in config/writer.json. A null model means
- *   the engine's own DISPATCH_MODEL.
  * - profile.block / profile.unblock: add or remove a domain in the owner's blocklist
  *   (config/profiles/owner.json). A blocked domain and its subdomains never reach a briefing or an
  *   episode. A URL or `www.` form is accepted and reduced to the domain.
@@ -97,6 +107,8 @@ export const ConfigOp = z.discriminatedUnion("op", [
     topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
     /** The id the page chose, so its row can be edited before the build lists the source. Refused if taken. */
     id: IdString.optional(),
+    /** The format the person chose or accepted; left out, the type's rule decides. */
+    format: SourceFormat.optional(),
   }),
   z
     .object({
@@ -114,11 +126,31 @@ export const ConfigOp = z.discriminatedUnion("op", [
       id: z.string().min(1),
       name: z.string().trim().min(1).max(SOURCE_NAME_MAX).optional(),
       topic_ids: z.array(IdString).max(MAX_KEYWORDS).optional(),
+      format: SourceFormat.optional(),
+      /** A general source's political lean, -2 to 2; null clears it. */
+      lean: z.number().int().min(-2).max(2).nullable().optional(),
     })
-    .refine((value) => value.name !== undefined || value.topic_ids !== undefined, {
-      message: "set name, topic_ids or both",
-    }),
+    .refine(
+      (value) =>
+        value.name !== undefined ||
+        value.topic_ids !== undefined ||
+        value.format !== undefined ||
+        value.lean !== undefined,
+      { message: "set name, topic_ids, format, lean or any of them" },
+    ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
+  // A general topic's perspective (D124); 0 (Even) removes it.
+  z.object({ op: z.literal("topic.mix"), id: IdString, perspective: Perspective }),
+  // The one type mix for every topic. Each given format takes the nearest mix stop (Normal removes it).
+  z.object({
+    op: z.literal("mix.set"),
+    format_mix: z
+      .partialRecord(
+        SourceFormat,
+        z.union([MixStop, z.number().min(0).max(1.2).transform(mixStopOf)]),
+      )
+      .refine((value) => Object.keys(value).length > 0, "give at least one type"),
+  }),
   z.object({
     op: z.literal("weights.set"),
     weights: z
@@ -150,12 +182,6 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
       { message: "set at least one scope" },
     ),
-  z
-    .object({ op: z.literal("writer.set"), ...WriterSettingsShape.shape })
-    .superRefine((value, ctx) => {
-      const problem = writerModelProblem(value.provider, value.model);
-      if (problem) ctx.addIssue({ code: "custom", path: ["model"], message: problem });
-    }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),

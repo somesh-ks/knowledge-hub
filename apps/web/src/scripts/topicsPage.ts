@@ -6,7 +6,7 @@
  */
 
 import { hasSaved } from "../lib/savedKey";
-import { installHeroMenu } from "./heroMenu";
+import { drawStop } from "../lib/weightStops";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
 
@@ -17,14 +17,18 @@ function mount(root: HTMLElement): void {
   // An edit saved in the last few minutes is not in this page until the next build: the controls
   // show it first (savedView.ts), and the editor then reads it as their starting point.
   // An edit a left page's run still holds loads the editor at once: it takes the edit if that run fails.
-  const saved = hasSaved()
-    ? import("./savedView")
-        .then((module) => {
-          module.overlayTopics(root);
-          if (module.readPending()) void load();
-        })
-        .catch(() => {})
-    : Promise.resolve();
+  // The page for a topic not built yet takes it from what was saved first (D142).
+  const shell = root.dataset.shell !== undefined;
+  const saved =
+    hasSaved() || shell
+      ? import("./savedView")
+          .then((module) => {
+            if (shell && !module.fillShell(root)) return;
+            module.overlayTopics(root);
+            if (module.readPending()) void load();
+          })
+          .catch(() => {})
+      : Promise.resolve();
   /** Loads the editor once. */
   const load = (): Promise<Editor> =>
     (editor ??= saved
@@ -50,45 +54,44 @@ function mount(root: HTMLElement): void {
     if (image.complete) loaded(image);
   }
 
+  // Sources or Preferences on a topic's page (2026-10-20), read from the address and kept in it, so
+  // a reload or Back finds the same view (data-param, segmentedNav.ts).
+  const tabs = root.querySelector<HTMLElement>("[data-topic-view]");
+  if (tabs) {
+    const view =
+      new URLSearchParams(location.search).get("view") === "preferences"
+        ? "preferences"
+        : "sources";
+    root.dataset.view = view;
+    // The tabs show the view at once; their keys and presses (segmentedNav.ts) follow in a moment,
+    // outside the first load's budget.
+    for (const tab of tabs.children)
+      tab.ariaSelected = String(tab.getAttribute("data-value") === view);
+    void import("./segmentedNav").then((module) => {
+      module.selectTab(tabs, view);
+      module.mountSegmentedNav(tabs, (chosen) => {
+        root.dataset.view = chosen;
+      });
+    });
+  }
+
   root.addEventListener("input", (event) => {
     const target = event.target as HTMLInputElement;
-    if (target.matches("[data-weight]")) {
-      // The fill and the readout follow the thumb; recording the change waits for the editor.
-      const percent = `${Math.round(Number(target.value) * 100)}%`;
-      target.style.setProperty("--range-fill", `${Number(target.value) * 100}%`);
-      target.setAttribute("aria-valuetext", percent);
-      const output = target.closest(".topic-weight")?.querySelector("[data-word]");
-      if (output) output.textContent = percent;
+    if (target.matches("[data-weight], [data-mix]")) {
+      // The fill and the stop's name follow the thumb; recording the change waits for the editor.
+      drawStop(target);
     }
     forward(event);
   });
 
-  // Delete asks first (D103): the menu's Delete opens the confirm dialog, and only its Delete
-  // presses the menu item for the editor. Keep topic, the undo, goes straight through.
-  const confirm = root.querySelector<HTMLDialogElement>("[data-topic-confirm]");
-  let deleting: HTMLButtonElement | null = null;
+  // Delete asks first (D103): the editor opens the confirm dialog (confirmTopic, topicsEditor.ts).
   root.addEventListener("click", (event) => {
     const button = (event.target as Element).closest("button");
-    if (!button) return;
+    // The view's tabs are the page's own (mountSegmentedNav); the editor has nothing to do for them.
+    if (!button || button.getAttribute("role") === "tab") return;
     if ("showAll" in button.dataset) {
       button.previousElementSibling?.setAttribute("data-all", "");
       button.hidden = true;
-      return;
-    }
-    if (confirm && "confirm" in button.dataset && button.dataset.pressed !== "true") {
-      deleting = button;
-      confirm.showModal();
-      return;
-    }
-    if ("confirmCancel" in button.dataset) {
-      confirm?.close();
-      return;
-    }
-    if ("confirmDelete" in button.dataset) {
-      confirm?.close();
-      const target = deleting;
-      if (target)
-        void load().then((loaded) => loaded.handle({ type: "click", target } as unknown as Event));
       return;
     }
     forward(event);
@@ -102,13 +105,19 @@ function mount(root: HTMLElement): void {
     forward(event);
   });
 
+  // The search and chips (sourceFilter.ts) read the address, so a reload or Back finds them set.
+  if (root.querySelector("[data-filter]")) {
+    void import("./sourceFilter").then((module) => module.mountFilter(root)).catch(() => {});
+  }
+
   root.dataset.ready = "";
 }
 
 export function installTopicsPage(): void {
   installMultiSelect();
-  // The topic card's More menu is the briefing page's popover menu.
-  installHeroMenu();
+  // The topic card's More menu is the briefing page's popover menu. The popover opens without it;
+  // its placement fallback and light dismiss come at idle, outside the first load's budget.
+  warmWhenIdle(() => import("./heroMenu").then((module) => module.installHeroMenu()));
   const sync = (): void => {
     const root = document.querySelector<HTMLElement>("[data-topics]");
     if (root && root.dataset.ready === undefined) mount(root);

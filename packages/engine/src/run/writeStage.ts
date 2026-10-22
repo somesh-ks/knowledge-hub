@@ -4,8 +4,10 @@ import {
   type Preferences,
   type ScheduleFile,
   type SourceStatsFile,
+  type Topic,
   VOICE_LIMITS,
 } from "@dispatch/core";
+import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
@@ -31,7 +33,13 @@ import {
 } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
 import { scoreItem } from "../score/scoreItem.js";
-import { applyTopics, type TopicLayer } from "../score/scoreTopics.js";
+import {
+  applyFormatMix,
+  applyTopics,
+  type SourceFacts,
+  sourceFactsMap,
+  type TopicLayer,
+} from "../score/scoreTopics.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem } from "../score/types.js";
@@ -78,6 +86,8 @@ interface PassContext {
   linter: Linter;
   preferences: Preferences;
   sourceNames: Record<string, string>;
+  /** Each source's format and lean, for the type mix and perspective. */
+  sourceFacts: Record<string, SourceFacts>;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -106,7 +116,7 @@ interface PassContext {
 
 /**
  * Score and select from the judge's answers, extract full text for the finalists, write the
- * headline and summary with the Nebius writer, and give each failing field one rewrite. Fewer
+ * headline and summary with the routed writer, and give each failing field one rewrite. Fewer
  * than three survivors is the "nothing" outcome, never padded; an extraction or writing outage
  * fails the stage instead. Items already chosen for an earlier pass of the same run are withheld,
  * so the weekly digest never repeats the regular one published minutes before it.
@@ -135,6 +145,7 @@ export async function writeStage(
     linter,
     preferences,
     sourceNames: sourceNameMap(sources),
+    sourceFacts: sourceFactsMap(sources),
     customTopics: activeFitTopics(topics),
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
@@ -213,7 +224,11 @@ async function writePass(
   };
   for (const id of judged.unjudged) drop(id, "judge", "no judgment");
 
-  const layer: TopicLayer = { topics: customTopics, fits: judged.topic_fits ?? {} };
+  const layer: TopicLayer = {
+    topics: customTopics,
+    fits: judged.topic_fits ?? {},
+    sources: context.sourceFacts,
+  };
   const base: ScoredItem[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
@@ -223,7 +238,14 @@ async function writePass(
       continue;
     }
     base.push(
-      withSourceAdjustment(applyTopics(scoreItem(entry, preferences, item), layer), sourceStats),
+      withSourceAdjustment(
+        applyFormatMix(
+          applyTopics(scoreItem(entry, preferences, item), layer),
+          preferences.format_mix,
+          context.sourceFacts,
+        ),
+        sourceStats,
+      ),
     );
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
@@ -254,6 +276,8 @@ async function writePass(
       poolPath: file("general.json"),
       judgedPath: file("general-judged.json"),
       topics: context.generalTopics,
+      formatMix: preferences.format_mix,
+      sources: context.sourceFacts,
       publish: onlyTopics
         ? context.generalTopics.map((topic) => topic.id).filter((id) => onlyTopics.has(id))
         : generalIdsFor(context.schedule, pass.kind, context.mode),
@@ -406,7 +430,7 @@ async function writePass(
   // A finalist with no readable source cannot be written, so it drops.
   const extracted = await mapConcurrent(chosen.selected, EXTRACT_CONCURRENCY, async (sel) => ({
     sel,
-    text: await extractSafely(runtime, sel.item),
+    text: await enrichThin(runtime, sel.item, await extractSafely(runtime, sel.item)),
   }));
   const materials = new Map<string, SourceMaterial>();
   const methods = new Map<string, string>();
@@ -517,5 +541,27 @@ async function extractSafely(runtime: ApiRuntime, item: Item): Promise<Extracted
     return await runtime.extract(item);
   } catch {
     return null;
+  }
+}
+
+/**
+ * A finalist whose text is still thin after every free and paid read gets sourced facts from
+ * Alexandria, labelled with their provider, appended to its source text (so the grounding check
+ * reads them too). Facts never replace text: a story with no readable text is still
+ * dropped. Any failure leaves the text as it was.
+ */
+export async function enrichThin(
+  runtime: Pick<ApiRuntime, "enrich">,
+  item: Item,
+  text: ExtractedText | null,
+): Promise<ExtractedText | null> {
+  // Facts only enrich text that was read, so a story with none is never paid for.
+  if (!text || !runtime.enrich || !isThinText(text.text)) return text;
+  try {
+    const facts = await runtime.enrich(item);
+    if (!facts) return text;
+    return { ...text, text: `${text.text}\n\n${facts}` };
+  } catch {
+    return text;
   }
 }

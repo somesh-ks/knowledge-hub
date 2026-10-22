@@ -295,7 +295,7 @@ export function makeWorld(root: string, options: WorldOptions = {}): World {
       sampleJudge: options.judge ?? judge,
       extract: options.extract ?? (async (item) => longText(item)),
       judgeFailures: [],
-      usage: () => ({ nebiusTokens: 0, nebiusTokenLimit: 400_000 }),
+      usage: () => ({ tokens: 0, tokenLimit: 400_000 }),
     }),
     pickCover,
     git: createGitRunner(root),

@@ -285,6 +285,9 @@ describe("scales", () => {
       .filter((token) => token.path[1] === "space")
       .map((token) => Number.parseFloat(String(token.value)))
       .sort((a, b) => a - b);
+    // The 8pt system: every step is a multiple of 8px, save one 4px step for the named fine cases.
+    // A 12px or 2px step let near-equal gaps creep in between rows and under headings.
+    expect(steps.filter((rem) => (rem * 16) % 8 !== 0)).toEqual([0.25]);
     for (let index = 1; index < steps.length; index += 1) {
       const ratio = (steps[index] ?? 0) / (steps[index - 1] ?? 1);
       expect(ratio, `${steps[index - 1]} to ${steps[index]}`).toBeGreaterThanOrEqual(1.25);

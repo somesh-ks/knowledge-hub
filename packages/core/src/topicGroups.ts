@@ -5,7 +5,7 @@ import { DESIGN_TOPIC_ID, TECH_CATEGORY } from "./categories.js";
  * the judge's finer topics by the briefing section they publish to, so the eleven built-in
  * categories, the app's Design topic and any custom topic in those sections stay the judge's
  * questions underneath while a person sees three. `home` is where a source added to the group is
- * filed. A topic that never publishes, Trending and a custom topic with its own section belong to
+ * filed. A custom topic that never publishes, Trending and a custom topic with its own section belong to
  * none.
  */
 export interface TopicGroup {
@@ -46,12 +46,29 @@ export const TOPIC_GROUPS: readonly TopicGroup[] = [
 /** Ids the groups' pages take; no topic may take one. */
 export const TOPIC_GROUP_IDS: readonly string[] = TOPIC_GROUPS.map((group) => group.id);
 
+/**
+ * The topic a group's page keeps its settings on (its format mix): the group's home, or its first
+ * member when the home is not among the topics. The page, the engine and the config ops all ask
+ * here, so a mix is saved where it is read.
+ */
+export function groupHomeId(
+  group: TopicGroup,
+  topics: readonly { id: string; section_id: string; never_publish: boolean; origin: string }[],
+): string {
+  const members = topics.filter((topic) => topicGroupOf(topic)?.id === group.id);
+  return members.some((topic) => topic.id === group.home)
+    ? group.home
+    : (members[0]?.id ?? group.home);
+}
+
 /** The group a topic belongs to, or null for one that never publishes, a general topic or one apart. */
 export function topicGroupOf(topic: {
   section_id: string;
   never_publish: boolean;
   origin: string;
 }): TopicGroup | null {
-  if (topic.never_publish || topic.origin === "general") return null;
+  // A built-in topic at Off keeps its page, so it can be turned on again.
+  if ((topic.never_publish && topic.origin !== "builtin") || topic.origin === "general")
+    return null;
   return TOPIC_GROUPS.find((group) => group.sections.includes(topic.section_id)) ?? null;
 }

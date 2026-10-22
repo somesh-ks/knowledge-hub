@@ -1,4 +1,4 @@
-/** "Daily", "Daily and Custom", "Daily, Weekly and Custom": the chosen labels as a person says them. */
+/** "Daily", "Daily and Catch up", "Daily, Weekly and Catch up": the chosen labels as a person says them. */
 /**
  * What a MultiSelect's field says: `all` ("All podcasts") when every option is chosen and the
  * field names one, else the chosen labels joined, else `empty`.

@@ -1,10 +1,15 @@
 ---
+import { PERSPECTIVE_STOPS, topicEmoji } from "@dispatch/core";
 import { topicArt } from "@dispatch/cover";
+import AddFab from "../../../components/AddFab.astro";
+import EmojiPicker from "../../../components/EmojiPicker.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
+import MenuSheet from "../../../components/MenuSheet.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
+import SourceFilter from "../../../components/SourceFilter.astro";
 import SourceRow from "../../../components/SourceRow.astro";
 import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
@@ -20,6 +25,7 @@ import {
   topicChoicesOf,
   topicLayout,
 } from "../../../lib/topicPages";
+import { NEW_TOPIC_ID, SHELL } from "../../../lib/topicText";
 import "../../../styles/settings.css";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
@@ -36,6 +42,17 @@ export async function getStaticPaths() {
   const choices = topicChoicesOf(layout);
   const taken = [...topics.map((t) => t.id), ...layout.groups.map((group) => group.id)];
   const list = (id: string) => layout.sources.get(id) ?? [];
+  const SHELL_TOPIC: ManageTopic = {
+    id: SHELL.id,
+    name: SHELL.name,
+    description: SHELL.about,
+    weight: 0.7,
+    enabled: true,
+    keywords: [],
+    section_id: SHELL.id,
+    never_publish: false,
+    origin: "custom",
+  };
   return [
     ...layout.groups.map((group) => ({
       params: { id: group.id },
@@ -45,10 +62,22 @@ export async function getStaticPaths() {
       params: { id: topic.id },
       props: { group: null, topic, list: list(topic.id), choices, taken },
     })),
+    // Other has no row on the Sources list (2026-10-21) but keeps its page, reached by address, so
+    // the sources no topic shows can still be read and removed.
     {
       params: { id: OTHER_ID },
       props: { group: null, topic: null, list: list(OTHER_ID), choices, taken },
     },
+    // A topic added since the build opens here at once (D142), drawn as an own topic with no sources
+    // and filled in the browser from what was saved (savedView.ts, fillShell).
+    ...(taken.includes(NEW_TOPIC_ID)
+      ? []
+      : [
+          {
+            params: { id: NEW_TOPIC_ID },
+            props: { group: null, topic: SHELL_TOPIC, list: [], choices, taken, shell: true },
+          },
+        ]),
   ];
 }
 
@@ -58,9 +87,11 @@ interface Props {
   list: ManageSource[];
   choices: { id: string; name: string }[];
   taken: string[];
+  /** The page for a topic not built yet (D142). */
+  shell?: boolean;
 }
 
-const { group, topic, list, choices, taken } = Astro.props;
+const { group, topic, list, choices, taken, shell = false } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
@@ -73,15 +104,16 @@ const shown = group ? { id: group.home, name: group.name } : undefined;
 // The catalogue's feeds that fit the topic and are not among the sources: all known at build time, so
 // they are in the page and need no request. Where nothing fits, the page has no such section.
 const words = suggestionWords({ group, topic });
-const suggested = words ? suggestSources(catalog, sources, words) : [];
+// A topic not built yet has its suggestions ranked in the browser (savedView.ts, suggestUnder).
+const suggested = words && !shell ? suggestSources(catalog, sources, words, 10) : [];
 // Where the topic plays (D69): one of the owner's three sets it for every judge topic it gathers.
 const schedule = await loadScheduleView();
 const scopeIds = group ? group.members.map((member) => member.id) : topic ? [topic.id] : [];
 const SCOPES = [
   { key: "daily", label: "Daily", skipped: schedule.skipTopics },
   { key: "weekly", label: "Weekly", skipped: schedule.weekly.skip_topics },
-  // Custom: episodes made on request, by the name the Library's filter gives them.
-  { key: "custom", label: "Custom", skipped: schedule.custom.skip_topics },
+  // Catch up: episodes made on request (the `custom` profile).
+  { key: "custom", label: "Catch up", skipped: schedule.custom.skip_topics },
 ] as const;
 const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
@@ -90,7 +122,7 @@ const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
 // How much each judge topic a group gathers counts (D69), by name. A group of one shows a plain
 // Weight row, as a topic of the owner's does; the member that shares the group's name reads as
 // the group in general, so Design's own row is not "Design" under Design.
-const weightRows = (group?.members ?? [])
+const memberRows = (group?.members ?? [])
   .map((member) => ({
     id: member.id,
     label:
@@ -99,6 +131,7 @@ const weightRows = (group?.members ?? [])
         : member.name === group?.name
           ? `${member.name} in general`
           : member.name,
+    name: member.name,
     weight: member.weight,
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
@@ -117,9 +150,26 @@ const upsert =
       section_id: topic.section_id,
     },
   });
-const editable = topic !== null && !topic.never_publish;
+// Every page takes a new source, filed under the topic (a group's under its home topic).
+const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
+// Every weight the page sets, in one Topic weightage group on every topic that has one (2026-10-20):
+// a group's per member, or a topic's own.
+const weightRows =
+  topic && !general
+    ? [{ id: topic.id, label: "Weight", name: topic.name, weight: topic.weight }]
+    : memberRows;
+// Left to right is a question for political coverage: world affairs and business, not sport, science
+// or culture (2026-10-20).
+const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
+// A lean set before then stays visible where it applies, so it can be seen and set back to Even.
+const perspective =
+  topic !== null && general && (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
+const perspectiveStops = PERSPECTIVE_STOPS.map((s) => ({ name: s.name, value: s.value }));
+// The type mix is one for every topic, on the Preferences page. A page with sliders splits into
+// Sources and Preferences (2026-10-20); one with none (Other, most general topics) is its sources.
+const hasPreferences = weightRows.length > 0 || perspective;
 // A long list shows its first SHOWN sources and a button for the rest (D103).
 const SHOWN = 7;
 const hidden = Math.max(0, list.length - SHOWN);
@@ -138,10 +188,11 @@ const facts = topic && {
 
 <BaseLayout title={name} view="settings" skipLabel={`Skip to ${name}`}>
   <main id="main" tabindex="-1">
-    {/* A topic's page: its summary card, how much it counts, and its sources. A topic is always on and
+    {/* A topic's page: its summary card, then its sources or how much it counts (the Preferences
+         view's sliders). A topic is always on and
          available to every podcast, so there is no switch. The controls carry the edit they stand for
          (data-op); topicsEditor.ts records a change and autosave.ts sends it a moment later. */}
-    <div class="manage topics topic-page" data-topics data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
+    <div class="manage topics topic-page" data-topics data-shell={shell ? "" : undefined} data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
       <noscript>
         <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -149,20 +200,32 @@ const facts = topic && {
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{name}</legend>
         <div class="topic" data-id={topic?.id ?? ""} data-topic>
-          {/* The summary card: the topic's generated picture, its name and what counts as it, and a
-               More menu with Edit and, for a topic of the owner's own, Delete. The menu is the app's
+          {/* The summary card: the topic's generated picture, its name and what counts as it, a More
+               menu with Edit and, for a topic of the owner's own, Delete, and under a full-width line
+               Listen in, the podcasts it plays in (2026-10-20). The menu is the app's
                popover menu (HeroMenu.astro, heroMenu.ts). */}
-          {/* From 64rem there is no app bar above the page, so the way up is a line over the card. */}
-          <nav class="topic-up" aria-label="Breadcrumb">
-            <a class="settings-up" href="/settings/topics">
-              <Icon name="chevronLeft" />
-              <span>Topics and sources</span>
-            </a>
-          </nav>
           <div class="topic-card">
-            <div class="topic-card-art" set:html={art} />
+            <div class="topic-card-lead">
+              <div class="topic-card-art" set:html={art} />
+              {/* The topic's emoji (2026-10-21): a button at the picture's corner that opens the
+                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. */}
+              {
+                topic && (
+                  <button
+                    class="icon-btn press topic-emoji-pick"
+                    type="button"
+                    aria-label={`Change emoji for ${name}`}
+                    aria-haspopup="dialog"
+                    aria-controls="emoji-picker"
+                    data-change-emoji
+                    data-needs-js
+                  >{topicEmoji(topic)}</button>
+                )
+              }
+            </div>
+            {topic && <EmojiPicker id="emoji-picker" />}
             <div class="topic-card-text">
-              <SettingsHead title={name} crumbs={false} note={note} />
+              <SettingsHead title={name} note={note} />
             </div>
             {
               topic && (
@@ -178,7 +241,7 @@ const facts = topic && {
                   >
                     <Icon name="moreVert" />
                   </button>
-                  <div class="hero-menu-list" id="topic-menu" popover role="menu" aria-label={`More actions for ${name}`}>
+                  <MenuSheet id="topic-menu" title={name}>
                     <button
                       class="hero-menu-item"
                       type="button"
@@ -188,7 +251,7 @@ const facts = topic && {
                       data-edit-topic={JSON.stringify(facts)}
                       data-topic-base={upsert}
                     >
-                      Edit
+                      <Icon name="pencil" />Edit
                     </button>
                     {topic.origin === "custom" && (
                       <button
@@ -204,21 +267,17 @@ const facts = topic && {
                         data-remove
                         data-confirm
                       >
-                        <span class="topic-delete-do">Delete</span>
+                        <Icon name="trash" /><span class="topic-delete-do">Delete</span>
                         <span class="topic-delete-undo">Keep topic</span>
                       </button>
                     )}
-                  </div>
+                  </MenuSheet>
                 </div>
               )
             }
-          </div>
-          {
-            (group || (editable && topic)) && (
-              <div class="rows topic-controls">
-                {/* Where the topic plays (D69), and how much it counts. A general news topic is ranked
-                     by how many outlets carry a story, so it has no weight. */}
-                <div class="settings-row topic-scope">
+            {
+              (group || topic) && (
+                <div class="topic-card-foot settings-row topic-scope">
                   <div class="settings-text">
                     <span class="settings-label" id="scope-label">Listen in</span>
                   </div>
@@ -236,32 +295,103 @@ const facts = topic && {
                     }))}
                   />
                 </div>
-                {topic && !general && <WeightRow id={topic.id} label="Weight" weight={topic.weight} />}
-                {weightRows.length === 1 && weightRows.map((row) => <WeightRow {...row} />)}
+              )
+            }
+          </div>
+          {/* Sources or Preferences (2026-10-20): the segmented navigation, as tabs. The choice is in
+               the address (?view=preferences), so a reload or Back keeps it; topicsPage.ts reads it
+               and keeps the address in step. */}
+          {/* One card holds the switch and what it shows: the Android settings pattern (2026-10-21). */}
+          <div class="topic-panel">
+          {
+            hasPreferences && (
+              <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
+                <button
+                  class="segmented-nav-tab"
+                  type="button"
+                  role="tab"
+                  id="topic-tab-sources"
+                  aria-selected="true"
+                  aria-controls="topic-pane-sources"
+                  data-value="sources"
+                >
+                  Sources
+                </button>
+                <button
+                  class="segmented-nav-tab"
+                  type="button"
+                  role="tab"
+                  id="topic-tab-preferences"
+                  aria-selected="false"
+                  aria-controls="topic-pane-preferences"
+                  tabindex="-1"
+                  data-value="preferences"
+                >
+                  Preferences
+                </button>
               </div>
             )
           }
           {
-            weightRows.length > 1 && (
-              <section class="topic-weights" aria-labelledby="weights-head">
-                <h2 class="section-head" id="weights-head">Topic weightage</h2>
-                <div class="rows topic-controls">
-                  {weightRows.map((row) => <WeightRow {...row} />)}
-                </div>
-              </section>
+            hasPreferences && (
+              <div
+                class="topic-view-pane topic-view-preferences"
+                role="tabpanel"
+                id="topic-pane-preferences"
+                aria-labelledby="topic-tab-preferences"
+              >
+                {
+                  weightRows.length > 0 && (
+                    <section class="topic-weights" aria-labelledby="weights-head">
+                      <h2 class="section-head" id="weights-head">Topic weightage</h2>
+                      <div class="rows topic-controls">
+                        {weightRows.map((row) => <WeightRow {...row} />)}
+                      </div>
+                    </section>
+                  )
+                }
+                {
+                  perspective && topic && (
+                    <section class="topic-weights" aria-labelledby="perspective-head">
+                      <h2 class="section-head" id="perspective-head">Perspective</h2>
+                      <div class="rows topic-controls">
+                        <WeightRow
+                          id={`perspective-${topic.id}`}
+                          label="Perspective"
+                          name={`${topic.name} perspective`}
+                          weight={topic.perspective ?? 0}
+                          custom={{
+                            stops: perspectiveStops,
+                            op: { op: "topic.mix", id: topic.id, perspective: 0 },
+                            field: "perspective",
+                          }}
+                        />
+                      </div>
+                    </section>
+                  )
+                }
+              </div>
             )
           }
-          {topic?.never_publish && <p class="manage-quiet topic-never">Never in a briefing.</p>}
 
-          <div class="topic-sources-head">
-            <h2 class="section-head">Sources</h2>
+          <div
+            class="topic-view-pane topic-view-sources"
+            id="topic-pane-sources"
+            {...(hasPreferences ? { role: "tabpanel", "aria-labelledby": "topic-tab-sources" } : {})}
+          >
+          {/* Under the Sources tab the tab names the list, so the heading is for screen readers only
+               (2026-10-21); Other, with no tabs, keeps it on screen. */}
+          <div class="topic-sources-head" data-quiet={hasPreferences ? "" : undefined}>
+            <h2 class:list={["section-head", { "sr-only": hasPreferences }]}>Sources</h2>
+            {/* From 64rem the button sits beside the search (SourceFilter's action); a topic with no
+                 sources has no search, so it keeps the heading's end. */}
             {
-              (topic === null || editable) && (
+              list.length === 0 && (
                 <button
                   class="btn-secondary topic-add-source"
                   type="button"
                   aria-label={`Add source to ${name}`}
-                  data-add-source={group?.home ?? topic?.id ?? ""}
+                  data-add-source={addTo}
                   data-needs-js
                 >
                   <Icon name="plus" />
@@ -270,32 +400,54 @@ const facts = topic && {
               )
             }
           </div>
-          <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
-            {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
-          </ul>
-          {
-            hidden > 0 && (
-              <button class="btn topic-show-all" type="button" data-show-all>
-                {`Show ${hidden} more`}
-              </button>
-            )
-          }
-          {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
-          <div class="topic-empty empty" data-compact>
-            <EmptyArt art="library" size="compact" />
-            <p class="empty-title">No sources yet</p>
-            <p class="empty-body">
-              {topic === null || editable
-                ? `Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`
-                : "Sources filed under this topic are listed here."}
-            </p>
+          {/* The sources and their search, in one block, so the search and tabs that stick on a
+               phone let go where the list ends, before Suggested sources. */}
+          <div class="topic-sources-block">
+            {
+              list.length > 0 && (
+                <SourceFilter sources={list} chips>
+                  <button
+                    slot="action"
+                    class="btn-secondary topic-add-source"
+                    type="button"
+                    aria-label={`Add source to ${name}`}
+                    data-add-source={addTo}
+                    data-needs-js
+                  >
+                    <Icon name="plus" />
+                    <span>Add source</span>
+                  </button>
+                </SourceFilter>
+              )
+            }
+            <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
+              {list.map((source) => <SourceRow source={source} topicName={topic?.name ?? ""} shownTopic={shown} />)}
+            </ul>
+            {
+              hidden > 0 && (
+                <button class="btn topic-show-all" type="button" data-show-all>
+                  {`Show ${hidden} more`}
+                </button>
+              )
+            }
+            {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
+            <div class="topic-empty empty" data-compact>
+              <EmptyArt art="library" size="compact" />
+              <p class="empty-title">No sources yet</p>
+              <p class="empty-body">
+                {`Add a site or a feed, and its stories can reach your ${general ? "episodes" : "briefings"}.`}
+              </p>
+            </div>
           </div>
 
-          <SuggestedSources offers={suggested} name={name} topicId={group?.home ?? topic?.id ?? ""} />
+          <SuggestedSources offers={suggested} name={name} topicId={addTo} />
+          </div>
+          </div>
           <p class="manage-quiet topic-gone" tabindex="-1">Removed.</p>
         </div>
       </fieldset>
 
+      <AddFab label={`Add source to ${name}`} source={addTo} />
       <ManageChrome />
       <TopicsPanel topics={choices} />
       {

@@ -12,8 +12,12 @@ const BUSY_ID = "episode-actions-busy";
 const OFFLINE_ID = "offline-reason";
 
 function sync(): void {
-  const root = document.querySelector<HTMLElement>("[data-episode-actions]");
-  if (!root) return;
+  // The Library holds one menu per row; a page has one.
+  for (const root of document.querySelectorAll<HTMLElement>("[data-episode-actions]"))
+    syncRoot(root);
+}
+
+function syncRoot(root: HTMLElement): void {
   let busy = false;
   try {
     const run = JSON.parse(sessionStorage.getItem("dispatch:run") ?? "null");

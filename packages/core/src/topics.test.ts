@@ -8,7 +8,6 @@ import {
   ConfigOp,
   Digest,
   type Digest as DigestType,
-  digestRelPath,
   digestSections,
   hasOwnAllowance,
   homeSection,
@@ -120,6 +119,19 @@ describe("TopicsFile", () => {
     expect(resolved.topics.find((t) => t.id === "design_engineering_craft")?.weight).toBe(
       preferences.weights.design_engineering_craft,
     );
+  });
+
+  it("snaps a stored weight to its stop, and a topic at Off never publishes", () => {
+    const stored = { ...preferences, weights: { ...preferences.weights } };
+    stored.weights.css_canvas_motion_techniques = 0.88;
+    stored.weights.venture_capital_and_gossip = 0.1;
+    const byId = new Map(resolveTopics(null, stored).topics.map((t) => [t.id, t]));
+    expect(byId.get("css_canvas_motion_techniques")?.weight).toBe(0.85);
+    expect(byId.get("css_canvas_motion_techniques")?.never_publish).toBe(false);
+    expect(byId.get("venture_capital_and_gossip")).toMatchObject({
+      weight: 0,
+      never_publish: true,
+    });
   });
 
   it("restores built-in topics and sections a file leaves out, and reads a missing file as the seed", () => {
@@ -251,7 +263,9 @@ describe("digest sections", () => {
   it.each(["2026-10-06", "2026-10-07"])(
     "keeps the committed digest %s parsing with its built-in sections",
     (id) => {
-      const digest = parseDigestFile(readFileSync(join(REPO_ROOT, digestRelPath(id)), "utf8"));
+      const digest = parseDigestFile(
+        readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/digests", `${id}.md`), "utf8"),
+      );
       expect(digest.section_titles).toBeUndefined();
       const ids = digestSections(digest).map((section) => section.id);
       expect(ids.length).toBeGreaterThan(0);

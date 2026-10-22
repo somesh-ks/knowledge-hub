@@ -145,7 +145,7 @@ describe("eligibility", () => {
     expect(ids(result.selected)).toContain(edge.item.id);
   });
 
-  it("never publishes venture or hype categories, whatever their score", () => {
+  it("never publishes a category at Off (weight 0), whatever its score", () => {
     const vc = scored("venture_capital_and_gossip", 0.99);
     const hype = scored("generic_ai_hype_listicles", 0.98);
     const result = selectItems({
@@ -157,6 +157,7 @@ describe("eligibility", () => {
         scored("css_canvas_motion_techniques", 0.7),
       ],
       kind: "regular",
+      weights,
       floor: 3,
       cap: 12,
     });
@@ -968,5 +969,26 @@ describe("one release per repository", () => {
       score: s.score,
     }));
     expect(newestReleasePerRepo(candidates).kept.map((c) => c.score)).toEqual([0.7]);
+  });
+});
+
+describe("the outlet cap", () => {
+  it("keeps a third story from one outlet out, even when its feeds are separate sources", () => {
+    const pool = [
+      scored("design_engineering_craft", 0.9, {
+        source_id: "loud-a",
+        url: "https://www.loud.example/a",
+      }),
+      scored("frontier_model_releases", 0.85, {
+        source_id: "loud-b",
+        url: "https://loud.example/b",
+      }),
+      scored("hci_empirical_research", 0.8, { source_id: "loud-c", url: "https://loud.example/c" }),
+      scored("developer_tool_launches", 0.6, { source_id: "quiet" }),
+    ];
+    const result = selectItems({ scored: pool, kind: "regular", floor: 1, cap: 10, weights });
+    expect(result.selected.filter((s) => s.item.url.includes("loud.example"))).toHaveLength(2);
+    expect(result.dropped.map((d) => d.reason)).toContain("over_outlet");
+    expect(ids(result.selected)).toContain(pool[3]?.item.id);
   });
 });

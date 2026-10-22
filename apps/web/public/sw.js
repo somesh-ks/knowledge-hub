@@ -3,22 +3,34 @@
  * available offline and nothing else.
  *
  *   - Precaches the shell (the home page and /offline) with their stylesheet, fonts and scripts.
- *   - Digest pages: stale-while-revalidate. A digest never changes once published, so the cached copy
- *     is right and the refresh in the background only matters for a correction.
- *   - Home, the library and /latest.json change whenever a briefing lands, so a page load goes to the
- *     network first and falls back to the cache after a short wait. A stale "today" would be a wrong answer.
+ *   - Every page load, a briefing's included, goes to the network first and falls back to the cache
+ *     after a short wait. Home, the library and /latest.json change whenever a briefing lands, and a
+ *     briefing's words never change but its page does with every deploy: a saved copy names the old
+ *     build's stylesheets and scripts, which the shell cache still holds, so a briefing answered from
+ *     the cache showed the old layout after a deploy (2026-10-21, the Stories tab on the owner's phone).
  *   - A move inside the app (the client router's fetch, or a prefetch) is answered at once from a copy
  *     saved in the last few minutes and checked against the network behind it. If the page changed, the
  *     page on screen is told. When /latest.json changes, every saved page counts as old again.
- *   - NEVER touches audio. Serving media from the Cache API without correct Range handling breaks
- *     Safari playback, so audio, ranged requests and cross-origin requests all pass straight through.
+ *   - Audio is never cached by the worker itself. The one exception is a file the person chose to
+ *     download (Library menu, scripts/libraryDownloads.ts), which the page saved in AUDIO_CACHE. That
+ *     file is answered from the cache with correct Range handling (206 and Content-Range), which
+ *     Safari needs, and the cache survives a version bump: a download is the person's, not the
+ *     worker's. Any other audio request goes to the network as it would have. The scripts and styles
+ *     a downloaded page names are kept there too: a deploy renames them and a version bump drops the
+ *     shell, so the page opened offline without its player (2026-10-22, the owner's phone).
+ *   - A strategy that throws (a cache entry the browser corrupted or evicted mid-read) never breaks
+ *     the page: the request goes to the network and, when that answers and a cache read really does
+ *     throw, the worker's own caches are dropped and the shell saved again, once per worker life
+ *     (healed below). A network failure alone never deletes a saved page.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v8";
+const VERSION = "v14";
 const SHELL_CACHE = `dispatch-shell-${VERSION}`;
 const PAGES_CACHE = `dispatch-pages-${VERSION}`;
 const MEDIA_CACHE = `dispatch-media-${VERSION}`;
-const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE];
+/** Episodes saved for offline listening. Not versioned: a new worker keeps what the person downloaded. */
+const AUDIO_CACHE = "dispatch-audio-v1";
+const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE, AUDIO_CACHE];
 
 const OFFLINE_URL = "/offline";
 const SHELL_PAGES = ["/", "/library", OFFLINE_URL];
@@ -126,15 +138,78 @@ self.addEventListener("install", (event) => {
   event.waitUntil(precacheShell());
 });
 
+/**
+ * The addresses of downloaded files, in memory, so the fetch handler can tell at once whether a
+ * request is one it should answer: an audio read the person never downloaded goes straight to the
+ * network, as before downloads existed, with no cache lookup on the playback path. Filled when the
+ * worker starts and again whenever the page says the downloads changed.
+ */
+const downloaded = new Set();
+
+async function refreshDownloaded() {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const keys = await cache.keys();
+    downloaded.clear();
+    for (const key of keys) downloaded.add(key.url);
+  } catch {
+    // Storage blocked: nothing is downloaded, and every request goes to the network.
+  }
+}
+
+refreshDownloaded();
+
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  const data = event.data || {};
+  if (data.type === "SKIP_WAITING") self.skipWaiting();
+  if (data.type === "DOWNLOADS_CHANGED") event.waitUntil(refreshDownloaded());
+  // A download asks for the page's scripts and styles to be saved too, and hears when they are.
+  if (data.type === "WARM_PAGE" && typeof data.path === "string" && data.path.startsWith("/")) {
+    const port = event.ports && event.ports[0];
+    event.waitUntil(
+      fetch(data.path)
+        .then((response) => (response.ok ? warmAssets(response, AUDIO_CACHE) : undefined))
+        .catch(() => undefined)
+        .then(() => port?.postMessage("done")),
+    );
+  }
 });
 
 /* ------------------------------------------------------------------ activate */
 
+/**
+ * Copies every file a downloaded page needs into the downloads cache, from whichever cache holds it,
+ * before activation drops the old ones. Downloads made before their files were kept there are saved.
+ */
+async function keepDownloadAssets() {
+  const audio = await caches.open(AUDIO_CACHE);
+  const queue = [];
+  for (const key of await audio.keys()) {
+    const saved = await audio.match(key);
+    if (!(saved?.headers.get("content-type") || "").includes("text/html")) continue;
+    queue.push(...referencedAssets(await saved.text(), self.location.origin));
+  }
+  const seen = new Set();
+  while (queue.length > 0) {
+    const path = queue.pop();
+    if (seen.has(path)) continue;
+    seen.add(path);
+    let file = await audio.match(path);
+    if (!file) {
+      file = await caches.match(path);
+      if (!file) continue;
+      await audio.put(path, file.clone());
+    }
+    if (/\.(css|js)$/.test(path)) {
+      queue.push(...referencedAssets(await file.text(), new URL(path, self.location.origin)));
+    }
+  }
+}
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      await keepDownloadAssets().catch(() => {});
       const names = await caches.keys();
       await Promise.all(
         names
@@ -216,10 +291,13 @@ async function expirePagesIfChanged(request, response) {
   if (was !== is) await expirePages();
 }
 
-/** Saves the scripts and styles a page names, so the first move to it does not wait for them. */
-async function warmAssets(response) {
+/**
+ * Saves the scripts and styles a page names, so the first move to it does not wait for them. A
+ * download keeps them in its own cache, which no deploy empties.
+ */
+async function warmAssets(response, cacheName = SHELL_CACHE) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return;
-  const cache = await caches.open(SHELL_CACHE);
+  const cache = await caches.open(cacheName);
   const assets = referencedAssets(await response.text(), self.location.origin);
   // As deep as the install goes: an editor behind two lazy imports is on the page, and a file missed
   // here fails offline. Files already saved are skipped, so a page after the first costs little.
@@ -350,12 +428,139 @@ function isPage(request) {
   );
 }
 
+/* ------------------------------------------------------------------ downloaded audio */
+
+/**
+ * The bytes a Range header asks for, as [start, end] inclusive, or null when it cannot be met.
+ * Handles "bytes=a-b", "bytes=a-" and the suffix form "bytes=-n". Only the first range is served.
+ */
+function parseRange(header, size) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec((header || "").split(",")[0].trim());
+  if (!match || (match[1] === "" && match[2] === "") || size <= 0) return null;
+  let start;
+  let end;
+  if (match[1] === "") {
+    const length = Number(match[2]);
+    if (length === 0) return null;
+    start = Math.max(0, size - length);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] === "" ? size - 1 : Math.min(Number(match[2]), size - 1);
+  }
+  return start > end || start >= size ? null : [start, end];
+}
+
+/** A saved file as the answer to a request, whole or the slice a Range header names. */
+async function fromDownload(cached, rangeHeader) {
+  const blob = await cached.blob();
+  const type = cached.headers.get("content-type") || "audio/mpeg";
+  const base = { "content-type": type, "accept-ranges": "bytes" };
+  if (!rangeHeader) {
+    return new Response(blob, {
+      status: 200,
+      headers: { ...base, "content-length": String(blob.size) },
+    });
+  }
+  const range = parseRange(rangeHeader, blob.size);
+  if (!range) {
+    return new Response(null, {
+      status: 416,
+      headers: { ...base, "content-range": `bytes */${blob.size}` },
+    });
+  }
+  const [start, end] = range;
+  return new Response(blob.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      ...base,
+      "content-length": String(end - start + 1),
+      "content-range": `bytes ${start}-${end}/${blob.size}`,
+    },
+  });
+}
+
+/** A request for audio the person downloaded, or undefined to let it go to the network. */
+async function downloadedAudio(request) {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const cached = await cache.match(request.url);
+    return cached ? await fromDownload(cached, request.headers.get("range")) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The narrate lookup and word marks of a downloaded episode, when the network will not answer:
+ * the download saved them under the same address. Online they go to the network as before.
+ */
+async function downloadedApi(request) {
+  try {
+    const cache = await caches.open(AUDIO_CACHE);
+    const cached = await cache.match(request.url);
+    if (cached) return cached;
+  } catch {
+    // Fall through to the error below.
+  }
+  return Response.error();
+}
+
 /* ------------------------------------------------------------------ routing */
+
+/**
+ * A strategy that rejects is answered from the network. It rejects for a broken cache or for a
+ * network blip, and only a cache read that itself throws now proves the first, so only then are the
+ * versioned caches dropped and the shell saved again, once per worker life. A blip on an uncached
+ * asset leaves every saved page alone. Downloads (AUDIO_CACHE) are kept.
+ */
+let healing = false;
+function healed(event, answer, probe = event.request) {
+  return answer.catch(async (error) => {
+    const response = await fetch(event.request);
+    const readable = await caches.match(probe).then(
+      () => true,
+      () => false,
+    );
+    if (!readable && !healing) {
+      healing = true;
+      console.warn("[sw] cache read failed; rebuilding the caches", error);
+      event.waitUntil(
+        Promise.all([SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE].map((name) => caches.delete(name)))
+          .then(precacheShell)
+          .catch(() => {}),
+      );
+    }
+    return response;
+  });
+}
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+
+  // A downloaded file is answered here, from any origin, with or without a Range header. Offline
+  // the worker also looks (its list may not be read yet after a restart); online, audio that was
+  // never downloaded is left alone.
+  if (
+    (request.destination === "audio" || AUDIO_PATH.test(url.pathname)) &&
+    (downloaded.has(request.url) || self.navigator?.onLine === false)
+  ) {
+    event.respondWith(downloadedAudio(request).then((answer) => answer || fetch(request)));
+    return;
+  }
+
+  // A downloaded episode's lookup and marks: the network first, the saved copy when it fails. Only
+  // for what was downloaded (or offline): every other lookup goes straight to the network.
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname === "/api/narrate" || url.pathname === "/api/narrate-marks") &&
+    (downloaded.has(request.url) || self.navigator?.onLine === false)
+  ) {
+    event.respondWith(fetch(request).catch(() => downloadedApi(request)));
+    return;
+  }
 
   // Never serve or store: other origins (the audio host included), ranged reads, audio, the API.
   if (url.origin !== self.location.origin) return;
@@ -364,23 +569,30 @@ self.addEventListener("fetch", (event) => {
   if (AUDIO_PATH.test(url.pathname) || url.pathname.startsWith("/api/")) return;
 
   if (url.pathname.startsWith("/_astro/")) {
-    event.respondWith(cacheFirst(event, SHELL_CACHE));
-  } else if (url.pathname.startsWith("/d/")) {
-    event.respondWith(staleWhileRevalidate(event, PAGES_CACHE, MAX_PAGES));
+    event.respondWith(healed(event, cacheFirst(event, SHELL_CACHE)));
   } else if (url.pathname === LATEST_PATH) {
     // One entry under the bare path, whatever the query: a copy per query string would never match
     // the one before it (so the check for a new briefing never fired) and would push real pages out.
     event.respondWith(
-      networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+      healed(
+        event,
+        networkFirst(event, PAGES_CACHE, MAX_PAGES, expirePagesIfChanged, false, LATEST_PATH),
+        LATEST_PATH,
+      ),
     );
   } else if (isPage(request)) {
     // A page load waits for the network. The client router's fetch and a prefetch do not have to.
     event.respondWith(
-      request.mode === "navigate" ? networkFirst(event, PAGES_CACHE, MAX_PAGES) : inAppPage(event),
+      healed(
+        event,
+        request.mode === "navigate"
+          ? networkFirst(event, PAGES_CACHE, MAX_PAGES)
+          : inAppPage(event),
+      ),
     );
   } else if (url.pathname.startsWith("/covers/")) {
-    event.respondWith(staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA));
+    event.respondWith(healed(event, staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA)));
   } else if (SHELL_FILES.includes(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(event, SHELL_CACHE));
+    event.respondWith(healed(event, staleWhileRevalidate(event, SHELL_CACHE)));
   }
 });

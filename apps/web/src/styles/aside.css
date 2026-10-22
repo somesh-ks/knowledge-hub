@@ -40,7 +40,7 @@
     padding-inline: var(--space-4);
     color: var(--color-on-surface-muted);
     font-size: var(--text-label-size);
-    font-weight: var(--text-label-weight);
+    font-weight: var(--font-weight-regular);
     letter-spacing: var(--text-label-tracking);
     line-height: var(--text-label-leading);
   }
@@ -49,7 +49,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
+    gap: var(--space-2);
     min-height: var(--size-touch);
     padding-inline: var(--space-4);
     border-radius: var(--button-radius);

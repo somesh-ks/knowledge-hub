@@ -1,13 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  builtinTopics,
   CATEGORIES,
+  type Category,
+  deriveSourceFormat,
   generalTopics,
-  homeSection,
   isGeneralTopicId,
-  NEVER_PUBLISH,
+  MIX_STOPS,
   SECTION_TITLES,
   SECTIONS,
+  SOURCE_FORMATS,
+  type SourceFormat,
   sourceScore,
 } from "@dispatch/core";
 import { findRepoRoot } from "./repoRoot";
@@ -38,13 +42,15 @@ export interface ManageTopic {
   description: string;
   /** 0 to 1, as stored. */
   weight: number;
-  /** Where `weight` sits on the five-step control, 0 to 4. */
-  step: number;
   enabled: boolean;
   keywords: string[];
   section_id: string;
   never_publish: boolean;
   origin: TopicOrigin;
+  /** A general topic's perspective, -2 to 2; absent is Even. */
+  perspective?: number;
+  /** The emoji beside a topic of the owner's own, as Jev chose it when it was added. */
+  emoji?: string;
 }
 
 export interface ManageSource {
@@ -83,6 +89,10 @@ export interface ManageSource {
   score_parts: { health: number; quality: number; trust: number | null } | null;
   /** Lowercase text the search matches. */
   search: string;
+  /** Blog, news, forum and so on: the source's own, else the one its type implies. */
+  format: SourceFormat;
+  /** A general source's political lean, -2 (Left) to 2 (Right); null when unrated. */
+  lean: number | null;
 }
 
 export interface ManageCandidate {
@@ -98,6 +108,8 @@ export interface ManageCandidate {
 }
 
 export interface ManageData {
+  /** The type mix (config/preferences.json), one for every topic: the stop of each format not at Normal. */
+  typeMix: Record<string, string>;
   topics: ManageTopic[];
   sections: ManageSection[];
   sources: ManageSource[];
@@ -105,20 +117,6 @@ export interface ManageData {
 }
 
 // -------------------------------------------------------------------------------- words and numbers
-
-export const WEIGHT_STEPS = ["Less", "A bit less", "Normal", "A bit more", "More"] as const;
-export const WEIGHT_STEP_MAX = WEIGHT_STEPS.length - 1;
-
-/** The nearest of the five steps for a stored weight. */
-export function weightToStep(weight: number): number {
-  const step = Math.round(Math.min(1, Math.max(0, weight)) * WEIGHT_STEP_MAX);
-  return Number.isFinite(step) ? step : Math.round(WEIGHT_STEP_MAX / 2);
-}
-
-/** The stored weight for a step. The page's script uses the same sum. */
-export function stepToWeight(step: number): number {
-  return Math.min(WEIGHT_STEP_MAX, Math.max(0, step)) / WEIGHT_STEP_MAX;
-}
 
 /** A host without its leading "www.", or an empty string when the address is not a web address. */
 export function hostOf(address: string | null | undefined): string {
@@ -258,22 +256,6 @@ export function humanize(id: string): string {
 
 // ------------------------------------------------------------------------------------------ topics
 
-/** What each built-in category means, for the page that lists them before the engine's file exists. */
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  design_engineering_craft: "How an interface detail was built, with the technique shown.",
-  hci_empirical_research: "Interaction research with a method and results.",
-  ui_component_primitives: "Accessible components, primitives and design tokens.",
-  ai_ux_interaction_patterns: "Interface patterns for chat, agents and generative UI.",
-  css_canvas_motion_techniques: "CSS, canvas, shader and animation techniques with a demo.",
-  frontier_model_releases: "Releases, model cards and benchmarks for frontier AI models.",
-  developer_tool_launches:
-    "Launches of tools, frameworks and libraries a design engineer might use.",
-  taste_and_design_philosophy: "Essays and talks on taste, craft and design principles.",
-  venture_capital_and_gossip: "Funding rounds, valuations and industry gossip.",
-  generic_ai_hype_listicles: "Generic AI hype and top-ten tool lists.",
-  consumer_tech_releases: "Phones, laptops, wearables and the software that ships on them.",
-};
-
 function readWeights(preferences: unknown): Record<string, number> {
   const weights = isRecord(preferences) && isRecord(preferences.weights) ? preferences.weights : {};
   const result: Record<string, number> = {};
@@ -286,22 +268,21 @@ function readWeights(preferences: unknown): Record<string, number> {
 
 /** The built-in topics, from the categories the engine already judges by and the stored weights. */
 export function fallbackTopics(preferences: unknown): ManageTopic[] {
-  const weights = readWeights(preferences);
-  return CATEGORIES.map((id) => {
-    const weight = weights[id] ?? 0.5;
-    return {
+  const stored = readWeights(preferences);
+  const weights = Object.fromEntries(CATEGORIES.map((id) => [id, stored[id] ?? 0.7]));
+  return builtinTopics(weights as Record<Category, number>).map(
+    ({ id, name, description, weight, enabled, section_id, never_publish }): ManageTopic => ({
       id,
-      name: humanize(id),
-      description: CATEGORY_DESCRIPTIONS[id] ?? "",
+      name,
+      description,
       weight,
-      step: weightToStep(weight),
-      enabled: true,
+      enabled,
       keywords: [],
-      section_id: homeSection(id, "rss") ?? "top",
-      never_publish: NEVER_PUBLISH.includes(id),
+      section_id,
+      never_publish,
       origin: "builtin",
-    };
-  });
+    }),
+  );
 }
 
 /**
@@ -318,7 +299,6 @@ export function withGeneralTopics(topics: readonly ManageTopic[]): ManageTopic[]
         name: topic.name,
         description: topic.description,
         weight: topic.weight,
-        step: weightToStep(topic.weight),
         enabled: topic.enabled,
         keywords: [...topic.keywords],
         section_id: topic.section_id,
@@ -331,6 +311,25 @@ export function withGeneralTopics(topics: readonly ManageTopic[]): ManageTopic[]
 
 export function fallbackSections(): ManageSection[] {
   return SECTIONS.map((id, order) => ({ id, title: SECTION_TITLES[id], order }));
+}
+
+/** A lean as stored: a whole number from -2 to 2, null for unrated, undefined when absent or invalid. */
+function leanOf(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  const lean = asNumber(value);
+  return lean !== null && Number.isInteger(lean) && lean >= -2 && lean <= 2 ? lean : undefined;
+}
+
+/** The type mix as stored: only known formats at a known stop. */
+function mixOf(value: unknown): Record<string, string> | undefined {
+  if (!isRecord(value)) return undefined;
+  const mix: Record<string, string> = {};
+  for (const [format, stop] of Object.entries(value)) {
+    if (asFormat(format) && MIX_STOPS.some((s) => s.name === stop && s.name !== "Normal")) {
+      mix[format] = stop as string;
+    }
+  }
+  return Object.keys(mix).length > 0 ? mix : undefined;
 }
 
 function parseTopic(value: unknown): ManageTopic | null {
@@ -347,11 +346,12 @@ function parseTopic(value: unknown): ManageTopic | null {
     name,
     description: asString(value.description) ?? "",
     weight,
-    step: weightToStep(weight),
     enabled: asBool(value.enabled, true),
     keywords,
     section_id: asString(value.section_id) ?? "top",
     never_publish: asBool(value.never_publish, false),
+    ...(asString(value.emoji) ? { emoji: asString(value.emoji) as string } : {}),
+    ...(asNumber(value.perspective) ? { perspective: asNumber(value.perspective) as number } : {}),
     origin:
       value.origin === "custom" || value.origin === "app" || value.origin === "general"
         ? value.origin
@@ -396,6 +396,8 @@ interface RawSource {
   last_ok: string | null;
   /** Discovery quality, 0 to 1. */
   quality: number | null;
+  format: SourceFormat;
+  lean: number | null;
 }
 
 /** The strings in a list, trimmed, or null when the value is not a list. */
@@ -403,6 +405,15 @@ function stringList(value: unknown): string[] | null {
   return Array.isArray(value)
     ? value.map(asString).filter((entry): entry is string => entry !== null)
     : null;
+}
+
+function asFormat(value: unknown): SourceFormat | null {
+  return SOURCE_FORMATS.find((format) => format === value) ?? null;
+}
+
+/** A source type the core knows, else rss (read as a blog). */
+function asType(value: unknown): Parameters<typeof deriveSourceFormat>[0] {
+  return (typeof value === "string" ? value : "rss") as Parameters<typeof deriveSourceFormat>[0];
 }
 
 function parseSource(value: unknown): RawSource | null {
@@ -422,6 +433,8 @@ function parseSource(value: unknown): RawSource | null {
     failures: asNumber(value.failures) ?? 0,
     last_ok: asString(value.last_ok),
     quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
+    format: asFormat(value.format) ?? deriveSourceFormat(asType(value.type)),
+    lean: leanOf(value.lean) ?? null,
   };
 }
 
@@ -438,6 +451,8 @@ interface Override {
   name?: string;
   /** Wins over the source's own topics; an empty list files it under none. */
   topic_ids?: string[];
+  format?: SourceFormat;
+  lean?: number | null;
 }
 
 function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<string, Override> } {
@@ -449,12 +464,16 @@ function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<str
       if (!isRecord(entry)) continue;
       const name = asString(entry.name);
       const topicIds = stringList(entry.topic_ids);
+      const format = asFormat(entry.format);
+      const lean = leanOf(entry.lean);
       overrides.set(id, {
         ...(typeof entry.enabled === "boolean" ? { enabled: entry.enabled } : {}),
         ...(typeof entry.pinned === "boolean" ? { pinned: entry.pinned } : {}),
         ...(typeof entry.removed === "boolean" ? { removed: entry.removed } : {}),
         ...(name === null ? {} : { name }),
         ...(topicIds === null ? {} : { topic_ids: topicIds }),
+        ...(format === null ? {} : { format }),
+        ...(lean === undefined ? {} : { lean }),
       });
     }
   }
@@ -576,6 +595,8 @@ export function buildSources(input: {
       score_label: rated.label,
       score_parts: rated.parts,
       search: `${name} ${host} ${source.id}`.toLowerCase(),
+      format: override.format ?? source.format,
+      lean: override.lean === undefined ? source.lean : override.lean,
     });
   }
   return rows.sort(
@@ -676,6 +697,7 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
     [source.feed_url, source.url].filter((address): address is string => address !== null),
   );
   return {
+    typeMix: mixOf(isRecord(preferences) ? preferences.format_mix : undefined) ?? {},
     topics,
     sections,
     sources,
