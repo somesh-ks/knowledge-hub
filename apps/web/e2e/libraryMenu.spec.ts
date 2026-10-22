@@ -175,6 +175,14 @@ test.describe("a briefing download", () => {
         ),
       )
       .toBeGreaterThan(0.3);
+    // The real audio is on another origin (the Blob host), where Chrome takes the worker's saved
+    // copy of a no-cors file for the first read only: offline play stopped after a second. Here
+    // the file is same-origin, so the request mode is what this journey can hold.
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { played?: HTMLMediaElement }).played?.crossOrigin,
+      ),
+    ).toBe("anonymous");
     await context.setOffline(false);
   });
 });
