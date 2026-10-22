@@ -94,7 +94,7 @@ describe("health.yml's heal", () => {
     const yml = readFileSync(join(dir, "health.yml"), "utf8").split("\n");
     const start = yml.findIndex((line) => line.includes("gh workflow run run.yml"));
     const condition = yml[start - 1] ?? "";
-    expect([...condition.matchAll(/\*" (\w+) "\*/g)].map((match) => match[1])).toEqual([
+    expect([...condition.matchAll(/new_fault (\w+)/g)].map((match) => match[1])).toEqual([
       "run_failed",
       "run_overdue",
     ]);

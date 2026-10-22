@@ -34,6 +34,8 @@ export function shouldCheckForUpdate(now: number, lastCheck: number): boolean {
  * the only limit on the offer: a dismissed one comes back at the next check that finds it newer.
  */
 const BUILD_CHECK_MS = 60 * 1000;
+/** The longest a Reload waits for a new worker before it reloads anyway. */
+const RELOAD_WAIT_MS = 1500;
 
 /** A toast is up (an Undo waiting to be sent, a saved notice): a new one would replace it. */
 function toastIsUp(): boolean {
@@ -51,21 +53,35 @@ function toastIsUp(): boolean {
  * listening or holding an Undo. Without the Popover API the toast cannot show, and nothing more is
  * done: the next navigation picks up the deploy, since page loads go to the network first.
  */
-async function checkBuild(): Promise<void> {
-  if (!navigator.onLine) return;
+async function checkBuild(registration: ServiceWorkerRegistration): Promise<boolean> {
+  if (!navigator.onLine) return false;
   const pageBuild =
     document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content || undefined;
   const response = await fetch("/build.json", { cache: "no-store" });
-  if (!response.ok) return;
+  if (!response.ok) return false;
   const siteBuild = ((await response.json()) as { build?: unknown }).build;
-  if (!pageBuild || typeof siteBuild !== "string" || !siteBuild || siteBuild === pageBuild) return;
-  if (toastIsUp()) return;
-  // The reload's page load goes to the network first, so it needs no worker update to land.
-  sendToast({
-    message: "New version available",
-    actionLabel: "Reload",
-    onAction: () => location.reload(),
-  });
+  if (!pageBuild || typeof siteBuild !== "string" || !siteBuild || siteBuild === pageBuild) {
+    return true;
+  }
+  // Another toast up (an Undo, a lost save) is left alone; the next return asks again.
+  if (toastIsUp()) return false;
+  sendToast(
+    {
+      message: "New version available",
+      actionLabel: "Reload",
+      // A new worker, when the deploy has one, installs first so it answers the reload; a slow
+      // network never holds the reload more than a moment (the page load is network-first anyway).
+      onAction: () => {
+        Promise.race([
+          registration.update().catch(() => {}),
+          new Promise((settle) => setTimeout(settle, RELOAD_WAIT_MS)),
+        ]).finally(() => location.reload());
+      },
+    },
+    document,
+    { key: "deploy", unless: toastIsUp },
+  );
+  return true;
 }
 
 function watchForUpdates(registration: ServiceWorkerRegistration): void {
@@ -79,9 +95,16 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
   const askBuild = (): void => {
     if (Date.now() - lastBuildCheck < BUILD_CHECK_MS) return;
     lastBuildCheck = Date.now();
-    checkBuild().catch(() => {
-      // Offline or a failed read: the page on screen stays, and the next return asks again.
-    });
+    // A check that could not answer (offline, a failed read, another toast up) does not count
+    // against the minute: the next return asks again.
+    checkBuild(registration).then(
+      (answered) => {
+        if (!answered) lastBuildCheck = 0;
+      },
+      () => {
+        lastBuildCheck = 0;
+      },
+    );
   };
   askBuild();
   document.addEventListener("visibilitychange", () => {

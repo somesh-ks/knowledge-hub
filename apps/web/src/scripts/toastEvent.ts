@@ -10,8 +10,35 @@ export const TOAST_EVENT = "dispatch:toast";
 /** Told once the store listens (sheets/toastStore.ts). */
 export const TOAST_READY = "dispatch:toast-ready";
 
-export function sendToast(detail: object, target: EventTarget = document): void {
+export interface SendOptions {
+  /** Toasts waiting under one key are one toast: a later send replaces the waiting one. */
+  key?: string;
+  /** Asked when the toast would show, before or after the store loads: true drops it. */
+  unless?: () => boolean;
+}
+
+const waiting = new WeakMap<EventTarget, Map<string, () => void>>();
+
+export function sendToast(
+  detail: object,
+  target: EventTarget = document,
+  options: SendOptions = {},
+): void {
   const send = (): boolean =>
     !target.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail, cancelable: true }));
-  if (!send()) target.addEventListener(TOAST_READY, () => send(), { once: true });
+  if (options.unless?.()) return;
+  if (send()) return;
+  const { key } = options;
+  const later = (): void => {
+    if (key) waiting.get(target)?.delete(key);
+    if (!options.unless?.()) send();
+  };
+  if (key) {
+    const held = waiting.get(target) ?? new Map<string, () => void>();
+    waiting.set(target, held);
+    const earlier = held.get(key);
+    if (earlier) target.removeEventListener(TOAST_READY, earlier);
+    held.set(key, later);
+  }
+  target.addEventListener(TOAST_READY, later, { once: true });
 }

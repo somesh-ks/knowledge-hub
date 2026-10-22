@@ -16,4 +16,23 @@ describe("sendToast", () => {
     sendToast({ message: "Again" }, page);
     expect(shown).toEqual([{ message: "Saved" }, { message: "Again" }]);
   });
+
+  // The deploy offer was queued once per return while the store had not loaded, then shown several
+  // times over, and over a toast queued ahead of it.
+  it("keeps one waiting toast per key, and asks again before it shows", () => {
+    const page = new EventTarget();
+    let up = false;
+    const offer = { key: "deploy", unless: () => up };
+    sendToast({ message: "Lost" }, page);
+    sendToast({ message: "New 1" }, page, offer);
+    sendToast({ message: "New 2" }, page, offer);
+    const shown: string[] = [];
+    page.addEventListener(TOAST_EVENT, (event) => {
+      event.preventDefault();
+      shown.push((event as CustomEvent<{ message: string }>).detail.message);
+      up = true;
+    });
+    page.dispatchEvent(new Event(TOAST_READY));
+    expect(shown).toEqual(["Lost"]);
+  });
 });

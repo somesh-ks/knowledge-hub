@@ -9,13 +9,12 @@ import { NotReadyError } from "../lib/downloads";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
 import { shareLink } from "./shareLink";
+import { sendToast } from "./toastEvent";
 
 const ROOT = "[data-library-menu]";
 
 function toast(message: string, kind?: "success" | "error"): void {
-  document.dispatchEvent(
-    new CustomEvent("dispatch:toast", { detail: { message, ...(kind ? { kind } : {}) } }),
-  );
+  sendToast({ message, ...(kind ? { kind } : {}) });
 }
 
 function setDownloaded(root: HTMLElement, on: boolean): void {
