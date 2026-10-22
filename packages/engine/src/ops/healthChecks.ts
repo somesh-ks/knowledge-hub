@@ -515,6 +515,8 @@ export const SCRIPT_BLOCKS_PER_DAY = 3;
 export const CLIENT_ERRORS_PER_DAY = 20;
 /** Server errors (a 5xx a site function answered) on one route in 24 hours from this many on warn. */
 export const SERVER_FAULTS_PER_DAY = 3;
+/** Functions Vercel killed (a timeout, a crash) on one route in 24 hours from this many on warn. */
+export const PLATFORM_FAULTS_PER_DAY = 3;
 /** CSP directives whose violation means a script did not run: a feature broken, or an injection. */
 const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 
@@ -527,7 +529,8 @@ const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``
  * raises a burst of server errors. Judged over the last 24 hours across builds (content commits
  * redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,
  * CLIENT_ERRORS_PER_DAY page errors on one route (the opaque "Script error." aside), or
- * SERVER_FAULTS_PER_DAY server faults (a 5xx a site function answered) on one route, naming the
+ * SERVER_FAULTS_PER_DAY server faults (a 5xx a site function answered) or PLATFORM_FAULTS_PER_DAY
+ * platform faults (a function Vercel killed, as the page saw it) on one route, naming the
  * route and its commonest message or step. No table yet is nothing measured: no finding, no pass.
  */
 export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, sink: Sink): void {
@@ -576,8 +579,14 @@ export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, si
     SERVER_FAULTS_PER_DAY,
     "server errors",
   );
-  if (blocked < SCRIPT_BLOCKS_PER_DAY && !clientWarned && !serverWarned) {
-    sink.passed.push("no run of blocked scripts, client or server errors in 24 hours");
+  // A function Vercel killed (a timeout, a crash), as the page that asked saw it.
+  const platformWarned = perRoute(
+    day.filter((group) => group.kind === "platform"),
+    PLATFORM_FAULTS_PER_DAY,
+    "functions Vercel ended",
+  );
+  if (blocked < SCRIPT_BLOCKS_PER_DAY && !clientWarned && !serverWarned && !platformWarned) {
+    sink.passed.push("no run of blocked scripts, client, server or platform errors in 24 hours");
   }
 }
 
