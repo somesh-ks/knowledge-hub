@@ -17,6 +17,7 @@
     "@dispatch/core": "*",
     "@dispatch/cover": "*",
     "@mozilla/readability": "^0.6.0",
+    "@neondatabase/serverless": "1.2.0",
     "@typesafe-ai/sdk": "^0.7.0",
     "@vercel/blob": "^2.8.1",
     "fast-xml-parser": "^5.11.2",
