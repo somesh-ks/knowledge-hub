@@ -163,6 +163,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
 | D152 | Full-screen phone sheets show Close | amends D144 |
+| D154 | Simple Analytics and a Privacy page | active |
 
 ---
 
@@ -1660,3 +1661,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: below 40rem a sheet that fills the screen (`dialog.create-sheet`: New episode, the topic and source panel, Regenerate) shows its Close at the end of its header row, as from 40rem. The partial sheets (the menu sheets, the emoji picker, the React drawers, the passphrase sheet) keep D144: no visible Close, a pull or a tap outside closes them. Pull to dismiss stays on every sheet. One selector in `create-sheet.css` under `SheetHeader.astro`.
 - Why: a full-screen sheet leaves no page showing to tap away to, so the only visible way out was a gesture with no affordance.
 - Amends: D144.
+
+## D154: cookieless visit counts with Simple Analytics, a few named events, and a Privacy page
+
+- Date: 2026-10-22
+- Decision: the site is for anyone with the link (the owner's call, 2026-10-22), so it counts visits with Simple Analytics, loaded by `lib/analytics.ts` on `news.someshks.work` alone and never for a browser that sends Do Not Track or Global Privacy Control. Nine events, each with a kind, topic or outcome and nothing about the reader: `share`, `listen_start`, `listen_half`, `listen_complete`, `story_open`, `vote`, `download`, `install`, `create_episode`. A shared link carries `?ref=share`. The page policy allows the script host and the queue host by name; no `'unsafe-inline'`, so no automated events and no `noscript` pixel. `/settings/privacy` says what is counted, kept and sent, from an inventory of the code. The loops and their numbers are in [specs/analytics.md](specs/analytics.md).
+- Why: the owner wants to see which loops (share, habit, taste, create) turn visitors into listeners and sharers. Simple Analytics counts in aggregate without cookies, storage or IP, so the site needs no consent banner and keeps its privacy. Sentry was considered and is an error monitor; the site's own `/api/report` covers errors.
+- Cost: about 7.5 KB of third-party script per session, outside the first-load budget (it loads async from another host); two hosts in the policy; counts are a floor (ad blockers) and unique visits run high (`no-referrer` makes a reload look new).
+- Rejected: the `noscript` pixel (mostly robots, by Simple Analytics' advice); automated events (need `'unsafe-inline'`); a per-device id for retention (identifies a reader; installs and `installed` page views stand in); PostHog or Sentry replay (record individuals).
+- Context: D153 (proposed the same day on another branch) counts events first-party in Neon instead and makes share links a public listen page. The two overlap on events; if D153 is approved, its events replace these and Simple Analytics keeps only visits and referrers, or goes.
+- Revisit if: retention per reader becomes the question (that needs accounts or an identifier, and a new privacy page), or ad blockers hide most visits (Simple Analytics' custom-domain proxy).

@@ -18,6 +18,7 @@
  */
 import type { ConfigOp } from "@dispatch/core";
 import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
+import { track } from "../lib/analytics";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import { withErrorRef } from "../lib/errorRef";
 import { SAVED_KEY } from "../lib/savedKey";
@@ -376,6 +377,9 @@ export function handle(button: Element): void {
     const value = button.dataset.vote === "down" ? "down" : "up";
     const state = press(load(), refOf(controls), value, Date.now());
     save(state);
+    // A press that clears a vote is not a vote.
+    if (pressedOf(state, controls.dataset.storyId ?? "") === value)
+      track("vote", { value, topic: controls.dataset.topic ?? "" });
     mark(controls.dataset.storyId ?? "", state, true);
     schedule();
   } else block(controls);
@@ -384,6 +388,7 @@ export function handle(button: Element): void {
 /** A story's link was followed: the open waits on the device for the next request. */
 export function opened(controls: HTMLElement): void {
   save(recordOpen(load(), refOf(controls), Date.now()));
+  track("story_open", { topic: controls.dataset.topic ?? "" });
   schedule();
 }
 

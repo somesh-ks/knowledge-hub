@@ -1,15 +1,20 @@
+import { sharedUrl, track } from "../lib/analytics";
+
 /**
  * Share a link: the system share sheet where there is one, a copy to the clipboard where there is
- * not. Returns what happened so the caller can say so ("copied" is the one that needs a word).
+ * not. Returns what happened so the caller can say so ("copied" is the one that needs a word). The
+ * link carries `ref=share`, so the visit it brings is counted as a share's (D154).
  */
 export async function shareLink(
   title: string,
   address: string,
 ): Promise<"shared" | "copied" | "none"> {
-  const url = new URL(address, location.href).href;
+  const url = sharedUrl(address, location.href);
+  const kind = new URL(url).pathname.startsWith("/e/") ? "episode" : "briefing";
   if (navigator.share) {
     try {
       await navigator.share({ title, url });
+      track("share", { kind, outcome: "shared" });
       return "shared";
     } catch (error) {
       // The reader closed the share sheet: nothing more to do. Any other failure falls back to a copy.
@@ -18,6 +23,7 @@ export async function shareLink(
   }
   try {
     await navigator.clipboard.writeText(url);
+    track("share", { kind, outcome: "copied" });
     return "copied";
   } catch {
     // The clipboard is not available here (an insecure origin, a denied permission).
