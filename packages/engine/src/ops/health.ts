@@ -5,6 +5,7 @@ import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
+import { loadScheduleFile } from "../schedule/store.js";
 import {
   readJudgments,
   readLastRun,
@@ -70,6 +71,13 @@ export interface HealthOptions {
 
 /** A briefing with fewer stories than this is thin (the schema stops at 3): the run found little or dropped most. */
 export const THIN_DIGEST_ITEMS = 5;
+/**
+ * Shares of its set length below which an episode is short: a warning under 90%, a fault (the
+ * `health` issue) under 75%. Every daily from 2026-10-11 to 10-17 aired 2.9 to 3.8 of its 5
+ * minutes and the 10-18 weekly 5 of its 15, and nothing said so for a week.
+ */
+export const SHORT_EPISODE_WARN = 0.9;
+export const SHORT_EPISODE_FAULT = 0.75;
 /** A story summary this short is a stub: a third of what the writer's lint asks for. */
 export const SHORT_STORY_WORDS = Math.floor(VOICE_LIMITS.summaryMinWords / 3);
 /** A deploy that has not picked up a new digest after this long has failed (Hobby author check). */
@@ -169,6 +177,23 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       );
     }
     if (!digest.verified) warn("digest_unverified", "quality", `${digest.id} is not verified.`);
+    // The narration against the length config/schedule.json sets for its kind. A missing schedule
+    // sets none, and an on-demand episode is sized by its request.
+    const schedule = await loadScheduleFile(root).catch(() => null);
+    const minutes =
+      schedule === null
+        ? null
+        : digest.kind === "weekly"
+          ? schedule.weekly.length_minutes
+          : digest.kind === "regular"
+            ? schedule.length_minutes
+            : null;
+    if (digest.audio && minutes !== null) {
+      const share = digest.audio.duration_ms / (minutes * 60_000);
+      const line = `${digest.id} aired ${(digest.audio.duration_ms / 60_000).toFixed(1)} of its ${minutes} minutes (${Math.round(share * 100)}%).`;
+      if (share < SHORT_EPISODE_FAULT) fault("episode_short", "quality", line);
+      else if (share < SHORT_EPISODE_WARN) warn("episode_short", "quality", line);
+    }
     // A summary the writer left as a stub parses and airs as a gap in the narration.
     const stubs = digest.items.filter(
       (item) => item.summary.trim().split(/\s+/).length < SHORT_STORY_WORDS,
