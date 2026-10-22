@@ -20,16 +20,17 @@
   min-width: 0;
 }
 
-/* One left text edge (2026-10-22, settings.css): the field's label, its words and its error start
-   the card's padding in, where the title and the rows' words do, and the field's outline hangs out
-   into the margin as the card does. */
+/* One left text edge (2026-10-22, settings.css): the field's label, its words and its error (led by
+   its icon, as a source row is by its emoji) start the card's padding in, where the title and the
+   rows' words do, and the field's outline hangs out into the margin as the card does. */
 .blocked-add > :is(label, .manage-error) {
   padding-inline-start: var(--card-padding);
 }
 
-/* Less the outline's hairline, so the words land on the edge itself. */
+/* Less the outline's hairline, so the words land on the edge itself; the same at the end, so a long
+   domain clips as far from either side. */
 .blocked-add-row > .manage-input {
-  padding-inline-start: calc(var(--card-padding) - var(--stroke-hairline));
+  padding-inline: calc(var(--card-padding) - var(--stroke-hairline));
 }
 
 .blocked-add-row > .btn-secondary {

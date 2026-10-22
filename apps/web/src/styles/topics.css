@@ -129,18 +129,13 @@
   padding-block-end: var(--space-2);
 }
 
+/* Pulled out by the card's own padding, so the line meets both edges at any width (2026-10-22: the
+   padding grew to 24px and a fixed 16px pull left the line 8px short on a phone). */
 .topic-card-foot {
   grid-area: foot;
-  margin-inline: calc(var(--space-4) * -1);
-  padding: var(--space-4) var(--space-4) 0;
+  margin-inline: calc(var(--card-padding) * -1);
+  padding: var(--space-4) var(--card-padding) 0;
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
-}
-
-@media (min-width: 40rem) {
-  .topic-card-foot {
-    margin-inline: calc(var(--space-6) * -1);
-    padding-inline: var(--space-6);
-  }
 }
 
 /* Listen in keeps one line in the card (2026-10-20): its label and value never wrap, and the value
@@ -151,10 +146,10 @@
 }
 
 .topic-card-foot .multiselect-trigger {
-  /* Its fill sits 16px from the card's bottom corner (8px from the side on a phone), so it takes the
-     card's radius less the larger gap, 8px, not a 48px pill that would bulge into the corner's curve
-     (2026-10-22, measured). */
-  border-radius: var(--card-content-radius);
+  /* Its fill sits one inset, 16px, from the card's bottom corner on both sides at any width, so it
+     takes the card's radius less that inset, as a row's tile does, not a 48px pill that would bulge
+     into the corner's curve (2026-10-22, measured; 8px while the card's padding was 16). */
+  border-radius: var(--card-inner-radius);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
 }
@@ -523,6 +518,13 @@
   inset-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
   border-radius: var(--radius-md);
   transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+/* In the topic's card, the tile sits one inset from the card's edges on both sides, as a Settings
+   row's does, and takes the radius that makes it concentric with them (2026-10-22). */
+.topic-panel .source-edit {
+  inset-inline: calc(var(--card-inset) - var(--card-padding));
+  border-radius: var(--card-inner-radius);
 }
 
 .source-edit:focus-visible {
