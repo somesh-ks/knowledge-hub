@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type PlatformFault, watchPlatformFaults } from "./platformFaults";
 
 const ORIGIN = "https://news.test";
@@ -13,7 +13,15 @@ describe("watchPlatformFaults", () => {
         headers: { "x-vercel-error": "FUNCTION_INVOCATION_TIMEOUT" },
       }),
       "/api/costs": new Response("{}", { status: 200 }),
-      "/api/config": new Response("{}", { status: 500 }),
+      "/api/config": new Response('{"error":"synthesis_failed"}', {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      }),
+      // No header: Vercel's own error page, which prints the code on a line of its own.
+      "/api/stream": new Response(
+        "An error occurred with your deployment\n\nFUNCTION_INVOCATION_TIMEOUT\n\niad1::abcde-123\n",
+        { status: 504, headers: { "content-type": "text/plain; charset=utf-8" } },
+      ),
     };
     const target = {
       fetch: (async (input: RequestInfo | URL) => {
@@ -29,8 +37,13 @@ describe("watchPlatformFaults", () => {
     await target.fetch("/api/narrate");
     await target.fetch("/api/costs");
     await target.fetch("/api/config");
+    const page = await target.fetch("/api/stream");
+    // The caller's body is untouched by the copy read off its path.
+    expect(await page.text()).toContain("An error occurred");
+    await vi.waitFor(() => expect(reported).toHaveLength(2));
     expect(reported).toEqual([
       { kind: "platform", route: "/api/narrate", message: "FUNCTION_INVOCATION_TIMEOUT" },
+      { kind: "platform", route: "/api/stream", message: "FUNCTION_INVOCATION_TIMEOUT" },
     ]);
   });
 });
