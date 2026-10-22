@@ -34,6 +34,8 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.scrubber.focus();
     await page.keyboard.press("End");
     await expect(player.root).toHaveAttribute("data-player-state", "ended");
+    // At the end only Up next shows (D126): a Stories tab still drawn was the regression.
+    await expect(player.dialog.getByRole("tab", { name: "Stories" })).toHaveCount(0);
     const upNext = player.dialog.getByRole("button", { name: /The previous briefing/ });
     // Never an autoplay chain: nothing plays until the listener chooses.
     expect((await audio.read())?.paused).toBe(true);

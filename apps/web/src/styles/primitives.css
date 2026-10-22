@@ -1070,16 +1070,18 @@
   background: var(--color-surface-container);
 }
 
-/* A card sits on the container tone, so an unticked chip in it needs one step up to show. */
+/* A card sits on the container tone, so an unticked chip in it needs one step up to show. The step
+   is the overlay tone: white in light, as the raised tone is, and one grey up in dark, where the
+   raised tone equals the card's and the chip read as bare text (2026-10-22). */
 .card-group .filter-chip:not(:has(input:checked)) {
-  background: var(--color-surface-raised);
+  background: var(--color-surface-overlay);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
     background: color-mix(
       in oklch,
-      var(--color-surface-raised),
+      var(--color-surface-overlay),
       var(--color-on-surface) var(--state-hover)
     );
   }
