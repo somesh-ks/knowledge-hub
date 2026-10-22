@@ -47,8 +47,10 @@ dependent; Hobby has none).
 
 **Service worker and offline.** Before: the unit sandbox and the browser suites. The
 `vite:preloadError` reload already recovers a tab left across a deploy. Added: the cache-read
-heal. Gap: quota eviction of downloads is not detected. Recommend: `navigator.storage.persist()`
-on the first Download (small).
+heal. Added: the first Download on a page asks for persistent storage (`navigator.storage.persist()`
+when `persisted()` is false; fire-and-forget, so a missing API or a refusal never blocks the
+download). Gap: where the browser refuses (Chrome decides by engagement, Firefox asks the owner),
+quota eviction of downloads is still not detected.
 
 **Performance.** Detector: `checkBundle` holds first load to 130 KB in CI, and since D147 the
 weekly lab probe (Mondays, D148) (`scripts/perfProbe.ts` in `health.yml`) loads three pages cold on a throttled
@@ -111,7 +113,7 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 | Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; per-instance limits reset on a cold start |
 | Cost | `cost_over_ceiling`, `speech_budget`, the per-call caps | `health.yml`; every call | the caps stop the next call | Vercel-side Speechify spend has its own counter |
 | Data integrity | `digest_invalid`, `state_invalid`, `config_invalid`, the write guard | `health.yml`; every commit | none: the guard should refuse it | `config/alexandria.json`, `writer.json` and `profiles/` have no core schema to check |
-| Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life | quota eviction of downloads is not detected |
+| Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life; the first Download asks for persistent storage | quota eviction of downloads is not detected where the browser refuses persistence |
 
 Next by value: real-user Web Vitals (its own change, D146), a briefing that aired short
 of its length, function 5xx rates (needs a log drain), and a KV counter for the paid routes.
