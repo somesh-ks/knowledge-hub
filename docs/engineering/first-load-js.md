@@ -6,6 +6,21 @@ Measured 2026-10-14 on `main` at `377f4e3`, static build (`DISPATCH_STATIC_ONLY=
 
 Declined, not to be prototyped again: preact/compat (about 57 KB off every page, owner declined 2026-10-10). React stays.
 
+## Blocking time (2026-10-22)
+
+The lab probe (`scripts/perfProbe.ts`, D147: Pixel 7, 4x CPU, Fast 4G, cold, median of 3) on a local static build read TBT over the 300 ms budget on Today and a briefing. Attribution came from long-animation-frame entries (script URL, invoker, forced style and layout), a CDP CPU profile and a Chrome trace with invalidation tracking.
+
+What blocks is style recalculation, not script. About 20 rules anchor `:has()` on the root (`:root:has(dialog[open])` and its six siblings, `html:has(.hero-actions)`, `html:has(.briefing>.tabs-bar)`, the toast's, the Library's): any insertion anywhere invalidates the root and each such rule is matched again over the document, so the parser's chunks, each island's hydration, each modulepreload link and each script that reads a box after a change pay a restyle of 20 to 90 ms. Measured on a copy of the build: those root rules turned into `:is()` took TBT from 710 and 715 to 317 and 402; every `:has()` turned into `:is()` took it to 292 and 311. The `dialog[open]` group alone is about 160 ms. A custom property written on the root restyles every element as well.
+
+| Change | Today | Briefing | Library |
+|---|---:|---:|---:|
+| Before (`7e2dee4`) | 710 | 715 | 213 |
+| `--gutter` left unset without a scrollbar (app.ts); the briefing page reads its boxes before its probe, once (briefingPage.ts) | 503 | 425 | 163 |
+| Controls that arrive after the player mounted render in a deferred pass (PlayerSurface.tsx), median of 5 | 433 | 422 | 132 |
+| After the review fixes (final) | FINAL_T | FINAL_B | FINAL_L |
+
+LCP (about 0.9 s, Library 1.5 s) and CLS (0) did not move; the first load is 110.0 KB of 130. Left, and why: the 300 ms target needs the root `:has()` rules replaced, by attributes the scripts set on the root (`data-dialog-open` and the like) or by anchors below the root. They are design fixes with reasons in their comments (foundations, shell, library, player, create-sheet stylesheets), so that is the owner's call, not a perf task's. The rest is React's hydration of the two islands (about 100 ms in one task) and Astro's router reading the scroll position on `load`, which pays whatever restyle is pending.
+
 ## Per page
 
 | Page | KB gz | Files | Page-specific eager |
