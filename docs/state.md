@@ -7,7 +7,7 @@ Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Engine end to end on live services (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
 - Reader: Latest, Library (row menu, downloads), New episode, Settings, in a tonal Material 3 look: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
-- Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run (commits for 2026-10-17, 18-weekly and 20); episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
+- Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run; episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Deploy: the Vercel GitHub integration deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
 - Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents (`dispatch-verify`, `dispatch-worker` in `.claude/agents/`), `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
@@ -59,7 +59,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Known risks
 
-- With the passphrase off (D41), anyone who can open the site can start a briefing, an episode, narration or a config edit, inside the caps.
+- With the passphrase off (D41), anyone who opens the site (a shared link does, D153) can start a briefing, an episode, narration or a config edit, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
 - A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).

@@ -162,6 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
+| D153 | Engagement and sharing | proposed |
 
 ---
 
@@ -1652,3 +1653,17 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: one query (about 20 to 50 ms) per limited request when the counter is up; nothing changes until the owner reruns `dispatch config seed`. A workflow route's slot is taken only after its passphrase passes, so with the passphrase on (D41 has it off) wrong guesses are not capped per minute, as before this change; with it off anyone can fill the minute, as anyone can spend the GitHub-counted daily caps. The `source-preview` check can add up to 1 s before Jev's 3 s.
 - Rejected: Upstash or Vercel KV (a second store and key); a sliding log (a row per request).
 - Revisit if: the narration route needs a request cap (its spend is held by the daily digest cap and the monthly budget, both counted in Blob).
+
+## D153: user engagement is counted first-party in Neon, and the owner shares an episode as a public listen link
+
+- Date: 2026-10-22 (the owner: a "User engagement" item under Settings, Analytics, "open to a lightweight analytics tool", and growth loops "starting with sharing episodes with anyone")
+- Status: proposed; nothing is built until the owner approves or changes it. The plan, the vendor comparison and the stages with test points: [engagement-and-share-plan.md](engineering/engagement-and-share-plan.md).
+- Decision:
+  - No analytics vendor. A fixed set of events (`play`, `finish`, `download`, and `share_created`, `share_open`, `share_play`, `share_finish`, `share_cta`) goes by `sendBeacon` to `POST /api/events` and into one Neon table beside D150's counters; no cookie, no identifier, nothing stored on the device for analytics, no IP or user agent kept. `/analytics/engagement`, linked as User engagement under Settings, Analytics, reads them through an owner-only `GET /api/engagement`, and shows this device's listening from what it already stores (stage 1, before any event exists).
+  - Actions are locked first: `PASSPHRASE_REQUIRED` back on, asked once per device, with failed guesses capped (reverses D41).
+  - The owner makes one expiring, revocable link per item whose audio is fully stored. `/s/<token>` (an HMAC-checked token, rendered on the server, CDN-cached five minutes) shows the cover, Play, the stories with their sources, the transcript, Send it to someone and a reaction; it plays stored audio only and never narrates; it has no app shell, service worker or search indexing, and an Open Graph card. Shared plays stop at 4 GB of Blob transfer a month and 100 a link.
+- Why: Vercel Web Analytics has no custom events on Hobby, and Plausible and Umami put the read API the page needs behind a paid plan; a shared link's attribution is its token, since messaging apps send no referrer. Today's Share copies the app's own address, and with D41 the recipient can spend and edit.
+- Cost: no traffic sources or device breakdowns; a beacon route, a table and its caps to build and keep; the passphrase prompt returns once per device; public links publish narrated summaries of others' reporting beyond D9's one reader; Blob's Hobby lockout is the ceiling the budget guards.
+- Rejected: Plausible Business, Umami Pro or Vercel Pro to read numbers back (a monthly fee for one reader); PostHog (storage by default, the heaviest script); per-recipient links (they track people one by one); a waitlist now (consent, a privacy notice and a plan above Hobby first); the full player on the listen page (its narration fallback spends).
+- Amends: D41 (reversed), D108 (vote and open totals are shown, never a story list).
+- Revisit if: shared plays pass half the monthly budget, the owner opens sign-ups, or referrers start to matter (Vercel Web Analytics on Hobby, free for pageviews).
