@@ -17,7 +17,7 @@ What blocks is style recalculation, not script. About 20 rules anchor `:has()` o
 | Before (`7e2dee4`) | 710 | 715 | 213 |
 | `--gutter` left unset without a scrollbar (app.ts); the briefing page reads its boxes before its probe, once (briefingPage.ts) | 503 | 425 | 163 |
 | Controls that arrive after the player mounted render in a deferred pass (PlayerSurface.tsx), median of 5 | 433 | 422 | 132 |
-| After the review fixes (final) | FINAL_T | FINAL_B | FINAL_L |
+| After the review fixes, median of 5, machine busy (load 5 on 4 cores) | 431 | 470 | 161 |
 
 LCP (about 0.9 s, Library 1.5 s) and CLS (0) did not move; the first load is 110.0 KB of 130. Left, and why: the 300 ms target needs the root `:has()` rules replaced, by attributes the scripts set on the root (`data-dialog-open` and the like) or by anchors below the root. They are design fixes with reasons in their comments (foundations, shell, library, player, create-sheet stylesheets), so that is the owner's call, not a perf task's. The rest is React's hydration of the two islands (about 100 ms in one task) and Astro's router reading the scroll position on `load`, which pays whatever restyle is pending.
 
