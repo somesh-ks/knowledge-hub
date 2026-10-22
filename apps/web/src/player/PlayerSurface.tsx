@@ -1,4 +1,4 @@
-import { type PointerEvent, useEffect, useSyncExternalStore } from "react";
+import { type PointerEvent, useDeferredValue, useEffect, useSyncExternalStore } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
@@ -82,11 +82,14 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
  */
 export default function PlayerSurface() {
   const state = usePlayerState();
-  const { Content, status } = useSyncExternalStore(
+  const { Content: arrived, status } = useSyncExternalStore(
     subscribePageContent,
     getPageContent,
     getServerPageContent,
   );
+  // Controls that arrive while the page is up render in a pass React can pause for a press: in one
+  // go they blocked a throttled phone for about 140 ms at idle. Already loaded, they render at once.
+  const Content = useDeferredValue(arrived);
 
   // Nodes that React has just made are told where the page is.
   useEffect(() => playerSheet.sync(), []);
