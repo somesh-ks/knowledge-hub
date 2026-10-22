@@ -438,7 +438,7 @@ html[data-mini="visible"] main {
 /* An open dialog takes the scrollbar away and the window's edge moves out by its width
    (foundations.css). The bar runs to that edge, so it keeps the room and its items hold still. */
 @media not all and (min-width: 64rem) {
-  :root[data-dialog] .app-nav {
+  :root[data-dialog-open] .app-nav {
     padding-inline-end: calc(var(--safe-right) + var(--gutter, 0px));
   }
 }

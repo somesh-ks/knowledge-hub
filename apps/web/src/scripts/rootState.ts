@@ -4,8 +4,9 @@
  * element might change its answer, which kept the first load's blocking time over budget (D147);
  * an attribute on the root restyles only the elements its rules name.
  *
- * - data-dialog: a <dialog> is open (foundations.css, shell.css, create-sheet.css, library.css).
- * - data-toast: a .toast popover shows (sheets.css); data-manage-toast: the saving toast
+ * - data-dialog-open: a <dialog> is open (foundations.css, shell.css, create-sheet.css and
+ *   library.css).
+ * - data-toast-open: a .toast popover shows (sheets.css); data-manage-toast-open: the saving toast
  *   (ManageChrome.astro) shows (manage.css).
  *
  * An open dialog is seen by its `open` attribute, before the frame is drawn. A popover is seen in
@@ -22,7 +23,7 @@ function setFlag(name: string, on: boolean): void {
 }
 
 function syncDialog(): void {
-  setFlag("data-dialog", document.querySelector("dialog[open]") !== null);
+  setFlag("data-dialog-open", document.querySelector("dialog[open]") !== null);
 }
 
 /** Whether a popover matching `selector` shows, with `changing` about to be `opening`. */
@@ -34,8 +35,8 @@ function popoverShows(selector: string, changing?: Element, opening = false): bo
 }
 
 function syncToasts(changing?: Element, opening = false): void {
-  setFlag("data-toast", popoverShows(TOAST, changing, opening));
-  setFlag("data-manage-toast", popoverShows(MANAGE_TOAST, changing, opening));
+  setFlag("data-toast-open", popoverShows(TOAST, changing, opening));
+  setFlag("data-manage-toast-open", popoverShows(MANAGE_TOAST, changing, opening));
 }
 
 function sync(): void {

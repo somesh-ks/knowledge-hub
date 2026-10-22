@@ -8,9 +8,9 @@
 /* ------------------------------------------------------------------ sections */
 
 /* While the section tabs stick, focus and anchors land below them as well as below the app bar.
-   data-briefing is the layout's word for a page with the tabs (BaseLayout.astro), not a root :has(),
+   data-has-tabs is the layout's word for a page with the tabs (BaseLayout.astro), not a root :has(),
    which restyled the whole page (D147). */
-html[data-briefing] {
+html[data-has-tabs] {
   scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
 }
 
@@ -109,7 +109,7 @@ html[data-briefing] {
     display: none;
   }
 
-  html[data-briefing] {
+  html[data-has-tabs] {
     scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
   }
 
