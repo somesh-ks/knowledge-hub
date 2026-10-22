@@ -6,8 +6,7 @@
   "skip_topics": [
     "business",
     "sports",
-    "culture",
-    "science"
+    "culture"
   ],
   "length_minutes": 5,
   "voice_id": null,
