@@ -107,8 +107,6 @@ export interface RunDeps {
   runtime: () => Promise<ApiRuntime>;
   pickCover: CoverPickFn;
   git: GitRunner;
-  /** The config store is on (D149): the run may commit the config files it copied from it. */
-  configStore?: boolean;
   /** Counts paid requests and holds the Firecrawl ceiling for the run. Absent in most tests. */
   spend?: SpendTracker;
 }

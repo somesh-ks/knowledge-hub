@@ -16,7 +16,7 @@ const domains = await loadBlockedDomains();
 
 <BaseLayout title="Blocked sources" view="settings" skipLabel="Skip to blocked sources">
   <main id="main" tabindex="-1">
-    {/* One field to block an outlet and the list of those blocked, each with a remove control.
+    {/* One field to block a source and the list of those blocked, each with a remove control.
          blockedPage.ts records a change; autosave.ts sends an addition a moment later and a removal
          after five seconds with Undo in the toast. */}
     <div class="manage blocked" data-blocked data-domains={JSON.stringify(domains)}>
@@ -31,7 +31,7 @@ const domains = await loadBlockedDomains();
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Blocked sources</legend>
         <form class="blocked-add manage-field" novalidate data-add data-needs-js>
-          <label for="blocked-input">Block an outlet</label>
+          <label for="blocked-input">Block a source</label>
           <div class="blocked-add-row">
             <input
               class="manage-input"
@@ -96,7 +96,7 @@ const domains = await loadBlockedDomains();
         <div class="blocked-empty empty" data-compact>
           <EmptyArt art="library" size="compact" />
           <p class="empty-title">No blocked sources</p>
-          <p class="empty-body">Type a domain above, or paste the address of any page on the outlet.</p>
+          <p class="empty-body">Type a domain above, or paste the address of any page on the source.</p>
         </div>
       </fieldset>
 

@@ -2,6 +2,8 @@
  * Chrome and Edge on Android offer the install prompt once, early, and only to a page that is listening.
  * This runs on every page, keeps the event, and lets the Settings page ask for the prompt later.
  */
+import { track } from "../lib/analytics";
+
 interface InstallPromptEvent extends Event {
   prompt(): Promise<unknown>;
 }
@@ -45,6 +47,7 @@ export function captureInstallPrompt(): void {
     notify();
   });
   addEventListener("appinstalled", () => {
+    track("install");
     held = null;
     notify();
   });

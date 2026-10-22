@@ -6,20 +6,24 @@
  * build (lib/savedOverlay.ts).
  */
 import { blockedDomainOf, outletsSummary, savedBlocked } from "../lib/blockedOutlets";
-import { hasSaved, SAVED_KEY } from "../lib/savedKey";
-import { parseSaved, savedOps } from "../lib/savedOverlay";
+import { hasSaved, SAVED_KEY, storeOn } from "../lib/savedKey";
+import { parseSaved, withStore } from "../lib/savedOverlay";
+import type { ConfigReadBody } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
 
 const NOT_A_DOMAIN =
-  "Enter a domain like example.com, or paste the address of a page on the outlet.";
+  "Enter a domain like example.com, or paste the address of a page on the source.";
 
-/** The edits saved in the last few minutes, oldest first; none when storage is refused. */
-function readSaved() {
+/**
+ * The edits saved in the last few minutes, oldest first, after what the config store holds when it
+ * is on (D149); none when storage is refused.
+ */
+function readSaved(store: ConfigReadBody | null = null) {
   try {
-    return savedOps(parseSaved(localStorage.getItem(SAVED_KEY), Date.now()), Date.now());
+    return withStore(parseSaved(localStorage.getItem(SAVED_KEY), Date.now()), store, Date.now());
   } catch {
-    return [];
+    return store?.ops ?? [];
   }
 }
 
@@ -59,7 +63,7 @@ function mount(root: HTMLElement): void {
     removing() {
       const names = removals();
       if (names.length === 0) return null;
-      return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} outlets`;
+      return names.length === 1 ? `Removing ${names[0]}` : `Removing ${names.length} sources`;
     },
     undo() {
       for (const domain of removals()) {
@@ -85,12 +89,28 @@ function mount(root: HTMLElement): void {
     return row;
   };
 
-  // Edits saved since the build: the list as it will be, shown now.
-  if (hasSaved()) {
-    const built = rows().map((row) => row.dataset.domain ?? "");
-    const will = savedBlocked(built, readSaved());
-    for (const row of rows()) if (!will.includes(row.dataset.domain ?? "")) row.remove();
-    for (const domain of will) if (!rowOf(domain)) insert(domain);
+  // Edits saved since the build: the list as it will be, shown now. With the config store on (D149),
+  // again once it answers with what it holds; a domain changed here meanwhile keeps this page's change.
+  const built = rows().map((row) => row.dataset.domain ?? "");
+  const showSaved = (store: ConfigReadBody | null): void => {
+    const will = savedBlocked(built, readSaved(store));
+    const mine = (domain: string): boolean =>
+      changes.has(`block:${domain}`) || changes.has(`unblock:${domain}`);
+    for (const row of rows()) {
+      const domain = row.dataset.domain ?? "";
+      if (!will.includes(domain) && !mine(domain)) row.remove();
+    }
+    for (const domain of will) if (!rowOf(domain) && !mine(domain)) insert(domain);
+    recount();
+  };
+  if (hasSaved()) showSaved(null);
+  if (storeOn()) {
+    void import("./configStoreRead")
+      .then((module) => module.loadStore())
+      .then((store) => {
+        if (store && root.isConnected) showSaved(store);
+      })
+      .catch(() => {});
   }
 
   const add = (domain: string): void => {

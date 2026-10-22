@@ -5,7 +5,7 @@
  * used, so a page's first load stays inside the budget. Each page is whole static HTML without it.
  */
 
-import { hasSaved } from "../lib/savedKey";
+import { hasSaved, storeOn } from "../lib/savedKey";
 import { drawStop } from "../lib/weightStops";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
@@ -18,11 +18,14 @@ function mount(root: HTMLElement): void {
   // show it first (savedView.ts), and the editor then reads it as their starting point.
   // An edit a left page's run still holds loads the editor at once: it takes the edit if that run fails.
   // The page for a topic not built yet takes it from what was saved first (D142).
+  // With the config store on (D149), what it holds is laid over the page the same way, first.
   const shell = root.dataset.shell !== undefined;
+  const store = storeOn();
   const saved =
-    hasSaved() || shell
+    hasSaved() || shell || store
       ? import("./savedView")
-          .then((module) => {
+          .then(async (module) => {
+            if (store) await module.loadStore();
             if (shell && !module.fillShell(root)) return;
             module.overlayTopics(root);
             if (module.readPending()) void load();

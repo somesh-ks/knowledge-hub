@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
+import { readFieldVitals } from "../ops/healthChecks.js";
 
 const USAGE =
   "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--perf <perf.json>] [--json]";
@@ -9,7 +10,10 @@ const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 const DEFAULT_CEILING_USD = 5;
 
-/** `dispatch health`: faults in runs, narration, data, cost and the live site; exits 1 on a fault. */
+/**
+ * `dispatch health`: faults in runs, narration, data, cost, the live site and its field Web Vitals;
+ * exits 1 on a fault.
+ */
 export const run: CommandRun = async (argv, ctx) => {
   let values: {
     offline?: boolean;
@@ -64,6 +68,8 @@ export const run: CommandRun = async (argv, ctx) => {
       .then((text) => JSON.parse(text) as unknown)
       .catch(() => null);
   }
+  // Field Web Vitals (D156) from the store /api/report writes, read over the network like the site.
+  const field = site === null ? undefined : await readFieldVitals(ctx.env.DATABASE_URL, ctx.now());
   const report = await collectHealth({
     root: ctx.root,
     now: ctx.now(),
@@ -72,6 +78,7 @@ export const run: CommandRun = async (argv, ctx) => {
     site,
     ...(runs ? { runs } : {}),
     ...(perfPath ? { perf } : {}),
+    ...(field ? { field } : {}),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
       SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,

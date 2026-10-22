@@ -11,6 +11,7 @@ import RunStatus from "../components/RunStatus.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
 import { BUILD_ID } from "../lib/buildId";
+import { loadConfigHash } from "../lib/configHash";
 import { fabFor } from "../lib/fab";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
@@ -96,6 +97,12 @@ const pageTitle = title ? `${title}, Singularity` : "Singularity";
 // while the bar holds the page's audio, as the bar is then its control and two controls for one
 // recording would compete: the player takes data-fab off, and the page gives the room back.
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+// The owner's config is in the store (D149): the settings pages lay what it holds over the copy they
+// were built with (lib/savedKey.ts, configStoreRead.ts). Read from the build's environment, which on
+// Vercel is the deployment's; without the switch no page asks. The tag names the config files the
+// page was built from, so a page from another build never takes edits made against this one.
+const configStore =
+  process.env.DISPATCH_CONFIG_STORE === "postgres" ? await loadConfigHash() : null;
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
 // in the app bar: to where the person came from when that was in the app, else to its list.
@@ -139,6 +146,7 @@ const back =
     <meta name="referrer" content="no-referrer" />
     <meta name="description" content={description} />
     <meta name="dispatch-build" content={BUILD_ID} />
+    {configStore && <meta name="dispatch-config-store" content={configStore} />}
     <title>{pageTitle}</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

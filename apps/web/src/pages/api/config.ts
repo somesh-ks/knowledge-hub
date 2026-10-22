@@ -1,8 +1,16 @@
 import { configStoreUrl } from "@dispatch/engine/config-paths";
 import type { APIRoute } from "astro";
-// The seed sources an edit is applied against besides the stored documents (D149), imported as text
-// so it travels inside the function. Read only with the config store on.
+// The seed sources an edit is applied against besides the stored documents (D149), and the public
+// files the pages were built from, which a read compares the stored ones with: imported as text so
+// they travel inside the function, from the commit the pages were built from. Read only with the
+// config store on.
+import builtPreferences from "../../../../../config/preferences.json?raw";
+import builtOwner from "../../../../../config/profiles/owner.json?raw";
+import builtSchedule from "../../../../../config/schedule.json?raw";
 import seedSources from "../../../../../config/sources.json?raw";
+import builtSourcesUser from "../../../../../config/sources.user.json?raw";
+import builtTopics from "../../../../../config/topics.json?raw";
+import type { BuiltConfigFiles } from "../../lib/configHash";
 import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
@@ -38,13 +46,26 @@ export const POST: APIRoute = ({ request, url }) =>
 const notAllowed = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });
 
-/** The owner's stored config for pages (D149); with the store off, the route is POST only as before. */
+// Typed by BUILT_CONFIG_PATHS, so the digest the pages carry covers exactly the files diffed from.
+const builtFiles: BuiltConfigFiles = {
+  "config/topics.json": builtTopics,
+  "config/sources.json": seedSources,
+  "config/sources.user.json": builtSourcesUser,
+  "config/schedule.json": builtSchedule,
+  "config/preferences.json": builtPreferences,
+  "config/profiles/owner.json": builtOwner,
+};
+
+/**
+ * The owner's stored config as the edits the pages lay over their built copy (D149); with the store
+ * off, the route is POST only as before.
+ */
 export const GET: APIRoute = () => {
   const storeUrl = configStoreUrl(process.env);
   if (storeUrl === null) return notAllowed();
   return answerWithRef("api/config", async (log) => {
     const { handleConfigRead } = await import("../../server/configStore");
-    return handleConfigRead({ env: process.env, storeUrl, log });
+    return handleConfigRead({ env: process.env, storeUrl, builtFiles, log });
   });
 };
 

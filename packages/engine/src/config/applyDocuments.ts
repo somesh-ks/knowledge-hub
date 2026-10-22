@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type ParsedConfigOp, parseConfigOps } from "@dispatch/core";
 import { combineOutcomes, readBundle, renderBundle } from "../commands/config.js";
-import { createHttpClient, type HttpClient } from "../http.js";
-import type { DiscoverDeps } from "../sources/discover.js";
+import { createHttpClient, type HttpClient, type RequestOptions } from "../http.js";
+import { AddSourceError } from "../sources/addSource.js";
+import { type DiscoverDeps, networkErrorCode } from "../sources/discover.js";
 import {
   CONFIG_DOCUMENT_PATHS,
   type ConfigDocument,
@@ -20,6 +21,7 @@ export {
   readConfigDocuments,
   type SqlClient,
   writeConfigDocuments,
+  writeConfigDocumentsAt,
 } from "../store/configDocs.js";
 export { ConfigOpError } from "./applyOp.js";
 
@@ -43,29 +45,67 @@ export type ApplyToDocumentsResult =
   /** `retryable`: the network failed or the time ran out, not the edit; the caller answers 503. */
   | { ok: false; message: string; retryable?: boolean };
 
-/** Per request of the feed lookup in `source.add`; one attempt, no retries. */
-const LOOKUP_TIMEOUT_MS = 4000;
 /** The whole edit, well inside the function's 20 s (functionLimits.mjs). */
 export const APPLY_DEADLINE_MS = 12_000;
+/** A lookup that names no timeout of its own; discovery names its own (12 s a page, 10 s a probe). */
+const LOOKUP_TIMEOUT_MS = 10_000;
+/** Kept back from the deadline, so the last request's failure is still seen before it. */
+const DEADLINE_MARGIN_MS = 250;
+
+/**
+ * Discovery keeps its own timeouts and retry, so a slow page still gets its feed found, but no
+ * request may wait past the edit's deadline (D149): what is left of it caps each one.
+ */
+const lookupOptions = (
+  options: RequestOptions | undefined,
+  deadlineAt: number,
+  deadline: AbortSignal,
+): RequestOptions => ({
+  ...options,
+  timeoutMs: Math.max(
+    1,
+    Math.min(options?.timeoutMs ?? LOOKUP_TIMEOUT_MS, deadlineAt - Date.now() - DEADLINE_MARGIN_MS),
+  ),
+  // Discovery's retry gets the time left too: once the deadline passes, nothing is asked again.
+  signal: options?.signal ? AbortSignal.any([options.signal, deadline]) : deadline,
+});
 
 /**
  * Notes when a lookup failed for a reason that is not the address's: no answer, a timeout or a 5xx.
- * A 4xx or a host that does not resolve is the address's fault and stays a refusal.
+ * A 4xx or a host that does not resolve (ENOTFOUND, however deep in the cause chain undici puts it)
+ * is the address's fault and stays a refusal.
  */
-function watchNetwork(http: HttpClient, failed: { network: boolean }): HttpClient {
+function watchNetwork(
+  http: HttpClient,
+  failed: { network: boolean },
+  deadlineAt: number,
+): HttpClient {
+  const deadline = AbortSignal.timeout(Math.max(1, deadlineAt - Date.now()));
   const watch = <T>(call: Promise<T>): Promise<T> =>
     call.catch((error: unknown) => {
       const status = (error as { status?: unknown }).status;
-      const code = (error as { cause?: { code?: unknown } }).cause?.code;
-      const theirs = (typeof status === "number" && status < 500) || code === "ENOTFOUND";
+      const theirs =
+        (typeof status === "number" && status < 500) || networkErrorCode(error) === "ENOTFOUND";
       if (!theirs) failed.network = true;
       throw error;
     });
   return {
-    fetchText: (url, options) => watch(http.fetchText(url, options)),
-    getJson: (url, options) => watch(http.getJson(url, options)),
-    postJson: (url, body, options) => watch(http.postJson(url, body, options)),
+    fetchText: (url, options) =>
+      watch(http.fetchText(url, lookupOptions(options, deadlineAt, deadline))),
+    getJson: (url, options) =>
+      watch(http.getJson(url, lookupOptions(options, deadlineAt, deadline))),
+    postJson: (url, body, options) =>
+      watch(http.postJson(url, body, lookupOptions(options, deadlineAt, deadline))),
   };
+}
+
+/**
+ * Whether a refused op may be sent again: a lookup of its own failed on our side, and the refusal is
+ * not one the address itself gives (a duplicate, a dead page), whatever a probe did on the way.
+ */
+function retryable(error: ConfigOpError, network: boolean): boolean {
+  const cause = error.cause;
+  return network && !(cause instanceof AddSourceError && cause.definite);
 }
 
 export async function applyOpsToDocuments(
@@ -80,13 +120,16 @@ export async function applyOpsToDocuments(
     );
   });
   try {
-    return await Promise.race([applyNow(input), late]);
+    return await Promise.race([applyNow(input, Date.now() + deadlineMs), late]);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function applyNow(input: ApplyToDocumentsInput): Promise<ApplyToDocumentsResult> {
+async function applyNow(
+  input: ApplyToDocumentsInput,
+  deadlineAt: number,
+): Promise<ApplyToDocumentsResult> {
   const failed = { network: false };
   const parsed = parseConfigOps(input.ops);
   if (!parsed.success) {
@@ -103,10 +146,16 @@ async function applyNow(input: ApplyToDocumentsInput): Promise<ApplyToDocumentsR
     const before = await readBundle(root);
     const http =
       input.discover?.http ?? createHttpClient({ retries: 0, timeoutMs: LOOKUP_TIMEOUT_MS });
-    const discover: DiscoverDeps = { ...input.discover, http: watchNetwork(http, failed) };
+    const discover: DiscoverDeps = {
+      ...input.discover,
+      http: watchNetwork(http, failed, deadlineAt),
+    };
     const outcomes: OpOutcome[] = [];
     let current = before;
     for (const op of parsed.data as ParsedConfigOp[]) {
+      // Each op answers for its own lookups: a probe that timed out while an earlier add succeeded
+      // does not make a later refusal look like ours.
+      failed.network = false;
       const outcome = await applyConfigOp(op, current, { discover });
       outcomes.push(outcome);
       current = outcome.next;
@@ -131,7 +180,7 @@ async function applyNow(input: ApplyToDocumentsInput): Promise<ApplyToDocumentsR
     return { ok: true, writes, outcome, documents };
   } catch (error) {
     if (error instanceof ConfigOpError) {
-      return { ok: false, message: error.message, retryable: failed.network };
+      return { ok: false, message: error.message, retryable: retryable(error, failed.network) };
     }
     throw error;
   } finally {

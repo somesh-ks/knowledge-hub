@@ -4,6 +4,8 @@
  * lib/settingsSummary.ts words it as the build does). Loaded by settingsPage.ts only when something
  * saved is kept, so the index's first load never carries it.
  */
+
+import { storeOn } from "../lib/savedKey";
 import {
   type FieldValues,
   type SourceSpot,
@@ -15,15 +17,20 @@ import {
 import { dailySummary, topicsSummary, voicesSummary, weeklySummary } from "../lib/settingsSummary";
 import type { ConfigOp } from "../types/contracts";
 import { dropUnclaimed, HELD_EVENT, type Held } from "./managePageSave";
-import { readSaved } from "./savedView";
+import { loadStore, readSaved } from "./savedView";
 
 /** Said on the index when a change held by a page left for it could not be saved. */
 export const LOST_NOTE = "Your last change was not saved.";
 
-/** The rows with what was saved since the build, and following a left page's run still on its way. */
-export function showSaved(root: HTMLElement): void {
-  overlayIndex(root, readSaved());
+/**
+ * The rows with what was saved since the build (and, with the config store on, what it holds), and
+ * following a left page's run still on its way.
+ */
+export async function showSaved(root: HTMLElement): Promise<void> {
+  // Listening first: a left page's run can end while the store is asked.
   followHeld(root);
+  if (storeOn()) await loadStore();
+  overlayIndex(root, readSaved());
 }
 
 /**

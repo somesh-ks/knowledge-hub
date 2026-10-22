@@ -1,7 +1,13 @@
 import { DEFAULT_SCHEDULE } from "@dispatch/core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO } from "../testing/fakeGitHub";
-import { fallbackCronHour, handleCron, MIN_CRON_SECRET_CHARS, slotAt } from "./cron";
+import {
+  fallbackCronHour,
+  handleCron,
+  MIN_CRON_SECRET_CHARS,
+  STORE_READ_TIMEOUT_MS,
+  slotAt,
+} from "./cron";
 
 const TOKEN = "github_pat_secret_value_123456";
 const SECRET = "cron-secret-of-enough-length";
@@ -170,6 +176,48 @@ describe("GET /api/cron/run", () => {
       { ref: "main", inputs: { mode: "scheduled" }, return_run_details: true },
     ]);
     expect(logs.join("\n")).not.toContain(TOKEN);
+  });
+
+  // The bug (D149, review round 2): with the config store on, an hour changed in the app is in the
+  // database at once and on main only after the next run, so the cron kept starting the old hour.
+  it("with the config store on, starts at the stored hour, and at main's when the store is down", async () => {
+    const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+    const stored = JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 });
+    const call = (at: string, up: boolean) =>
+      handleCron(BEARER, {
+        env: { ...env, DATABASE_URL: "postgres://fake", DISPATCH_CONFIG_STORE: "postgres" },
+        fetch: github.fetch,
+        now: () => new Date(at),
+        connectConfigStore: async () => ({
+          query: async () => {
+            if (!up) throw new Error("connect ECONNREFUSED");
+            return [{ path: "config/schedule.json", content: stored, version: 1 }];
+          },
+        }),
+      });
+    // Saturday 07:30 and 09:30 in Stockholm.
+    expect((await call("2026-10-10T05:30:00Z", true)).body).toMatchObject({ dispatched: false });
+    expect((await call("2026-10-10T07:30:00Z", true)).body).toMatchObject({ dispatched: true });
+    expect((await call("2026-10-10T05:30:00Z", false)).body).toMatchObject({ dispatched: true });
+  });
+
+  // The bug: a store that never answers held the call until Vercel killed it, so the hour's run was
+  // never started, where main's schedule would have started it.
+  it("with the config store hanging, starts at main's hour once it has waited long enough", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+      const result = handleCron(BEARER, {
+        env: { ...env, DATABASE_URL: "postgres://fake", DISPATCH_CONFIG_STORE: "postgres" },
+        fetch: github.fetch,
+        now: () => new Date("2026-10-10T05:30:00Z"),
+        connectConfigStore: async () => ({ query: () => new Promise(() => {}) }),
+      });
+      await vi.advanceTimersByTimeAsync(STORE_READ_TIMEOUT_MS);
+      expect((await result).body).toMatchObject({ dispatched: true });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("at the daily hour on a day nothing is due, starts nothing", async () => {

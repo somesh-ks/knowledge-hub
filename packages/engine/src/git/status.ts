@@ -33,3 +33,20 @@ export async function isBehindRemote(
   const count = await gitOutput(git, ["rev-list", "--count", `HEAD..${tracking}`]);
   return Number.parseInt(count.trim(), 10) > 0;
 }
+
+/**
+ * Whether the branch holds commits its remote does not: a commit made whose push failed. Reads the
+ * remote-tracking branch as the last fetch left it (isBehindRemote fetches first).
+ */
+export async function isAheadOfRemote(
+  root: string,
+  options: BehindRemoteOptions = {},
+): Promise<boolean> {
+  const git = options.git ?? createGitRunner(root);
+  const branch = (await gitOutput(git, ["symbolic-ref", "--short", "HEAD"])).trim();
+  const tracking = `refs/remotes/origin/${branch}`;
+  const known = await git(["rev-parse", "--verify", "--quiet", tracking]);
+  if (known.code !== 0) return false;
+  const count = await gitOutput(git, ["rev-list", "--count", `${tracking}..HEAD`]);
+  return Number.parseInt(count.trim(), 10) > 0;
+}

@@ -12,7 +12,8 @@
     "./rate-counter": "./src/store/rateCounter.ts",
     "./gate": "./src/gate/decideRun.ts",
     "./segments": "./src/audio/segmentStore.ts",
-    "./source-preview": "./src/sources/preview.ts"
+    "./source-preview": "./src/sources/preview.ts",
+    "./vitals-store": "./src/store/vitalsStore.ts"
   },
   "bin": {
     "dispatch": "./src/cli.ts"

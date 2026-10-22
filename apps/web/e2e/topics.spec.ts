@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page, Route } from "@playwright/test";
+import { configHash } from "../src/lib/configHash";
 import { GAP_MS } from "../src/scripts/managePageSave";
+import { BUILT_FILES, routeConfigStore } from "./configServer";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
@@ -591,6 +593,80 @@ test.describe("a topic's page", () => {
       { op: "source.set", id: "studio-notes", enabled: false },
       { op: "source.set", id: "studio-notes", enabled: true },
     ]);
+  });
+
+  test.describe("with the config store on", () => {
+    // The store going down is on purpose here: the browser logs its 503.
+    test.use({ allowNetworkErrors: true });
+
+    // The bug (D149): with the config store on, an edit saved on one device reached no other until
+    // a rebuild, and a toggle sent from that stale page put the old value back.
+    test("an edit saved on another device shows here without a rebuild, and a store that is down leaves the built page", async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await page.clock.install();
+      const { sent } = await setup(page);
+      // On another device: Studio Notes switched off, and Kiln Weekly added under the same topic.
+      const user = JSON.parse(BUILT_FILES["config/sources.user.json"] as string);
+      user.overrides["studio-notes"] = { ...user.overrides["studio-notes"], enabled: false };
+      user.added.push({
+        ...user.added[0],
+        id: "kiln-weekly",
+        name: "Kiln Weekly",
+        url: "https://kiln.example/",
+        feed_url: "https://kiln.example/feed.xml",
+        topic_ids: ["design_engineering_craft"],
+      });
+      let stored: Record<string, string> | null = {
+        "config/sources.user.json": JSON.stringify(user),
+      };
+      await routeConfigStore(page, () => stored);
+      // The page as a build with the store switched on serves it (staticServer.mjs).
+      await context.addCookies([
+        { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+      ]);
+      await open(page, CRAFT);
+      const box = source(page, "Studio Notes").getByRole("checkbox", { name: "Read Studio Notes" });
+      await expect(box).not.toBeChecked();
+      await expect(
+        source(page, "Kiln Weekly").getByRole("checkbox", { name: "Read Kiln Weekly" }),
+      ).toBeChecked();
+      // Ticking it here turns it back on: the page starts from what is stored, not from the build.
+      await box.check();
+      await expect
+        .poll(() => ops(sent))
+        .toEqual([{ op: "source.set", id: "studio-notes", enabled: true }]);
+
+      // Deleting a row the store drew: it stays gone on a reload, though the store, its edge copy a
+      // second old, still lists it.
+      const kiln = source(page, "Kiln Weekly");
+      await page.getByRole("button", { name: "Edit Kiln Weekly" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Delete source" }).click();
+      await page
+        .getByRole("dialog", { name: "Delete Kiln Weekly?" })
+        .getByRole("button", { name: "Delete", exact: true })
+        .click();
+      await expect(kiln).toBeHidden();
+      await page.clock.runFor(GAP_MS);
+      await expect
+        .poll(() => ops(sent))
+        .toEqual([
+          { op: "source.set", id: "studio-notes", enabled: true },
+          { op: "source.remove", id: "kiln-weekly" },
+        ]);
+      await page.reload();
+      await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+      await expect(box).toBeChecked();
+      await expect(kiln).toBeHidden();
+
+      stored = null;
+      await page.reload();
+      await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+      await expect(box).toBeChecked();
+      await expect(kiln).toBeHidden();
+    });
   });
 
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
@@ -1231,10 +1307,10 @@ test.describe("Blocked sources", () => {
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
 
     // Any address of the outlet works; the page lists and sends its domain.
-    await page.getByLabel("Block an outlet").fill("not a domain");
+    await page.getByLabel("Block a source").fill("not a domain");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.locator("[data-error]")).toBeVisible();
-    await page.getByLabel("Block an outlet").fill("https://www.Example.com/story?id=1");
+    await page.getByLabel("Block a source").fill("https://www.Example.com/story?id=1");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect.poll(() => ops(sent)).toEqual([{ op: "profile.block", domain: "example.com" }]);
@@ -1244,7 +1320,7 @@ test.describe("Blocked sources", () => {
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await page.goto(LIST);
-    await expect(page.getByRole("link", { name: /Blocked sources/ })).toContainText("1 outlet");
+    await expect(page.getByRole("link", { name: /Blocked sources/ })).toContainText("1 source");
 
     await page.goto("/settings/blocked-outlets");
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
@@ -1264,7 +1340,7 @@ test.describe("Blocked sources", () => {
     await expect(page.getByText("No blocked sources")).toBeVisible();
 
     // Blocked again once the unblock has gone: the row was hidden as removing and stayed hidden.
-    await page.getByLabel("Block an outlet").fill("example.com");
+    await page.getByLabel("Block a source").fill("example.com");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect(page.getByText("No blocked sources")).toBeHidden();

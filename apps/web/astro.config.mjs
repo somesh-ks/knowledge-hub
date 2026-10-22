@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
+import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
 import { withModulePreloads } from "./src/lib/bundleBudget.ts";
 import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
@@ -152,7 +153,11 @@ export default defineConfig({
   security: {
     csp: {
       algorithm: "SHA-256",
-      scriptDirective: { resources: ["'self'"], hashes: inlineScriptHashes },
+      // Simple Analytics (D154): its script, and the queue it sends page views to, by beacon or image.
+      scriptDirective: {
+        resources: ["'self'", ANALYTICS_SCRIPT_ORIGIN],
+        hashes: inlineScriptHashes,
+      },
       // Server-rendered style attributes only carry computed custom properties (a cover's palette).
       // Attributes cannot run script, so allowing them does not widen the script policy.
       styleDirective: {
@@ -160,11 +165,11 @@ export default defineConfig({
       },
       directives: [
         "default-src 'self'",
-        "img-src 'self' data:",
+        `img-src 'self' data: ${ANALYTICS_QUEUE_ORIGIN}`,
         "font-src 'self'",
         "media-src 'self' https://*.public.blob.vercel-storage.com",
         // The blob host too, so a download can read the audio file it saves (CORS on the host).
-        "connect-src 'self' https://*.public.blob.vercel-storage.com",
+        `connect-src 'self' https://*.public.blob.vercel-storage.com ${ANALYTICS_QUEUE_ORIGIN}`,
         "manifest-src 'self'",
         "worker-src 'self'",
         "object-src 'none'",

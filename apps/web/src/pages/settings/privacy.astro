@@ -1,0 +1,87 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+
+const title = "Privacy";
+// What this says is the inventory behind docs/specs/analytics.md, D154 and D156: change them together,
+// and the date with them.
+const updated = "22 October 2026";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the privacy page">
+  <main id="main" tabindex="-1">
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} />
+      <section>
+        <h2 class="section-head">In short</h2>
+        <div class="rows card-group">
+          <p class="settings-about">
+            Singularity has no accounts, no cookies, no ads and no tracking across sites. It counts visits without knowing who you are, keeps your settings in this browser, and sends a few things you choose to send. Nothing is sold.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">Visit counts</h2>
+        <div class="rows card-group">
+          <p class="settings-about">
+            Visits are counted by Simple Analytics, a service based in the Netherlands that sets no cookie, stores nothing on your device and does not keep your IP address. It records the page, where you came from (a link shared from here says so), your country from your time zone, your browser and device type, screen size, language, and time and scroll on a page.
+          </p>
+          <p class="settings-about">
+            It also counts a few actions, with no detail about you: sharing, starting, passing halfway and finishing a recording, opening a story, voting, downloading, installing the app and asking for an episode. If your browser sends Do Not Track or Global Privacy Control, the counting script is never loaded.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">Kept in this browser</h2>
+        <div class="rows card-group">
+          <p class="settings-about">
+            Your theme, sounds, volume and speed, where you stopped in each recording, what you have heard, your queue, your Library view and the episodes you download stay on this device. Clearing this site's data in your browser removes them all.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">What you send</h2>
+        <div class="rows card-group">
+          <p class="settings-about">
+            Votes, stories you open and outlets you stop go to the server, so the briefings learn what is worth hearing. They name the story, not you, and are never shown to anyone.
+          </p>
+          <p class="settings-about">
+            Topics, sources and episodes are shared: anyone with the link sees them and can change or delete them. What you type for one (an episode title, feedback, a topic's name or description) is sent to AI services that write and judge the briefings (Anthropic, Google Gemini, TypeSafe and Exa) and is kept in the project's private records. Do not type anything personal into them.
+          </p>
+          <p class="settings-about">
+            When a page fails, it reports the error and the page's path, with no address and no browser details.
+          </p>
+          <p class="settings-about">
+            When you leave or switch away from a page, it reports how quickly it appeared, held still and answered your taps, with the kind of page (a briefing, not which one), whether your device is touch-first and your connection's speed class. Nothing else is sent, each report is deleted after about a week, and with Do Not Track or Global Privacy Control on, nothing is measured.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">Hosting</h2>
+        <div class="rows card-group">
+          <p class="settings-about">
+            The site runs on Vercel, whose servers see your IP address to answer each request and may keep it in their logs under Vercel's own privacy policy. Previewing a source's address uses your IP address, in memory only, to limit how often it can be asked. Audio is served from a public Vercel store and deleted after about 120 days.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-head">Your rights</h2>
+        <div class="rows card-group">
+          <p class="settings-about">
+            Since nothing here identifies you, there is usually nothing to look up or delete. To ask about your data or have something you made removed, contact the author through <a href="https://github.com/somesh-ks">GitHub</a>. You can also complain to the data protection authority where you live.
+          </p>
+          <div class="settings-row">
+            <span class="settings-label">Last updated</span>
+            <span class="settings-hint">{updated}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
