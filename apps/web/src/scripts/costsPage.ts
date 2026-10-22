@@ -1,7 +1,8 @@
 /**
- * Costs page (/analytics). Asks /api/costs for the report and draws it: the period's total first, one
- * stacked column chart of spend over time split by the chosen grouping, a ranked breakdown that is
- * also the chart's legend, and a table view. Plain DOM and inline SVG, no framework and no chart
+ * Costs page (/analytics). Asks /api/costs for the report and draws it into one card: the total and
+ * its supporting line, a column chart of what each day, week or month cost, and a breakdown by the
+ * chosen split, largest first. One series, so one colour: the split lives in the breakdown and the
+ * tooltip, not in stacked colours (2026-10-22). Plain DOM and inline SVG, no framework and no chart
  * library: the numbers are one fetch, and this page loads nothing else.
  */
 interface Rollup {
@@ -24,32 +25,22 @@ interface CostResponse {
   };
 }
 type Period = "day" | "week" | "month";
-interface Series {
+interface Part {
   key: string;
   label: string;
-  /** Slot 1 to 4, or 0 for the folded "Other". */
-  slot: number;
   usd: number;
-  runs: number;
   unpriced: boolean;
-  members: string[];
 }
 
 const SVG = "http://www.w3.org/2000/svg";
-// Past four series the tail folds into "Other": a fifth hue would not stay distinct.
-const MAX_SERIES = 4;
-// 12rem, the plot box in costs.css: two --space-24.
-const HEIGHT = 192;
-const PAD = { top: 8, right: 0, bottom: 24, left: 48 };
+// The plot box's height comes from costs.css (12rem, 15rem from 40rem), the axis labels included;
+// the pads match the empty note's inset there.
+const PAD = { top: 8, right: 0, bottom: 32, left: 40 };
+// Columns are at most 24px and keep a 2px gap to the next (the dataviz mark spec).
 const BAR_MAX = 24;
 const GAP = 2;
 const RADIUS = 4;
 
-// Colour follows the entity, never its rank: a stable order per grouping picks the slots.
-const ORDER: Record<string, string[]> = {
-  kind: ["daily", "weekly", "catch_up", "on_demand", "narration_on_play", "config"],
-  scope: ["shared", "user"],
-};
 const NAMES: Record<string, string> = {
   anthropic: "Anthropic",
   exa: "Exa",
@@ -57,25 +48,26 @@ const NAMES: Record<string, string> = {
   gemini: "Gemini",
   speechify: "Speechify",
   typesafe: "TypeSafe",
-  daily: "Daily edition",
-  weekly: "Weekly edition",
-  catch_up: "Catch-up",
-  on_demand: "On demand",
+  daily: "Daily",
+  weekly: "Weekly",
+  catch_up: "Catch up",
+  on_demand: "Episodes on request",
   narration_on_play: "Narration on Play",
-  config: "Config",
-  shared: "Shared",
-  owner: "Owner",
+  config: "Settings changes",
+  shared: "Shared editions",
+  owner: "You",
 };
-const GROUP_HEAD: Record<string, string> = {
+const SPLIT_HEAD: Record<string, string> = {
   provider: "By provider",
-  kind: "By kind",
+  kind: "By use",
   scope: "Shared or personal",
-  user: "By user",
+  user: "By person",
 };
-const RANGE_LABEL: Record<Period, string> = {
-  day: "Spent in the last 30 days",
-  week: "Spent in the last 13 weeks",
-  month: "Spent in the last 12 months",
+const PER: Record<Period, string> = { day: "day", week: "week", month: "month" };
+const WINDOW: Record<Period, string> = {
+  day: "the last 30 days",
+  week: "the last 3 months",
+  month: "the last 12 months",
 };
 
 const nameOf = (by: string, key: string): string => {
@@ -88,6 +80,7 @@ const usd = (n: number): string => (n > 0 && n < 0.005 ? "<$0.01" : `$${n.toFixe
 /** An axis tick: as few places as the step needs. */
 const tick = (n: number, step: number): string =>
   `$${n.toFixed(step >= 1 ? 0 : step >= 0.01 ? 2 : 3)}`;
+const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 const pick = <T extends Element>(selector: string): T | null => document.querySelector<T>(selector);
 const svgEl = <K extends keyof SVGElementTagNameMap>(
@@ -142,52 +135,46 @@ function bucketLabel(bucket: string, period: Period, long = false, first = false
   return period === "week" && long ? `Week of ${day}` : day;
 }
 
-// ---- the series ----------------------------------------------------------------------------
+const longDate = (date: string): string =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
-function seriesOf(data: CostResponse, by: string): Series[] {
-  const sums = new Map<string, Rollup & { unpriced: boolean }>();
+// ---- the breakdown -------------------------------------------------------------------------
+
+/** Each group's spend over the window, largest first. */
+function partsOf(data: CostResponse, by: string): Part[] {
+  const sums = new Map<string, Part>();
   for (const { groups } of data.report.buckets) {
     for (const [key, group] of Object.entries(groups)) {
-      const sum = sums.get(key) ?? { usd: 0, runs: 0, shared_usd: 0, unpriced: false };
-      sum.usd += group.usd;
-      sum.runs += group.runs;
-      sum.unpriced ||= Boolean(group.unpriced);
-      sums.set(key, sum);
+      const part = sums.get(key) ?? { key, label: nameOf(by, key), usd: 0, unpriced: false };
+      part.usd += group.usd;
+      part.unpriced ||= Boolean(group.unpriced);
+      sums.set(key, part);
     }
   }
-  const ranked = [...sums.entries()].sort(([, a], [, b]) => b.usd - a.usd);
-  const kept = ranked.length > MAX_SERIES ? ranked.slice(0, MAX_SERIES - 1) : ranked;
-  const order = ORDER[by];
-  const stable = [...kept].sort(([a], [b]) =>
-    order ? order.indexOf(a) - order.indexOf(b) : a.localeCompare(b),
-  );
-  const slots = new Map(stable.map(([key], index) => [key, index + 1]));
-  const series: Series[] = kept.map(([key, sum]) => ({
-    key,
-    label: nameOf(by, key),
-    slot: slots.get(key) ?? 1,
-    usd: sum.usd,
-    runs: sum.runs,
-    unpriced: sum.unpriced,
-    members: [key],
-  }));
-  const rest = ranked.slice(kept.length);
-  if (rest.length > 0) {
-    series.push({
-      key: "__other",
-      label: `Other (${rest.length})`,
-      slot: 0,
-      usd: rest.reduce((n, [, s]) => n + s.usd, 0),
-      runs: rest.reduce((n, [, s]) => n + s.runs, 0),
-      unpriced: rest.some(([, s]) => s.unpriced),
-      members: rest.map(([key]) => key),
-    });
-  }
-  return series;
+  return [...sums.values()].filter((part) => part.usd > 0).sort((a, b) => b.usd - a.usd);
 }
 
-const valueIn = (groups: Record<string, Rollup> | undefined, series: Series): number =>
-  series.members.reduce((n, key) => n + (groups?.[key]?.usd ?? 0), 0);
+/** The providers the price table has a price for that nobody has confirmed yet. */
+const unconfirmedProviders = (data: CostResponse): string[] => [
+  ...new Set(data.unconfirmed.map((entry) => entry.split("/")[0] ?? "").filter(Boolean)),
+];
+
+/**
+ * True when the amounts rest on a price nobody has confirmed. The report is split by the chosen
+ * breakdown, so which provider spent what is not always in it: any unconfirmed price counts, and
+ * the label reads the same under every split.
+ */
+const estimated = (data: CostResponse): boolean =>
+  data.report.total.usd > 0 && data.unconfirmed.length > 0;
+
+/** Names in prose: "Gemini", "Gemini and Exa", "Gemini, Exa and Speechify". */
+const listed = (names: string[]): string =>
+  names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 
 /** A clean axis: 0, step, 2 x step, with the top at or above the tallest column. */
 function niceScale(max: number): { top: number; step: number } {
@@ -200,48 +187,59 @@ function niceScale(max: number): { top: number; step: number } {
 
 // ---- the chart -----------------------------------------------------------------------------
 
-/** A column segment with a rounded top when it is the column's data end, square at the baseline. */
-function segment(x: number, y: number, w: number, h: number, round: boolean): SVGPathElement {
-  const r = round ? Math.min(RADIUS, w / 2, h) : 0;
-  const d =
-    r > 0
-      ? `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`
-      : `M${x},${y + h}V${y}H${x + w}V${y + h}Z`;
-  return svgEl("path", { d });
+/** A column with a rounded data end and a square foot on the baseline. */
+function column(x: number, y: number, w: number, h: number): SVGPathElement {
+  const r = Math.min(RADIUS, w / 2, h);
+  const d = `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+  return svgEl("path", { d, class: "costs-mark" });
 }
 
 interface Drawn {
   buckets: string[];
   period: Period;
-  series: Series[];
+  by: string;
   data: CostResponse;
 }
 let drawn: Drawn | null = null;
 let active = -1;
 
+function geometry(width: number, count: number): { band: number; barW: number } {
+  const band = (width - PAD.left - PAD.right) / count;
+  return { band, barW: Math.max(2, Math.min(BAR_MAX, band - GAP, band * 0.64)) };
+}
+
 function draw(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
-  const tip = pick<HTMLElement>("[data-costs-tip]");
-  if (!plot || !tip || !drawn) return;
-  const { buckets, series, period, data } = drawn;
+  if (!plot || !drawn) return;
+  const { buckets, period, data } = drawn;
   plot.querySelector("svg")?.remove();
   const width = Math.max(plot.clientWidth, 240);
-  const plotW = width - PAD.left - PAD.right;
-  const plotH = HEIGHT - PAD.top - PAD.bottom;
+  const height = plot.clientHeight;
+  const plotH = height - PAD.top - PAD.bottom;
   const byBucket = new Map(data.report.buckets.map((b) => [b.bucket, b]));
   const totals = buckets.map((b) => byBucket.get(b)?.total.usd ?? 0);
   const { top, step } = niceScale(Math.max(0, ...totals));
   const y = (v: number): number => PAD.top + plotH - (v / top) * plotH;
-  const band = plotW / buckets.length;
-  const barW = Math.max(2, Math.min(BAR_MAX, band - GAP * 2, band * 0.72));
+  const { band, barW } = geometry(width, buckets.length);
 
   const svg = svgEl("svg", {
-    viewBox: `0 0 ${width} ${HEIGHT}`,
+    viewBox: `0 0 ${width} ${height}`,
     width,
-    height: HEIGHT,
+    height,
     class: "costs-svg",
     "aria-hidden": "true",
   });
+
+  // The hover column: a ghost wash behind the active band, drawn first so the marks sit over it.
+  const wash = svgEl("rect", {
+    class: "costs-wash",
+    y: PAD.top,
+    height: plotH,
+    width: band,
+    rx: 4,
+  });
+  wash.setAttribute("visibility", "hidden");
+  svg.append(wash);
 
   // Recessive frame: three solid hairlines and their ticks; an empty range keeps only the baseline,
   // so no scale is invented for spend that does not exist.
@@ -250,58 +248,43 @@ function draw(): void {
   for (const value of empty ? [0] : [0, step, top]) {
     const at = Math.round(y(value)) + 0.5;
     grid.append(svgEl("line", { x1: PAD.left, x2: width - PAD.right, y1: at, y2: at }));
-    const label = svgEl("text", { x: PAD.left - 8, y: at, "text-anchor": "end", dy: "0.32em" });
+    const label = svgEl("text", { x: 0, y: at, dy: "0.32em" });
     label.textContent = tick(value, step);
     grid.append(label);
   }
   svg.append(grid);
 
-  // Columns: the series stack in slot order, each segment a 2px surface gap from the next.
   const columns = svgEl("g", { class: "costs-columns" });
-  const stackOrder = [...series].sort((a, b) => (a.slot || 99) - (b.slot || 99));
-  buckets.forEach((bucket, index) => {
-    const groups = byBucket.get(bucket)?.groups;
-    const x = PAD.left + index * band + (band - barW) / 2;
-    const column = svgEl("g", { "data-index": index });
-    const parts = stackOrder
-      .map((s) => ({ s, v: valueIn(groups, s) }))
-      .filter((part) => part.v > 0);
-    let base = 0;
-    parts.forEach(({ s, v }, i) => {
-      const y0 = y(base);
-      const y1 = y(base + v);
-      base += v;
-      const last = i === parts.length - 1;
-      // The gap comes off the top of every segment below the data end.
-      const h = Math.max(1, y0 - y1 - (last ? 0 : GAP));
-      const mark = segment(x, y0 - h, barW, h, last);
-      mark.setAttribute("class", `costs-mark s${s.slot}`);
-      column.append(mark);
-    });
-    columns.append(column);
+  buckets.forEach((_, index) => {
+    const value = totals[index] ?? 0;
+    const group = svgEl("g", { "data-index": index });
+    if (value > 0) {
+      const x = PAD.left + index * band + (band - barW) / 2;
+      const h = Math.max(2, y(0) - y(value));
+      group.append(column(x, y(0) - h, barW, h));
+    }
+    columns.append(group);
   });
   svg.append(columns);
 
-  // A few dates under the axis: as many as fit, and always the newest.
+  // A few dates under the axis, evenly spaced back from the newest, as many as fit 72px apart. The
+  // newest ends at the plot's edge; one too near the start to sit centred on its column is left out.
   const labels = svgEl("g", { class: "costs-axis" });
-  const fit = Math.max(2, Math.floor(plotW / 64));
-  const every = Math.ceil(buckets.length / fit);
-  buckets.forEach((bucket, index) => {
+  const fit = Math.max(2, Math.floor((width - PAD.left) / 72));
+  const every = Math.max(1, Math.ceil(buckets.length / fit));
+  for (let index = buckets.length - 1; index >= 0; index -= every) {
     const last = index === buckets.length - 1;
-    if (!last && (index % every !== 0 || buckets.length - 1 - index < every)) return;
     const cx = PAD.left + index * band + band / 2;
-    const anchor = last && band < 40 ? "end" : index === 0 && band < 40 ? "start" : "middle";
-    const ax = anchor === "end" ? cx + barW / 2 : anchor === "start" ? cx - barW / 2 : cx;
-    const text = svgEl("text", { x: ax, y: HEIGHT - 6, "text-anchor": anchor });
-    text.textContent = bucketLabel(bucket, period, false, index === 0);
+    if (!last && cx < PAD.left + 28) break;
+    const text = svgEl("text", {
+      x: last ? width - PAD.right : cx,
+      y: height - 8,
+      "text-anchor": last ? "end" : "middle",
+    });
+    text.textContent = bucketLabel(buckets[index] ?? "", period, false, index - every < 0);
     labels.append(text);
-  });
+  }
   svg.append(labels);
-
-  // The hover column: a ghost wash behind the active band.
-  const wash = svgEl("rect", { class: "costs-wash", y: PAD.top, height: plotH, width: band });
-  wash.setAttribute("visibility", "hidden");
-  svg.prepend(wash);
 
   plot.prepend(svg);
   if (active >= 0) focusColumn(active, false);
@@ -312,11 +295,11 @@ function focusColumn(index: number, announce: boolean): void {
   const tip = pick<HTMLElement>("[data-costs-tip]");
   const wash = plot?.querySelector<SVGRectElement>(".costs-wash");
   if (!plot || !tip || !wash || !drawn) return;
-  const { buckets, series, period, data } = drawn;
+  const { buckets, period, by, data } = drawn;
   active = Math.max(0, Math.min(buckets.length - 1, index));
   const bucket = buckets[active] ?? "";
   const width = plot.clientWidth;
-  const band = (width - PAD.left - PAD.right) / buckets.length;
+  const { band } = geometry(width, buckets.length);
   wash.setAttribute("x", String(PAD.left + active * band));
   wash.setAttribute("visibility", "visible");
   plot.querySelectorAll(".costs-columns > g").forEach((g, i) => {
@@ -331,21 +314,22 @@ function focusColumn(index: number, announce: boolean): void {
   const when = document.createElement("span");
   when.textContent = bucketLabel(bucket, period, true);
   head.append(value, when);
-  const rows = series
-    .map((s) => ({ s, v: valueIn(entry?.groups, s) }))
-    .filter((r) => r.v > 0)
-    .map(({ s, v }) => {
-      const row = document.createElement("p");
-      row.className = "costs-tip-row";
-      const key = document.createElement("span");
-      key.className = `costs-key s${s.slot}`;
-      const amount = document.createElement("strong");
-      amount.textContent = usd(v);
-      const name = document.createElement("span");
-      name.textContent = s.label;
-      row.append(key, amount, name);
-      return row;
-    });
+  // Values lead, names follow; the split is the breakdown's, so the two always agree. One group is
+  // the whole total, so the head names it and no split follows.
+  const groups = Object.entries(entry?.groups ?? {})
+    .filter(([, group]) => group.usd > 0)
+    .sort(([, a], [, b]) => b.usd - a.usd);
+  const [only] = groups;
+  if (groups.length === 1 && only) when.textContent += ` · ${nameOf(by, only[0])}`;
+  const rows = (groups.length > 1 ? groups : []).map(([key, group]) => {
+    const row = document.createElement("p");
+    const amount = document.createElement("strong");
+    amount.textContent = usd(group.usd);
+    const name = document.createElement("span");
+    name.textContent = nameOf(by, key);
+    row.append(amount, name);
+    return row;
+  });
   tip.replaceChildren(head, ...rows);
   tip.hidden = false;
   const center = PAD.left + active * band + band / 2;
@@ -372,15 +356,25 @@ function clearColumn(): void {
 function wireChart(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
   if (!plot) return;
-  plot.addEventListener("pointermove", (event) => {
-    if (!drawn) return;
+  // A pointer over a column shows it; a tap shows it too, since a touch may send no move first.
+  const point = (event: PointerEvent): void => {
+    if (!drawn || drawn.data.report.total.usd === 0) return;
     const box = plot.getBoundingClientRect();
-    const band = (box.width - PAD.left - PAD.right) / drawn.buckets.length;
+    const { band } = geometry(box.width, drawn.buckets.length);
     const index = Math.floor((event.clientX - box.left - PAD.left) / band);
-    if (index < 0 || index >= drawn.buckets.length) return clearColumn();
-    if (index !== active) focusColumn(index, false);
+    if (index < 0 || index >= drawn.buckets.length) clearColumn();
+    else if (index !== active) focusColumn(index, false);
+  };
+  plot.addEventListener("pointermove", point);
+  plot.addEventListener("pointerdown", point);
+  // A lifted finger leaves at once; a tapped column stays shown until a tap elsewhere on the page.
+  // Safari does not blur the plot on a tap outside it, so the page listens for that tap itself.
+  plot.addEventListener("pointerleave", (event) => {
+    if (event.pointerType !== "touch") clearColumn();
   });
-  plot.addEventListener("pointerleave", clearColumn);
+  pick<HTMLElement>("[data-costs]")?.addEventListener("pointerdown", (event) => {
+    if (!plot.contains(event.target as Node)) clearColumn();
+  });
   plot.addEventListener("blur", clearColumn);
   plot.addEventListener("focus", () => {
     if (drawn && active < 0) focusColumn(drawn.buckets.length - 1, true);
@@ -401,81 +395,76 @@ function wireChart(): void {
   new ResizeObserver(() => draw()).observe(plot);
 }
 
-// ---- the summary, the ranking and the table --------------------------------------------------
+// ---- the answer, the breakdown and the table -----------------------------------------------
 
-function renderSummary(data: CostResponse, period: Period): void {
+function renderAnswer(data: CostResponse, period: Period): void {
   const { report } = data;
-  const empty = report.total.usd === 0 && report.total.runs === 0;
   const set = (selector: string, text: string): void => {
     const el = pick(selector);
     if (el) el.textContent = text;
   };
-  set("[data-costs-spent-label]", RANGE_LABEL[period]);
   set("[data-costs-total]", usd(report.total.usd));
-  set("[data-costs-per-run]", report.total.runs > 0 ? usd(report.per_run_usd) : "No runs");
-  set("[data-costs-runs]", String(report.total.runs));
-  set("[data-costs-per-user]", usd(report.per_user_usd));
-  const users = pick<HTMLElement>("[data-costs-users]");
-  if (users) users.hidden = report.users < 2;
-  const estimate = pick<HTMLElement>("[data-costs-estimate]");
-  if (estimate) estimate.hidden = empty || data.unconfirmed.length === 0;
+  // An amount resting on a price nobody has confirmed says so in its label, not in a badge.
+  set("[data-costs-label]", estimated(data) ? "Estimated spend" : "Total spend");
+  // With no runs the chart says so; the line keeps its height (a no-break space), so nothing moves.
+  const parts: string[] = [];
+  if (report.total.runs > 0) {
+    parts.push(plural(report.total.runs, "run"), `${usd(report.per_run_usd)} a run`);
+    if (report.users > 1) parts.push(`${usd(report.per_user_usd)} a person`);
+  }
+  set("[data-costs-detail]", parts.join(" · ") || " ");
+  set("[data-costs-empty]", `No paid runs in ${WINDOW[period]}.`);
 }
 
-function renderRank(series: Series[], data: CostResponse, by: string): void {
+/** Where a column sits in a sentence: "on 20 Oct", "in the week of 13 Oct", "in August 2026". */
+const atBucket = (bucket: string, period: Period): string =>
+  period === "day"
+    ? `on ${bucketLabel(bucket, period)}`
+    : period === "week"
+      ? `in the week of ${bucketLabel(bucket, period)}`
+      : `in ${bucketLabel(bucket, period, true)}`;
+
+function renderBreakdown(data: CostResponse, by: string): void {
   const list = pick<HTMLElement>("[data-costs-rank]");
   const head = pick("[data-costs-rank-head]");
-  if (head) head.textContent = GROUP_HEAD[by] ?? "Breakdown";
+  if (head) head.textContent = SPLIT_HEAD[by] ?? "Breakdown";
   if (!list) return;
+  const parts = partsOf(data, by);
+  list.hidden = parts.length === 0;
   const total = data.report.total.usd;
-  const unconfirmed = new Set(data.unconfirmed.map((entry) => entry.split("/")[0]));
-  const ranked = [...series].sort((a, b) => (a.slot === 0 ? 1 : b.slot === 0 ? -1 : b.usd - a.usd));
-  if (ranked.length === 0) {
-    const none = document.createElement("li");
-    none.className = "costs-rank-none";
-    none.textContent = "Nothing to break down yet.";
-    list.replaceChildren(none);
-    return;
-  }
-  const most = Math.max(...ranked.map((s) => s.usd));
+  const most = Math.max(0, ...parts.map((part) => part.usd));
   list.replaceChildren(
-    ...ranked.map((s) => {
+    ...parts.map((part) => {
       const item = document.createElement("li");
       item.className = "costs-rank-row";
-      const key = document.createElement("span");
-      key.className = `costs-swatch s${s.slot}`;
       const name = document.createElement("span");
       name.className = "costs-rank-name";
-      name.textContent = s.label;
-      const estimated =
-        s.unpriced || (by === "provider" && s.members.some((key) => unconfirmed.has(key)));
-      if (estimated) {
-        const tag = document.createElement("span");
-        tag.className = "costs-tag";
-        tag.textContent = s.unpriced ? "Unpriced" : "Estimate";
-        name.append(" ", tag);
-      }
+      name.textContent = part.unpriced ? `${part.label}, no price yet` : part.label;
       const value = document.createElement("span");
       value.className = "costs-rank-value";
-      value.textContent = usd(s.usd);
+      value.textContent = usd(part.usd);
       const share = document.createElement("span");
       share.className = "costs-rank-share";
-      share.textContent = total > 0 ? `${Math.round((s.usd / total) * 100)}%` : "";
+      share.textContent = total > 0 ? `${Math.round((part.usd / total) * 100)}%` : "";
       const meter = document.createElement("span");
       meter.className = "costs-meter";
+      meter.setAttribute("aria-hidden", "true");
       const fill = document.createElement("span");
-      fill.className = `costs-meter-fill s${s.slot}`;
-      fill.style.inlineSize = `${most > 0 ? (s.usd / most) * 100 : 0}%`;
+      fill.className = "costs-meter-fill";
+      fill.style.inlineSize = `${most > 0 ? (part.usd / most) * 100 : 0}%`;
       meter.append(fill);
-      item.append(key, name, value, share, meter);
+      item.append(name, value, share, meter);
       return item;
     }),
   );
 }
 
-function renderTable(drawnNow: Drawn): void {
+/** The chart as a table: each period that spent something, newest first, split as the breakdown. */
+function renderTable(now: Drawn): void {
   const table = pick<HTMLTableElement>("[data-costs-grid]");
   if (!table) return;
-  const { buckets, series, period, data } = drawnNow;
+  const { buckets, period, by, data } = now;
+  const parts = partsOf(data, by);
   const byBucket = new Map(data.report.buckets.map((b) => [b.bucket, b]));
   const cell = (tag: "th" | "td", text: string, scope?: string): HTMLElement => {
     const el = document.createElement(tag);
@@ -485,20 +474,23 @@ function renderTable(drawnNow: Drawn): void {
   };
   const head = document.createElement("tr");
   head.append(
-    cell("th", "Period", "col"),
-    ...series.map((s) => cell("th", s.label, "col")),
+    cell("th", period === "day" ? "Day" : period === "week" ? "Week" : "Month", "col"),
+    ...parts.map((part) => cell("th", part.label, "col")),
     cell("th", "Total", "col"),
   );
-  const rows = [...buckets].reverse().map((bucket) => {
-    const entry = byBucket.get(bucket);
-    const row = document.createElement("tr");
-    row.append(
-      cell("th", bucketLabel(bucket, period, true), "row"),
-      ...series.map((s) => cell("td", usd(valueIn(entry?.groups, s)))),
-      cell("td", usd(entry?.total.usd ?? 0)),
-    );
-    return row;
-  });
+  const rows = [...buckets]
+    .reverse()
+    .filter((bucket) => (byBucket.get(bucket)?.total.usd ?? 0) > 0)
+    .map((bucket) => {
+      const entry = byBucket.get(bucket);
+      const row = document.createElement("tr");
+      row.append(
+        cell("th", bucketLabel(bucket, period, true), "row"),
+        ...parts.map((part) => cell("td", usd(entry?.groups[part.key]?.usd ?? 0))),
+        cell("td", usd(entry?.total.usd ?? 0)),
+      );
+      return row;
+    });
   const thead = document.createElement("thead");
   thead.append(head);
   const tbody = document.createElement("tbody");
@@ -506,40 +498,58 @@ function renderTable(drawnNow: Drawn): void {
   table.replaceChildren(thead, tbody);
 }
 
+/** What the numbers rest on, in a sentence or two. */
+function noteOf(data: CostResponse): string {
+  // Which prices are estimates matters only once something was spent.
+  const names = estimated(data)
+    ? unconfirmedProviders(data).map((key) => nameOf("provider", key))
+    : [];
+  const parts = [`Prices as of ${longDate(data.prices_as_of)}.`];
+  if (names.length > 3) parts.push("Most are not confirmed yet, so amounts are estimates.");
+  else if (names.length > 0)
+    parts.push(
+      `${listed(names)} ${names.length === 1 ? "is an estimate" : "are estimates"} until confirmed.`,
+    );
+  parts.push("Days follow Stockholm time.");
+  if (data.site === "unavailable")
+    parts.push("Narration on Play could not be read, so it is left out.");
+  return parts.join(" ");
+}
+
 function render(data: CostResponse, period: Period, days: number, by: string): void {
-  const series = seriesOf(data, by);
   const buckets = windowBuckets(period, days, data.time_zone);
   const empty = data.report.total.usd === 0;
-  drawn = { buckets, series, period, data };
+  drawn = { buckets, period, by, data };
   active = -1;
-  renderSummary(data, period);
+  renderAnswer(data, period);
   draw();
   clearColumn();
-  const blank = pick<HTMLElement>("[data-costs-empty]");
-  if (blank) blank.hidden = !empty;
   const plot = pick<HTMLElement>("[data-costs-plot]");
   if (plot) {
     plot.tabIndex = empty ? -1 : 0;
+    const byBucket = new Map(data.report.buckets.map((b) => [b.bucket, b.total.usd]));
+    const peak = buckets.reduce(
+      (best, bucket) => ((byBucket.get(bucket) ?? 0) > (byBucket.get(best) ?? 0) ? bucket : best),
+      buckets[0] ?? "",
+    );
     plot.setAttribute(
       "aria-label",
       empty
-        ? "Spend over time: nothing spent in this range."
-        : `Spend over time, ${usd(data.report.total.usd)} in all. Use the arrow keys to read each column.`,
+        ? `Spend per ${PER[period]}: nothing spent in ${WINDOW[period]}.`
+        : `Spend per ${PER[period]} over ${WINDOW[period]}, ${usd(data.report.total.usd)} in all, the most ${usd(byBucket.get(peak) ?? 0)} ${atBucket(peak, period)}. Use the arrow keys to read each ${PER[period]}.`,
     );
   }
-  renderRank(series, data, by);
+  const blank = pick<HTMLElement>("[data-costs-empty]");
+  if (blank) blank.hidden = !empty;
+  renderBreakdown(data, by);
   renderTable(drawn);
   const table = pick<HTMLElement>("[data-costs-table]");
   if (table) table.hidden = empty;
-
   const note = pick("[data-costs-note]");
-  if (!note) return;
-  const parts = [`Days in ${data.time_zone}. Prices as of ${data.prices_as_of}.`];
-  if (data.unconfirmed.length > 0)
-    parts.push(`Estimated until confirmed: ${data.unconfirmed.join(", ")}.`);
-  if (data.site === "unavailable")
-    parts.push("Narration on Play could not be read, so it is left out.");
-  note.textContent = parts.join(" ");
+  if (note) note.textContent = noteOf(data);
+  // By person means something only once two people share the app.
+  const person = pick<HTMLOptionElement>('#costs-by option[value="user"]');
+  if (person) person.hidden = data.report.users < 2;
 }
 
 // ---- loading -------------------------------------------------------------------------------
@@ -547,9 +557,9 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
 let asked = 0;
 
 async function load(): Promise<void> {
-  const range = pick<HTMLInputElement>('input[name="costs-range"]:checked');
+  const range = pick<HTMLSelectElement>("#costs-range");
   const period = (range?.value ?? "day") as Period;
-  const days = Number(range?.dataset.days ?? "30");
+  const days = Number(range?.selectedOptions[0]?.dataset.days ?? "30");
   const by = pick<HTMLSelectElement>("#costs-by")?.value ?? "provider";
   const body = pick<HTMLElement>("[data-costs]");
   const ask = ++asked;
@@ -561,17 +571,18 @@ async function load(): Promise<void> {
     const data = (await response.json()) as CostResponse;
     if (ask === asked) render(data, period, days, by);
   } catch {
+    if (ask !== asked) return;
     const total = pick("[data-costs-total]");
-    if (total && ask === asked) total.textContent = "Unavailable";
-    const note = pick("[data-costs-note]");
-    if (note && ask === asked) note.textContent = "The costs could not be loaded right now.";
+    if (total) total.textContent = "Unavailable";
+    const detail = pick("[data-costs-detail]");
+    if (detail) detail.textContent = "The costs could not be loaded right now.";
   } finally {
     if (ask === asked) body?.removeAttribute("data-loading");
   }
 }
 
-for (const input of document.querySelectorAll('input[name="costs-range"], #costs-by')) {
-  input.addEventListener("change", () => void load());
+for (const select of document.querySelectorAll("#costs-range, #costs-by")) {
+  select.addEventListener("change", () => void load());
 }
 wireChart();
 void load();
