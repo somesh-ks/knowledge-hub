@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makePodcastCommand } from "../src/commands/podcast.js";
 import { commitAndPush } from "../src/git/commit.js";
 import { ALLOWLISTS, findViolations, isPathAllowed } from "../src/git/guard.js";
+import { CONFIG_DOCUMENT_PATHS } from "../src/store/configDocs.js";
 import { captureStdout, makeContext } from "./curate-helpers.js";
 import { commitAll, createRepoPair, git, put, type RepoPair } from "./git-testRepo.js";
 import {
@@ -15,12 +16,16 @@ import {
 
 describe("the podcast allowlist", () => {
   it("allows Podcasts/ and the cost ledger and nothing else", () => {
-    expect(ALLOWLISTS.podcast).toEqual(["Podcasts/", "state/costs-*.json"]);
+    expect(ALLOWLISTS.podcast).toEqual([
+      "Podcasts/",
+      "state/costs-*.json",
+      ...CONFIG_DOCUMENT_PATHS,
+    ]);
     expect(isPathAllowed("Podcasts/2026/10/ep-20261008-0913.md", ALLOWLISTS.podcast)).toBe(true);
     for (const path of [
       "Digests/2026/10/2026-10-08.md",
       "state/usage.json",
-      "config/preferences.json",
+      "config/sources.json",
       ".github/workflows/podcast.yml",
       "PodcastsX/a.md",
       "Podcasts",

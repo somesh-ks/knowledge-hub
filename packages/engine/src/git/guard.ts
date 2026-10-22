@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { parseDigestFile } from "@dispatch/core";
+import { CONFIG_DOCUMENT_PATHS } from "../store/configDocs.js";
 import type { GitRunner } from "./runGit.js";
 import { gitOutput } from "./runGit.js";
 
@@ -13,10 +14,12 @@ export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config";
  * field, which `findDigestContentViolations` checks beyond the path.
  */
 export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
-  run: ["Digests/", "state/"],
+  // With DATABASE_URL set, `run` and `podcast` copy the owner's config from Postgres over these
+  // files first, and their commit is the snapshot that keeps it in git (D149).
+  run: ["Digests/", "state/", ...CONFIG_DOCUMENT_PATHS],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],
   learn: ["config/preferences.json"],
-  podcast: ["Podcasts/", "state/costs-*.json"],
+  podcast: ["Podcasts/", "state/costs-*.json", ...CONFIG_DOCUMENT_PATHS],
   // Exactly the files `dispatch config apply` and `dispatch sources suggest` write, and no others.
   config: [
     "config/topics.json",

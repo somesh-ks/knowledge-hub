@@ -82,7 +82,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggested sources are built from the catalogue, with no scores, since D75; a new topic stays on its list and does not open its page since D79; its time zone selector is withdrawn since D89 |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggestions from the catalogue, unscored (D75); a new topic stays on its list (D79); no time zone selector (D89) |
 | D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
 | D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
@@ -160,7 +160,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
-| D149 | Owner config in Neon Postgres; git keeps a snapshot | active (stage 1 in part) |
+| D149 | Owner config in Neon Postgres; git keeps a snapshot | active; stage 1 in part |
 
 ---
 
