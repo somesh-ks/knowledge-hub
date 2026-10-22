@@ -13,7 +13,7 @@
 
 ## What was built here (claude/settings-ui-refinements)
 
-- `component.card` tokens: radius 24 = inner 16 + inset 8, held by the concentric unit test. A row's hover tile and a select's fill sit 8px in at radius 16; chips, buttons, the topic page's field, Add, chips, switch and picture sit 16px in at radius 8 (the switch's pill 4).
+- `component.card` tokens: radius 24 = inner 16 + inset 8, held by the concentric unit test. A row's hover tile and a select's fill sit 8px in at radius 16; chips, buttons, the topic page's field, Add, chips, switch and picture sit 16px in at radius 8 (the switch's pill 4). The owner kept this over pills everywhere. A browser probe then measured every rounded box in a card corner against card radius less gap: two were off (the topic switch's tabs at 4 instead of 8, the Listen in fill a 48px pill) and were fixed; circles and capsules are exempt.
 - One CSS rule puts each link row's value at its end (`.row-action > .settings-text`), so the index, Sources and Blocked sources changed without markup or script changes. Rows are 64px; index selects read in the quiet ink like the other values.
 - Summaries: bare 24-hour hours, "Every other day", Sources as a source count. The topic count, the voice summary and `savedTopicCount` went with their tests.
 - Chips by name; equal padding on a chip card. The dark chip tone was fixed on main the same day by #203 (`surface-overlay`); this branch kept it and dropped its own token.

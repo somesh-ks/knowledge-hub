@@ -151,6 +151,10 @@
 }
 
 .topic-card-foot .multiselect-trigger {
+  /* Its fill sits 16px from the card's bottom corner (8px from the side on a phone), so it takes the
+     card's radius less the larger gap, 8px, not a 48px pill that would bulge into the corner's curve
+     (2026-10-22, measured). */
+  border-radius: var(--card-content-radius);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
 }
@@ -195,12 +199,14 @@
 /* What sits one padding in from the card's edge is concentric with its corners (2026-10-22): the
    switch's track, the field, the Add button and the chips take the card's radius less its padding,
    and the switch's segments that less the track's own padding. */
-.topic-panel > .topic-view {
+.topic-panel > .topic-view,
+.topic-panel > .topic-view > .segmented-nav-tab {
   border-radius: var(--card-content-radius);
 }
 
+/* The pill and the press layer sit the track's 4px inside it; a tab is flush with the track, so its
+   box (and the focus ring drawn on it) keeps the track's radius. */
 .topic-panel > .topic-view::before,
-.topic-panel > .topic-view > .segmented-nav-tab,
 .topic-panel > .topic-view > .segmented-nav-tab::after {
   border-radius: calc(var(--card-content-radius) - var(--segmented-padding));
 }
