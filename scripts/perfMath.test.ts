@@ -12,9 +12,9 @@ describe("the lab probe's arithmetic", () => {
   // the reader caused (a tap that opens a sheet) blamed the page for it.
   it("reads CLS as the worst session window, without shifts that followed input", () => {
     // Two windows: 0.05 + 0.04 close together, then 0.06 alone after a gap of over a second.
-    expect(cumulativeLayoutShift([shift(100, 0.05), shift(600, 0.04), shift(2000, 0.06)])).toBeCloseTo(
-      0.09,
-    );
+    expect(
+      cumulativeLayoutShift([shift(100, 0.05), shift(600, 0.04), shift(2000, 0.06)]),
+    ).toBeCloseTo(0.09);
     expect(cumulativeLayoutShift([shift(100, 0.05), shift(300, 0.5, true)])).toBeCloseTo(0.05);
     // Shifts every 900 ms never leave a gap, but a window closes after 5 s.
     const steady = [0, 900, 1800, 2700, 3600, 4500, 5400].map((at) => shift(at, 0.01));
