@@ -14,7 +14,7 @@ export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config";
  * field, which `findDigestContentViolations` checks beyond the path.
  */
 export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
-  // With DATABASE_URL set, `run` and `podcast` copy the owner's config from Postgres over these
+  // With the config store on, `run` and `podcast` copy the owner's config from Postgres over these
   // files first, and their commit is the snapshot that keeps it in git (D149).
   run: ["Digests/", "state/", ...CONFIG_DOCUMENT_PATHS],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],

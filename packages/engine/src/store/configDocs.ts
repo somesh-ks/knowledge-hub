@@ -5,8 +5,9 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
 
 /**
  * The owner's configuration in Postgres (D149): one row per config file, holding the file's exact
- * text. With DATABASE_URL set, `run` and `podcast` copy the rows over the files before they start,
- * and the run's commit carries them to git as the snapshot. Without it nothing here is called.
+ * text. With the store on (DATABASE_URL and DISPATCH_CONFIG_STORE=postgres), `run` and `podcast`
+ * copy the rows over the files before they start, and the run's commit carries them to git as the
+ * snapshot. With the store off nothing here is called.
  */
 
 /** The files the database may hold, and the only paths a row may ever be written to. */

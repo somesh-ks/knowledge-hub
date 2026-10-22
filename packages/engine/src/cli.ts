@@ -208,10 +208,15 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     now: io.now ?? (() => new Date()),
   };
 
-  // The owner's edits live in Postgres when DATABASE_URL is set (D149): they replace the committed
-  // config files before the command reads them. A database that cannot be reached costs freshness,
-  // not the briefing: the files from the last run's commit are used.
-  if (env.DATABASE_URL !== undefined && readsConfigAtStart(spec.name, parsed.rest)) {
+  // The owner's edits live in Postgres once the store is switched on (D149): they replace the
+  // committed config files before the command reads them. The switch is separate from the URL,
+  // which `vercel env pull` also writes to a local .env. A database that cannot be reached costs
+  // freshness, not the briefing: the files from the last run's commit are used.
+  if (
+    env.DATABASE_URL !== undefined &&
+    source.DISPATCH_CONFIG_STORE === "postgres" &&
+    readsConfigAtStart(spec.name, parsed.rest)
+  ) {
     try {
       const sql = await (io.connectConfigStore ?? connectConfigStore)(env.DATABASE_URL);
       const changed = await hydrateConfig(root, sql, log);
