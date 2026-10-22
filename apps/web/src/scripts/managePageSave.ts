@@ -10,6 +10,7 @@ import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import { sendToast } from "./toastEvent";
 
 const KEY = "dispatch:narrate-passphrase";
 
@@ -398,10 +399,8 @@ function tellLost(held: Held, from: SaveContext["from"]): void {
   const page = globalThis.document;
   if (!page || page.querySelector?.("[data-bar]")) return;
   const message = lostText(from?.name);
-  // By event (TOAST_EVENT in sheets/toastStore.ts): importing the toast's store here would split it
-  // out of the sheets' chunk, a cost on every page's first load.
-  const toast = (detail: unknown): boolean =>
-    page.dispatchEvent(new CustomEvent("dispatch:toast", { detail }));
+  // By event (toastEvent.ts), so the toast's store stays in the sheets' chunk.
+  const toast = (detail: object): void => sendToast(detail, page);
   toast({
     message,
     kind: "error",

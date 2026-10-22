@@ -44,13 +44,12 @@ import {
   type VoteOp,
   type VoteState,
 } from "../lib/storyVotes";
+import { sendToast } from "./toastEvent";
 
 /** How long a block waits, with Undo in the toast, before it is sent (autosave.ts' UNDO_MS). */
 const UNDO_MS = 5000;
 /** Where the settings pages keep a remembered passphrase (managePageSave.ts). */
 const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
-/** The toast's event (sheets/toastStore.ts), spelled out so this code does not load the store. */
-const TOAST_EVENT = "dispatch:toast";
 /** How many times one request waits out the server's gap before it is a failure (managePageSave.ts). */
 const MAX_WAITS = 6;
 
@@ -197,7 +196,7 @@ const blocks = new Map<string, Block>();
 const messages = new Map<string, string>();
 
 function toast(detail: object): void {
-  document.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail }));
+  sendToast(detail);
 }
 
 /** The outlets in the request on its way: too late for Undo. */

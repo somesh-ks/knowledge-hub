@@ -166,6 +166,7 @@ test.describe("service worker", () => {
     page,
     context,
   }) => {
+    await page.clock.install();
     await page.goto("/d/2026-10-05");
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.reload();
@@ -194,17 +195,27 @@ test.describe("service worker", () => {
       (window as unknown as { kept: boolean }).kept = true;
     });
     await ship();
-    const offer = page.locator(".toast").filter({ hasText: "New version available" });
-    // The return to the front, told again until the page listens (it does once the worker registers).
-    await expect
-      .poll(async () => {
-        await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-        return offer.isVisible();
-      })
-      .toBe(true);
+    // The offer: a status message that gains an action (a labelled button beside its icon Dismiss).
+    const status = page.getByRole("status");
+    const offer = status.getByRole("button").filter({ hasText: /\S/ });
+    // A return to the front, a minute past the last check, told again until the page listens
+    // (it does once the worker registers).
+    const comeBack = () =>
+      expect
+        .poll(async () => {
+          await page.clock.fastForward(61_000);
+          await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          return offer.isVisible();
+        })
+        .toBe(true);
+    await comeBack();
+    // Dismissed, it comes back on the next return while the site is still newer.
+    await status.getByRole("button", { name: "Dismiss" }).click();
+    await expect(offer).toBeHidden();
+    await comeBack();
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
     expect(await build()).not.toBe(deploy);
-    await offer.getByRole("button", { name: "Reload" }).click();
+    await offer.click();
     await expect.poll(() => build().catch(() => "")).toBe(deploy);
   });
 
