@@ -59,11 +59,14 @@ export async function connectConfigStore(databaseUrl: string): Promise<SqlClient
 
 /**
  * Whether a command reads the owner's config at its start: a whole run or the gate stage that opens
- * one (the later stages of the same run keep what the gate copied), and the weekly podcast.
+ * one (the later stages of the same run, and its failure record, keep what the gate copied), and the
+ * weekly podcast.
  */
 export function readsConfigAtStart(command: string, argv: readonly string[]): boolean {
   if (command === "podcast") return true;
   if (command !== "run") return false;
+  // A run's failure record commits after the gate copied the store; it must leave the gate's note.
+  if (argv.includes("--record-failed")) return false;
   const at = argv.findIndex((arg) => arg === "--stage" || arg.startsWith("--stage="));
   if (at === -1) return true;
   const flag = argv[at] ?? "";

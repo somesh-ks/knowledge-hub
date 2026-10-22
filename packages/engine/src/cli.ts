@@ -219,10 +219,21 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     const storeUrl = configStoreUrl(env);
     // Noted before copying, so a copy that stops halfway still lets its commit carry the files it
     // wrote; a dry run commits nothing, so it notes nothing a later commit could misread.
-    await markCopiedFromStore(root, storeUrl !== null && !parsed.rest.includes("--dry-run")).catch(
-      () => {},
+    // A note that cannot be written leaves the files as committed: copied without it, they would
+    // make the guard refuse the run's whole commit.
+    const noted = await markCopiedFromStore(
+      root,
+      storeUrl !== null && !parsed.rest.includes("--dry-run"),
+    ).then(
+      () => true,
+      (error: unknown) => {
+        log.warn(
+          `config store skipped, the run's note cannot be written: ${firstLine(String(error))}`,
+        );
+        return false;
+      },
     );
-    if (storeUrl !== null) {
+    if (storeUrl !== null && noted) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
         const changed = await hydrateConfig(root, sql, log);

@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { CommandContext, CommandRun } from "../context.js";
 import { type BotIdentity, type CommitOutcome, commitAndPush } from "../git/commit.js";
 import { createGitRunner, gitOutput } from "../git/runGit.js";
-import { isBehindRemote, isTreeClean } from "../git/status.js";
+import { isAheadOfRemote, isBehindRemote, isTreeClean } from "../git/status.js";
 import { applyPatch, PreferencesPatch } from "../learn/patch.js";
 import {
   type ConfigDocument,
@@ -125,6 +125,11 @@ async function commitRefusal(root: string, push: boolean): Promise<string | null
   try {
     if (await isBehindRemote(root)) {
       return "The branch is behind its remote. Run git pull --ff-only first.";
+    }
+    // A learn whose push failed left its commit here: a rerun would find nothing to commit and say
+    // so as if all were well, while the commit never reached the remote.
+    if (await isAheadOfRemote(root)) {
+      return "The branch has commits its remote does not (a push that failed?). Run git push first.";
     }
   } catch (error) {
     const detail = error instanceof Error ? (error.message.split("\n")[0] ?? "") : "";

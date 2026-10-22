@@ -65,6 +65,9 @@ describe("readsConfigAtStart", () => {
     [["--json", "--stage", "fetch"], false],
     [["--stage=write", "--feedback", "x"], false],
     [["--delete", "2026-10-22"], true],
+    // The bug: the failure record of a run, made after the gate copied the store, rewrote the gate's
+    // note (removed it, in a step with no store settings), so the guard refused the record.
+    [["--record-failed", "--json"], false],
     [[], true],
   ])("run %j -> %s", (argv, expected) => {
     expect(readsConfigAtStart("run", argv)).toBe(expected);

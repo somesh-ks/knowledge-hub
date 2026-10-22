@@ -561,7 +561,10 @@ describe("dispatch learn --commit", () => {
     expect(await withStore(["--commit"])).toBe(1);
     expect(weight()).toBe(before);
     await rm(join(repo.remote, "hooks", "pre-receive"));
-    git(repo.root, "reset", "-q", "--hard", "origin/main");
+    // A rerun says the earlier commit is still unpushed rather than report success without it.
+    expect(await withStore(["--commit"])).toBe(1);
+    expect(weight()).toBe(before);
+    git(repo.root, "push", "-q", "origin", "main");
     expect(await withStore(["--commit"])).toBe(0);
     expect(weight()).toBe(0.95);
     expect(stored.version).toBe(2);

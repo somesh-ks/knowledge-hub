@@ -44,19 +44,26 @@ export type ApplyToDocumentsResult =
   /** `retryable`: the network failed or the time ran out, not the edit; the caller answers 503. */
   | { ok: false; message: string; retryable?: boolean };
 
-/**
- * Per request of the feed lookup in `source.add`; one attempt, no retries. Discovery asks for longer
- * (12 s for the page, 10 s for each probe) and a retry, which would outrun the deadline below, so
- * every request is held to this (D149).
- */
-const LOOKUP_TIMEOUT_MS = 4000;
 /** The whole edit, well inside the function's 20 s (functionLimits.mjs). */
 export const APPLY_DEADLINE_MS = 12_000;
+/** A lookup that names no timeout of its own; discovery names its own (12 s a page, 10 s a probe). */
+const LOOKUP_TIMEOUT_MS = 10_000;
+/** Kept back from the deadline, so the last request's failure is still seen before it. */
+const DEADLINE_MARGIN_MS = 250;
 
-const lookupOptions = (options: RequestOptions | undefined): RequestOptions => ({
+/**
+ * Discovery keeps its own timeouts and retry, so a slow page still gets its feed found, but no
+ * request may wait past the edit's deadline (D149): what is left of it caps each one.
+ */
+const lookupOptions = (
+  options: RequestOptions | undefined,
+  deadlineAt: number,
+): RequestOptions => ({
   ...options,
-  retries: 0,
-  timeoutMs: Math.min(options?.timeoutMs ?? LOOKUP_TIMEOUT_MS, LOOKUP_TIMEOUT_MS),
+  timeoutMs: Math.max(
+    1,
+    Math.min(options?.timeoutMs ?? LOOKUP_TIMEOUT_MS, deadlineAt - Date.now() - DEADLINE_MARGIN_MS),
+  ),
 });
 
 /**
@@ -64,7 +71,11 @@ const lookupOptions = (options: RequestOptions | undefined): RequestOptions => (
  * A 4xx or a host that does not resolve (ENOTFOUND, however deep in the cause chain undici puts it)
  * is the address's fault and stays a refusal.
  */
-function watchNetwork(http: HttpClient, failed: { network: boolean }): HttpClient {
+function watchNetwork(
+  http: HttpClient,
+  failed: { network: boolean },
+  deadlineAt: number,
+): HttpClient {
   const watch = <T>(call: Promise<T>): Promise<T> =>
     call.catch((error: unknown) => {
       const status = (error as { status?: unknown }).status;
@@ -74,9 +85,10 @@ function watchNetwork(http: HttpClient, failed: { network: boolean }): HttpClien
       throw error;
     });
   return {
-    fetchText: (url, options) => watch(http.fetchText(url, lookupOptions(options))),
-    getJson: (url, options) => watch(http.getJson(url, lookupOptions(options))),
-    postJson: (url, body, options) => watch(http.postJson(url, body, lookupOptions(options))),
+    fetchText: (url, options) => watch(http.fetchText(url, lookupOptions(options, deadlineAt))),
+    getJson: (url, options) => watch(http.getJson(url, lookupOptions(options, deadlineAt))),
+    postJson: (url, body, options) =>
+      watch(http.postJson(url, body, lookupOptions(options, deadlineAt))),
   };
 }
 
@@ -101,13 +113,16 @@ export async function applyOpsToDocuments(
     );
   });
   try {
-    return await Promise.race([applyNow(input), late]);
+    return await Promise.race([applyNow(input, Date.now() + deadlineMs), late]);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function applyNow(input: ApplyToDocumentsInput): Promise<ApplyToDocumentsResult> {
+async function applyNow(
+  input: ApplyToDocumentsInput,
+  deadlineAt: number,
+): Promise<ApplyToDocumentsResult> {
   const failed = { network: false };
   const parsed = parseConfigOps(input.ops);
   if (!parsed.success) {
@@ -124,7 +139,10 @@ async function applyNow(input: ApplyToDocumentsInput): Promise<ApplyToDocumentsR
     const before = await readBundle(root);
     const http =
       input.discover?.http ?? createHttpClient({ retries: 0, timeoutMs: LOOKUP_TIMEOUT_MS });
-    const discover: DiscoverDeps = { ...input.discover, http: watchNetwork(http, failed) };
+    const discover: DiscoverDeps = {
+      ...input.discover,
+      http: watchNetwork(http, failed, deadlineAt),
+    };
     const outcomes: OpOutcome[] = [];
     let current = before;
     for (const op of parsed.data as ParsedConfigOp[]) {
