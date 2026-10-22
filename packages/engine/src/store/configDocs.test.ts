@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Logger } from "../context.js";
-import { hydrateConfig, type SqlClient } from "./configDocs.js";
+import { hydrateConfig, readsConfigAtStart, type SqlClient } from "./configDocs.js";
 
 const quiet: Logger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -47,5 +47,21 @@ describe("hydrateConfig", () => {
     expect(await exists(join(root, ".env"))).toBe(false);
     expect(await exists(join(root, `../${basename(root)}-outside.json`))).toBe(false);
     expect(await exists(join(root, "Digests/2026/x.json"))).toBe(false);
+  });
+});
+
+describe("readsConfigAtStart", () => {
+  // The bug: run.yml runs each stage as its own process. If the gate stage is missed, a run builds
+  // from the stale committed files without a word; if a later stage copies again, one run mixes two
+  // versions of the topics (an edit landing between fetch and write).
+  it.each([
+    [["--stage", "gate", "--json"], true],
+    [["--stage=gate"], true],
+    [["--json", "--stage", "fetch"], false],
+    [["--stage=write", "--feedback", "x"], false],
+    [["--delete", "2026-10-22"], true],
+    [[], true],
+  ])("run %j -> %s", (argv, expected) => {
+    expect(readsConfigAtStart("run", argv)).toBe(expected);
   });
 });
