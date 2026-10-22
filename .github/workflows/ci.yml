@@ -87,7 +87,8 @@ jobs:
             echo "npm audit failed: $out"
             exit 1
           fi
-          jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | "\(.value.severity): \(.key)"' <<<"$out"
+          # The advisories themselves, not every package the severity flows up to.
+          jq -r '[.vulnerabilities[].via[] | objects | select(.severity == "high" or .severity == "critical") | "\(.severity): \(.name): \(.title) \(.url)"] | unique[]' <<<"$out"
           exit 1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.diff.outputs.code == 'true'

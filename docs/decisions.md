@@ -147,7 +147,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D133 | The second owner round: Up next is a player tab beside Stories (transcript only under the playing story; full-bleed tabs on a phone, the navigation control on a desktop); Settings in tonal card groups with About and a change log; one search field and one chip style everywhere, held by style rules; a flat navigation control; topic emoji from Jev; Other hidden; no Daily type; a Library bottom sheet on phones; plain outline icons | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
 | D135 | No batch API for the scheduled runs | active |
-| D136 | One model orchestrator: every model call goes through `config/models.json` (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite only; never Opus), each step with a fallback chain and the newest model of each family resolved per run; Nebius, temperature and the Settings model select are gone | active; replaces D46, D58, D113, D130 |
+| D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
 | D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
@@ -161,6 +161,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; stage 1 in part |
+| D151 | CI fails on a high advisory; path-to-regexp overridden | active |
 
 ---
 
@@ -1642,3 +1643,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Read path: `GET /api/config` returns, with each version, only what the built pages already publish (topics, the added sources, the schedule, the weights and type mix, the blocked outlets), so it needs no passphrase; votes, opens, the learning history, the writer settings, the queries and the suggestions are never served. Pages do not read it yet (stage 1d): they still paint the build-time copy only.
 - Do not switch the store on in Vercel until the pages read it: without that, an edit saved to the database looks undone once the 3-minute pending overlay ends, and a toggle sent from that stale page can revert it.
 - Also before switching on (review round 2, 2026-10-22): the Vercel cron reads `schedule.json` from git, a run old; `source.add` reads an unknown host (`ENOTFOUND` under undici's `fetch failed`) as a retryable 503, one probe's timeout marks the whole batch retryable, and the 4 s lookup timeout does not reach `discoverFeed`; `learn` writes the store before its commit (a failed push then a rerun moves a weight twice) and falls back to the file alone (the next run reverts it); a run that copies config at its gate can hit a rebase conflict with a `learn` push, and the commit guard reads the switch at commit time, not from the gate; a version conflict should be retried on the server once, not answered 409; `GET` should select only the public paths and cache briefly.
+
+## D151: CI fails on a high advisory in what ships; path-to-regexp is held at 6.3.0
+
+- Date: 2026-10-22
+- Decision: the CI audit step runs `npm audit --omit=dev --audit-level=high` (was `critical`). The one high advisory, GHSA-9wv6-86v2-598j in `path-to-regexp` 6.1.0 (an exact pin of `@vercel/routing-utils` under `@astrojs/vercel`), is answered by a root `overrides` entry that holds it at 6.3.0, the patched release of the same major.
+- Why: hardening.md recommended it; Dependabot cannot fix an exact pin, and the upstream fix was a major of the adapter.
+- Cost: routing-utils builds route regexes with 6.1.0 on purpose and compiles each with 6.3.0 only to log `[vc] PATH TO REGEXP PATH DIFF`; with both at 6.3.0 that warning can never fire, and a pattern with two parameters in one segment (`/:a-:b`) compiles differently. Today's output is identical (`.vercel/output/config.json` and every `.vc-config.json`, 39 routes) and the unoverridden build logged no diff. After a change to `vercel.json`'s sources or the adapter, diff `config.json` against `main`. A new high advisory with no fix in range turns every PR red until it is answered.
+- Revisit if: `@vercel/routing-utils` pins a patched `path-to-regexp` (drop the override), or a high advisory has no fix to take (decide then: an override, or accept it here by name).

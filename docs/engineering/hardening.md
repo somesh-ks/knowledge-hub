@@ -77,10 +77,11 @@ Recommend: record the sized target in the digest and compare (medium).
 - Secrets: gitleaks in CI; the logger redacts key values; `/api/report` keeps paths only.
 - Dependencies: `npm audit` high for `vite` 8.3.2 (dev server; now 8.3.3 in the lockfile) and
   `path-to-regexp` under `@astrojs/vercel` (build-time routing). The root `overrides` holds
-  `@vercel/routing-utils`' `path-to-regexp` at 6.3.0 (patched, same major; its own exact pin is
-  6.1.0, and it already ships 6.3.0 beside it); the adapter's emitted routes
-  (`.vercel/output/config.json`) and function configs were identical before and after. CI now fails on a high advisory
-  (`--audit-level=high`). Drop the override once `@vercel/routing-utils` pins a patched version.
+  `@vercel/routing-utils`' `path-to-regexp` at 6.3.0 (patched, same major) over its exact pin
+  of 6.1.0 (D151). The emitted routes (`.vercel/output/config.json`) and function configs were
+  identical before and after, but the library's own diff warning between the two versions is now
+  silent: diff `config.json` after a change to `vercel.json`'s sources. CI fails on a high
+  advisory (`--audit-level=high`). Drop the override once routing-utils pins a patched version.
   Dependabot PRs auto-merge.
 
 **Cost.** Before: the ledger and `dispatch costs`, the Speechify 90% stop, Firecrawl's ceiling.
