@@ -160,12 +160,20 @@
 }
 
 /* An open Listen in list rises over the search block that sticks under the app bar below 64rem
-   (.source-filter[data-chips], one under the header): the card that holds it is lifted to the
-   header's level while it is open, so the list's last row, Catch up, is never drawn under the
-   search (2026-10-22). The list closes on any press outside it. */
-.topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
-  position: relative;
-  z-index: var(--z-header);
+   (.source-filter[data-chips], one under the header), so its last row, Catch up, is never drawn
+   under the search (2026-10-22). While the list is open the card takes the search's level and the
+   search steps one below it; both stay under the app bar, so a page scrolled with the list open
+   slides under the bar as before. */
+@media (width < 64rem) {
+  .topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
+    position: relative;
+    z-index: calc(var(--z-header) - 1);
+  }
+
+  .topic-page:has(.topic-card .multiselect-trigger[aria-expanded="true"])
+    .source-filter[data-chips] {
+    z-index: calc(var(--z-header) - 2);
+  }
 }
 
 /* ------------------------------------------------------------------ Sources or Preferences */
