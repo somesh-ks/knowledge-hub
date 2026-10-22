@@ -177,7 +177,7 @@ export async function writeStage(
 
 interface PassResult {
   report: PassReport;
-  /** Ids the pass will publish. */
+  /** Ids the pass wrote, spares included: a later pass of the run leaves them all. */
   kept: string[];
 }
 
@@ -232,7 +232,7 @@ async function writePass(
     const item = byId.get(entry.item_id);
     if (!item) continue;
     if (claimed.has(item.id)) {
-      drop(item.id, "select", "already chosen for an earlier digest of this run");
+      drop(item.id, "select", "written for an earlier digest of this run");
       continue;
     }
     base.push(
@@ -286,7 +286,7 @@ async function writePass(
     })
   ).filter((candidate) => {
     if (!claimed.has(candidate.item.id)) return true;
-    drop(candidate.item.id, "select", "already chosen for an earlier digest of this run");
+    drop(candidate.item.id, "select", "written for an earlier digest of this run");
     return false;
   });
 
