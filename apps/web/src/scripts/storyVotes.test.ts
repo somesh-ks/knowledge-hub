@@ -228,7 +228,13 @@ describe("stopFailure", () => {
   it("names the cause and whether pressing again can help, and no two causes read alike", () => {
     const causes = [0, 429, 503, 400, 500];
     const failures = causes.map((status) => stopFailure("reveneau.com", status));
-    expect(failures.map((failure) => failure.retry)).toEqual(["now", "later", "later", "no", "later"]);
+    expect(failures.map((failure) => failure.retry)).toEqual([
+      "now",
+      "later",
+      "later",
+      "no",
+      "later",
+    ]);
     for (const failure of failures) expect(failure.message).toContain("reveneau.com");
     expect(new Set(failures.map((failure) => failure.message)).size).toBe(causes.length);
   });

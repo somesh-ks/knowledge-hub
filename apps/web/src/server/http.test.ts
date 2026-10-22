@@ -58,10 +58,10 @@ describe("answerWithRef", () => {
     ).toBe(true);
 
     const refused = await answerWithRef("api/x", async () => ({
-      status: 401,
-      body: { error: "wrong_passphrase" },
+      status: 400,
+      body: { error: "invalid_request" },
     }));
-    expect(await refused.json()).toEqual({ error: "wrong_passphrase" });
+    expect(await refused.json()).toEqual({ error: "invalid_request" });
     spy.mockRestore();
   });
 });

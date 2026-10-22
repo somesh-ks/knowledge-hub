@@ -151,12 +151,6 @@ describe("failureText", () => {
     );
     expect(failureText(500, {})).toBe("The server crashed before it could answer. Not saved yet.");
   });
-
-  it("never asks for the passphrase back in a message that is not about it", () => {
-    for (const status of [400, 429, 503, 0]) {
-      expect(failureText(status)).not.toMatch(/passphrase/i);
-    }
-  });
 });
 
 describe("pack", () => {

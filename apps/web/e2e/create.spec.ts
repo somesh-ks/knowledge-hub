@@ -218,9 +218,7 @@ test.describe("the Create page", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
-  test("sends the choices, then follows the run to the end", async ({
-    page,
-  }) => {
+  test("sends the choices, then follows the run to the end", async ({ page }) => {
     await page.clock.install();
     const mock = await mockPodcast(page, 202, {
       status: 202,

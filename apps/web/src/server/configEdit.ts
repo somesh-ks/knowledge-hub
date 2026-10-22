@@ -26,7 +26,7 @@ import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
- * POST /api/config: check the passphrase, check the cooldown against GitHub, dispatch config.yml with
+ * POST /api/config: check the edit, check the cooldown against GitHub, dispatch config.yml with
  * the edit as its one input. Built like handleGenerate, and for the same reason: everything with a
  * side effect is a parameter, so the whole flow is tested with fakes and no network.
  *

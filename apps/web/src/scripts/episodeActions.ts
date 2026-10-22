@@ -21,7 +21,6 @@ const leaving = new WeakSet<HTMLDialogElement>();
 /** The row a dialog is open for: the Library shares one dialog between all its rows. */
 const rootOf = new WeakMap<HTMLDialogElement, HTMLElement>();
 
-
 function build(kind: Kind, root: HTMLElement): HTMLDialogElement | null {
   const template = document.getElementById(
     `episode-${kind === "delete" ? "delete" : "regenerate"}-template`,

@@ -11,7 +11,6 @@ import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 import { sendToast } from "./toastEvent";
 
-
 export const SAVING = "Saving";
 /** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
 export const SAVED = "Saved.";
