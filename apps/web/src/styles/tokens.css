@@ -408,6 +408,12 @@
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
+  --card-padding: var(--space-4);
+  --card-inset: var(--space-2);
+  --card-radius: var(--radius-xl);
+  --card-inner-radius: var(--radius-lg);
+  --card-chip-radius: var(--radius-sm);
+  --card-chip-bg: var(--color-surface-raised);
 
   color-scheme: light;
 }
@@ -459,6 +465,7 @@
     --shadow-raised: var(--shadow-raised-dark);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
+    --card-chip-bg: var(--color-grey-750);
     color-scheme: dark;
   }
 }
@@ -509,6 +516,7 @@
   --shadow-raised: var(--shadow-raised-dark);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
+  --card-chip-bg: var(--color-grey-750);
   color-scheme: dark;
 }
 
