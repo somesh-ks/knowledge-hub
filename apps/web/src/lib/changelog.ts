@@ -11,6 +11,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.9",
+    date: "2026-10-22",
+    description:
+      "Visits are counted without cookies or anything that identifies you, shared links say they were shared, and Settings has a Privacy page that says what is counted, kept and sent.",
+  },
+  {
     version: "0.8",
     date: "2026-10-21",
     description:

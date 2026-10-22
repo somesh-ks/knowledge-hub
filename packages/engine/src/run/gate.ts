@@ -1,6 +1,6 @@
-import { type DigestKind, scheduleZone } from "@dispatch/core";
+import { type DigestKind, type LastRunFile, scheduleZone } from "@dispatch/core";
 import { allocateDigestId } from "../gate/allocateDigestId.js";
-import { decideRun } from "../gate/decideRun.js";
+import { decideRun, type RunDecision } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
 import { loadSchedule } from "../schedule/store.js";
 import { listDigestIds } from "../state/digestIds.js";
@@ -19,16 +19,12 @@ export function parseSince(since: string, now: Date): Date {
   return from;
 }
 
-/**
- * The gate: decide whether a run is due and which digests it produces, then write the plan every
- * later stage reads. A regular or on-demand digest comes first; at the weekly day and hour of
- * config/schedule.json (in its time zone) the weekly pass follows it, and weekly mode runs the weekly
- * pass alone. `due` is true when there is
- * at least one pass, so a weekly-only run still starts the later workflow steps.
- */
-export async function gateStage(deps: RunDeps, options: RunOptions): Promise<GateReport> {
-  if (options.replace !== undefined) return replaceGate(deps, options, options.replace);
-  const now = deps.now();
+/** What the gate decides at `now`: the digest kinds due, in order (regular or on-demand, then weekly). */
+export async function decideKinds(
+  deps: RunDeps,
+  options: Pick<RunOptions, "mode" | "force">,
+  now: Date,
+): Promise<{ lastRun: LastRunFile; decision: RunDecision; kinds: DigestKind[] }> {
   const [lastRun, schedule] = await Promise.all([readLastRun(deps.root), loadSchedule(deps.root)]);
   const decision = decideRun({
     now,
@@ -39,12 +35,25 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     weekly: schedule.weekly,
     zone: scheduleZone(schedule.timezone),
   });
-  const since = options.since === undefined ? undefined : parseSince(options.since, now);
-  const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;
-
   const kinds: DigestKind[] = [];
   if (decision.due) kinds.push(options.mode === "on-demand" ? "on-demand" : "regular");
   if (decision.runWeekly) kinds.push("weekly");
+  return { lastRun, decision, kinds };
+}
+
+/**
+ * The gate: decide whether a run is due and which digests it produces, then write the plan every
+ * later stage reads. A regular or on-demand digest comes first; at the weekly day and hour of
+ * config/schedule.json (in its time zone) the weekly pass follows it, and weekly mode runs the weekly
+ * pass alone. `due` is true when there is
+ * at least one pass, so a weekly-only run still starts the later workflow steps.
+ */
+export async function gateStage(deps: RunDeps, options: RunOptions): Promise<GateReport> {
+  if (options.replace !== undefined) return replaceGate(deps, options, options.replace);
+  const now = deps.now();
+  const { lastRun, decision, kinds } = await decideKinds(deps, options, now);
+  const since = options.since === undefined ? undefined : parseSince(options.since, now);
+  const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;
 
   // Ids are allocated against what is on disk and against each other, so two passes never collide
   // and a second run on the same day takes the next free suffix.

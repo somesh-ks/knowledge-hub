@@ -159,8 +159,28 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
   }
 }
 
+let persistAsked = false;
+
+/**
+ * Asks the browser, once per page, to keep this site's storage under pressure: until it agrees the
+ * downloads are best effort, and a browser short of space evicts them with nothing said. Never
+ * awaited, and every failure is swallowed (the API is missing in some browsers, and the call can
+ * reject or be refused): the download goes on either way.
+ */
+function askToPersist(): void {
+  if (persistAsked) return;
+  persistAsked = true;
+  const storage = globalThis.navigator?.storage;
+  if (typeof storage?.persisted !== "function" || typeof storage.persist !== "function") return;
+  Promise.resolve()
+    .then(() => storage.persisted())
+    .then((kept) => (kept ? kept : storage.persist()))
+    .catch(() => false);
+}
+
 /** Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. */
 export async function download(request: DownloadRequest): Promise<void> {
+  askToPersist();
   const cache = await caches.open(AUDIO_CACHE);
   if (request.kind === "episode") {
     await downloadEpisode(cache, request);

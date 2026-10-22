@@ -4,6 +4,7 @@ import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { DELETE_POLICY, evaluateLimits } from "./limits";
 import { cleanFeedback } from "./podcast";
+import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
@@ -21,6 +22,8 @@ const RUN_LOOKUP_ATTEMPTS = 3;
 const RUN_LOOKUP_DELAY_MS = 1500;
 
 export interface GenerateDeps {
+  /** The shared per-minute burst cap (D150): 0 to go ahead, else the seconds to wait. */
+  burst?: () => Promise<number>;
   env: ServerEnv;
   fetch: FetchLike;
   now: () => number;
@@ -161,6 +164,10 @@ export async function handleGenerate(
     await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
+
+  // The shared burst cap (D150), taken only by a request that passed the checks above.
+  const burstWait = (await deps.burst?.()) ?? 0;
+  if (burstWait > 0) return cooldownRefusal(burstWait);
 
   const github = createGitHubClient(config, deps.fetch);
   try {

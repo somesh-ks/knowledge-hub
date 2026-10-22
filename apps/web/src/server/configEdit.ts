@@ -7,6 +7,7 @@ import {
   SOURCE_FORMATS,
   scheduleZone,
 } from "@dispatch/core";
+
 import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
@@ -26,6 +27,7 @@ import {
   RUN_CRON_VARIABLE,
 } from "./github";
 import type { ApiResult } from "./http";
+import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
@@ -538,9 +540,14 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
 
+  // The shared burst cap (D150), taken only by a request that passed the checks above.
+  const burstWait = (await deps.burst?.()) ?? 0;
+  if (burstWait > 0) return cooldownRefusal(burstWait);
+
   const storeUrl = configStoreUrl(deps.env);
   if (storeUrl !== null) {
-    // Loaded only with the store on, so the function never loads the driver while it is off.
+    // Loaded only with the store on. The driver itself also loads for the rate-limit counter
+    // whenever DATABASE_URL is set (D150), store on or off.
     const { saveToStore } = await import("./configStore");
     return saveToStore(request, storeUrl, config, deps);
   }

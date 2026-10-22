@@ -35,3 +35,18 @@ export function recordRun(lastRun: LastRunFile, input: RecordRunInput): LastRunF
   }
   return next;
 }
+
+/**
+ * The next last-run.json after a run whose job died before the commit stage (an install that
+ * failed, a crash): each due kind's slot reads `failed` at `at`, so `health` reports `run_failed`
+ * and the gate retries it. The fetch window and the cover stay as they were.
+ */
+export function recordFailure(
+  lastRun: LastRunFile,
+  kinds: readonly DigestKind[],
+  at: string,
+): LastRunFile {
+  const next: LastRunFile = { ...lastRun };
+  for (const kind of kinds) next[SLOT_BY_KIND[kind]] = { at, outcome: "failed", items: 0 };
+  return next;
+}

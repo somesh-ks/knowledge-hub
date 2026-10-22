@@ -13,6 +13,7 @@ import { run as validateCommand } from "../src/commands/validate.js";
 import { Selection, WrittenFile } from "../src/curate/selectionFile.js";
 import { PoolFile, writePool } from "../src/fetch/pool.js";
 import type { Judge } from "../src/judge/types.js";
+import { collectHealth } from "../src/ops/health.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
 import {
@@ -131,6 +132,43 @@ describe("concurrent writers and push handling", () => {
       "2026-10-07-2",
     );
   });
+});
+
+// A job that died after the gate and before Commit (an install, a crash) recorded nothing, so
+// health read the briefing before it as the last run: run_died alerted and nothing healed.
+describe("a run that died before the commit stage", () => {
+  it(
+    "records failed for what was due, so health reports run_failed and not run_died",
+    LONG,
+    async () => {
+      const world = makeWorld(repo.root, { now: WED });
+      expect((await runStage(world, { stage: "gate" })).code).toBe(0);
+      const recorded = await runStage(world, { recordFailed: true });
+      expect(recorded.code).toBe(0);
+      expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
+        "chore(state): run 2026-10-07 failed",
+      );
+      const report = await collectHealth({
+        root: repo.root,
+        now: new Date(WED.getTime() + 3_600_000),
+        monthlyChars: 500_000,
+        ceilingUsd: 50,
+        site: null,
+        runs: [
+          {
+            databaseId: 7,
+            status: "completed",
+            conclusion: "failure",
+            createdAt: new Date(WED.getTime() - 60_000).toISOString(),
+            displayTitle: "run",
+          },
+        ],
+      });
+      const faults = report.findings.filter((each) => each.severity === "fault");
+      expect(faults.map((each) => each.code)).toContain("run_failed");
+      expect(faults.map((each) => each.code)).not.toContain("run_died");
+    },
+  );
 });
 
 describe("grounding and validation", () => {

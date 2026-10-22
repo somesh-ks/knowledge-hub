@@ -45,6 +45,7 @@ import {
 import { handleNarrationMarks, MARKS_CACHE_CONTROL } from "./narrateMarks";
 import { segmentHash, segmentPath } from "./narrateSegments";
 import { usageKey } from "./narrationState";
+import { burstCap, createSharedLimiter } from "./rateLimit";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const HOUR = 3_600_000;
@@ -693,12 +694,30 @@ describe("POST /api/narrate: who may ask", () => {
     expect(context.opened).toHaveLength(0);
   });
 
-  it("answers 400 for a request from another origin before checking the passphrase", async () => {
-    const verify = vi.fn(async () => true);
-    const context = setup({ overrides: { verifyPassphrase: verify } });
-    const result = await handleNarrate(input(body(), "https://evil.example"), context.deps);
-    expect(result.status).toBe(400);
+  // The burst cap is shared by every visitor (D150): a request another site sends, or one that fails
+  // the body or passphrase check, must not use a slot, or a loop elsewhere would hold the owner's
+  // minute full. One past the cap is refused before the store is opened, so a flood reads nothing.
+  it("answers another origin before the passphrase, takes a burst slot only once every check passes, and refuses past it before the store", async () => {
+    const verify = vi.fn(verifyPassphrase);
+    const limiter = createSharedLimiter({ databaseUrl: undefined, now: () => NOW });
+    const context = setup({
+      overrides: { verifyPassphrase: verify, burst: burstCap("narrate", 1, limiter, () => NOW) },
+    });
+    const segment = body({ segment: "intro" });
+    const elsewhere = await handleNarrate(input(segment, "https://evil.example"), context.deps);
+    expect(elsewhere.status).toBe(400);
     expect(verify).not.toHaveBeenCalled();
+    expect((await post(context, "not json")).status).toBe(400);
+    const wrong = body({ segment: "intro", passphrase: "not the passphrase" });
+    expect((await post(context, wrong)).status).toBe(401);
+
+    expect((await post(context, segment)).status).toBe(200);
+    const opened = context.opened.length;
+    expect(await post(context, segment)).toMatchObject({
+      status: 429,
+      body: { error: "cooldown" },
+    });
+    expect(context.opened).toHaveLength(opened);
   });
 
   it("answers 401 with a constant extra delay for a wrong passphrase", async () => {
