@@ -1,7 +1,23 @@
 import { fallbackEmoji } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import type { JevClientLike } from "../judge/jev.js";
-import { EmojiPicker } from "./pickEmoji.js";
+import { createEmojiBackup, EmojiPicker } from "./pickEmoji.js";
+
+// One token budget for a warm instance's whole life ran dry after a few dozen calls, and every later
+// topic lost its backup emoji.
+describe("createEmojiBackup", () => {
+  it("keeps answering after many calls on one instance", async () => {
+    const reply = {
+      candidates: [{ finishReason: "STOP", content: { parts: [{ text: '{"emoji":"🧠"}' }] } }],
+      usageMetadata: { promptTokenCount: 5_000, candidatesTokenCount: 5 },
+    };
+    const doFetch = (async () => new Response(JSON.stringify(reply))) as unknown as typeof fetch;
+    const backup = createEmojiBackup("key", doFetch);
+    for (let call = 0; call < 40; call++) {
+      expect(await backup({ name: "Neuroscience", about: "brains" })).toBe("🧠");
+    }
+  });
+});
 
 describe("EmojiPicker", () => {
   // The owner added "India" and got no flag: the choice list has none. A place is answered from the

@@ -117,16 +117,17 @@ const quietLog = { info() {}, warn() {}, error() {}, debug() {} };
 export function createEmojiBackup(geminiKey: string, doFetch?: typeof fetch): EmojiBackup {
   const family = backupEntry?.family ?? "gemini-flash-lite";
   const id = routing.families[family]?.fallback_id ?? "";
-  const router = createModelRouter({
-    routing,
-    resolve: async () => ({ [family]: { family, id, source: "fallback" } }),
-    env: { GEMINI_API_KEY: geminiKey } as never,
-    budget: new TokenBudget(100_000),
-    log: quietLog as never,
-    fetch: doFetch,
-    retry: { retries: 0 },
-  });
   return async (topic) => {
+    // A budget per call: one shared across a warm instance's life would run out after a few hundred.
+    const router = createModelRouter({
+      routing,
+      resolve: async () => ({ [family]: { family, id, source: "fallback" } }),
+      env: { GEMINI_API_KEY: geminiKey } as never,
+      budget: new TokenBudget(100_000),
+      log: quietLog as never,
+      fetch: doFetch,
+      retry: { retries: 0 },
+    });
     const boundary = newBoundary();
     const result = await router.callModel("topic_emoji", {
       schema: BackupReply,
