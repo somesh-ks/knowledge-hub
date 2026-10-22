@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { digestRelPath, serializeDigestFile } from "@dispatch/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
+import { checkRunsDied } from "../src/ops/healthChecks.js";
 import { makeDigest } from "./audio-fixtures.js";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
@@ -169,6 +170,29 @@ describe("dispatch health", () => {
     expect(report.findings.some((each) => each.message.startsWith("config/topics.json"))).toBe(
       true,
     );
+  });
+
+  // A dry run, a delete or a cancelled press writes no record, and read as died, starting a paid run.
+  it("does not count a dry run, a delete or a cancelled run as one that died", () => {
+    const run = (databaseId: number, conclusion: string, displayTitle: string) => ({
+      databaseId,
+      status: "completed",
+      conclusion,
+      createdAt: "2026-10-21T07:13:00Z",
+      displayTitle,
+    });
+    const faults: string[] = [];
+    const sink = { fault: (code: string) => faults.push(code), warn: () => {}, passed: [] };
+    const records = [{ at: "2026-10-20T07:13:00Z" }];
+    const quiet = [
+      run(1, "failure", "dry run"),
+      run(2, "failure", "delete 2026-10-20"),
+      run(3, "cancelled", "run"),
+    ];
+    checkRunsDied(records, quiet, NOW, sink);
+    expect(faults).toEqual([]);
+    checkRunsDied(records, [...quiet, run(4, "failure", "run")], NOW, sink);
+    expect(faults).toEqual(["run_died"]);
   });
 
   // Real phones were never measured: a slow deploy read as fine while CI's bundle size held.

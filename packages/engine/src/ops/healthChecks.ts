@@ -156,24 +156,30 @@ export async function checkEpisodes(
   }
 }
 
-/** One run of run.yml, as `gh run list --json databaseId,status,conclusion,createdAt,event` lists it. */
+/**
+ * One run of run.yml, as `gh run list --json databaseId,status,conclusion,createdAt,event,displayTitle`
+ * lists it. run.yml names a briefing run "run", a dry run "dry run" and a delete "delete <id>".
+ */
 export interface WorkflowRun {
   databaseId: number;
   status: string;
   conclusion: string | null;
   createdAt: string;
   event?: string;
+  displayTitle?: string;
 }
 
 /** A run older than this that died is left to `run_overdue`: the next run has had its chance. */
 export const RUN_DIED_WINDOW_MS = 3 * DAY_MS;
-const DIED = new Set(["failure", "cancelled", "timed_out", "startup_failure"]);
+/** Not `cancelled`: a press that collapsed into the pending run, or one the owner stopped. */
+const DIED = new Set(["failure", "timed_out", "startup_failure"]);
 
 /**
  * `run_died`: a run.yml run that ended badly with no run record written after it started. A run
  * that fails inside the engine records `failed` (and reads as `run_failed`); one that dies before
  * (install, a timeout, a cancel, a crash past the engine's own catch) wrote nothing, so the last
- * record still reads as the run before. Nothing is said while a run is under way.
+ * record still reads as the run before. Only a briefing run counts: a dry run or a delete never
+ * writes a record, and healing starts a paid run. Nothing is said while a run is under way.
  */
 export function checkRunsDied(
   records: ReadonlyArray<{ at: string } | null>,
@@ -190,6 +196,7 @@ export function checkRunsDied(
     .filter(
       (run) =>
         DIED.has(run.conclusion ?? "") &&
+        (run.displayTitle ?? "run") === "run" &&
         now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS &&
         Date.parse(run.createdAt) > recorded,
     )

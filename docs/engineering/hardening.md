@@ -23,7 +23,7 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | A stub story (a summary of a few words) | warning `story_short` (under a third of the writer's minimum) | none: rewrite or regenerate |
 | A critical advisory in what ships | CI `secrets` job: `npm audit --omit=dev --audit-level=critical` | Dependabot PRs |
 | Client errors and CSP violations on a phone | `/api/report` logs `[client-fault]` lines (path only, 30 a minute per instance) | none: read the Vercel log |
-| A run that died before it recorded an outcome (install, timeout, cancel) | `run_died`: a run.yml run in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that ended badly in the last 3 days with no run record after it started | one scheduled run, as for `run_failed` |
+| A run that died before it recorded an outcome (install, timeout, crash) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a cancelled run is not counted | one scheduled run, as for `run_failed` |
 | A broken episode | `episode_broken`: every Podcasts/ file parses and the shared reader narrates every turn; online, the newest settled episode's first segment has readable word marks once its audio is stored (`episode_unnarrated` warns when it is not stored) | none |
 | A config file that stopped parsing | `config_invalid`: doctor's offline config checks, `config/models.json`, and the core schemas of topics, schedule, prices, the catalogue and `sources.user.json` | none |
 | Slow pages on real phones | warning `perf_regression`: the last 24 hours' p75 of LCP, INP or CLS past web.dev's good (2.5 s, 200 ms, 0.1) or 25% past the six days before (and by a floor), from 5 page loads | none |
@@ -112,7 +112,7 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 
 | Aspect | Detector | Runs in | Self-heal | Gap |
 | --- | --- | --- | --- | --- |
-| Reliability | `run_failed`, `run_overdue`, `run_died`, `audio_missing`, `audio_unreachable`, the push answer | `health.yml` daily; every engine push | one run, one `audio.yml`, rebase and retry | Vercel Cron unverified (D61); `run_died` sees only the last 20 runs and needs `gh` in `health.yml` |
+| Reliability | `run_failed`, `run_overdue`, `run_died`, `audio_missing`, `audio_unreachable`, the push answer | `health.yml` daily; every engine push | one run, one `audio.yml`, rebase and retry | Vercel Cron unverified (D61); `run_died` sees run.yml's last 3 days (200 runs at most) and needs `gh` in `health.yml` |
 | Availability | `site_down`, `site_api` (`/api/podcast` 405), `site_stale`, `site_update` | `health.yml`; `smoke.yml` after each deploy | none: alert only, a redeploy is the owner's | function 5xx rates and latency (Vercel dashboard only) |
 | Stale client | `site_update`; build compare on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, one reload per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
 | Performance | `checkBundle` (D141, 130 KB); `perf_regression` from real-user LCP, INP, CLS | CI build; every page load; `health.yml` | none | Safari reports no CLS; samples are per hard load (an in-app move is not measured); two instances writing at once can lose a batch; no per-page split |
