@@ -364,6 +364,9 @@ describe("general topics in the daily and weekly briefings", () => {
     const feeds: Record<string, Item[]> = {
       "blog-a": sourceItems("blog-a", 8, "a"),
       "blog-b": sourceItems("blog-b", 8, "b"),
+      // The weekly-tier source only the weekly pass reads: the daily of the same run may air
+      // every blog story, and the weekly never repeats one.
+      "journal-w": sourceItems("journal-w", 8, "w"),
     };
     feeds["npr-world"] = [
       world(
@@ -384,6 +387,14 @@ describe("general topics in the daily and weekly briefings", () => {
         "Volcano Etna erupts near Catania and flights are diverted",
         "2026-10-06T08:00:00Z",
       ),
+      // A fourth story for the weekly: the daily of the same run airs two, and the weekly never
+      // repeats them.
+      world(
+        "flood",
+        "npr-world",
+        "Floods in Valencia force thousands of residents to evacuate",
+        "2026-10-09T08:00:00Z",
+      ),
     ];
     feeds["bbc-world"] = [
       world(
@@ -403,6 +414,12 @@ describe("general topics in the daily and weekly briefings", () => {
         "bbc-world",
         "Etna eruption near Catania diverts flights, volcano alert raised",
         "2026-10-06T09:00:00Z",
+      ),
+      world(
+        "flood",
+        "bbc-world",
+        "Valencia floods force thousands of residents from their homes",
+        "2026-10-09T09:00:00Z",
       ),
     ];
     return feeds;
@@ -452,6 +469,10 @@ describe("general topics in the daily and weekly briefings", () => {
 
   it("publishes a World section in both digests when World is not skipped", LONG, async () => {
     const { regular, weekly } = await sunday(GENERAL.filter((id) => id !== "world"));
+    // A forced Sunday run's weekly aired four of its daily's stories (2026-10-19 review): the
+    // daily released spares it then aired.
+    const daily = new Set(regular.items.map((item) => item.id));
+    expect(weekly.items.filter((item) => daily.has(item.id))).toEqual([]);
     for (const digest of [regular, weekly]) {
       const section = digest.items.filter((item) => item.section === "world");
       expect(section.length, digest.id).toBeGreaterThanOrEqual(1);
