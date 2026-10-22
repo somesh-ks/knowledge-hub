@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Logger } from "../context.js";
-import { hydrateConfig, readsConfigAtStart, type SqlClient } from "./configDocs.js";
+import {
+  hydrateConfig,
+  readsConfigAtStart,
+  type SqlClient,
+  seedConfigDocuments,
+} from "./configDocs.js";
 
 const quiet: Logger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -63,5 +68,57 @@ describe("readsConfigAtStart", () => {
     [[], true],
   ])("run %j -> %s", (argv, expected) => {
     expect(readsConfigAtStart("run", argv)).toBe(expected);
+  });
+});
+
+/** A config_documents table in memory that answers the statements seed sends. */
+function memoryTable(rows: { path: string; content: string; version: number }[]): SqlClient {
+  return {
+    query: async (text, params = []) => {
+      if (text.startsWith("create table")) return [];
+      if (text.startsWith("select path, content, version")) return rows.map((row) => ({ ...row }));
+      const [path, content] = params as [string, string];
+      const row = rows.find((entry) => entry.path === path);
+      if (!row) {
+        rows.push({ path, content, version: 1 });
+        return [{ path }];
+      }
+      if (!text.includes("do update") || row.content === content) return [];
+      Object.assign(row, { content, version: row.version + 1 });
+      return [{ path }];
+    },
+  };
+}
+
+describe("seedConfigDocuments", () => {
+  // The bug: the owner seeded production days before switching on, and seed never replaces a row, so
+  // a config change committed in between would greet the switch with the old settings. --replace
+  // refreshes the rows that differ from the committed files; plain seed still never touches a row.
+  it("keeps a stored row, and with replace rewrites only the rows that differ", async () => {
+    const root = await mkdtemp(join(tmpdir(), "config-seed-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    await writeFile(join(root, "config/schedule.json"), '{"hour":9}\n');
+    await writeFile(join(root, "config/topics.json"), '{"topics":[]}\n');
+    const rows = [
+      { path: "config/schedule.json", content: '{"hour":7}\n', version: 1 },
+      { path: "config/topics.json", content: '{"topics":[]}\n', version: 1 },
+    ];
+    const sql = memoryTable(rows);
+
+    expect(await seedConfigDocuments(root, sql)).toEqual([]);
+    expect(rows[0]?.content).toBe('{"hour":7}\n');
+
+    expect(await seedConfigDocuments(root, sql, { replace: true, dryRun: true })).toEqual([
+      "config/schedule.json",
+    ]);
+    expect(rows[0]?.content).toBe('{"hour":7}\n');
+
+    expect(await seedConfigDocuments(root, sql, { replace: true })).toEqual([
+      "config/schedule.json",
+    ]);
+    expect(rows).toEqual([
+      { path: "config/schedule.json", content: '{"hour":9}\n', version: 2 },
+      { path: "config/topics.json", content: '{"topics":[]}\n', version: 1 },
+    ]);
   });
 });

@@ -376,10 +376,11 @@ Off by default. With it on, a settings edit is saved to Neon Postgres and shows 
 2. Put the connection string in `.env` as `DATABASE_URL` (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string).
 3. Seed the database from an up-to-date `main`: `git pull`, then `npm run dispatch -- config seed --dry-run` (lists the files it would insert), then `npm run dispatch -- config seed`. It never replaces a row, so running it again is safe.
 4. GitHub secret: `npm run secrets:push -- --only github` sends `DATABASE_URL` (or GitHub → Settings → Secrets and variables → Actions → New repository secret).
-5. GitHub variable: Settings → Secrets and variables → Actions → Variables → `DISPATCH_CONFIG_STORE` = `postgres`.
-6. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too (the Neon integration adds it).
-7. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
-8. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
+5. Refresh the rows, if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows, and seed never replaces a row. With `DISPATCH_CONFIG_STORE` still unset everywhere, `git pull`, then `npm run dispatch -- config seed --replace --dry-run` lists the rows that differ from the committed files, and `npm run dispatch -- config seed --replace` rewrites them. It refuses while the store is on here (the switch in `.env`, or a run's note in `.cache/`), since by then the app's edits live only in the database; `--force` overrides, so do not use it after switch-on.
+6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `DISPATCH_CONFIG_STORE` = `postgres`.
+7. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too (the Neon integration adds it).
+8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
+9. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
 
 ### 11.2 Switch off
 

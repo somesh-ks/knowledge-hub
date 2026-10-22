@@ -122,34 +122,42 @@ async function readText(path: string): Promise<string | null> {
 
 /**
  * Create the table and insert each config file that has no row yet. A row that exists is never
- * replaced, so a second run, or a run after edits made in the app, changes nothing. `dryRun` only
- * reports what would be inserted. Returns the paths inserted (or that would be).
+ * replaced, so a second run, or a run after edits made in the app, changes nothing. With `replace`,
+ * a row whose text differs from the committed file is rewritten from it as well (a new version):
+ * for refreshing a store seeded before switch-on, while nothing but the files has written to it.
+ * `dryRun` only reports. Returns the paths inserted or replaced (or that would be).
  */
 export async function seedConfigDocuments(
   root: string,
   sql: SqlClient,
-  options: { dryRun?: boolean } = {},
+  options: { dryRun?: boolean; replace?: boolean } = {},
 ): Promise<string[]> {
   if (!options.dryRun) await sql.query(CONFIG_SCHEMA_SQL);
   const stored = options.dryRun
     ? await readConfigDocuments(sql).catch(() => [])
     : await readConfigDocuments(sql);
-  const have = new Set(stored.map((document) => document.path));
-  const inserted: string[] = [];
+  const have = new Map(stored.map((document) => [document.path, document.content]));
+  const written: string[] = [];
   for (const path of CONFIG_DOCUMENT_PATHS) {
-    if (have.has(path)) continue;
     const content = await readText(join(root, path));
     if (content === null) continue;
+    const row = have.get(path);
+    if (row === content || (row !== undefined && !options.replace)) continue;
     if (!options.dryRun) {
       const rows = await sql.query(
-        "insert into config_documents (path, content) values ($1, $2) on conflict (path) do nothing returning path",
+        options.replace
+          ? `insert into config_documents (path, content) values ($1, $2)
+             on conflict (path) do update set content = excluded.content,
+               version = config_documents.version + 1, updated_at = now()
+             where config_documents.content is distinct from excluded.content returning path`
+          : "insert into config_documents (path, content) values ($1, $2) on conflict (path) do nothing returning path",
         [path, content],
       );
       if (rows.length === 0) continue;
     }
-    inserted.push(path);
+    written.push(path);
   }
-  return inserted;
+  return written;
 }
 
 /** When the newest document was written, in epoch milliseconds, or null for an empty store. */
