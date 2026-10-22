@@ -277,9 +277,11 @@ html[data-mini="visible"] main {
    from behind the player bar across the whole screen, and covered this bar from the first frame of
    a pull. A stacking change keyed on the attribute that shows the page, not a clip on the page that
    mirrors this bar's travel, so it holds for a drag, a spring and the reduced-motion fade alike,
-   whatever either side's geometry becomes. At rest the bar goes back under the player. */
+   whatever either side's geometry becomes. At rest the bar goes back under the player. The surface
+   says it moves on the root too (data-player-moving, surfaceView.ts): a root :has() on its state
+   restyled the whole page (D147). */
 @media not all and (min-width: 64rem) {
-  :root:has([data-player-surface]:not([data-state="collapsed"], [data-state="expanded"])) .app-nav {
+  :root[data-player-moving] .app-nav {
     z-index: calc(var(--z-mini) + 1);
     will-change: transform;
   }
@@ -436,7 +438,7 @@ html[data-mini="visible"] main {
 /* An open dialog takes the scrollbar away and the window's edge moves out by its width
    (foundations.css). The bar runs to that edge, so it keeps the room and its items hold still. */
 @media not all and (min-width: 64rem) {
-  :root:has(dialog[open]) .app-nav {
+  :root[data-dialog] .app-nav {
     padding-inline-end: calc(var(--safe-right) + var(--gutter, 0px));
   }
 }

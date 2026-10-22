@@ -480,13 +480,15 @@
 @layer foundations.sheet {
   /* Scroll lock while a modal is open. The stable scrollbar gutter goes with the scrollbar, or a
      panel docked to the right and its scrim would stop short of the window's edge. The page keeps
-     the gutter's width as padding instead (app.ts measures it), so it holds still under the scrim. */
-  :root:has(dialog[open]) {
+     the gutter's width as padding instead (app.ts measures it), so it holds still under the scrim.
+     rootState.ts sets data-dialog while a dialog is open, before the frame is drawn: a root :has()
+     restyled the whole page on every change to it (D147). */
+  :root[data-dialog] {
     overflow: hidden;
     scrollbar-gutter: auto;
   }
 
-  :root:has(dialog[open]) body {
+  :root[data-dialog] body {
     padding-inline-end: var(--gutter, 0px);
   }
 

@@ -210,6 +210,9 @@ function install(): void {
     if (status) status.textContent = resultSummary(shown, live.length);
     if (empty) {
       empty.hidden = shown > 0;
+      // A search with no result puts the floating New episode away (library.css), said on the root
+      // so a key restyles only the button, not the whole page (D147).
+      document.documentElement.toggleAttribute("data-search-empty", shown === 0 && query !== "");
       if (shown === 0) {
         const copy = emptyCopy(query, filter);
         emptyReset = copy.resets;

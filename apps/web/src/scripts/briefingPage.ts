@@ -78,10 +78,10 @@ function watchStuck(bar: HTMLElement, edge: number): void {
     ([entry]) => {
       if (!entry) return;
       const top = entry.rootBounds?.top ?? edge;
-      bar.toggleAttribute(
-        "data-stuck",
-        entry.intersectionRatio > 0 && entry.boundingClientRect.top < top,
-      );
+      const stuck = entry.intersectionRatio > 0 && entry.boundingClientRect.top < top;
+      bar.toggleAttribute("data-stuck", stuck);
+      // The app bar reads it from the root, which restyles only the bar, not the whole page (D147).
+      document.documentElement.toggleAttribute("data-tabs-stuck", stuck);
     },
     { rootMargin: `-${Math.round(edge)}px 0px 0px 0px`, threshold: [0, 1] },
   );

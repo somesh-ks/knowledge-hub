@@ -3,18 +3,21 @@ import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
 import { installNavigation } from "./navigation";
+import { installRootState } from "./rootState";
 import { installThemeColor } from "./themeColor";
 import { installUiSound } from "./uiSound";
 
 /**
  * Page-level behavior that belongs to the shell, not to the player: navigation rules, device
- * banners, the disabled-control guard, the browser chrome colour and the service worker. Loaded once
+ * banners, the disabled-control guard, the browser chrome colour, the root's dialog and toast state
+ * and the service worker. Loaded once
  * from the layout. A bundled module script runs once per session, so per-page work listens for
  * astro:page-load.
  */
 installDisabledGuard();
 captureInstallPrompt();
 installNavigation();
+installRootState();
 installCreateEntry();
 installDeviceBanners();
 installThemeColor();
