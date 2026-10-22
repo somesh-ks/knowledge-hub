@@ -342,6 +342,22 @@ describe("validateDigest", () => {
     expect(codes(wrong)).toContain("error:section_mismatch");
   });
 
+  // The 2026-10-18 weekly failed validation once Software Engineering took tool launches (D155).
+  it("keeps a tool launch a briefing filed under Design Engineering before it moved", () => {
+    const { digest } = buildFixtureDigest(6);
+    const legacy = clone(digest);
+    legacy.date = "2026-10-18";
+    const item = legacy.items.find((i) => i.section === "ui-craft") as {
+      category: string;
+      section: string;
+    };
+    item.category = "developer_tool_launches";
+    expect(codes(legacy)).not.toContain("error:section_mismatch");
+    // A briefing written since is held to the new home.
+    legacy.date = "2026-10-24";
+    expect(codes(legacy)).toContain("error:section_mismatch");
+  });
+
   it("warns, without failing, when the minutes differ from the text", () => {
     const { digest } = buildFixtureDigest(8);
     const bad = clone(digest);

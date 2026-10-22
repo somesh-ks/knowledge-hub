@@ -113,14 +113,15 @@ export default defineConfig({
     // An episode on request is set up in the Create panel, which /create shows as a page.
     "/settings/custom": { status: 308, destination: "/create" },
     // The judge's finer topics have no page of their own since D69: each goes to the one of the
-    // owner's three topics that gathers it, and the ones no topic lists go to Other.
+    // owner's four topics that gathers it, and the ones no topic lists go to Other.
     ...Object.fromEntries(
       [
         ["design_engineering_craft", "design"],
         ["hci_empirical_research", "design"],
         ["ui_component_primitives", "design"],
         ["css_canvas_motion_techniques", "design"],
-        ["developer_tool_launches", "design"],
+        ["developer_tool_launches", "software"],
+        ["software_engineering_depth", "software"],
         ["taste_and_design_philosophy", "design"],
         ["ai_ux_interaction_patterns", "ai"],
         ["frontier_model_releases", "ai"],

@@ -4,13 +4,33 @@ import { FormatMix } from "./topics.js";
 
 const weight = z.number().min(0).max(1);
 
+/**
+ * Categories added after a preferences file could already be saved elsewhere (the config store's
+ * row, an old commit), with the weight each ships with. A file without one reads it at that weight
+ * instead of stopping every run (D155). Any other missing weight still fails: an Off read as a
+ * default would publish what the owner switched off.
+ */
+const ADDED_CATEGORIES: Partial<Record<Category, number>> = { software_engineering_depth: 0.85 };
+
+const Weights = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+    const filled: Record<string, unknown> = { ...(value as Record<string, unknown>) };
+    for (const [key, shipped] of Object.entries(ADDED_CATEGORIES)) {
+      if (!Object.hasOwn(filled, key)) filled[key] = shipped;
+    }
+    return filled;
+  },
+  z.object(
+    Object.fromEntries(CATEGORIES.map((c) => [c, weight])) as Record<Category, typeof weight>,
+  ),
+);
+
 /** Shape of config/preferences.json, kept compatible with the existing file. */
 export const Preferences = z.object({
   profile: z.string(),
   focus: z.string(),
-  weights: z.object(
-    Object.fromEntries(CATEGORIES.map((c) => [c, weight])) as Record<Category, typeof weight>,
-  ),
+  weights: Weights,
   /** How much each source type counts, for every topic alike; a type at Normal is absent. */
   format_mix: FormatMix.optional(),
   preferred_keywords: z.array(z.string()),

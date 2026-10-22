@@ -126,8 +126,8 @@ describe("the question", () => {
   });
 
   it("leaves the category questions and their hashes as they were", () => {
-    expect(QUESTIONS_HASH).toBe("f15d2649e212");
-    expect(LLM_QUESTIONS_HASH).toBe("a9816f66a6f1");
+    expect(QUESTIONS_HASH).toBe("376720dff5bc");
+    expect(LLM_QUESTIONS_HASH).toBe("111cf0cce2c9");
   });
 
   it("maps an expected level to 0..1", () => {

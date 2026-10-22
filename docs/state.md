@@ -9,16 +9,17 @@ Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run; episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Deploy: the Vercel GitHub integration deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
+- Deploy: Vercel deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
 - Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`. Biome skips `config/` and `state/`.
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes. Rules: `AGENTS.md`, [the postmortem](engineering/postmortem-test-suite.md).
+Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 356 runs on 2026-10-14, about 8 minutes. Player e2e: 70 runs, about 5.5 minutes.
 
 ## Not working or unverified
 
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses until then); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
+- Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: captions and Gemini worked on live videos (2026-10-19); no full run used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - D145 to D147, D156 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
@@ -68,10 +69,10 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide: general topics start ticked? a photograph for a topic's picture? a group override (emoji, More menu) for Design, AI and Technology? briefings as discussions? and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (iOS startup images, the iOS light status bar) and in the cost note (`git show 91bc533:docs/state.md`) (feeds for 17 sources, `MAX_TEXT_CHARS`).
+1. Owner: revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide: general topics start ticked? a photograph for a topic's picture? a group override (emoji, More menu) for the four groups? briefings as discussions? and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (iOS startup images, the iOS light status bar) and in the cost note (`git show 91bc533:docs/state.md`) (feeds for 17 sources, `MAX_TEXT_CHARS`).
 2. Parked by the owner (2026-10-14): no island eager at first load (cut 1 in [first-load-js.md](engineering/first-load-js.md), about 73 KB). Do not build it until asked.
 3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the first-load cuts (item 2) within 130 KB (D141).
-4. Finer episode stages (the podcast command in phases, a workflow change); Firecrawl filling a gap in Design, AI or Technology for an episode (`podcast.yml` has no Firecrawl key; a workflow change).
+4. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
 5. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).
 6. Calibrate the Jev thresholds on the golden set (`eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path; one generated briefing to see Design and Trending, then tune the Trending threshold.
 7. Tests left by the D99 cuts, only if they cost less than they save: `gate-decideRun` DST cases, `voice-lint`, the `heldSave` and `readerContract` tables, the Library filter table.

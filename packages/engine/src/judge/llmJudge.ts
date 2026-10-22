@@ -104,7 +104,7 @@ function systemPrompt(): string {
   const levels = CRAFT_LEVELS.map((text, level) => `- ${level}: ${text}`).join("\n");
   const launches = LAUNCH_LEVELS.map((text, level) => `- ${level}: ${text}`).join("\n");
   return [
-    "You classify candidate items for a private news briefing read by a design engineer.",
+    "You classify candidate items for a private news briefing read by a design and software engineer.",
     "Judge each item from its title and snippet only.",
     "",
     "For each item answer:",

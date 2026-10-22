@@ -1,10 +1,10 @@
 import { DESIGN_TOPIC_ID, TECH_CATEGORY } from "./categories.js";
 
 /**
- * The owner's three topics (D69): what the app shows as Design, AI and Technology. Each gathers
- * the judge's finer topics by the briefing section they publish to, so the eleven built-in
+ * The owner's four topics (D69, D155): what the app shows as Design, AI, Technology and Software
+ * Engineering. Each gathers the judge's finer topics by the briefing section they publish to, so the twelve built-in
  * categories, the app's Design topic and any custom topic in those sections stay the judge's
- * questions underneath while a person sees three. `home` is where a source added to the group is
+ * questions underneath while a person sees four. `home` is where a source added to the group is
  * filed. A custom topic that never publishes, Trending and a custom topic with its own section belong to
  * none.
  */
@@ -25,7 +25,7 @@ export const TOPIC_GROUPS: readonly TopicGroup[] = [
     name: "Design",
     sections: ["design", "ui-craft"],
     home: DESIGN_TOPIC_ID,
-    note: "Product, interface and design engineering: craft, components, motion, tools and research.",
+    note: "Product, interface and design engineering: craft, components, motion and research.",
   },
   {
     id: "ai",
@@ -40,6 +40,15 @@ export const TOPIC_GROUPS: readonly TopicGroup[] = [
     sections: ["tech"],
     home: TECH_CATEGORY,
     note: "Consumer technology launches: phones, laptops, chips, operating systems and the rules around them.",
+  },
+  {
+    id: "software",
+    name: "Software Engineering",
+    sections: ["software"],
+    // Not developer_tool_launches: a tool launch is release news, capped and read last
+    // (releaseNotes.ts), so a source added here would never lead.
+    home: "software_engineering_depth",
+    note: "Tools, languages and frameworks, and the architecture, performance and internals behind them.",
   },
 ];
 

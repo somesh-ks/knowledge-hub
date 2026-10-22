@@ -675,6 +675,7 @@ const FRONTIER = "frontier_model_releases" as const;
 const AIUX = "ai_ux_interaction_patterns" as const;
 const TASTE = "taste_and_design_philosophy" as const;
 const TECH = "consumer_tech_releases" as const;
+const DEPTH = "software_engineering_depth" as const;
 
 /**
  * A consumer tech outlet: hinted for the Tech releases section, six candidates a run so no one
@@ -704,11 +705,11 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   "openai-blog": { high_signal: true, category_hint: FRONTIER },
   "anthropic-blog": { high_signal: true, category_hint: FRONTIER },
   "deepmind-blog": { high_signal: true, category_hint: FRONTIER },
-  "cloudflare-blog": { category_hint: DEV, feed_hint: "https://blog.cloudflare.com/rss/" },
+  "cloudflare-blog": { category_hint: DEPTH, feed_hint: "https://blog.cloudflare.com/rss/" },
   "vercel-blog": { category_hint: DEV },
   "linear-blog": { high_signal: true, category_hint: IND },
-  "stripe-engineering": { category_hint: DEV },
-  "github-engineering": { category_hint: DEV },
+  "stripe-engineering": { category_hint: DEPTH },
+  "github-engineering": { category_hint: DEPTH },
   "meta-ai-blog": { category_hint: FRONTIER },
   "mistral-blog": { category_hint: FRONTIER },
   "hugging-face-blog": { category_hint: FRONTIER },
@@ -754,9 +755,9 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   "jhey-tompkins": { high_signal: true, category_hint: CSS },
   "andy-bell": { high_signal: true, category_hint: IND },
   "paco-coursey": { high_signal: true, category_hint: IND },
-  "lee-robinson": { high_signal: true, category_hint: IND },
-  "dan-abramov": { high_signal: true, category_hint: IND },
-  "kent-c-dodds": { high_signal: true, category_hint: IND },
+  "lee-robinson": { high_signal: true, category_hint: DEPTH },
+  "dan-abramov": { high_signal: true, category_hint: DEPTH },
+  "kent-c-dodds": { high_signal: true, category_hint: DEPTH },
   "adam-wathan": { high_signal: true, category_hint: IND },
   "ryan-florence": {
     high_signal: true,
@@ -803,7 +804,7 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
     options: { kind: "newsletter-issue" },
   },
   "react-status": {
-    category_hint: UI,
+    category_hint: DEV,
     feed_hint: "https://react.statuscode.com/rss/",
     options: { kind: "newsletter-issue" },
   },
@@ -821,7 +822,7 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   tldr: { category_hint: DEV, feed_hint: "https://tldr.tech/api/rss/tech" },
   bytes: { category_hint: DEV },
   "console-dev": { category_hint: DEV },
-  "this-week-in-react": { category_hint: UI },
+  "this-week-in-react": { category_hint: DEV },
   "better-stack-blog": { category_hint: DEV },
   // UI library repos and changelogs
   "shadcn-changelog": { high_signal: true, category_hint: UI },

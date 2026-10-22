@@ -128,7 +128,9 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]' ||
       contains(github.event.pull_request.labels.*.name, 'browser'))
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Both suites in one job. 30 cut #213 off on 2026-10-22 with every test so far passing and
+    # about 30 left; a slow runner takes 18 to 32 minutes.
+    timeout-minutes: 45
     env:
       PORT: "4501"
     steps:

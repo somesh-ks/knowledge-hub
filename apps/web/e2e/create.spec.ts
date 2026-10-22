@@ -131,13 +131,13 @@ test.describe("the Create page", () => {
     await openCreate(page);
     await chip(page, "World").click();
     await chip(page, "Sports").click();
-    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(5);
+    await expect(page.locator('input[name="topic"]:checked')).toHaveCount(6);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     // Design sends two sections; with Written for retired every script is the owner's.
     expect(mock.bodies[0]?.request).toMatchObject({
       audience: "custom",
-      topic_ids: ["design", "ui-craft", "ai", "tech", "world", "sports"],
+      topic_ids: ["design", "ui-craft", "ai", "tech", "software", "world", "sports"],
     });
   });
 
@@ -244,7 +244,8 @@ test.describe("the Create page", () => {
     });
     await openCreate(page);
 
-    // Design off, World on: the request mixes AI and Technology with a general topic.
+    // Design off, World on: the request mixes AI, Technology and Software Engineering with a
+    // general topic.
     await chip(page, "Design").click();
     await chip(page, "World").click();
     await segment(page, "10 min").click();
@@ -259,7 +260,7 @@ test.describe("the Create page", () => {
     expect(mock.bodies[0]).toEqual({
       request: {
         audience: "custom",
-        topic_ids: ["ai", "tech", "world"],
+        topic_ids: ["ai", "tech", "software", "world"],
         length_minutes: 10,
         format: "discussion",
         window_days: 30,
@@ -665,7 +666,7 @@ test.describe("the Create page when the server says no", () => {
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toEqual({
       audience: "custom",
-      topic_ids: ["design", "ui-craft", "ai", "tech"],
+      topic_ids: ["design", "ui-craft", "ai", "tech", "software"],
       length_minutes: 5,
       format: "readout",
       window_days: 7,
