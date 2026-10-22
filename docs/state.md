@@ -19,15 +19,15 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 ## Not working or unverified
 
 - Sources design (D124) live: production asks Jev for a new source's format only after `npm run secrets:push` (the rule guesses until then); no run has used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
-- YouTube text: captions and Gemini each worked on live videos (2026-10-19), but no full run has used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
-- D145, health rounds 2-3 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets a deploy and `health.yml` reads vitals.
+- YouTube text: captions and Gemini worked on live videos (2026-10-19); no full run used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
+- D145, D146, health rounds 2-3 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run yet; `podcast.yml` calls `audio.yml` since #183, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - `?view=preferences` (D129) may flash Sources on load. closed when: a reload on a phone shows no Sources frame first.
 - Topic emoji from Jev (D133) never asked live. closed when: a topic added on news.someshks.work shows an emoji Jev chose.
-- D125: pull to close, sticky tabs, keyboard fit. closed when: each works on a phone.
-- The `browser` CI job has not run on GitHub's runner. closed when: a PR touching `apps/web` shows the job green on GitHub.
+- D125: pull to close, sticky tabs, keyboard fit. closed when: each works on phone.
+- The `browser` CI job never ran on GitHub. closed when: a PR touching `apps/web` shows the job green on GitHub.
 - Live runs of the 2026-10-18 changes: bar chapters, release news last, the sized weekly (85% spares). closed when: the next daily shows chapter labels and Launches last, and the next Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120): a live run with spares and a one-outlet Science story. closed when: a committed digest has a Science story from one outlet and airs within 10% of its length.
 - Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
@@ -69,7 +69,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 1. Owner: revoke the Vercel token pasted in chat on 2026-10-07 and replace the `.env` one; delete the empty Blob store `store_JmrDq8MB5Kwn3ejW`; decide: general topics start ticked? a photograph for a topic's picture? a group override (and More menu) for Design, AI and Technology? briefings as discussions? and the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) (iOS startup images, the iOS light status bar) and in the cost note (`git show 91bc533:docs/state.md`) (feeds for 17 sources, `MAX_TEXT_CHARS`).
 2. Parked by the owner (2026-10-14): no island eager at first load (cut 1 in [first-load-js.md](engineering/first-load-js.md), about 73 KB). Do not build it until asked.
-3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow checkout in workflows; first-load cuts in [first-load-js.md](engineering/first-load-js.md) within the 130 KB budget (D141).
+3. Performance: real-user Web Vitals (D146); one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the first-load cuts (item 2) within 130 KB (D141).
 4. Finer episode stages (the podcast command in phases, a workflow change); Firecrawl filling a gap in Design, AI or Technology for an episode (`podcast.yml` has no Firecrawl key; a workflow change).
 5. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`). One iPhone pass and one Android pass against the checklist above.
 6. Calibrate the Jev thresholds on the golden set (`eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path; one generated briefing to see Design and Trending, then tune the Trending threshold.

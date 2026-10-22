@@ -19,14 +19,13 @@ detector; `health.yml` runs it daily, keeps one issue labelled `health` and heal
 | Two pushes in one instant (2026-10-21 episode delete) | the push answer | `commitAndPush` now reads a ref-lock race as a rejection and rebases (every engine push uses it) |
 | A cache entry the browser broke | the worker's strategy rejects | `sw.js` (v12) answers from the network and rebuilds its caches once |
 | A stop waiting on a device for weeks | `splitStaleBlocks` | dropped after 7 days with a toast |
-| A deploy that never reaches an open or installed app (2026-10-21, D145) | `site_update` (`/sw.js` cacheable, `/build.json` missing); the `serviceWorker.spec.ts` deploy journey | page loads go to the network first (sw.js v13); an app back at the front reloads once to a newer build |
+| A deploy that never reaches an open or installed app (2026-10-21, D145) | `site_update` (`/sw.js` cacheable, `/build.json` missing); the `serviceWorker.spec.ts` deploy journey | page loads go to the network first (sw.js v13); a page behind the site offers a newer build in a toast with Reload, on load and on return (D146) |
 | A stub story (a summary of a few words) | warning `story_short` (under a third of the writer's minimum) | none: rewrite or regenerate |
 | A critical advisory in what ships | CI `secrets` job: `npm audit --omit=dev --audit-level=critical` | Dependabot PRs |
 | Client errors and CSP violations on a phone | `/api/report` logs `[client-fault]` lines (path only, 30 a minute per instance) | none: read the Vercel log |
-| A run that died before it recorded an outcome (install, timeout, crash) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a cancelled run is not counted | one scheduled run, as for `run_failed` |
+| A run that died before it recorded an outcome (install, timeout, crash) | `run_died`: a briefing run of run.yml (named `run`; a dry run and a delete are named for what they are) in GitHub's list (`--runs`, from `gh run list` in `health.yml`) that failed or timed out in the last 3 days with no run record after it started; a `cancelled` run counts only when it ran to run.yml's `timeout-minutes` (GitHub reports a job killed at its timeout as cancelled), so a shorter cancel is the owner's; a briefing run under way stands it down only when it is newer than the one that died | one scheduled run, as for `run_failed` |
 | A broken episode | `episode_broken`: every Podcasts/ file parses and the shared reader narrates every turn; online, the newest settled episode's first segment has readable word marks once its audio is stored (`episode_unnarrated` warns when it is not stored) | none |
 | A config file that stopped parsing | `config_invalid`: doctor's offline config checks, `config/models.json`, and the core schemas of topics, schedule, prices, the catalogue and `sources.user.json` | none |
-| Slow pages on real phones | warning `perf_regression`: the last 24 hours' p75 of LCP, INP or CLS past web.dev's good (2.5 s, 200 ms, 0.1) or 25% past the six days (144 hours) before them (and by a floor), from 5 page loads in each; the 7 days are read whole from 8 UTC day files | none |
 
 The self-healing never loops: a retry happens only when no `health` issue is open, so the second
 day of the same fault only comments.
@@ -92,17 +91,9 @@ audio). Added: every digest and state file must parse, daily. Gap: Podcasts/ fil
 `config/` are not parsed by `health`; `doctor` checks config. Recommend: fold `doctor`'s offline
 config checks into `health` (small).
 
-## Round 3: Web Vitals, episodes, config, died runs (2026-10-22)
+## Round 3: episodes, config, died runs (2026-10-22)
 
-- Web Vitals: `scripts/vitals.ts` (loaded at idle from `app.ts`, so not first-load script) observes
-  LCP, CLS (largest session window) and INP (slowest interaction) with buffered
-  `PerformanceObserver`s and sends one `vitals` beacon per page, at page hide or when a soft navigation replaces it (the next page is measured afresh). `/api/report` checks each value
-  against a plausible range (core `vitals.ts`) and hands it to `server/vitalsStore.ts`, which keeps
-  one public Blob file a UTC day (`health/vitals-YYYY-MM-DD.json`). Each sample is written when it
-  arrives, until the day's file itself holds 20 (a cap every instance reads), and the page sends from
-  half of all views so the cap fills across the day. A put is an ADVANCED operation shared with
-  narration: 620 a month at worst, under a third of the 2,000. `health` reads
-  the last eight files by the store's public URL (from the newest narration URL; no secret).
+- Web Vitals: built and taken out again before merge (D146); an open gap in the Performance row.
 - Died runs: GitHub's run list is the start marker; nothing new is written by the engine.
 - Episodes and config: parsed daily by `health`, with doctor's config checks folded in.
 
@@ -115,13 +106,13 @@ Each aspect's detector, where it runs and what heals. Health findings carry `asp
 | --- | --- | --- | --- | --- |
 | Reliability | `run_failed`, `run_overdue`, `run_died`, `audio_missing`, `audio_unreachable`, the push answer | `health.yml` daily; every engine push | one run, one `audio.yml`, rebase and retry | Vercel Cron unverified (D61); `run_died` sees run.yml's last 3 days (200 runs at most) and needs `gh` in `health.yml` |
 | Availability | `site_down`, `site_api` (`/api/podcast` 405), `site_stale`, `site_update` | `health.yml`; `smoke.yml` after each deploy | none: alert only, a redeploy is the owner's | function 5xx rates and latency (Vercel dashboard only) |
-| Stale client | `site_update`; build compare on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, one reload per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
-| Performance | `checkBundle` (D141, 130 KB); `perf_regression` from real-user LCP, INP, CLS | CI build; every page load; `health.yml` | none | Safari reports no CLS; samples are per hard load (an in-app move is not measured); two instances writing at once can lose a batch; no per-page split |
+| Stale client | `site_update`; build compare on load and on return to the front; `vite:preloadError` | `health.yml`; every client | network-first page loads, a Reload offer per build, one reload on a missing chunk | a saved page whose assets were pruned still renders unstyled offline |
+| Performance | `checkBundle` (D141, 130 KB) | CI build | none | real-user Web Vitals: planned as its own change; a per-hour cap and serialised writes needed |
 | Quality | `digest_thin`, `digest_unverified`, `model_fallback`, `source_failing`, `story_short`, `episode_broken`, `episode_unnarrated` | `health.yml` | none: a thin or stub briefing is the owner's to regenerate | a briefing short of its length; a briefing's own word marks; only the newest episode's first segment is fetched |
 | Security | gitleaks, the audit step, `site_headers`, CSP violations to `/api/report`, rate limits | CI; `health.yml`; client | Dependabot | high advisories accepted; CSP violations are log lines with no count; per-instance limits reset on a cold start |
 | Cost | `cost_over_ceiling`, `speech_budget`, the per-call caps | `health.yml`; every call | the caps stop the next call | Vercel-side Speechify spend has its own counter |
 | Data integrity | `digest_invalid`, `state_invalid`, `config_invalid`, the write guard | `health.yml`; every commit | none: the guard should refuse it | `config/alexandria.json`, `writer.json` and `profiles/` have no core schema to check |
 | Offline | `serviceWorker.spec.ts`, the downloads journeys, the cache-read heal | CI `browser` job; every client | caches rebuilt once per worker life | quota eviction of downloads is not detected |
 
-Next by value: a per-page split of the vitals in `health`, a briefing that aired short
+Next by value: real-user Web Vitals (its own change, D146), a briefing that aired short
 of its length, function 5xx rates (needs a log drain), and a KV counter for the paid routes.

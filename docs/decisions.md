@@ -157,6 +157,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
 | D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
 | D145 | Network-first page loads; a build check on return | amends D47 |
+| D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 
 ---
 
@@ -1603,3 +1604,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: the service worker (v13) answers every page load, briefings included, from the network first with the 3 s fallback to the saved copy; briefings are no longer stale-while-revalidate. Each page carries `<meta name="dispatch-build">` and `/build.json` (no-store) names the build (the commit on Vercel). An app that comes back to the front asks `/build.json` at most once a minute and reloads once per build when the two differ and nothing plays. `dispatch health` faults `site_update` when `/sw.js` is cacheable or `/build.json` does not name a build.
 - Why: a briefing's words never change, but its page does with each deploy, and a saved copy names the old stylesheets the shell cache still holds; an installed app resumed for days never navigates at all.
 - Amends: D47 (saved copies answer moves inside the app, not page loads).
+
+## D146: a deploy is offered, not forced; Web Vitals wait for their own change
+
+- Date: 2026-10-22 (three review rounds on PR #187 kept finding edge cases in both)
+- Decision: a page behind `/build.json` shows the app's toast, "New version available" with Reload, on load and on return to the front (at most once a minute), once per build per session; it never reloads by itself. The automatic reload and its guards (open dialogs and popovers, typing, edited fields) are gone. The real-user Web Vitals pipeline (page script, `/api/report` kind, Blob day files, `perf_regression`) leaves the PR. `run_died` counts a `cancelled` run that ran to run.yml's timeout, and stands down only for a newer briefing run under way.
+- Why: each round found another thing a reload could throw away; a prompt cannot lose work. The vitals store needs a per-hour cap and serialised writes, which is its own change.
+- Amends: D145 (the reload on return).
