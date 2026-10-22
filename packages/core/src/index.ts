@@ -25,3 +25,4 @@ export * from "./time.js";
 export * from "./topicEmoji.js";
 export * from "./topicGroups.js";
 export * from "./topics.js";
+export * from "./vitals.js";

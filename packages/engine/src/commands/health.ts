@@ -1,15 +1,16 @@
+import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
-import { collectHealth, formatHealth } from "../ops/health.js";
+import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
 
-const USAGE = "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--json]";
+const USAGE = "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 const DEFAULT_CEILING_USD = 5;
 
 /** `dispatch health`: faults in runs, narration, data, cost and the live site; exits 1 on a fault. */
 export const run: CommandRun = async (argv, ctx) => {
-  let values: { offline?: boolean; site?: string; "ceiling-usd"?: string };
+  let values: { offline?: boolean; site?: string; "ceiling-usd"?: string; runs?: string };
   try {
     values = parseArgs({
       args: argv,
@@ -19,6 +20,7 @@ export const run: CommandRun = async (argv, ctx) => {
         offline: { type: "boolean" },
         site: { type: "string" },
         "ceiling-usd": { type: "string" },
+        runs: { type: "string" },
       },
     }).values;
   } catch (error) {
@@ -31,12 +33,30 @@ export const run: CommandRun = async (argv, ctx) => {
     ctx.log.error(USAGE);
     return 2;
   }
+  // run.yml's recent runs, as `gh run list --json databaseId,status,conclusion,createdAt,event`
+  // wrote them (health.yml), for `run_died`. A file that does not read is a usage error.
+  let runs: WorkflowRun[] | undefined;
+  if (values.runs !== undefined) {
+    try {
+      const parsed: unknown = JSON.parse(await readFile(values.runs, "utf8"));
+      if (!Array.isArray(parsed)) throw new Error("not a list");
+      runs = parsed as WorkflowRun[];
+    } catch (error) {
+      ctx.log.error(`--runs: ${error instanceof Error ? error.message : "unreadable"}. ${USAGE}`);
+      return 2;
+    }
+  }
   const report = await collectHealth({
     root: ctx.root,
     now: ctx.now(),
     monthlyChars: ctx.env.SPEECHIFY_MONTHLY_CHARS,
     ceilingUsd,
     site,
+    ...(runs ? { runs } : {}),
+    voices: {
+      SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
+      SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,
+    },
   });
   process.stdout.write(`${ctx.json ? JSON.stringify(report) : formatHealth(report)}\n`);
   return report.ok ? 0 : 1;

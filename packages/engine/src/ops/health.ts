@@ -13,16 +13,27 @@ import {
   readTopicJudgments,
   readUsage,
 } from "../state/store.js";
+import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
+import {
+  checkConfig,
+  checkEpisodes,
+  checkRunsDied,
+  checkVitals,
+  type HealthAspect,
+  type HealthFetch,
+  type Sink,
+  type WorkflowRun,
+} from "./healthChecks.js";
 import { collectStatus } from "./statusReport.js";
+
+export type { HealthAspect, HealthFetch, WorkflowRun };
 
 /**
  * `dispatch health`: the faults that fail silently today, from the repository files and the live
  * site. A fault exits non-zero; a warning is listed and does not. The `code` of each finding is a
  * contract: `health.yml` retries a run on `run_failed` or `run_overdue` and narration on
- * `audio_missing`, once, when the fault first appears.
+ * `audio_missing`, once, when the fault first appears; `run_died` starts one run as well.
  */
-
-export type HealthAspect = "reliability" | "quality" | "cost" | "security" | "integrity";
 
 export interface HealthFinding {
   code: string;
@@ -40,15 +51,6 @@ export interface HealthReport {
   passed: string[];
 }
 
-export type HealthFetch = (
-  url: string,
-  init?: { method?: string; redirect?: "manual" | "follow"; signal?: AbortSignal },
-) => Promise<{
-  status: number;
-  headers: { get(name: string): string | null };
-  text(): Promise<string>;
-}>;
-
 export interface HealthOptions {
   root: string;
   now: Date;
@@ -58,6 +60,10 @@ export interface HealthOptions {
   /** The live site's origin; null skips every network check. */
   site: string | null;
   fetch?: HealthFetch;
+  /** run.yml's recent runs from GitHub (health.yml passes them); absent skips `run_died`. */
+  runs?: readonly WorkflowRun[];
+  /** The voices episodes are narrated in, so their stored segments are found by address. */
+  voices?: EpisodeVoiceEnv;
 }
 
 /** A briefing with fewer stories than this is thin (the schema stops at 3): the run found little or dropped most. */
@@ -108,6 +114,16 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     );
   } else {
     passed.push(`next regular briefing due ${status.next_regular_due}`);
+  }
+
+  if (options.runs) {
+    const records = [status.last_run.regular, status.last_run.weekly, status.last_run.on_demand];
+    checkRunsDied(
+      records,
+      options.runs,
+      now,
+      { fault, warn, passed },
+    );
   }
 
   // Integrity: every digest parses, and every state file reads against its schema.
@@ -213,12 +229,28 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     warn("speech_budget", "cost", `Speechify at ${status.budget.speechify.percent}% this month.`);
   }
 
+  // Integrity: the config files parse with the core schemas (doctor's checks, daily).
+  await checkConfig(root, { fault, warn, passed });
+
+  // The public Blob store's address is in every narration URL; it is not a secret (config.ts).
+  const withAudio = [...digests]
+    .filter((each) => each.digest.audio?.url.startsWith("https://"))
+    .sort((a, b) => (a.digest.generated_at < b.digest.generated_at ? 1 : -1))[0];
+  const blobBase = withAudio?.digest.audio ? new URL(withAudio.digest.audio.url).origin : null;
+  const get = options.fetch ?? fetch;
+  const blob = options.site !== null && blobBase !== null ? { base: blobBase, get } : null;
+
+  // Quality: every episode parses and narrates whole; the newest one's word marks read.
+  await checkEpisodes(root, options.voices ?? {}, now, { fault, warn, passed }, blob);
+
   if (options.site !== null) {
-    await checkSite(options.site, options.fetch ?? fetch, latest?.digest ?? null, now, {
+    await checkSite(options.site, get, latest?.digest ?? null, now, {
       fault,
       warn,
       passed,
     });
+    // Performance: real-user Web Vitals that /api/report keeps in the store.
+    if (blob) await checkVitals(blob.base, blob.get, now, { fault, warn, passed });
   }
 
   return {
@@ -228,12 +260,6 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     findings,
     passed,
   };
-}
-
-interface Sink {
-  fault: (code: string, aspect: HealthAspect, message: string) => void;
-  warn: (code: string, aspect: HealthAspect, message: string) => void;
-  passed: string[];
 }
 
 async function checkSite(

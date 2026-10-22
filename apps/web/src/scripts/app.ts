@@ -99,6 +99,10 @@ document.addEventListener("securitypolicyviolation", (event) =>
     line: event.lineNumber,
   }),
 );
+// Web Vitals from real phones (scripts/vitals.ts) load at idle, so they add nothing to first load.
+(window.requestIdleCallback ?? ((run: () => void) => setTimeout(run, 2000)))(
+  () => void import("./vitals"),
+);
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.

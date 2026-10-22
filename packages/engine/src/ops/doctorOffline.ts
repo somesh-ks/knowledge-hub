@@ -77,7 +77,7 @@ async function gitChecks(root: string, git: GitRunner): Promise<Check[]> {
   return checks;
 }
 
-async function configChecks(root: string): Promise<Check[]> {
+export async function configChecks(root: string): Promise<Check[]> {
   const checks: Check[] = [];
 
   const prefs = await readFileIfPresent(join(root, "config/preferences.json"));
