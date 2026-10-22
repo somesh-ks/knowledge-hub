@@ -9,12 +9,21 @@ import { MAX_BODY_CHARS } from "../../server/generate";
 import { toResponse } from "../../server/http";
 import { readStreamForEpisode } from "../../server/liveStream";
 import { handleNarrate, handleNarrationLookup, startDeadline } from "../../server/narrate";
+import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route runs on demand, as a Vercel Function.
 export const prerender = false;
 
 /** Where Vercel puts a function's OIDC token. Only read when the store is connected that way. */
 const OIDC_HEADER = "x-vercel-oidc-token";
+
+// Narration's spend is held by the daily cap and the monthly budget, both counted in Blob, but a
+// flood still costs function time and Blob reads; this shared per-minute cap bounds it across
+// instances. A play sends one request at a time (segmentQueue.ts): the first turn and the three
+// after it (trackAudio.ts's look-ahead), then one per turn as it plays, so about 4 at the start and
+// under 10 a minute after; a briefing is 11 to 16 turns, so even all of one asked back to back fits
+// twice over, with room for a second device and an episode prewarm.
+const NARRATIONS_PER_MINUTE = 40;
 
 const log = (message: string): void => console.error(`[api/narrate] ${message}`);
 
@@ -59,6 +68,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       now: Date.now,
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       verifyPassphrase: passphraseCheck(),
+      burst: burstCap("narrate", NARRATIONS_PER_MINUTE),
       startDeadline,
     },
   );

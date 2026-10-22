@@ -45,6 +45,7 @@ import {
 import { handleNarrationMarks, MARKS_CACHE_CONTROL } from "./narrateMarks";
 import { segmentHash, segmentPath } from "./narrateSegments";
 import { usageKey } from "./narrationState";
+import { burstCap, createSharedLimiter } from "./rateLimit";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const HOUR = 3_600_000;
@@ -699,6 +700,28 @@ describe("POST /api/narrate: who may ask", () => {
     const result = await handleNarrate(input(body(), "https://evil.example"), context.deps);
     expect(result.status).toBe(400);
     expect(verify).not.toHaveBeenCalled();
+  });
+
+  // The burst cap is shared by every visitor (D150): a request another site sends, or one that fails
+  // the body or passphrase check, must not use a slot, or a loop elsewhere would hold the owner's
+  // minute full. One past the cap is refused before the store is opened, so a flood reads nothing.
+  it("takes a burst slot only once the origin, body and passphrase pass, and refuses past it before the store", async () => {
+    const limiter = createSharedLimiter({ databaseUrl: undefined, now: () => NOW });
+    const context = setup({ overrides: { burst: burstCap("narrate", 1, limiter, () => NOW) } });
+    for (const refused of [
+      input(body({ segment: "intro" }), "https://evil.example"),
+      input("not json"),
+      input(body({ segment: "intro", passphrase: "not the passphrase" })),
+    ]) {
+      expect([400, 401]).toContain((await handleNarrate(refused, context.deps)).status);
+    }
+    expect((await postSegment(context, "intro")).status).toBe(200);
+    const opened = context.opened.length;
+    expect(await postSegment(context, "intro")).toMatchObject({
+      status: 429,
+      body: { error: "cooldown" },
+    });
+    expect(context.opened).toHaveLength(opened);
   });
 
   it("answers 401 with a constant extra delay for a wrong passphrase", async () => {

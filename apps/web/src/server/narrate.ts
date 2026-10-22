@@ -81,6 +81,7 @@ import {
   serializeState,
   usageKey,
 } from "./narrationState";
+import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
@@ -234,6 +235,8 @@ export interface NarrateDeps {
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
   verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
+  /** The shared per-minute burst cap (D150): 0 to go ahead, else the seconds to wait. */
+  burst?: () => Promise<number>;
   openBlob: (credentials: BlobCredentials) => NarrateBlobStore;
   digests: DigestSource;
   /** Podcast episodes. Left out, no episode can be found. */
@@ -1308,6 +1311,11 @@ export async function handleNarrate(
     await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
+
+  // The shared burst cap (D150), taken only by a request that passed the checks above, and before
+  // the store is opened: a flood past it costs no Blob read.
+  const burstWait = (await deps.burst?.()) ?? 0;
+  if (burstWait > 0) return cooldownRefusal(burstWait);
 
   // A briefing is read in the voice its schedule names; the body of the request never picks one.
   const scheduled = await scheduledVoice(deps.digests, request.digest);

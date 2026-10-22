@@ -74,9 +74,11 @@ Recommend: record the sized target in the digest and compare (medium).
 - Open passphrase (D41): anyone with the URL can start runs inside the caps. Generate, Podcast,
   delete and config count GitHub's run list (or the store), narration the Blob usage document.
   The per-minute caps (topic-emoji's model asks, source-preview's Jev, costs, and a burst cap
-  on Generate, Podcast and config) are counted in Neon across instances (D150), with the
+  on Generate, Podcast, config and narration) are counted in Neon across instances (D150), with the
   instance's own count as the floor when `DATABASE_URL` is unset or the counter errors or is slow.
-  Gap: the table exists only after `dispatch config seed`; narration has no request cap.
+  Narration's (40 a minute) is taken after the origin, body and passphrase checks and before the
+  store is opened, so a flood past it reads no Blob. Gap: the table exists only after
+  `dispatch config seed`.
 - SSRF: `source-preview` and `site-icon` check every resolved address and redirect hop. Known gap
   (documented there): DNS rebinding between check and connect.
 - Secrets: gitleaks in CI; the logger redacts key values; `/api/report` keeps paths only.
