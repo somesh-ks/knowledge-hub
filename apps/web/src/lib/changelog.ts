@@ -2,6 +2,10 @@
  * The app's change log, shown on its own Settings page. Add a version at the top: a number, the day it
  * landed (YYYY-MM-DD) and one or two plain sentences on what changed for the listener. The newest
  * version is the app's version everywhere it is shown. The record behind each is in docs/history/.
+ *
+ * Numbering (2026-10-22): a new feature a listener can use raises the minor number (0.8 to 0.9); fixes
+ * and polish add or raise a patch digit (0.8 to 0.8.1 to 0.8.2). Pull requests landing the same day
+ * share one entry, numbered by the largest change among them, so the number moves at most once a day.
  */
 export interface Release {
   version: string;
@@ -11,16 +15,10 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
-    version: "0.10",
-    date: "2026-10-22",
-    description:
-      "Software Engineering is a fourth topic with its own section in every briefing, for tools, languages and engineering deep dives.",
-  },
-  {
     version: "0.9",
     date: "2026-10-22",
     description:
-      "Visits are counted without cookies or anything that identifies you, shared links say they were shared, and Settings has a Privacy page that says what is counted, kept and sent.",
+      "Software Engineering is a fourth topic with its own section, visits are counted without cookies, shared links say they were shared, and Settings has a Privacy page. Settings rows say their value at the end, podcast topics are listed by name, and cards and what they hold share one rounded shape.",
   },
   {
     version: "0.8",

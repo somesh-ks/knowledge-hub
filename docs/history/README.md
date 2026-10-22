@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-22 | [Settings refinements and four workers](2026-10-22-settings-refinements-and-four-workers.md) | Row values at the end, concentric card radii, chips by name, version 0.9 shared; Software Engineering, Costs charts, knob grow and engagement split off; a removed worktree and colliding decision numbers |
 | 2026-10-22 | [Simple Analytics and a Privacy page](2026-10-22-simple-analytics-and-privacy.md) | Cookieless visit counts on production, nine loop events, `ref=share` on shared links, `/settings/privacy` from a data inventory; the overlap with D153 (D154) |
 | 2026-10-21 | [Second owner round](2026-10-21-second-owner-round.md) | Offline Play, Library sheet, Settings cards, shared search and chips, Up next as a tab, old briefings cleared (D133 to D135) |
 | 2026-10-21 | [The owner's backlog, built in parallel](2026-10-21-owner-backlog-in-parallel.md) | A play queue and Up next, Library row menu and downloads, episode pre-narration, the Settings restructure, no Kimi models; how it was split and what review caught (D126 to D130) |
