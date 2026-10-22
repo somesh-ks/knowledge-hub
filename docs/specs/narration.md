@@ -23,7 +23,7 @@ Narration on Play, voices, audio.yml, prewarming, budgets. What it does now. Rea
 
 ### Budgets
 - Three narrations a day (`NARRATE_DAILY_CAP`, `apps/web/src/server/limits.ts`) and the budget counters are enforced; a prewarm on the site spends one of the three (D82), while pre-narration in `dispatch publish` counts against the monthly Speechify budget only (D128); the passphrase step is off (D41).
-- `POST /api/narrate` takes a shared burst cap (`narrate`, 40 a minute across instances, D150) once the origin, body and passphrase pass and before the store is opened; past it the answer is 429 `cooldown` to the end of the minute.
+- `POST /api/narrate` takes the shared burst cap (bucket `narrate`, D150) once the origin, body and passphrase pass and before the store is opened; past it the answer is 429 `cooldown` until the minute ends.
 - Speechify client tests run through an in-memory fake fetch.
 
 ## Code
