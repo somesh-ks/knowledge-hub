@@ -82,8 +82,8 @@ const nameOf = (by: string, key: string): string => {
   return NAMES[key] ?? key.charAt(0).toUpperCase() + key.slice(1).replaceAll("_", " ");
 };
 
-/** Dollars: cents from a dime up, four places below one (a call often costs a fraction of a cent). */
-const usd = (n: number): string => (n === 0 ? "$0.00" : `$${n.toFixed(Math.abs(n) < 0.1 ? 4 : 2)}`);
+/** Dollars, always to the cent; a spend too small to show a cent says so rather than reading as zero. */
+const usd = (n: number): string => (n > 0 && n < 0.005 ? "<$0.01" : `$${n.toFixed(2)}`);
 /** An axis tick: as few places as the step needs. */
 const tick = (n: number, step: number): string =>
   `$${n.toFixed(step >= 1 ? 0 : step >= 0.01 ? 2 : 3)}`;
