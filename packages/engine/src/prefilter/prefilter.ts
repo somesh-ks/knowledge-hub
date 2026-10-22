@@ -1,7 +1,16 @@
 import type { Item, Preferences, Source, SourceType } from "@dispatch/core";
-import { categoryHint, isDesignHinted, isTechHinted, isTrendingHinted } from "../sources/hint.js";
+import {
+  categoryHint,
+  isDesignHinted,
+  isTechHinted,
+  isTopicTagged,
+  isTrendingHinted,
+} from "../sources/hint.js";
 import { authorMatches, containsPhrase, keywordRegExp } from "./phrase.js";
 import { releaseWeight } from "./releaseWeight.js";
+
+/** The Software Engineering depth category, whose sources pass by their filing (D155). */
+const DEPTH_CATEGORY = "software_engineering_depth";
 
 export const DEFAULT_CAP = 60;
 /**
@@ -212,14 +221,26 @@ export function prefilter({
     const hnPoints = item.signals.hn_points ?? 0;
     const strong = hnPoints > STRONG_HN_POINTS;
 
-    // A source shipped for Design is relevant by being tagged, as the tech beat is by its hint.
+    // A source shipped for Design is relevant by being tagged, as the tech beat is by its hint, and
+    // an engineering blog filed for Software Engineering by its hint or tag (D155), unless that
+    // category is Off: their posts rarely name a design keyword.
     const designTagged = isDesignHinted(item, source);
-    if (titleHits + snippetHits === 0 && !authorHit && !highSignal && !strong && !designTagged) {
+    const hint = categoryHint(item, source);
+    const depthHinted =
+      preferences.weights[DEPTH_CATEGORY] > 0 &&
+      (hint === DEPTH_CATEGORY || isTopicTagged(item, source, DEPTH_CATEGORY));
+    if (
+      titleHits + snippetHits === 0 &&
+      !authorHit &&
+      !highSignal &&
+      !strong &&
+      !designTagged &&
+      !depthHinted
+    ) {
       report.dropped.not_relevant++;
       continue;
     }
 
-    const hint = categoryHint(item, source);
     const categoryWeight = hint ? preferences.weights[hint] : 0.5;
     const votes =
       Math.min(3, Math.log10(1 + hnPoints)) +

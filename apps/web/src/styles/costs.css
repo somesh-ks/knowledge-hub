@@ -1,0 +1,339 @@
+/*
+ * The Costs page (/analytics): one card that answers it all (2026-10-22, the owner). Its top holds
+ * the range and breakdown chips (the shared select chip, primitives.css) and the total with one
+ * supporting line; then a column chart of each day's, week's or month's spend; then the breakdown,
+ * largest first. One series, so one colour, the accent: the split lives in the breakdown and the
+ * tooltip, never in a stack of hues the design system does not have. Drawn by scripts/costsPage.ts
+ * as plain DOM and inline SVG. Imported by pages/analytics.astro after settings.css.
+ */
+
+/* ------------------------------------------------------------------ the card */
+
+/* A content card, not rows: room on all four sides, the row's 16px on a phone and 24px from 40rem,
+   as the topic card has. */
+.costs-card {
+  /* No head above it, so it keeps the air a head would give it under the page's note. */
+  margin-block-start: var(--space-6);
+  padding-block: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .costs .costs-card {
+    padding: var(--space-6);
+  }
+}
+
+/* While a refetch runs the last frame holds, dimmed: no skeleton, no jump. The chips stay lit. */
+.costs-data {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.costs[data-loading] .costs-data {
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ the head */
+
+/* On a phone the chips lead and the answer sits under them; from 40rem the answer takes the start
+   and the chips the end of one band. */
+.costs-head {
+  display: grid;
+  grid-template-areas:
+    "filters"
+    "answer";
+  gap: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .costs-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "answer filters";
+    align-items: start;
+  }
+}
+
+.costs-filters {
+  grid-area: filters;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* On the card's tone a chip steps up to the overlay tone, as a card's filter chips do, and one
+   padding in from the card's corner it takes that corner's radius less the padding (concentric). */
+.costs-card .sort-field {
+  --sort-field-bg: var(--color-surface-overlay);
+  border-radius: var(--radius-sm);
+}
+
+/* Material's dropdown chip: 16px before the words, the chevron 8px from the end. */
+.costs-card .sort-field > select {
+  padding-inline: var(--space-4) calc(var(--space-2) * 2 + var(--size-icon-sm));
+}
+
+.costs-card .sort-field > .icon {
+  inset-inline-end: var(--space-2);
+}
+
+.costs-answer {
+  grid-area: answer;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The label, the one figure and the supporting line: told apart by size and ink, at two weights. */
+.costs-label {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-leading-label);
+}
+
+/* The figure the page leads with: the same sans, proportional figures, the display step. */
+.costs-total {
+  margin: 0;
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+.costs-detail {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+/* ------------------------------------------------------------------ the chart */
+
+.costs-plot {
+  position: relative;
+  margin-block-start: var(--space-6);
+  /* As tall as the drawn chart with its axis labels, before and after it draws, so nothing moves;
+     the script reads this box. Taller on a wide card, so the columns are not a flat strip. */
+  block-size: calc(var(--space-24) * 2);
+}
+
+@media (min-width: 40rem) {
+  .costs-plot {
+    block-size: calc(var(--space-24) * 2 + var(--space-12));
+  }
+}
+
+/* The ring stands a step off the plot, clear of the tick and date labels at its edges. */
+.costs-plot:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--space-2);
+}
+
+.costs-svg {
+  display: block;
+  overflow: visible;
+}
+
+.costs-grid line {
+  stroke: var(--color-border-hairline);
+  stroke-width: var(--stroke-hairline);
+}
+
+.costs-svg text {
+  fill: var(--color-on-surface-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-mark {
+  fill: var(--color-accent);
+}
+
+.costs-columns > .is-active .costs-mark {
+  fill: var(--color-accent-hover);
+}
+
+.costs-wash {
+  fill: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+}
+
+/* The tooltip is the drawn list's surface: the overlay tone, a hairline, the popover shadow. */
+.costs-tip {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: var(--z-raised);
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 9rem;
+  padding: var(--space-2) var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+
+.costs-tip p {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+}
+
+/* Values lead and carry the weight; the names follow, quieter. The head's value is the total. */
+.costs-tip strong {
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-tip span {
+  color: var(--color-on-surface-muted);
+}
+
+/* The head is the column's total: a hairline parts it from the split under it. */
+.costs-tip-head:not(:only-child) {
+  padding-block-end: var(--space-2);
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+/* With nothing spent the plot says so, centred on the card's width (only a baseline is drawn, so
+   the card is the frame the eye centres on) and clear of the date band. */
+.costs-empty {
+  position: absolute;
+  inset: 0 0 var(--space-8);
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ the breakdown */
+
+/* Under the chart, past a hairline that runs the card's content width: name, amount and share on
+   one line, a bar to the largest under it. The same accent as the columns, so it reads as one. */
+.costs-rank {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-6) 0 0;
+  padding: var(--space-6) 0 0;
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+  list-style: none;
+}
+
+.costs-rank-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--space-12);
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--text-body-size);
+  line-height: var(--font-leading-label);
+}
+
+.costs-rank-name {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.costs-rank-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-rank-share {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.costs-meter {
+  grid-column: 1 / -1;
+  block-size: var(--space-1);
+  border-radius: var(--radius-round);
+  background: var(--color-track);
+}
+
+.costs-meter-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+/* ------------------------------------------------------------------ under the card */
+
+.costs-table {
+  margin-block-start: var(--space-4);
+}
+
+.costs-table > summary {
+  display: flex;
+  align-items: center;
+  inline-size: fit-content;
+  min-block-size: var(--size-touch);
+  color: var(--color-accent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.costs-table > summary:focus-visible {
+  border-radius: var(--radius-xs);
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.costs-table-scroll {
+  overflow-x: auto;
+}
+
+.costs-table table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs-table :is(th, td) {
+  padding: var(--space-2) var(--space-4) var(--space-2) 0;
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  text-align: end;
+  white-space: nowrap;
+}
+
+.costs-table :is(th, td):first-child {
+  text-align: start;
+}
+
+.costs-table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.costs-table thead th {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.costs-table tbody th {
+  font-weight: var(--font-weight-regular);
+}
+
+.costs-note {
+  margin-block-start: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .costs-data {
+    transition: none;
+  }
+}

@@ -794,6 +794,89 @@
   }
 }
 
+/* ------------------------------------------------------------------ select chip */
+
+/*
+ * A compact select drawn as a chip: the Library's sort, the Costs chart's range and breakdown. It
+ * opens the drawn list below. Its fill is --sort-field-bg, so a chip on a card's tone can step up
+ * (costs.css). Moved here from library.css on 2026-10-22 when Costs took it; the rules are as they
+ * were. Markup: <label class="sort-field"><span class="sr-only">Sort</span><select>..</select><svg/></label>
+ */
+.sort-field {
+  --sort-field-bg: var(--color-surface-container);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: var(--chip-height);
+  border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--button-radius);
+  background: var(--sort-field-bg);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  white-space: nowrap;
+  color: var(--color-on-surface);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+/* A filter or an order that is not the default is on, so it looks chosen, as a chosen chip does. */
+.sort-field[data-active] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+/* The ring is the keyboard's. A press that opens the list keeps the chip's own fill and state
+   layer: no ring and no accent edge (the shared open rule below draws both). */
+:root[data-input="keyboard"] .sort-field:has(> select:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+/* The select is 44px tall and the box around it 36px: negative margins let it reach past the border
+   for a full-size target. The row's padding holds room for the overhang. */
+.sort-field > select {
+  height: var(--size-touch);
+  margin-block: calc((var(--chip-height) - var(--size-touch)) / 2 - var(--stroke-hairline));
+  padding-inline: var(--space-4) calc(var(--space-4) + var(--space-4) + var(--field-chevron-gap));
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  font: inherit;
+  /* The label size is under 16px on purpose: a select does not zoom the page on iOS. */
+  font-size: inherit;
+  outline: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+/* The chevron is a hint at the end of the label, a step smaller than a toolbar glyph. */
+.sort-field > .icon {
+  position: absolute;
+  inset-inline-end: var(--space-4);
+  inline-size: var(--size-icon-sm);
+  block-size: var(--size-icon-sm);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sort-field:hover {
+    background: color-mix(
+      in oklch,
+      var(--sort-field-bg),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+
+  .sort-field[data-active]:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+}
+
 /* ------------------------------------------------------------------ the open list of a field */
 
 /*
@@ -966,6 +1049,18 @@
     outline-offset: calc(var(--stroke-hairline) * -1);
   }
 
+  /* Opened by a pointer, a select chip keeps its own fill under the press layer: no ring, no accent
+     edge (was the Library's alone, library.css, until 2026-10-22). */
+  :root:not([data-input="keyboard"]) .sort-field:has(> select:open) {
+    border-color: transparent;
+    outline: none;
+    background: color-mix(
+      in oklch,
+      var(--sort-field-bg),
+      var(--color-on-surface) var(--state-press)
+    );
+  }
+
   @media (forced-colors: active) {
     :is(.manage-select, .sort-field, .create-select) > select option::checkmark {
       forced-color-adjust: none;
@@ -1065,9 +1160,32 @@
    inner room is the first and last row's. Its rows sit 16px in from its edge, and a row's hover tile
    keeps clear of the corners. */
 .card-group {
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-xl);
+  padding-inline: var(--card-padding);
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
+}
+
+/* What a card holds is concentric with its corners (2026-10-22): a surface one inset in from the
+   edge (a row's tile, a select's fill) takes the inner radius, content one padding in (a chip, a
+   button) the content radius. A row's tile sits the inset clear of the card's edges and of the next
+   row's tile, so it never runs into a corner. */
+.card-group > .row-action::after {
+  inset-block: var(--card-inset);
+  inset-inline: calc(var(--card-inset) - var(--card-padding));
+  border-radius: var(--card-inner-radius);
+}
+
+.card-group .btn {
+  border-radius: var(--card-content-radius);
+}
+
+/* A card of chips has the same room on all four sides (2026-10-22: the bottom was half the top). */
+.card-group.filter-chips {
+  padding: var(--card-padding);
+}
+
+.card-group .filter-chip {
+  border-radius: var(--card-content-radius);
 }
 
 /* A card sits on the container tone, so an unticked chip in it needs one step up to show. The step
@@ -1105,4 +1223,10 @@
 /* The muted ink fails 4.5 to 1 on the container tone; a quiet value in a card takes the full ink. */
 .card-group .settings-row[data-models] .value-select > select.manage-input {
   color: var(--color-on-surface);
+}
+
+/* A select's fill sits one inset in from the card's edge, as a row's tile does, so it takes the same
+   inner radius rather than the pill a select has outside a card (2026-10-22). */
+.card-group .settings-row .value-select > :is(select.manage-input, .picker-trigger) {
+  border-radius: var(--card-inner-radius);
 }

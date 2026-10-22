@@ -11,6 +11,9 @@ name: health
 # lab probe on Mondays (D147): cold loads of three pages on a throttled phone, judged as warnings
 # only; and, daily, the field Web Vitals real visits stored in Neon (D156): a 7-day p75 past
 # "needs improvement" warns, past "poor" it is a fault, which opens the issue (nothing heals it).
+# Warnings open no `health` issue: on Mondays one issue labelled `health-warnings` lists the
+# standing ones (closed when there are none), and a daily comment on an open `health` issue leads
+# with the faults the last report did not list.
 #
 # A drill (Run workflow, drill ticked) proves the healing path on the real repository without a
 # real fault: on a copy of the report with the real findings taken out it plants `run_overdue`,
@@ -51,6 +54,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          # `site_behind` finds the newest commit vercel.json's ignoreCommand watches and asks
+          # whether the live build holds it: both need history, not one commit.
+          fetch-depth: 100
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -95,8 +101,11 @@ jobs:
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
-          # The field Web Vitals store (D156); unset, health warns field_unmeasured.
+          # The Neon store: field Web Vitals (D156) and the site's shared rate counter. Unset, health
+          # warns field_unmeasured; set and failing, it warns store_degraded.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The config store switch (D149): on, health compares the stored documents with git.
+          DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
           # Empty on a day without the probe, which health reads as nothing to judge.
           PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |
@@ -181,6 +190,38 @@ jobs:
           new_fault() { [[ " $codes " == *" $1 "* && " $held " != *" $1 "* ]]; }
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+          # Warnings open no `health` issue, so nobody saw them. On Mondays (the probe's day, D148)
+          # one issue labelled health-warnings lists the standing ones, and closes when there are
+          # none. It never heals and never touches the health issue; a drill skips it.
+          warnings_issue() {
+            # Called under `||`, so set -e is off in here: each call that decides what happens is
+            # checked. A list that failed must not read as "no issue open" and open a second one.
+            gh label create health-warnings --color FBCA04 --description "Standing health warnings, listed on Mondays" --force >/dev/null || return 1
+            local open_warn warn_codes
+            open_warn=$(gh issue list --label health-warnings --state open --limit 1 --json number --jq '.[0].number // empty') || return 1
+            warn_codes=$(jq -r '[.findings[] | select(.severity == "warning") | .code] | unique | join(" ")' "$report")
+            if [ -z "$warn_codes" ]; then
+              [ -z "$open_warn" ] || gh issue close "$open_warn" --comment "No standing warnings on $(date -u +%F) ([run]($run_url))."
+              return 0
+            fi
+            {
+              echo "Standing warnings on $(date -u +%F) ([run]($run_url)). Nothing heals these; faults go to the \`health\` issue."
+              echo
+              jq -r '.findings[] | select(.severity == "warning") | "- [\(.aspect)] `\(.code)`: \(.message)"' "$report"
+            } > "$RUNNER_TEMP/warnings.md"
+            if [ -n "$open_warn" ]; then
+              gh issue comment "$open_warn" --body-file "$RUNNER_TEMP/warnings.md"
+              gh issue edit "$open_warn" --title "Health warnings: $warn_codes"
+            else
+              gh issue create --title "Health warnings: $warn_codes" --label health-warnings --body-file "$RUNNER_TEMP/warnings.md" >/dev/null
+            fi
+          }
+          # A crashed check lists no warnings: that is not "none", so it leaves the issue as it is.
+          if [ "$DRILL" != "true" ] && [ "$(date -u +%u)" = "1" ] &&
+            ! jq -e '.findings | any(.code == "health_crashed")' "$report" >/dev/null; then
+            warnings_issue || echo "::warning title=Warnings issue::The health-warnings issue could not be updated."
+          fi
+
           if [ "$ok" = "true" ]; then
             if [ -n "$issue" ]; then
               gh issue close "$issue" --comment "Green again on $(date -u +%F) ([run]($run_url))."
@@ -209,9 +250,21 @@ jobs:
           keep=$(printf '%s\n' $keep | sort -u | xargs)
           new_title="${prefix}Health: ${codes}${keep:+ | healed: $keep}"
 
+          # On an issue already open, the faults the last report did not list lead, so a fault open
+          # for weeks cannot hide a new one under the same daily comment.
+          fresh=""
+          if [ -n "$issue" ]; then
+            # The last report this workflow wrote (the bot's comment, else the issue it opened), not
+            # whoever commented last.
+            last=$(gh issue view "$issue" --json body,comments --jq '([.comments[] | select(.author.login | test("^github-actions"))] | last | .body) // .body // ""') || last=""
+            before=$(grep -oE '^- fault \[[a-z]+\] `[a-z_]+`' <<<"$last" | grep -oE '`[a-z_]+`' | tr -d '`' | xargs || true)
+            for code in $codes; do [[ " $before " == *" $code "* ]] || fresh="$fresh \`$code\`"; done
+          fi
+
           {
             echo "Health check on $(date -u +%F): **faults** ([run]($run_url))."
             echo
+            if [ -n "$fresh" ]; then echo "**New since the last report:**$fresh."; echo; fi
             jq -r '.findings[] | "- \(.severity) [\(.aspect)] `\(.code)`: \(.message)"' "$report"
             if [ -n "$healed" ]; then echo; echo "Self-healing (once):"; printf "%b" "$healed"; fi
             echo

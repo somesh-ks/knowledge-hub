@@ -3,59 +3,72 @@ import Icon from "../components/Icon.astro";
 import SettingsHead from "../components/SettingsHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/settings.css";
-import "../styles/manage.css";
+import "../styles/costs.css";
 
 const title = "Costs";
+
+// The range sets both the window and the column: a column a day, a week or a month.
+const RANGES = [
+  { value: "day", days: 30, label: "30 days" },
+  { value: "week", days: 91, label: "3 months" },
+  { value: "month", days: 365, label: "12 months" },
+];
+// What the breakdown under the chart splits the spend by. By person shows once there are two people.
+const SPLITS = [
+  { value: "provider", label: "By provider" },
+  { value: "kind", label: "By use" },
+  { value: "scope", label: "Shared or personal" },
+  { value: "user", label: "By person" },
+];
 ---
 
 <BaseLayout title={title} view="settings" skipLabel="Skip to the costs">
   <main id="main" tabindex="-1">
-    {/* Static shell: the numbers load after first paint from /api/costs (scripts/costsPage.ts), so the page costs nothing at start. */}
-    <div class="settings-view" data-settings data-costs>
-      <SettingsHead title={title} note="What the app spent on paid services, from the cost ledger." />
+    {/* Static shell: the numbers load after first paint from /api/costs (scripts/costsPage.ts), so the
+         page costs nothing at start. One card answers it all (2026-10-22, the owner): the range and
+         breakdown chips at its top, the total, the chart, then the breakdown. */}
+    <div class="settings-view costs" data-settings data-costs>
+      <SettingsHead title={title} note="What the app spends on paid services." />
 
-      <section>
-        <h2 class="section-head">Range</h2>
-        <div class="rows card-group">
-          <div class="settings-row">
-            <label class="settings-label" for="costs-period">Period</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="costs-period" autocomplete="off">
-                <option value="day">Day</option>
-                <option value="week">Week</option>
-                <option value="month">Month</option>
+      <section class="card-group costs-card" aria-labelledby="costs-total-label">
+        <div class="costs-head">
+          <div class="costs-filters">
+            <label class="sort-field">
+              <span class="sr-only">Range</span>
+              <select id="costs-range" autocomplete="off">
+                {RANGES.map((range) => <option value={range.value} data-days={range.days}>{range.label}</option>)}
               </select>
               <Icon name="chevronDown" />
-            </span>
-          </div>
-          <div class="settings-row">
-            <label class="settings-label" for="costs-by">Group by</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id="costs-by" autocomplete="off">
-                <option value="provider">Provider</option>
-                <option value="kind">Kind</option>
-                <option value="scope">Shared or personal</option>
-                <option value="timezone">Timezone</option>
-                <option value="user">User</option>
+            </label>
+            <label class="sort-field">
+              <span class="sr-only">Breakdown</span>
+              <select id="costs-by" autocomplete="off">
+                {SPLITS.map((split) => <option value={split.value}>{split.label}</option>)}
               </select>
               <Icon name="chevronDown" />
-            </span>
+            </label>
+          </div>
+          <div class="costs-answer costs-data" aria-live="polite">
+            <h2 class="costs-label" id="costs-total-label" data-costs-label>Total spend</h2>
+            <p class="costs-total" data-costs-total>Loading</p>
+            <p class="costs-detail" data-costs-detail>&nbsp;</p>
           </div>
         </div>
-      </section>
 
-      <section>
-        <h2 class="section-head">Total</h2>
-        <div class="rows card-group" data-costs-total>
-          <p class="settings-about" data-costs-status>Loading.</p>
+        <div class="costs-plot costs-data" data-costs-plot tabindex="0" role="group" aria-label="Spend over time">
+          <div class="costs-tip" data-costs-tip hidden></div>
+          <p class="costs-empty" data-costs-empty hidden></p>
         </div>
+
+        <h3 class="sr-only" data-costs-rank-head>By provider</h3>
+        <ol class="costs-rank costs-data" data-costs-rank></ol>
       </section>
 
-      <section>
-        <h2 class="section-head">By period</h2>
-        <div class="rows card-group" data-costs-rows></div>
-        <p class="settings-note" data-costs-note></p>
-      </section>
+      <details class="costs-table" data-costs-table>
+        <summary>Show as a table</summary>
+        <div class="costs-table-scroll"><table data-costs-grid></table></div>
+      </details>
+      <p class="settings-note costs-note" data-costs-note></p>
     </div>
   </main>
 </BaseLayout>

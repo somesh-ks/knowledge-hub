@@ -17,34 +17,39 @@
       "order": 2
     },
     {
+      "id": "software",
+      "title": "Software Engineering",
+      "order": 3
+    },
+    {
       "id": "ai",
       "title": "AI Products",
-      "order": 3
+      "order": 4
     },
     {
       "id": "tech",
       "title": "Tech Product Launches",
-      "order": 4
+      "order": 5
     },
     {
       "id": "trending",
       "title": "Trending",
-      "order": 5
+      "order": 6
     },
     {
       "id": "research",
       "title": "Research",
-      "order": 6
+      "order": 7
     },
     {
       "id": "launches",
       "title": "Launches",
-      "order": 7
+      "order": 8
     },
     {
       "id": "watch",
       "title": "Watch and listen",
-      "order": 8
+      "order": 9
     }
   ],
   "topics": [
@@ -127,7 +132,7 @@
       "weight": 0.85,
       "enabled": true,
       "keywords": [],
-      "section_id": "ui-craft",
+      "section_id": "software",
       "never_publish": false,
       "origin": "builtin",
       "depth": "craft"
@@ -263,6 +268,18 @@
       "never_publish": false,
       "origin": "general",
       "depth": "coverage"
+    },
+    {
+      "id": "software_engineering_depth",
+      "name": "Engineering deep dives",
+      "description": "Architecture, performance and internals, with code",
+      "weight": 0.85,
+      "enabled": true,
+      "keywords": [],
+      "section_id": "software",
+      "never_publish": false,
+      "origin": "builtin",
+      "depth": "craft"
     }
   ]
 }

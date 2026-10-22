@@ -87,12 +87,22 @@ document.addEventListener("astro:after-swap", holdGutter);
 const launch = document.querySelector<HTMLElement>(".launch");
 if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // Uncaught errors and policy violations go to /api/report (server/report.ts), at most five a page
-// load, so a fault on a phone reaches the function log instead of vanishing. Kept a few hundred
-// bytes: it is on every page's first load.
+// load, so a fault on a phone reaches the function log and the week's store instead of vanishing.
+// The build goes with it (D158), read once here: in-app moves swap the head's meta for the new
+// page's while this bundle, the one that raised the fault, keeps running.
+// Kept a few hundred bytes: it is on every page's first load.
+const build = document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content;
 let reports = 0;
 const report = (fault: object): void => {
   if (reports++ < 5)
-    navigator.sendBeacon?.("/api/report", JSON.stringify({ ...fault, page: location.pathname }));
+    navigator.sendBeacon?.(
+      "/api/report",
+      JSON.stringify({
+        ...fault,
+        page: location.pathname,
+        build,
+      }),
+    );
 };
 addEventListener("error", (event) =>
   report({ kind: "error", message: event.message, source: event.filename, line: event.lineno }),

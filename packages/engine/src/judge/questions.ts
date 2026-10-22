@@ -21,11 +21,12 @@ export const CATEGORY_OPTIONS = [
   "frontier_model_releases",
   "developer_tool_launches",
   "taste_and_design_philosophy",
+  "software_engineering_depth",
   "consumer_tech_releases",
 ] as const satisfies readonly CategoryOrNone[];
 
 export const CATEGORY_CRITERIA: Record<(typeof CATEGORY_OPTIONS)[number], string> = {
-  none: "Unrelated to interface craft, design engineering, AI products, developer tools or consumer technology, or too thin to place.",
+  none: "Unrelated to interface craft, design engineering, AI products, developer tools, software engineering or consumer technology, or too thin to place.",
   generic_ai_hype_listicles:
     "Generic AI hype: top-N tool lists, productivity promises, prompt packs or marketing language with no specific technique or finding.",
   venture_capital_and_gossip:
@@ -43,9 +44,11 @@ export const CATEGORY_CRITERIA: Record<(typeof CATEGORY_OPTIONS)[number], string
   frontier_model_releases:
     "A release, model card, benchmark result or technical report for a frontier AI model.",
   developer_tool_launches:
-    "A launch or major release of a developer tool, framework, library, editor, CLI or platform feature a design engineer might adopt.",
+    "A launch or major release of a developer tool, framework, library, language, editor, CLI or platform feature a software or design engineer might adopt.",
   taste_and_design_philosophy:
     "An essay or talk about taste, craft, design principles or how to think about designing and building interfaces.",
+  software_engineering_depth:
+    "An engineering deep dive for software engineers: architecture, performance, scaling, reliability or internals, explained with code, measurements or an incident write-up, whatever the stack.",
   consumer_tech_releases:
     "A consumer technology release or the news around it: a phone, tablet, laptop, wearable, earbuds, camera, headset, electric vehicle, chip, operating system or major app update that people can buy or use, or a regulation or company decision that changes what such products ship with.",
 };
@@ -118,7 +121,7 @@ export const STATE_LIMITS = { titleChars: 300, snippetChars: 1_200 } as const;
 
 export const JEV_QUESTIONS = {
   category: choice(
-    `${DATA_NOTE} Which single category best describes this item for a design engineer?`,
+    `${DATA_NOTE} Which single category best describes this item for a design or software engineer?`,
     CATEGORY_CRITERIA,
   ),
   craft_depth: score(

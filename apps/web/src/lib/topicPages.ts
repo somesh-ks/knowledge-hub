@@ -52,7 +52,7 @@ export function generalOf(topics: readonly ManageTopic[]): ManageTopic[] {
 
 /**
  * What a topic's row says about its sources (sourcesSummary): "2 of 3 sources on". One of the
- * owner's three topics (a group, no topic of its own) passes null.
+ * owner's four topics (a group, no topic of its own) passes null.
  */
 export function topicSummary(topic: ManageTopic | null, total: number, on = total): string {
   return sourcesSummary({
@@ -62,7 +62,7 @@ export function topicSummary(topic: ManageTopic | null, total: number, on = tota
   });
 }
 
-/** One of the owner's three topics (core TOPIC_GROUPS) as its page shows it. */
+/** One of the owner's four topics (core TOPIC_GROUPS) as its page shows it. */
 export interface GroupPage {
   id: string;
   name: string;
@@ -75,7 +75,7 @@ export interface GroupPage {
 
 /** The Topics and sources pages and where every source shows (D69). */
 export interface TopicLayout {
-  /** Design, AI and Technology, in that order, each with at least one member. */
+  /** Design, AI, Technology and Software Engineering, in that order, each with at least one member. */
   groups: GroupPage[];
   /** The owner's own topics that publish to a section of their own, by name. */
   own: ManageTopic[];
@@ -86,7 +86,7 @@ export interface TopicLayout {
 }
 
 /**
- * Lay the topics out as a person sees them: three topics of the owner's (the judge's finer topics
+ * Lay the topics out as a person sees them: four topics of the owner's (the judge's finer topics
  * gathered by section), the owner's own topics apart from those, the general news topics, and
  * Other for every source the pages do not show: no topic, a topic that never publishes, or one the
  * app no longer lists (Trending).
@@ -136,7 +136,7 @@ export function topicChoicesOf(layout: TopicLayout): { id: string; name: string 
 
 /**
  * What a page's sources are suggested by (suggestSources): the words its topic goes by. One of the
- * owner's three is its name and the names and keywords of the judge's topics it gathers. A general
+ * owner's four is its name and the names and keywords of the judge's topics it gathers. A general
  * topic is its name and keywords alone: its description is the judge's fit question, written for a
  * model and not as words to look for. The owner's own topic is its name, description and keywords.
  * Other has no subject, so nothing is suggested for it.

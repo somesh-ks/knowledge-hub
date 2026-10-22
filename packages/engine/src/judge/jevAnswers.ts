@@ -33,7 +33,7 @@ export type JevJudgeResponse = z.infer<typeof JevJudgeResponse>;
 const NORMALIZE_TOLERANCE = 0.01;
 
 /**
- * Probabilities for all twelve options, summing to 1. Unknown labels are ignored and missing
+ * Probabilities for all thirteen options, summing to 1. Unknown labels are ignored and missing
  * ones count as 0. When the reply carries no usable mass the chosen label gets everything.
  */
 export function normalizeCategoryProbs(

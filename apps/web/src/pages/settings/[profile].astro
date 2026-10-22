@@ -5,7 +5,7 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
-import { topicLayout } from "../../lib/topicPages";
+import { byName, topicLayout } from "../../lib/topicPages";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
@@ -22,8 +22,8 @@ type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
 const [{ topics, sources }, schedule] = await Promise.all([loadManage(), loadScheduleView()]);
 const layout = topicLayout(topics, sources);
-// Every topic can be put in or out of a scheduled podcast: the owner's three, their own and the
-// general news topics.
+// Every topic can be put in or out of a scheduled podcast: the owner's four, their own and the
+// general news topics, by name as the Sources page lists them (2026-10-22).
 const scopeTopics = [
   ...layout.groups.map((group) => ({
     id: group.id,
@@ -32,7 +32,7 @@ const scopeTopics = [
   })),
   ...layout.own.map((topic) => ({ id: topic.id, name: topic.name, ids: [topic.id] })),
   ...layout.general.map((topic) => ({ id: topic.id, name: topic.name, ids: [topic.id] })),
-];
+].sort(byName);
 
 const PAGES = {
   daily: {

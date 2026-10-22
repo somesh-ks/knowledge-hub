@@ -4,7 +4,7 @@ import { topicLayout } from "./topicPages";
 
 /**
  * The chips a briefing's Regenerate offers: the schedule's own list (settings/[profile].astro), the
- * owner's three topics, their own and the general news topics.
+ * owner's four topics, their own and the general news topics.
  */
 export function briefingChips(
   topics: readonly ManageTopic[],

@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type Digest, parseDigestFile, VOICE_LIMITS } from "@dispatch/core";
+import {
+  compareNewestFirst,
+  type Digest,
+  parseDigestFile,
+  stockholmDate,
+  VOICE_LIMITS,
+} from "@dispatch/core";
+import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
@@ -17,19 +24,22 @@ import {
 } from "../state/store.js";
 import {
   checkConfig,
+  checkConfigStore,
   checkEpisodes,
-  checkFieldVitals,
   checkPerf,
   checkRunsDied,
+  checkStore,
   type FieldReading,
   type HealthAspect,
   type HealthFetch,
   type Sink,
+  type StoreReading,
+  type WatchedHead,
   type WorkflowRun,
 } from "./healthChecks.js";
 import { collectStatus } from "./statusReport.js";
 
-export type { FieldReading, HealthAspect, HealthFetch, WorkflowRun };
+export type { FieldReading, HealthAspect, HealthFetch, StoreReading, WatchedHead, WorkflowRun };
 
 /**
  * `dispatch health`: the faults that fail silently today, from the repository files and the live
@@ -67,8 +77,13 @@ export interface HealthOptions {
   runs?: readonly WorkflowRun[];
   /** The lab probe's output (health.yml passes it; null when it wrote none); absent skips the perf check. */
   perf?: unknown;
-  /** Field Web Vitals from the store (D156; the command reads it when online); absent skips them. */
-  field?: FieldReading;
+  /**
+   * The Neon store (the command reads it when online): field Web Vitals (D156), the site's shared
+   * rate counter and, with the config store on, its documents. Absent skips them.
+   */
+  store?: StoreReading;
+  /** The newest commit the site would deploy (the command reads git when online); absent skips `site_behind`. */
+  main?: WatchedHead;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
 }
@@ -168,9 +183,9 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
 
   // Quality: the newest briefing has enough stories, was checked against its sources, and the run
   // did not lean on fallback models.
-  const latest = [...digests].sort((a, b) =>
-    a.digest.generated_at < b.digest.generated_at ? 1 : -1,
-  )[0];
+  // The site's order: a regenerated briefing keeps its date, so ordering by generated_at alone
+  // took an older one for the newest and faulted site_stale.
+  const latest = [...digests].sort((a, b) => compareNewestFirst(a.digest, b.digest))[0];
   if (latest) {
     const { digest } = latest;
     if (digest.items.length < THIN_DIGEST_ITEMS) {
@@ -231,7 +246,22 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     fault("audio_missing", "reliability", `No narration for ${missing.join(", ")}.`);
   }
 
-  // Cost: the ledger's last 24 hours against the ceiling, and the speech allowance.
+  // The public Blob store's address is in every narration URL; it is not a secret (config.ts).
+  const withAudio = [...digests]
+    .filter((each) => each.digest.audio?.url.startsWith("https://"))
+    .sort((a, b) => compareNewestFirst(a.digest, b.digest))[0];
+  const blobBase = withAudio?.digest.audio ? new URL(withAudio.digest.audio.url).origin : null;
+  const get = options.fetch ?? fetch;
+  const blob = options.site !== null && blobBase !== null ? { base: blobBase, get } : null;
+
+  // Cost: the ledger's last 24 hours against the ceiling, and the speech allowance. Online, the
+  // site's own month count (apps/web narrationState.ts) is added to the allowance:
+  // state/usage.json holds only the engine's.
+  const site = blob ? await readSiteNarration(blob, now) : null;
+  if (site && "error" in site) {
+    warn("site_usage_unread", "cost", `The site's narration count did not read: ${site.error}.`);
+  }
+  const siteCount = site && !("error" in site) ? site : { month: 0 };
   const since = now.getTime() - DAY_MS;
   const records = await loadAllCosts(root).catch((error: unknown) => {
     fault("state_invalid", "integrity", `state/costs-*.json: ${message(error)}`);
@@ -249,31 +279,53 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   } else {
     passed.push(`$${spent.toFixed(2)} spent in the last 24 hours`);
   }
-  if (status.budget.speechify.used >= status.budget.speechify.limit) {
-    fault("speech_budget", "cost", "Speechify is at its 90% stop: narration is off this month.");
-  } else if (status.budget.speechify.percent >= 75) {
-    warn("speech_budget", "cost", `Speechify at ${status.budget.speechify.percent}% this month.`);
+  const speech = status.budget.speechify;
+  const used = speech.used + siteCount.month;
+  const percent = Math.round((used / speech.monthly_chars) * 100);
+  if (used >= speech.limit) {
+    fault(
+      "speech_budget",
+      "cost",
+      `Speechify use this month is past the 90% stop (${speech.used} by the engine, ${siteCount.month} by the site, ${used} of ${speech.monthly_chars}). Each stop checks only its own counter, so neither sees the other and narration can go on past the plan's cap.`,
+    );
+  } else if (percent >= 75) {
+    warn(
+      "speech_budget",
+      "cost",
+      `Speechify at ${percent}% this month (${siteCount.month} characters on the site).`,
+    );
   }
 
   // Integrity: the config files parse with the core schemas (doctor's checks, daily).
   await checkConfig(root, { fault, warn, passed });
 
-  // The public Blob store's address is in every narration URL; it is not a secret (config.ts).
-  const withAudio = [...digests]
-    .filter((each) => each.digest.audio?.url.startsWith("https://"))
-    .sort((a, b) => (a.digest.generated_at < b.digest.generated_at ? 1 : -1))[0];
-  const blobBase = withAudio?.digest.audio ? new URL(withAudio.digest.audio.url).origin : null;
-  const get = options.fetch ?? fetch;
-  const blob = options.site !== null && blobBase !== null ? { base: blobBase, get } : null;
-
   // Quality: every episode parses and narrates whole; the newest one's word marks read.
   await checkEpisodes(root, options.voices ?? {}, now, { fault, warn, passed }, blob);
 
   if (options.perf !== undefined) checkPerf(options.perf, { fault, warn, passed });
-  if (options.field !== undefined) checkFieldVitals(options.field, { fault, warn, passed });
+  if (options.store !== undefined) {
+    checkStore(options.store, { fault, warn, passed });
+    const documents = "documents" in options.store ? options.store.documents : undefined;
+    if (documents && "error" in documents) {
+      fault(
+        "config_store_unread",
+        "integrity",
+        `The config store is on but its documents did not read (not seeded, or no permission?): ${documents.error}. Runs then keep the committed files, so the owner's edits do not reach them.`,
+      );
+    } else if (documents) {
+      const lastRunAt =
+        [status.last_run.regular, status.last_run.weekly, status.last_run.on_demand]
+          // A failure record (recordFailure) committed nothing the store could have reached.
+          .map((each) => (each?.outcome === "failed" ? undefined : each?.at))
+          .filter((at): at is string => typeof at === "string")
+          .sort()
+          .at(-1) ?? null;
+      await checkConfigStore(root, documents, lastRunAt, { fault, warn, passed });
+    }
+  }
 
   if (options.site !== null) {
-    await checkSite(options.site, get, latest?.digest ?? null, now, {
+    await checkSite(options.site, get, latest?.digest ?? null, options.main, now, {
       fault,
       warn,
       passed,
@@ -293,6 +345,7 @@ async function checkSite(
   site: string,
   get: HealthFetch,
   latest: Digest | null,
+  main: WatchedHead | undefined,
   now: Date,
   sink: Sink,
 ): Promise<void> {
@@ -341,6 +394,28 @@ async function checkSite(
         : undefined;
   } catch {
     buildName = undefined;
+  }
+  // The build carries the newest commit the site would deploy: a push whose last commit touches no
+  // watched path skips the deploy (vercel.json diffs HEAD^ only), and this says so.
+  // A build named by its start time (no commit: the dev server, a build off Vercel) says nothing.
+  // Such a name is all digits, so a commit prefix must hold a letter; an all-digit commit prefix
+  // (rare) is skipped too. A warning: the owner can redeploy, and it may clear by itself.
+  if (
+    main &&
+    typeof buildName === "string" &&
+    /^(?=.*[a-f])[0-9a-f]{7,40}$/.test(buildName) &&
+    now.getTime() - main.at > DEPLOY_LAG_MS
+  ) {
+    const holds = await main.includes(buildName);
+    if (holds === true) {
+      sink.passed.push(`the site's build holds ${main.sha.slice(0, 12)}`);
+    } else if (holds === false) {
+      sink.warn(
+        "site_behind",
+        "reliability",
+        `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, committed ${Math.round((now.getTime() - main.at) / 60_000)} minutes ago: that deploy did not happen.`,
+      );
+    }
   }
   if (worker && build) {
     const cached = !/no-cache|no-store|max-age=0\b/.test(worker.headers.get("cache-control") ?? "");
@@ -401,6 +476,39 @@ async function checkSite(
     }
   }
 }
+
+/**
+ * The site's Speechify characters this Stockholm month (apps/web narrationState.ts, at
+ * `state/usage-<month>.json` on the public Blob store). Monthly only: its records are per day, so
+ * they give no 24-hour figure for the ceiling. Nothing stored is a month with none; a document
+ * whose month is not its key is unreadable, as the site's own parseState reads it.
+ */
+async function readSiteNarration(
+  blob: { base: string; get: HealthFetch },
+  now: Date,
+): Promise<{ month: number } | { error: string }> {
+  const month = stockholmDate(now).slice(0, 7);
+  try {
+    // The unique query skips the CDN's copy, as the site's readFresh does.
+    const answer = await blob.get(`${blob.base}/state/usage-${month}.json?v=${now.getTime()}`, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (answer.status === 404) return { month: 0 };
+    if (answer.status !== 200) return { error: `usage-${month}.json answered ${answer.status}` };
+    const state = SiteNarration.parse(JSON.parse(await answer.text()));
+    if (state.speechify.month !== month) {
+      return { error: `usage-${month}.json holds the count for ${state.speechify.month}` };
+    }
+    return { month: state.speechify.characters };
+  } catch (error) {
+    return { error: message(error) };
+  }
+}
+
+/** What health reads of the site's count; the site's own schema (narrationState.ts) holds more. */
+const SiteNarration = z.object({
+  speechify: z.object({ month: z.string(), characters: z.number().nonnegative() }),
+});
 
 function message(error: unknown): string {
   return error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error);

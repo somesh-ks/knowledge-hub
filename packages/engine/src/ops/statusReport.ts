@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  compareNewestFirst,
   DEFAULT_SCHEDULE,
   type Digest,
   type LastRunFile,
@@ -108,7 +109,8 @@ async function latestDigest(root: string): Promise<StatusReport["latest_digest"]
   for (const target of (await listDigestTargets(root)).slice(0, LATEST_CANDIDATES)) {
     try {
       const digest = parseDigestFile(await readFile(join(root, target.relPath), "utf8"));
-      if (best === null || digest.generated_at > best.digest.generated_at) {
+      // The site's order: by generated_at alone a regenerated older briefing read as the latest.
+      if (best === null || compareNewestFirst(digest, best.digest) < 0) {
         best = { digest, path: target.relPath };
       }
     } catch {

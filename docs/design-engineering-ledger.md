@@ -124,7 +124,7 @@ Ask, then what was built, then the decision. Values are as built.
   - `accent-container` for chosen or current.
   - `accent-container-high` for actions that are not places, such as New episode (D86).
   - State layers: hover 8%, press 12% of the control's ink.
-  - Pills for buttons and chips, 12px rows, outlines only on text fields (3:1, D54).
+  - Pills for buttons and chips on the page; inside a card they take its concentric radius (the owner chose this over pills everywhere, 2026-10-22). 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
   - Two weights, regular and medium; a test bans a third (D90).
@@ -374,6 +374,8 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Structure.**
   - Two levels, one job per page, a breadcrumb title, autosave (D51).
   - Rows hover as rounded tiles clear of the hairlines.
+  - A row's value sits at its end, not under its name, which read as squeezed; summaries are short ("Every other day at 7", a source count) and rows with nothing to say have no line; podcast topic chips go by name; an unticked chip in a card has its own tone, as dark mode's raised tone equalled the card (2026-10-22).
+  - Cards and what they hold are concentric, radius = card radius less the gap: 24, 16 (8px in), 8 (16px in), 4 (a pill inside an 8px track). Circles and capsules keep their shape. Measured on every Settings page, all within 1px (`component.card`, 2026-10-22).
   - The score is a star and a number (D103).
   - The edit source panel uses token spacing, with "Scorecard" on the left and "x.x/5" on the right, and an empty state (#122).
 - **Saving.**
@@ -398,6 +400,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
+- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
 
 ### Sound

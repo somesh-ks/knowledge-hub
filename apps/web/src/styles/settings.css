@@ -84,10 +84,11 @@
   padding-block: var(--row-padding-block);
 }
 
-/* On the index a control row is as tall as a two-line link row (74px), whatever its control:
-   the switch, the slider and the segments all sit in one rhythm. */
+/* On the index a control row is as tall as a link row, whatever its control: the switch, the slider
+   and the segments all sit in one rhythm. A link row is one line since its value moved to the end
+   (2026-10-22), so the rhythm is 64px, a select row's height, where it was a two-line row's 74px. */
 .settings-view .rows > .settings-row {
-  min-height: calc(var(--space-12) + var(--space-6) + var(--space-1));
+  min-height: calc(var(--size-touch-comfortable) + var(--space-2) * 2);
 }
 
 .settings-text {
@@ -134,10 +135,36 @@
   border-radius: var(--row-radius);
 }
 
-/* A link row among value rows is as tall as they are (a select row's padding round the target). */
-:is(.settings-view, .manage) .rows > .row-action:not(:has(.settings-hint)) {
+/* A link row among value rows is as tall as they are (a select row's padding round the target). Since
+   its value sits at its end (2026-10-22) every link row is one line, so this holds for all of them. */
+:is(.settings-view, .manage) .rows > .row-action {
   min-height: calc(var(--size-touch-comfortable) + var(--space-2) * 2);
   padding-block: var(--space-2);
+}
+
+/* A link row says its value at its end, before the chevron, as a list preference does on a phone
+   (2026-10-22, the owner: hints under the name read as squeezed). The name never wraps or shrinks; a
+   long value is cut instead. The value is the quiet ink at the body size, as a select's value is. */
+:is(.settings-view, .manage) .row-action > .settings-text {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-label {
+  flex: none;
+}
+
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-hint,
+:is(.settings-view, .manage) .settings-row > .settings-label + .settings-hint {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-body-size);
+  line-height: var(--font-leading-label);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 :is(.settings-view, .manage) .row-action .icon {
@@ -486,6 +513,22 @@
   font-weight: var(--font-weight-regular);
 }
 
+/* The same on the index for any select (Theme): its value sits at the row's end among the link rows'
+   values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
+   the stored value is set, which comes later and so still wins. */
+.settings-view .value-select > select.manage-input {
+  padding-inline-end: calc(var(--space-2) + var(--size-icon) * 0.72 + var(--field-chevron-gap));
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Its value and chevron end where the link rows' do: their glyph is pulled out by 0.28 of the icon
+   (`.row-action .icon` above), so this one moves the same way inside the select's fill, whose box
+   stays one inset from the card's edge (the design audit, 2026-10-22: 5.6px apart). */
+.settings-view .value-select > .icon {
+  inset-inline-end: calc(var(--space-2) - var(--size-icon) * 0.28);
+}
+
 .settings-row .value-select > select.manage-input:focus-visible {
   border-color: transparent;
 }
@@ -539,6 +582,12 @@
 
 /* ------------------------------------------------------------------ cards (2026-10-21) */
 
+/* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps the air a
+   head would give it under the page's note, 24px, so the card does not crowd the note (2026-10-22). */
+.settings-view > .settings-head ~ section:first-of-type:not(:has(> .section-head)) {
+  margin-block-start: var(--space-6);
+}
+
 /* The groups are cards (.card-group, primitives.css): the head sits above its card, and the install
    offer, which has no head, stands apart from the card above it. */
 .settings-view > section[data-install-app],
@@ -554,7 +603,8 @@
 /* A label row that introduces the paragraph under it (About's Author) is not a control row: no
    control-row height, and the paragraph follows one row gap below (2026-10-21, the audit's About). */
 .card-group > .settings-row:has(+ .settings-about) {
-  min-height: 0;
+  /* 56px, on the 8pt grid: its one line and padding came to 52.8px (the design audit, 2026-10-22). */
+  min-height: calc(var(--space-12) + var(--space-2));
 }
 
 .card-group > .settings-row + .settings-about {
@@ -579,8 +629,8 @@
 .changelog-entry {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-xl);
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
 }
 
@@ -601,20 +651,4 @@
 
 .changelog-entry > .settings-about {
   padding: 0;
-}
-
-/* ------------------------------------------------------------------ the costs page */
-
-.cost-row {
-  flex-wrap: nowrap;
-  justify-content: space-between;
-}
-
-/* A group's row sits one step in from its period's row. */
-.cost-group {
-  padding-inline-start: var(--space-4);
-}
-
-.cost-value {
-  font-variant-numeric: tabular-nums;
 }

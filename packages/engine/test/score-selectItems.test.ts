@@ -550,15 +550,14 @@ describe("weekly reserved slot", () => {
     ...Array.from({ length: 3 }, (_, i) => scored("hci_empirical_research", 0.8 - i * 0.01)),
   ];
 
-  it("computes the median of the eleven weights: the middle one", () => {
-    expect(Object.keys(weights)).toHaveLength(11);
-    // Sorted: 0.02, 0.1, 0.8, 0.82, 0.85, [0.85], 0.88, 0.9, 0.92, 0.92, 0.95.
+  it("computes the median of the twelve weights: the mean of the middle two", () => {
+    expect(Object.keys(weights)).toHaveLength(12);
+    // Sorted: 0.02, 0.1, 0.8, 0.82, 0.85, [0.85, 0.85], 0.88, 0.9, 0.92, 0.92, 0.95.
     expect(medianWeight(weights)).toBe(0.85);
   });
 
   it("moves with the weights: one category raised above the middle shifts the median up", () => {
-    // Before consumer tech (0.8) joined, the median of ten weights was 0.865.
-    expect(medianWeight({ ...weights, consumer_tech_releases: 0.9 })).toBe(0.88);
+    expect(medianWeight({ ...weights, consumer_tech_releases: 0.9 })).toBe(0.865);
     expect(medianWeight({ ...weights, consumer_tech_releases: 0 })).toBe(0.85);
   });
 
@@ -719,6 +718,7 @@ describe("the tech allowance", () => {
       "top",
       "design",
       "ui-craft",
+      "software",
       "ai",
       "tech",
       "trending",
