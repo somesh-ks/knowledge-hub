@@ -4,7 +4,7 @@
  * to: one schedule.set (every field that changed). autosave.ts sends it a moment later through
  * managePageSave.ts, the step the Topics page uses.
  */
-import { hasSaved } from "../lib/savedKey";
+import { hasSaved, storeOn } from "../lib/savedKey";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
@@ -38,21 +38,72 @@ export async function mount(root: HTMLElement): Promise<void> {
     return out;
   };
 
+  /** What the controls held as built (their markup), whatever was changed in them since. */
+  const builtFields = (): FieldValues => {
+    const out: FieldValues = {};
+    for (const control of controls) {
+      const key = control.dataset.f ?? "";
+      if (control instanceof HTMLInputElement && control.type === "radio") {
+        out[key] ??= "";
+        if (control.defaultChecked) out[key] = control.value;
+      } else if (control instanceof HTMLInputElement) out[key] = String(control.defaultChecked);
+      else
+        out[key] =
+          [...control.options].find((option) => option.defaultSelected)?.value ??
+          control.options[0]?.value ??
+          "";
+    }
+    return out;
+  };
+
   // An edit saved in the last few minutes is not in this page until the next build: the controls
-  // show it before they are read as the starting point below, so it is not sent again.
+  // show it before they are read as the starting point below, so it is not sent again. With the
+  // config store on (D149), what it holds is laid over them the same way, first. The starting point
+  // is the build with those laid over it, never a value changed by key meanwhile (the pointer waits
+  // for data-ready, the keys do not, before this script loads or while the store is asked): such a
+  // change is kept and goes as a change from it.
   let saved: ConfigOp[] = [];
-  if (hasSaved()) {
+  const chips = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")];
+  const built = builtFields();
+  const builtChips = chips.map((chip) => chip.defaultChecked);
+  let startFields = built;
+  let startChips = builtChips;
+  if (hasSaved() || storeOn()) {
     const view = await import("./savedView").catch(() => null);
-    saved = view?.readSaved() ?? [];
-    view?.overlayPodcast(root, controls, fields(), saved);
+    if (storeOn()) await view?.loadStore();
+    if (view) {
+      const byKey = fields();
+      const byKeyChips = chips.map((chip) => chip.checked);
+      // Back to the build, the overlay, then the values changed by key again.
+      for (const control of controls) {
+        const value = built[control.dataset.f ?? ""];
+        if (value !== undefined) view.setControl(control, value);
+      }
+      chips.forEach((chip, index) => {
+        chip.checked = Boolean(builtChips[index]);
+      });
+      saved = view.readSaved();
+      view.overlayPodcast(root, controls, built, saved);
+      startFields = fields();
+      startChips = chips.map((chip) => chip.checked);
+      for (const control of controls) {
+        const key = control.dataset.f ?? "";
+        const value = byKey[key];
+        if (value !== undefined && value !== built[key]) view.setControl(control, value);
+      }
+      chips.forEach((chip, index) => {
+        if (byKeyChips[index] !== builtChips[index]) chip.checked = Boolean(byKeyChips[index]);
+      });
+    }
   }
+  const typed =
+    JSON.stringify(fields()) !== JSON.stringify(startFields) ||
+    chips.some((chip, index) => chip.checked !== startChips[index]);
 
   /** The topic chips: each puts the topics it stands for in or out of this podcast (topic.scope). */
   // A chip of a topic removed since the build is gone (savedView.ts): it neither counts nor sends.
-  const scopeBoxes = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")].filter(
-    (box) => box.dataset.gone === undefined,
-  );
-  for (const box of scopeBoxes) box.dataset.was = String(box.checked);
+  const scopeBoxes = chips.filter((box) => box.dataset.gone === undefined);
+  for (const box of scopeBoxes) box.dataset.was = String(startChips[chips.indexOf(box)]);
   const scopeChanges = (): void => {
     for (const box of scopeBoxes) {
       const profile = box.dataset.scope === "weekly" ? "weekly" : "daily";
@@ -92,12 +143,15 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (target.closest("[data-profile]")) update();
   });
 
-  box.dataset.was = JSON.stringify(fields());
+  box.dataset.was = JSON.stringify(startFields);
   showNoTopics();
+  if (typed) update();
   if (root.querySelector("[data-profile]")) {
     void import("./podcastProfiles").then((module) => {
       ops = module.scheduleOp;
       module.mountProfiles(root, () => update(false));
+      // A schedule change made by key during the wait is recorded once the diff can be made.
+      if (typed) update();
     });
     // The time zone and the voices are chosen from a list with a search field.
     void import("./picker").then((module) => module.mountPickers(root));

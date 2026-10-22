@@ -10,6 +10,7 @@ import {
   zonedDate,
   zonedHour,
 } from "@dispatch/core";
+import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
 import { decideRun } from "@dispatch/engine/gate";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
@@ -38,6 +39,46 @@ export interface CronDeps {
   fetch: FetchLike;
   now: () => Date;
   log?: (message: string) => void;
+  /** Opens the config store (D149). Tests pass a fake; left out, the Neon driver is used. */
+  connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
+}
+
+/**
+ * How long the cron waits for the config store, a cold start's module load included, before it reads
+ * main instead: well inside the function's limit.
+ */
+export const STORE_READ_TIMEOUT_MS = 5000;
+
+/**
+ * The schedule's text: from the config store when it is on (D149), where an edit to the hour lands
+ * at once, while main has it only after the next run; from main when the store is off or cannot
+ * be read, so a database outage costs at most an edit's freshness, never the briefing.
+ */
+async function readSchedule(
+  deps: CronDeps,
+  github: ReturnType<typeof createGitHubClient>,
+): Promise<string | null> {
+  const storeUrl = configStoreUrl(deps.env);
+  if (storeUrl !== null) {
+    try {
+      // Loaded only with the store on, so the function never loads the driver while it is off.
+      // A database that hangs must not spend the call: Vercel makes one an hour. The wait counts
+      // from before the store module loads.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const late = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("no answer in time")), STORE_READ_TIMEOUT_MS);
+      });
+      const read = import("./configStore").then(({ readStoredSchedule }) =>
+        readStoredSchedule(storeUrl, deps),
+      );
+      const stored = await Promise.race([read, late]).finally(() => clearTimeout(timer));
+      // A row that is not JSON is skipped, as the run's own copy skips it: main's file stands.
+      if (stored !== null && parseJson(stored, (value) => value) !== null) return stored;
+    } catch (error) {
+      deps.log?.(`config store unreachable, reading main: ${describeError(error, [storeUrl])}`);
+    }
+  }
+  return github.readFile("config/schedule.json", "main");
 }
 
 /** Vercel asks for at least 16 characters; anything shorter is treated as not configured. */
@@ -118,7 +159,7 @@ export async function handleCron(
   const now = deps.now();
   const github = createGitHubClient(config, deps.fetch);
   try {
-    const scheduleText = await github.readFile("config/schedule.json", "main");
+    const scheduleText = await readSchedule(deps, github);
     const schedule =
       scheduleText === null
         ? DEFAULT_SCHEDULE

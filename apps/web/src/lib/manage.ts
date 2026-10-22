@@ -201,17 +201,7 @@ export function reachInWords(
   return count > 0 ? `${stories} in briefings` : "In no briefing yet";
 }
 
-/** An address as a person reads it: the host and the path, with no scheme, "www." or trailing slash. */
-export function readableUrl(address: string | null | undefined): string {
-  if (!address) return "";
-  try {
-    const url = new URL(address);
-    const path = url.pathname.replace(/\/+$/, "");
-    return `${url.hostname.replace(/^www\./, "")}${path}`;
-  } catch {
-    return "";
-  }
-}
+export { readableUrl } from "./readableUrl";
 
 /** A candidate's quality figure, 0 to 1 (or 0 to 100), as a phrase. */
 export function qualityInWords(quality: number): string {
@@ -688,6 +678,26 @@ export async function loadManage(options: LoadManageOptions = {}): Promise<Manag
     readJson(join(base, "state", "source-candidates.json")),
   ]);
 
+  return buildManage({ topicsFile, preferences, registry, user, stats, health, candidates });
+}
+
+/** What the files hold, parsed as loadManage reads them; null for a file that is missing. */
+export interface ManageFiles {
+  topicsFile: unknown;
+  preferences: unknown;
+  registry: unknown;
+  user: unknown;
+  stats: unknown;
+  health: unknown;
+  candidates: unknown;
+}
+
+/**
+ * The pages' data from the files: the build calls it through loadManage, and /api/config on the
+ * stored files, so a page shows an edit the way its next build would (D149).
+ */
+export function buildManage(files: ManageFiles): ManageData {
+  const { topicsFile, preferences, registry, user, stats, health, candidates } = files;
   const parsed = parseTopicsFile(topicsFile);
   const topics = withGeneralTopics(parsed?.topics ?? fallbackTopics(preferences));
   const sections = parsed?.sections ?? fallbackSections();

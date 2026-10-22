@@ -357,3 +357,30 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
 | Audio lost | Remove the digest's `.audio.json`, set `audio: null`, commit, run `audio.yml`. It regenerates at a cost in Speechify characters |
 | Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then push to `main` or redeploy from the dashboard |
+
+---
+
+## 11. The config store (D149)
+
+Off by default. With it on, a settings edit is saved to Neon Postgres and shows on every device within about a second, with no workflow and no rebuild; each briefing's commit keeps a copy in git. It is on only where `DISPATCH_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
+
+### 11.1 Switch on
+
+1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `DISPATCH_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
+2. GitHub secret `DATABASE_URL`: the Neon connection string (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string). Settings → Secrets and variables → Actions → New repository secret, or `npm run secrets:push -- --only github` from `.env`.
+3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run dispatch -- config seed --dry-run` and `npm run dispatch -- config seed`.
+4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `DISPATCH_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
+5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
+6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `DISPATCH_CONFIG_STORE` = `postgres`.
+7. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too (the Neon integration adds it).
+8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
+9. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
+
+### 11.2 Switch off
+
+1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `DISPATCH_CONFIG_STORE=postgres` in `.env`, `npm run dispatch -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run dispatch -- config commit --message "snapshot from the store"` commits and pushes them.
+2. Vercel: delete `DISPATCH_CONFIG_STORE`, then redeploy. The pages stop asking, `GET /api/config` answers 405 and an edit goes through `config.yml` again.
+3. GitHub: delete the `DISPATCH_CONFIG_STORE` variable. Runs read the committed files again. The secret and the table can stay; nothing reads them while the switch is off.
+4. Remove `DISPATCH_CONFIG_STORE` from `.env`.
+
+If the database is down while the store is on, nothing breaks: pages show the build's copy, runs use the last commit's files, and an edit answers "unavailable" and stays pending on the page.

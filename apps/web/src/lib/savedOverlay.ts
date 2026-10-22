@@ -12,7 +12,7 @@
  *
  * Pure: the caller reads and writes storage.
  */
-import type { ConfigOp } from "../types/contracts";
+import type { ConfigOp, ConfigReadBody } from "../types/contracts";
 
 /** How long a saved edit is shown over the page it was built with: the build takes about a minute. */
 export const SAVED_TTL_MS = 3 * 60 * 1000;
@@ -32,6 +32,8 @@ export interface SavedEntry {
   at: number;
   ops: ConfigOp[];
   pending?: true;
+  /** With the config store on (D149): when the server wrote it, by the database's clock. */
+  stored?: number;
 }
 
 const isOp = (value: unknown): value is ConfigOp =>
@@ -48,14 +50,22 @@ export function parseSaved(raw: string | null, now: number): SavedEntry[] {
     const data: unknown = JSON.parse(raw);
     if (!Array.isArray(data)) return [];
     return data.flatMap((entry) => {
-      const { at, ops, pending } = (entry ?? {}) as {
+      const { at, ops, pending, stored } = (entry ?? {}) as {
         at?: unknown;
         ops?: unknown;
         pending?: unknown;
+        stored?: unknown;
       };
       const waiting = pending === true;
       if (typeof at !== "number" || !Array.isArray(ops) || !fresh(at, now, waiting)) return [];
-      return [{ at, ops: ops.filter(isOp), ...(waiting ? { pending: true as const } : {}) }];
+      return [
+        {
+          at,
+          ops: ops.filter(isOp),
+          ...(waiting ? { pending: true as const } : {}),
+          ...(typeof stored === "number" ? { stored } : {}),
+        },
+      ];
     });
   } catch {
     return [];
@@ -70,9 +80,12 @@ export function addSaved(
   entries: readonly SavedEntry[],
   ops: readonly ConfigOp[],
   now: number,
+  stored?: number,
 ): SavedEntry[] {
   const kept = entries.filter((entry) => !entry.pending && fresh(entry.at, now));
-  return ops.length > 0 ? [...kept, { at: now, ops: [...ops] }] : kept;
+  return ops.length > 0
+    ? [...kept, { at: now, ops: [...ops], ...(stored === undefined ? {} : { stored }) }]
+    : kept;
 }
 
 /**
@@ -98,6 +111,31 @@ export function savedOps(entries: readonly SavedEntry[], now: number): ConfigOp[
   return entries
     .filter((entry) => fresh(entry.at, now, entry.pending))
     .flatMap((entry) => entry.ops);
+}
+
+/**
+ * Every edit a page shows with the config store on (D149): what the store holds over the build,
+ * then this device's own edits that the store may not show yet (on their way, or saved since its
+ * last write). A saved edit older than the store's last write is in the store already, or was
+ * replaced there by a later edit from another device, so it is left out: laid over the store, it
+ * would undo that later edit. An edit the server dated (`stored`, the database's clock, the clock
+ * `written_at` is on) is compared by that, however close two writes land; an older entry by when
+ * this device saw it saved. Without a store read, the saved edits alone.
+ */
+export function withStore(
+  entries: readonly SavedEntry[],
+  store: Pick<ConfigReadBody, "ops" | "written_at"> | null,
+  now: number,
+): ConfigOp[] {
+  if (store === null) return savedOps(entries, now);
+  const since = store.written_at ?? Number.NEGATIVE_INFINITY;
+  return [
+    ...store.ops,
+    ...savedOps(
+      entries.filter((entry) => entry.pending || (entry.stored ?? entry.at) >= since),
+      now,
+    ),
+  ];
 }
 
 // ------------------------------------------------------------------------------------- podcast pages
@@ -277,8 +315,9 @@ export function savedSources(
       const spot = out[op.id];
       if (spot && op.topic_ids) out[op.id] = { ...spot, page: pageOf(op.topic_ids[0]) };
     } else if (op.op === "source.remove") delete out[op.id];
+    // An add that names its id (the page's own, or the config store's) can be switched off later.
     else if (op.op === "source.add")
-      out[`add:${op.url}`] = { page: pageOf(op.topic_ids?.[0]), on: true };
+      out[op.id ?? `add:${op.url}`] = { page: pageOf(op.topic_ids?.[0]), on: true };
   }
   return out;
 }

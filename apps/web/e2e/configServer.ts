@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import type { Page, Route } from "@playwright/test";
 import { handleConfig } from "../src/server/configEdit";
+import { handleConfigRead } from "../src/server/configStore";
 import type { ConfigOp } from "../src/types/contracts";
 
 /**
@@ -66,4 +68,41 @@ export async function routeConfigServer(page: Page): Promise<ConfigServer> {
     await route.fulfill({ status: result.status, headers: result.headers, json: result.body });
   }
   return server;
+}
+
+const fixture = (name: string): string =>
+  readFileSync(new URL(`../src/fixtures/config/${name}`, import.meta.url), "utf8");
+
+/** The fixture config the test build is made from: what the function bundles in production. */
+export const BUILT_FILES: Record<string, string> = {
+  "config/topics.json": fixture("topics.json"),
+  "config/sources.json": fixture("sources.json"),
+  "config/sources.user.json": fixture("sources.user.json"),
+};
+
+/**
+ * GET /api/config with the config store on (D149), answered by the site's own read handler
+ * (server/configStore.ts) over a store that holds what `holds` returns (repository path to text),
+ * or that is down when it returns null. Any other method goes on to the routes set before this one.
+ */
+export async function routeConfigStore(
+  page: Page,
+  holds: () => Record<string, string> | null,
+): Promise<void> {
+  await page.route("**/api/config", async (route: Route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const stored = holds();
+    const result = await handleConfigRead({
+      env: {},
+      storeUrl: "postgres://e2e.invalid/store",
+      builtFiles: BUILT_FILES,
+      connectConfigStore: async () => ({
+        query: async () => {
+          if (stored === null) throw new Error("connect ECONNREFUSED");
+          return Object.entries(stored).map(([path, content]) => ({ path, content, version: 1 }));
+        },
+      }),
+    });
+    await route.fulfill({ status: result.status, headers: result.headers, json: result.body });
+  });
 }

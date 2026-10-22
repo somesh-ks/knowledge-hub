@@ -5,9 +5,15 @@ import { type DiscoverDeps, discoverFeed, resolveYoutubeChannel } from "./discov
 import { urlKey } from "./import.js";
 
 export class AddSourceError extends Error {
-  constructor(message: string) {
+  /**
+   * The address itself is the answer (a duplicate, a dead page, a social site): asking again cannot
+   * change it. False only where a failed lookup could be the cause, so the site may ask again (D149).
+   */
+  readonly definite: boolean;
+  constructor(message: string, options: { definite?: boolean } = {}) {
     super(message);
     this.name = "AddSourceError";
+    this.definite = options.definite ?? true;
   }
 }
 
@@ -116,6 +122,8 @@ export async function buildSourceFromUrl(
     if (!channelId)
       throw new AddSourceError(
         "Could not find a YouTube channel there. Give a channel address such as youtube.com/@name.",
+        // YouTube's resolver may simply not have answered.
+        { definite: false },
       );
     const feed = channelFeedUrl(channelId);
     const dup = duplicateOf(input.existing, input.url, feed);

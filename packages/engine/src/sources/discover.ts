@@ -142,7 +142,7 @@ export function classifyLinkKind(feed: ParsedFeed, feedUrl: string): "newsletter
 }
 
 /** Error code of the first cause in the chain that carries one, such as ENOTFOUND. */
-function networkErrorCode(error: unknown): string | undefined {
+export function networkErrorCode(error: unknown): string | undefined {
   let current: unknown = error;
   for (let depth = 0; depth < 4 && current instanceof Error; depth++) {
     const code = (current as NodeJS.ErrnoException).code;

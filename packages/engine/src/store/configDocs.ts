@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import type { Logger } from "../context.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import {
@@ -28,13 +28,27 @@ export const CONFIG_SCHEMA_SQL = `create table if not exists config_documents (
   updated_at timestamptz not null default now()
 )`;
 
-/** Every stored document, as the database holds it. */
-export async function readConfigDocuments(sql: SqlClient): Promise<ConfigDocument[]> {
-  const rows = await sql.query("select path, content, version from config_documents");
+/** Every stored document, as the database holds it; only those at `paths` when they are given. */
+export async function readConfigDocuments(
+  sql: SqlClient,
+  paths?: readonly string[],
+): Promise<ConfigDocument[]> {
+  const rows =
+    paths === undefined
+      ? await sql.query(
+          "select path, content, version, (extract(epoch from updated_at) * 1000)::float8 as at from config_documents",
+        )
+      : await sql.query(
+          "select path, content, version, (extract(epoch from updated_at) * 1000)::float8 as at from config_documents where path = any($1::text[])",
+          [[...paths]],
+        );
   return rows.map((row) => ({
     path: String(row.path),
     content: String(row.content),
     version: Number(row.version),
+    ...(typeof row.at === "number" || typeof row.at === "string"
+      ? { updatedAt: Number(row.at) }
+      : {}),
   }));
 }
 
@@ -72,6 +86,31 @@ export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): 
   return changed;
 }
 
+/**
+ * Where the command that copied the store notes that it did: `run --stage gate` copies, and the
+ * commit stage, a later process of the same job, reads it, so the guard follows what this run did
+ * and not the switch as it reads when the commit is made. Under `.cache/`, which git ignores.
+ */
+const COPIED_MARKER = join(".cache", "config-store.json");
+
+/** Notes whether this run's config came from the store; false removes any note an older run left. */
+export async function markCopiedFromStore(root: string, copied: boolean): Promise<void> {
+  const file = join(root, COPIED_MARKER);
+  if (!copied) return rm(file, { force: true });
+  await mkdir(dirname(file), { recursive: true });
+  await writeFileAtomic(file, `${JSON.stringify({ copied: true })}\n`);
+}
+
+/** Whether this run copied the owner's config from the store, so its commit may carry it. */
+export async function copiedFromStore(root: string): Promise<boolean> {
+  const text = await readText(join(root, COPIED_MARKER)).catch(() => null);
+  try {
+    return text !== null && (JSON.parse(text) as { copied?: unknown }).copied === true;
+  } catch {
+    return false;
+  }
+}
+
 async function readText(path: string): Promise<string | null> {
   try {
     return await readFile(path, "utf8");
@@ -83,34 +122,42 @@ async function readText(path: string): Promise<string | null> {
 
 /**
  * Create the table and insert each config file that has no row yet. A row that exists is never
- * replaced, so a second run, or a run after edits made in the app, changes nothing. `dryRun` only
- * reports what would be inserted. Returns the paths inserted (or that would be).
+ * replaced, so a second run, or a run after edits made in the app, changes nothing. With `replace`,
+ * a row whose text differs from the committed file is rewritten from it as well (a new version):
+ * for refreshing a store seeded before switch-on, while nothing but the files has written to it.
+ * `dryRun` only reports. Returns the paths inserted or replaced (or that would be).
  */
 export async function seedConfigDocuments(
   root: string,
   sql: SqlClient,
-  options: { dryRun?: boolean } = {},
+  options: { dryRun?: boolean; replace?: boolean } = {},
 ): Promise<string[]> {
   if (!options.dryRun) await sql.query(CONFIG_SCHEMA_SQL);
   const stored = options.dryRun
     ? await readConfigDocuments(sql).catch(() => [])
     : await readConfigDocuments(sql);
-  const have = new Set(stored.map((document) => document.path));
-  const inserted: string[] = [];
+  const have = new Map(stored.map((document) => [document.path, document.content]));
+  const written: string[] = [];
   for (const path of CONFIG_DOCUMENT_PATHS) {
-    if (have.has(path)) continue;
     const content = await readText(join(root, path));
     if (content === null) continue;
+    const row = have.get(path);
+    if (row === content || (row !== undefined && !options.replace)) continue;
     if (!options.dryRun) {
       const rows = await sql.query(
-        "insert into config_documents (path, content) values ($1, $2) on conflict (path) do nothing returning path",
+        options.replace
+          ? `insert into config_documents (path, content) values ($1, $2)
+             on conflict (path) do update set content = excluded.content,
+               version = config_documents.version + 1, updated_at = now()
+             where config_documents.content is distinct from excluded.content returning path`
+          : "insert into config_documents (path, content) values ($1, $2) on conflict (path) do nothing returning path",
         [path, content],
       );
       if (rows.length === 0) continue;
     }
-    inserted.push(path);
+    written.push(path);
   }
-  return inserted;
+  return written;
 }
 
 /** When the newest document was written, in epoch milliseconds, or null for an empty store. */
@@ -136,7 +183,18 @@ export async function writeConfigDocuments(
   sql: SqlClient,
   writes: readonly DocumentWrite[],
 ): Promise<boolean> {
-  if (writes.length === 0) return true;
+  return (await writeConfigDocumentsAt(sql, writes)).written;
+}
+
+/**
+ * writeConfigDocuments, also answering when the write landed by the database's clock (the
+ * `updated_at` it gave the rows), so a page can compare its own edit with later ones on one clock.
+ */
+export async function writeConfigDocumentsAt(
+  sql: SqlClient,
+  writes: readonly DocumentWrite[],
+): Promise<{ written: boolean; at: number | null }> {
+  if (writes.length === 0) return { written: true, at: null };
   for (const write of writes) {
     if (!KNOWN.has(write.path)) throw new Error(`not a config document: ${write.path}`);
   }
@@ -168,7 +226,7 @@ export async function writeConfigDocuments(
        select case
          when (select count(*) from updated) + (select count(*) from inserted) = $4::int then $4::int
          else (select count(*) from updated)::int / 0
-       end as written`,
+       end as written, (extract(epoch from now()) * 1000)::float8 as at`,
       [
         writes.map((write) => write.path),
         writes.map((write) => write.content),
@@ -176,9 +234,13 @@ export async function writeConfigDocuments(
         writes.length,
       ],
     );
-    return Number(rows[0]?.written) === writes.length;
+    const at = rows[0]?.at;
+    return {
+      written: Number(rows[0]?.written) === writes.length,
+      at: typeof at === "number" || typeof at === "string" ? Number(at) : null,
+    };
   } catch (error) {
-    if ((error as { code?: unknown }).code === ROLLED_BACK) return false;
+    if ((error as { code?: unknown }).code === ROLLED_BACK) return { written: false, at: null };
     throw error;
   }
 }

@@ -16,6 +16,7 @@ import {
   configStoreUrl,
   connectConfigStore,
   hydrateConfig,
+  markCopiedFromStore,
   readsConfigAtStart,
   type SqlClient,
 } from "./store/configDocs.js";
@@ -213,14 +214,37 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   // committed config files before the command reads them. The switch is separate from the URL,
   // which `vercel env pull` also writes to a local .env. A database that cannot be reached costs
   // freshness, not the briefing: the files from the last run's commit are used.
-  const storeUrl = configStoreUrl(env);
-  if (storeUrl !== null && readsConfigAtStart(spec.name, parsed.rest)) {
-    try {
-      const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
-      const changed = await hydrateConfig(root, sql, log);
-      log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
-    } catch (error) {
-      log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
+  // Whether it did is noted for the commit, which a later stage of the same run makes.
+  if (readsConfigAtStart(spec.name, parsed.rest)) {
+    const storeUrl = configStoreUrl(env);
+    // Noted before copying, so a copy that stops halfway still lets its commit carry the files it
+    // wrote; a dry run commits nothing, so it notes nothing a later commit could misread.
+    // A note that cannot be written leaves the files as committed: copied without it, they would
+    // make the guard refuse the run's whole commit.
+    const noted = await markCopiedFromStore(
+      root,
+      storeUrl !== null && !parsed.rest.includes("--dry-run"),
+    ).then(
+      () => true,
+      (error: unknown) => {
+        log.warn(`the config-store note cannot be written: ${firstLine(String(error))}`);
+        return false;
+      },
+    );
+    // With the store off, a note left by an earlier run that cannot be removed would let this run's
+    // commit carry config files: stop rather than trust it.
+    if (storeUrl === null && !noted && !parsed.rest.includes("--dry-run")) {
+      err("dispatch: .cache/config-store.json cannot be removed; remove it, then run again.\n");
+      return 1;
+    }
+    if (storeUrl !== null && noted) {
+      try {
+        const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
+        const changed = await hydrateConfig(root, sql, log);
+        log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
+      } catch (error) {
+        log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
+      }
     }
   }
 

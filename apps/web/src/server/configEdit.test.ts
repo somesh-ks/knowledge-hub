@@ -809,7 +809,10 @@ function fakeStore(rows: { path: string; content: string; version: number }[]) {
   const sql: SqlClient = {
     async query(text, params = []) {
       if (text.startsWith("select path, content, version")) {
-        const copy = rows.map((row) => ({ ...row }));
+        const only = params[0] as string[] | undefined;
+        const copy = rows
+          .filter((row) => only === undefined || only.includes(row.path))
+          .map((row) => ({ ...row }));
         afterRead();
         return copy;
       }
@@ -861,35 +864,63 @@ describe("handleConfig with the config store on (D149)", () => {
     baseFiles: { "config/sources.json": JSON.stringify({ version: 1, sources: [] }) },
   });
 
+  const OWNER = (domains: string[]) =>
+    JSON.stringify({ user_id: "owner", blocked_domains: domains, votes: [], opens: [] });
+  const builtFiles = {
+    "config/preferences.json": PREFERENCES,
+    "config/profiles/owner.json": OWNER([]),
+    "config/sources.json": JSON.stringify({ version: 1, sources: [] }),
+  };
+
   // The bugs: an edit that waits on a workflow and a rebuild, and a public read that hands out the
   // owner's private history along with the settings.
-  it("saves the edit where every device reads it at once, and shows only what pages publish", async () => {
+  it("saves the edit where every device reads it at once, as an edit over the built page", async () => {
     const store = fakeStore([
       { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+      { path: "config/writer.json", content: '{"provider":"private"}', version: 1 },
     ]);
     const { deps, github, logs } = setup(storeDeps(store));
     const result = await handleConfig(input(body(block)), deps);
     expect({ status: result.status, logs }).toEqual({ status: 202, logs: [] });
     expect(github.requests).toHaveLength(0);
-    const read = await handleConfigRead({ ...deps, storeUrl: "postgres://fake" });
-    const profile = (read.body as ConfigReadBody).documents["config/profiles/owner.json"];
-    // Only what the built pages publish: no story votes or opens, no user id.
-    expect(profile?.data).toEqual({ blocked_domains: ["spam.example"] });
+    const read = await handleConfigRead({ ...deps, storeUrl: "postgres://fake", builtFiles });
+    expect((read.body as ConfigReadBody).ops).toEqual([block]);
+    expect(JSON.stringify(read.body)).not.toContain("private");
   });
 
-  // The bug: two devices edit at once and the later write silently replaces the earlier one.
-  it("refuses an edit made on a version another edit has already replaced", async () => {
+  // The bug (D149, review round 2): an edit from another device landing between this edit's read
+  // and its write answered 409, which the page cannot resolve; it is applied once more on top.
+  it("applies an edit again on top of one that landed meanwhile, and gives up after that", async () => {
     const store = fakeStore([
       { path: "config/preferences.json", content: PREFERENCES, version: 1 },
     ]);
     const { deps } = setup(storeDeps(store));
-    store.onRead(() =>
-      store.rows.push({ path: "config/profiles/owner.json", content: '{"other":1}', version: 1 }),
-    );
-    const result = await handleConfig(input(body(block)), deps);
-    expect(result.status).toBe(409);
-    expect(store.rows.find((row) => row.path === "config/profiles/owner.json")?.content).toBe(
-      '{"other":1}',
-    );
+    let reads = 0;
+    store.onRead(() => {
+      reads += 1;
+      if (reads > 1) return;
+      store.rows.push({
+        path: "config/profiles/owner.json",
+        content: OWNER(["other.example"]),
+        version: 1,
+      });
+    });
+    expect((await handleConfig(input(body(block)), deps)).status).toBe(202);
+    const owner = store.rows.find((row) => row.path === "config/profiles/owner.json");
+    expect(JSON.parse(owner?.content ?? "{}").blocked_domains).toEqual([
+      "other.example",
+      "spam.example",
+    ]);
+
+    const busy = fakeStore([
+      { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+      { path: "config/profiles/owner.json", content: OWNER([]), version: 1 },
+    ]);
+    busy.onRead(() => {
+      const row = busy.rows.find((entry) => entry.path === "config/profiles/owner.json");
+      if (row) row.version += 1;
+    });
+    const later = setup(storeDeps(busy));
+    expect((await handleConfig(input(body(block)), later.deps)).status).toBe(409);
   });
 });

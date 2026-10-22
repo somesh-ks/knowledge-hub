@@ -1,0 +1,59 @@
+name: seed
+
+# Seeds the config store (D149) from main's committed config files, with the DATABASE_URL secret, so
+# the owner needs no connection string on a laptop. Run by hand only. It also creates the shared
+# rate-limit table (D150). Dry run is the default and changes nothing.
+#
+# replace rewrites rows that differ from the committed files: the step before switch-on (runbook
+# 11.1) for a store seeded earlier. The engine refuses it while DISPATCH_CONFIG_STORE is on, since
+# the app's edits then live only in the database; this workflow has no way to force it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      replace:
+        description: "Rewrite rows that differ from the committed files (before switch-on only)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "List what would be written, change nothing"
+        type: boolean
+        default: true
+
+concurrency:
+  group: config-seed
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+
+      - name: Seed
+        shell: bash
+        env:
+          REPLACE: ${{ inputs.replace }}
+          DRY: ${{ inputs.dry_run }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Passed so the engine's refusal of replace applies once the store is on.
+          DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
+        run: |
+          seed_args=(--json)
+          [ "$REPLACE" = "true" ] && seed_args+=(--replace)
+          [ "$DRY" = "true" ] && seed_args+=(--dry-run)
+          npm run --silent dispatch -- config seed "${seed_args[@]}"

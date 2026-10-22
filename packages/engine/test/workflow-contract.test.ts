@@ -24,6 +24,8 @@ const PLACEHOLDERS: Record<string, string[]> = {
     "2026-10-01",
     "--dry-run",
   ],
+  // seed.yml: the replace and dry-run flags it can pass.
+  '"${seed_args[@]}"': ["--json", "--replace", "--dry-run"],
   // Offline here: the contract run must not reach the live site.
   '"$CEILING"': ["5", "--offline"],
   '"$DELETE_ID"': ["2026-10-01"],

@@ -23,6 +23,7 @@ import {
   savedSources,
   savedTopics,
   sourceCounts,
+  withStore,
 } from "../lib/savedOverlay";
 import { sourcesSummary } from "../lib/settingsSummary";
 import {
@@ -36,21 +37,28 @@ import {
 } from "../lib/sourceCatalogMatch";
 import { fillShellText, parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import { drawStop, stopFor, weightOf } from "../lib/weightStops";
-import type { ConfigOp } from "../types/contracts";
+import type { ConfigOp, ConfigReadBody } from "../types/contracts";
+import { storeRead } from "./configStoreRead";
 import { ADDED_SOURCE, HELD_EVENT, type Held, type Pending } from "./managePageSave";
-import { element, iconNode, topicRow } from "./topicsView";
+import { element, iconNode, storedSourceRow, topicRow } from "./topicsView";
+
+export { loadStore } from "./configStoreRead";
 
 /** The page that lists the sources no topic page shows (OTHER_ID in lib/topicPages.ts). */
 const OTHER_PAGE = "other";
 
-/** The edits still waiting for the build, in the order they were saved. Forgets them once none is. */
+/**
+ * The edits still waiting for the build, in the order they were saved. Forgets them once none is.
+ * With the config store on (D149) the store's edits come first, read by loadStore before this.
+ */
 export function readSaved(now = Date.now()): ConfigOp[] {
+  const store = storeRead();
   try {
     const entries = parseSaved(localStorage.getItem(SAVED_KEY), now);
     if (entries.length === 0) localStorage.removeItem(SAVED_KEY);
-    return savedOps(entries, now);
+    return withStore(entries, store, now);
   } catch {
-    return [];
+    return store?.ops ?? [];
   }
 }
 
@@ -139,6 +147,17 @@ function addedLines(root: HTMLElement, op: ConfigOp): [Element, string][] {
 
 // ------------------------------------------------------------------------------------- podcast pages
 
+/** Puts a value in a schedule control, as the editor reads one ("9", "true", a voice id). */
+export function setControl(control: HTMLInputElement | HTMLSelectElement, value: string): void {
+  if (control instanceof HTMLSelectElement) {
+    // A voice the page was not built with: listed as the page lists a saved one until the list loads.
+    if (![...control.options].some((option) => option.value === value))
+      control.append(new Option("Saved voice", value));
+    control.value = value;
+  } else if (control.type === "radio") control.checked = control.value === value;
+  else control.checked = value === "true";
+}
+
 /**
  * A podcast page: the schedule controls and the topic chips take what was saved. `baked` is what the
  * controls hold as built. Runs before the editor reads its starting point. True when anything showed.
@@ -153,14 +172,7 @@ export function overlayPodcast(
   let shown = Object.keys(saved).length > 0;
   for (const control of controls) {
     const value = saved[control.dataset.f ?? ""];
-    if (value === undefined) continue;
-    if (control instanceof HTMLSelectElement) {
-      // A voice the page was not built with: listed as the page lists a saved one until the list loads.
-      if (![...control.options].some((option) => option.value === value))
-        control.append(new Option("Saved voice", value));
-      control.value = value;
-    } else if (control.type === "radio") control.checked = control.value === value;
-    else control.checked = value === "true";
+    if (value !== undefined) setControl(control, value);
   }
   const { removedTopics } = savedTopics(ops);
   for (const box of root.querySelectorAll<HTMLInputElement>("input[data-scope]")) {
@@ -211,9 +223,15 @@ const byId = <T extends HTMLElement>(root: ParentNode, selector: string, id: str
  * check; a topic added on the list waits there, saved, with its suggested sources. True when anything
  * showed. Runs before the editor loads, which then reads the saved values as its starting point.
  */
-export function overlayTopics(root: HTMLElement, ops = readSaved()): boolean {
-  if (ops.length === 0) return false;
-  let shown = false;
+export function overlayTopics(
+  root: HTMLElement,
+  ops = readSaved(),
+  store: ConfigReadBody | null = storeRead(),
+): boolean {
+  if (ops.length === 0 && !store?.sources.length) return false;
+  // Rows the store adds come first, so this device's own edits, newer or still on their way (a
+  // removal, a switch, a rename), are laid over them as over any built row.
+  let shown = drawStored(root, store);
   for (const control of root.querySelectorAll<HTMLInputElement>("input[data-op]")) {
     let op: ConfigOp;
     try {
@@ -430,6 +448,37 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   return true;
 }
 
+/**
+ * A topic's page with the config store on (D149): each source the store files here and the build
+ * listed nowhere or elsewhere gets its row, first in the list as a just-added one does; one the
+ * build listed here and the store files elsewhere goes, as it will at the next build.
+ */
+function drawStored(root: HTMLElement, store: ConfigReadBody | null): boolean {
+  const page = root.dataset.page;
+  const list = root.querySelector<HTMLElement>("ul[data-sources]:not([data-added])");
+  if (!store || page === undefined || !list) return false;
+  // The page's own topic, as its built rows name it: a group's home, or the topic itself.
+  const home = root.querySelector<HTMLElement>("[data-add-source]")?.dataset.addSource ?? "";
+  const topic = {
+    id: home,
+    name: home ? (document.getElementById("page-title")?.textContent?.trim() ?? "") : "",
+  };
+  let shown = false;
+  for (const source of store.sources) {
+    const row = byId(root, "li.source-row", source.id);
+    if (source.page !== page) {
+      if (row && row.dataset.gone === undefined) {
+        row.setAttribute("data-gone", "");
+        shown = true;
+      }
+    } else if (!row) {
+      list.prepend(storedSourceRow(source, topic));
+      shown = true;
+    }
+  }
+  return shown;
+}
+
 /** A source's new name, and the topic it moves to after the build. */
 function editSource(
   root: HTMLElement,
@@ -454,7 +503,14 @@ function editSource(
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;
-  if (topicId !== undefined && topicId !== (facts.topic_id ?? "")) {
+  // A row drawn from the store is on the page that lists it (drawStored): a move to any topic this
+  // page stands for is no move. Only a later one, made here, is still to come.
+  const here = (root.dataset.members ?? "").split(" ");
+  if (
+    topicId !== undefined &&
+    topicId !== (facts.topic_id ?? "") &&
+    !(row.dataset.stored !== undefined && here.includes(topicId))
+  ) {
     const panel = document.querySelector<HTMLTemplateElement>("#topics-panel-template");
     const options = panel?.content.querySelectorAll<HTMLOptionElement>("[data-edit-topic] option");
     const chosen = [...(options ?? [])].find((option) => option.value === topicId);
