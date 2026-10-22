@@ -11,6 +11,7 @@ import {
 import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
 import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY } from "./limits";
+import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 import { resolveHostNames } from "./voices";
 
@@ -202,6 +203,10 @@ export async function handlePodcast(
     await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
     return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
   }
+
+  // The shared burst cap (D150), taken only by a request that passed the checks above.
+  const burstWait = (await deps.burst?.()) ?? 0;
+  if (burstWait > 0) return cooldownRefusal(burstWait);
 
   // A new discussion's hosts are named after the voices that will read it. The lookup runs beside
   // the GitHub calls, is given up after a short wait and never throws; without names the engine uses

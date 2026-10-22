@@ -3,9 +3,16 @@ import { passphraseCheck } from "../../server/access";
 import { bundledDigestIds, bundledDigestKind } from "../../server/digestSource";
 import { handleGenerate, MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
+import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route alone runs on demand, as a Vercel Function.
 export const prerender = false;
+
+// A briefing is the dearest thing the site starts. Its caps (and the deletes', one per 10 s) are
+// counted from GitHub's run list, which lags a dispatch by seconds, so a burst could pass them
+// together; this shared per-minute cap bounds that burst, and the GitHub calls a flood would
+// spend, across instances. Above the delete pace.
+const STARTS_PER_MINUTE = 8;
 
 export const POST: APIRoute = ({ request, url }) =>
   answerWithRef("api/generate", async (log) => {
@@ -19,6 +26,7 @@ export const POST: APIRoute = ({ request, url }) =>
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         verifyPassphrase: passphraseCheck(),
+        burst: burstCap("generate", STARTS_PER_MINUTE),
         digestIds: bundledDigestIds,
         digestKind: bundledDigestKind,
         log,

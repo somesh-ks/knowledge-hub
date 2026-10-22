@@ -1,6 +1,7 @@
 /**
  * The config store's names and switch (D149), with no database code: the CLI, the write guard and
- * the site's route import this, so nothing loads the Neon driver while the store is off.
+ * the site's route import this, so it loads no Neon driver itself; `connectConfigStore` does, on
+ * call (the config store, D149, and the site's rate-limit counter whenever DATABASE_URL is set, D150).
  */
 
 /** The files the database may hold, and the only paths a row may ever be written to. */
