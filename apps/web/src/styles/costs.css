@@ -124,10 +124,11 @@
   }
 }
 
+/* The ring stands a step off the plot, clear of the tick and date labels at its edges. */
 .costs-plot:focus-visible {
   border-radius: var(--radius-sm);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
+  outline-offset: var(--space-2);
 }
 
 .costs-svg {
@@ -194,6 +195,26 @@
 
 .costs-tip span {
   color: var(--color-on-surface-muted);
+}
+
+/* The head is the column's total: a hairline parts it from the split under it. */
+.costs-tip-head:not(:only-child) {
+  padding-block-end: var(--space-2);
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+/* With nothing spent the plot says so, centred on the plot area itself, clear of the tick column
+   and the date band (the script's pads). */
+.costs-empty {
+  position: absolute;
+  inset: 0 0 var(--space-8) calc(var(--space-8) + var(--space-2));
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-align: center;
 }
 
 /* ------------------------------------------------------------------ the breakdown */

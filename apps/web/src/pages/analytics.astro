@@ -9,9 +9,9 @@ const title = "Costs";
 
 // The range sets both the window and the column: a column a day, a week or a month.
 const RANGES = [
-  { value: "day", days: 30, label: "Last 30 days" },
-  { value: "week", days: 91, label: "Last 3 months" },
-  { value: "month", days: 365, label: "Last 12 months" },
+  { value: "day", days: 30, label: "30 days" },
+  { value: "week", days: 91, label: "3 months" },
+  { value: "month", days: 365, label: "12 months" },
 ];
 // What the breakdown under the chart splits the spend by. By person shows once there are two people.
 const SPLITS = [
@@ -57,6 +57,7 @@ const SPLITS = [
 
         <div class="costs-plot costs-data" data-costs-plot tabindex="0" role="group" aria-label="Spend over time">
           <div class="costs-tip" data-costs-tip hidden></div>
+          <p class="costs-empty" data-costs-empty hidden></p>
         </div>
 
         <h3 class="sr-only" data-costs-rank-head>By provider</h3>

@@ -397,14 +397,23 @@ function renderAnswer(data: CostResponse, period: Period): void {
   set("[data-costs-total]", usd(report.total.usd));
   // An amount resting on a price nobody has confirmed says so in its label, not in a badge.
   set("[data-costs-label]", estimated(data) ? "Estimated spend" : "Total spend");
+  // With no runs the chart says so; the line keeps its height (a no-break space), so nothing moves.
   const parts: string[] = [];
-  if (report.total.runs === 0) parts.push(`No paid runs in ${WINDOW[period]}`);
-  else {
+  if (report.total.runs > 0) {
     parts.push(plural(report.total.runs, "run"), `${usd(report.per_run_usd)} a run`);
     if (report.users > 1) parts.push(`${usd(report.per_user_usd)} a person`);
   }
-  set("[data-costs-detail]", parts.join(" · "));
+  set("[data-costs-detail]", parts.join(" · ") || " ");
+  set("[data-costs-empty]", `No paid runs in ${WINDOW[period]}.`);
 }
+
+/** Where a column sits in a sentence: "on 20 Oct", "in the week of 13 Oct", "in August 2026". */
+const atBucket = (bucket: string, period: Period): string =>
+  period === "day"
+    ? `on ${bucketLabel(bucket, period)}`
+    : period === "week"
+      ? `in the week of ${bucketLabel(bucket, period)}`
+      : `in ${bucketLabel(bucket, period, true)}`;
 
 function renderBreakdown(data: CostResponse, by: string): void {
   const list = pick<HTMLElement>("[data-costs-rank]");
@@ -482,7 +491,10 @@ function renderTable(now: Drawn): void {
 
 /** What the numbers rest on, in a sentence or two. */
 function noteOf(data: CostResponse): string {
-  const names = unconfirmedProviders(data).map((key) => nameOf("provider", key));
+  // Which prices are estimates matters only once something was spent.
+  const names = estimated(data)
+    ? unconfirmedProviders(data).map((key) => nameOf("provider", key))
+    : [];
   const parts = [`Prices as of ${longDate(data.prices_as_of)}.`];
   if (names.length > 3) parts.push("Most are not confirmed yet, so amounts are estimates.");
   else if (names.length > 0)
@@ -515,9 +527,11 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
       "aria-label",
       empty
         ? `Spend per ${PER[period]}: nothing spent in ${WINDOW[period]}.`
-        : `Spend per ${PER[period]} over ${WINDOW[period]}, ${usd(data.report.total.usd)} in all, the most ${usd(byBucket.get(peak) ?? 0)} in ${bucketLabel(peak, period, true)}. Use the arrow keys to read each ${PER[period]}.`,
+        : `Spend per ${PER[period]} over ${WINDOW[period]}, ${usd(data.report.total.usd)} in all, the most ${usd(byBucket.get(peak) ?? 0)} ${atBucket(peak, period)}. Use the arrow keys to read each ${PER[period]}.`,
     );
   }
+  const blank = pick<HTMLElement>("[data-costs-empty]");
+  if (blank) blank.hidden = !empty;
   renderBreakdown(data, by);
   renderTable(drawn);
   const table = pick<HTMLElement>("[data-costs-table]");
