@@ -6,6 +6,7 @@ import { fetchStage } from "./fetchStage.js";
 import { gateStage } from "./gate.js";
 import { judgeStage } from "./judgeStage.js";
 import { type Plan, requirePlan } from "./plan.js";
+import { recordFailedRun } from "./recordFailed.js";
 import { deleteDigest } from "./replace.js";
 import type {
   CommitReport,
@@ -100,6 +101,12 @@ export async function runPipeline(deps: RunDeps, options: RunOptions): Promise<P
     if (options.delete !== undefined) {
       const report = await deleteDigest(deps, options.delete, options);
       return { code: 0, report };
+    }
+    if (options.recordFailed) {
+      current = "commit";
+      const report = await recordFailedRun(deps, options);
+      const failed = report.commit.status === "refused" || report.commit.status === "push_failed";
+      return { code: failed ? 1 : 0, report };
     }
     if (options.stage !== undefined) {
       switch (options.stage) {

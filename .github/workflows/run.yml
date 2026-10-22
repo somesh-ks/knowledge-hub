@@ -138,6 +138,7 @@ jobs:
       # Only the engine's packages: the site's (Astro, React, Playwright) are not needed to run it, and
       # leaving them out takes the install from about 10 seconds to about 4.
       - name: Install
+        id: install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
       # Delete runs alone: no stage after it has a plan to follow, so every later step is skipped.
@@ -235,6 +236,26 @@ jobs:
           npm run --silent dispatch -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
           echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
           echo "deploy=$(jq -r '.deploy' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
+
+      # A job that failed before Commit (an install, a crash) recorded no outcome, so health read the
+      # run before it. This records `failed` for what the run was due to make, through the write
+      # guard, so the next health check reports run_failed and heals once. The engine records
+      # nothing for an on-demand run, a run that was not due or one Commit already committed. A
+      # timeout is a cancel, which skips this step (health warns run_cancelled).
+      - name: Record failure
+        if: failure() && inputs.delete == '' && inputs.replace == '' && inputs.dry_run != true
+        shell: bash
+        env:
+          INSTALLED: ${{ steps.install.outcome }}
+          MODE: ${{ inputs.mode || 'scheduled' }}
+          FORCE: ${{ inputs.force }}
+          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
+          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+        run: |
+          [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+          args=(--mode "$MODE" --json)
+          [ "$FORCE" = "true" ] && args+=(--force)
+          npm run --silent dispatch -- run --record-failed "${args[@]}"
 
   # Vercel deploys the text digest from the Commit push. This job adds narration afterwards; its
   # own push triggers a second Vercel deploy that carries the audio.

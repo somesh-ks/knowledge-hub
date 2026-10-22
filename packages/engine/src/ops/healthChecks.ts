@@ -171,9 +171,10 @@ const isBriefing = (run: WorkflowRun): boolean => (run.displayTitle ?? "run") ==
 
 /**
  * `run_died`: a briefing run of run.yml that failed or timed out with no run record written after
- * it started. A run that fails inside the engine records `failed` (and reads as `run_failed`); one
- * that dies before (install, a crash past the engine's own catch) wrote nothing, so the last record
- * still reads as the run before. It only alerts: health.yml heals `run_failed` and `run_overdue`,
+ * it started. A failed scheduled or weekly job records `failed` in run.yml's Record failure step
+ * (`run --record-failed`), newer than the run, so it reads as `run_failed` and not here. One that
+ * step could not record (an on-demand run, a checkout or an install that fails twice, a push that
+ * failed) wrote nothing, so the last record still reads as the run before. It only alerts: health.yml heals `run_failed` and `run_overdue`,
  * never this, so no paid run rides on it. A `cancelled` briefing run with no record after it is
  * `run_cancelled`, a warning: GitHub reports a job killed at its timeout the same as one the owner
  * stopped, and a missed briefing reads as `run_overdue` anyway. A dry run or a delete never writes
