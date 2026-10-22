@@ -1231,10 +1231,10 @@ test.describe("Blocked sources", () => {
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
 
     // Any address of the outlet works; the page lists and sends its domain.
-    await page.getByLabel("Block an outlet").fill("not a domain");
+    await page.getByLabel("Block a source").fill("not a domain");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.locator("[data-error]")).toBeVisible();
-    await page.getByLabel("Block an outlet").fill("https://www.Example.com/story?id=1");
+    await page.getByLabel("Block a source").fill("https://www.Example.com/story?id=1");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect.poll(() => ops(sent)).toEqual([{ op: "profile.block", domain: "example.com" }]);
@@ -1244,7 +1244,7 @@ test.describe("Blocked sources", () => {
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await page.goto(LIST);
-    await expect(page.getByRole("link", { name: /Blocked sources/ })).toContainText("1 outlet");
+    await expect(page.getByRole("link", { name: /Blocked sources/ })).toContainText("1 source");
 
     await page.goto("/settings/blocked-outlets");
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
@@ -1264,7 +1264,7 @@ test.describe("Blocked sources", () => {
     await expect(page.getByText("No blocked sources")).toBeVisible();
 
     // Blocked again once the unblock has gone: the row was hidden as removing and stayed hidden.
-    await page.getByLabel("Block an outlet").fill("example.com");
+    await page.getByLabel("Block a source").fill("example.com");
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect(page.getByText("No blocked sources")).toBeHidden();

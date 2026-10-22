@@ -27,9 +27,9 @@ export function blockedDomainOf(input: string): string | null {
   return host.length <= 253 && DOMAIN.test(host) ? host : null;
 }
 
-/** The Topics and sources row's line: "3 outlets", "1 outlet" or "None". */
+/** The Blocked sources row's line and the page's count: "3 sources", "1 source" or "None". */
 export function outletsSummary(count: number): string {
-  return count === 0 ? "None" : `${count} ${count === 1 ? "outlet" : "outlets"}`;
+  return count === 0 ? "None" : `${count} ${count === 1 ? "source" : "sources"}`;
 }
 
 /** The blocked domains once the saved edits land: each block adds, each unblock removes, in order. */
