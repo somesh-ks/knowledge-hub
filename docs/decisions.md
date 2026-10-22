@@ -1614,10 +1614,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: each round found another thing a reload could throw away; a prompt cannot lose work. A paid run started on a guess (a cancel, a timeout) is worse than an alert; a missed briefing still heals as `run_overdue`. The vitals store needs a per-hour cap and serialised writes, which is its own change.
 - Amends: D145 (the reload on return).
 
-## D147: performance is watched by a daily lab probe, not real-user Web Vitals
+## D147: performance is watched by a weekly lab probe, not real-user Web Vitals
 
 - Date: 2026-10-22
-- Decision: real-user Web Vitals sampling is not shipped. `health.yml` runs `scripts/perfProbe.ts` once a day against news.someshks.work: the home page, the latest briefing and the Library, each loaded cold three times (a fresh context, the service worker blocked) on a Pixel 7 viewport with 4x CPU and Fast 4G throttling through CDP, read as LCP, CLS (web.dev session windows) and TBT, the median kept. `dispatch health --perf` warns `perf_budget` on a page over LCP 2.5 s, CLS 0.1 or TBT 300 ms, and `perf_unmeasured` when the probe wrote nothing. Both are warnings: nothing heals and the job never fails on them.
+- Decision: real-user Web Vitals sampling is not shipped. `health.yml` runs `scripts/perfProbe.ts` on Mondays (D148; daily until then) against news.someshks.work: the home page, the latest briefing and the Library, each loaded cold three times (a fresh context, the service worker blocked) on a Pixel 7 viewport with 4x CPU and Fast 4G throttling through CDP, read as LCP, CLS (web.dev session windows) and TBT, the median kept. `dispatch health --perf` warns `perf_budget` on a page over LCP 2.5 s, CLS 0.1 or TBT 300 ms, and `perf_unmeasured` when the probe wrote nothing. Both are warnings: nothing heals and the job never fails on them.
 - Why: two field designs kept producing biased samples on a one-reader site (one phone, a few sessions a day, page hide lost on an installed app), and the store needed its own per-hour cap and serialised writes. A throttled lab load is the same every day, so a change between days is the site's.
 - Amends: D146 (the Web Vitals that were to wait for their own change).
 - Revisit if: the site gains readers enough to sample, or the lab reading and the owner's phone disagree.

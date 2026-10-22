@@ -69,7 +69,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `dispatch doctor --online` after any credential change.
 
 ## Site and service worker
-- 2026-10-22: after a deploy a phone kept the old layout (old saved pages, D145) and a download lost its player offline (its scripts sat in the versioned shell cache; now in the downloads cache).
+- 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in the versioned cache).
 
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install and paints the system navigation bar in it (Chromium's WebAppNavigationBarThemeColor); a runtime theme-color meta never repaints it, and Chrome 128 dropped dark manifest colours. Leave theme_color out to get bars that follow the system theme.

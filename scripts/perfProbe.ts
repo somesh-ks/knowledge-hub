@@ -1,5 +1,5 @@
 /**
- * The daily lab probe (D147): cold loads of the home page, the latest briefing and the Library on a
+ * The weekly lab probe (D147, Mondays: D148): cold loads of the home page, the latest briefing and the Library on a
  * throttled phone, read as LCP, CLS and TBT. `dispatch health --perf <file>` judges what it writes.
  *
  *   tsx scripts/perfProbe.ts <origin> [--out perf.json] [--loads 3] [--browser <chromium path>]

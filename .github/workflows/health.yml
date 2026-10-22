@@ -44,9 +44,22 @@ jobs:
         # apps/web brings Playwright for the probe.
         run: npm ci --ignore-scripts --workspace=packages/engine --workspace=apps/web --include-workspace-root
 
+      # The probe costs several minutes of a capped allowance (D148), so it runs on Mondays and on a
+      # manual run; the other days health judges no performance.
+      - name: Probe today?
+        id: probe
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(date -u +%u)" = "1" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # The lab probe (D147, scripts/perfProbe.ts). One that fails (the site down, a timeout) writes
       # no perf.json and never fails the job: health reads the missing file as `perf_unmeasured`.
       - name: Probe performance
+        if: steps.probe.outputs.run == 'true'
         shell: bash
         continue-on-error: true
         # Nine throttled loads of up to 65 s each, after the browser install.
@@ -62,6 +75,7 @@ jobs:
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+          PROBED: ${{ steps.probe.outputs.run }}
         run: |
           set -uo pipefail
           runs="$RUNNER_TEMP/runs.json"
@@ -69,7 +83,9 @@ jobs:
           # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
           since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
           gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
-          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$perf" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          perf_args=()
+          if [ "$PROBED" = "true" ]; then perf_args=(--perf "$perf"); fi
+          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" "${perf_args[@]}" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are warnings and open no issue (D147), so they go on the run's page.
