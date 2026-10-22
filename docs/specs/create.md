@@ -10,7 +10,7 @@ New episode and custom episodes. What it does now. Reasons: D37, D43, D60, D66 t
 - Fields: Title ("Optional" beside it), Topics, Length, Look back. More options holds Format (Readout or Discussion, a segmented choice; a discussion's line names its two hosts), Voice or Voices (each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114).
 - Every episode is written for the owner; there is no General audience (D114).
 - No topic limit in the form (a guard of 50 in `PODCAST_MAX_TOPICS`). The button reads "Generate • N mins".
-- Create shows one chip list: Design, AI, Technology, World, Business, Science, Culture, Sports, then the owner's topics; the first three are ticked. An episode can mix briefing and general topics (D67, D114).
+- Create shows one chip list: Design, AI, Technology, Software Engineering, World, Business, Science, Culture, Sports, then the owner's topics; the first four are ticked. Release news (Launches) matches no chip. An episode can mix briefing and general topics (D67, D114).
 - Scenario: WHEN Enter is pressed in Title THEN the keyboard goes away and no run starts.
 - Scenario: WHEN a press begins inside the panel and ends on the scrim THEN the panel stays open; it closes only on a press that began on its scrim.
 - A sticky Generate bar sits at the bottom of `/create`.

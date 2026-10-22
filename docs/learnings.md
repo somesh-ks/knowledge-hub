@@ -4,6 +4,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Browser tests
 
+- 2026-10-22: the CI `browser` job (both suites) hit its 30-minute limit on #213 with every test passing and about 30 left; a cancel at the limit is not a failure. It is 45 minutes now.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
@@ -43,6 +44,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-22: three review rounds of new `health` checks each found false faults (a waking Neon, an edit during a run, Dependabot merges Hobby never deploys, a regenerate read as late). A fault must be actionable and hold a day; make the rest warnings.
 - 2026-10-20: a group page saved its mix on a fallback home while the engine read the fixed one, and the outlet cap keyed by `source_id` let BBC's five feeds through; one helper (`groupHomeId`) and the story's host fix both. Review found both, no test did.
 - 2026-10-19: adding a YouTube channel in the panel said "The address could not be read". The preview caps a page at 1 MB and a channel page is about 1.3 MB, so the fetch threw, `resolveYoutubeChannel` swallowed it, and even a `/channel/UC...` address (which holds the id) failed. The id now comes from the path, then YouTube's `navigation/resolve_url` (about 1 KB), then the page. Firecrawl is not the YouTube path (its copy of a channel page carried a 401 banner); a social page with no feed (x, instagram, facebook, linkedin, tiktok, threads) is refused instead of becoming a scrape source.
 - 2026-10-19: a YouTube finalist reached the writer with only its feed description, because `extractFullText` fetches a watch page that holds no speech. YouTube items now go through `extract/youtubeText.ts`: subtitles, then Gemini (`GEMINI_TRANSCRIBE_MODEL`, first 30 minutes, 3 per run), cached in `state/video-text.json`. Caption scraping reads the watch page, which YouTube can change; failure degrades to the description.
@@ -90,14 +92,17 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-14: from the agent's Git Bash, `powershell -Command "..."` loses `$_`, `$env:` and `$LASTEXITCODE` to bash, and an argument or variable that starts with `/` is rewritten to a Windows path. Put PowerShell with variables in a `.ps1` file and run it with `-File`; pass several paths as one string to split, since `-File` does not pass an array.
 - 2026-10-14: `pkill -f serve.mjs` inside a Bash call killed that call's own shell, whose command line matched. Kill by PID from a filtered `ps`.
 - 2026-10-12: a committed unit test failed because a truncated `tail` of the vitest output looked like a pass. Read the "Test Files" and "Tests" lines for `failed` before committing.
-- 2026-10-12: heredoc or `node -e` edit scripts lose backslashes and abort on backticks in the agent shell (`/\/+$/` arrived as `//+$/`), and some worker worktrees refuse compound commands, heredocs and `$VAR` arguments. Write scripts to files with the Write tool, use plain single commands, and make multi-edit scripts all-or-nothing.
+- 2026-10-12: heredoc and `node -e` edits lose backslashes and backticks in the agent shell, and some worktrees refuse compound commands: write scripts with the Write tool, all-or-nothing.
 - 2026-10-11: the sandbox proxy refuses news hosts (403 to CONNECT), so `curl` cannot check a feed. Fetch it with Firecrawl's scrape (`rawHtml`, a week's `maxAge`), in a subagent so the bodies stay out of the session; Firecrawl allowed about ten requests a minute.
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
-- 2026-10-08: `npx` sometimes stalls for a minute on this machine before running a local binary; a stalled command is not a failed one, and reading its output file is quicker than rerunning it.
-- 2026-10-08: 37 GB of a full disk was one other project's Claude temp folder under `%TEMP%\claude`; this repository with its dependencies is under 600 MB. Measure before deleting.
+- 2026-10-08: `npx` can stall a minute before a local binary runs: read its output file, do not rerun it.
+- 2026-10-08: a full disk was 37 GB of another project's temp folder; the repository is under 600 MB. Measure before deleting.
 
 ## Agents and worktrees
 
+- 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask; review every PR locally when the bot is silent.
+- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.
+- 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-16: `scripts/worktreeLinks.mjs --remove` fails on Linux with ENOTDIR on the symlinks it made; remove them with `rm` before committing from a worktree.

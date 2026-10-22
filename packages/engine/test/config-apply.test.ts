@@ -99,10 +99,10 @@ describe("topic.upsert", () => {
     expect(topics.sections.at(-1)).toEqual({
       id: "quantum_computing",
       title: "Quantum computing",
-      order: 9,
+      order: 10,
     });
     // The built-in topics are all still there, materialized from the preferences.
-    expect(topics.topics.filter((t) => t.origin === "builtin")).toHaveLength(11);
+    expect(topics.topics.filter((t) => t.origin === "builtin")).toHaveLength(12);
 
     const queries = await repo.readJson<{
       queries: { id: string; query: string; topic_id?: string }[];

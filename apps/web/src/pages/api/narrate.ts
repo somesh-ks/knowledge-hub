@@ -6,7 +6,7 @@ import { withSecondVoice } from "../../server/config";
 import { bundledDigests } from "../../server/digestSource";
 import { bundledEpisodes } from "../../server/episodeSource";
 import { MAX_BODY_CHARS } from "../../server/generate";
-import { toResponse } from "../../server/http";
+import { recordingFaults, toResponse } from "../../server/http";
 import { readStreamForEpisode } from "../../server/liveStream";
 import { handleNarrate, handleNarrationLookup, startDeadline } from "../../server/narrate";
 import { burstCap } from "../../server/rateLimit";
@@ -33,7 +33,7 @@ const liveEpisodesFor = () => (id: string) =>
   readStreamForEpisode(id, { env: process.env, fetch, now: Date.now, log });
 
 // The lookup is given no store at all: anyone may call it, and it must not be able to spend.
-export const GET: APIRoute = async ({ url }) =>
+const get: APIRoute = async ({ url }) =>
   toResponse(
     await handleNarrationLookup(
       { digest: url.searchParams.get("digest"), params: [...url.searchParams.keys()] },
@@ -47,7 +47,7 @@ export const GET: APIRoute = async ({ url }) =>
     ),
   );
 
-export const POST: APIRoute = async ({ request, url }) => {
+const post: APIRoute = async ({ request, url }) => {
   // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
   const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
   const result = await handleNarrate(
@@ -75,6 +75,10 @@ export const POST: APIRoute = async ({ request, url }) => {
   );
   return toResponse(result);
 };
+
+export const GET = recordingFaults("api/narrate", get);
+
+export const POST = recordingFaults("api/narrate", post);
 
 export const ALL: APIRoute = () =>
   toResponse({

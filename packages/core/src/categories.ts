@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * The eleven taste categories. Keys match `weights` in config/preferences.json. New categories go
+ * The twelve taste categories. Keys match `weights` in config/preferences.json. New categories go
  * at the end, so the order of the earlier ones (which breaks ties in scoring) never shifts.
  */
 export const CATEGORIES = [
@@ -16,6 +16,7 @@ export const CATEGORIES = [
   "venture_capital_and_gossip",
   "generic_ai_hype_listicles",
   "consumer_tech_releases",
+  "software_engineering_depth",
 ] as const;
 
 export const Category = z.enum(CATEGORIES);
@@ -56,6 +57,7 @@ export const SECTIONS = [
   "top",
   "design",
   "ui-craft",
+  "software",
   "ai",
   "tech",
   "trending",
@@ -108,6 +110,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   top: "Top picks",
   design: "Design",
   "ui-craft": "Design Engineering",
+  software: "Software Engineering",
   ai: "AI Products",
   tech: "Tech Product Launches",
   trending: "Trending",
@@ -121,7 +124,8 @@ const HOME_SECTION: Record<Category, Section | null> = {
   ui_component_primitives: "ui-craft",
   css_canvas_motion_techniques: "ui-craft",
   taste_and_design_philosophy: "ui-craft",
-  developer_tool_launches: "ui-craft",
+  developer_tool_launches: "software",
+  software_engineering_depth: "software",
   ai_ux_interaction_patterns: "ai",
   frontier_model_releases: "ai",
   hci_empirical_research: "design",

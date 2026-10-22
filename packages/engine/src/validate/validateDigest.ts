@@ -22,6 +22,20 @@ import { allowanceFor, capFor, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 import { ungroundedNumbers } from "../write/spokenCheck.js";
 
+/**
+ * A category's home before it moved, and the last briefing date it was home: a briefing published
+ * by then keeps the section it was filed in, and a later one is checked as usual.
+ */
+const FORMER_HOMES: Partial<Record<string, { section: string; until: string }>> = {
+  // Tool launches lived in Design Engineering until Software Engineering took them (D155).
+  developer_tool_launches: { section: "ui-craft", until: "2026-10-22" },
+};
+
+function filedInFormerHome(item: { category: string; section: string }, date: string): boolean {
+  const former = FORMER_HOMES[item.category];
+  return former !== undefined && former.section === item.section && date <= former.until;
+}
+
 /** The lower bounds a summary gained with the four-beat voice. */
 const SUMMARY_MINIMUMS: ReadonlySet<ViolationRule> = new Set([
   "too_few_words",
@@ -268,7 +282,8 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       item.section !== "top" &&
       item.section !== home &&
       // A briefing published before the sections were retitled keeps the section it was filed in.
-      !isRetiredSection(item.section)
+      !isRetiredSection(item.section) &&
+      !filedInFormerHome(item, digest.date)
     ) {
       add(
         "error",

@@ -32,7 +32,7 @@ import "../../../styles/topics.css";
 import "../../../styles/episode-actions.css";
 
 /**
- * One page for each of the owner's three topics (Design, AI, Technology), each of their own topics
+ * One page for each of the owner's four topics (Design, AI, Technology, Software Engineering), each of their own topics
  * apart from those, each general news topic, and Other (D69). The judge's finer topics have no page:
  * their sources show on their group's.
  */
@@ -106,7 +106,7 @@ const shown = group ? { id: group.home, name: group.name } : undefined;
 const words = suggestionWords({ group, topic });
 // A topic not built yet has its suggestions ranked in the browser (savedView.ts, suggestUnder).
 const suggested = words && !shell ? suggestSources(catalog, sources, words, 10) : [];
-// Where the topic plays (D69): one of the owner's three sets it for every judge topic it gathers.
+// Where the topic plays (D69): one of the owner's four sets it for every judge topic it gathers.
 const schedule = await loadScheduleView();
 const scopeIds = group ? group.members.map((member) => member.id) : topic ? [topic.id] : [];
 const SCOPES = [

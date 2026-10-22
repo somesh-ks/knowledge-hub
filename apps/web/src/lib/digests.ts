@@ -1,4 +1,10 @@
-import { type AudioTimeline, type Digest, type DigestItem, digestSections } from "@dispatch/core";
+import {
+  type AudioTimeline,
+  compareNewestFirst,
+  type Digest,
+  type DigestItem,
+  digestSections,
+} from "@dispatch/core";
 import { paletteAccent } from "@dispatch/cover";
 import { leadInWords } from "@dispatch/engine/audio";
 import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contracts";
@@ -47,13 +53,6 @@ export function orderItems(digest: Pick<Digest, "items" | "section_titles">): Di
   return digestSections(digest).flatMap((section) =>
     digest.items.filter((item) => item.section === section.id),
   );
-}
-
-/** Newest first. Same-day digests (a second run, a weekly) fall back to when they were written. */
-export function compareNewestFirst(a: Digest, b: Digest): number {
-  if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-  if (a.generated_at !== b.generated_at) return a.generated_at < b.generated_at ? 1 : -1;
-  return a.id < b.id ? 1 : -1;
 }
 
 /** The host's words ahead of each story; none when the digest cannot be narrated as a whole. */

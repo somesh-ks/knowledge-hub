@@ -1,10 +1,10 @@
 import type { APIRoute } from "astro";
-import { toResponse } from "../../server/http";
+import { recordingFaults, toResponse } from "../../server/http";
 import { byteRange, handleVoiceSample, SAMPLE_CACHE_CONTROL } from "../../server/voices";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request, url }) => {
+const get: APIRoute = async ({ request, url }) => {
   const sample = await handleVoiceSample(url.searchParams.get("voice"), {
     env: process.env,
     fetch,
@@ -32,6 +32,8 @@ export const GET: APIRoute = async ({ request, url }) => {
     headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${body.byteLength}` },
   });
 };
+
+export const GET = recordingFaults("api/voice-sample", get);
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "GET" } });

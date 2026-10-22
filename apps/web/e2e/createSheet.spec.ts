@@ -143,7 +143,7 @@ test.describe("Create as the primary action", () => {
       passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
-        topic_ids: ["design", "ui-craft", "ai", "tech"],
+        topic_ids: ["design", "ui-craft", "ai", "tech", "software"],
         length_minutes: 5,
         format: "readout",
         window_days: 7,

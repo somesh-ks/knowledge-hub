@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  compareNewestFirst,
   type Digest,
   Digest as DigestSchema,
   daysBetween,
@@ -11,6 +12,7 @@ import {
   homeSection,
   itemId,
   longDate,
+  Preferences,
   parseDigestFile,
   SUPPORTED_TIMEZONES,
   serializeDigestFile,
@@ -137,11 +139,21 @@ describe("paths and sections", () => {
   });
   it("maps categories to sections", () => {
     expect(homeSection("hci_empirical_research", "rss")).toBe("design");
-    expect(homeSection("developer_tool_launches", "rss")).toBe("ui-craft");
+    expect(homeSection("developer_tool_launches", "rss")).toBe("software");
+    expect(homeSection("software_engineering_depth", "rss")).toBe("software");
     // A video goes where its category goes; "watch" no longer receives stories.
     expect(homeSection("design_engineering_craft", "youtube")).toBe("ui-craft");
     // Off, not a missing home, keeps a category out of a briefing.
     expect(homeSection("venture_capital_and_gossip", "rss")).toBe("ai");
+  });
+  // The config store's preferences row, seeded before D155, would have stopped every run.
+  it("reads a preferences file saved before a category existed, but not one missing an older one", () => {
+    const fixture = "packages/engine/test/fixtures/config/preferences.json";
+    const saved = JSON.parse(readFileSync(join(REPO_ROOT, fixture), "utf8"));
+    const { software_engineering_depth: _added, ...before } = saved.weights;
+    expect(Preferences.safeParse({ ...saved, weights: before }).success).toBe(true);
+    const { venture_capital_and_gossip: _off, ...dropped } = saved.weights;
+    expect(Preferences.safeParse({ ...saved, weights: dropped }).success).toBe(false);
   });
 });
 
@@ -221,4 +233,19 @@ describe("digests committed before the four-beat voice", () => {
       expect(parseDigestFile(again)).toEqual(digest);
     },
   );
+});
+
+// The one order of briefings (the site, `dispatch status`, `dispatch health`). Ordering by
+// generated_at alone took a regenerated older briefing for the newest and faulted site_stale.
+describe("compareNewestFirst", () => {
+  it("orders by date, then by when a same-day briefing was written", () => {
+    const older = { id: "2026-10-05", date: "2026-10-05", generated_at: "2026-10-22T09:00:00Z" };
+    const newer = { id: "2026-10-07", date: "2026-10-07", generated_at: "2026-10-07T05:00:00Z" };
+    const second = { id: "2026-10-07-2", date: "2026-10-07", generated_at: "2026-10-07T16:00:00Z" };
+    expect([older, newer, second].sort(compareNewestFirst).map((each) => each.id)).toEqual([
+      "2026-10-07-2",
+      "2026-10-07",
+      "2026-10-05",
+    ]);
+  });
 });

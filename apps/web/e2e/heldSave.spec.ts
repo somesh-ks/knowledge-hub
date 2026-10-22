@@ -139,11 +139,11 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await page.locator("#daily-cadence").selectOption("1");
     await page.goBack();
     const row = page.getByRole("link", { name: /^Daily/ });
-    await expect(row).toContainText("Every day at 09:00");
+    await expect(row).toContainText("Every day at 9");
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(2);
     await expect(row).not.toContainText("Every day");
-    await expect(row).toContainText("09:00");
+    await expect(row).toContainText("at 9");
     await expect(page.getByRole("alert").filter({ hasText: "not saved" })).toHaveText(
       "Your last change was not saved.",
     );
