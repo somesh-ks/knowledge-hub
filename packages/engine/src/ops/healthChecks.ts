@@ -105,6 +105,12 @@ export interface WatchedHead {
    * null when the checkout cannot tell (it does not know that commit: the site is newer).
    */
   includes: (build: string) => Promise<boolean | null>;
+  /**
+   * The commit time (epoch ms) of the oldest watched commit up to this one that the build lacks,
+   * so a newer push does not restart the clock on a deploy that keeps failing; null when the
+   * checkout cannot tell.
+   */
+  missingSince: (build: string) => Promise<number | null>;
 }
 
 /**
@@ -137,6 +143,28 @@ export async function readWatchedHead(root: string): Promise<WatchedHead | undef
     return {
       sha,
       at: Number(seconds) * 1000,
+      // Main's own line only (--first-parent): a squash merge's time is when it landed, never when
+      // its branch was written. A build off main's line (a rewritten main) cannot tell.
+      missingSince: async (build) => {
+        try {
+          await git("merge-base", "--is-ancestor", build, sha);
+          const out = await git(
+            "log",
+            "--first-parent",
+            "--format=%ct %an <%ae>",
+            `${build}..${sha}`,
+            "--",
+            ...watched,
+          );
+          const times = out
+            .split("\n")
+            .filter((line) => line !== "" && !line.includes("[bot]"))
+            .map((line) => Number(line.split(" ")[0]) * 1000);
+          return times.length > 0 ? Math.min(...times) : null;
+        } catch {
+          return null;
+        }
+      },
       // Exit 1 is "not an ancestor"; 128 (an unknown commit) and the rest cannot tell.
       includes: (build) =>
         git("merge-base", "--is-ancestor", sha, build).then(
@@ -515,6 +543,8 @@ export const SCRIPT_BLOCKS_PER_DAY = 3;
 export const CLIENT_ERRORS_PER_DAY = 20;
 /** Server errors (a 5xx a site function answered) on one route in 24 hours from this many on warn. */
 export const SERVER_FAULTS_PER_DAY = 3;
+/** Functions Vercel killed (a timeout, a crash) on one route in 24 hours from this many on warn. */
+export const PLATFORM_FAULTS_PER_DAY = 3;
 /** CSP directives whose violation means a script did not run: a feature broken, or an injection. */
 const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 
@@ -522,12 +552,13 @@ const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``;
 
 /**
- * `client_faults` (D158), warnings only: the endpoint is open (D41), so anyone can forge a report,
+ * `client_faults` (D158), warnings only: the endpoint is open (D160), so anyone can forge a report,
  * extensions inject scripts the CSP blocks, and a deploy or an upstream blip (Speechify, Anthropic)
  * raises a burst of server errors. Judged over the last 24 hours across builds (content commits
  * redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,
  * CLIENT_ERRORS_PER_DAY page errors on one route (the opaque "Script error." aside), or
- * SERVER_FAULTS_PER_DAY server faults (a 5xx a site function answered) on one route, naming the
+ * SERVER_FAULTS_PER_DAY server faults (a 5xx a site function answered) or PLATFORM_FAULTS_PER_DAY
+ * platform faults (a function Vercel killed, as the page saw it) on one route, naming the
  * route and its commonest message or step. No table yet is nothing measured: no finding, no pass.
  */
 export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, sink: Sink): void {
@@ -576,8 +607,14 @@ export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, si
     SERVER_FAULTS_PER_DAY,
     "server errors",
   );
-  if (blocked < SCRIPT_BLOCKS_PER_DAY && !clientWarned && !serverWarned) {
-    sink.passed.push("no run of blocked scripts, client or server errors in 24 hours");
+  // A function Vercel killed (a timeout, a crash), as the page that asked saw it.
+  const platformWarned = perRoute(
+    day.filter((group) => group.kind === "platform"),
+    PLATFORM_FAULTS_PER_DAY,
+    "functions Vercel ended",
+  );
+  if (blocked < SCRIPT_BLOCKS_PER_DAY && !clientWarned && !serverWarned && !platformWarned) {
+    sink.passed.push("no run of blocked scripts, client, server or platform errors in 24 hours");
   }
 }
 

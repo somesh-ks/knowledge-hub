@@ -7,7 +7,7 @@ Schedule, sources, preferences, voices, model, autosave and the edit gap, blocke
 ### Structure
 - Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Intelligence (the AI model alone), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), About (D129). No heading is bold.
 - Link rows end in their value, in the quiet ink; rows are 64px.
-- Each group of rows is a card: `.card-group` (primitives.css) on the `.rows` list, on the container tone, no shadow or line; what it holds is concentric with it (`component.card`). The install offer is one in the accent tone. About: the description, a Change log row (`/settings/about`, newest first) and, on a phone, Last updated, which from 64rem sits at the foot of the side column (`AppNav`).
+- Each group of rows is a card: `.card-group` (primitives.css) on the `.rows` list, no shadow or line; what it holds is concentric with it (`component.card`). Heads share the rows' edge. The install offer is one in the accent tone. About: the description, a Change log row (`/settings/about`, newest first) and, on a phone, Last updated, which from 64rem sits at the foot of the side column (`AppNav`).
 - No breadcrumbs: a title stands alone and a phone's app bar arrow leads up (D129). `/settings/custom` goes to `/create`; `custom` in `config/schedule.json` is what the Create panel starts from.
 - Form fields have a 3:1 outline. Every select opens one drawn list set in `primitives.css` through `appearance: base-select`. Time zone and voices use searchable pickers (D101). Theme is a select that draws no value until the stored one is set.
 

@@ -1156,10 +1156,14 @@
 
 /* A group of settings rows in one rounded container on the container tone, as Material 3 groups an
    Android settings screen: the group is told apart from the page by tone alone, never by a shadow or
-   a line. Put the class on the .rows list itself; the rows keep their own padding, so the container's
-   inner room is the first and last row's. Its rows sit 16px in from its edge, and a row's hover tile
-   keeps clear of the corners. */
+   a line. Put the class on the .rows list itself; the rows keep their own padding. Its words sit
+   the card's padding in from its edge, and a row's hover tile keeps clear of the corners.
+   2026-10-22, "the padding around the list menus ... must be spacious": the words 24px in, the tiles
+   16px in on every side. The card adds half the inset above and below and each tile takes the other
+   half inside its row, so the first and last tiles sit one inset from the edge, two tiles sit one
+   inset apart, and the rows keep their 64px rhythm. */
 .card-group {
+  padding-block: calc(var(--card-inset) / 2);
   padding-inline: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
@@ -1170,7 +1174,7 @@
    button) the content radius. A row's tile sits the inset clear of the card's edges and of the next
    row's tile, so it never runs into a corner. */
 .card-group > .row-action::after {
-  inset-block: var(--card-inset);
+  inset-block: calc(var(--card-inset) / 2);
   inset-inline: calc(var(--card-inset) - var(--card-padding));
   border-radius: var(--card-inner-radius);
 }

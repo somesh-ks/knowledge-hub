@@ -3,7 +3,7 @@ import { withTable } from "./pgErrors.js";
 
 /**
  * A rate-limit counter every serverless instance shares, in the same Neon database as the config
- * store (D149). The site is open (D41), so the caps on its paid routes must hold across instances: a
+ * store (D149). The site is open (D160), so the caps on its paid routes must hold across instances: a
  * cold start must not hand out a fresh minute. One row per bucket holds the current window's number
  * and count, so the table never grows past the number of buckets. No driver here: see neon.ts.
  */
