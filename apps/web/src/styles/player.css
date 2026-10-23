@@ -1569,6 +1569,10 @@
   width: 0;
   height: 0;
   transform: translate3d(var(--thumb-x, 0px), 0, 0);
+}
+
+/* Promoted only while a finger or pointer moves it, as the page is (2026-10-22). */
+.scrubber[data-dragging] .scrubber-thumb {
   will-change: transform;
 }
 
@@ -1717,8 +1721,11 @@
 }
 
 /* Previous and next are the smaller targets of the five, and as quiet as the skips: with only play
-   in full ink, the row reads as one control and its helpers, not dark, light, dark, light, dark. */
+   in full ink, the row reads as one control and its helpers, not dark, light, dark, light, dark.
+   Their glyphs are the skips' outline weight at the skips' size (2026-10-22), so the four helpers
+   draw as one family. */
 .transport-btn:not([data-primary], .transport-skip) {
+  --transport-glyph: var(--player-skip-glyph);
   width: var(--size-touch-comfortable);
   height: var(--size-touch-comfortable);
   color: var(--color-on-surface-muted);
