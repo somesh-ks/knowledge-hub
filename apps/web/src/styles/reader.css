@@ -57,18 +57,10 @@
  * whichever part starts a line falls outside the clip. Physical sides: the copy is left to right.
  */
 .meta-wrap {
-  --meta-dot: calc(var(--space-4) + var(--space-1));
   margin-inline-start: calc(var(--meta-dot) * -1);
   clip-path: inset(
     calc(var(--space-1) * -1) calc(var(--space-1) * -1) calc(var(--space-1) * -1) var(--meta-dot)
   );
 }
 
-.meta-wrap > *::before,
-.meta-wrap > * + *::before {
-  content: "\00b7";
-  display: inline-block;
-  width: var(--meta-dot);
-  margin-inline: 0;
-  text-align: center;
-}
+/* Every part's dot, the first one too, is the one separator (primitives.css). */

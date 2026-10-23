@@ -41,6 +41,12 @@
   gap: var(--space-2);
 }
 
+/* The publisher above the headline, its words 8px over it as in a briefing (briefing.css): the
+   target also takes back the grid's gap. */
+.episode-highlight > .story-source {
+  margin-block-end: calc(var(--space-2) * -2);
+}
+
 /* A story's title, as in a briefing. */
 .episode-highlight-title {
   font-family: var(--text-title-family);

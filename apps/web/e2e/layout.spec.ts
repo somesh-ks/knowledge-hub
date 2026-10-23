@@ -226,9 +226,31 @@ test.describe("layout", () => {
   test("long content holds at 320px: a three-line headline, an 80-word summary, a long host", async ({
     page,
   }) => {
+    // A publisher of a usual length reads whole on a 360px phone: beside the chip and the controls
+    // it once showed about six letters (owner, 2026-10-23).
+    await page.setViewportSize({ width: 360, height: 700 });
+    await page.goto("/");
+    const name = page.locator(".story").first().locator(".source-link > span").first();
+    await expect(name).toHaveText("Springlet Blog");
+    expect(await name.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/");
     const story = page.locator(".story").nth(1);
+    // Where the story's controls sit in their row, and how tall the row is: a long publisher must
+    // change neither (it once pushed them to an orphan second line; owner, 2026-10-22).
+    const controlsPlace = async () => {
+      const [row, controls] = await Promise.all([
+        story.locator(".story-actions").boundingBox(),
+        story.locator(".story-controls").boundingBox(),
+      ]);
+      return {
+        height: row?.height ?? 0,
+        top: (controls?.y ?? 0) - (row?.y ?? 0),
+        end: (controls?.x ?? 0) + (controls?.width ?? 0),
+      };
+    };
+    const before = await controlsPlace();
     await story.evaluate(
       (node, content) => {
         const title = node.querySelector("h3");
@@ -265,6 +287,10 @@ test.describe("layout", () => {
     expect(await host.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
     await story.locator(".source-link").scrollIntoViewIfNeeded();
     await expect(story.locator(".source-link .icon")).toBeInViewport({ ratio: 1 });
+    const after = await controlsPlace();
+    expect(after.height).toBeCloseTo(before.height, 0);
+    expect(after.top).toBeCloseTo(before.top, 0);
+    expect(after.end).toBeCloseTo(before.end, 0);
     // Every part of the story stays inside the column. The last control's 44px target reaches into
     // the gutter by design, so its glyph lines up with the column's edge (story-controls.css): the
     // glyph is measured, not the target.
