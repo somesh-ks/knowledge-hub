@@ -52,7 +52,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
 | D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
-| D41 | Passphrase off, code kept | superseded by D159 |
+| D41 | Passphrase off, code kept | superseded by D160 |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
@@ -169,7 +169,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D156 | Field Vitals in Neon | amends D147 |
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
-| D159 | No passphrase | active |
+| D160 | No passphrase | active |
 
 ---
 
@@ -1725,7 +1725,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: storing the full message with quoted text removed by pairing quotes (review showed a reader's text survived: an email inside a JSON parse error, apostrophes, « » quotes); judging only the current build (content commits redeploy several times a day and wiped the history); a fault on one blocked script.
 - Revisit if: a warning turns out to be forged or extension noise (raise the threshold or add a per-page token), or the owner wants faults counted per reader.
 
-## D159: the passphrase is removed completely
+## D160: the passphrase is removed completely
 
 - Date: 2026-10-22 (the owner: "remove passphrase completely", after approving D153's stage 0, which would have turned it back on; that stage was dropped before it merged)
 - Decision: there is no passphrase anywhere. The four routes that spend or edit (`/api/generate`, `/api/podcast`, `/api/config`, and `/api/narrate` POST) check the origin, the body and their caps, and never answer 401. Request bodies carry no `passphrase`; one that a page built before this still sends is ignored. The prompts are gone: the narration sheet ("Make the audio"), the Create dialog, the Regenerate, Delete and settings-save fields, and the device memory `dispatch:narrate-passphrase`, which nothing reads or writes now. `GENERATE_PASSPHRASE_HASH`, `npm run passphrase`, `@dispatch/core/passphrase` and the scrypt verifier are deleted. A failed run's Try again always resends its request, so the path that reopened the form after a refused passphrase is gone too.

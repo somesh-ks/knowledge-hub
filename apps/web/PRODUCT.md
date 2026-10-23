@@ -23,7 +23,7 @@ The briefing is filtered by a taste model the owner tunes in one sentence, never
 - Phone first: iPhone Safari and the installed home-screen app. Desktop second.
 - Read or heard: the same stories in the same order, with lock-screen controls and resume.
 - An archive of earlier briefings.
-- Owner tools: a control that generates a briefing on demand, and settings (theme, sounds, default speed). There is no passphrase (D159): the daily caps and the monthly narration budget are the only limits.
+- Owner tools: a control that generates a briefing on demand, and settings (theme, sounds, default speed). There is no passphrase (D160): the daily caps and the monthly narration budget are the only limits.
 - Published at news.someshks.work, public but unlisted and not indexed.
 
 ## Capabilities and Constraints
@@ -31,7 +31,7 @@ The briefing is filtered by a taste model the owner tunes in one sentence, never
 - Static Astro site with React islands; two on-demand functions. Digests are Markdown files with frontmatter under `Digests/`.
 - Sections, in order, omitted when empty: Top picks, Design, Design Engineering, AI Products, Tech Product Launches, Trending. Research, Launches and Watch and listen no longer receive stories; briefings published earlier keep them.
 - One recording per briefing with a start time per story, so any story can be played directly.
-- Audio is narrated on first play, by whoever presses Play, inside the daily cap and the monthly budget (D159).
+- Audio is narrated on first play, by whoever presses Play, inside the daily cap and the monthly budget (D160).
 - Self-hosted fonts and assets only (strict content security policy). First-load JavaScript stays under 100 KB gzipped per page.
 - Internal identifiers keep the old name `dispatch` (packages, CLI, storage keys); only reader-facing text says Singularity.
 

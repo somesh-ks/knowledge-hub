@@ -84,12 +84,12 @@ ungrounded; nothing reported a thin run after the fact. Added: `digest_thin`,
   `report-uri`), and are kept a week in Neon: 3 or more blocked scripts in 24 hours are the
   `client_faults` warning (D158; never a fault, since a report can be forged).
 - Headers: HSTS added (`max-age=63072000; includeSubDomains`); `health` faults a missing one.
-- No passphrase (D159): anyone with the URL can start runs inside the caps. Generate, Podcast,
+- No passphrase (D160): anyone with the URL can start runs inside the caps. Generate, Podcast,
   delete and config count GitHub's run list (or the store), narration the Blob usage document.
   The per-minute caps (topic-emoji's model asks, source-preview's Jev, costs, and a burst cap
   on Generate, Podcast, config and narration) are counted in Neon across instances (D150), with
   the instance's own count as the floor when `DATABASE_URL` is unset or the counter errors or is
-  slow. Gap: with no passphrase (D159) anyone can
+  slow. Gap: with no passphrase (D160) anyone can
   fill a burst cap's minute, which for narration fails the owner's next turn until it ends. The
   table is now created on first use; `store_degraded` warns when Neon does not answer.
 - SSRF: `source-preview` and `site-icon` check every resolved address and redirect hop. Known gap

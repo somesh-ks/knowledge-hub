@@ -203,7 +203,7 @@ test.describe("the Create page", () => {
     expect(order).toBe(true);
   });
 
-  // Bug it prevents: a press that opened a passphrase dialog, or sent one, after D159 removed it.
+  // Bug it prevents: a press that opened a passphrase dialog, or sent one, after D160 removed it.
   test("Create sends straight away and asks for nothing", async ({ page }) => {
     // The clock is held, so the page never gets as far as asking after the run.
     await page.clock.install();

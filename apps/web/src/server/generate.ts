@@ -10,7 +10,7 @@ import { describeError } from "./redact";
 /**
  * POST /api/generate: check the request, check the rate limits against GitHub, dispatch run.yml.
  * Everything with a side effect is a parameter (fetch, clock, delay, the logger), so the whole flow
- * is tested with fakes and no network. There is no passphrase (D159).
+ * is tested with fakes and no network. There is no passphrase (D160).
  */
 
 export const MAX_BODY_CHARS = 2048;
@@ -50,7 +50,7 @@ const invalid: GenerateResult = { status: 400, body: { status: 400, error: "inva
 
 /**
  * Whether the body is one JSON object of a size the route reads. A `passphrase` field that a page
- * built before D159 still sends is ignored with any other field the route does not read.
+ * built before D160 still sends is ignored with any other field the route does not read.
  */
 export function isJsonObjectBody(bodyText: string): boolean {
   if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return false;
