@@ -68,7 +68,21 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
           {highlights.map((highlight) => (
             <li class="episode-highlight">
               {/* As a briefing's story (Item.astro): the headline is the link to the source, and
-                  the publisher under the text is its quiet attribution. */}
+                  the publisher above it is its quiet attribution. */}
+              {highlight.host && (
+                <a
+                  class="source-link story-source episode-highlight-link"
+                  href={highlight.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  tabindex="-1"
+                  aria-hidden="true"
+                  title={highlight.publisher}
+                >
+                  <span>{highlight.publisher}</span>
+                  <Icon name="openInNew" />
+                </a>
+              )}
               <h3 class="episode-highlight-title">
                 {highlight.host ? (
                   <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
@@ -85,20 +99,6 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
               </h3>
               {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
               <div class="story-actions episode-highlight-actions">
-                {highlight.host && (
-                  <a
-                    class="source-link story-source episode-highlight-link"
-                    href={highlight.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    tabindex="-1"
-                    aria-hidden="true"
-                    title={highlight.publisher}
-                  >
-                    <span>{highlight.publisher}</span>
-                    <Icon name="openInNew" />
-                  </a>
-                )}
                 <StoryControls
                   id={highlight.itemId}
                   url={highlight.url}

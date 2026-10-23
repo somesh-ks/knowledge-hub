@@ -226,6 +226,14 @@ test.describe("layout", () => {
   test("long content holds at 320px: a three-line headline, an 80-word summary, a long host", async ({
     page,
   }) => {
+    // A publisher of a usual length reads whole on a 360px phone: beside the chip and the controls
+    // it once showed about six letters (owner, 2026-10-23).
+    await page.setViewportSize({ width: 360, height: 700 });
+    await page.goto("/");
+    const name = page.locator(".story").first().locator(".source-link > span").first();
+    await expect(name).toHaveText("Springlet Blog");
+    expect(await name.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/");
     const story = page.locator(".story").nth(1);

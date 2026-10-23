@@ -223,11 +223,10 @@ html[data-has-tabs] {
   color: var(--color-on-surface);
 }
 
-/* Play, then the publisher, then the story controls at the trailing edge. The chip hugs its label.
-   One line on every width (owner, 2026-10-22: "one line, name cut"): the chip and the controls are
-   fixed tracks and the publisher is the flexible one between them, so a long name shortens with an
-   ellipsis (its full name stays in the link's words and title) and the controls keep one home in
-   every story instead of wrapping to an orphan line. */
+/* Play, then the story controls at the trailing edge. The chip hugs its label. One line on every
+   width, so the controls keep one home in every story instead of wrapping to an orphan line (owner,
+   2026-10-22). The publisher once sat between them, but the 112px chip and three 44px controls left
+   it about six letters at 360px and one at 320, so it moved above the headline (owner, 2026-10-23). */
 .story-actions {
   display: flex;
   flex-wrap: nowrap;
@@ -243,9 +242,17 @@ html[data-has-tabs] {
 }
 
 /* The publisher is attribution, not a second call to act: muted words at the label size, so the
-   chip is the one accent in a story. Its hover layer is the muted ink's, like any quiet control. */
+   chip is the one accent in a story. Its hover layer is the muted ink's, like any quiet control.
+   Above the headline, as Google News sets it: one line of its own, so a name reads whole and shortens
+   only when wider than the column (owner, 2026-10-23). Its 44px target hangs 8px into the story's
+   top padding and 8px over the headline's, so its words sit about 8px above the headline's. Stacked
+   over the headline's hit padding (.story-link), which would otherwise take its lower half. */
 .story-source {
-  flex: 0 1 auto;
+  position: relative;
+  z-index: var(--z-raised);
+  display: flex;
+  width: fit-content;
+  margin-block: calc(var(--space-2) * -1);
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
 }
