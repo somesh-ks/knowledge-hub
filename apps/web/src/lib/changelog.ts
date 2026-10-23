@@ -15,10 +15,16 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.9.1",
+    date: "2026-10-23",
+    description:
+      "A story's publisher sits above its headline and its summary is one shade lighter, so the headline leads. The cover is larger on a phone, the player's side buttons share one outline style, and New episode in the side rail no longer looks selected.",
+  },
+  {
     version: "0.9",
     date: "2026-10-22",
     description:
-      "Software Engineering is a fourth topic with its own section, visits are counted without cookies, shared links say they were shared, and Settings has a Privacy page. Settings rows say their value at the end, podcast topics are listed by name, and cards and what they hold share one rounded shape.",
+      "Software Engineering is a fourth topic with its own section, visits are counted without cookies, shared links say they were shared, and Settings has a Privacy page. Settings rows say their value at the end, podcast topics are listed by name, cards and what they hold share one rounded shape, and Costs is one card with its range and breakdown at the top.",
   },
   {
     version: "0.8",

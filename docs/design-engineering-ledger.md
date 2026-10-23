@@ -122,7 +122,7 @@ Ask, then what was built, then the decision. Values are as built.
 - **Tonal language** (D72, owner: "a real Google app"):
   - `surface-container` for the page's own controls.
   - `accent-container` for chosen or current.
-  - `accent-container-high` for actions that are not places, such as New episode (D86).
+  - `accent-container-high` for actions that are not places, such as the phone's floating New episode (D86); in dark it is blue-910, a lifted step like light's, never a fill (2026-10-23). In the rail New episode takes `surface-container` with accent ink, so beside the current row it is not a second selection (owner, 2026-10-22).
   - State layers: hover 8%, press 12% of the control's ink.
   - Pills for buttons and chips on the page; inside a card they take its concentric radius (the owner chose this over pills everywhere, 2026-10-22). 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
@@ -130,6 +130,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Two weights, regular and medium; a test bans a third (D90).
   - Story and summary 16px at every width; headline 18 to 20px; meta 14px; section headings 22px regular; display at most 32px; reading leading 1.55 (D73).
   - A quiet line goes under its title, never above it (D31).
+  - Summaries and highlight text take `on-surface-reading`, one ink step under the headline (light grey-750, dark grey-400): size and weight are fixed, so contrast lets the headline lead; AAA on the page, tested (2026-10-23).
   - `text-wrap: balance` on headings, kept working by `inline-block` rather than `nowrap` (D93).
 - **Spacing and shape.**
   - 4px base, nine steps from 0.25 to 6rem, each at least 25% larger than the last (test).
@@ -334,6 +335,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Glyphs and art.**
   - The plus and the More dots were too thin. Now Phosphor bold, with More as three drawn circles of radius 20 (2026-10-10).
   - Icon swaps scale from 0.95, not 0.6 (2026-10-11 audit).
+  - The transport: previous and next take the skips' Phosphor regular outline at their size, so the four helpers are one family and Play the one fill (2026-10-22).
   - Latest is Phosphor FireSimple, rest and current: a plain outline with no inner lick, as "simple outline ones and not have inner details" asked (D133; built 2026-10-22 in `tokens/glyphs.json`).
   - Covers are `draggable="false"`, so a mouse flick closes the player instead of dragging an image (2026-10-10).
   - A cover that cannot load shows its palette, never the broken-image glyph (D93).
@@ -344,7 +346,9 @@ The craft that makes components hold still and answer clearly. Each was a report
   - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
   - The Generate bar's line shows only while the bar is really stuck (D87).
   - The section strip is opaque, so text never shows through under it (D88).
-  - List edges fade only where more content exists (`player.css:2087-2173`).
+  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22).
+  - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
+  - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
 - **Speech and status.**
   - One element speaks each message: a polite region, an alert region for errors, and a toast with no role (2026-10-10).
   - The live region stays quiet whenever a visible notice already speaks (D90).
@@ -353,7 +357,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 ### Reading pages and the Library
 - **Hero.**
   - One filled action, which goes tonal while playing and shows the time left (D77, D88).
-  - One hero layout for any title length. The hero text fills the cover's height; a gap under it came from a `1fr` middle row with `align-self: end` actions, fixed with an 8rem cover (2026-10-12).
+  - One hero layout for any title length. The hero text fills the cover's height; a gap under it came from a `1fr` middle row with `align-self: end` actions, fixed with an 8rem cover (2026-10-12). On a phone the stacked cover is `clamp(8rem, 36vw, 10rem)`, never smaller than the wide layout's (2026-10-23).
   - Sections separated by space alone. Hairlines, where they exist, run inside the column (2026-10-08).
   - "Contents" sits beside the episode, sticky at the vertical centre (2026-10-08, 2026-10-12). "N min listen" went; Highlights replaced the script on the page (2026-10-08).
 - **Play chip.**
@@ -510,7 +514,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - `scale: 0.97` at `picker.css:134,164`, `multiselect.css:173,180`.
    - `scale: 0.6` at `primitives.css:679`.
    - Meanwhile the speed panel uses `--scale-enter` (0.96). Popovers enter at three different scales.
-2. **A forced-colours blind spot.** The allow-list regex `\bHighlight\b` does not match `HighlightText`, so `primitives.css:723` and `player.css:2189` pass unchecked.
+2. **A forced-colours blind spot.** Closed 2026-10-22: the check matches every system colour keyword whole and allows `HighlightText` and `ButtonBorder`.
 3. **Stale references.**
    - Four comments cite `pressText.test.ts`, which no longer exists; the rule lives in `styles.test.ts`.
    - `sheets.css:46` says the phone sheet's top corners are round, but `:119` sets `border-radius: 0`, per D106.
@@ -532,8 +536,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - Idle timeouts of 4000, 3000, 2000 and 200 ms.
    - Scroll thresholds of 64/12 px for the app bar and 48/8 px for the floating button.
 8. **Layout properties animated.**
-   - The floating button animates `max-width`, `margin` and `inset-block-end`; the briefing tabs animate `inset-block-start`. Transforms would avoid layout per frame.
-   - `will-change: transform` sits permanently on the scrubber thumb.
+   - The floating button animates `max-width`, `margin` and `inset-block-end`; transforms would avoid layout per frame. The briefing tabs now glide by `translate`, and the scrubber thumb has `will-change` only while dragged (2026-10-22).
 9. **Reduced motion is zero, not gentler.** Durations collapse to 0.01 ms and cross-fades go with them; the spec says "fewer and gentler, not zero" (DD-003, open).
 10. **Found by the chat pass.**
     - A stale comment still describes the removed `.daily-listbox` combobox (`primitives.css:468`).
