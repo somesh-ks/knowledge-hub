@@ -643,13 +643,21 @@ textarea.sheet-input {
   line-height: var(--font-leading-label);
   --color-focus-gap: var(--color-surface-inverse);
   --color-focus-ring: var(--toast-fg);
+  /* A finger swipes it away sideways (Toaster.tsx); the page under it still scrolls up and down. */
+  touch-action: pan-y;
   opacity: 0;
   transform: translateY(var(--distance-medium));
   transition:
     opacity var(--duration-press-in) var(--ease-out),
     transform var(--duration-press-in) var(--ease-out),
+    translate var(--duration-press-in) var(--ease-out),
     overlay var(--duration-press-in) allow-discrete,
     display var(--duration-press-in) allow-discrete;
+}
+
+/* Under the finger the toast follows at once; the spring back and the leave run on the transition. */
+.toast[data-dragging] {
+  transition: none;
 }
 
 /* On a phone a toast keeps one width, the screen's less its gutters, whatever it says: sized to its

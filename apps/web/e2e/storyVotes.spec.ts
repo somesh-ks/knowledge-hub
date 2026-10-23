@@ -59,6 +59,39 @@ test.describe("story controls", () => {
     expect(server.statuses).toEqual([202]);
   });
 
+  test("a short drag leaves the toast where it was; a swipe takes it away and the stop still goes", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const server = await routeConfigServer(page);
+    await page.goto("/");
+    await stop(page.locator("[data-story-controls]").first());
+    const toast = page.locator(".toast");
+    await expect(toast).toBeVisible();
+    const cdp = await page.context().newCDPSession(page);
+    const rest = (await toast.boundingBox()) as { x: number; y: number; width: number };
+    const y = rest.y + 20;
+    const swipe = async (by: number) => {
+      const x = rest.x + rest.width / 2;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let step = 1; step <= 4; step++) {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: x + (by * step) / 4, y }],
+        });
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    // Short of a third of its width, and slow, it comes back to the same box.
+    await swipe(24);
+    await expect.poll(() => toast.boundingBox()).toEqual(rest);
+    // A swipe dismisses the toast only: the stop it offered to undo still goes when its wait ends.
+    await swipe(rest.width);
+    await expect(toast).toBeHidden();
+    await page.clock.runFor(6000);
+    await expect.poll(() => server.statuses).toHaveLength(1);
+  });
+
   test("stopping an outlet waits for Undo, and an Undo sends nothing", async ({ page }) => {
     await page.clock.install();
     const server = await routeConfigServer(page);
