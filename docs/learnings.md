@@ -44,6 +44,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-23: Vercel's Neon integration names its variables `NEON_*`; the code reads `DATABASE_URL`, so the store never ran in production. List the env names before a switch-on.
 - 2026-10-22: three review rounds of new `health` checks each found false faults (a waking Neon, an edit during a run, Dependabot merges Hobby never deploys, a regenerate read as late). A fault must be actionable and hold a day; make the rest warnings.
 - 2026-10-20: a group page saved its mix on a fallback home while the engine read the fixed one, and the outlet cap keyed by `source_id` let BBC's five feeds through; one helper (`groupHomeId`) and the story's host fix both. Review found both, no test did.
 - 2026-10-19: adding a YouTube channel in the panel said "The address could not be read". The preview caps a page at 1 MB and a channel page is about 1.3 MB, so the fetch threw, `resolveYoutubeChannel` swallowed it, and even a `/channel/UC...` address (which holds the id) failed. The id now comes from the path, then YouTube's `navigation/resolve_url` (about 1 KB), then the page. Firecrawl is not the YouTube path (its copy of a channel page carried a 401 banner); a social page with no feed (x, instagram, facebook, linkedin, tiktok, threads) is refused instead of becoming a scrape source.
@@ -78,6 +79,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-10-23: lightningcss fails the build on `::picker(select)::backdrop`: scrim a sheet with a shadow spread (`0 0 0 100vmax`). A page stylesheet's `::picker` rule beats the shared one by load order; scope it to `(width >= 40rem)`.
 - 2026-10-22: Vercel checks `vercel.json`'s schema only on its servers; a failure stops every deploy (#220's 341-character `ignoreCommand`, limit 256, until #222). `vercelJson.test.ts` checks it.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry drops the package): set its version, `resolved` and `integrity`, then `npm ci`. In a linked worktree the adapter build's function check fails (`devalue` missing); check it after a real `npm ci`.
 - 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
@@ -95,8 +97,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: heredoc and `node -e` edits lose backslashes and backticks in the agent shell, and some worktrees refuse compound commands: write scripts with the Write tool, all-or-nothing.
 - 2026-10-11: the sandbox proxy refuses news hosts (403 to CONNECT), so `curl` cannot check a feed. Fetch it with Firecrawl's scrape (`rawHtml`, a week's `maxAge`), in a subagent so the bodies stay out of the session; Firecrawl allowed about ten requests a minute.
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
-- 2026-10-08: `npx` can stall a minute before a local binary runs: read its output file, do not rerun it.
-- 2026-10-08: a full disk was 37 GB of another project's temp folder; the repository is under 600 MB. Measure before deleting.
 
 ## Agents and worktrees
 

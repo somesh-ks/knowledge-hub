@@ -170,6 +170,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
+| D160 | One shape per control; phone lists are sheets | amends the 2026-10-22 card rule |
+| D161 | Catch up, a bolt, swipe-away toasts | amends D52 |
 
 ---
 
@@ -1732,3 +1734,21 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: D157 kept `site_behind` a warning because the next push may clear it, and warnings reach the owner on Mondays; a deploy that stays missing a day will not clear. A smoke run Vercel starts belongs to `vercel[bot]`, so its failure email reached no one.
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
+
+## D160: one control has one shape wherever it stands, and every list is a bottom sheet on a phone
+
+- Date: 2026-10-23 (the owner: "different types of drop-down and chips with different radius, that shouldn't be possible in a design system unless requested"; "some dropdowns have a blue flash on click on phones and not others"; "most of the drop downs on phone should be using a bottom sheet"; "the chevron optically aligns with the search bar")
+- Decision: A chip, a select chip, a select's value, a segmented control and the search field are pills everywhere, in a card as on the page. The three concentric overrides of 2026-10-22 go: `.card-group` chips and select values (`primitives.css`), the Costs card's chips (`costs.css`, which also kept a chevron 8px from the end; it now shares the Library chip's 16px), and the topic panel's switch, field, Add and chips (`topics.css`), with the Listen in value. A row's tile and a button keep the concentric radius (`.card-group .btn`, `.row-action::after`), and a form's text fields keep `--field-radius`: the Add source panel's selects stand beside text inputs and follow them. Under 40rem every list that opens from a field is a bottom sheet with the sheet's corners, surface and scrim: a select's drawn list (`::picker(select)`, CSS alone), the searchable picker (`picker.ts` sets `data-sheet` and lets CSS place it) and the multi-select (fixed in place; the card around it rises to `--z-sheet`). A select and an input lose the tap highlight (`foundations.css`): the flash showed on native selects and not on the buttons beside them. A Sources row and a source row take the search field's 16px inline padding, so the emoji and the chevron sit where the field's glyph and clear button do; the chevron is no longer pulled out to the edge.
+- Why: the concentric rule gave one chip three radii (pill on the Library, 8px in a card, 8px in the topic panel) and one select chip two, which read as different components; the owner saw it on the phone a day after choosing it. A phone's anchored popover under a value is small and far from the thumb; the More menu is already a sheet there.
+- Cost: a popover's backdrop lets a tap through, so a tap on the scrim can also press what is under it (as the More menu's can); the multi-select is not a popover, so its sheet is drawn inside the card's layer and the card is lifted over the navigation bar while it is open. `lightningcss` rejects `::picker(select)::backdrop` and fails the build, so the select sheet's scrim is a spread of its shadow (`0 0 0 100vmax`).
+- Rejected: making the multi-select a popover with anchor positioning (desktop placement would need anchors in every engine, or JS); pills for the panel's text fields (a textarea pill); a scrim-less sheet.
+- Amends: the card rule of 2026-10-22 (D72's tonal language, [ledger](design-engineering-ledger.md) section 1) for chips, select values and segmented controls.
+- Revisit if: Firefox and Safari draw the select list natively on phones (they keep the system picker, which is a sheet of its own), or a tap on the scrim reaches a control under it in use.
+
+## D161: the primary action is Catch up, Latest is a bolt, and a toast swipes away
+
+- Date: 2026-10-23 (the owner: "rename new episode to catch-up, change fire emoji for latest to zap emoji"; "I need to be able to swipe away snack bars or toasts on mobile")
+- Decision: The action that makes an episode on request is called Catch up on the floating button, the side column, the sheet's title, the Create page and the Library's empty state, and in the manifest's shortcut: the name of the kind those episodes are filed under (the Library chip, Listen in), so the button names what it makes. Spelled "Catch up", the app's existing noun, not the owner's "catch-up". Latest's glyph is Phosphor's lightning, regular and fill; the flame is gone from the glyph set. A toast slides sideways under a finger and leaves past 35% of its width or at 0.6 px/ms (`Toaster.tsx`); a shorter drag springs it back. A swipe dismisses, it never undoes: a removal's wait still ends in the removal. A mouse does not drag it, and a press on its buttons is theirs.
+- Why: "New episode" named the mechanism; the Library already called the result Catch up. A phone's snackbar is swiped away everywhere else, and the toast's close button shows only while an action is offered.
+- Cost: four browser tests and four specs renamed; a reader who learnt "New episode" finds Catch up in its place.
+- Amends: D52 (the floating button's word).
