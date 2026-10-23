@@ -1,4 +1,5 @@
 import { counted, installAnalytics } from "../lib/analytics";
+import { watchPlatformFaults } from "../lib/platformFaults";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
@@ -107,6 +108,8 @@ const report = (fault: object): void => {
 addEventListener("error", (event) =>
   report({ kind: "error", message: event.message, source: event.filename, line: event.lineno }),
 );
+// A function Vercel killed answers with its own 5xx, which only the page sees (lib/platformFaults.ts).
+watchPlatformFaults(window, location.origin, report);
 addEventListener("unhandledrejection", (event) =>
   report({ kind: "rejection", message: String(event.reason?.message ?? event.reason) }),
 );
