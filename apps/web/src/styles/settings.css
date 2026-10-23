@@ -569,10 +569,13 @@
 
 @supports (appearance: base-select) {
   /* The list opens under the value and grows toward the start of the row, so it never runs past the
-     edge the value sits against. */
-  .settings-row .value-select > select::picker(select) {
-    position-area: block-end span-inline-start;
-    min-inline-size: max(anchor-size(self-inline), 12rem);
+     edge the value sits against. From 40rem only: on a phone the list is a bottom sheet
+     (primitives.css), held by the screen, not the value. */
+  @media (width >= 40rem) {
+    .settings-row .value-select > select::picker(select) {
+      position-area: block-end span-inline-start;
+      min-inline-size: max(anchor-size(self-inline), 12rem);
+    }
   }
 }
 

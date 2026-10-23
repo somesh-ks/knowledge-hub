@@ -177,6 +177,14 @@ function mountPicker(select: HTMLSelectElement): void {
   /** Under the button, as wide as the room asks, and above it when the room below is short. */
   const place = (): void => {
     const field = trigger.getBoundingClientRect();
+    // On a phone the list is a bottom sheet (picker.css, [data-sheet]): the screen places it, so
+    // the measurements below are not applied, and what an earlier width set is cleared.
+    if (matchMedia("(width < 40rem)").matches) {
+      pop.dataset.sheet = "";
+      pop.removeAttribute("style");
+      return;
+    }
+    delete pop.dataset.sheet;
     const wide = field.width >= MIN_WIDTH_PX;
     const width = Math.min(wide ? field.width : MIN_WIDTH_PX, window.innerWidth - GAP_PX * 2);
     // A value at the end of a row opens its list toward the start of the row, as a native one does.

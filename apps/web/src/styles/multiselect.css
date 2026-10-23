@@ -270,3 +270,56 @@
     border-color: CanvasText;
   }
 }
+
+/* On a phone the list is a bottom sheet (owner, 2026-10-23, D160), as a select's drawn list and
+   the picker's are: held by the screen's bottom edge, with the sheet's corners and surface and a
+   slide in place of the scale. The list is no popover, so the scrim is a spread of its own shadow,
+   and the card around it rises over the navigation bar (topics.css). Last, so it outweighs the
+   settings row's width and the focus ring's shadow at the same specificity. */
+@media (width < 40rem) {
+  .multiselect-list:not([hidden]),
+  .multiselect-list[hidden] {
+    position: fixed;
+    inset: auto 0 0 0;
+    inline-size: auto;
+    min-inline-size: 0;
+    max-inline-size: none;
+    max-block-size: 70dvh;
+    margin: 0 auto;
+    padding-block-end: max(var(--space-2), var(--safe-bottom));
+    overflow-y: auto;
+    border: 0;
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    background: var(--sheet-bg);
+    box-shadow:
+      var(--sheet-shadow),
+      0 0 0 100vmax var(--color-scrim);
+    opacity: 1;
+    scale: 1;
+    translate: 0;
+    transition:
+      translate var(--duration-sheet-in) var(--ease-drawer),
+      display var(--duration-sheet-out) allow-discrete;
+  }
+
+  .multiselect-list[hidden] {
+    translate: 0 105%;
+    transition-duration: var(--duration-sheet-out);
+  }
+
+  @starting-style {
+    .multiselect-list:not([hidden]) {
+      translate: 0 105%;
+    }
+  }
+
+  /* In a sheet the check sits at the row's end, where a select's drawn list and the picker put
+     theirs and where a phone's own lists do; the words lead (owner, 2026-10-23). */
+  .multiselect-option {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .multiselect-option > .suggest-box {
+    order: 1;
+  }
+}

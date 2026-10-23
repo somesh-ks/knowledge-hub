@@ -1001,6 +1001,51 @@
     }
   }
 
+  /* On a phone the list is a bottom sheet (owner, 2026-10-23, D160), as the More menu is (hero.css,
+     .menu-sheet): held by the screen's bottom edge, not the field, with the sheet's corners and
+     surface, a scrim behind it, and a slide up and down in place of the fade. Later than the
+     Library's margin rule above, so it outweighs it at the same specificity. */
+  @media (width < 40rem) {
+    :is(.manage-select, .sort-field, .create-select) > select::picker(select) {
+      position: fixed;
+      position-area: none;
+      position-try-fallbacks: none;
+      inset: auto 0 0 0;
+      inline-size: min(100%, var(--layout-column));
+      min-inline-size: 0;
+      max-inline-size: none;
+      max-block-size: min(var(--pick-list-height), 70dvh);
+      margin: 0 auto;
+      padding: var(--space-2) var(--space-2) max(var(--space-2), var(--safe-bottom));
+      border: 0;
+      border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+      background: var(--sheet-bg);
+      /* The scrim is a spread of the sheet's own shadow: the list's ::backdrop cannot be styled
+         through the build (lightningcss rejects `::picker(select)::backdrop`), and a popover's
+         backdrop lets a tap through to the page either way. */
+      box-shadow:
+        var(--sheet-shadow),
+        0 0 0 100vmax var(--color-scrim);
+      opacity: 1;
+      translate: 0 105%;
+      transition:
+        translate var(--duration-sheet-out) var(--ease-drawer),
+        overlay var(--duration-sheet-out) allow-discrete,
+        display var(--duration-sheet-out) allow-discrete;
+    }
+
+    :is(.manage-select, .sort-field, .create-select) > select:open::picker(select) {
+      translate: 0;
+      transition-duration: var(--duration-sheet-in);
+    }
+
+    @starting-style {
+      :is(.manage-select, .sort-field, .create-select) > select:open::picker(select) {
+        translate: 0 105%;
+      }
+    }
+  }
+
   :is(.manage-select, .sort-field, .create-select) > select option {
     display: flex;
     align-items: center;
@@ -1197,10 +1242,11 @@
   background: var(--color-surface-container);
 }
 
-/* What a card holds is concentric with its corners (2026-10-22): a surface one inset in from the
-   edge (a row's tile, a select's fill) takes the inner radius, content one padding in (a chip, a
-   button) the content radius. A row's tile sits the inset clear of the card's edges and of the next
-   row's tile, so it never runs into a corner. */
+/* A row's tile and a button in a card are concentric with its corners (2026-10-22): a tile one inset
+   in from the edge takes the inner radius, a button one padding in the content radius. A row's tile
+   sits the inset clear of the card's edges and of the next row's tile, so it never runs into a
+   corner. A chip, a select's value and a segmented control keep their pill in a card as out of it:
+   one control has one shape wherever it stands (owner, 2026-10-23, D160). */
 .card-group > .row-action::after {
   inset-block: calc(var(--card-inset) / 2);
   inset-inline: calc(var(--card-inset) - var(--card-padding));
@@ -1214,10 +1260,6 @@
 /* A card of chips has the same room on all four sides (2026-10-22: the bottom was half the top). */
 .card-group.filter-chips {
   padding: var(--card-padding);
-}
-
-.card-group .filter-chip {
-  border-radius: var(--card-content-radius);
 }
 
 /* A card sits on the container tone, so an unticked chip in it needs one step up to show. The step
@@ -1255,10 +1297,4 @@
 /* The muted ink fails 4.5 to 1 on the container tone; a quiet value in a card takes the full ink. */
 .card-group .settings-row[data-models] .value-select > select.manage-input {
   color: var(--color-on-surface);
-}
-
-/* A select's fill sits one inset in from the card's edge, as a row's tile does, so it takes the same
-   inner radius rather than the pill a select has outside a card (2026-10-22). */
-.card-group .settings-row .value-select > :is(select.manage-input, .picker-trigger) {
-  border-radius: var(--card-inner-radius);
 }
