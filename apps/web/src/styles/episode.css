@@ -58,8 +58,10 @@
   border-radius: var(--radius-sm);
 }
 
+/* The reading ink, as a story's summary has (briefing.css), so the highlight's headline leads. */
 .episode-highlight-text {
   max-width: var(--layout-measure);
+  color: var(--color-on-surface-reading);
   font-family: var(--text-reading-family);
   font-size: var(--text-reading-size);
   line-height: var(--text-reading-leading);

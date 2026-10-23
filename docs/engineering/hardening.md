@@ -135,6 +135,7 @@ config checks into `health` (small).
 
 Each aspect's detector, where it runs and what heals. Health findings carry `aspect` and `code`, so
 `health.yml` keeps one issue for all of them; the heals are per code (see the table above).
+A row whose self-heal is "none" alerts only, by the owner's choice (2026-10-23): a redeploy cannot fix a broken build, a regenerated briefing costs money and can loop, and security fixes come through Dependabot.
 
 | Aspect | Detector | Runs in | Self-heal | Gap |
 | --- | --- | --- | --- | --- |

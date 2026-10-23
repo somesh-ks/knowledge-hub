@@ -198,9 +198,12 @@ html[data-has-tabs] {
 /* The story being read aloud keeps its headline's ink: the accent is the link's hover colour, and
    the story's chip already says it is playing, in words and with its bars. */
 
+/* One ink step under the headline: size and weight are fixed (D73, D125), so contrast tier is what
+   lets the headline lead (visual audit, 2026-10-22). */
 .story-summary {
   max-width: var(--layout-measure);
   margin-block-start: var(--space-2);
+  color: var(--color-on-surface-reading);
   font-family: var(--text-reading-family);
   font-size: var(--text-reading-size);
   font-weight: var(--text-reading-weight);
