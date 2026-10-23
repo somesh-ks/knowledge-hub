@@ -22,6 +22,8 @@
 - The one-line row passed its test while the publisher kept one letter at 320; measuring every real name changed the owner's call.
 - The design-audit agent could take no screenshots under the worktree guard; the screenshots were taken from the lead session.
 
+- Rechecked on `main` after the audit landed, the Costs card had 8px above its chips and below its meter on a phone: PR 227's card tokens let the row card's padding win. Fixed in #233 with the card's padding on all four sides and the chips' radius derived from the card's; measured on the grid, at contrast and 44px targets in Chromium and WebKit, light and dark.
+
 ## Not done
 
 - Finding 16 (the hero cover's clip fold) was reverted: it cut the focus ring and missed taps.

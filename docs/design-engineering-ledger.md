@@ -406,7 +406,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
-- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22).
+- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides and the chips its radius less that padding (2026-10-23).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
 
 ### Sound
