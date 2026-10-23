@@ -269,8 +269,8 @@ html[data-has-tabs] {
   color: var(--color-on-surface);
 }
 
-/* With the chip hidden (no audio, or offline) the publisher is the row's only content: the row
-   keeps its 44px target but sits closer under the text. */
+/* With the chip hidden (no audio, or offline) the story controls are the row's only content: the
+   row keeps its 44px target but sits closer under the text. */
 .story-actions:not(:has(> .chip:not([hidden]))) {
   margin-block-start: var(--space-2);
 }
