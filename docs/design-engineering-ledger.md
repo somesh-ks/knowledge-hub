@@ -129,7 +129,7 @@ Ask, then what was built, then the decision. Values are as built.
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
   - Two weights, regular and medium; a test bans a third (D90).
   - Story and summary 16px at every width; headline 18 to 20px; meta 14px; section headings 22px regular; display at most 32px; reading leading 1.55 (D73).
-  - A quiet line goes under its title, never above it (D31).
+  - A quiet line goes under its title, never above it (D31); a story's publisher is the one exception, above its headline (D161).
   - Summaries and highlight text take `on-surface-reading`, one ink step under the headline (light grey-750, dark grey-400): size and weight are fixed, so contrast lets the headline lead; AAA on the page, tested (2026-10-23).
   - `text-wrap: balance` on headings, kept working by `inline-block` rather than `nowrap` (D93).
 - **Spacing and shape.**
@@ -363,6 +363,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Play chip.**
   - One width; Played shows Play again only under a mouse or focus (D106, #116).
   - Its state machine: idle, current, played, preparing, error, unavailable.
+- **A story.** The publisher above the headline, muted and whole (D161); under the text one row, the Play chip and the controls at its end, never wrapping (owner, 2026-10-22 and 2026-10-23). Every quiet line of facts takes one separator: a centred dot in a 12px box (`--meta-dot`, 2026-10-22).
 - **Library.**
   - A cover grid with one facts line per card (D78).
   - Search, filter and sort live in the address.
