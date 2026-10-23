@@ -791,6 +791,20 @@
   }
 }
 
+/* Reduced motion: the words land where they end and the check does not grow in; the check still
+   fades, on its own opacity duration. The slide and the scale are movement, so they do not run. */
+@media (prefers-reduced-motion: reduce) {
+  .segmented-choice-item > span,
+  .filter-chip > span {
+    transition: none;
+  }
+
+  .filter-chip > .icon {
+    transform: none;
+    transition: opacity var(--duration-state) var(--ease-out);
+  }
+}
+
 /* Held down, the chip darkens at once: a layer over whatever it wears, the container or the checked
    tint, so the words never change size. It comes after the hover rules and outweighs the checked one,
    whose background shorthand would otherwise clear it. */
