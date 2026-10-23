@@ -32,4 +32,4 @@ The standing goal: harden the app in every aspect, with systems that spot faults
 
 - The passphrase (`claude/lock-actions`, D153 stage 0) is parked by the owner.
 - Still unseen without a log drain: the cron call, any call no page made, a stream cut mid-body.
-- The owner's call: Settings titles now sit 24px further in than Library's and Latest's, so a title moves when switching tabs.
+- Decided on 2026-10-23: the Settings titles keep the indent, and the alert-only rows stay alert-only.
