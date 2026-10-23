@@ -13,12 +13,12 @@
 
 - Costs as one card (#219): two select chips at its top, one figure with one quiet line, a single-hue column chart that holds a tapped column, the breakdown under a hairline, a table twin. Live data checked in Chromium and WebKit.
 - The measured radii: 27 rounded boxes in card corners within 1px of the concentric rule; the topic tabs and the Listen in fill fixed.
-- From the audit: one outline family for the transport helpers, one tile edge, the thumb promoted only while dragged, a forced-colours check that sees every keyword (#225); the rail's action fill, hit areas into its gaps, the create sheet's foot fade, the tab strip gliding by transform (#228); reading ink one step under the headline, a dark action step named blue-910, a larger phone hero cover (#226); the story row (#224).
+- From the audit: one outline family for the transport helpers, one tile edge, the thumb promoted only while dragged, a forced-colours check that sees every keyword (#225); the rail's action fill, hit areas into its gaps, the create sheet's foot fade, the tab strip gliding by transform (#228); reading ink one step under the headline, a dark action step named blue-910, a larger phone hero cover (#226); the publisher above the headline and one separator (#224, D161); reduced motion as fades, with every raw travel swept and a browser check (#232).
 
 ## What went wrong
 
 - The dark action step was named blue-875 though darker than blue-900; a test now holds every ramp in lightness order.
-- Reduced motion done in the tokens alone would have set raw travel moving again; it went to a PR of its own with a sweep.
+- Reduced motion done in the tokens alone would have set raw travel moving again; it went to a PR of its own with a sweep. #226 merged under its old title, which still names that part.
 - The one-line row passed its test while the publisher kept one letter at 320; measuring every real name changed the owner's call.
 - The design-audit agent could take no screenshots under the worktree guard; the screenshots were taken from the lead session.
 

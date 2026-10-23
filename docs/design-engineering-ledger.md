@@ -198,8 +198,8 @@ Ask, then what was built, then the decision. Values are as built.
   - Three `linear()` springs: settle (no overshoot), release (1.0062 peak), pop (1.0284 peak).
   - Press scale 0.97, enter 0.96.
 - **Reduced motion.**
-  - Movement tokens collapse to 0.01 ms; press, hover, state and theme keep their timing.
-  - The player becomes a fade (instant today, since the durations collapse too: gap 9), the spinner pulses, the floating button stays extended and the app bar never hides.
+  - Travel collapses: the distances to 0px, the enter scale to 1, the sheet and spring durations to 0.01 ms. Enter, exit and stagger keep their time, so every fade stays; a move written as a raw value gets a reduced-motion rule of its own (DD-003, 2026-10-23, `reducedMotion.spec.ts`).
+  - The player becomes a fade, the spinner pulses, the floating button stays extended and the app bar never hides.
 - **Micro-motion.**
   - Play and pause swap at 0.95 scale with a 3px blur.
   - A filter chip's check scales in while its label slides 8px.
@@ -538,7 +538,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - Scroll thresholds of 64/12 px for the app bar and 48/8 px for the floating button.
 8. **Layout properties animated.**
    - The floating button animates `max-width`, `margin` and `inset-block-end`; transforms would avoid layout per frame. The briefing tabs now glide by `translate`, and the scrubber thumb has `will-change` only while dragged (2026-10-22).
-9. **Reduced motion is zero, not gentler.** Durations collapse to 0.01 ms and cross-fades go with them; the spec says "fewer and gentler, not zero" (DD-003, open).
+9. **Reduced motion is zero, not gentler.** Closed 2026-10-23: travel collapses and fades keep their time (section 3, Reduced motion).
 10. **Found by the chat pass.**
     - A stale comment still describes the removed `.daily-listbox` combobox (`primitives.css:468`).
     - The 36px Topics & sources tab was dropped from the 44px check instead of fixed, and "Add source" measures 121x36 (2026-10-09, 2026-10-13).
