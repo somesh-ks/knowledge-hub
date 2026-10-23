@@ -98,9 +98,23 @@
   line-height: var(--text-meta-leading);
 }
 
-.meta > * + *::before {
-  content: "\00b7";
-  margin-inline: var(--space-2);
+/* The one separator (2026-10-22): every quiet line of facts draws its dot here, centred in a box of
+   one width, as wide as the " · " a Library card writes into its text, so "Weekly · 14 stories"
+   measures the same in the hero, on a card and under a source. Silent to a screen reader: the parts
+   are separate words already. .meta-wrap (reader.css) clips by the same width. */
+:root {
+  --meta-dot: calc(var(--space-2) + var(--space-1));
+}
+
+.meta > * + *::before,
+.meta-wrap > *::before,
+.source-meta > .source-host:not(:empty) + .score::before,
+.source-meta > .source-host:not(:empty) + .source-cadence::before {
+  content: "\00b7" / "";
+  display: inline-block;
+  width: var(--meta-dot);
+  margin-inline: 0;
+  text-align: center;
 }
 
 /* ------------------------------------------------------------------ section tabs */
@@ -774,6 +788,20 @@
       var(--color-accent-container),
       var(--color-on-accent-container) var(--state-hover)
     );
+  }
+}
+
+/* Reduced motion: the words land where they end and the check does not grow in; the check still
+   fades, on its own opacity duration. The slide and the scale are movement, so they do not run. */
+@media (prefers-reduced-motion: reduce) {
+  .segmented-choice-item > span,
+  .filter-chip > span {
+    transition: none;
+  }
+
+  .filter-chip > .icon {
+    transform: none;
+    transition: opacity var(--duration-state) var(--ease-out);
   }
 }
 

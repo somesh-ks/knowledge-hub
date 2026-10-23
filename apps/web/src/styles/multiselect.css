@@ -180,6 +180,26 @@
   scale: 0.97;
 }
 
+/* Reduced motion: the list fades where it stands and the chevron turns at once. The fade keeps its
+   duration; the scale and the turn are movement, so they do not run. */
+@media (prefers-reduced-motion: reduce) {
+  .multiselect-trigger > .icon {
+    transition: none;
+  }
+
+  .multiselect-list,
+  .multiselect-list[hidden] {
+    scale: 1;
+    transition-property: opacity, display;
+  }
+
+  @starting-style {
+    .multiselect-list:not([hidden]) {
+      scale: 1;
+    }
+  }
+}
+
 .multiselect-list:focus-visible {
   outline: none;
   box-shadow: var(--shadow-popover);

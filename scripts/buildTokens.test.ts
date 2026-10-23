@@ -405,17 +405,31 @@ describe("motion tokens", () => {
     expect(ms("stagger")).toBeLessThanOrEqual(80);
   });
 
-  it("never uses an ease-in and remaps only movement durations under reduced motion", () => {
+  it("never uses an ease-in; under reduced motion travel is zeroed and fades keep their timing", () => {
     for (const token of doc.tokens.filter((candidate) => candidate.path[1] === "ease")) {
       expect(String(token.value)).not.toMatch(/ease-in(?!-out)/);
     }
     const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
     expect(reduced.length).toBeGreaterThan(0);
     for (const token of reduced) {
-      expect(token.type).toBe("duration");
-      expect(token.reducedMotion).toBe("0.01ms");
+      expect(["duration", "dimension", "number"]).toContain(token.type);
+      if (token.type === "duration") expect(token.reducedMotion).toBe("0.01ms");
     }
-    for (const kept of ["press-in", "press-out", "hover", "state", "progress", "theme"]) {
+    for (const travel of ["distance.micro", "distance.base", "distance.medium"]) {
+      expect(doc.byPath.get(`primitive.${travel}`)?.reducedMotion).toBe("0px");
+    }
+    expect(doc.byPath.get("primitive.scale.enter")?.reducedMotion).toBe("1");
+    for (const kept of [
+      "enter",
+      "exit",
+      "stagger",
+      "press-in",
+      "press-out",
+      "hover",
+      "state",
+      "progress",
+      "theme",
+    ]) {
       expect(doc.byPath.get(`primitive.duration.${kept}`)?.reducedMotion).toBeUndefined();
     }
   });

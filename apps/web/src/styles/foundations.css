@@ -656,13 +656,22 @@
 }
 
 /*
- * Reduced motion. Movement durations are already collapsed by tokens.css. What remains here is
- * what tokens cannot express: no smooth scrolling, entrance by opacity alone, a spinner that
- * pulses instead of rotating, and view transitions that crossfade.
+ * Reduced motion. The travel distances and the enter scale are zeroed by tokens.css and the sheet and
+ * spring durations collapse; enter, exit and stagger keep their time, so fades stay. What remains
+ * here is what tokens cannot express: no smooth scrolling, entrance by opacity alone, a spinner
+ * that pulses instead of rotating, and view transitions that crossfade.
  */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  /* .enter rises by a distance token that is 0 here; with no transform at all, the rise is not a
+     transition either, only the fade and the unblur. */
+  @starting-style {
+    .enter {
+      transform: none;
+    }
   }
 
   .stagger > * {

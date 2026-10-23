@@ -34,6 +34,25 @@ const publisher = publisherOf(item.source, host);
   data-index={index}
   aria-labelledby={host ? `${titleId}-text` : titleId}
 >
+  {/* The publisher, above the headline as a news list puts it: a quiet link to the page the
+       headline opens. It is a second way to one place, so it stays out of the tab order and the
+       accessibility tree, and the headline is the link a keyboard or a screen reader meets. */}
+  {
+    host && (
+      <a
+        class="source-link story-source"
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        tabindex="-1"
+        aria-hidden="true"
+        title={publisher}
+      >
+        <span>{publisher}</span>
+        <Icon name="openInNew" />
+      </a>
+    )
+  }
   {/* The headline is the way to the story, as in any news list: a link to the source in a new tab.
        Its name starts with the words it shows, so a reader using voice control can say them; the
        new tab is said, not shown. The story is named by the headline's words alone. A story whose
@@ -57,24 +76,6 @@ const publisher = publisherOf(item.source, host);
     {/* Always in the page. Hidden while the briefing has no audio timeline, so audio that arrives
          later only has to reveal it. */}
     <PlayChip label={chip.label} aria-label={chip.name} data-play-item={index} hidden={!hasAudio} />
-    {/* The publisher, as attribution: a quiet link to the page the headline opens. It is a second
-         way to one place, so it stays out of the tab order and the accessibility tree, and the
-         headline is the link a keyboard or a screen reader meets. */}
-    {
-      host && (
-        <a
-          class="source-link story-source"
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          tabindex="-1"
-          aria-hidden="true"
-        >
-          <span>{publisher}</span>
-          <Icon name="openInNew" />
-        </a>
-      )
-    }
     <StoryControls
       id={item.id}
       url={item.url}
