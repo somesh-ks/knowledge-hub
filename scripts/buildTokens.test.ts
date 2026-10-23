@@ -140,6 +140,26 @@ describe("color contrast", () => {
     }
   });
 
+  it.each(MODES)(
+    "the reading ink is AAA on the page, 4.5:1 on every surface, and a step under the headline's (%s)",
+    (mode) => {
+      for (const surface of surfaces) {
+        const background = colorOf(`semantic.color.${surface}`, mode);
+        const reading = contrastRatio(
+          colorOf("semantic.color.on-surface-reading", mode),
+          background,
+        );
+        expect(reading, `on-surface-reading on ${surface} (${mode})`).toBeGreaterThanOrEqual(
+          surface === "surface" ? 7 : 4.5,
+        );
+        expect(
+          contrastRatio(colorOf("semantic.color.on-surface", mode), background),
+          `the headline leads its summary on ${surface} (${mode})`,
+        ).toBeGreaterThan(reading * 1.2);
+      }
+    },
+  );
+
   it.each(MODES)("accent text and body text clear the accent tint (%s)", (mode) => {
     const tint = colorOf("semantic.color.accent-subtle", mode);
     for (const foreground of ["on-surface", "accent"]) {
@@ -280,6 +300,28 @@ describe("color contrast", () => {
 });
 
 describe("scales", () => {
+  // A step named out of order gets picked for the wrong job: blue-875 once sat darker than blue-900.
+  it("darkens every colour ramp as its step number rises", () => {
+    const ramps = new Map<string, { step: number; l: number }[]>();
+    for (const token of doc.tokens) {
+      const [tier, group, ramp, step] = token.path;
+      if (tier !== "primitive" || group !== "color" || !ramp || !/^\d+$/.test(step ?? "")) continue;
+      const steps = ramps.get(ramp) ?? [];
+      steps.push({ step: Number(step), l: parseOklch(String(token.value)).l });
+      ramps.set(ramp, steps);
+    }
+    expect(ramps.size).toBeGreaterThan(1);
+    for (const [ramp, steps] of ramps) {
+      steps.sort((a, b) => a.step - b.step);
+      for (let index = 1; index < steps.length; index += 1) {
+        const [lighter, darker] = [steps[index - 1], steps[index]];
+        expect(darker?.l, `${ramp}-${darker?.step} under ${ramp}-${lighter?.step}`).toBeLessThan(
+          lighter?.l ?? 0,
+        );
+      }
+    }
+  });
+
   it("keeps adjacent spacing steps at least 25 percent apart", () => {
     const steps = doc.tokens
       .filter((token) => token.path[1] === "space")

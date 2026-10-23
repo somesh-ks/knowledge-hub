@@ -21,7 +21,7 @@ export const REPORTS_PER_MINUTE = 30;
 export const VITALS_PER_MINUTE = 30;
 export const MAX_REPORT_CHARS = 4096;
 const FIELD_CHARS = 300;
-const KINDS = new Set(["error", "rejection", "csp"]);
+const KINDS = new Set(["error", "rejection", "csp", "platform"]);
 
 export interface ReportDeps {
   log: (line: string) => void;
@@ -124,6 +124,8 @@ export async function handleReport(
   const line = {
     kind: data.kind,
     page: pathOnly(data.page),
+    // A platform fault's API route, so the log names the function Vercel killed.
+    route: pathOnly(data.route),
     message: text(data.message),
     source: pathOnly(data.source),
     line: typeof data.line === "number" ? data.line : undefined,

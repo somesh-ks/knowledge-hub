@@ -4,6 +4,7 @@ import {
   OPAQUE_SCRIPT_ERROR,
   recordClientFault,
 } from "@dispatch/engine/faults-store";
+import { PLATFORM_CODE } from "../lib/platformFaults";
 import { type DatabaseDeps, guardedDatabase } from "./database";
 
 /**
@@ -64,9 +65,35 @@ export function originOf(value: unknown): string {
   }
 }
 
+/** The page's own build id, or "" for anything else. */
+function buildOf(data: Record<string, unknown>): string {
+  return typeof data.build === "string" && /^[0-9a-z]{1,20}$/i.test(data.build) ? data.build : "";
+}
+
+/**
+ * A 5xx Vercel answered for a function it killed, as the page saw it (lib/platformFaults.ts): the
+ * API route as the server's own label (`api/narrate`, never a query) and Vercel's code. Forgeable
+ * like every page report, so health only warns on it.
+ */
+function platformFault(data: Record<string, unknown>): ClientFault | null {
+  const route = typeof data.route === "string" ? data.route : "";
+  const code = typeof data.message === "string" ? data.message : "";
+  if (!/^\/api\/[a-z0-9/-]{1,60}$/.test(route) || !PLATFORM_CODE.test(code)) return null;
+  return {
+    kind: "platform",
+    page: route.slice(1),
+    message: code,
+    directive: "",
+    blocked: "",
+    source: "",
+    build: buildOf(data),
+  };
+}
+
 /** The fault as the store keeps it, or null for a kind it does not keep or one an extension raised. */
 export function parseClientFault(data: Record<string, unknown>): ClientFault | null {
   const kind = data.kind;
+  if (kind === "platform") return platformFault(data);
   if (kind !== "error" && kind !== "rejection" && kind !== "csp") return null;
   const blocked = kind === "csp" ? originOf(data.blocked) : "";
   const source = originOf(data.source);
@@ -84,7 +111,7 @@ export function parseClientFault(data: Record<string, unknown>): ClientFault | n
     directive: kind === "csp" ? directive : "",
     blocked,
     source,
-    build: typeof data.build === "string" && /^[0-9a-z]{1,20}$/i.test(data.build) ? data.build : "",
+    build: buildOf(data),
   };
 }
 

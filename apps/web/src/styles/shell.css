@@ -242,8 +242,41 @@ html[data-mini="visible"] main {
     --sticky-top: var(--safe-top);
   }
 
+  /* The strip follows the bar with a transform, not by animating its top: its top steps to the new
+     edge at once (a sticky top that moved only as an end value would stick late), and while the
+     strip is stuck it starts from where it was, a bar's height away, and glides there. A strip still
+     in the flow has no offset, so it does not move (2026-10-22). The offset takes a change of
+     data-stuck only once a glide is over: briefingPage.ts measures the strip again as the bar moves,
+     reads the strip mid-glide as not stuck, and an offset dropped then would snap it. */
   .briefing > .tabs-bar {
-    transition: inset-block-start var(--duration-state) var(--ease-out);
+    animation: tabs-follow-show var(--duration-state) var(--ease-out);
+    transition: --tabs-follow 0s var(--ease-linear) var(--duration-state);
+  }
+
+  .briefing > .tabs-bar[data-stuck] {
+    --tabs-follow: var(--app-bar-height);
+  }
+
+  html[data-bar-hidden] .briefing > .tabs-bar {
+    animation-name: tabs-follow-hide;
+  }
+}
+
+@property --tabs-follow {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes tabs-follow-hide {
+  from {
+    translate: 0 var(--tabs-follow);
+  }
+}
+
+@keyframes tabs-follow-show {
+  from {
+    translate: 0 calc(var(--tabs-follow) * -1);
   }
 }
 
@@ -522,6 +555,19 @@ html[data-mini="visible"] main {
     transition:
       background-color var(--duration-hover) var(--ease-hover),
       color var(--duration-hover) var(--ease-hover);
+  }
+
+  /* The rows keep their 8px apart, and each row's hit area reaches half of it above and below, so a
+     pointer moving down the column never drops into a gap that hits nothing (2026-10-22). */
+  .app-nav-item {
+    position: relative;
+  }
+
+  .app-nav-item::after {
+    content: "";
+    position: absolute;
+    inset-block: calc(var(--space-1) * -1);
+    inset-inline: 0;
   }
 
   /* Here the row is the pill, so the ring is the row's, with the pill's round ends. */

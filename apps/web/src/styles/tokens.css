@@ -37,6 +37,7 @@
   --color-blue-700: oklch(53.18% 0.1807 258.3);
   --color-blue-800: oklch(48.69% 0.1677 259.1);
   --color-blue-900: oklch(44.32% 0.1531 259.9);
+  --color-blue-910: oklch(42% 0.095 260);
   --color-blue-925: oklch(37% 0.075 260);
   --color-blue-950: oklch(31.25% 0.0331 262.9);
   --color-green-50: oklch(96.5% 0.03 155);
@@ -93,6 +94,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-sheet: 1.75rem;
+  --radius-2xl: 2rem;
   --radius-round: 9999px;
   --stroke-hairline: 1px;
   --stroke-rail: 2px;
@@ -183,6 +185,7 @@
   --color-surface-overlay: var(--color-white);
   --color-surface-inverse: var(--color-grey-850);
   --color-on-surface: var(--color-grey-950);
+  --color-on-surface-reading: var(--color-grey-750);
   --color-on-surface-muted: var(--color-grey-700);
   --color-on-surface-subtle: var(--color-grey-650);
   --color-on-surface-disabled: var(--color-grey-500);
@@ -288,7 +291,7 @@
   --cover-radius-large: var(--radius-sm);
   --cover-size-thumb: 2.75rem;
   --cover-size-row: 2.5rem;
-  --cover-size-hero: 5.5rem;
+  --cover-size-hero: clamp(8rem, 36vw, 10rem);
   --cover-size-hero-wide: 8rem;
   --cover-size-player: 22rem;
   --cover-outline: var(--color-image-outline);
@@ -408,9 +411,9 @@
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
-  --card-padding: var(--space-4);
-  --card-inset: var(--space-2);
-  --card-radius: var(--radius-xl);
+  --card-padding: var(--space-6);
+  --card-inset: var(--space-4);
+  --card-radius: var(--radius-2xl);
   --card-inner-radius: var(--radius-lg);
   --card-content-radius: var(--radius-sm);
 
@@ -426,6 +429,7 @@
     --color-surface-overlay: var(--color-grey-800);
     --color-surface-inverse: var(--color-grey-200);
     --color-on-surface: var(--color-grey-200);
+    --color-on-surface-reading: var(--color-grey-400);
     --color-on-surface-muted: var(--color-grey-450);
     --color-on-surface-subtle: var(--color-grey-500);
     --color-on-surface-disabled: var(--color-grey-650);
@@ -440,7 +444,7 @@
     --color-accent-subtle: var(--color-blue-950);
     --color-accent-container: var(--color-blue-925);
     --color-on-accent-container: var(--color-blue-100);
-    --color-accent-container-high: var(--color-blue-800);
+    --color-accent-container-high: var(--color-blue-910);
     --color-on-accent-container-high: var(--color-blue-50);
     --color-on-accent: var(--color-grey-950);
     --color-cover-accent: var(--color-accent);
@@ -476,6 +480,7 @@
   --color-surface-overlay: var(--color-grey-800);
   --color-surface-inverse: var(--color-grey-200);
   --color-on-surface: var(--color-grey-200);
+  --color-on-surface-reading: var(--color-grey-400);
   --color-on-surface-muted: var(--color-grey-450);
   --color-on-surface-subtle: var(--color-grey-500);
   --color-on-surface-disabled: var(--color-grey-650);
@@ -490,7 +495,7 @@
   --color-accent-subtle: var(--color-blue-950);
   --color-accent-container: var(--color-blue-925);
   --color-on-accent-container: var(--color-blue-100);
-  --color-accent-container-high: var(--color-blue-800);
+  --color-accent-container-high: var(--color-blue-910);
   --color-on-accent-container-high: var(--color-blue-50);
   --color-on-accent: var(--color-grey-950);
   --color-cover-accent: var(--color-accent);
