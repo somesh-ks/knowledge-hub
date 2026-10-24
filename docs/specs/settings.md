@@ -1,11 +1,11 @@
 # Settings
 
-Schedule, sources, preferences, voices, model, autosave and the edit gap, blocked outlets. What it does now. Reasons: D45 to D132 (the Index); history: docs/history/.
+Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reasons: D45 to D132; history: docs/history/.
 
 ## Requirements
 
 ### Structure
-- Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), Analytics (Costs, User engagement: Simple Analytics' dashboard, D153), About (D129).
+- Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), Analytics (Costs; User engagement opens Simple Analytics, D153), About (D129).
 - Link rows end in their value, in the quiet ink; rows are 64px.
 - Each group of rows is a card: `.card-group` (primitives.css) on the `.rows` list, no shadow or line; what it holds is concentric with it (`component.card`). Heads share the rows' edge. The install offer is one in the accent tone. About: About, Privacy, Change log (`/settings/changelog`, newest first) and, on a phone, Last updated, which from 64rem sits at the foot of the side column (`AppNav`).
 - No breadcrumbs: a title stands alone and a phone's app bar arrow leads up (D129). `/settings/custom` goes to `/create`; `custom` in `config/schedule.json` is what the Create panel starts from.
@@ -26,7 +26,7 @@ Schedule, sources, preferences, voices, model, autosave and the edit gap, blocke
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71). The add topic panel takes Name, Description and Scope, with suggested sources, each with a plus. A topic's page lists up to five catalogue feeds that fit it (D75).
 - A new topic is a list row at once, by name, with `topicEmoji`'s guess until Jev's pick (D142); its one `topic.upsert` waits for Jev (4.5 s at most). Before the build it opens `/settings/topics/new?id=`, filled from the saved edits (`fillShell`). Suggested sources show only on a topic's page.
 - Add source (beside the search from 64rem) lists suggestions for its topic. A suggested add shimmers, then moves into Sources and the next fills its place (10 rendered, 5 shown).
-- A source row shows name, address, stories that reached a briefing and a star rating or "Not scored yet" (D83, D102, D103); a checkbox turns it on and off. A row opens a side panel (full screen on a phone) to rename, move, open or Delete it: a confirm, then the row goes at once and the removal waits 5 s with Undo (D56, D125, D129, D142). A source added from the panel joins at once under the page's id (`source.add` `id`).
+- A source row shows name, address, stories that reached a briefing and a star rating or "Not scored yet" (D83, D102, D103); a checkbox turns it on and off. A row opens a side panel (full screen on a phone) to rename, move, open or Delete it: a confirm, then the row goes at once and the removal waits 5 s with Undo (D56, D125, D129, D142). A source added from the panel keeps the page's id (`source.add` `id`).
 - `GET /api/source-preview` is behind an SSRF guard.
 
 ### Model

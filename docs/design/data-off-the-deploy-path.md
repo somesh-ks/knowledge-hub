@@ -57,4 +57,5 @@ Each step ships alone and leaves production working.
 - `dispatch content sync` and `content.yml` (step 1).
 - `server/contentRepo.ts` and `/d/<id>` on request (step 2, PR #259).
 - Home, Library, `/latest.json` and the search index on request (step 3, PR #264).
-- `/e/<id>` on request, store covers, the API routes on the store (step 3, rest). Still built: `config/schedule.json` for the Daily and Weekly voices (step 4).
+- `/e/<id>` on request, store covers, the API routes on the store (step 3, rest).
+- Step 4, settings: the cost ledger and price table (PR #269); Play's voice from the stored schedule (PR #271); the Create panel (voices, format, length, topics) and the Daily, Weekly and Regenerate topic chips laid over from the store, which now passes on Create's voices. The Sources list and topic pages show stored sources, moves, formats, leans, new topics in the panels and renames; a store answer that comes after a page is drawn offers a reload. Not covered: a renamed topic's generated picture, drawn at build.

@@ -681,6 +681,68 @@ test.describe("a topic's page", () => {
       await expect(box).toBeChecked();
       await expect(kiln).toBeHidden();
     });
+
+    // The bug (D173): the Sources page drew what the build had. A source added on another device
+    // was missing from the search, a moved one said "Moves to" forever, its new format never
+    // showed, the Add panel had no new topic, and a renamed topic's page kept its old name.
+    test("the Sources list and a topic's page show every edit the store holds", async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await setup(page);
+      const user = JSON.parse(BUILT_FILES["config/sources.user.json"] as string);
+      user.overrides["studio-notes"] = {
+        ...user.overrides["studio-notes"],
+        topic_ids: ["audio_interfaces"],
+        format: "podcast",
+      };
+      user.added.push({
+        ...user.added[0],
+        id: "kiln-weekly",
+        name: "Kiln Weekly",
+        url: "https://kiln.example/",
+        feed_url: "https://kiln.example/feed.xml",
+        topic_ids: ["design_engineering_craft"],
+      });
+      const topics = JSON.parse(BUILT_FILES["config/topics.json"] as string);
+      const audio = topics.topics.find((topic: { id: string }) => topic.id === "audio_interfaces");
+      audio.name = "Audio UI";
+      topics.topics.push({ ...audio, id: "pottery", name: "Pottery", section_id: "pottery" });
+      await routeConfigStore(page, () => ({
+        "config/sources.user.json": JSON.stringify(user),
+        "config/topics.json": JSON.stringify(topics),
+      }));
+      await context.addCookies([
+        { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+      ]);
+
+      await open(page);
+      const search = page.locator("[data-filter-q]");
+      await search.fill("kiln");
+      await expect(source(page, "Kiln Weekly")).toBeVisible();
+      await search.fill("studio");
+      const studio = source(page, "Studio Notes");
+      await expect(studio.locator(".source-kind")).toHaveText(/^Podcast · /);
+      await expect(studio).not.toContainText("Moves to");
+      await expect(
+        page
+          .locator("#topics-panel-template")
+          .evaluate((template) =>
+            [
+              ...(template as HTMLTemplateElement).content.querySelectorAll(
+                "[data-source-topic] option",
+              ),
+            ].map((option) => option.textContent),
+          ),
+      ).resolves.toContain("Pottery");
+
+      await open(page, "/settings/topics/audio_interfaces");
+      await expect(page).toHaveTitle(/^Audio UI, /);
+      await expect(
+        page.getByRole("button", { name: "Add source to Audio UI" }).first(),
+      ).toBeAttached();
+    });
   });
 
   test("the search block holds still and the app bar stays while the page scrolls down and back up", async ({

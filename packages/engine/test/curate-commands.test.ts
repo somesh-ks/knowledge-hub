@@ -28,8 +28,8 @@ import { plainPreferences } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const RUN = "2026-10-07-regular";
-const SECRET = "nb-secret-0123456789abcdef";
-const ENV = { NEBIUS_API_KEY: SECRET, DISPATCH_MODEL: "Qwen/Qwen3-32B" };
+const SECRET = "test-secret-value";
+const ENV = { SINGULARITY_MODEL: "Qwen/Qwen3-32B" };
 
 let tr: TestRoot;
 beforeEach(async () => {

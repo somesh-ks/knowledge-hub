@@ -12,7 +12,9 @@ import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
 // The data layer reads Digests/ at build time. Page code is bundled into chunks whose import.meta.url
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
-process.env.DISPATCH_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
+process.env.SINGULARITY_REPO_ROOT ??=
+  process.env.DISPATCH_REPO_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
+process.env.DISPATCH_REPO_ROOT ??= process.env.SINGULARITY_REPO_ROOT;
 
 // The inline scripts must run before first paint, so they cannot be external files: the theme in the
 // head, the device banners and the Library's saved view. Their hashes go into the
@@ -76,7 +78,8 @@ function preloadPageModules() {
 // refuses without Developer Mode, and the e2e suite only needs the static output. The API routes
 // become static stubs there; their logic is covered by unit tests. A page rendered on request from
 // the content repository is prerendered from the checkout there, as it was before D173.
-const staticOnly = process.env.DISPATCH_STATIC_ONLY === "1";
+const staticOnly =
+  (process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1";
 
 function stubApiRoutesForStaticBuild() {
   return {
@@ -167,7 +170,7 @@ export default defineConfig({
   vite: {
     plugins: [keepCoverFontsReachable()],
     // The listen page's static paths exist only in the static build, so the server build drops them.
-    define: { __DISPATCH_STATIC_ONLY__: JSON.stringify(staticOnly) },
+    define: { __SINGULARITY_STATIC_ONLY__: JSON.stringify(staticOnly) },
     // Astro writes a script smaller than this limit into the page. When the router swaps in a page
     // whose last module script is inline, it adds a `data:` script to wait for it, and the policy
     // blocks that. Every page script stays a file.

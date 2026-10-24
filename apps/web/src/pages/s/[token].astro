@@ -23,7 +23,7 @@ import "../../styles/listen-page.css";
 export const prerender = false;
 
 export async function getStaticPaths() {
-  if (!__DISPATCH_STATIC_ONLY__) return [];
+  if (!__SINGULARITY_STATIC_ONLY__) return [];
   const { staticListenPaths } = await import("../../lib/listenStatic");
   return staticListenPaths();
 }

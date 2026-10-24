@@ -23,7 +23,7 @@ import { COVER, makeFixture } from "./render-factories.js";
 import { makeItem, REPO_ROOT } from "./score-factories.js";
 
 const RUN = "2026-10-07";
-const ENV = { NEBIUS_API_KEY: "nb-secret-0123456789abcdef", DISPATCH_MODEL: "Qwen/Qwen3-32B" };
+const ENV = { SINGULARITY_MODEL: "Qwen/Qwen3-32B" };
 
 let tr: TestRoot;
 beforeEach(async () => {

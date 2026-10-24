@@ -6,6 +6,7 @@ import {
   PENDING_TTL_MS,
   parseSaved,
   SAVED_TTL_MS,
+  savedChips,
   savedControl,
   savedFields,
   savedOps,
@@ -271,5 +272,52 @@ describe("savedSources", () => {
     expect(sourceCounts(spots, "world")).toEqual({ total: 1, on: 1 });
     expect(sourceCounts(spots)).toEqual({ total: 3, on: 3 });
     expect(sourceCounts(savedSources(base, [], pageOf))).toEqual({ total: 3, on: 2 });
+  });
+});
+
+/**
+ * The bug: a topic added, renamed or removed in Settings was missing from, misnamed in or still
+ * offered by the Create panel's chips until the next deploy, because they were drawn at build.
+ */
+describe("savedChips", () => {
+  const topic = (id: string, name: string, enabled = true) => ({
+    op: "topic.upsert" as const,
+    topic: { id, name, description: "", weight: 0.5, enabled, keywords: [], section_id: id },
+  });
+  const chips = [
+    { value: "design", ids: ["ui", "ux"], label: "Design" },
+    { value: "ai", ids: ["ai"], label: "AI" },
+    { value: "old", ids: ["old"], label: "Old" },
+  ];
+  const built = new Set(["ui", "ux", "ai", "old", "motion"]);
+
+  it("adds new topics, renames one-topic chips and hides chips whose topics are all gone", () => {
+    const changes = savedChips(
+      chips,
+      built,
+      [
+        topic("knit", "Knitting"),
+        topic("ai", "Machine learning"),
+        { op: "topic.remove", id: "old" },
+        { op: "topic.remove", id: "ui" },
+        topic("quiet", "Quiet", false),
+      ],
+      "custom",
+    );
+    expect(changes.add).toEqual([{ value: "knit", ids: ["knit"], label: "Knitting" }]);
+    expect([...changes.rename]).toEqual([["ai", "Machine learning"]]);
+    expect([...changes.hide]).toEqual(["old"]);
+  });
+
+  it("leaves out of a list the topics saved as out of its scope", () => {
+    const ops: ConfigOp[] = [
+      topic("knit", "Knitting"),
+      { op: "topic.scope", ids: ["knit"], custom: false },
+      { op: "schedule.set", custom: { skip_topics: ["ai"] } },
+    ];
+    const changes = savedChips(chips, built, ops, "custom");
+    expect(changes.add).toEqual([]);
+    expect([...changes.hide]).toEqual(["ai"]);
+    expect(savedChips(chips, built, ops, "daily").add.map((chip) => chip.value)).toEqual(["knit"]);
   });
 });

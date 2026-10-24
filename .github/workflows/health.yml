@@ -100,12 +100,12 @@ jobs:
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
-          CEILING: ${{ vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+          CEILING: ${{ vars.SINGULARITY_DAILY_USD_CEILING || vars.DISPATCH_DAILY_USD_CEILING || '5' }}
           # The Neon store: field Web Vitals (D156) and the site's shared rate counter. Unset, health
           # warns field_unmeasured; set and failing, it warns store_degraded.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # The config store switch (D149): on, health compares the stored documents with git.
-          DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
           # Empty on a day without the probe, which health reads as nothing to judge.
           PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |

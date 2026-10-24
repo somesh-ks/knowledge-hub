@@ -61,6 +61,8 @@ export interface ContentRepoDeps {
   fetch: BlobFetch;
   now: () => number;
   log?: (message: string) => void;
+  /** The settings store's schedule text, for tests; the store's own reader otherwise. */
+  readStoredSchedule?: (storeUrl: string) => Promise<string | null>;
 }
 
 let heldManifest: { at: number; base: string; manifest: Manifest } | null = null;

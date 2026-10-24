@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-24 | [The owner's open tasks, checked](2026-10-24-open-tasks-check.md) | Two lists of open items verified and split between the owner and Claude; the new-source edit fix (#262); `generalCandidates` clean on Node 24; Google sign-in built and parked; docs trimmed to budget |
 | 2026-10-24 | [The sound volume test and a V8 bug](2026-10-24-sound-test-and-a-v8-bug.md) | The volume test's ratio of exactly 1 was Node 24's Maglev OSR bug (nodejs/node#66457) sharing number fields between returned objects; reproduced, and `render.ts` keeps loops out of the functions that return objects |
 | 2026-10-24 | [YouTube text through Firecrawl](2026-10-24-youtube-text-through-firecrawl.md) | The datacenter block measured; captions through Firecrawl's transcript provider behind the run's budget (D165) |
 | 2026-10-24 | [YouTube through Firecrawl, the refill, and Firecrawl's week](2026-10-24-youtube-relay-refill-and-firecrawl-week.md) | YouTube's feeds refused to the runners are read through Firecrawl (#235); validation refills a briefing it cut short (#237); Firecrawl 100 a week, 50 a run (D166); four review rounds, colliding decision numbers |

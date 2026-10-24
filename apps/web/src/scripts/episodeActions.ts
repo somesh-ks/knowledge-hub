@@ -1,5 +1,6 @@
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { isChipOn } from "../lib/regenTopics";
+import { hasSaved, storeOn } from "../lib/savedKey";
 import { navigateTo } from "../player/core/navigation";
 import { libraryAddress } from "./libraryAddress";
 import { dismissOnScrim, sheetGestures } from "./pullDismiss";
@@ -31,7 +32,18 @@ function build(kind: Kind, root: HTMLElement): HTMLDialogElement | null {
   if (!(clone instanceof HTMLDialogElement)) return null;
   document.body.append(clone);
   bind(kind, clone, root);
+  if (kind === "regenerate") void overlaySaved(clone);
   return clone;
+}
+
+/** The topic chips as saved in Settings, not as built (D173): new topics, new names, none removed. */
+async function overlaySaved(dialog: HTMLDialogElement): Promise<void> {
+  const list = dialog.querySelector<HTMLElement>("[data-built-topics]");
+  if (!list || (!hasSaved() && !storeOn())) return;
+  const view = await import("./savedView").catch(() => null);
+  if (!view) return;
+  if (storeOn()) await view.loadStore();
+  view.overlayChips(list, view.readSaved());
 }
 
 function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
@@ -88,7 +100,10 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // The ticked chips are this regeneration's topics and nothing else: the saved schedule,
       // weights and Create defaults are not touched. They are sent only when they differ from the
       // topics the original was made with. Comments are optional.
-      const chips = [...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
+      // A chip of a topic removed since the build is disabled (savedView.ts) and never sent.
+      const chips = [
+        ...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]:not(:disabled)'),
+      ];
       const ticked = chips.filter((chip) => chip.checked);
       if (chips.length > 0 && ticked.length === 0) {
         say(copy("topics"));
@@ -169,7 +184,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
     const original = root.dataset.topics.split(" ").filter(Boolean);
     for (const chip of dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')) {
       const ids = (chip.dataset.ids ?? "").split(" ");
-      chip.checked = chip.defaultChecked = isChipOn({ ids }, original);
+      chip.checked = chip.defaultChecked = !chip.disabled && isChipOn({ ids }, original);
     }
   }
   // A pick from the menu hands focus back to the More button; the menu itself is closed by then.

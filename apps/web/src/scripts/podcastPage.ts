@@ -63,7 +63,8 @@ export async function mount(root: HTMLElement): Promise<void> {
   // for data-ready, the keys do not, before this script loads or while the store is asked): such a
   // change is kept and goes as a change from it.
   let saved: ConfigOp[] = [];
-  const chips = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")];
+  // Read again after the overlay, which can add a chip for a topic saved since the build.
+  let chips = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")];
   const built = builtFields();
   const builtChips = chips.map((chip) => chip.defaultChecked);
   let startFields = built;
@@ -84,6 +85,7 @@ export async function mount(root: HTMLElement): Promise<void> {
       });
       saved = view.readSaved();
       view.overlayPodcast(root, controls, built, saved);
+      chips = [...root.querySelectorAll<HTMLInputElement>("input[data-scope]")];
       startFields = fields();
       startChips = chips.map((chip) => chip.checked);
       for (const control of controls) {
