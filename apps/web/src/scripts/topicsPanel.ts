@@ -120,7 +120,7 @@ export type PanelStart =
 export function editOf(
   source: Pick<SourceFacts, "id" | "name" | "topic_id" | "format"> &
     Partial<Pick<SourceFacts, "general" | "lean" | "high_signal">>,
-  fields: { name: string; topic: string; format: string; lean?: string; favorite?: string },
+  fields: { name: string; topic: string; format: string; lean?: string; favorite?: boolean },
 ): SourceEdit | null {
   const edit: SourceEdit = { id: source.id };
   const name = fields.name.trim();
@@ -131,8 +131,7 @@ export function editOf(
     edit.lean = fields.lean === "" ? null : Number(fields.lean);
   }
   if (fields.favorite !== undefined) {
-    const favorite = fields.favorite === "yes";
-    if (favorite !== (source.high_signal === true)) edit.high_signal = favorite;
+    if (fields.favorite !== (source.high_signal === true)) edit.high_signal = fields.favorite;
   }
   return edit.name === undefined &&
     edit.topic_ids === undefined &&
@@ -467,7 +466,7 @@ export function openPanel(
   const editTopic = one<HTMLSelectElement>("[data-edit-topic]");
   const editFormat = one<HTMLSelectElement>("[data-edit-format]");
   const editLean = one<HTMLSelectElement>("[data-edit-lean]");
-  const editFavorite = one<HTMLSelectElement>("[data-edit-favorite]");
+  const editFavorite = one<HTMLInputElement>("[data-edit-favorite]");
   const editNote = one<HTMLElement>('[data-error="edit-name"]');
   const edited = start.kind === "edit" ? start.source : null;
   if (edited) {
@@ -481,7 +480,7 @@ export function openPanel(
     // Only a general news source has a lean to rate.
     one<HTMLElement>("[data-edit-lean-field]").hidden = !edited.general;
     editLean.value = edited.lean;
-    editFavorite.value = edited.high_signal === true ? "yes" : "no";
+    editFavorite.checked = edited.high_signal === true;
     const open = one<HTMLAnchorElement>("[data-edit-open]");
     const where = one<HTMLElement>(".edit-address");
     if (edited.url) {
@@ -521,7 +520,7 @@ export function openPanel(
           topic: editTopic.value,
           format: editFormat.value,
           lean: editLean.value,
-          favorite: editFavorite.value,
+          favorite: editFavorite.checked,
         })
       : null;
   editName.addEventListener("input", () => {

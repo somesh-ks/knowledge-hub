@@ -578,18 +578,18 @@ test.describe("a topic's page", () => {
     await open(page, CRAFT);
     const edit = source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" });
     const sheet = page.getByRole("dialog", { name: "Edit source" });
-    const favorite = sheet.getByRole("combobox", { name: "Favorite" });
+    const favorite = sheet.getByRole("checkbox", { name: "Favorite source" });
     await edit.click();
     // The fixture ships Studio Notes as high signal.
-    await expect(favorite).toHaveValue("yes");
-    await favorite.selectOption("no");
+    await expect(favorite).toBeChecked();
+    await favorite.uncheck();
     await sheet.getByRole("button", { name: "Save" }).click();
     await expect(sheet).toBeHidden();
     await expect
       .poll(() => ops(sent))
       .toEqual([{ op: "source.update", id: "studio-notes", high_signal: false }]);
     await edit.click();
-    await expect(favorite).toHaveValue("no");
+    await expect(favorite).not.toBeChecked();
   });
 
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
