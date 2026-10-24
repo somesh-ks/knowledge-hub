@@ -161,6 +161,8 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
 export interface Batch {
   ops: ConfigOp[];
   sent: [string, Pending][];
+  /** For each op, the keys of the pending changes that produced it (a refusal names an op's index). */
+  owners?: string[][];
 }
 
 /**
@@ -169,14 +171,15 @@ export interface Batch {
  */
 export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pending>): Batch[] {
   const batches: Batch[] = [];
-  let current: Batch = { ops: [], sent: [] };
+  let current: Batch = { ops: [], sent: [], owners: [] };
   for (const step of steps) {
     const ops = step.ops ?? [step.op];
     if (current.ops.length > 0 && current.ops.length + ops.length > MAX_OPS) {
       batches.push(current);
-      current = { ops: [], sent: [] };
+      current = { ops: [], sent: [], owners: [] };
     }
     current.ops.push(...ops);
+    for (const _ of ops) current.owners?.push(step.keys);
     for (const key of step.keys) {
       const pending = changes.get(key);
       if (pending) current.sent.push([key, pending]);
@@ -478,6 +481,18 @@ async function post(ops: ConfigOp[]): Promise<Answer> {
   }
 }
 
+/**
+ * The changes the engine refused for good, when its 400 names an op of the request just sent and
+ * that op's changes are known; null for any other failure (all of the batch stays failed, as before).
+ */
+function refusedKeys(answer: Answer, batch: Batch): string[] | null {
+  const body = answer.body as { op_index?: unknown } | undefined;
+  const index = body?.op_index;
+  if (answer.status !== 400 || typeof index !== "number") return null;
+  const keys = batch.owners?.[index];
+  return keys && keys.length > 0 ? keys : null;
+}
+
 /** How many times a run waits out the server's ten seconds between edits before it gives up. */
 const MAX_WAITS = 6;
 
@@ -517,22 +532,31 @@ export async function flush(context: SaveContext): Promise<void> {
    * "Adding" and then "Added" itself, so the toast saying it too would be the same news twice.
    */
   let rowSays = true;
+  /**
+   * Changes the engine refused for good in this run (a refusal that named its op): they stay for
+   * Retry but are not sent again here, so one change that can never be accepted does not hold back
+   * the edits made after it.
+   */
+  const refused = new Set<string>();
+  const going = (): Map<string, Pending> =>
+    new Map([...changes].filter(([key]) => !refused.has(key)));
   // Everything waiting goes now, a refused change included: it is on its way again.
   for (const pending of changes.values()) pending.failed = false;
   try {
-    while (changes.size > 0) {
+    while (going().size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
       // its way yet, and whatever changes meanwhile goes in the one request sent after it.
       const hold = gapLeft(lastSent, Date.now());
       if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
       // An edit not final yet (a new topic's emoji, D142) holds the request, quietly, as the gap does.
-      const unready = [...changes.values()].filter((pending) => pending.ready);
+      const unready = [...going().values()].filter((pending) => pending.ready);
       if (unready.length > 0) {
         await Promise.all(unready.map((pending) => pending.ready));
         for (const pending of unready) delete pending.ready;
         continue;
       }
-      const [batch] = pack(buildQueue(changes), changes);
+      const waiting = going();
+      const [batch] = pack(buildQueue(waiting), waiting);
       if (!batch || JSON.stringify(batch.ops) === last) break;
       sent = true;
       rowSays &&= batch.sent.every(([, pending]) => pending.el.matches(".source-note"));
@@ -545,6 +569,18 @@ export async function flush(context: SaveContext): Promise<void> {
       }
       if (answer.status !== 202) {
         failure = failureText(answer.status, answer.body);
+        // A refusal that names its op drops that change alone; the rest goes in the next request.
+        const keys = refusedKeys(answer, batch);
+        if (keys) {
+          for (const key of keys) {
+            const pending = changes.get(key);
+            if (!pending) continue;
+            refused.add(key);
+            pending.failed = true;
+            pending.fail?.();
+          }
+          continue;
+        }
         // A row that said Adding says so no more: the change stays for Retry, and the row for itself.
         for (const [, pending] of batch.sent) {
           pending.failed = true;

@@ -860,11 +860,16 @@ describe("handleConfig with the config store on (D149)", () => {
       url: "https://blog.example.com/",
       topic_ids: ["no_such_topic"],
     };
-    const result = await handleConfig(input(body(add)), deps);
+    // The refusal names the op, so the page can drop that change and send the others (2026-10-24).
+    const result = await handleConfig(
+      input(body([{ op: "schedule.set", hour: 7 } satisfies ConfigOp, add])),
+      deps,
+    );
     expect(result.body).toEqual({
       status: 400,
       error: "invalid_request",
       reason: "There is no topic no_such_topic.",
+      op_index: 1,
     });
   });
 

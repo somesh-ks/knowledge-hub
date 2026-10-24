@@ -43,7 +43,13 @@ export interface ApplyToDocumentsInput {
 export type ApplyToDocumentsResult =
   | { ok: true; writes: DocumentWrite[]; outcome: OpOutcome; documents: Record<string, string> }
   /** `retryable`: the network failed or the time ran out, not the edit; the caller answers 503. */
-  | { ok: false; message: string; retryable?: boolean };
+  | {
+      ok: false;
+      message: string;
+      retryable?: boolean;
+      /** Which op of `input.ops` the engine refused, when one op did (a lone op is index 0). */
+      op_index?: number;
+    };
 
 /** The whole edit, well inside the function's 20 s (functionLimits.mjs). */
 export const APPLY_DEADLINE_MS = 12_000;
@@ -131,6 +137,7 @@ async function applyNow(
   deadlineAt: number,
 ): Promise<ApplyToDocumentsResult> {
   const failed = { network: false };
+  let opIndex: number | undefined;
   const parsed = parseConfigOps(input.ops);
   if (!parsed.success) {
     return { ok: false, message: parsed.issues.map((issue) => issue.message).join("; ") };
@@ -152,10 +159,13 @@ async function applyNow(
     };
     const outcomes: OpOutcome[] = [];
     let current = before;
+    let index = 0;
     for (const op of parsed.data as ParsedConfigOp[]) {
       // Each op answers for its own lookups: a probe that timed out while an earlier add succeeded
       // does not make a later refusal look like ours.
       failed.network = false;
+      opIndex = index;
+      index += 1;
       const outcome = await applyConfigOp(op, current, { discover });
       outcomes.push(outcome);
       current = outcome.next;
@@ -180,7 +190,12 @@ async function applyNow(
     return { ok: true, writes, outcome, documents };
   } catch (error) {
     if (error instanceof ConfigOpError) {
-      return { ok: false, message: error.message, retryable: retryable(error, failed.network) };
+      return {
+        ok: false,
+        message: error.message,
+        retryable: retryable(error, failed.network),
+        ...(opIndex === undefined ? {} : { op_index: opIndex }),
+      };
     }
     throw error;
   } finally {

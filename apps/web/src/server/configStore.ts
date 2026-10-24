@@ -35,9 +35,14 @@ const MAX_REASON_CHARS = 300;
  * here the function refuses it, so the page can say what was wrong ("Already a source: x.") instead
  * of only that the server said no. The sentence is the engine's own, scrubbed as its log line is.
  */
-function refused(message: string, secrets: ReadonlyArray<string | undefined>): ConfigResult {
+function refused(
+  message: string,
+  secrets: ReadonlyArray<string | undefined>,
+  opIndex?: number,
+): ConfigResult {
   const reason = redact(message, secrets).trim().slice(0, MAX_REASON_CHARS);
-  return { status: 400, body: { status: 400, error: "invalid_request", reason } };
+  const named = opIndex === undefined ? {} : { op_index: opIndex };
+  return { status: 400, body: { status: 400, error: "invalid_request", reason, ...named } };
 }
 
 async function open(deps: { connectConfigStore?: ConfigDeps["connectConfigStore"] }, url: string) {
@@ -92,7 +97,7 @@ export async function saveToStore(
           `config ${result.retryable ? "not applied" : "refused"}: ${describeError(result.message, secrets)}`,
         );
         // A lookup that failed on our side, or ran out of time, can be sent again: the page keeps it pending.
-        return result.retryable ? unavailable : refused(result.message, secrets);
+        return result.retryable ? unavailable : refused(result.message, secrets, result.op_index);
       }
       ({ written, at: writtenAt } = await writeConfigDocumentsAt(sql, result.writes));
     }
