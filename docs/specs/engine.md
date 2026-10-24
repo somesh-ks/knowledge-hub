@@ -26,7 +26,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 
 ### Sources and scores
 - A YouTube channel is added from a `/channel/UC...` address, a `@handle` or a `/c/` name (the id comes from the address, then YouTube's resolver, then the page); a video address is refused with a message. A social media page with no feed is refused, as Firecrawl cannot read it.
-- A YouTube finalist is read as text before the writer sees it (`extract/youtubeText.ts`): its subtitles from youtube.com's player API, Android client, no key; with none, Gemini transcribes the first 30 minutes by video URL (`GEMINI_API_KEY`, the transcription chain, 3 per run); if both fail, its description, or nothing under 200 characters. Cached in `state/video-text.json`.
+- A YouTube finalist is read as text (`extract/youtubeText.ts`): youtube.com's subtitles (free, refused to datacenters), else Firecrawl's transcript provider (one scrape request and about 5 credits a video from the run's budget, D165), else Gemini transcribes 30 minutes by URL (3 a run), else its description, or nothing under 200 characters. Cached in `state/video-text.json`.
 - A source's score is out of 5 (D103) from health, quality and trust, combined as a geometric mean (D55). New: under 10 judged items. Trust "not measured yet": under 10 checked items.
 - A scoring sample judges up to 200 items a run for scores alone (left-overs of sources under the bar, a new source's recent posts from its own feed, switched-off feeds weekly), so every source reaches a score (D70). The report has `sample_items` and `sample_fresh`.
 - A source with nothing that could have been published is scored on its pass share alone; one whose feed held under ten posts when read is scored from 3 judged items.
