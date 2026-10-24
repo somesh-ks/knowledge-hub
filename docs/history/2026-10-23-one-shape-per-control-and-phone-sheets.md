@@ -30,6 +30,8 @@ Eight more asks at once. Built: the app bar pinned on pages with a sticky block 
 
 - The seed workflow ran its first time, as a dry run with replace: four rows differ from the committed files, the GitHub secret is set.
 - Vercel holds the Neon integration's variables as `NEON_DATABASE_URL` and friends; nothing reads them, and there is no `DATABASE_URL`. The store, and the shared rate counter of D150, have therefore never run in production. Runbook 11.1 step 7 now says so. The switch-on waits on the owner: the Vercel `DATABASE_URL`, the GitHub variable (no API for it from here), then seed with replace, the two switches and a redeploy, in that order.
+- 2026-10-24: the owner added `DATABASE_URL` on Vercel and, ahead of the order, the GitHub variable. The seed's dry run with replace still listed the four files, and the engine refuses the real replace while that variable is on (`config seed`, no `--force` from the workflow). No run read the store yet (the next is due 2026-10-26, and a run with stale rows would commit them over `config/`), so the owner clears the variable, the seed replaces, and the variable and Vercel's flag go on. `/api/config` answers 405 until the flag is on Vercel: expected, not a fault.
+- The owner answered the five D163 questions the same day; the design holds them and D163 is accepted.
 
 ## What went wrong
 

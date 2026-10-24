@@ -170,10 +170,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
-| D160 | One shape per control; phone lists are sheets | amends the 2026-10-22 card rule |
+| D160 | One shape per control; phone sheets | amends D72 |
 | D161 | Catch up, a bolt, swipe-away toasts | amends D52 |
-| D162 | Queue gestures and menu; pinned bar; pill selects everywhere | amends D126 |
-| D163 | Modular podcast structure | proposed |
+| D162 | Queue gestures; pinned bar; pill selects | amends D126 |
+| D163 | Modular podcast structure | accepted |
 | D164 | Richer covers | amends D121 |
 
 ---
@@ -1772,12 +1772,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: a pointer-events long-press drag (no scrolling); anchor-positioned React popovers with their own anchors (the header menu's `--hero-more` name resolves to the nearest dots, so the shared rules serve).
 - Amends: D126 (the queue's handle and cross).
 
-## D163: a modular podcast structure, proposed
+## D163: a modular podcast structure, accepted
 
 - Date: 2026-10-23 (the owner: "there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections)... The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it")
-- Status: proposed. [The design](design/podcast-structure.md) answers the ask: one structure per kind (daily, weekly, catch up) as an ordered list of blocks (hello, rundown, sections with depth and count, top picks, trending, release news, close, sign-off) in `config/structure.json`, one `structure.set` op, read by curate (section order and allowances) and by the episode planner and prompt; a Preferences view with the queue's reorder gestures and a sheet to add or edit a block; defaults that reproduce today's shapes exactly, so nothing changes until edited. Five open questions for the owner close it.
+- Status: accepted, not built. [The design](design/podcast-structure.md) answers the ask: one structure per kind (daily, weekly, catch up) as an ordered list of blocks (hello, rundown, sections with depth and count, top picks, trending, release news, close, sign-off) in `config/structure.json`, one `structure.set` op, read by curate (section order and allowances) and by the episode planner and prompt; a Preferences view with the queue's reorder gestures and a sheet to add or edit a block; defaults that reproduce today's shapes exactly, so nothing changes until edited. The owner answered its five questions on 2026-10-24 (both shapes follow it, a `custom` block with a title and a brief, one list per kind, no separate Catch up editor, its own file); the design holds the answers.
 - Why: a briefing's reading order and an episode's script shape live in two files nobody can edit; the owner wants to compose them.
-- Revisit if: the owner answers the open questions, which turns this into a build decision.
+- Revisit if: phase 1 of the design shows the planner cannot reproduce today's shapes from the default blocks.
 
 ## D164: covers take a step of colour: chroma to 0.16, the light stock deeper and tinted
 

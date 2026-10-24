@@ -1,6 +1,6 @@
 # Podcast structure: a modular script for every kind of episode
 
-A design for the owner's ask of 2026-10-23: "In preferences page there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections). This will enable dynamic podcast structure for script generation. The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it." Nothing here is built; D163 records it as proposed. Code and tests win where they differ once it is built.
+A design for the owner's ask of 2026-10-23: "In preferences page there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections). This will enable dynamic podcast structure for script generation. The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it." Nothing here is built; D163 records it as accepted, with the owner's answers of 2026-10-24 folded in below. Code and tests win where they differ once it is built.
 
 ## What exists today
 
@@ -24,6 +24,7 @@ One **structure** per podcast kind: `daily`, `weekly`, `catch_up`. A structure i
 | `top_picks` | The judge's best stories across topics | `stories`, `depth` | at most one |
 | `trending` | Stories several outlets cover | `stories` | at most one |
 | `release_news` | Library, framework and changelog stories | `stories` | at most one |
+| `custom` | A brief of the owner's own that the writer follows at that point ("a one-line weather note", "what to watch this week") | `title` (shown as the block's name), `brief` (up to 280 characters) | any number |
 | `close` | The reflective close before the sign-off | `length` (`short`, `long`) | at most one |
 | `sign_off` | The last words | none | one, always last |
 
@@ -32,9 +33,10 @@ Rules the schema holds:
 - `hello` and `sign_off` are the frame: present in every structure, never moved or removed. Everything between them is the body: reordered, added, removed.
 - Each section id appears once; an id of a topic that no longer exists is dropped when read (as `digestSections` already tolerates), never an error.
 - At most twelve blocks. A structure with no body block is refused: an episode of only a hello and a sign-off is a mistake, not a request.
+- A `custom` block's brief reaches the writer as an instruction, quoted, never as a fact: `check.ts` still rewrites a turn that invents a number, and a brief that asks for something the day's stories do not hold gets a one-line turn that says so, not an invention.
 - Depth and counts are hints to the budget, not promises: the length still rules (`fit.ts`), and a block whose stories did not show up that day is skipped and the writer is told so, so the hello and rundown never name what is not there.
 
-Defaults reproduce today exactly. Daily: hello, rundown (4), top_picks (deep), one `section` per built-in section in today's order (brief), trending, release_news, close (short), sign_off. Weekly: the same with `close` long and rundown 5. Catch up: hello, rundown, top_picks deep, sections brief, close, sign_off; the Catch up form's topic chips still choose which sections run. A missing structure file means the defaults, so nothing changes until the owner edits.
+One vocabulary of blocks for every kind, and each kind its own list (the owner, 2026-10-24: one structure idea for all podcast types, each configurable). Defaults reproduce today exactly. Daily: hello, rundown (4), top_picks (deep), one `section` per built-in section in today's order (brief), trending, release_news, close (short), sign_off. Weekly: the same with `close` long and rundown 5. Catch up: hello, rundown, top_picks deep, sections brief, close, sign_off; the Catch up form's topic chips still choose which sections run, and it has no editor of its own. A missing structure file means the defaults, so nothing changes until the owner edits.
 
 ## Where it lives and how it travels
 
@@ -68,16 +70,16 @@ Defaults reproduce today exactly. Daily: hello, rundown (4), top_picks (deep), o
 - Engine: `structureFor` from blocks reproduces today's `EpisodeStructure` for the defaults (the golden), and a `fit` that cuts a body block never cuts the frame.
 - Site: one journey in `topics.spec.ts`'s style: reorder two blocks, reload, the order holds and one `structure.set` was sent.
 
-## Open questions for the owner
+## The owner's answers (2026-10-24)
 
-1. Should a briefing's section order follow the structure too, or only the episode's script? (The design says both; the briefing page's tabs would reorder on the next run.)
-2. Is a `custom` block wanted: a free-text instruction the writer follows at that point ("a one-line weather note", "what to watch this week")? It is the most powerful block and the easiest to misuse; the design leaves it out of the first build.
-3. Should Weekly get blocks of its own (a recap of the week's dailies, a long read) in the first build, or follow the daily vocabulary first?
-4. Does the Catch up form need its own structure editor, or is per-kind enough?
-5. Does the structure go in `preferences.json` (one file, one op family) or its own file? The design chooses its own file so a `structure.set` never races a `mix.set`.
+1. **Both shapes follow the structure.** A briefing's section order and the episode's script come from the same list; the owner wants one idea for every kind. The briefing page's tabs reorder on the next run; old briefings keep their snapshot.
+2. **A `custom` block is in.** A title and a brief of what it should cover, added, edited, reordered and removed like any body block (the table above).
+3. **Each kind has its own list** from the first build: daily, weekly and catch up share the vocabulary and differ in their defaults and edits. Weekly-only blocks (a recap of the week's dailies) wait for a later phase.
+4. **Catch up keeps the per-kind structure.** The owner had no preference; the form's topic chips filter that one request and never write the structure, so a second editor would only disagree with the first.
+5. **Its own file**, `config/structure.json`, so a `structure.set` never races a `mix.set`.
 
 ## Phasing
 
 1. Schema, file, op, engine reading the defaults: no visible change, every test green.
-2. The Preferences switch and the Structure view with reorder, add, remove and edit.
-3. Weekly's own blocks and the free-text block, if the owner wants them.
+2. The Preferences switch and the Structure view with reorder, add, remove and edit, the `custom` block included.
+3. Weekly's own blocks (a recap of the week's dailies, a long read).

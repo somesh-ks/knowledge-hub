@@ -10,7 +10,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [specs/README.md](specs/README.md) | What each capability does now, one spec each | Before changing a capability you do not know |
 | [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, every design ask and fix by surface, gaps, open asks | Before UI work |
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
-| [design/podcast-structure.md](design/podcast-structure.md) | The proposed modular script structure for every episode kind (D163, not built) | Before building the Preferences structure view |
+| [design/podcast-structure.md](design/podcast-structure.md) | The modular script structure for every episode kind, with the owner's answers (D163, accepted, not built) | Before building the Preferences structure view |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
