@@ -106,9 +106,14 @@ test.describe("interface cues by kind of action", () => {
   });
 
   test("an action button taps once, and a menu action too", async ({ player, page }) => {
-    await player.open("/");
+    // A Library row's menu: the briefing's own menu has only actions that open a panel since Share
+    // moved beside Play (D153).
+    await player.open("/library");
     await prime(page);
-    await page.getByRole("button", { name: "More actions" }).click();
+    await page
+      .getByRole("button", { name: /^More actions for / })
+      .first()
+      .click();
     await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
     // The menu action is a plain button: a soft tap, never a select.
     await page.getByRole("menuitem", { name: "Share" }).click();

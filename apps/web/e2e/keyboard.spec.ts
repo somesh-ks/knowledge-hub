@@ -28,7 +28,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
   }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 15; step += 1) {
+    for (let step = 0; step < 16; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }

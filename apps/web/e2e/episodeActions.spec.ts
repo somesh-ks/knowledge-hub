@@ -83,11 +83,9 @@ test.describe("regenerate and delete an episode", () => {
     await page.keyboard.press("ArrowDown");
     await expect(items.nth(1)).toBeFocused();
     await page.keyboard.press("ArrowDown");
-    await expect(items.nth(2)).toBeFocused();
-    await page.keyboard.press("ArrowDown");
     await expect(items.first()).toBeFocused();
     await page.keyboard.press("ArrowUp");
-    await expect(items.nth(2)).toBeFocused();
+    await expect(items.nth(1)).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(menu(page)).toBeHidden();
     await expect(button).toBeFocused();
