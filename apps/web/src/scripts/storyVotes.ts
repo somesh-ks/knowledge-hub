@@ -362,11 +362,11 @@ function block(controls: HTMLElement): void {
  * tune the owner's feed. A vote shows on the control and is counted in analytics, and is neither kept
  * nor sent; stopping an outlet needs an account of one's own.
  */
-const onSharedPage = (): boolean => document.querySelector("main[data-shared]") !== null;
+const onSharedPage = (): boolean => document.querySelectorAll("main[data-shared]").length > 0;
 
 function sharedPress(button: Element, controls: HTMLElement): void {
   if (!(button instanceof HTMLElement && button.dataset.vote)) {
-    toast({ message: "Stopping an outlet needs your own account. Sign-up is coming soon." });
+    toast({ message: "Stopping an outlet needs your own account." });
     return;
   }
   const on = button.getAttribute("aria-pressed") !== "true";
