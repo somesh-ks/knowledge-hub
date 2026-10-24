@@ -63,8 +63,14 @@ Digests, the briefing pages, the player, the service worker's shell, the engine'
 2. The Library page: built from the monthly copy and overlaid (as designed), or rendered at request time from the index (always current, a function call a visit, no static page)?
 3. Should digests follow later (a run writes to Blob, no deploy), or stay as code for good? The design says stay.
 
+## Found while building phase 1
+
+- **Covers are built too.** `/covers/<id>-512.webp` is drawn at build time (`pages/covers/`), so an episode that is not in the build has no cover. The engine draws the episode's cover sizes and writes them to Blob beside the file, or the card shows a plain plate until the build.
+- **A card needs a page to open.** Phase 1 as written lists an episode the build lacks, but `/e/<id>` does not exist until the build. The shell page (phase 2) has to land with the overlay, not after it.
+- **Each episode can stay in git without a deploy.** Taking `../../Podcasts` out of `ignoreCommand` in `apps/web/vercel.json` keeps the per-episode commit and drops its deploy; the next code or digest deploy builds it. This answers question 1 without a monthly copy.
+
 ## Phasing
 
-1. The index: the engine writes `episodes/index.json` after each episode and narration; the Library lays it over itself; the Create sheet reads it. Episodes still committed. No deploy saved yet, but the "it is live" wait goes from a build to a second.
+1. The index (the engine side is built, `publish/episodeIndex.ts`): the engine writes `episodes/index.json` after each episode and narration; the Library lays it over itself; the Create sheet reads it. Episodes still committed. No deploy saved yet, but the "it is live" wait goes from a build to a second.
 2. Episodes to Blob, the monthly copy, the shell page for an unbuilt episode, the narrate function reading Blob. The episode deploys go.
 3. The health row and the runbook.
