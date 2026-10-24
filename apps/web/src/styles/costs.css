@@ -284,6 +284,7 @@
   background: var(--color-surface-overlay);
 }
 
+/* Its glyphs centre in their tabs as any glyph tab's do (primitives.css, 2026-10-24). */
 .costs-view > .segmented-nav-tab {
   min-height: var(--chip-height);
   padding-inline: 0;

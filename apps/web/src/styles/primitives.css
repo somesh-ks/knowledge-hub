@@ -451,6 +451,8 @@
  * Markup: <div class="segmented-nav" role="tablist" aria-label="Show"> of
  *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
  *     aria-controls="a-panel">Sources</button>
+ * A glyph tab holds <Icon /> alone and an aria-label, and its glyph is centred (Costs' chart and
+ * table switch, compact in costs.css).
  */
 .segmented-nav {
   --seg-n: 1;
@@ -537,6 +539,16 @@
   white-space: nowrap;
   cursor: pointer;
   transition: color var(--duration-hover) var(--ease-hover);
+}
+
+/* A tab that holds a glyph centres it (and its words, if any, beside it): a glyph is a block
+   (.icon), which the tab's text-align does not centre, so Costs' chart and table glyphs sat at their
+   tabs' start, off the pill that marks them (owner, 2026-10-24). */
+.segmented-nav-tab:has(> .icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .segmented-nav-tab[aria-selected="true"] {

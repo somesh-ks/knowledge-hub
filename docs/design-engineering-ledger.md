@@ -324,6 +324,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Under 40rem every list that opens from a field is a bottom sheet (D167): a select's drawn list through `::picker(select)` in CSS alone, the searchable picker (`picker.ts` sets `data-sheet`), the multi-select (fixed in place, its card lifted over the navigation bar). The scrim is a spread of the sheet's shadow where the list has no usable backdrop. A select and an input have no tap highlight (`foundations.css`).
 - **Press, hover and focus.**
   - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
+  - A segmented tab that holds a glyph centres it (`.segmented-nav-tab:has(> .icon)`): Costs' chart and table glyphs sat at their tabs' start, off the pill, because a block glyph ignores text-align (owner: "the graph, table switcher is broken", 2026-10-24).
   - A segmented control's chosen item takes a full outline or container, never only a bottom border: the Gallery and List switch "shows only a bottom border" (2026-10-09).
   - Two targets in one card look different under a mouse: "there is a distinction between clicking on the thumbnail... versus clicking on the text... That distinction is necessary" (2026-10-12, D101).
   - Remove buttons in lists show on hover or focus with a mouse and always on touch (2026-10-08).
