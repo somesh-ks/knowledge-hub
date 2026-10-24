@@ -2,6 +2,7 @@
 import { digestSections } from "@dispatch/core";
 import type { DigestEntry } from "../lib/digests";
 import { buildHero, buildSections } from "../lib/digestView";
+import { madeAt } from "../lib/format";
 import Briefing from "./Briefing.astro";
 import ChapterAside from "./ChapterAside.astro";
 import DigestHero from "./DigestHero.astro";
@@ -38,6 +39,7 @@ const hasAudio = entry.audioMode === "ready";
   />
   <Briefing sections={sections} hasAudio={hasAudio} />
   <EarlierList entries={earlier} />
+  <p class="meta page-made"><time datetime={entry.digest.generated_at}>{madeAt(entry.digest.generated_at)}</time></p>
   {/* The end of what the page shows. Once it is on screen the reader is at the end, and
        briefingPage.ts marks the last section, which may be too short to reach the reading line. */}
   <div data-page-end></div>

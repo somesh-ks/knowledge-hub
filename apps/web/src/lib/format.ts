@@ -1,4 +1,4 @@
-import { daysBetween, longDate, stockholmDate } from "@dispatch/core";
+import { daysBetween, longDate, stockholmDate, TIME_ZONE } from "@dispatch/core";
 
 /**
  * The long date as a title on screen: "Wednesday 7 October" with a non-breaking space between the
@@ -83,4 +83,25 @@ export function headlineParts(text: string): HeadlinePart[] {
   }
   if (at < text.length) parts.push({ text: text.slice(at), nowrap: false });
   return parts;
+}
+
+/**
+ * "Made on 7 October 2026 at 07:13": when a briefing or an episode was written, in the site's time
+ * zone, the one the schedule runs in. Shown at the foot of its page (owner, 2026-10-24).
+ */
+export function madeAt(iso: string): string {
+  const at = new Date(iso);
+  const day = at.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: TIME_ZONE,
+  });
+  const time = at.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: TIME_ZONE,
+  });
+  return `Made on ${day} at ${time}`;
 }

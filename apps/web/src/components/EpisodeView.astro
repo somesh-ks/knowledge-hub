@@ -3,7 +3,7 @@ import { episodeCover } from "../lib/covers";
 import { storyCount } from "../lib/digestView";
 import { episodeSections } from "../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
-import { headlineParts } from "../lib/format";
+import { headlineParts, madeAt } from "../lib/format";
 import type { SectionRef } from "../lib/sectionLabel";
 import AmbientLight from "./AmbientLight.astro";
 import Chapter from "./Chapter.astro";
@@ -124,6 +124,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
       </div>
     )
   }
+  <p class="meta page-made"><time datetime={episode.generated_at}>{madeAt(episode.generated_at)}</time></p>
   <PlayerData data={entry.player} />
 </main>
 {/* After main, as on a briefing: the contents column sits past the reading column. */}

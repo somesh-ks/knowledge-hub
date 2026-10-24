@@ -286,3 +286,9 @@ html[data-offline] .story-actions > .chip {
   font-weight: var(--text-heading-weight);
   letter-spacing: var(--text-heading-tracking);
 }
+
+/* When the briefing or episode was written, at the foot of its page: the last quiet line, with the
+   air of a section above it (owner, 2026-10-24). */
+.page-made {
+  padding-block: var(--space-12) var(--space-8);
+}
