@@ -888,6 +888,26 @@ describe("handleConfig with the config store on (D149)", () => {
     expect(JSON.stringify(read.body)).not.toContain("private");
   });
 
+  // The bug: an edit the function refused (a source added to a topic that is not there, a page that
+  // is a source already) answered a bare 400, and the page said only that the server turned it down.
+  it("tells the page why an edit was refused", async () => {
+    const store = fakeStore([
+      { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+    ]);
+    const { deps } = setup(storeDeps(store));
+    const add: ConfigOp = {
+      op: "source.add",
+      url: "https://blog.example.com/",
+      topic_ids: ["no_such_topic"],
+    };
+    const result = await handleConfig(input(body(add)), deps);
+    expect(result.body).toEqual({
+      status: 400,
+      error: "invalid_request",
+      reason: "There is no topic no_such_topic.",
+    });
+  });
+
   // The bug (D149, review round 2): an edit from another device landing between this edit's read
   // and its write answered 409, which the page cannot resolve; it is applied once more on top.
   it("applies an edit again on top of one that landed meanwhile, and gives up after that", async () => {

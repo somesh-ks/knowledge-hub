@@ -141,6 +141,13 @@ describe("failureText", () => {
     expect(failureText(503)).toBe("The server ran into a problem. Not saved yet.");
     expect(failureText(0)).toBe("Couldn't reach the site. Not saved yet.");
     expect(failureText(400)).toBe("The server turned that change down. Not saved yet.");
+    // The bug: with the store on, the function refuses the edit itself and said why only in its log.
+    expect(
+      failureText(400, { status: 400, error: "invalid_request", reason: "Already a source: x." }),
+    ).toBe("Already a source: x. Not saved yet.");
+    expect(failureText(400, { status: 400, error: "invalid_request", reason: " " })).toBe(
+      "The server turned that change down. Not saved yet.",
+    );
     // A status with no reason of its own is a failure, not an unreachable site.
     expect(failureText(500)).toBe("Saving failed on the server.");
     expect(failureText(501)).toBe("Saving failed on the server.");
