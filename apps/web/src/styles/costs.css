@@ -56,6 +56,12 @@
     grid-template-areas: "answer filters view";
     column-gap: var(--space-2);
   }
+
+  /* Stacked in two rows, the chips sit against the switch, not at their column's start with a gap
+     of 116px before it (the design audit, 2026-10-24, at 640 to 700px). */
+  .costs-filters {
+    justify-content: flex-end;
+  }
 }
 
 .costs-filters {
