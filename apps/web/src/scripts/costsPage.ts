@@ -521,6 +521,12 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   const empty = data.report.total.usd === 0;
   drawn = { buckets, period, by, data };
   active = -1;
+  // A failed fetch hid the chart and the breakdown's head (load); a good answer shows them again
+  // before the chart measures its box. The breakdown and the table decide their own below.
+  for (const part of document.querySelectorAll<HTMLElement>(
+    "[data-costs-plot], [data-costs-rank-head]",
+  ))
+    part.hidden = false;
   renderAnswer(data, period);
   draw();
   clearColumn();
@@ -554,6 +560,10 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
 
 // ---- loading -------------------------------------------------------------------------------
 
+/** What a failed fetch hides. */
+const FAILED_PARTS =
+  "[data-costs-plot], [data-costs-rank-head], [data-costs-rank], [data-costs-table]";
+
 let asked = 0;
 
 async function load(): Promise<void> {
@@ -576,6 +586,10 @@ async function load(): Promise<void> {
     if (total) total.textContent = "Unavailable";
     const detail = pick("[data-costs-detail]");
     if (detail) detail.textContent = "The costs could not be loaded right now.";
+    // Nothing to draw, so the chart, the breakdown and the table step out: no blank plot, no stray
+    // hairline, no empty table on offer, and no frame of the last range left under the failure
+    // (audit, 2026-10-24). The next good answer shows them again (render).
+    for (const part of document.querySelectorAll<HTMLElement>(FAILED_PARTS)) part.hidden = true;
   } finally {
     if (ask === asked) body?.removeAttribute("data-loading");
   }
