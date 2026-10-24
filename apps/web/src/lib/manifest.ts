@@ -42,7 +42,7 @@ export function buildManifest(): WebManifest {
     shortcuts: [
       { name: "Latest briefing", short_name: "Latest", url: "/" },
       { name: "Library", short_name: "Library", url: "/library" },
-      { name: "New episode", short_name: "New", url: "/create" },
+      { name: "Catch up", short_name: "Catch up", url: "/create" },
     ].map((shortcut) => ({
       ...shortcut,
       icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" as const }],

@@ -47,12 +47,15 @@
   content: none;
 }
 
+/* A row's emoji and chevron sit the search field's padding in from its edges, so they line up with
+   the field's glyph and its clear button (owner, 2026-10-23: "the chevron optically aligns with the
+   search bar"); until then the chevron was pulled out to the page's edge. */
 .topics .row-action {
+  padding-inline: var(--space-4);
   border-radius: var(--row-radius);
 }
 
 .topics .row-action .icon {
-  margin-inline-end: calc(var(--size-icon) * -0.28);
   color: var(--color-on-surface-subtle);
 }
 
@@ -146,10 +149,8 @@
 }
 
 .topic-card-foot .multiselect-trigger {
-  /* Its fill sits one inset, 16px, from the card's bottom corner on both sides at any width, so it
-     takes the card's radius less that inset, as a row's tile does, not a 48px pill that would bulge
-     into the corner's curve (2026-10-22, measured; 8px while the card's padding was 16). */
-  border-radius: var(--card-inner-radius);
+  /* Its shape is a settings row's value (multiselect.css, the pill): one control, one shape (owner,
+     2026-10-23, D167; on 2026-10-22 it took the card's inner radius). */
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
 }
@@ -168,6 +169,15 @@
   .topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
     position: relative;
     z-index: calc(var(--z-header) - 1);
+  }
+
+  /* On a phone the open list is a bottom sheet (multiselect.css) drawn inside the card's layer, so
+     the card rises over the navigation bar while it is open; the scrim the sheet spreads covers the
+     card and the bars alike (2026-10-23). */
+  @media (width < 40rem) {
+    .topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
+      z-index: var(--z-sheet);
+    }
   }
 
   .topic-page:has(.topic-card .multiselect-trigger[aria-expanded="true"])
@@ -191,24 +201,9 @@
   background: var(--color-surface-container);
 }
 
-/* What sits one padding in from the card's edge is concentric with its corners (2026-10-22): the
-   switch's track, the field, the Add button and the chips take the card's radius less its padding,
-   and the switch's segments that less the track's own padding. */
-.topic-panel > .topic-view,
-.topic-panel > .topic-view > .segmented-nav-tab {
-  border-radius: var(--card-content-radius);
-}
-
-/* The pill and the press layer sit the track's 4px inside it; a tab is flush with the track, so its
-   box (and the focus ring drawn on it) keeps the track's radius. */
-.topic-panel > .topic-view::before,
-.topic-panel > .topic-view > .segmented-nav-tab::after {
-  border-radius: calc(var(--card-content-radius) - var(--segmented-padding));
-}
-
-.topic-panel :is(.search-field, .filter-row > .topic-add-source, .filter-chip) {
-  border-radius: var(--card-content-radius);
-}
+/* The switch, the field, the Add button and the chips in the card keep the pills they are on the
+   Library and the Sources index: one control, one shape (owner, 2026-10-23, D167; from 2026-10-22 to
+   then they took the card's radius less its padding). */
 
 /* On the card's fill the switch's track, the field, the Add button and the chips take the page's own
    surface, so they read against the card. */
@@ -319,6 +314,13 @@
    control in Settings ends at. */
 .topic-weight {
   flex-wrap: nowrap;
+}
+
+/* The stop's name sits at the end of the row's first line, across from the name, not under it
+   (owner, 2026-10-23: "the status text must be on the right side in a flex space-between style"). */
+.topic-weight > .settings-text {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
 }
 
 .topic-weight > .settings-range {
@@ -505,6 +507,9 @@
      the page (outside a .rows list the suggestions once touched). Padding on top of it made a row
      104px (2026-10-21). */
   min-height: var(--source-row);
+  /* The icon and the check sit the search field's padding in, in line with its glyph and its clear
+     button, as a topic's row is on the index (owner, 2026-10-23). */
+  padding-inline: var(--space-4);
   border-radius: var(--radius-md);
 }
 
@@ -860,7 +865,6 @@
     [aria-invalid]:not([aria-invalid="false"])
   ) {
   border-color: transparent;
-  border-radius: var(--field-radius);
   background: var(--color-surface-container);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }

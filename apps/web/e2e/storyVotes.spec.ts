@@ -59,6 +59,42 @@ test.describe("story controls", () => {
     expect(server.statuses).toEqual([202]);
   });
 
+  test("a short drag leaves the toast where it was; a swipe takes it away and the stop still goes", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const server = await routeConfigServer(page);
+    await page.goto("/");
+    await stop(page.locator("[data-story-controls]").first());
+    const toast = page.locator(".toast");
+    await expect(toast).toBeVisible();
+    // Its box is read once it has come to rest: CI caught it mid-entrance (y 712.09 against 712).
+    await toast.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+    const cdp = await page.context().newCDPSession(page);
+    const rest = (await toast.boundingBox()) as { x: number; y: number; width: number };
+    const y = rest.y + 20;
+    const swipe = async (by: number) => {
+      const x = rest.x + rest.width / 2;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let step = 1; step <= 4; step++) {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: x + (by * step) / 4, y }],
+        });
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    // Past the tap slop but short of the least a swipe takes, it comes back to the same box
+    // however fast the finger moved (lib/swipeAway.ts).
+    await swipe(16);
+    await expect.poll(() => toast.boundingBox()).toEqual(rest);
+    // A swipe dismisses the toast only: the stop it offered to undo still goes when its wait ends.
+    await swipe(rest.width);
+    await expect(toast).toBeHidden();
+    await page.clock.runFor(6000);
+    await expect.poll(() => server.statuses).toHaveLength(1);
+  });
+
   test("stopping an outlet waits for Undo, and an Undo sends nothing", async ({ page }) => {
     await page.clock.install();
     const server = await routeConfigServer(page);

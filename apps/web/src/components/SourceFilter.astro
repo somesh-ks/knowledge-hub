@@ -23,7 +23,15 @@ const shownChips = chips && formats.length > 1;
      on every page (2026-10-21). Any number of chips may be chosen and none means everything. The state
      is read and written by sourceFilter.ts from the rows' data-text and data-format.
      Whole static HTML without the script: the list simply stays unfiltered. */}
-<div class="source-filter" data-filter data-chips={shownChips ? "" : undefined} data-needs-js>
+{/* With chips the block sticks under the app bar (topics.css), so it pins the bar (SiteHeader.astro,
+     data-pins-bar): a bar that slid away and back moved the block by its height each time. */}
+<div
+  class="source-filter"
+  data-filter
+  data-chips={shownChips ? "" : undefined}
+  data-pins-bar={shownChips ? "" : undefined}
+  data-needs-js
+>
   <div class="filter-row">
     <div class="search-wrap filter-field">
       <label class="search-field">

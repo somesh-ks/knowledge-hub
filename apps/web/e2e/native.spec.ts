@@ -208,7 +208,7 @@ test.describe("the floating button", () => {
     await expect(playFab(page)).toBeHidden();
   });
 
-  test("the side column keeps New episode on every page, and no floating button shows", {
+  test("the side column keeps Catch up on every page, and no floating button shows", {
     tag: "@desktop",
   }, async ({ page }) => {
     for (const path of ["/", "/settings/daily", "/d/2026-10-05", "/e/ep-20261007-1930"]) {
@@ -218,7 +218,7 @@ test.describe("the floating button", () => {
     }
   });
 
-  test("on the Create page, New episode is the current place: it goes to the top and keeps what is typed", {
+  test("on the Create page, Catch up is the current place: it goes to the top and keeps what is typed", {
     tag: "@desktop",
   }, async ({ page }) => {
     // Short enough that the whole form does not fit, so there is somewhere to scroll.
