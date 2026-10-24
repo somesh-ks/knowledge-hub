@@ -109,17 +109,16 @@ export class LlmWriter implements Writer {
     items: readonly SourceMaterial[],
     feedback?: string,
     taste?: Taste,
+    airing: readonly string[] = [],
   ): Promise<WriteResult> {
     const results = await mapConcurrent(
       chunk(items, WRITER_BATCH_SIZE),
       WRITER_CONCURRENCY,
       (batch) =>
-        this.writeBatch(
-          batch,
-          feedback,
-          taste,
-          items.filter((item) => !batch.includes(item)).map((item) => item.title),
-        ),
+        this.writeBatch(batch, feedback, taste, [
+          ...airing,
+          ...items.filter((item) => !batch.includes(item)).map((item) => item.title),
+        ]),
     );
     return {
       written: results.flatMap((r) => r.written),

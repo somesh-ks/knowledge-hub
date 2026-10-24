@@ -170,9 +170,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
+| D161 | Publisher above the headline | active; amends D31 |
 | D167 | One shape per control; phone sheets | amends D72 |
 | D168 | Catch up, a bolt, swipe-away toasts | amends D52 |
-| D169 | Queue gestures; pinned bar; pill selects | amends D126 |
+| D169 | Queue gestures; pinned bar | amends D126 |
 | D170 | Modular podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 
@@ -1739,6 +1740,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
 
+## D161: a story's publisher sits above its headline
+
+- Date: 2026-10-23
+- Decision: in a briefing's story and an episode's highlight, the publisher's quiet link (muted, label size, its open-in-new glyph) is a line of its own above the headline, shortened only when wider than the column. The row under the text holds the Play chip and the story controls, on one line at every width.
+- Why: in one row with the chip (112px, sized for "Play again") and three 44px controls, the publisher kept about six letters at 360px and one at 320 for every name in the fixture (measured 2026-10-23). The owner chose the order a news list uses over a cut name or controls wrapping to an orphan line.
+- Rejected: the name cut with an ellipsis in the row (the owner's first call, 2026-10-22, before the measurement); dropping its glyph on a phone (about three letters more); a row that wraps (the orphan controls the owner had asked to remove).
+- Amends: D31's type rule that a quiet line goes under its title, never above it, for the publisher alone.
+- Revisit if: the chip and the controls narrow enough to hold a whole name beside them.
 ## D167: one control has one shape wherever it stands, and every list is a bottom sheet on a phone
 
 - Date: 2026-10-23 (the owner: "different types of drop-down and chips with different radius, that shouldn't be possible in a design system unless requested"; "some dropdowns have a blue flash on click on phones and not others"; "most of the drop downs on phone should be using a bottom sheet"; "the chevron optically aligns with the search bar")

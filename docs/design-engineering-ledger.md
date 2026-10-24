@@ -122,14 +122,15 @@ Ask, then what was built, then the decision. Values are as built.
 - **Tonal language** (D72, owner: "a real Google app"):
   - `surface-container` for the page's own controls.
   - `accent-container` for chosen or current.
-  - `accent-container-high` for actions that are not places, such as New episode (D86).
+  - `accent-container-high` for actions that are not places, such as the phone's floating New episode (D86); in dark it is blue-910, a lifted step like light's, never a fill (2026-10-23). In the rail New episode takes `surface-container` with accent ink, so beside the current row it is not a second selection (owner, 2026-10-22).
   - State layers: hover 8%, press 12% of the control's ink.
   - Pills for buttons, chips, select chips, select values, segmented controls and the search field, in a card as on the page, and for every select in a form (D169: the Create sheet, the Add panel, the multi-select; text fields keep 8px) (D167, 2026-10-23: "that shouldn't be possible in a design system"). For one day (2026-10-22) chips and select values in a card took the card's concentric radius; the owner reversed it on the phone. 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
   - Two weights, regular and medium; a test bans a third (D90).
   - Story and summary 16px at every width; headline 18 to 20px; meta 14px; section headings 22px regular; display at most 32px; reading leading 1.55 (D73).
-  - A quiet line goes under its title, never above it (D31).
+  - A quiet line goes under its title, never above it (D31); a story's publisher is the one exception, above its headline (D161).
+  - Summaries and highlight text take `on-surface-reading`, one ink step under the headline (light grey-750, dark grey-400): size and weight are fixed, so contrast lets the headline lead; AAA on the page, tested (2026-10-23).
   - `text-wrap: balance` on headings, kept working by `inline-block` rather than `nowrap` (D93).
 - **Spacing and shape.**
   - 4px base, nine steps from 0.25 to 6rem, each at least 25% larger than the last (test).
@@ -197,8 +198,8 @@ Ask, then what was built, then the decision. Values are as built.
   - Three `linear()` springs: settle (no overshoot), release (1.0062 peak), pop (1.0284 peak).
   - Press scale 0.97, enter 0.96.
 - **Reduced motion.**
-  - Movement tokens collapse to 0.01 ms; press, hover, state and theme keep their timing.
-  - The player becomes a fade (instant today, since the durations collapse too: gap 9), the spinner pulses, the floating button stays extended and the app bar never hides.
+  - Travel collapses: the distances to 0px, the enter scale to 1, the sheet and spring durations to 0.01 ms. Enter, exit and stagger keep their time, so every fade stays; a move written as a raw value gets a reduced-motion rule of its own (DD-003, 2026-10-23, `reducedMotion.spec.ts`).
+  - The player becomes a fade, the spinner pulses, the floating button stays extended and the app bar never hides.
 - **Micro-motion.**
   - Play and pause swap at 0.95 scale with a 3px blur.
   - A filter chip's check scales in while its label slides 8px.
@@ -335,6 +336,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Glyphs and art.**
   - The plus and the More dots were too thin. Now Phosphor bold, with More as three drawn circles of radius 20 (2026-10-10).
   - Icon swaps scale from 0.95, not 0.6 (2026-10-11 audit).
+  - The transport: previous and next take the skips' Phosphor regular outline at their size, so the four helpers are one family and Play the one fill (2026-10-22).
   - Latest is Phosphor FireSimple, rest and current: a plain outline with no inner lick, as "simple outline ones and not have inner details" asked (D133; built 2026-10-22 in `tokens/glyphs.json`).
   - Covers are `draggable="false"`, so a mouse flick closes the player instead of dragging an image (2026-10-10).
   - A cover that cannot load shows its palette, never the broken-image glyph (D93).
@@ -345,7 +347,9 @@ The craft that makes components hold still and answer clearly. Each was a report
   - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
   - The Generate bar's line shows only while the bar is really stuck (D87).
   - The section strip is opaque, so text never shows through under it (D88).
-  - List edges fade only where more content exists (`player.css:2087-2173`).
+  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22).
+  - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
+  - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
 - **Speech and status.**
   - One element speaks each message: a polite region, an alert region for errors, and a toast with no role (2026-10-10).
   - The live region stays quiet whenever a visible notice already speaks (D90).
@@ -354,12 +358,13 @@ The craft that makes components hold still and answer clearly. Each was a report
 ### Reading pages and the Library
 - **Hero.**
   - One filled action, which goes tonal while playing and shows the time left (D77, D88).
-  - One hero layout for any title length. The hero text fills the cover's height; a gap under it came from a `1fr` middle row with `align-self: end` actions, fixed with an 8rem cover (2026-10-12).
+  - One hero layout for any title length. The hero text fills the cover's height; a gap under it came from a `1fr` middle row with `align-self: end` actions, fixed with an 8rem cover (2026-10-12). On a phone the stacked cover is `clamp(8rem, 36vw, 10rem)`, never smaller than the wide layout's (2026-10-23).
   - Sections separated by space alone. Hairlines, where they exist, run inside the column (2026-10-08).
   - "Contents" sits beside the episode, sticky at the vertical centre (2026-10-08, 2026-10-12). "N min listen" went; Highlights replaced the script on the page (2026-10-08).
 - **Play chip.**
   - One width; Played shows Play again only under a mouse or focus (D106, #116).
   - Its state machine: idle, current, played, preparing, error, unavailable.
+- **A story.** The publisher above the headline, muted and whole (D161); under the text one row, the Play chip and the controls at its end, never wrapping (owner, 2026-10-22 and 2026-10-23). Every quiet line of facts takes one separator: a centred dot in a 12px box (`--meta-dot`, 2026-10-22).
 - **Library.**
   - A cover grid with one facts line per card (D78).
   - Search, filter and sort live in the address.
@@ -403,7 +408,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
-- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22).
+- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides and the chips its radius less that padding (2026-10-23).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
   - The action is called Catch up, the kind its episodes are filed under, on the floating button, the side column, the sheet's title and the Library's empty state; Latest's glyph is a bolt, not a flame (D168, 2026-10-23).
 - **Toast.** Swipes away sideways under a finger, springs back from a short drag, never undoes (D168, `Toaster.tsx`).
@@ -525,7 +530,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - `scale: 0.97` at `picker.css:134,164`, `multiselect.css:173,180`.
    - `scale: 0.6` at `primitives.css:679`.
    - Meanwhile the speed panel uses `--scale-enter` (0.96). Popovers enter at three different scales.
-2. **A forced-colours blind spot.** The allow-list regex `\bHighlight\b` does not match `HighlightText`, so `primitives.css:723` and `player.css:2189` pass unchecked.
+2. **A forced-colours blind spot.** Closed 2026-10-22: the check matches every system colour keyword whole and allows `HighlightText` and `ButtonBorder`.
 3. **Stale references.**
    - Four comments cite `pressText.test.ts`, which no longer exists; the rule lives in `styles.test.ts`.
    - `sheets.css:46` says the phone sheet's top corners are round, but `:119` sets `border-radius: 0`, per D106.
@@ -547,9 +552,8 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - Idle timeouts of 4000, 3000, 2000 and 200 ms.
    - Scroll thresholds of 64/12 px for the app bar and 48/8 px for the floating button.
 8. **Layout properties animated.**
-   - The floating button animates `max-width`, `margin` and `inset-block-end`; the briefing tabs animate `inset-block-start`. Transforms would avoid layout per frame.
-   - `will-change: transform` sits permanently on the scrubber thumb.
-9. **Reduced motion is zero, not gentler.** Durations collapse to 0.01 ms and cross-fades go with them; the spec says "fewer and gentler, not zero" (DD-003, open).
+   - The floating button animates `max-width`, `margin` and `inset-block-end`; transforms would avoid layout per frame. The briefing tabs now glide by `translate`, and the scrubber thumb has `will-change` only while dragged (2026-10-22).
+9. **Reduced motion is zero, not gentler.** Closed 2026-10-23: travel collapses and fades keep their time (section 3, Reduced motion).
 10. **Found by the chat pass.**
     - A stale comment still describes the removed `.daily-listbox` combobox (`primitives.css:468`).
     - The 36px Topics & sources tab was dropped from the 44px check instead of fixed, and "Add source" measures 121x36 (2026-10-09, 2026-10-13).
