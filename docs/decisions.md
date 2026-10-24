@@ -183,6 +183,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D172 | Store reads keep a copy | amends D149 |
 | D173 | Data off the deploy path | proposed |
 | D175 | Ruleset on `main` | amends D143 |
+| D176 | Structure phase 1 | amends D170 |
 
 ---
 
@@ -1872,3 +1873,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: each merge first updates its branch and waits for CI again (about 4 minutes, 15 with the browser suites); with several PRs open they merge one at a time. Rulesets on a private repository need GitHub Pro.
 - Rejected: requiring the `review` check (Dependabot's PRs merge without the label, and the review runs only when the label is added); required approvals (one owner cannot approve their own PR); signed commits (the engine's are unsigned); a person as a bypass actor (then the rule is a habit again).
 - Revisit if: a workflow starts pushing with a token that is not the Actions app's (it would need its own bypass), or merges queue up behind the strict check for longer than they save.
+
+## D176: the podcast structure, phase 1: the defaults are today's, counts are optional
+
+- Date: 2026-10-24 (the owner: "kick off multiple agents to get them all implemented")
+- Decision: `config/structure.json` (D170) is read by curate, the digest and the Catch up planner. A kind the file leaves out runs the code path it ran before, so nothing changes until the owner saves a kind. Daily and weekly start with no rundown and no close, since their narration never had either; Catch up starts with both. A block's count is optional, and absent means the engine's own allowance (three Top picks, five for a section with its own allowance), so the defaults copy no constant into the file. A structure holds 32 blocks, not twelve: each custom and general topic brings a section. A stored kind leaves out a section it does not list; a topic made later is added to every stored kind (`topic.upsert`), and `topic.scope` putting a topic in adds its block, while `skip_topics` still takes one out. A digest whose built-in sections read out of their fixed order keeps a `section_titles` snapshot, so the page and the narration read the owner's order. In Catch up a section the form picks still airs when the structure does not name it, after the named ones; Top picks, Trending and release news air only with their block.
+- Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a rundown, a close and a custom brief need something new there (the owner's call, asked 2026-10-24).
+- Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+

@@ -18,6 +18,7 @@ import {
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
 import { RELEASE_SECTION } from "../score/releaseNotes.js";
+import type { SectionPlan } from "../score/sectionPlan.js";
 import { allowanceFor, capFor, TOP_PICKS } from "../score/selectItems.js";
 import { type Linter, type ViolationRule, VOICE_FIELDS } from "../voice/lint.js";
 import { ungroundedNumbers } from "../write/spokenCheck.js";
@@ -91,6 +92,8 @@ export interface ValidateContext {
    * weekly 18); a briefing sized by the owner's length passes the digest's hard cap instead.
    */
   cap?: number;
+  /** The kind's structure (D170): its Top picks count and section allowances. Absent is the default. */
+  plan?: SectionPlan;
   linter: Linter;
 }
 
@@ -165,7 +168,7 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   }
   const titles = new Map(digestSections(digest).map((section) => [section.id, section.title]));
   for (const [section, count] of allowanceBySection) {
-    const allowance = allowanceFor(section);
+    const allowance = allowanceFor(section, context.plan);
     if (count <= allowance) continue;
     add(
       "error",
@@ -325,9 +328,10 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   const top = digest.items.filter((item) => item.section === "top").length;
   // Release stories are never Top picks (selectItems.ts), so a briefing of few others has fewer.
   const releases = digest.items.filter((item) => item.section === RELEASE_SECTION).length;
-  const expectedTop = Math.min(TOP_PICKS, mainCount - releases);
+  const picks = context.plan?.topPicks ?? TOP_PICKS;
+  const expectedTop = Math.min(picks, mainCount - releases);
   // A digest from before D39, when Launches was an ordinary section, kept three picks beside it.
-  if (top !== expectedTop && top !== Math.min(TOP_PICKS, mainCount)) {
+  if (top !== expectedTop && top !== Math.min(picks, mainCount)) {
     add("error", "top_size", `Top picks has ${top} items; it must have ${expectedTop}.`);
   }
 

@@ -124,6 +124,7 @@ const PUBLIC_PATHS = [
   "config/schedule.json",
   "config/preferences.json",
   "config/profiles/owner.json",
+  "config/structure.json",
 ] as const;
 
 /**

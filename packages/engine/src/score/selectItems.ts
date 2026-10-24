@@ -21,6 +21,7 @@ import {
   RELEASE_SECTION,
 } from "./releaseNotes.js";
 import { sameStoryRepeats } from "./sameStory.js";
+import { DEFAULT_SECTION_PLAN, DEFAULT_TOP_PICKS, type SectionPlan } from "./sectionPlan.js";
 import type { Candidate, ScoredItem, SelectedItem } from "./types.js";
 
 /**
@@ -45,8 +46,11 @@ export function outletOf(item: Pick<Item, "url" | "source_id">): string {
   }
 }
 
-/** Top picks: the highest-scoring items outside Tech releases, moved out of their home section. */
-export const TOP_PICKS = 3;
+/**
+ * Top picks: the highest-scoring items outside Tech releases, moved out of their home section.
+ * A briefing's structure may ask for another count (SectionPlan.topPicks).
+ */
+export const TOP_PICKS = DEFAULT_TOP_PICKS;
 
 export type DropReason =
   | "no_category"
@@ -66,7 +70,9 @@ export type DropReason =
   /** A patch release, or a release note beyond the briefing's share of them (releaseNotes.ts). */
   | "release_note"
   /** The same story as a better-ranked candidate, from another angle or another day (sameStory.ts). */
-  | "same_story";
+  | "same_story"
+  /** A candidate whose section the briefing's structure leaves out (config/structure.json, D170). */
+  | "not_in_structure";
 
 export interface DroppedItem {
   id: string;
@@ -103,6 +109,8 @@ export interface SelectInput {
   skipTopics?: readonly string[];
   /** Regenerate: keep only these categories, on top of skipTopics. Absent keeps every category. */
   onlyTopics?: readonly string[];
+  /** The briefing's structure: section order, Top picks and allowances. Absent is the default. */
+  plan?: SectionPlan;
 }
 
 export interface SelectResult {
@@ -132,9 +140,9 @@ export const TECH_ALLOWANCE = VOICE_LIMITS.items.techCap;
  */
 export const GENERAL_ALLOWANCE = 2;
 
-/** Items one section with an allowance of its own may hold. */
-export function allowanceFor(section: string): number {
-  return isGeneralTopicId(section) ? GENERAL_ALLOWANCE : TECH_ALLOWANCE;
+/** Items one section with an allowance of its own may hold, unless the structure says otherwise. */
+export function allowanceFor(section: string, plan: SectionPlan = DEFAULT_SECTION_PLAN): number {
+  return plan.limit(section) ?? (isGeneralTopicId(section) ? GENERAL_ALLOWANCE : TECH_ALLOWANCE);
 }
 
 /** True for a candidate that belongs in the Tech releases section. A tech video belongs in "watch". */
@@ -190,7 +198,10 @@ export function compareCandidates(
  * so with fewer than three other items there are fewer than three picks. Also used after later
  * stages drop items, so top picks always stay the best three that remain.
  */
-export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
+export function assignSections(
+  chosen: readonly Candidate[],
+  plan: SectionPlan = DEFAULT_SECTION_PLAN,
+): SelectedItem[] {
   const ranked = [...chosen].sort(compareCandidates);
   let picks = 0;
   const withSection: SelectedItem[] = ranked.map((candidate) => {
@@ -198,7 +209,7 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
     if (!hasOwnSection(candidate) && isReleaseStory(candidate)) {
       return { ...candidate, section: RELEASE_SECTION };
     }
-    const pick = !hasOwnSection(candidate) && picks < TOP_PICKS;
+    const pick = !hasOwnSection(candidate) && picks < plan.topPicks;
     if (pick) picks += 1;
     return { ...candidate, section: pick ? "top" : candidate.home };
   });
@@ -208,12 +219,16 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
   withSection.forEach((entry, index) => {
     if (!best.has(entry.section)) best.set(entry.section, index);
   });
+  // A stored structure sets the order outright; a section it does not list was left out earlier.
+  const listed = plan.order;
   const order = (section: string): number =>
-    section === RELEASE_SECTION
-      ? Number.MAX_SAFE_INTEGER
-      : isBuiltinSection(section)
-        ? SECTIONS.indexOf(section)
-        : SECTIONS.length + (best.get(section) ?? 0);
+    listed?.includes(section)
+      ? listed.indexOf(section)
+      : section === RELEASE_SECTION
+        ? Number.MAX_SAFE_INTEGER
+        : isBuiltinSection(section)
+          ? SECTIONS.indexOf(section)
+          : SECTIONS.length + (best.get(section) ?? 0);
   return withSection.sort((a, b) => {
     if (a.section !== b.section) return order(a.section) - order(b.section);
     return compareCandidates(a, b);
@@ -228,6 +243,7 @@ export function assignSections(chosen: readonly Candidate[]): SelectedItem[] {
 export function takeOwnSections(
   own: readonly Candidate[],
   room: number,
+  plan: SectionPlan = DEFAULT_SECTION_PLAN,
 ): { chosen: Candidate[]; over: Candidate[] } {
   const perSection = new Map<string, number>();
   const chosen: Candidate[] = [];
@@ -237,7 +253,7 @@ export function takeOwnSections(
   );
   for (const candidate of [...firsts, ...own.filter((c) => !firsts.includes(c))]) {
     const count = perSection.get(candidate.home) ?? 0;
-    if (count < allowanceFor(candidate.home) && chosen.length < room) {
+    if (count < allowanceFor(candidate.home, plan) && chosen.length < room) {
       chosen.push(candidate);
       perSection.set(candidate.home, count + 1);
     }
@@ -356,13 +372,17 @@ export function selectItems(input: SelectInput): SelectResult {
   // A briefing sized by the owner's length selects its spares too, so its total may pass the
   // digest's hard maximum; validation airs at most that many.
   const total = input.total ?? VOICE_LIMITS.items.hardMax;
+  const plan = input.plan ?? DEFAULT_SECTION_PLAN;
   const dropped: DroppedItem[] = [];
   const candidates: Candidate[] = [];
 
   for (const scored of input.scored) {
     const verdict = eligibility(scored, threshold, input.weights);
     if (verdict.eligible) {
-      if (
+      // Release news is filed by what a story is, not by its home, so it is checked once ranked.
+      if (!plan.includes(verdict.candidate.home)) {
+        dropped.push({ id: scored.item.id, reason: "not_in_structure", score: scored.score });
+      } else if (
         input.skipTopics?.includes(verdict.candidate.category) ||
         (input.onlyTopics && !input.onlyTopics.includes(verdict.candidate.category))
       ) {
@@ -413,6 +433,8 @@ export function selectItems(input: SelectInput): SelectResult {
     if (hasOwnSection(candidate)) continue;
     if (isReleaseNote(candidate.item) && isPatchRelease(candidate.item)) {
       dropped.push({ id: candidate.item.id, reason: "release_note", score: candidate.score });
+    } else if (isReleaseStory(candidate) && !plan.includes(RELEASE_SECTION)) {
+      dropped.push({ id: candidate.item.id, reason: "not_in_structure", score: candidate.score });
     } else main.push(candidate);
   }
   const own = ranked.filter(hasOwnSection);
@@ -424,10 +446,16 @@ export function selectItems(input: SelectInput): SelectResult {
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();
-  const releaseRoom = Math.max(1, Math.floor(limit * RELEASE_NOTE_SHARE));
+  const releaseRoom =
+    plan.limit(RELEASE_SECTION) ?? Math.max(1, Math.floor(limit * RELEASE_NOTE_SHARE));
   const releasesIn = (): number => [...chosen].filter(isReleaseStory).length;
+  // A section the structure gives a count holds at most that many, Top picks drawn from it included.
+  const roomIn = (candidate: Candidate): boolean => {
+    const most = isReleaseStory(candidate) ? null : plan.limit(candidate.home);
+    return most === null || (perSection.get(candidate.home) ?? 0) < most;
+  };
   const fits = (candidate: Candidate): boolean =>
-    !isReleaseStory(candidate) || releasesIn() < releaseRoom;
+    (!isReleaseStory(candidate) || releasesIn() < releaseRoom) && roomIn(candidate);
   const take = (candidate: Candidate): void => {
     chosen.add(candidate);
     perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
@@ -472,7 +500,7 @@ export function selectItems(input: SelectInput): SelectResult {
     }
   }
 
-  const ownTaken = takeOwnSections(own, total - chosen.size);
+  const ownTaken = takeOwnSections(own, total - chosen.size, plan);
   const chosenTech = ownTaken.chosen;
   if (chosen.size + chosenTech.length < input.floor) {
     return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
@@ -480,7 +508,12 @@ export function selectItems(input: SelectInput): SelectResult {
 
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
-      const reason = isReleaseStory(candidate) && !fits(candidate) ? "release_note" : "over_cap";
+      const reason =
+        isReleaseStory(candidate) && releasesIn() >= releaseRoom
+          ? "release_note"
+          : roomIn(candidate)
+            ? "over_cap"
+            : "over_section_cap";
       dropped.push({ id: candidate.item.id, reason, score: candidate.score });
     }
   }
@@ -493,7 +526,7 @@ export function selectItems(input: SelectInput): SelectResult {
   }
   return {
     outcome: "selected",
-    selected: assignSections([...chosen, ...chosenTech]),
+    selected: assignSections([...chosen, ...chosenTech], plan),
     dropped,
     qualifying: ranked.length,
   };

@@ -5,6 +5,8 @@ import {
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
+  StructureBlocks,
+  StructureKind,
   scheduleZone,
 } from "@dispatch/core";
 
@@ -413,6 +415,14 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       // The shape is core's (stops by factor), the same schema the engine applies the op with.
       const parsed = CoreConfigOp.safeParse(value);
       return parsed.success && parsed.data.op === value.op ? (value as ConfigOp) : null;
+    }
+    case "structure.set": {
+      // The blocks are core's (StructureBlocks, D170), the schema the engine applies the op with.
+      // Its parse keeps only the fields a block names, so an unknown key never reaches the store.
+      const kind = StructureKind.safeParse(value.kind);
+      const blocks = StructureBlocks.safeParse(value.blocks);
+      if (!kind.success || !blocks.success) return null;
+      return { op: "structure.set", kind: kind.data, blocks: blocks.data };
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

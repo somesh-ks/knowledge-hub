@@ -27,6 +27,8 @@ export function mergeNeighbours(turns: readonly ScriptTurn[]): ScriptTurn[] {
 export function fitToBudget(
   turns: readonly ScriptTurn[],
   budget: number,
+  /** Drop the close (the sign-off's story-less turns before it) before any story block. */
+  options: { closeFirst?: boolean } = {},
 ): { turns: ScriptTurn[]; dropped_stories: number } {
   const first = turns.findIndex((turn) => turn.item_id !== undefined);
   let last = -1;
@@ -49,6 +51,7 @@ export function fitToBudget(
   const total = (): number =>
     charCount(intro) + blocks.reduce((sum, block) => sum + charCount(block), 0) + charCount(outro);
   let dropped = 0;
+  if (options.closeFirst && total() > budget && outro.length > 1) outro = outro.slice(-1);
   while (total() > budget && blocks.length > 1) {
     blocks.pop();
     dropped += 1;

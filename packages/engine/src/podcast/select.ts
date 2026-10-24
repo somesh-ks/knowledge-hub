@@ -91,6 +91,8 @@ export async function selectStories(
   log?: Logger,
   /** The fewest stories that make a selection; 2 for an episode of briefing topics alone. */
   minStories = 2,
+  /** Whether a matching story may air: the Catch up structure leaves out what it has no block for. */
+  airs: (story: PodcastStory) => boolean = () => true,
 ): Promise<Selection> {
   const { request } = plan;
   const from = new Date(now.getTime() - request.window_days * DAY_MS);
@@ -121,8 +123,7 @@ export async function selectStories(
       for (const id of [item.section, item.category]) if (topics.has(id)) covered.add(id);
       const key = urlKey(item.url);
       if (seen.has(key)) continue;
-      seen.add(key);
-      matched.push({
+      const story: PodcastStory = {
         item_id: item.id,
         headline: item.headline,
         summary: item.summary,
@@ -130,7 +131,10 @@ export async function selectStories(
         url: item.url,
         section: item.section,
         category: item.category,
-      });
+      };
+      if (!airs(story)) continue;
+      seen.add(key);
+      matched.push(story);
     }
   }
   if (blockedCount > 0)

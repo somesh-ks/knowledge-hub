@@ -9,6 +9,7 @@ import {
   VOICE_LIMITS,
   zonedDate,
 } from "@dispatch/core";
+import { departsFromBuiltinOrder, type SectionPlan } from "../score/sectionPlan.js";
 import { assignSections } from "../score/selectItems.js";
 import type { SelectedItem } from "../score/types.js";
 import type { WrittenItem } from "../write/types.js";
@@ -54,6 +55,8 @@ export interface BuildDigestInput {
    * `section_titles` so the briefing keeps its headings if the topic is later renamed or removed.
    */
   sectionTitles?: Readonly<Record<string, string>>;
+  /** The kind's structure (D170): section order and Top picks. Absent is the default. */
+  plan?: SectionPlan;
 }
 
 /**
@@ -70,7 +73,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
     );
   }
 
-  const items: DigestItem[] = assignSections(survivors).map((sel) => {
+  const items: DigestItem[] = assignSections(survivors, input.plan).map((sel) => {
     const text = writtenById.get(sel.item.id) as WrittenItem;
     const item: DigestItem = {
       id: sel.item.id,
@@ -97,20 +100,21 @@ export function buildDigest(input: BuildDigestInput): Digest {
     return item;
   });
 
-  // Sections in reading order. The snapshot is written only when a custom section is in use, so a
-  // digest without one is byte for byte what it was before custom sections existed.
+  // Sections in reading order. The snapshot is written only when a custom section is in use or the
+  // structure reorders the built-in ones, so any other digest is byte for byte what it was before.
   const used: string[] = [];
   for (const item of items) if (!used.includes(item.section)) used.push(item.section);
-  const sectionTitles = used.some((section) => !isBuiltinSection(section))
-    ? Object.fromEntries(
-        used.map((section) => [
-          section,
-          isBuiltinSection(section)
-            ? SECTION_TITLES[section]
-            : (input.sectionTitles?.[section] ?? section),
-        ]),
-      )
-    : undefined;
+  const sectionTitles =
+    used.some((section) => !isBuiltinSection(section)) || departsFromBuiltinOrder(used)
+      ? Object.fromEntries(
+          used.map((section) => [
+            section,
+            isBuiltinSection(section)
+              ? SECTION_TITLES[section]
+              : (input.sectionTitles?.[section] ?? section),
+          ]),
+        )
+      : undefined;
 
   const id = input.allocateId({ date: zonedDate(input.now, input.zone), kind: input.kind });
   // The date is part of the id, so a pool fetched before midnight and rendered after it still agrees.

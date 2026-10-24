@@ -11,6 +11,7 @@ export const CONFIG_DOCUMENT_PATHS = [
   "config/queries.json",
   "config/preferences.json",
   "config/schedule.json",
+  "config/structure.json",
   "config/writer.json",
   "config/profiles/owner.json",
   // Suggested sources: topic.remove drops a removed topic's, so they live beside the topics.

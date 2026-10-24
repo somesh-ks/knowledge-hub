@@ -12,6 +12,7 @@ import {
   rateVital,
   ScheduleFile,
   SourcesUserFile,
+  StructureFile,
   TopicsFile,
   VITAL_DEVICES,
   VITAL_METRICS,
@@ -90,6 +91,7 @@ function message(error: unknown): string {
 const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/topics.json", (json) => TopicsFile.parse(json)],
   ["config/schedule.json", (json) => ScheduleFile.parse(json)],
+  ["config/structure.json", (json) => StructureFile.parse(json)],
   ["config/prices.json", (json) => PriceTable.parse(json)],
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
