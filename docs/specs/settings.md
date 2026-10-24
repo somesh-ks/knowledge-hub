@@ -33,7 +33,7 @@ Schedule, sources, preferences, voices, model, autosave and the edit gap, blocke
 - No model select: models follow `config/models.json` (engine spec).
 
 ### Autosave and the edit gap
-- Changes save themselves (`autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. No toast while saving or once saved. The toast is for a failure (reason and Retry), an Undo, or the time refused. A removal leaves the page at once; its request waits 5 s with Undo (D142). A 400 that names its op (`op_index`) drops only that change, kept for Retry; the rest goes in the next request.
+- Changes save themselves (`autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. The toast is only for a failure (reason, Retry), an Undo or the time refused. A removal leaves at once; its request waits 5 s with Undo (D142). A 400 naming its op (`op_index`) drops only that change.
 - Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with the rest in one request, also when the page is left: waiting edits are kept in storage, marked pending, for up to 90 s (D91).
 - Scenario: WHEN the held request fails THEN the open page shows "Not saved yet" with the reason and Retry, and the index says "Your last change was not saved." (D98). Elsewhere a toast names the page with Open (D99).
 - For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`dispatch:saved-edits`, D79, D115).
