@@ -65,13 +65,16 @@ export function collapseWhitespace(text: string): string {
   return stripHidden(text).replace(/\s+/g, " ").trim();
 }
 
-/** Tags removed until none are left, so "<<b>i>" cannot leave a "<i>" behind. */
+/**
+ * Tags removed innermost first until none are left: "<<b>i>" loses "<b>", then "<i>". `[^<>]` keeps
+ * each pass linear on a run of "<" with no ">".
+ */
 export function stripTags(html: string): string {
   let text = html;
   let previous: string;
   do {
     previous = text;
-    text = text.replace(/<[^>]*>/g, "");
+    text = text.replace(/<[^<>]*>/g, "");
   } while (text !== previous);
   return text;
 }

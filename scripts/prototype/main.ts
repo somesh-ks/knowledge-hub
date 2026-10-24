@@ -29,6 +29,7 @@ import {
   heroMarkup,
   miniMarkup,
   playerMarkup,
+  RATES,
   settingsMarkup,
   toastMarkup,
 } from "./views.js";
@@ -38,7 +39,6 @@ import {
 type PageState = "normal" | "offline" | "nothing" | "preparing" | "stale" | "error" | "empty";
 const THEMES = ["system", "light", "dark"] as const;
 type ThemePref = (typeof THEMES)[number];
-const RATES = [1, 1.25, 1.5, 2];
 
 interface Prefs {
   theme: ThemePref;
@@ -76,7 +76,7 @@ function loadPrefs(): Prefs {
 }
 
 function unitNumber(value: unknown): number | undefined {
-  return typeof value === "number" && value >= 0 && value <= 1 ? Number(value) : undefined;
+  return typeof value === "number" && value >= 0 && value <= 1 ? value : undefined;
 }
 
 function savePrefs(): void {

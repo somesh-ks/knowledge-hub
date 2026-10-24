@@ -233,11 +233,16 @@ const SPOKEN_ENTITIES: Record<string, string> = {
  */
 export function toSpeech(input: string): string {
   let out = input.normalize("NFC");
-  // One pass, so a decoded "&amp;lt;" stays the text "&lt;" instead of decoding twice.
-  out = out.replace(
-    /&(amp|quot|#0?39|lt|gt|nbsp);/gi,
-    (_, name: string) => SPOKEN_ENTITIES[name.toLowerCase().replace("#039", "#39")] ?? "",
-  );
+  // One table, repeated until nothing decodes: double-escaped feed text ("AT&amp;amp;T") still
+  // reads as "AT&T", and no entity is decoded by a replace that an earlier one fed.
+  let previous: string;
+  do {
+    previous = out;
+    out = out.replace(
+      /&(amp|quot|#0?39|lt|gt|nbsp);/gi,
+      (_, name: string) => SPOKEN_ENTITIES[name.toLowerCase().replace("#039", "#39")] ?? "",
+    );
+  } while (out !== previous);
   out = stripMarkdown(out);
   // Emoji and other astral characters are dropped so UTF-16 and code point offsets agree.
   out = out
