@@ -2,6 +2,7 @@
 import { digestSections } from "@singularity/core";
 import type { DigestEntry } from "../lib/digests";
 import { buildHero, buildSections } from "../lib/digestView";
+import { madeAt } from "../lib/format";
 import Briefing from "./Briefing.astro";
 import ChapterAside from "./ChapterAside.astro";
 import DigestHero from "./DigestHero.astro";
@@ -37,6 +38,7 @@ const hasAudio = entry.audioMode === "ready";
     selected={digestSections(entry.digest).map((section) => section.id)}
   />
   <Briefing sections={sections} hasAudio={hasAudio} />
+  <p class="meta page-made"><time datetime={entry.digest.generated_at}>{madeAt(entry.digest.generated_at)}</time></p>
   <EarlierList entries={earlier} />
   {/* The end of what the page shows. Once it is on screen the reader is at the end, and
        briefingPage.ts marks the last section, which may be too short to reach the reading line. */}
@@ -44,7 +46,7 @@ const hasAudio = entry.audioMode === "ready";
   <PlayerData data={entry.player} />
 </main>
 {/* After main in the document, as on the page: the contents column sits past the reading column. */}
-<ChapterAside sections={sections} />
+{sections.length > 1 && <ChapterAside sections={sections} />}
 
 <script>
   // Loaded on demand, so it stays one shared module. A script this small is otherwise inlined into

@@ -46,6 +46,7 @@ const facts = {
   /** A general news source can be rated; "" is unrated. */
   general: source.topic_ids.some((id) => isGeneralTopicId(id)),
   lean: source.lean === null ? "" : String(source.lean),
+  high_signal: source.high_signal,
 };
 ---
 

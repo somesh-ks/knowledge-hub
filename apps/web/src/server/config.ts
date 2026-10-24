@@ -24,6 +24,8 @@ export interface ServerEnv {
   VERCEL_OIDC_TOKEN?: string;
   /** Only /api/models reads these three, to list the models the Model picker offers. */
   ANTHROPIC_API_KEY?: string;
+  /** Only /api/costs reads it, for Anthropic's cost report (anthropicBilling.ts). */
+  ANTHROPIC_ADMIN_KEY?: string;
   /** What Vercel Cron sends as a bearer token to /api/cron/run. Unset, the route refuses every call. */
   CRON_SECRET?: string;
 }

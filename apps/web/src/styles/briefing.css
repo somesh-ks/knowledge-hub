@@ -24,7 +24,7 @@ html[data-has-tabs] {
    of air above it. The air alone marks a new section: there is no rule as well, so the hairlines on
    the page are the ones between stories. */
 .chapter > .section-head {
-  padding-block-start: var(--space-12);
+  padding-block: var(--space-12) var(--space-6);
 }
 
 /* The hairlines between stories start and end at the text column's edges. */
@@ -211,21 +211,6 @@ html[data-has-tabs] {
   line-height: var(--text-reading-leading);
 }
 
-/* Older briefings carry a separate line on why the story matters: a quiet note under the summary,
-   a size down and muted. Its label is set apart by ink alone, at the note's own weight, so the
-   note never outweighs the summary above it. */
-.story-why {
-  max-width: var(--layout-measure);
-  margin-block-start: var(--space-2);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-body);
-}
-
-.story-why-label {
-  color: var(--color-on-surface);
-}
-
 /* Play, then the story controls at the trailing edge. The chip hugs its label. One line on every
    width, so the controls keep one home in every story instead of wrapping to an orphan line (owner,
    2026-10-22). The publisher once sat between them, but the 112px chip and three 44px controls left
@@ -237,7 +222,8 @@ html[data-has-tabs] {
   gap: var(--space-2);
   min-width: 0;
   min-height: var(--size-touch);
-  margin-block-start: var(--space-2);
+  /* 16px under the summary, not 8: the row read as part of the text (owner, 2026-10-24). */
+  margin-block-start: var(--space-4);
 }
 
 .story-actions > .chip {
@@ -258,6 +244,13 @@ html[data-has-tabs] {
   margin-block: calc(var(--space-2) * -1);
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
+}
+
+/* Underlined words say it opens the source, with no glyph after them (owner, 2026-10-24). */
+.story-source > span {
+  text-decoration: underline;
+  text-decoration-thickness: var(--stroke-hairline);
+  text-underline-offset: 0.18em;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -292,4 +285,15 @@ html[data-offline] .story-actions > .chip {
   font-size: var(--text-heading-size);
   font-weight: var(--text-heading-weight);
   letter-spacing: var(--text-heading-tracking);
+}
+
+/* When the briefing or episode was written: a quiet line after the stories, with the air of a
+   section above it, and above the earlier briefings on a briefing page (owner, 2026-10-24). */
+.page-made {
+  padding-block: var(--space-12) var(--space-8);
+}
+
+/* Above the earlier briefings the shelf's own air sets the two apart, so the line adds none below. */
+.page-made:has(+ .earlier) {
+  padding-block-end: 0;
 }

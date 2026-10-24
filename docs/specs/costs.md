@@ -5,7 +5,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 ## Requirements
 
 ### Records
-- One `CostRecord` (`packages/core/src/costs.ts`) per provider and product in a run: `at`, `run_id`, `kind` (daily, weekly, catch_up, on_demand, narration_on_play, config), `timezone` (the edition's zone, the schedule's for a scheduled run), `user` ("owner" until there are more), `scope`, `stage`, `provider`, `product`, `units` by name, `usd`, and the flags `estimated` and `unpriced`. The id is run, kind, stage, provider, product and user, so recording a run twice keeps one record. A narration billing (each segment, a failed stream and its retry) adds a unique event part to the id, so none overwrites another. `/api/costs` is open (D160) with a 30 a minute limit counted across instances, per instance when the counter is down (D150).
+- One `CostRecord` (`packages/core/src/costs.ts`) per provider and product in a run: `at`, `run_id`, `kind` (daily, weekly, catch_up, on_demand, narration_on_play, config, outside_app), `timezone` (the edition's zone, the schedule's for a scheduled run), `user` ("owner" until there are more), `scope`, `stage`, `provider`, `product`, `units` by name, `usd`, and the flags `estimated` and `unpriced`. The id is run, kind, stage, provider, product and user, so recording a run twice keeps one record. A narration billing (each segment, a failed stream and its retry) adds a unique event part to the id, so none overwrites another. `/api/costs` is open (D160) with a 30 a minute limit counted across instances, per instance when the counter is down (D150).
 - Scope is the split behind cost per user. A scheduled edition (daily, weekly: fetch, judge, write, narration) is `shared`: everyone in its timezone hears it. An on-demand episode and narration on Play are `user`: they belong to whoever asked. Cost per user is their own records plus an even share of the shared records of their timezone (`costPerUser`); shared cost of a zone with no user is returned as unallocated, never dropped.
 - Prices live in `config/prices.json` only: per provider and product (`*` for any), a USD rate per N units, `as_of`, `confirmed` and a note. USD is units times that rate. A unit with no rate adds nothing and sets `unpriced`. Every entry is `confirmed: false` until the owner checks it against the provider's page; the Costs page says so in its note.
 
@@ -13,6 +13,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 - Measured from the response: Anthropic and Gemini input and output tokens (`llm/modelRouter.ts`, per resolved model id; `usageMetadata`), Speechify characters (the engine's `recordUsage`, what the monthly budget counts; the site's usage document, which charges ahead and pessimistically, so Play narration is marked `estimated`).
 - Counted by us: Jev and Exa requests (one each; Exa page contents are not billed here), Firecrawl credits (one per request; the response's credit use is not read, so `estimated`).
 - Alexandria (product `alexandria`): credits from the response (`creditsCost`); a call that does not report them, or fails, is counted at the capability's stated price and the record is `estimated`.
+- Billed (D183): with `ANTHROPIC_ADMIN_KEY` on Vercel, `/api/costs` reads Anthropic's cost report and adds each UTC day's billed total less the ledger's Anthropic records as one `outside_app` record ("Outside the app": the eval, local scripts). It counts no run. Without the key the page's note says that spend is not counted.
 - Not tracked: Vercel Blob operations, Vercel function time, GitHub Actions minutes, Exa contents, the podcast's Exa feed fetches.
 - A run's counts travel through `.cache/run/spend.json` (`requests` and `units`) and are priced once, at the commit stage (`recordRunCosts`), under the run's first pass kind. A dry run commits its record alone (`chore(costs): dry run`; another change in the tree refuses it). The episode eval (`episode-eval.yml`) records nothing. A ledger failure never fails a run.
 
@@ -32,5 +33,6 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 - `packages/engine/src/cost`
 - `packages/engine/src/commands/costs.ts`
 - `apps/web/src/server/costs.ts`
+- `apps/web/src/server/anthropicBilling.ts`
 - `apps/web/src/pages/analytics.astro`
 - `config/prices.json`

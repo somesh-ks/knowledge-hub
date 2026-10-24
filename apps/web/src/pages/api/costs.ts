@@ -1,6 +1,7 @@
 import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@singularity/core";
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
+import { anthropicBilledDays, outsideAppRecords } from "../../server/anthropicBilling";
 import { createVercelBlobStore, readFresh } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { contentCostRecords, contentPrices } from "../../server/contentSources";
@@ -9,8 +10,8 @@ import { recordingFaults, toResponse } from "../../server/http";
 import { parseState, usageKey } from "../../server/narrationState";
 import { sharedLimit } from "../../server/rateLimit";
 
-// Runs on demand: the report reads the engine's ledger from the content repository and the narrate
-// function's usage documents from Blob.
+// Runs on demand: the report reads the engine's ledger from the content repository, the narrate
+// function's usage documents from Blob and, with an Admin key, Anthropic's cost report.
 export const prerender = false;
 
 // The route is open on purpose (the site has no passphrase, D160) and each answer reads
@@ -55,6 +56,26 @@ async function siteRecords(
   }
 }
 
+/** Anthropic's bill beyond the ledger; "off" without an Admin key, null records when unreadable. */
+async function billingRecords(
+  days: number,
+  now: Date,
+  engine: CostRecord[],
+): Promise<{ state: "ok" | "unavailable" | "off"; records: CostRecord[] }> {
+  const adminKey = process.env.ANTHROPIC_ADMIN_KEY?.trim();
+  if (!adminKey) return { state: "off", records: [] };
+  // The report is by UTC day; a day more than the window covers its first local day.
+  const from = new Date(now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  const to = now.toISOString().slice(0, 10);
+  try {
+    const billed = await anthropicBilledDays(adminKey, from, to);
+    return { state: "ok", records: outsideAppRecords(billed, engine) };
+  } catch (error) {
+    log(`billing: ${error instanceof Error ? error.message : "unreadable"}`);
+    return { state: "unavailable", records: [] };
+  }
+}
+
 const get: APIRoute = async ({ request, url }) => {
   if (!(await sharedLimit("costs", REPORTS_PER_MINUTE))) {
     return toResponse({
@@ -76,11 +97,13 @@ const get: APIRoute = async ({ request, url }) => {
     siteRecords(request, query.days, now, prices),
     contentCostRecords(),
   ]);
+  const billing = await billingRecords(query.days, now, engine);
   return toResponse({
     status: 200,
     body: {
-      ...costBody(query, { engine, site: site ?? [], prices, now }),
+      ...costBody(query, { engine, site: [...(site ?? []), ...billing.records], prices, now }),
       site: site ? "ok" : "unavailable",
+      billing: billing.state,
     },
   });
 };
