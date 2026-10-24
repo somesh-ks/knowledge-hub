@@ -198,7 +198,7 @@ without it. Baseline: `loop/results/iteration-0.md`, 2 of 14 rows pass (both "un
 
 ### Blocker
 
-No model key in this environment (`NEBIUS_API_KEY`/`DISPATCH_MODEL` for the writer,
+No model key in this environment (`SINGULARITY_MODEL` for the writer,
 `ANTHROPIC_API_KEY` for the judge). Without the writer no fixture can be turned into a new episode,
 so no iteration can be scored: the loop has not started. Asked the owner (2026-10-15).
 

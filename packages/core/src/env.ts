@@ -23,6 +23,7 @@ export const Env = z.object({
   /** Neon Postgres holding the owner's config (D149). Unset, the committed files are the config. */
   DATABASE_URL: optionalString,
   /** "postgres" switches the config store on (D149); the URL alone never does. */
+  SINGULARITY_CONFIG_STORE: optionalString,
   DISPATCH_CONFIG_STORE: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */
@@ -35,8 +36,12 @@ const VERCEL_PLACEHOLDER = "[SENSITIVE]";
 
 /** Parse the process environment. Empty strings and Vercel's pull placeholder count as unset. */
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
+  const merged = {
+    ...source,
+    SINGULARITY_CONFIG_STORE: source.SINGULARITY_CONFIG_STORE ?? source.DISPATCH_CONFIG_STORE,
+  };
   const cleaned = Object.fromEntries(
-    Object.entries(source).filter(
+    Object.entries(merged).filter(
       ([, value]) => value !== undefined && value !== "" && value !== VERCEL_PLACEHOLDER,
     ),
   );

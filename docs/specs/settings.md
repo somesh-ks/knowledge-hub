@@ -1,6 +1,6 @@
 # Settings
 
-Schedule, sources, preferences, voices, model, autosave and the edit gap, blocked outlets. What it does now. Reasons: D45 to D132 (the Index); history: docs/history/.
+Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reasons: D45 to D132; history: docs/history/.
 
 ## Requirements
 

@@ -538,7 +538,7 @@ describe("dispatch learn --commit", () => {
         return [{ written: 1 }];
       },
     };
-    const env = { DATABASE_URL: "postgres://fake", DISPATCH_CONFIG_STORE: "postgres" };
+    const env = { DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" };
     const withStore = async (extra: string[]) => {
       const { ctx } = makeContext(repo.root, { env, json: false });
       const run = makeLearn({ connectConfigStore: async () => sql });

@@ -52,8 +52,8 @@ jobs:
           # stored under the name the site looks for. Unset reads as the default second voice.
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
-          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
-          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
         run: |
           # With the long-lived Blob token the engine needs nothing from Vercel: the pull below (which
           # also needs a working VERCEL_TOKEN, and failed with "User not found" while that secret was

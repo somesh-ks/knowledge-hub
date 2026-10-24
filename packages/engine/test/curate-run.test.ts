@@ -23,7 +23,7 @@ import {
 } from "./curate-helpers.js";
 import { COVER, makeFixture } from "./render-factories.js";
 
-const ENV = { NEBIUS_API_KEY: "nb-secret-0123456789abcdef", DISPATCH_MODEL: "Qwen/Qwen3-32B" };
+const ENV = { SINGULARITY_MODEL: "Qwen/Qwen3-32B" };
 const FETCH_WINDOW = { from: "2026-10-01T05:13:00Z", to: "2026-10-06T05:13:00Z" };
 
 let tr: TestRoot;

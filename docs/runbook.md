@@ -40,7 +40,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
-| `DISPATCH_GIT_NAME`, `DISPATCH_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
+| `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
@@ -63,7 +63,7 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
 2. Set Root Directory to `apps/web`. Leave "Include source files outside of the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
 3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
-4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `dispatch-bot`, and Hobby blocks those deploys.
+4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `dispatch-bot`, and Hobby blocks those deploys.
 
 ### 1.5 Create the Blob store
 
@@ -304,7 +304,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 ### 8.5 The site did not update
 
 1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
-2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
+2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
 3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `dispatch health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short.
 4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
 5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
@@ -357,26 +357,26 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 
 ## 11. The config store (D149)
 
-Off by default. With it on, a settings edit is saved to Neon Postgres and shows on every device within about a second, with no workflow and no rebuild; each briefing's commit keeps a copy in git. It is on only where `DISPATCH_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
+Off by default. With it on, a settings edit is saved to Neon Postgres and shows on every device within about a second, with no workflow and no rebuild; each briefing's commit keeps a copy in git. It is on only where `SINGULARITY_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
 
 ### 11.1 Switch on
 
-1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `DISPATCH_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
+1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `SINGULARITY_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
 2. GitHub secret `DATABASE_URL`: the Neon connection string (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string). Settings → Secrets and variables → Actions → New repository secret, or `npm run secrets:push -- --only github` from `.env`.
 3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run dispatch -- config seed --dry-run` and `npm run dispatch -- config seed`.
-4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `DISPATCH_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
+4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `SINGULARITY_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
 5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
-6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `DISPATCH_CONFIG_STORE` = `postgres`.
-7. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too. On 2026-10-23 it was not: the Neon integration was connected with the `NEON_` prefix (`NEON_DATABASE_URL` and friends), which nothing reads, so the store and the shared rate counter (D150) have never run in production. Either set the integration's prefix to none (Storage → the Neon database → Settings) or add `DATABASE_URL` by hand with the pooled connection string.
+6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `SINGULARITY_CONFIG_STORE` = `postgres`.
+7. Vercel: Project → Settings → Environment Variables → `SINGULARITY_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too. On 2026-10-23 it was not: the Neon integration was connected with the `NEON_` prefix (`NEON_DATABASE_URL` and friends), which nothing reads, so the store and the shared rate counter (D150) have never run in production. Either set the integration's prefix to none (Storage → the Neon database → Settings) or add `DATABASE_URL` by hand with the pooled connection string.
 8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
 9. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
 
 ### 11.2 Switch off
 
-1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `DISPATCH_CONFIG_STORE=postgres` in `.env`, `npm run dispatch -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run dispatch -- config commit --message "snapshot from the store"` commits and pushes them.
-2. Vercel: delete `DISPATCH_CONFIG_STORE`, then redeploy. The pages stop asking, `GET /api/config` answers 405 and an edit goes through `config.yml` again.
-3. GitHub: delete the `DISPATCH_CONFIG_STORE` variable. Runs read the committed files again. The secret and the table can stay; nothing reads them while the switch is off.
-4. Remove `DISPATCH_CONFIG_STORE` from `.env`.
+1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env`, `npm run dispatch -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run dispatch -- config commit --message "snapshot from the store"` commits and pushes them.
+2. Vercel: delete `SINGULARITY_CONFIG_STORE`, then redeploy. The pages stop asking, `GET /api/config` answers 405 and an edit goes through `config.yml` again.
+3. GitHub: delete the `SINGULARITY_CONFIG_STORE` variable. Runs read the committed files again. The secret and the table can stay; nothing reads them while the switch is off.
+4. Remove `SINGULARITY_CONFIG_STORE` from `.env`.
 
 If the database is down while the store is on, nothing breaks: pages show the build's copy, runs use the last commit's files, and an edit answers "unavailable" and stays pending on the page.
 
