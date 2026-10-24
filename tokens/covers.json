@@ -11,10 +11,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(38% 0.09 262)"
+        "$value": "oklch(38% 0.126 262)"
       },
       "accent": {
-        "$value": "oklch(88% 0.1 95)"
+        "$value": "oklch(88% 0.14 95)"
       },
       "text": {
         "$value": "oklch(97% 0.012 100)"
@@ -29,10 +29,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(95.5% 0.015 85)"
+        "$value": "oklch(95.5% 0.021 85)"
       },
       "accent": {
-        "$value": "oklch(52% 0.11 28)"
+        "$value": "oklch(52% 0.154 28)"
       },
       "text": {
         "$value": "oklch(20% 0.02 40)"
@@ -47,10 +47,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(17% 0.015 265)"
+        "$value": "oklch(17% 0.021 265)"
       },
       "accent": {
-        "$value": "oklch(68% 0.11 35)"
+        "$value": "oklch(68% 0.154 35)"
       },
       "text": {
         "$value": "oklch(96% 0.01 85)"
@@ -65,10 +65,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(32% 0.08 280)"
+        "$value": "oklch(32% 0.112 280)"
       },
       "accent": {
-        "$value": "oklch(86% 0.07 190)"
+        "$value": "oklch(86% 0.098 190)"
       },
       "text": {
         "$value": "oklch(97% 0.01 200)"
@@ -83,10 +83,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(88% 0.075 120)"
+        "$value": "oklch(88% 0.105 120)"
       },
       "accent": {
-        "$value": "oklch(32% 0.07 155)"
+        "$value": "oklch(32% 0.098 155)"
       },
       "text": {
         "$value": "oklch(22% 0.05 155)"
@@ -101,10 +101,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(34% 0.07 160)"
+        "$value": "oklch(34% 0.098 160)"
       },
       "accent": {
-        "$value": "oklch(80% 0.085 68)"
+        "$value": "oklch(80% 0.119 68)"
       },
       "text": {
         "$value": "oklch(97% 0.012 100)"
@@ -119,10 +119,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(77% 0.095 78)"
+        "$value": "oklch(77% 0.133 78)"
       },
       "accent": {
-        "$value": "oklch(28% 0.07 265)"
+        "$value": "oklch(28% 0.098 265)"
       },
       "text": {
         "$value": "oklch(20% 0.05 265)"
@@ -137,10 +137,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(15% 0.02 270)"
+        "$value": "oklch(15% 0.028 270)"
       },
       "accent": {
-        "$value": "oklch(86% 0.085 88)"
+        "$value": "oklch(86% 0.119 88)"
       },
       "text": {
         "$value": "oklch(97% 0.01 90)"
@@ -155,10 +155,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(94% 0.03 330)"
+        "$value": "oklch(94% 0.042 330)"
       },
       "accent": {
-        "$value": "oklch(44% 0.11 305)"
+        "$value": "oklch(44% 0.154 305)"
       },
       "text": {
         "$value": "oklch(24% 0.06 305)"
@@ -173,10 +173,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(61% 0.1 32)"
+        "$value": "oklch(61% 0.14 32)"
       },
       "accent": {
-        "$value": "oklch(17% 0.02 30)"
+        "$value": "oklch(17% 0.028 30)"
       },
       "text": {
         "$value": "oklch(15% 0.02 30)"
@@ -191,10 +191,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(84% 0.06 232)"
+        "$value": "oklch(84% 0.084 232)"
       },
       "accent": {
-        "$value": "oklch(28% 0.07 262)"
+        "$value": "oklch(28% 0.098 262)"
       },
       "text": {
         "$value": "oklch(22% 0.06 265)"
@@ -209,10 +209,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(34% 0.09 300)"
+        "$value": "oklch(34% 0.126 300)"
       },
       "accent": {
-        "$value": "oklch(76% 0.1 50)"
+        "$value": "oklch(76% 0.14 50)"
       },
       "text": {
         "$value": "oklch(97% 0.01 330)"
@@ -227,10 +227,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(96% 0.008 90)"
+        "$value": "oklch(96% 0.011 90)"
       },
       "accent": {
-        "$value": "oklch(17% 0.01 260)"
+        "$value": "oklch(17% 0.014 260)"
       },
       "text": {
         "$value": "oklch(17% 0.01 260)"
@@ -245,10 +245,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(15% 0.01 260)"
+        "$value": "oklch(15% 0.014 260)"
       },
       "accent": {
-        "$value": "oklch(95% 0.012 90)"
+        "$value": "oklch(95% 0.017 90)"
       },
       "text": {
         "$value": "oklch(95% 0.012 90)"
@@ -263,10 +263,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(46% 0.1 262)"
+        "$value": "oklch(46% 0.14 262)"
       },
       "accent": {
-        "$value": "oklch(90% 0.07 20)"
+        "$value": "oklch(90% 0.098 20)"
       },
       "text": {
         "$value": "oklch(98% 0.01 262)"
@@ -281,10 +281,10 @@
         }
       },
       "ground": {
-        "$value": "oklch(38% 0.06 215)"
+        "$value": "oklch(38% 0.084 215)"
       },
       "accent": {
-        "$value": "oklch(94% 0.04 100)"
+        "$value": "oklch(94% 0.056 100)"
       },
       "text": {
         "$value": "oklch(96% 0.02 100)"

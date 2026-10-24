@@ -26,8 +26,8 @@ test("the total keeps its label across every breakdown, and the chart and breakd
 test.describe("when the costs cannot be fetched", () => {
   test.use({ allowNetworkErrors: true });
 
-  // A failed refetch left the last range's chart and breakdown under the failure, and offered a
-  // table of them (audit, 2026-10-24). The next good answer must bring them back.
+  // A failed refetch left the last range's chart and breakdown under the failure, and still offered
+  // the switch to a table of them (audit, 2026-10-24). The next good answer must bring them back.
   test("nothing of the last range stays under a failed refetch, and the next answer draws again", async ({
     page,
   }) => {
@@ -36,6 +36,7 @@ test.describe("when the costs cannot be fetched", () => {
     const plot = page.locator("[data-costs-plot]");
     const breakdown = page.locator("[data-costs-rank]");
     const table = page.locator("[data-costs-table]");
+    const views = page.locator("[data-costs-view]");
     await expect(page.locator(".costs-mark")).toHaveCount(2);
 
     let fail = true;
@@ -48,6 +49,7 @@ test.describe("when the costs cannot be fetched", () => {
     await expect(plot).toBeHidden();
     await expect(breakdown).toBeHidden();
     await expect(table).toBeHidden();
+    await expect(views).toBeHidden();
 
     // Back to days, which the frozen report's buckets are.
     fail = false;
@@ -55,6 +57,6 @@ test.describe("when the costs cannot be fetched", () => {
     await expect(plot).toBeVisible();
     await expect(page.locator(".costs-mark")).toHaveCount(2);
     await expect(breakdown).toBeVisible();
-    await expect(table).toBeVisible();
+    await expect(views).toBeVisible();
   });
 });

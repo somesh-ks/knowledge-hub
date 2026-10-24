@@ -5,6 +5,8 @@
  * tooltip, not in stacked colours (2026-10-22). Plain DOM and inline SVG, no framework and no chart
  * library: the numbers are one fetch, and this page loads nothing else.
  */
+import { mountSegmentedNav } from "./segmentedNav";
+
 interface Rollup {
   usd: number;
   runs: number;
@@ -523,10 +525,11 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   const empty = data.report.total.usd === 0;
   drawn = { buckets, period, by, data };
   active = -1;
-  // A failed fetch hid the chart and the breakdown's head (load); a good answer shows them again
-  // before the chart measures its box. The breakdown and the table decide their own below.
+  // A failed fetch hid the chart, the breakdown's head and the view switch (load); a good answer
+  // shows them again before the chart measures its box. The breakdown and the table decide their
+  // own below.
   for (const part of document.querySelectorAll<HTMLElement>(
-    "[data-costs-plot], [data-costs-rank-head]",
+    "[data-costs-plot], [data-costs-rank-head], [data-costs-view]",
   ))
     part.hidden = false;
   renderAnswer(data, period);
@@ -549,6 +552,8 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   }
   const blank = pick<HTMLElement>("[data-costs-empty]");
   if (blank) blank.hidden = !empty;
+  // With nothing to show, the chart panel and its note stand in for the table too (costs.css).
+  pick<HTMLElement>("[data-costs]")?.toggleAttribute("data-empty", empty);
   renderBreakdown(data, by);
   renderTable(drawn);
   const table = pick<HTMLElement>("[data-costs-table]");
@@ -562,9 +567,9 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
 
 // ---- loading -------------------------------------------------------------------------------
 
-/** What a failed fetch hides. */
+/** What a failed fetch hides: the chart, the breakdown, the table and the switch between them. */
 const FAILED_PARTS =
-  "[data-costs-plot], [data-costs-rank-head], [data-costs-rank], [data-costs-table]";
+  "[data-costs-plot], [data-costs-rank-head], [data-costs-rank], [data-costs-table], [data-costs-view]";
 
 let asked = 0;
 
@@ -601,4 +606,12 @@ for (const select of document.querySelectorAll("#costs-range, #costs-by")) {
   select.addEventListener("change", () => void load());
 }
 wireChart();
+// Chart or table: the switch at the end of the filter row sets the card's view (costs.css).
+const viewSwitch = pick<HTMLElement>("[data-costs-view]");
+const costsCard = pick<HTMLElement>("[data-costs]");
+if (viewSwitch && costsCard) {
+  mountSegmentedNav(viewSwitch, (value) => {
+    costsCard.dataset.view = value;
+  });
+}
 void load();

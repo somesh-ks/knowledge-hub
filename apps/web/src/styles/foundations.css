@@ -157,6 +157,13 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* A select or an input draws its own press and open states, so it loses the flash too; a text
+     field keeps its selection and double tap (2026-10-23: a select flashed blue on a phone where the
+     button beside it did not). */
+  :where(select, input) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* In-app navigation does not open the system's link sheet on a long press (app.ts also stops the
      context menu in an installed app). External story links keep it, so they stay copyable. */
   :where(

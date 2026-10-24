@@ -12,7 +12,7 @@ Sources:
 
 Each fact links to its decision rather than restating it; if this file and a decision disagree, the decision wins. A date in brackets, such as (2026-10-08), marks an ask that lives only in a chat.
 
-**For an agent starting UI work:** read section 1 (taste), section 2 (how to work), then the surface you are touching in section 3. Check section 8 before you build something the owner may already have asked for.
+**For an agent starting UI work:** read section 1 (taste), section 2 (how to work), section 11 (the phone), then the surface you are touching in section 3. Check section 8 before you build something the owner may already have asked for.
 
 **For enriching the design-engineering skill:** section 10 lists each lesson with its target skill, whether the skill already covers it, and the rule text to add.
 
@@ -124,7 +124,7 @@ Ask, then what was built, then the decision. Values are as built.
   - `accent-container` for chosen or current.
   - `accent-container-high` for actions that are not places, such as the phone's floating New episode (D86); in dark it is blue-910, a lifted step like light's, never a fill (2026-10-23). In the rail New episode takes `surface-container` with accent ink, so beside the current row it is not a second selection (owner, 2026-10-22).
   - State layers: hover 8%, press 12% of the control's ink. A chip on a card hovers at half that in light (`--card-chip-hover`): the full layer took a white chip to L 94 on the card's L 95 and it melted in (owner, 2026-10-24).
-  - Pills for buttons and chips on the page; inside a card they take its concentric radius (the owner chose this over pills everywhere, 2026-10-22). 12px rows, outlines only on text fields (3:1, D54).
+  - Pills for buttons, chips, select chips, select values, segmented controls and the search field, in a card as on the page, and for every select in a form (D169: the Create sheet, the Add panel, the multi-select; text fields keep 8px) (D167, 2026-10-23: "that shouldn't be possible in a design system"). For one day (2026-10-22) chips and select values in a card took the card's concentric radius; the owner reversed it on the phone. 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
   - Two weights, regular and medium; a test bans a third (D90).
@@ -321,6 +321,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - The model field is a plain select, never a combobox. Its list has Top and All groups; the switch deleted 640 lines (2026-10-13, `primitives.css:487`).
   - A searchable picker is placed once, so it closes on any scroll (capture, passive) and takes its `transform-origin` from the trigger's centre (`picker.ts:198`, `:315`). In forced colours its search field keeps a system border (`picker.css:109`).
   - The cadence select clipped "Every second day"; fields are sized to their longest value (2026-10-09).
+  - Under 40rem every list that opens from a field is a bottom sheet (D167): a select's drawn list through `::picker(select)` in CSS alone, the searchable picker (`picker.ts` sets `data-sheet`), the multi-select (fixed in place, its card lifted over the navigation bar). The scrim is a spread of the sheet's shadow where the list has no usable backdrop. A select and an input have no tap highlight (`foundations.css`).
 - **Press, hover and focus.**
   - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
   - A segmented control's chosen item takes a full outline or container, never only a bottom border: the Gallery and List switch "shows only a bottom border" (2026-10-09).
@@ -380,7 +381,8 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Two levels, one job per page, a breadcrumb title, autosave (D51).
   - Rows hover as rounded tiles clear of the hairlines.
   - A row's value sits at its end, not under its name, which read as squeezed; summaries are short ("Every other day at 7", a source count) and rows with nothing to say have no line; podcast topic chips go by name; an unticked chip in a card has its own tone, as dark mode's raised tone equalled the card (2026-10-22).
-  - Cards and what they hold are concentric, radius = card radius less the gap: 24, 16 (8px in), 8 (16px in), 4 (a pill inside an 8px track). Circles and capsules keep their shape. Measured on every Settings page, all within 1px (`component.card`, 2026-10-22).
+  - A card's row tiles and buttons are concentric with it, radius = card radius less the gap: 24, 16 (8px in), 8 (16px in). Chips, select chips, select values and segmented controls keep their pill inside a card (D167; on 2026-10-22 they too were concentric, measured within 1px with `component.card`).
+  - A Sources row and a source row sit 16px in, the search field's own padding, so the emoji and the chevron line up with the field's glyph and clear button (owner, 2026-10-23); the chevron was pulled out to the edge before (`topics.css .row-action`, `.source-row`).
   - One left text edge, roomier cards: "the padding around the list menus in settings page and other pages must be spacious and the text elements must be horizontally aligned to the left to have optical cleannes" (owner, 2026-10-22). The title, group heads and notes outside a card start the card's padding in, so they share the rows' edge (`settings.css`, any `.settings-view` or `.manage` holding a `.card-group` or Change log entry). The card's words went from 16 to 24px in, its tiles and select fills from 8 to 16px in on every side (the card adds 8px above and below, each tile takes 8px inside its 64px row), so the radii became 32, 16 (16px in), 8 (24px in). Rows keep 64px. Measured at 390 and 1280px on Settings, Daily, Weekly, Preferences, About, Privacy, Sounds, Voice, Change log, Costs and Blocked sources: one edge, 0px spread (16px before). Sources and a topic page have no `.card-group` and lead with an icon, which holds the edge (`primitives.css .card-group`, `component.card`). On Blocked sources the field's label, its words and its error take the same edge, its outline hanging out as a card's does (`blocked.css`). A topic page's Listen in line is pulled out by the card's padding, its select and the source tiles sit one inset in at the tile radius (`topics.css`). The owner kept it (2026-10-23): a Settings title sits 24px further in than Library's and Latest's, so it moves between tabs; one edge within a page wins.
   - The score is a star and a number (D103).
   - The edit source panel uses token spacing, with "Scorecard" on the left and "x.x/5" on the right, and an empty state (#122).
@@ -406,8 +408,15 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
-- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides and the chips its radius less that padding (2026-10-23).
+- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides (2026-10-23). A failed fetch hides the chart, breakdown, table and their switch until the next good answer (2026-10-24).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
+  - The action is called Catch up, the kind its episodes are filed under, on the floating button, the side column, the sheet's title and the Library's empty state; Latest's glyph is a bolt, not a flame (D168, 2026-10-23).
+- **Toast.** Swipes away sideways under a finger, springs back from a short drag, never undoes (D168, `Toaster.tsx`).
+- **Queue (Up next).** No handle, no cross: a row moves by the browser's drag and drop (long press or mouse pull), swipes left to leave, and its dots open the header's menu with Move up, Move down, Remove (D169). The Stories and Up next switch keeps the segmented look on a phone, in a sticky bar.
+- **App bar on a page with a sticky block.** Pinned (`data-pins-bar`): it no longer slides away and back under a topic's search and chips (D169).
+- **Section tabs.** 16px each side, the indicator under the words (D169: "placed too close to each other").
+- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169).
+- **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D171: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
 ### Sound
 - **Engine.**
@@ -446,6 +455,9 @@ The craft that makes components hold still and answer clearly. Each was a report
 | Time zone removed, then asked back | D89, D100 | Do not remove a control the owner asked for to simplify; ask first. |
 | Format and second voice removed, then back | D91, D100 | A control that does not act yet is still wanted when it states intent. |
 | Bar chevron added, then removed | D85, D102 | The whole bar is the control; extra affordances read as clutter. |
+| Chips and select values concentric in a card, then pills again a day later | 2026-10-22, D167 |
+| Covers capped at chroma 0.12 on pale paper, then a step of colour eight days later | D121, D171 | "Too saturated" and "very dull" are both judged in a grid on the phone; keep the contact sheet in the loop and move in steps. |
+| The player's tab line on a phone, then the segmented control everywhere | 2026-10-21, D169 | One control, one look at every width; a phone variant of a control is a second component. | A radius rule that gives one control two shapes reads as two components; judge it on the phone, not in a measurement. |
 | Source names as links, then plain text | D69, D83 | One element, one job: the row opens the editor. |
 | Saved toast and "Live in about a minute" line, then silence | D79, D115 | Truthful status the owner did not ask to see is noise. |
 | General audience and its preset Undo, then retired | D67, D87, D114 | A mode one person never uses is cost, not choice. |
@@ -469,6 +481,9 @@ Each answers a bug that cost real time here. Reuse them in any web app; the skil
 | Problem | Mechanism | Where |
 | :--- | :--- | :--- |
 | A designed page transition never ran; a 330 ms default crossfade did | Astro's swap keeps only fixed root attributes. Copy custom `data-*` onto `event.newDocument.documentElement` in `astro:before-swap` | `scripts/navigation.ts:77` |
+| A select's drawn list cannot have a styled backdrop (lightningcss fails the build on `::picker(select)::backdrop`), and a popover's backdrop lets taps through anyway | Draw the sheet's scrim as a second shadow layer, `0 0 0 100vmax var(--color-scrim)`; a list that is no popover (the multi-select) does the same and its card rises to `--z-sheet` while open | `primitives.css` (the phone `::picker` block), `multiselect.css`, `topics.css` |
+| A list placed by script (left, top, width) must become a bottom sheet on a phone | The script sets `data-sheet`, clears its inline style and returns before measuring; CSS under 40rem places the sheet | `scripts/picker.ts` `place()`, `picker.css` |
+| A toast must swipe away but never undo, and its buttons must keep their presses | Pointer capture on the toast, not on a mouse and not from a button; `translate` follows the finger with transitions off (`[data-dragging]`); past 35% or 0.6 px/ms it slides on and the store dismisses, else the inline translate is cleared and the transition springs it back | `sheets/Toaster.tsx`, `sheets.css` |
 | View-transition snapshots cost two frames per move | A one-shot `startViewTransition` stand-in, WeakSet-branded, that swaps at once and marks the new document | `scripts/navigationBoost.ts:66` |
 | First press froze 285 ms | `new AudioContext()` took 221 ms inside `pointerdown`. Create it on the first `pointerdown` or `keydown` and queue the first cue | `player/sound/soundController.ts:81` |
 | iOS audio stayed locked | `pointerdown` is not an activation for audio; also listen to `pointerup`, `touchend` and `click` | `packages/sound/src/engine.ts:373` |
@@ -542,6 +557,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
 10. **Found by the chat pass.**
     - A stale comment still describes the removed `.daily-listbox` combobox (`primitives.css:468`).
     - The 36px Topics & sources tab was dropped from the 44px check instead of fixed, and "Add source" measures 121x36 (2026-10-09, 2026-10-13).
+11. **Four sheet mechanisms for one look** (2026-10-23). The More menu and the picker are popovers placed by CSS; a select's list is a `::picker(select)` popover; the multi-select is a fixed element inside its card, which must be lifted to `--z-sheet` while it is open and gets its scrim from a shadow. One `Sheet` primitive (gap 6, idea 3 in section 9) would retire the lift and the two scrim hacks. A tap on any sheet's scrim still reaches the page under it.
 
 ## 8. Owner asks with no record of being done
 
@@ -646,6 +662,21 @@ The rule text is written to paste, project-neutral. Coverage was judged by keywo
 
 ### Gaps in the audit skill
 `web-craft-audit` has no checks for layout shift, `[hidden]` overrides, unseen open states, or a duplicated timeline. Add them to its signals once rules 2, 6, 10 and 17 land.
+
+## 11. Phone patterns
+
+Read before any UI that a phone shows (the default: every browser test runs on the phone first). Each is a rule the owner set or confirmed; the date or decision is where it came from.
+
+1. **Lists open as bottom sheets, never as popovers** (D167). Under 40rem a select's drawn list, the searchable picker, the multi-select and the More menu are sheets: the raised surface, the sheet radius on the top corners only, a scrim, a slide up in 300 ms and down in 220 (`--duration-sheet-*`, `--ease-drawer`), at most 70dvh tall, padding that clears the safe area at the bottom. A tap outside closes; where the sheet has a head, a pull closes it (`heroMenu.ts`). A popover's backdrop lets a tap through to the page, so a scrim never hides a control a reader could press by accident on the way out.
+2. **Marks trail, identity leads.** A check, a chevron or a checkbox sits at the end of a row; an emoji, a favicon or a letter tile leads it (2026-10-23, the Listen in sheet). In a sheet the words come first and the check last, as a phone's own lists do.
+3. **One control, one shape** (D167). Chips, select chips, select values, segmented controls and the search field are pills on every page and in every card; form text fields are 8px; a card's row tiles and buttons are concentric with the card. A control that looks different in one place is a bug, not a variant.
+4. **Edges line up with the search field.** A row that shares a column with the search field sits its emoji and its chevron 16px in, the field's own padding, so they line up with the field's glyph and its clear button (2026-10-23).
+5. **No tap flash, every control shows its own press.** `foundations.css` clears the highlight on buttons, links that act, labels, selects and inputs; the press is a state layer (8% hover, 12% press) on the control's own fill. A flash on one control and not its neighbour is the first thing the owner sees.
+6. **Targets.** 44px for every control, 48 for a field, 56 for a one-line row, 64 to 72 for two lines; a 36px chip gets its target from an `::after`. A sticky bar never covers a target at rest (`a11y.spec.ts`, axe).
+7. **The thumb's reach.** Every row's actions live in a dots menu at its end (a bottom sheet on a phone), never in a row of icon buttons. The one primary action floats bottom-end and folds to its glyph while reading; the navigation is a bottom bar; a toast sits above the bar and the docked player; sheets rise from the bottom; the app bar carries only Back and the wordmark. Nothing a reader needs often sits at the top.
+8. **Swipe and pull.** A toast swipes away sideways (a dismissal, never an Undo: `Toaster.tsx`); a queue row swipes left to leave and moves by a long press (the browser's drag and drop, the one way a long press lifts a row while the list still scrolls); a menu sheet pulls closed; the player pulls down. A short gesture springs back to the same box, and a browser test compares the box to itself, never to a number.
+9. **Nothing moves under a finger.** A field grows on focus only with a fine pointer; the picker does not focus its search on a coarse pointer, so the keyboard never covers the list; inputs are 16px so iOS never zooms; fixed elements are held by their bottom edge, so the address bar moves them in one frame.
+10. **Widths.** Under 40rem is a phone (sheets, one column, the bottom bar); under 64rem there is no side column (the floating action, the sticky search). Test at 390 by 844 (Pixel 7) and 1280 by 800, light and dark, and screenshot every open state before a PR.
 
 ## Keeping this file
 

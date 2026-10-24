@@ -140,7 +140,10 @@ test.describe("service worker", () => {
     test("shows the offline page for a briefing it has never opened", async ({ page, context }) => {
       await page.goto("/");
       await page.evaluate(() => navigator.serviceWorker.ready);
+      // The worker stores the islands' stylesheets as the page fetches them at idle: going offline
+      // before that left the offline page unable to preload one (a race seen on a slow runner).
       await page.reload();
+      await page.waitForLoadState("networkidle");
       await context.setOffline(true);
       await page.goto("/d/2026-10-04-weekly");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are offline");
