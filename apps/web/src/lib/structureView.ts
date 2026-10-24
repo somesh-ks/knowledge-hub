@@ -259,7 +259,22 @@ export function moved(
 // ------------------------------------------------------------------------------------- markup
 
 const escapeHtml = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
+ * The kind as it goes into an id, read from a table rather than written through: the editor's kind
+ * comes from the address, and markup takes only text this file wrote.
+ */
+const KIND_ID: Record<StructureKind, string> = {
+  daily: "daily",
+  weekly: "weekly",
+  catch_up: "catch-up",
+};
 
 const icon = (name: IconName): string =>
   `<svg class="icon" viewBox="${ICON_VIEW_BOX}" aria-hidden="true" focusable="false"><path d="${ICON_PATHS[name]}"></path></svg>`;
@@ -300,7 +315,7 @@ export function rowsHtml(
             : `<button class="icon-btn press structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
         return `<li class="settings-row structure-row" data-index="${index}" data-frame>${text}${edit}</li>`;
       }
-      const menu = `structure-menu-${kind}-${index}`;
+      const menu = `structure-menu-${KIND_ID[kind]}-${Number(index)}`;
       return [
         `<li class="settings-row structure-row" data-index="${index}" draggable="true"${off ? " data-off" : ""}>`,
         text,

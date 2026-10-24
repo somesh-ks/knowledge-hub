@@ -39,6 +39,13 @@ import { sheetGestures } from "./pullDismiss";
 
 const KINDS: readonly StructureKind[] = ["daily", "weekly", "catch_up"];
 
+/**
+ * A kind as one of the literals, never the address's or a control's own text, so nothing typed
+ * into the URL or the page reaches the rows' markup.
+ */
+const kindOf = (value: string | null): StructureKind =>
+  value === "weekly" ? "weekly" : value === "catch_up" ? "catch_up" : "daily";
+
 /** A block as the page holds it, with the defaults a stored op may leave out filled in. */
 function normal(block: StructureBlock): StructureBlock {
   if (block.type === "section" || block.type === "top_picks")
@@ -161,7 +168,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   // ------------------------------------------------------------------------------- drawing
 
   const chosen = new URLSearchParams(location.search).get("kind");
-  let kind: StructureKind = KINDS.find((each) => each === chosen) ?? "daily";
+  let kind: StructureKind = kindOf(chosen);
   for (const input of pane.querySelectorAll<HTMLInputElement>('input[name="structure-kind"]'))
     input.checked = input.value === kind;
 
@@ -237,7 +244,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   pane.addEventListener("change", (event) => {
     const input = event.target as HTMLInputElement;
     if (input.name !== "structure-kind" || !input.checked) return;
-    kind = input.value as StructureKind;
+    kind = kindOf(input.value);
     render();
     const url = new URL(location.href);
     if (kind === "daily") url.searchParams.delete("kind");
