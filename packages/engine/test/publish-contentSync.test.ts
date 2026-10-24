@@ -14,7 +14,8 @@ import {
  * The content store (D173) is what the site will read instead of its build. The bugs it prevents:
  * a removed briefing left in the store, so the site keeps serving it; every file re-sent on every
  * run; and a sync that fails half way writing a manifest that claims files it never sent, so the
- * next sync skips them for good.
+ * next sync skips them for good; and Analytics stuck at the last deploy because the cost ledger
+ * never reached the store.
  */
 
 const NOW = new Date("2026-10-24T12:00:00Z");
@@ -64,4 +65,12 @@ it("leaves the old manifest when an upload fails, so the next sync sends the fil
   expect(blob.store.has(CONTENT_MANIFEST_KEY)).toBe(true);
 
   expect((await sync()).uploaded).toEqual(["Digests/2026/10/2026-10-22.md"]);
+});
+
+it("mirrors the cost ledger and its price table, and no other engine state", async () => {
+  await writeRepoFile(temp.root, "state/costs-2026-10.json", "{}");
+  await writeRepoFile(temp.root, "config/prices.json", "{}");
+  await writeRepoFile(temp.root, "state/seen.json", "{}");
+
+  expect((await sync()).uploaded).toEqual(["config/prices.json", "state/costs-2026-10.json"]);
 });

@@ -1,5 +1,12 @@
-import { audioTimelineRelPath, digestRelPath } from "@dispatch/core";
+import {
+  audioTimelineRelPath,
+  CostFile,
+  type CostRecord,
+  digestRelPath,
+  PriceTable,
+} from "@dispatch/core";
 import { type ContentRepoDeps, loadStoreFiles } from "./contentRepo";
+import { bundledCostRecords, bundledPrices } from "./costSource";
 import { bundledDigestIds, bundledDigests } from "./digestSource";
 import { bundledEpisodeIds, bundledEpisodes } from "./episodeSource";
 import type { DigestSource, EpisodeBundle } from "./narrate";
@@ -10,7 +17,8 @@ import type { DigestSource, EpisodeBundle } from "./narrate";
  * answer (not configured, unreachable), a read falls back to this build's bundled copy, which is
  * what the routes read before. When it answers, it is the only answer: a deleted briefing is gone.
  *
- * The schedule is still the build's (config/, D149 moves it).
+ * The cost report reads the engine's ledger and price table the same way. The schedule is still
+ * the build's (config/, D149 moves it).
  */
 
 const runtime = (): ContentRepoDeps => ({ env: process.env, fetch, now: Date.now });
@@ -102,4 +110,38 @@ export async function contentDigestKind(
 ): Promise<string | null> {
   const text = await contentDigests(deps).readDigest(id);
   return text ? (/^kind:\s*(\S+)/m.exec(text)?.[1] ?? null) : null;
+}
+
+/** The engine's cost ledger, every month of it. */
+export async function contentCostRecords(
+  deps: () => ContentRepoDeps = runtime,
+): Promise<CostRecord[]> {
+  const paths = await storeList("state", deps());
+  if (paths === undefined) return bundledCostRecords();
+  const ledgers = paths.filter((path) => /\/costs-\d{4}-\d{2}\.json$/.test(path));
+  const texts = await Promise.all(ledgers.map((path) => storeRead(path, deps())));
+  return texts.flatMap((text) => {
+    if (typeof text !== "string") return [];
+    try {
+      const parsed = CostFile.safeParse(JSON.parse(text));
+      return parsed.success ? parsed.data.records : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** The price table the cost report uses, or null when there is none that parses. */
+export async function contentPrices(
+  deps: () => ContentRepoDeps = runtime,
+): Promise<PriceTable | null> {
+  const text = await storeRead("config/prices.json", deps());
+  // A store synced before the table was mirrored has none yet: the build's copy stands in.
+  if (text == null) return bundledPrices();
+  try {
+    const parsed = PriceTable.safeParse(JSON.parse(text));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
 }

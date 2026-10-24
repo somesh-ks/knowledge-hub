@@ -1,6 +1,7 @@
 import { beforeEach, expect, it } from "vitest";
 import { resetContentRepo } from "./contentRepo";
 import {
+  contentCostRecords,
   contentDigestIds,
   contentDigests,
   contentEpisodeIds,
@@ -13,7 +14,8 @@ import { bundledDigestIds } from "./digestSource";
  * The bugs this prevents: Play on a briefing newer than the last deploy answering "not found"
  * because the route read only its bundle, an episode written in a later month than its id not
  * found, a deleted briefing still playing from the bundle, and a store outage stopping Play on
- * briefings the build already holds.
+ * briefings the build already holds; and Analytics missing the engine's costs since the last
+ * deploy, because the cost report read its bundle.
  */
 
 const ENV = { BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_teststore1_0123456789abcdef" };
@@ -60,4 +62,27 @@ it("falls back to the build's briefings when the store cannot answer", async () 
   expect(await contentDigestIds(deps())).toEqual(bundledDigestIds());
   resetContentRepo();
   expect(await contentDigestIds(deps({}))).toEqual(bundledDigestIds());
+});
+
+it("reports engine costs the build does not have from the store's ledger", async () => {
+  const record = {
+    id: "r1",
+    at: "2031-01-02T05:00:00Z",
+    run_id: "2031-01-02",
+    kind: "daily",
+    timezone: "Europe/Stockholm",
+    user: "owner",
+    scope: "shared",
+    stage: "write",
+    provider: "anthropic",
+    product: "claude-sonnet-5-5",
+    units: { input_tokens: 10 },
+    usd: 0.5,
+  };
+  const ledger = "state/costs-2031-01.json";
+  store.set(`content/${ledger}`, JSON.stringify({ version: 1, records: [record] }));
+  const files = { [NEW_DIGEST]: "h", [ledger]: "h" };
+  store.set("content/manifest.json", JSON.stringify({ version: 1, updated_at: "y", files }));
+
+  expect((await contentCostRecords(deps())).map((each) => each.id)).toEqual(["r1"]);
 });
