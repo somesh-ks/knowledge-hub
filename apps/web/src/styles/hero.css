@@ -87,7 +87,7 @@
   content: "";
   position: absolute;
   inset-inline: 0;
-  inset-block: calc(var(--space-1) / -2);
+  inset-block: calc((var(--size-touch) - 100%) / -2);
 }
 
 /*
