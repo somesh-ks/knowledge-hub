@@ -82,6 +82,19 @@ describe("storeChanges: the stored config as edits over the built page (D149)", 
     ]);
   });
 
+  // The bug: the Create panel kept the built voice after one was chosen for it in Settings, because
+  // the read passed on its format and length only.
+  it("passes on the Create panel's voices", () => {
+    const custom = { ...DEFAULT_SCHEDULE.custom, voice_id: "ada", voice_id_b: "leo" };
+    const { ops } = storeChanges(built, {
+      "config/schedule.json": JSON.stringify({ ...DEFAULT_SCHEDULE, custom }),
+    });
+    expect(ops).toContainEqual({
+      op: "schedule.set",
+      custom: { voice_id: "ada", voice_id_b: "leo" },
+    });
+  });
+
   // The bug: a chip that stands for several topics takes a scope edit only when one op covers all of
   // them, and the changes alone (here just the second topic) never did.
   it("sends a changed scope list whole, so a chip of several topics reads it", () => {

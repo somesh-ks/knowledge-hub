@@ -16,6 +16,7 @@ import {
   type FieldValues,
   parseSaved,
   type SourceSpot,
+  savedChips,
   savedControl,
   savedFields,
   savedOps,
@@ -175,6 +176,9 @@ export function overlayPodcast(
     if (value !== undefined) setControl(control, value);
   }
   const { removedTopics } = savedTopics(ops);
+  // A topic added or renamed since the build: its chip, ticked or not by the scope loop below.
+  const list = root.querySelector<HTMLElement>("[data-scope-chips]");
+  if (list && overlayChips(list, ops, undefined, true).length > 0) shown = true;
   for (const box of root.querySelectorAll<HTMLInputElement>("input[data-scope]")) {
     const ids = (box.dataset.scopeIds ?? "").split(" ").filter(Boolean);
     // A topic removed since the build has no chip: the editor never sends a scope for it.
@@ -192,6 +196,120 @@ export function overlayPodcast(
   }
   if (shown) markSaved(root);
   return shown;
+}
+
+// ------------------------------------------------------------------------------- topic chip lists
+
+/**
+ * A list of topic chips (a checkbox in a label, the topic's words in its span) with the saved edits
+ * laid over it: a removed topic's chip goes, a renamed one says its new name, and a topic the build
+ * did not have gets a chip like the others. The list names every topic the build knew in
+ * data-built-topics. A chip that goes is disabled too, so the form never sends it.
+ *
+ * A chip names its topics in data-ids (Create) or data-scope-ids (Daily, Weekly). On Daily and
+ * Weekly a chip is a switch, so a chip out of the podcast stays (unticked) and a new topic's chip
+ * starts ticked, as a new topic plays; `podcast` says so. Returns the chips it added.
+ */
+export function overlayChips(
+  list: HTMLElement,
+  ops: readonly ConfigOp[] = readSaved(),
+  scope?: "daily" | "weekly" | "custom",
+  podcast = false,
+): HTMLInputElement[] {
+  const labels = [...list.querySelectorAll<HTMLLabelElement>("label")].filter((label) =>
+    label.querySelector("input"),
+  );
+  const chipOf = (label: HTMLLabelElement) => {
+    const input = label.querySelector("input") as HTMLInputElement;
+    const ids = (input.dataset.ids ?? input.dataset.scopeIds ?? input.value)
+      .split(" ")
+      .filter(Boolean);
+    return {
+      value: podcast ? ids.join(" ") : input.value,
+      ids,
+      label: label.querySelector("span")?.textContent ?? "",
+    };
+  };
+  const built = new Set((list.dataset.builtTopics ?? "").split(" ").filter(Boolean));
+  const changes = savedChips(labels.map(chipOf), built, ops, podcast ? undefined : scope);
+  for (const label of labels) {
+    const { value } = chipOf(label);
+    const input = label.querySelector("input") as HTMLInputElement;
+    if (!podcast && changes.hide.has(value)) {
+      input.checked = false;
+      input.disabled = true;
+      label.hidden = true;
+    }
+    const name = changes.rename.get(value);
+    const words = label.querySelector("span");
+    if (name && words) words.textContent = name;
+  }
+  const model = labels.at(-1);
+  const added: HTMLInputElement[] = [];
+  for (const chip of changes.add) {
+    if (!model) break;
+    const label = model.cloneNode(true) as HTMLLabelElement;
+    const input = label.querySelector("input") as HTMLInputElement;
+    if (podcast) input.dataset.scopeIds = chip.ids.join(" ");
+    else {
+      input.value = chip.value;
+      input.dataset.ids = chip.ids.join(" ");
+    }
+    input.checked = input.defaultChecked = podcast;
+    input.disabled = false;
+    delete input.dataset.gone;
+    label.hidden = false;
+    const words = label.querySelector("span");
+    if (words) words.textContent = chip.label;
+    model.parentElement?.append(label);
+    added.push(input);
+  }
+  return added;
+}
+
+/**
+ * The Create panel: its starting format, length and voices, and its topic chips, as saved in
+ * Settings (schedule.set custom, D69) rather than as built. A control the reader has already
+ * changed keeps their choice. True when anything changed.
+ */
+export function overlayCreate(
+  form: HTMLFormElement,
+  ops: readonly ConfigOp[] = readSaved(),
+): boolean {
+  const radios = (name: string) => [
+    ...form.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${name}"]`),
+  ];
+  const builtRadio = (name: string) => radios(name).find((radio) => radio.defaultChecked)?.value;
+  const selects = [...form.querySelectorAll<HTMLSelectElement>("select[name]")];
+  // The voice list can have been filled already, so the built voice is read from data-saved.
+  const builtSelect = (select: HTMLSelectElement) => select.dataset.saved ?? "";
+  const baked: FieldValues = {};
+  for (const name of ["format", "length"]) {
+    const value = builtRadio(name);
+    if (value !== undefined) baked[`custom.${name}`] = value;
+  }
+  for (const select of selects)
+    if (select.name === "voice" || select.name === "voice_b")
+      baked[`custom.${select.name}`] = builtSelect(select);
+  const saved = savedFields(baked, ops);
+  let changed = false;
+  for (const [key, value] of Object.entries(saved)) {
+    const name = key.slice("custom.".length);
+    const select = selects.find((each) => each.name === name);
+    if (select) {
+      if (select.value !== baked[key]) continue;
+      setControl(select, value);
+      changed = true;
+      continue;
+    }
+    const group = radios(name);
+    if (group.find((radio) => radio.checked)?.value !== baked[key]) continue;
+    for (const radio of group) setControl(radio, value);
+    changed = true;
+  }
+  const chips = form.querySelector<HTMLElement>("[data-built-topics]");
+  if (chips) overlayChips(chips, ops, "custom");
+  return changed;
 }
 
 // -------------------------------------------------------------------------------------- topic pages
