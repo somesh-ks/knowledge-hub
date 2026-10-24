@@ -514,6 +514,15 @@ export function mountEditor(root: HTMLElement): Editor {
     autosave.now();
   };
 
+  // The picker's code and list start loading on intent (a pointer over or down on the emoji
+  // button, or its focus), so they are in by the tap (owner, 2026-10-24: the list was late).
+  const warmEmoji = (): void =>
+    void import("./emojiPicker").then((module) => module.preloadEmoji());
+  for (const type of ["pointerenter", "pointerdown", "focus"])
+    root
+      .querySelector("[data-change-emoji]")
+      ?.addEventListener(type, warmEmoji, { once: true, passive: true });
+
   /** The emoji button: opens the picker (emojiPicker.ts, loaded now). */
   const changeEmoji = (button: HTMLElement): void => {
     const name = document.getElementById("page-title")?.textContent ?? "";
