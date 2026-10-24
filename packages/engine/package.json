@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./audio": "./src/audio/index.ts",
+    "./concurrency": "./src/llm/concurrency.ts",
     "./config-paths": "./src/store/configPaths.ts",
     "./config-store": "./src/config/applyDocuments.ts",
     "./neon": "./src/store/neon.ts",
@@ -14,6 +15,7 @@
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts",
     "./vitals-store": "./src/store/vitalsStore.ts",
+    "./share-store": "./src/store/shareStore.ts",
     "./faults-store": "./src/store/faultsStore.ts"
   },
   "bin": {

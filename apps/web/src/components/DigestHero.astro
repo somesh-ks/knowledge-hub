@@ -1,6 +1,7 @@
 ---
 import type { DigestEntry } from "../lib/digests";
 import type { HeroView } from "../lib/digestView";
+import { sharedTarget } from "../lib/share";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
 import HeroMenu from "./HeroMenu.astro";
@@ -9,16 +10,18 @@ import PlayCta from "./PlayCta.astro";
 interface Props {
   entry: DigestEntry;
   hero: HeroView;
+  /** Set on a shared page (D153): no More menu, and Share sends the shared link on. */
+  shareToken?: string;
 }
 
-const { entry, hero } = Astro.props;
+const { entry, hero, shareToken } = Astro.props;
 // The day and the month stay on one line: a narrow title wraps "Monday / 5 October", never
 // "Monday 5 / October".
 const title = hero.title.replace(/(\d+) /, "$1 ");
 ---
 
 {/* The briefing header (hero.css): the cover and the More menu, the date with its facts under it,
-     then Play. */}
+     then Play and Share. */}
 <header class="hero">
   <AmbientLight cover={entry.digest} />
   <Cover
@@ -32,10 +35,15 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
     <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
     <p class="meta hero-facts">{hero.meta.map((part) => <span>{part}</span>)}</p>
   </div>
-  <HeroMenu
-    sharePath={`/d/${entry.id}`}
-    briefingId={entry.id}
-    deletable={entry.digest.kind === "on-demand"}
+  {
+    !shareToken && (
+      <HeroMenu briefingId={entry.id} deletable={entry.digest.kind === "on-demand"} />
+    )
+  }
+  <PlayCta
+    digestId={entry.id}
+    mode={entry.audioMode}
+    length={hero.length}
+    share={sharedTarget(entry.id, "briefing", shareToken)}
   />
-  <PlayCta digestId={entry.id} mode={entry.audioMode} length={hero.length} />
 </header>

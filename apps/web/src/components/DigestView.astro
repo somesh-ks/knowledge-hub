@@ -3,6 +3,7 @@ import { digestSections } from "@singularity/core";
 import type { DigestEntry } from "../lib/digests";
 import { buildHero, buildSections } from "../lib/digestView";
 import { madeAt } from "../lib/format";
+import { sharedPlayer } from "../lib/share";
 import Briefing from "./Briefing.astro";
 import ChapterAside from "./ChapterAside.astro";
 import DigestHero from "./DigestHero.astro";
@@ -16,9 +17,11 @@ interface Props {
   earlier: DigestEntry[];
   /** True for the latest briefing, which the navigation marks as Today. */
   isLatest: boolean;
+  /** Set on a shared page, /s/<token> (D153): no owner actions, and Play goes through the link. */
+  shareToken?: string;
 }
 
-const { entry, earlier, isLatest } = Astro.props;
+const { entry, earlier, isLatest, shareToken } = Astro.props;
 const sections = buildSections(entry);
 const hero = buildHero(entry, entry.player.title);
 const hasAudio = entry.audioMode === "ready";
@@ -30,20 +33,26 @@ const hasAudio = entry.audioMode === "ready";
   data-digest-id={entry.id}
   data-digest-date={entry.digest.date}
   data-latest={isLatest ? "true" : "false"}
+  data-shared={shareToken ? "" : undefined}
 >
-  <DigestHero entry={entry} hero={hero} />
-  <EpisodeActions
-    id={entry.id}
-    noun="briefing"
-    selected={digestSections(entry.digest).map((section) => section.id)}
-  />
+  <DigestHero entry={entry} hero={hero} shareToken={shareToken} />
+  {
+    !shareToken && (
+      <EpisodeActions
+        id={entry.id}
+        noun="briefing"
+        selected={digestSections(entry.digest).map((section) => section.id)}
+      />
+    )
+  }
   <Briefing sections={sections} hasAudio={hasAudio} />
   <p class="meta page-made"><time datetime={entry.digest.generated_at}>{madeAt(entry.digest.generated_at)}</time></p>
-  <EarlierList entries={earlier} />
+  {/* Not on a shared page: its cards lead to the owner's own pages, where a stranger's presses count. */}
+  {!shareToken && <EarlierList entries={earlier} />}
   {/* The end of what the page shows. Once it is on screen the reader is at the end, and
        briefingPage.ts marks the last section, which may be too short to reach the reading line. */}
   <div data-page-end></div>
-  <PlayerData data={entry.player} />
+  <PlayerData data={sharedPlayer(entry.player, shareToken)} />
 </main>
 {/* After main in the document, as on the page: the contents column sits past the reading column. */}
 {sections.length > 1 && <ChapterAside sections={sections} />}
