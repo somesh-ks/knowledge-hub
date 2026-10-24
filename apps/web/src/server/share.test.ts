@@ -1,5 +1,5 @@
-import type { SqlClient } from "@singularity/engine/config-paths";
 import { PGlite } from "@electric-sql/pglite";
+import type { SqlClient } from "@singularity/engine/config-paths";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import type { NarrateLookupResponse } from "../types/contracts";
 import type { BlobEntry } from "./blobStore";
