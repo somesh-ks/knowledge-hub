@@ -1,4 +1,4 @@
-import { type DigestKind, PODCAST_CHARS_PER_MINUTE, type ScheduleFile } from "@dispatch/core";
+import type { DigestKind, ScheduleFile } from "@dispatch/core";
 import type { RunMode } from "../gate/decideRun.js";
 
 /**
@@ -9,12 +9,19 @@ import type { RunMode } from "../gate/decideRun.js";
 export const STORY_CHARS = 364;
 
 /**
+ * Narration characters in a minute of a briefing: the four briefings narrated 2026-10-18 to
+ * 10-24 ran 1,057 to 1,073 (`text_chars` over `duration_ms` in their `.audio.json`). Sized at
+ * the podcast's 968, a full five-minute briefing aired about 4.5 minutes.
+ */
+export const BRIEFING_CHARS_PER_MINUTE = 1066;
+
+/**
  * How many stories, in every section together, fill a briefing of this many minutes at the
  * narration's measured pace. Never fewer than the floor below which nothing publishes, never more
  * than the digest's hard cap.
  */
 export function storiesForMinutes(minutes: number, floor: number, hardMax: number): number {
-  const stories = Math.round((minutes * PODCAST_CHARS_PER_MINUTE) / STORY_CHARS);
+  const stories = Math.round((minutes * BRIEFING_CHARS_PER_MINUTE) / STORY_CHARS);
   return Math.max(floor, Math.min(hardMax, stories));
 }
 
@@ -28,7 +35,7 @@ export const EPISODE_FRAME_CHARS = 600;
 
 /**
  * The stories that fit one narration request, best first until the next would not fit. A 15-minute
- * weekly sizes about 40 stories, and 40 tellings near the 700-character ceiling run past the
+ * weekly sizes about 44 stories, and 40 tellings near the 700-character ceiling run past the
  * 19,000 characters one request takes, which fails the episode's whole audio. Returns the ids to
  * drop, lowest score first.
  */
@@ -60,7 +67,7 @@ export const SPARE_SHARE = 0.85;
 
 /**
  * Stories a length-sized briefing may select and write, spares included. Above the digest's hard
- * maximum (48), which holds what airs: a 15-minute weekly wants 40 stories and writes 74.
+ * maximum (48), which holds what airs: a 15-minute weekly wants 44 stories and writes 80.
  */
 export const WRITE_MAX = 80;
 
@@ -98,7 +105,7 @@ export function lengthMinutesFor(
 
 /** Narration characters a briefing of this many minutes holds at the measured pace. */
 export function charsForMinutes(minutes: number): number {
-  return Math.round(minutes * PODCAST_CHARS_PER_MINUTE);
+  return Math.round(minutes * BRIEFING_CHARS_PER_MINUTE);
 }
 
 /**

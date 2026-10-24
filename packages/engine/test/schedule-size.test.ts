@@ -3,6 +3,7 @@ import { MAX_SPOKEN_CHARS } from "../src/audio/spokenText.js";
 import {
   charsForMinutes,
   overNarrationLimit,
+  STORY_CHARS,
   sparesOverLength,
   storiesForMinutes,
 } from "../src/run/scheduleSize.js";
@@ -10,9 +11,27 @@ import {
 describe("storiesForMinutes", () => {
   // Before: 12 stories were taken to make 10 minutes, so a 5-minute daily got 6 main stories and
   // ran about 3.5 minutes. A story with its share of the frame is about 22 seconds.
-  it("fills the length at the narration's measured pace", () => {
-    expect(storiesForMinutes(5, 3, 48)).toBe(13);
-    expect(storiesForMinutes(15, 3, 48)).toBe(40);
+  it("takes the stories that fill the length", () => {
+    for (const minutes of [5, 15]) {
+      const told = storiesForMinutes(minutes, 3, 48) * STORY_CHARS;
+      expect(Math.abs(told - charsForMinutes(minutes))).toBeLessThanOrEqual(STORY_CHARS / 2);
+    }
+  });
+
+  // The 2026-10-24 replacement aired 3.5 of its 5 minutes: briefings were sized at the podcast's
+  // 968 characters a minute, 9% slower than the voice they are narrated in.
+  it("sizes at the pace the briefings' narrations ran", () => {
+    // text_chars and duration_ms of the 10-18 weekly's and the 10-20, 10-22 and 10-24 dailies'
+    // .audio.json.
+    const narrations = [
+      [5426, 306_100],
+      [4202, 238_416],
+      [3874, 217_009],
+      [3747, 209_489],
+    ] as const;
+    for (const [chars, ms] of narrations) {
+      expect(Math.abs(charsForMinutes(ms / 60_000) - chars) / chars).toBeLessThan(0.02);
+    }
   });
 
   it("stays between the floor and the hard cap", () => {
