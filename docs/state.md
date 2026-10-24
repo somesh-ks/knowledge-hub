@@ -9,7 +9,7 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run; episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Schedule (D61): Vercel Cron's 07:00 call dispatches `run.yml` (05:37 UTC on 10-17, 10-18, 10-20, 10-22).
+- Schedule (D61): Vercel Cron's 07:00 call dispatches `run.yml`.
 - Deploy: Vercel deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
 - Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook. Untested: per-call `effort`, `omitClaudeMd`, `ui-critic`.
 
@@ -21,7 +21,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses until then); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
-- YouTube text: captions and Gemini worked on live videos (2026-10-19); no full run used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
+- YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
