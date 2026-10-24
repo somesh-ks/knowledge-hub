@@ -33,9 +33,9 @@ const most = (xs: string[]): string => {
  * again, close enough to read as one set and far enough to tell apart in a grid.
  */
 export const SERIES_L = {
-  weekly: { light: 0.92, dark: 0.85 },
-  "on-demand": { light: 0.86, dark: 0.79 },
-  daily: { light: 0.8, dark: 0.73 },
+  weekly: { light: 0.88, dark: 0.85 },
+  "on-demand": { light: 0.81, dark: 0.79 },
+  daily: { light: 0.74, dark: 0.73 },
 } as const satisfies Record<string, Record<CoverMode, number>>;
 export type PaperSeries = keyof typeof SERIES_L;
 
@@ -43,12 +43,14 @@ export type PaperSeries = keyof typeof SERIES_L;
 const TINT_STEP = 0.09;
 
 /**
- * The paper's least chroma: enough to read as a tinted stock in the month's hue, not as grey. At 0.03
- * the paper, nine tenths of every cover, made the grid look dull (2026-10-16).
+ * The paper's least chroma: enough to read as a coloured stock in the month's hue, not as grey. At
+ * 0.03 the paper, nine tenths of every cover, made the grid look dull (2026-10-16); at 0.045 the
+ * owner still called the covers "very dull" (2026-10-23, D171), so the stock took a step of chroma
+ * and the light theme's stocks a step of depth (SERIES_L), the dark theme's as they were.
  */
-const PAPER_CHROMA = 0.045;
+const PAPER_CHROMA = 0.09;
 /** The spot and the tint print this much richer than the scheme's colour, up to MAX_CHROMA. */
-const INK_LIFT = 1.25;
+const INK_LIFT = 1.4;
 
 const richer = (hex: string): string => {
   const o = hexToOklch(hex);

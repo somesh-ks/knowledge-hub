@@ -5,7 +5,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 ## Requirements
 
 ### Latest and briefing pages
-- The first destination is called Latest; its id stays `today`. Destinations: Latest, Library, New episode, Settings.
+- The first destination is called Latest; its id stays `today`. Destinations: Latest, Library, Catch up, Settings.
 - No banner says how old a briefing is; offline is the one device banner.
 - The latest briefing's three-dots menu offers Share and New briefing; an older briefing has a Share button.
 - Every briefing has Share, Regenerate and Delete in its More menu (D104). Regenerate replaces that digest over its own window (`dispatch run --replace`); Delete removes the digest and its timeline (`dispatch run --delete`). Both go through `run.yml` and `/api/generate`. Today's Regenerate takes feedback for the writer and makes a new digest, not a replacement (D103).
@@ -35,7 +35,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 
 ### Floating button
 - A toast sits at the bottom above the bar and the floating button rises by its height while it shows (`--fab-lift`).
-- On a phone the floating button is New episode on the Library alone (D60), extended (plus and words) at the top and while scrolling up, folded while scrolling down.
+- On a phone the floating button is Catch up on the Library alone (D60), extended (plus and words) at the top and while scrolling up, folded while scrolling down.
 - Today, older briefings and episodes hold Play there ("Play · 5 min"), only once the hero's Play has scrolled away (D77), and it steps aside once the bar holds it (D59, D60). A Today with no briefing has none.
 - Pressing the tab of the page you are on scrolls it to the top.
 - Every page can scroll its last control clear of the floating button.

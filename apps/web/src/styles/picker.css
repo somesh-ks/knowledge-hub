@@ -72,7 +72,7 @@
   min-block-size: var(--field-height);
   padding-inline: var(--field-padding)
     calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
-  border-radius: var(--row-radius);
+  border-radius: var(--button-radius);
   background: var(--color-surface-container);
 }
 
@@ -180,6 +180,45 @@
     .picker-pop:popover-open {
       scale: 1;
     }
+  }
+}
+
+/* On a phone the list is a bottom sheet (picker.ts sets data-sheet; owner, 2026-10-23, D167), as a
+   select's drawn list is (primitives.css): the screen's bottom edge, the sheet's corners and
+   surface, a scrim, and a slide up and down in place of the fade and the scale. */
+@media (width < 40rem) {
+  .picker-pop[data-sheet] {
+    inset: auto 0 0 0;
+    inline-size: min(100%, var(--layout-column));
+    max-block-size: min(70dvh, 24rem);
+    margin: 0 auto;
+    padding-block-end: max(var(--space-2), var(--safe-bottom));
+    border: 0;
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    background: var(--sheet-bg);
+    box-shadow: var(--sheet-shadow);
+    opacity: 1;
+    scale: 1;
+    translate: 0 105%;
+    transition:
+      translate var(--duration-sheet-out) var(--ease-drawer),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
+  }
+
+  .picker-pop[data-sheet]:popover-open {
+    translate: 0;
+    transition-duration: var(--duration-sheet-in);
+  }
+
+  @starting-style {
+    .picker-pop[data-sheet]:popover-open {
+      translate: 0 105%;
+    }
+  }
+
+  .picker-pop[data-sheet]::backdrop {
+    background: var(--color-scrim);
   }
 }
 
