@@ -22,7 +22,7 @@ Cookieless counts of visits and a few named events on news.someshks.work, throug
 | `install` | the browser reports the app installed (`appinstalled`, Chromium only) | none |
 | `create_episode` | Catch up got an answer | `outcome` started, limited (429) or failed |
 
-A shared link carries `?ref=share`, which Simple Analytics reports as the referrer `share`: messaging apps send no referrer of their own, so the tag is the attribution.
+A shared link carries `?ref=share`, which Simple Analytics reports as the referrer `share`: messaging apps send no referrer of their own, so the tag is the attribution. Pasted, a briefing or episode link draws a card (D153, `apps/web/src/lib/linkCard.ts`); `robots.txt` lets previewers fetch `/d/`, `/e/` and `/covers/`, `noindex` keeps them out of search, and `checkBundle` fails a page without a card.
 
 ## The loops and their numbers
 
@@ -40,11 +40,10 @@ What would change a decision:
 
 ## Opportunities not built
 
-1. Link previews (D153 stage 0): no page has Open Graph or Twitter tags, so a shared briefing pastes as a bare address in Messages, WhatsApp or Slack. Each briefing and episode already has a 1024 px cover. The cheapest lift to visits per share.
-2. A first visit from `ref=share` that says in one line what Singularity is, next to Play.
-3. Share at a moment: a link to a story or a time in the episode, from the player.
-4. A podcast feed, which brings readers back through their own podcast app (its plays are not counted here: the audio comes from Blob).
-5. A share prompt when "Episode ready" shows.
+1. A first visit from `ref=share` that says in one line what Singularity is, next to Play.
+2. Share at a moment: a link to a story or a time in the episode, from the player.
+3. A podcast feed, which brings readers back through their own podcast app (its plays are not counted here: the audio comes from Blob).
+4. A share prompt when "Episode ready" shows.
 
 ## Field Web Vitals
 

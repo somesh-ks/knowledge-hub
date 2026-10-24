@@ -3,6 +3,7 @@ import type { GetStaticPaths } from "astro";
 import EpisodeView from "../../components/EpisodeView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { type EpisodeEntry, episodeLength } from "../../lib/episodes";
+import { episodeCard } from "../../lib/linkCard";
 import { getSite } from "../../lib/site";
 
 export const getStaticPaths = (async () => {
@@ -34,6 +35,7 @@ const { entry, summaries, topics } = Astro.props;
   title={entry.episode.title}
   view="library"
   digestId={entry.id}
+  card={episodeCard(entry)}
   audio={{ noun: "episode", length: episodeLength(entry.episode) }}
   skipLabel="Skip to the episode"
 >
