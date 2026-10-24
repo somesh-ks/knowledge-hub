@@ -100,7 +100,11 @@ function stubApiRoutesForStaticBuild() {
 const FILES_PAGES_READ = [
   "./src/styles/tokens.css",
   "../../packages/core/package.json",
-  ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`),
+  // config/structure.json exists only once the owner edits a structure (D170); the adapter refuses
+  // an include that is not there.
+  ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`).filter((path) =>
+    existsSync(fileURLToPath(new URL(path, import.meta.url))),
+  ),
 ];
 
 export default defineConfig({
