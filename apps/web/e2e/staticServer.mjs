@@ -129,7 +129,7 @@ export function startServer({ root, port }) {
     }
     if (pathname === "/api/share" && request.method === "POST") {
       // No share link here (D153): an answer with no token, so Share sends the page's own address
-      // as a site without SHARE_SECRET does, without the console line a refusal costs every test.
+      // as a site whose database is down does, without the console line a refusal costs every test.
       // The sharing journey (share.spec.ts) answers this route with the real handler instead.
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ status: 200 }));

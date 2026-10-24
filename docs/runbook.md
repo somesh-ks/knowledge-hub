@@ -395,9 +395,7 @@ If the database is down while the store is on, nothing breaks: pages show the bu
 
 ## 13. Share links (D153)
 
-Share makes a public listen link (`/s/<token>`) only where `SHARE_SECRET` is set; without it Share sends the page's own address, as before. What a link does: [specs/sharing.md](specs/sharing.md).
+Share makes a public listen link (`/s/<token>`). What a link does: [specs/sharing.md](specs/sharing.md).
 
-1. Put a random value of 16 or more characters in `.env` as `SHARE_SECRET` (for example `openssl rand -hex 24`), then `npm run secrets:push -- --only vercel`, and redeploy. Never paste the value anywhere else.
-2. The routes need `DATABASE_URL` on Vercel Production (section 11, step 7). The tables `share_links` and `share_budget` create themselves on the first Share; there is nothing to seed or migrate.
-3. Check: open a briefing whose audio has played once, More actions → Share, open the link in a private window and press Play. `npm run dispatch -- doctor` lists `key.SHARE_SECRET` as set or not set.
-4. Rotating `SHARE_SECRET` stops every sent link at once (their tokens no longer verify). The rows stay: Share on an item then signs its same link under the new secret, with its play count and expiry kept.
+1. Owner setup: nothing. The routes need `DATABASE_URL` on Vercel Production (section 11, step 7), which production has; without it Share sends the page's own address, as before. The tables `share_links` and `share_budget` create themselves on the first Share; there is nothing to seed or migrate.
+2. Check: open a briefing whose audio has played once, More actions → Share, open the link in a private window and press Play.

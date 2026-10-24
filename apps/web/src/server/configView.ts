@@ -1,4 +1,12 @@
-import { isGeneralTopicId, MIX_STOPS } from "@dispatch/core";
+import {
+  isGeneralTopicId,
+  MIX_STOPS,
+  STRUCTURE_KINDS,
+  type StructureBlock,
+  StructureFile,
+  type StructureKind,
+  storedStructure,
+} from "@dispatch/core";
 import { blockedDomainsIn } from "../lib/blockedProfile";
 import { configHash } from "../lib/configHash";
 import { buildManage, type ManageData, type ManageSource, type ManageTopic } from "../lib/manage";
@@ -16,7 +24,7 @@ export type { StoreSource };
  * bundles are exactly what the pages were built from.
  *
  * Only what the built pages publish goes in: topics, sources, the schedule, the weights and type
- * mix, the blocked outlets. Never votes, opens, the learning history, the writer or the queries.
+ * mix, the blocked outlets, the podcast structure. Never votes, opens, the learning history, the writer or the queries.
  */
 
 export interface StoreChanges {
@@ -247,10 +255,38 @@ function blockedOps(built: string[], stored: string[]): ConfigOp[] {
   ];
 }
 
+/** Each podcast kind's stored blocks (D170), or null where it runs on its defaults. */
+export type StructureView = Record<StructureKind, StructureBlock[] | null>;
+
+/** The structure file as each kind's blocks; a missing or malformed file is all defaults. */
+export function structureViewOf(json: unknown): StructureView {
+  const parsed = StructureFile.safeParse(json);
+  const file = parsed.success ? parsed.data : null;
+  return {
+    daily: storedStructure(file, "daily"),
+    weekly: storedStructure(file, "weekly"),
+    catch_up: storedStructure(file, "catch_up"),
+  };
+}
+
+/**
+ * A structure.set for each kind whose stored blocks differ from the build's. A kind the store has
+ * put back on its defaults sends none: the op cannot say "defaults", and no page shows it yet.
+ */
+function structureOps(built: StructureView, stored: StructureView): ConfigOp[] {
+  return STRUCTURE_KINDS.flatMap((kind): ConfigOp[] => {
+    const blocks = stored[kind];
+    return blocks === null || same(built[kind], blocks)
+      ? []
+      : [{ op: "structure.set", kind, blocks }];
+  });
+}
+
 interface ConfigView {
   manage: ManageData;
   schedule: ScheduleView;
   blocked: string[];
+  structure: StructureView;
 }
 
 interface BuiltView extends ConfigView {
@@ -263,6 +299,7 @@ function viewOf(files: ConfigFiles): ConfigView {
     manage: manageOf(files),
     schedule: scheduleViewOf(json(files["config/schedule.json"])),
     blocked: blockedDomainsIn(json(files["config/profiles/owner.json"])),
+    structure: structureViewOf(json(files["config/structure.json"])),
   };
 }
 
@@ -306,6 +343,7 @@ export function storeChanges(built: ConfigFiles, storedRows: ConfigFiles): Store
         after.manage.topics.map((topic) => topic.id),
       ),
       ...blockedOps(before.blocked, after.blocked),
+      ...structureOps(before.structure, after.structure),
     ],
     sources: sources.sources,
   };

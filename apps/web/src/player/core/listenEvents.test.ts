@@ -61,4 +61,15 @@ describe("countListening", () => {
       "listen_start:regular",
     ]);
   });
+
+  // Without the item, a listen from a shared link could not be told apart from any other of its
+  // kind, so which episodes travel (D153) was unreadable.
+  it("names the item each listen belongs to", () => {
+    const store = fakeStore();
+    const items: unknown[] = [];
+    countListening(store, (_name, metadata) => items.push(metadata?.item));
+    store.set("a", "playing", 0);
+    store.set("b", "playing", 0);
+    expect(items).toEqual(["a", "b"]);
+  });
 });

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
+import { kindProblems, StructureBlocks, StructureKind } from "./structure.js";
 import {
   MAX_KEYWORDS,
   MixStop,
@@ -94,6 +95,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - profile.vote: store 1 to 50 likes or dislikes of stories in the owner's profile, one per story
  *   (a later one replaces an earlier one; "clear" removes it). The engine derives the domain from
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
+ * - structure.set: replace one podcast kind's whole list of blocks (D170) in config/structure.json,
+ *   as weights.set replaces weights: idempotent, no index arithmetic on the wire.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -182,6 +185,13 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
       { message: "set at least one scope" },
     ),
+  z
+    .object({ op: z.literal("structure.set"), kind: StructureKind, blocks: StructureBlocks })
+    .superRefine((value, ctx) => {
+      for (const message of kindProblems(value.kind, value.blocks)) {
+        ctx.addIssue({ code: "custom", message, path: ["blocks"] });
+      }
+    }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),

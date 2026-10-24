@@ -23,8 +23,8 @@ The files keep the repository's format, so the site reads them with the parsers 
 ## The pages
 
 - **Home, Library, a briefing (`/d/<id>`), an episode (`/e/<id>`), `/latest.json`, the search index:** rendered on request through the content repository, with the short shared cache.
-- **Covers:** drawn on demand by the same renderer and cached, or written by the engine beside the content; the proof decides.
-- **`/api/narrate`** reads an episode's text from the store instead of its bundle (`episodeSource.ts`).
+- **Covers:** the build draws what it holds; after each sync `apps/web/scripts/storeCovers.ts` draws, once per id, the covers of the store's content into `content/covers/` (eight files an id), and a `vercel.json` rewrite sends a `/covers/` request the build cannot answer there.
+- **`/api/narrate`, `/api/narrate-marks`, `/api/generate`, `/api/podcast`** read briefings, timelines and episodes through `server/contentSources.ts`: the store first, the bundle when the store cannot answer or lacks the file.
 - **Offline:** the service worker keeps the pages it has served, as today.
 
 ## Settings and sources
@@ -36,8 +36,8 @@ The pages are already built shells with the store laid over them (D149, D166, D1
 Each step ships alone and leaves production working.
 
 1. **The engine fills the content store** (`dispatch content sync`, `content.yml`). Nothing reads it yet.
-2. **The content repository and one page:** `server/contentRepo.ts` over the store, and `/e/<id>` rendered on request through it, on a preview deploy. It settles the function's cold start, the cache header and the covers before the rest moves.
-3. **The other pages and `/api/narrate` read the store.** A page whose content the store does not answer falls back to the build's copy until step 4.
+2. **The content repository and one page:** `server/contentRepo.ts` over the store, and `/d/<id>` rendered on request through it, on a preview deploy. It settles the function's cold start and the cache header before the rest moves.
+3. **The other pages and `/api/narrate` read the store.** A page the store cannot answer returns 503 with `Retry-After` (the function carries no content to fall back on); within the ten-minute stale window the edge serves its last copy instead.
 4. **Settings and sources:** check every screen reads the store, not only its built copy.
 5. **The switch.** `ignoreCommand` watches code only (`apps/web`, `packages`, `tokens`, `scripts`, the package files). From then on a run, an episode or a save never deploys. The owner approves this step before it merges.
 
@@ -48,10 +48,13 @@ Each step ships alone and leaves production working.
 ## What it costs
 
 - A request the shared cache cannot answer renders on a function (a cold start, about a second); within the cache window a visit is served from the edge as a static page is.
-- Pages depend on a running function, the part that broke in #152; the smoke check (#154) covers it, and step 3's fallback holds until step 5.
+- Pages depend on a running function and a reachable store, the part that broke in #152; the smoke check (#154) covers the function.
 - Blob operations: a few writes a sync and one read a render, inside the Hobby allowance at one user's volume.
 
 ## Built so far
 
 - `episodes/index.json` (PR #252).
 - `dispatch content sync` and `content.yml` (step 1).
+- `server/contentRepo.ts` and `/d/<id>` on request (step 2, PR #259).
+- Home, Library, `/latest.json` and the search index on request (step 3, PR #264).
+- `/e/<id>` on request, store covers, the API routes on the store (step 3, rest). Still built: `config/schedule.json` for the Daily and Weekly voices (step 4).

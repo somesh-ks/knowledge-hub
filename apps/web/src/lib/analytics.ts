@@ -2,8 +2,9 @@
  * Simple Analytics (D154): cookieless page views and a few named events, on the production site
  * alone. No cookie, no storage, no identifier: the script counts visits, referrers (a shared link's
  * `ref=share` among them), countries from the time zone, and time and scroll on a page. The events
- * below are the loops in docs/specs/analytics.md; each carries a kind or an outcome, never anything
- * about the reader. A browser that sends Do Not Track or Global Privacy Control never loads it.
+ * below are the loops in docs/specs/analytics.md; each carries a kind, an outcome or an item's id,
+ * never anything about the reader. A browser that sends Do Not Track or Global Privacy Control never
+ * loads it.
  */
 
 /** Only this host is counted: a preview, a local build and the browser suites load nothing. */
@@ -51,6 +52,15 @@ export function sharedUrl(address: string, base: string): string {
   const url = new URL(address, base);
   url.searchParams.set("ref", SHARE_REF);
   return url.href;
+}
+
+/**
+ * The briefing or episode a shared address names: its kind and its id (`/d/<id>`, `/e/<id>`), so a
+ * share is counted per item. Never anything about a person.
+ */
+export function sharedItem(url: string): { kind: "briefing" | "episode"; item: string } {
+  const [route = "", item = ""] = new URL(url).pathname.split("/").filter(Boolean);
+  return { kind: route === "e" ? "episode" : "briefing", item };
 }
 
 /**

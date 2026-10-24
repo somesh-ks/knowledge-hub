@@ -5,6 +5,8 @@ import {
   ANALYTICS_QUEUE_ORIGIN,
   ANALYTICS_SCRIPT_ORIGIN,
   installAnalytics,
+  sharedItem,
+  sharedUrl,
   track,
 } from "./analytics";
 
@@ -84,5 +86,16 @@ describe("analytics", () => {
       throw new Error("blocked");
     };
     expect(() => track("share", { kind: "episode" })).not.toThrow();
+  });
+
+  // A share is read per item (D153): the shared address, with its `ref=share`, has to give back the
+  // kind and the id of the page it names, not the query or an empty id.
+  it("names the item a shared address points to", () => {
+    const base = `https://${ANALYTICS_HOST}/library`;
+    expect(sharedItem(sharedUrl("/e/ep-123", base))).toEqual({ kind: "episode", item: "ep-123" });
+    expect(sharedItem(sharedUrl("/d/2026-10-24", base))).toEqual({
+      kind: "briefing",
+      item: "2026-10-24",
+    });
   });
 });

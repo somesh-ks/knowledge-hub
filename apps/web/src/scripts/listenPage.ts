@@ -32,6 +32,9 @@ const token = location.pathname.split("/")[2] ?? "";
 
 installAnalytics({ path: LISTEN_PATH });
 
+/** The silent file the app primes its player with on iOS (playerRuntime.ts), from this site. */
+const SILENCE = "/silence.wav";
+
 const clock = (ms: number): string => {
   const seconds = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -55,6 +58,10 @@ if (root && audio && play && seek && elapsed && status) {
   let index = 0;
   let starting = false;
   let skipped = false;
+  /** The last file ended: the next Play starts again at the first. */
+  let done = false;
+  /** Sound has come out once; until then a refused start says Play, not Resume. */
+  let begun = false;
 
   const say = (message: string): void => {
     status.textContent = message;
@@ -70,18 +77,19 @@ if (root && audio && play && seek && elapsed && status) {
   const playing = (on: boolean): void => {
     play.dataset.playing = String(on);
     play.setAttribute("aria-label", on ? "Pause" : "Play");
-    if (label) label.textContent = segments ? (on ? "Pause" : "Resume") : idleLabel;
+    if (label) label.textContent = on ? "Pause" : begun && !done ? "Resume" : idleLabel;
   };
 
   /** Loads segment `next` and starts it at `offset` ms into it. */
   const load = (next: number, offset = 0): void => {
     const segment = segments?.[next];
     if (!segment) {
+      done = true;
       playing(false);
       once("listen_complete");
-      index = 0;
       return;
     }
+    done = false;
     index = next;
     audio.src = segment.url;
     if (offset > 0) {
@@ -89,7 +97,11 @@ if (root && audio && play && seek && elapsed && status) {
         once: true,
       });
     }
-    void audio.play().catch(() => playing(false));
+    void audio.play().catch(() => {
+      playing(false);
+      // A browser that would not start it outside a press: the next press plays, uncounted.
+      if (!begun) say("Press Play to start listening.");
+    });
   };
 
   const refusal = async (response: Response): Promise<string> => {
@@ -145,22 +157,36 @@ if (root && audio && play && seek && elapsed && status) {
       // One play start at a time: a second press while it is asked counts nothing twice.
       if (starting) return;
       starting = true;
+      // iOS lets an audio element play later only if it was started inside a press: start it
+      // now, on a silent file from this site, so the stored audio may play after the fetch.
+      audio.src = SILENCE;
+      void audio.play().catch(() => {});
       void start().finally(() => {
         starting = false;
       });
       return;
     }
-    if (audio.paused) void audio.play().catch(() => playing(false));
+    if (done) load(0);
+    else if (audio.paused) void audio.play().catch(() => playing(false));
     else audio.pause();
   });
 
+  // Until the files arrive the element plays only the silent unlock, which is no listen.
   audio.addEventListener("playing", () => {
+    if (!segments) return;
+    begun = true;
     playing(true);
     once("listen_start");
   });
-  audio.addEventListener("pause", () => playing(false));
-  audio.addEventListener("timeupdate", paint);
-  audio.addEventListener("ended", () => load(index + 1));
+  audio.addEventListener("pause", () => {
+    if (segments) playing(false);
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (segments) paint();
+  });
+  audio.addEventListener("ended", () => {
+    if (segments) load(index + 1);
+  });
   // A file that will not play is skipped, never narrated: the page says so once and goes on.
   audio.addEventListener("error", () => {
     if (!segments) return;
@@ -180,7 +206,7 @@ if (root && audio && play && seek && elapsed && status) {
     let next = 0;
     while (next + 1 < starts.length && (starts[next + 1] ?? 0) <= at) next += 1;
     const offset = at - (starts[next] ?? 0);
-    if (next === index && audio.src) {
+    if (next === index && !done) {
       audio.currentTime = offset / 1000;
       if (audio.paused) void audio.play().catch(() => playing(false));
     } else load(next, offset);

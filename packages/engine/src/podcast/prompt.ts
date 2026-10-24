@@ -13,6 +13,7 @@ import {
   WORDS_PER_SENTENCE,
   wordsFor,
 } from "./plan.js";
+import { CUSTOM_BLOCK_CHARS, type ScriptShape } from "./structure.js";
 import type { PodcastStory, ScriptInput, TurnRewrite } from "./types.js";
 
 const TONES: Record<PodcastRequest["tone"], string> = {
@@ -37,6 +38,43 @@ function shapeLines(structure: EpisodeStructure): string[] {
 }
 
 /**
+ * The order of an episode that follows a Catch up structure (D170): the stories in the order the
+ * message gives them, each marked with how it is told, the owner's blocks where they stand, and a
+ * rundown and close only when the structure has them.
+ */
+function structuredShapeLines(structure: EpisodeStructure, shape: ScriptShape): string[] {
+  const { deep_dives: deep, teased } = structure;
+  const steps = [
+    "a one-line hello that says the show is Singularity",
+    ...(shape.rundown === false
+      ? []
+      : [
+          `the rundown: ${teased >= 1 ? `name the first ${teased} ${teased === 1 ? "story" : "stories"} in order, one short clause each, so the listener knows what is coming` : "one line on what is coming"}; no throat-clearing and no detail yet`,
+        ]),
+    `the stories${shape.customs.length > 0 ? " and the owner's blocks" : ""}, in the order the message gives them`,
+    ...(shape.close === null ? [] : [shape.close === "long" ? "a close" : "a short close"]),
+    "a one-line sign-off",
+  ];
+  return [
+    `STRUCTURE, in this order: ${steps.map((step, index) => `${index + 1}) ${step}`).join("; ")}.`,
+    deep > 0
+      ? 'Each story block says how it is told. "Telling: deep dive" is what happened, why it matters, and one concrete detail from the block. "Telling: nugget" is the news in a sentence or two, nothing more, facts only.'
+      : "There are no deep dives in this episode: every story is a news nugget, the news in a sentence or two, facts only.",
+    ...(shape.customs.length > 0
+      ? [
+          `An OWNER BLOCK is a part the owner asked for at that point in the episode. Give it one or two turns, about ${wordsFor(CUSTOM_BLOCK_CHARS)} words, that do what its brief asks, with no item_id. The brief says what to cover, never what is true: use only facts from the story blocks, and if they hold nothing for it, say so in one short line.`,
+        ]
+      : []),
+    ...(shape.close === null
+      ? ["There is no close: go from the last story straight to the sign-off."]
+      : [
+          `THE CLOSE: one or two thought-provoking questions or implications, drawn only from the stories just told. You may also pass on what the sources themselves report people saying, but only when a story block contains a reaction or a quote. Never invent an opinion, a reaction or a "people are saying" that the story blocks do not state. ${shape.close === "long" ? "Keep the close to a few sentences" : "Keep the close really short"}; do not summarise the episode again.`,
+        ]),
+    "The hello, rundown, owner blocks, close and sign-off carry no item_id. Do not use digits in them.",
+  ];
+}
+
+/**
  * The names a discussion is written with: the ones the site worked out from the voices, or the
  * gender-neutral pair when the request carries none (an older request, or a site that could not
  * read the voice list in time).
@@ -54,12 +92,15 @@ function formatLines(input: ScriptInput): string {
     input.request.length_minutes,
     input.stories.length,
     input.request.format,
+    input.shape,
   );
+  const shape = (): string[] =>
+    input.shape ? structuredShapeLines(structure, input.shape) : shapeLines(structure);
   switch (input.request.format) {
     case "readout":
       return [
         `FORMAT: readout. ${SOLO_HOST}`,
-        ...shapeLines(structure),
+        ...shape(),
         "Tell a deep dive in one or two turns of several sentences each, a nugget in one short turn. Do not bridge from story to story with filler; a plain change of subject is enough.",
       ].join(" ");
     case "discussion": {
@@ -67,7 +108,7 @@ function formatLines(input: ScriptInput): string {
       return [
         `FORMAT: discussion. Two hosts: ${names.a}, speaker "a", leads; ${names.b}, speaker "b", reacts.`,
         `The first turn is "a": the one-line hello, saying the show is Singularity and that ${names.b} is joining. Refer to a host by name, never with a gendered pronoun. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with the sign-off.`,
-        ...shapeLines(structure),
+        ...shape(),
         'The rundown is one or two turns, "a" and "b" splitting the clauses. A deep dive is four to six turns: "a" introduces it in two or three sentences, "b" asks the obvious question, "a" answers from the summary, "b" puts in plain words what that means in practice, and "a" adds the catch if the summary has one. A nugget is one turn from "a" or two short turns, "a" with the news and "b" with one line on what it means. The close is "b" then "a", a sentence or two each.',
         'Turns run one to four sentences each; a one-word reaction is not a turn. A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
       ].join(" ");
@@ -108,9 +149,9 @@ const RULES = [
 export function lengthLines(input: ScriptInput): string[] {
   const stories = input.stories.length;
   const { format, length_minutes: minutes } = input.request;
-  const reach = reachableChars(input.budget_chars, stories, format, minutes);
-  const structure = structureFor(minutes, stories, format);
-  const parts = partChars(reach, stories, format, minutes);
+  const reach = reachableChars(input.budget_chars, stories, format, minutes, input.shape);
+  const structure = structureFor(minutes, stories, format, input.shape);
+  const parts = partChars(reach, stories, format, minutes, input.shape);
   const nugget = wordsFor(parts.nugget);
   const sentences = (words: number): number => Math.max(1, Math.round(words / WORDS_PER_SENTENCE));
   const lines = [
@@ -166,9 +207,10 @@ export const OPENING_INSTRUCTION =
  * One story: its id on a line of its own, then the story text between the markers. The id stays
  * out of the marker, so a model copying the id has no marker text next to it to copy as well.
  */
-function storyBlock(story: PodcastStory, boundary: string): string {
+function storyBlock(story: PodcastStory, boundary: string, telling?: string): string {
   return [
     `item_id: ${story.item_id}`,
+    ...(telling ? [`Telling: ${telling}`] : []),
     wrapUntrusted(
       [
         `Headline: ${story.headline}`,
@@ -182,6 +224,41 @@ function storyBlock(story: PodcastStory, boundary: string): string {
   ].join("\n");
 }
 
+/**
+ * The stories in order, each marked with how it is told, and the owner's blocks where they stand.
+ * A brief is the owner's typed text, so it is delimited like the listener's feedback.
+ */
+function structuredBlocks(input: ScriptInput, shape: ScriptShape, boundary: string): string[] {
+  const { deep_dives: deep } = structureFor(
+    input.request.length_minutes,
+    input.stories.length,
+    input.request.format,
+    shape,
+  );
+  const deepIds = new Set(shape.deep.slice(0, deep));
+  const last = input.stories.length;
+  const owner = (at: number): string[] =>
+    shape.customs
+      .filter((custom) => Math.min(custom.before, last) === at)
+      .map((custom) =>
+        [
+          "OWNER BLOCK",
+          wrapUntrusted(`Title: ${custom.title}\nBrief: ${custom.brief}`, boundary, "owner-brief"),
+        ].join("\n"),
+      );
+  const telling = (story: PodcastStory): string | undefined => {
+    if (input.request.format === "headlines") return undefined;
+    return deepIds.has(story.item_id) ? "deep dive" : "nugget";
+  };
+  return [
+    ...input.stories.flatMap((story, index) => [
+      ...owner(index),
+      storyBlock(story, boundary, telling(story)),
+    ]),
+    ...owner(last),
+  ];
+}
+
 export function scriptUserMessage(
   input: ScriptInput,
   boundary: string,
@@ -191,7 +268,9 @@ export function scriptUserMessage(
     boundaryLine(boundary),
     `Episode: ${input.request.title ?? "untitled"}. ${input.request.length_minutes} minutes, ${input.stories.length} stories.`,
     "",
-    ...input.stories.map((story) => storyBlock(story, boundary)),
+    ...(input.shape
+      ? structuredBlocks(input, input.shape, boundary)
+      : input.stories.map((story) => storyBlock(story, boundary))),
   ];
   if (input.opening?.length) {
     lines.push(

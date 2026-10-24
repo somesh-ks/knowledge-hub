@@ -24,6 +24,7 @@ import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
+import { loadSectionPlan } from "../score/sectionPlan.js";
 import { markSeen, pruneJudgments, pruneSeen } from "../state/prune.js";
 import { recordRun } from "../state/runRecord.js";
 import { recordSourceStats, type SourceCounts } from "../state/sourceStats.js";
@@ -211,6 +212,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       continue;
     }
 
+    const sectionPlan = await loadSectionPlan(root, pass.kind);
     const digest = digestFromSelection({
       selection,
       pool: pool.items,
@@ -222,12 +224,14 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       // Nothing an agent session wrote counts as grounded, whatever the file claims.
       verified: selection.mode === "agent" ? false : selection.verified,
       topics,
+      plan: sectionPlan,
     });
     const report = validateDigest(digest, {
       pool: pool.items,
       sources,
       linter,
       topics,
+      plan: sectionPlan,
       // The engine's selection already held the pass to its length; an agent's is held to the
       // kind's cap here as it was when the agent wrote it.
       ...(selection.mode === "agent" ? {} : { cap: VOICE_LIMITS.items.hardMax }),

@@ -16,13 +16,18 @@ export const CONTENT_PREFIX = "content/";
 export const CONTENT_MANIFEST_KEY = `${CONTENT_PREFIX}manifest.json`;
 export const CONTENT_MANIFEST_VERSION = 1;
 
-/** The folders and files the pages are built from today, settings aside (those are in Neon, D149). */
+/** The folders and files the site reads, settings aside (those are in Neon, D149). */
 export const CONTENT_DIRS = ["Digests", "Podcasts"] as const;
 export const CONTENT_FILES = [
   "state/last-run.json",
   "state/source-stats.json",
   "state/source-candidates.json",
+  // The cost report prices the ledger with this table (/api/costs).
+  "config/prices.json",
 ] as const;
+
+/** The engine's cost ledger, one file a month, which the cost report reads. */
+const COST_LEDGER = /^state\/costs-\d{4}-\d{2}\.json$/;
 
 /** Short, as for the episode index: readers add a fresh query string to see a rewrite at once. */
 export const CONTENT_CACHE_SECONDS = 60;
@@ -59,6 +64,7 @@ export async function readContentFiles(root: string): Promise<Map<string, Uint8A
   const paths = [
     ...(await Promise.all(CONTENT_DIRS.map((dir) => filesUnder(root, dir)))).flat(),
     ...CONTENT_FILES,
+    ...(await filesUnder(root, "state")).filter((path) => COST_LEDGER.test(path)),
   ];
   const files = new Map<string, Uint8Array>();
   for (const path of paths.sort()) {

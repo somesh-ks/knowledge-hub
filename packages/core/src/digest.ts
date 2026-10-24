@@ -79,6 +79,12 @@ export const Digest = z.object({
    * the topic behind a section is renamed or removed. Absent means the built-in sections.
    */
   section_titles: z.record(SectionId, z.string().min(1).max(60)).optional(),
+  /**
+   * Stories the narration names after the opening, from their chapters: the structure's rundown
+   * (D176), written when the digest is rendered so a later edit never changes its audio. Absent
+   * means no rundown, as every briefing before the structure.
+   */
+  rundown: z.number().int().min(1).max(6).optional(),
   /** Weekly cap (18) plus the tech allowance and the allowances of custom sections. */
   items: z.array(DigestItem).min(3).max(48),
 });

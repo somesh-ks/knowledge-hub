@@ -26,7 +26,7 @@ export interface GenerateDeps {
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
   /** The digests this build knows; Regenerate and Delete on a briefing refuse any other id. */
-  digestIds?: () => readonly string[];
+  digestIds?: () => readonly string[] | Promise<readonly string[]>;
   /** A digest's kind ("regular", "weekly", "on-demand"); Delete refuses the scheduled ones. */
   digestKind?: (id: string) => Promise<string | null>;
   log?: (message: string) => void;
@@ -142,7 +142,7 @@ export async function handleGenerate(
   const target = parseTarget(input.bodyText);
   if (target === undefined) return invalid;
   const id = target === null ? null : "delete" in target ? target.delete : target.replace;
-  if (id !== null && !(deps.digestIds?.() ?? []).includes(id)) return invalid;
+  if (id !== null && !((await deps.digestIds?.()) ?? []).includes(id)) return invalid;
   // A delete carries no feedback, and feedback never reaches a run that deletes.
   const deleting = target !== null && "delete" in target;
   // Only an on-demand briefing can be deleted: the Daily and the Weekly are the schedule's record.

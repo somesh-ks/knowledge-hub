@@ -24,8 +24,6 @@ export interface ServerEnv {
   ANTHROPIC_API_KEY?: string;
   /** What Vercel Cron sends as a bearer token to /api/cron/run. Unset, the route refuses every call. */
   CRON_SECRET?: string;
-  /** Signs share link tokens (D153). Unset, the share routes and the listen page say "not set up". */
-  SHARE_SECRET?: string;
 }
 
 export interface ServerConfig {
