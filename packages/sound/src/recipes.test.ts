@@ -188,8 +188,8 @@ describe("level control", () => {
   it("scales the rendered peak with the master volume", () => {
     const full = renderRecipe(RECIPES.play, { volume: 1 });
     const half = renderRecipe(RECIPES.play, { volume: 0.5 });
-    // Failed twice on 2026-10-14 with a ratio of exactly 1, under load, in full runs only; the
-    // render is pure, so the cause is not known. The message carries both peaks for the next one.
+    // A ratio of exactly 1 (2026-10-14, 10-22, 10-24) was a Node 24 V8 bug that made the first
+    // result read the second's peak; render.ts's applyMaster says how the renderer avoids it.
     expect(
       half.peak / full.peak,
       `full ${full.peak} (${full.samples.length} samples), half ${half.peak}`,
