@@ -1,0 +1,16 @@
+/*
+ * The listen page's whole stylesheet (pages/s/[token].astro, D153). The app's pieces come in by
+ * @import, which the build inlines into this one file: imported from the page one by one, they were
+ * shared with BaseLayout and the build split and reordered the app's stylesheet on every app page
+ * (2026-10-24: shell.css moved after buttons.css and the Library's filter targets fell under 44px).
+ * A copy here costs this page some bytes and leaves the app's files exactly as they were.
+ */
+@import "./tokens.css";
+@import "./foundations.css";
+@import "./fonts.css";
+@import "./buttons.css";
+@import "./primitives.css";
+@import "./cover.css";
+@import "./reader.css";
+@import "./utilities.css";
+@import "./listen.css";

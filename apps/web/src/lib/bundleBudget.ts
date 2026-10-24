@@ -27,6 +27,13 @@ import { gzipSync } from "node:zlib";
  * ceiling, not a target.
  */
 export const FIRST_LOAD_BUDGET_BYTES = 130 * 1024;
+/**
+ * The public listen page's own script (pages/s/[token].astro, D153), gzipped with what it imports:
+ * a stranger's first visit, on any phone, with no app shell behind it. 3.1 KB when it was made.
+ */
+export const LISTEN_PAGE_BUDGET_BYTES = 8 * 1024;
+/** The listen page's script, by the name Astro gives a page's hoisted script. */
+export const LISTEN_PAGE_SCRIPT = /^_token_\.astro_astro_type_script_index_\d+_lang\.[\w-]+\.js$/;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */

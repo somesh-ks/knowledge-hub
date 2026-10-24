@@ -7,6 +7,8 @@ import {
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
+  LISTEN_PAGE_BUDGET_BYTES,
+  LISTEN_PAGE_SCRIPT,
   overBudget,
   unallowedInlineScripts,
   unhintedModules,
@@ -70,6 +72,20 @@ for (const page of pagesIn(root)) {
 }
 
 const assets = join(root, "_astro");
+
+// The listen page renders on the server in production, so it has no HTML here: its script is found
+// by name and held to its own, smaller budget.
+const listenScripts = existsSync(assets)
+  ? readdirSync(assets).filter((file) => LISTEN_PAGE_SCRIPT.test(file))
+  : [];
+if (listenScripts.length === 0) failures.push("The listen page's script is not in the build");
+for (const file of listenScripts) {
+  const { totalGzip } = firstLoadReport([`/_astro/${file}`], read);
+  console.log(
+    `Listen page script: ${kilobytes(totalGzip)} (budget ${kilobytes(LISTEN_PAGE_BUDGET_BYTES)})`,
+  );
+  failures.push(...overBudget([{ name: "listen page", totalGzip }], LISTEN_PAGE_BUDGET_BYTES));
+}
 const fonts = existsSync(assets)
   ? readdirSync(assets).filter((file) => file.endsWith(".woff2"))
   : [];

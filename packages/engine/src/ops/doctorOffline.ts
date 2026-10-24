@@ -248,6 +248,12 @@ const KEYS: readonly KeySpec[] = [
     missing:
       "The audio workflow cannot pull Blob credentials. Create an account token in the Vercel dashboard (Settings, Tokens).",
   },
+  {
+    name: "SHARE_SECRET",
+    missing:
+      "Share sends the page's address instead of a listen link (D153). Put a random value of 16 or more characters in .env, then npm run secrets:push -- --only vercel.",
+    optional: true,
+  },
 ];
 
 function keyChecks(env: Env, root: string): Check[] {

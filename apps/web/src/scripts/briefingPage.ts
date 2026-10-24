@@ -4,7 +4,8 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
-import { shareLink } from "./shareLink";
+import { shareItem, shareLink, stopSharing, syncStopSharing } from "./shareLink";
+import { sendToast } from "./toastEvent";
 
 installHeroMenu();
 
@@ -194,7 +195,20 @@ function watchSections({ keepHeld = false } = {}): void {
 }
 
 async function share(button: HTMLElement): Promise<void> {
-  if ((await shareLink(document.title, button.dataset.share ?? "")) !== "copied") return;
+  const { share: path = "", shareItem: id, shareKind } = button.dataset;
+  const outcome = id
+    ? await shareItem({
+        id,
+        title: document.title,
+        path,
+        kind: shareKind === "episode" ? "episode" : "briefing",
+      })
+    : await shareLink(document.title, path);
+  if (typeof outcome === "object") {
+    sendToast({ message: outcome.refused });
+    return;
+  }
+  if (outcome !== "copied") return;
   // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
   const host = button.closest("[data-share-host]");
   const status = host?.querySelector("[data-share-status]");
@@ -261,6 +275,16 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest<HTMLElement>("[data-share]");
   if (button && !button.closest("[data-share-host]")?.querySelector("[data-copied]"))
     void share(button);
+  const stop = event.target.closest<HTMLElement>(".hero-menu [data-share-stop]");
+  if (stop) {
+    void stopSharing(stop.dataset.shareStop ?? "").then((stopped) =>
+      sendToast(
+        stopped
+          ? { message: "Stopped sharing", kind: "success" }
+          : { message: "Could not stop sharing. Try again.", kind: "error" },
+      ),
+    );
+  }
 });
 
 const release = (): void => {
@@ -300,6 +324,7 @@ const watchPage = (): void => {
   const fit = fitStrip();
   watchSections();
   watchHeroPlay();
+  syncStopSharing();
   fit();
   void document.fonts?.ready.then(measure);
 };

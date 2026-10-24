@@ -1,0 +1,228 @@
+---
+import appFont from "../../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
+import Icon from "../../components/Icon.astro";
+import PlayChip from "../../components/PlayChip.astro";
+import { parseBrandColors } from "../../lib/brandColors";
+import { SHARE_DISPLAY_NAME } from "../../lib/share";
+import themeInit from "../../scripts/themeInit.js?raw";
+import { bundledDigests } from "../../server/digestSource";
+import { bundledEpisodes } from "../../server/episodeSource";
+import { bundledListenView, type ListenView } from "../../server/listenView";
+import { openListenLink } from "../../server/share";
+import { listenDeps } from "../../server/shareSite";
+// The function has no tokens.css on disk to read, so its text is bundled for the theme colours.
+import tokensCss from "../../styles/tokens.css?raw";
+// One stylesheet, which pulls in the app's pieces with @import (listen-page.css, ending with the
+// page's own styles/listen.css): importing them here made the build split the app's shared
+// stylesheet and reorder it on every app page.
+import "../../styles/listen-page.css";
+
+// The public listen page (D153): rendered on demand for each token. The static test build has no
+// server, so astro.config.mjs prerenders it there from getStaticPaths (lib/listenStatic.ts).
+export const prerender = false;
+
+export async function getStaticPaths() {
+  if (!__DISPATCH_STATIC_ONLY__) return [];
+  const { staticListenPaths } = await import("../../lib/listenStatic");
+  return staticListenPaths();
+}
+
+interface Props {
+  view?: ListenView;
+  lengthMs?: number;
+}
+
+/** A copy at the CDN for five minutes, so a Stop sharing takes effect within that. */
+const CDN_CACHE = "public, max-age=0, s-maxage=300";
+
+let view: ListenView | null = Astro.props.view ?? null;
+let lengthMs = Astro.props.lengthMs ?? 0;
+let status = 200;
+if (!view) {
+  const opened = await openListenLink(Astro.params.token ?? "", listenDeps());
+  status = opened.status;
+  if (opened.status === 200) {
+    view = await bundledListenView(opened.link.item_id, {
+      digests: bundledDigests,
+      episodes: bundledEpisodes,
+    });
+    lengthMs = opened.link.segments.reduce((sum, segment) => sum + segment.duration_ms, 0);
+    if (!view) status = 404;
+  }
+}
+Astro.response.status = status;
+Astro.response.headers.set(
+  "Cache-Control",
+  status === 200 || status === 404 || status === 410 ? CDN_CACHE : "no-store",
+);
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+
+const minutes = Math.max(1, Math.round(lengthMs / 60_000));
+const totalClock = `${Math.floor(lengthMs / 60_000)}:${String(Math.floor(lengthMs / 1000) % 60).padStart(2, "0")}`;
+const site = Astro.site?.origin ?? Astro.url.origin;
+const colors = parseBrandColors(tokensCss);
+const message =
+  status === 410
+    ? "This link has stopped working."
+    : status === 404
+      ? "This link does not work."
+      : status === 503
+        ? "This page cannot open right now. Try again later."
+        : "Too many people are opening shared links right now. Try again in a minute.";
+const pageTitle = view ? `${view.title}, Singularity` : "Singularity";
+const coverPng = view ? `${site}/covers/${view.id}-1024.png` : null;
+const coverAlt = view
+  ? `Cover of ${view.kind === "episode" ? "the episode" : "the briefing"} ${view.title}`
+  : "";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={colors.surfaceLight} />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{pageTitle}</title>
+    {
+      view && coverPng && (
+        <>
+          <meta name="description" content={view.description} />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="Singularity" />
+          <meta property="og:title" content={view.title} />
+          <meta property="og:description" content={view.description} />
+          <meta property="og:image" content={coverPng} />
+          <meta property="og:image:width" content="1024" />
+          <meta property="og:image:height" content="1024" />
+          <meta property="og:image:alt" content={coverAlt} />
+          <meta name="twitter:card" content="summary" />
+        </>
+      )
+    }
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={appFont} as="font" type="font/woff2" crossorigin />
+    <script is:inline set:html={themeInit.trim()} />
+  </head>
+  <body class="listen-body">
+    {
+      view ? (
+        <main
+          class="listen page"
+          data-listen
+          data-item={view.id}
+          data-kind={view.listenKind}
+        >
+          <header class="listen-hero">
+            <span class="cover listen-cover" data-size="hero">
+              {(["light", "dark"] as const).map((mode) => (
+                <img
+                  class="cover-image"
+                  data-mode={mode}
+                  src={`/covers/${mode}/${view.id}-512.webp`}
+                  srcset={`/covers/${mode}/${view.id}-512.webp 512w, /covers/${mode}/${view.id}-1024.webp 1024w`}
+                  sizes="(min-width: 40rem) 14rem, 11rem"
+                  width="512"
+                  height="512"
+                  alt=""
+                  draggable="false"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              ))}
+            </span>
+            <p class="listen-by">Shared by {SHARE_DISPLAY_NAME}</p>
+            <h1 class="page-title listen-title">{view.title}</h1>
+            <p class="meta listen-facts">
+              <span>{view.dateLabel}</span>
+              <span>{minutes} min</span>
+            </p>
+            <div class="listen-transport">
+              <PlayChip
+                class="listen-play"
+                label={`${minutes} min`}
+                aria-label="Play"
+                data-listen-play
+              />
+              <div class="listen-scrub">
+                <span class="listen-time num" data-listen-elapsed>0:00</span>
+                <input
+                  class="listen-seek"
+                  type="range"
+                  min="0"
+                  max={String(lengthMs)}
+                  step="1000"
+                  value="0"
+                  aria-label="Position"
+                  disabled
+                  data-listen-seek
+                />
+                <span class="listen-time num">{totalClock}</span>
+              </div>
+            </div>
+            <p class="listen-status" role="status" data-listen-status />
+          </header>
+
+          <section class="listen-section" aria-labelledby="listen-stories">
+            <h2 class="section-head" id="listen-stories">
+              {view.stories.length === 1 ? "1 story" : `${view.stories.length} stories`}
+            </h2>
+            <ol class="listen-stories">
+              {view.stories.map((story) => (
+                <li class="listen-story">
+                  {story.url ? (
+                    <a class="listen-story-link" href={story.url} target="_blank" rel="noopener noreferrer">
+                      <span class="listen-headline">{story.headline}</span>
+                      <span class="listen-outlet">
+                        {story.source}
+                        <Icon name="openInNew" />
+                      </span>
+                    </a>
+                  ) : (
+                    <span class="listen-story-link">
+                      <span class="listen-headline">{story.headline}</span>
+                      <span class="listen-outlet">{story.source}</span>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {view.transcript.length > 0 && (
+            <details class="listen-section listen-transcript">
+              <summary class="listen-summary">
+                <span class="section-head">Transcript</span>
+                <Icon name="chevronDown" class="listen-fold" />
+              </summary>
+              <div class="listen-script">
+                {view.transcript.map((paragraph) => (
+                  <p>
+                    {paragraph.speaker && <span class="listen-speaker">{paragraph.speaker}</span>}
+                    {paragraph.text}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
+
+          <footer class="listen-foot">
+            <p>Singularity, a design engineering briefing. Each story links to its original reporting.</p>
+          </footer>
+          <audio preload="none" data-listen-audio />
+        </main>
+      ) : (
+        <main class="listen page listen-gone">
+          <h1 class="page-title listen-title">{message}</h1>
+          <p class="listen-foot">Ask the person who sent it for a new one.</p>
+        </main>
+      )
+    }
+    <script>
+      import "../../scripts/listenPage";
+    </script>
+  </body>
+</html>

@@ -81,7 +81,11 @@ function stubApiRoutesForStaticBuild() {
     name: "dispatch-static-only",
     hooks: {
       "astro:route:setup": ({ route }) => {
-        if (route.component.replaceAll("\\", "/").includes("/pages/api/")) route.prerender = true;
+        const component = route.component.replaceAll("\\", "/");
+        // The listen page (D153) is drawn from the fixtures there, one per item (lib/listenStatic.ts).
+        if (component.includes("/pages/api/") || component.includes("/pages/s/")) {
+          route.prerender = true;
+        }
       },
     },
   };
@@ -146,6 +150,8 @@ export default defineConfig({
   markdown: { syntaxHighlight: false },
   vite: {
     plugins: [keepCoverFontsReachable()],
+    // The listen page's static paths exist only in the static build, so the server build drops them.
+    define: { __DISPATCH_STATIC_ONLY__: JSON.stringify(staticOnly) },
     // Astro writes a script smaller than this limit into the page. When the router swaps in a page
     // whose last module script is inline, it adds a `data:` script to wait for it, and the policy
     // blocks that. Every page script stays a file.

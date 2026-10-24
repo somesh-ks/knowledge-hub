@@ -29,9 +29,17 @@ export type AnalyticsMetadata = Record<string, string | number | boolean>;
 
 type SaEvent = ((name: string, metadata?: AnalyticsMetadata) => void) & { q?: unknown[][] };
 
+/**
+ * The global the script calls for the path of every page view and event, named by the script tag's
+ * `data-path-overwriter` (Simple Analytics' "Overwrite path"). The listen page reports `/s`, so a
+ * share token in its address never reaches the dashboard (D153).
+ */
+const PATH_OVERWRITER = "dispatchAnalyticsPath";
+
 interface AnalyticsWindow {
   sa_event?: SaEvent;
   sa_metadata?: AnalyticsMetadata;
+  [PATH_OVERWRITER]?: () => string;
 }
 
 /** The query a shared link carries, so a visit it brings in is counted as a share. */
@@ -78,10 +86,13 @@ let installed = false;
  * snippet does, so an event in the first second is not lost; the page metadata goes first because
  * the script reads it once, as it loads.
  */
-export function installAnalytics(): void {
+export function installAnalytics(options: { path?: string } = {}): void {
   if (installed || !counted()) return;
   installed = true;
   const target = window as unknown as AnalyticsWindow;
+  const { path } = options;
+  // A constant: the script keeps the real path when the function throws or answers nothing.
+  if (path) target[PATH_OVERWRITER] = () => path;
   // An installed app is a reader who came back: the one retention signal that needs no identifier.
   target.sa_metadata = { installed: matchMedia("(display-mode: standalone)").matches };
   if (!target.sa_event) {
@@ -94,5 +105,6 @@ export function installAnalytics(): void {
   const script = document.createElement("script");
   script.async = true;
   script.src = `${ANALYTICS_SCRIPT_ORIGIN}/latest.js`;
+  if (path) script.setAttribute("data-path-overwriter", PATH_OVERWRITER);
   document.head.append(script);
 }

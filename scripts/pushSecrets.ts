@@ -49,6 +49,8 @@ const VERCEL_ENV = [
   "GEMINI_API_KEY",
   "CRON_SECRET",
   "DATABASE_URL",
+  // Signs the share links' tokens (D153); without it Share sends the page's own address.
+  "SHARE_SECRET",
 ];
 
 /** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */

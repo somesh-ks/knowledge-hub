@@ -14,6 +14,9 @@ interface Props {
 }
 
 const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
+// Share makes the item's public listen link (D153); Stop sharing shows once this device made one.
+const shareId = episodeId ?? briefingId;
+const shareKind = episodeId ? "episode" : "briefing";
 ---
 
 {/* One More button beside the title and the small menu it opens: Share, Regenerate and Delete, on a
@@ -42,9 +45,25 @@ const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
     <Icon name="check" class="more-done" />
   </button>
   <MenuSheet id="hero-menu" title="More actions">
-    <button class="hero-menu-item" type="button" role="menuitem" data-share={sharePath}>
+    <button
+      class="hero-menu-item"
+      type="button"
+      role="menuitem"
+      data-share={sharePath}
+      data-share-item={shareId}
+      data-share-kind={shareKind}
+    >
       <Icon name="shareArrow" />Share
     </button>
+    {
+      shareId && (
+        <template data-share-stop-template>
+          <button class="hero-menu-item" type="button" role="menuitem" data-share-stop={shareId}>
+            <Icon name="blocked" />Stop sharing
+          </button>
+        </template>
+      )
+    }
     {
       episodeId ? (
         <button

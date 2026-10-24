@@ -392,3 +392,12 @@ If the database is down while the store is on, nothing breaks: pages show the bu
    - Bypass: the GitHub Actions app (integration 15368), always. The engine's workflows (`run.yml`, `audio.yml`, `podcast.yml`, `config.yml`, `automerge.yml`) push digests, narration, episodes and config straight to `main` with the workflow token; without this bypass every run would fail at its commit. No person bypasses: to make an exception, edit the ruleset.
 3. Not required, on purpose: the `review` check, because Dependabot's PRs merge without the label (`automerge.yml`); signed commits, because the engine's commits are unsigned.
 4. To change a rule, edit the JSON, import it over the existing ruleset (Settings → Rules → Rulesets → the ruleset → Import), and open a PR with the same change so the file matches.
+
+## 13. Share links (D153)
+
+Share makes a public listen link (`/s/<token>`) only where `SHARE_SECRET` is set; without it Share sends the page's own address, as before. What a link does: [specs/sharing.md](specs/sharing.md).
+
+1. Put a random value of 16 or more characters in `.env` as `SHARE_SECRET` (for example `openssl rand -hex 24`), then `npm run secrets:push -- --only vercel`, and redeploy. Never paste the value anywhere else.
+2. The routes need `DATABASE_URL` on Vercel Production (section 11, step 7). The tables `share_links` and `share_budget` create themselves on the first Share; there is nothing to seed or migrate.
+3. Check: open a briefing whose audio has played once, More actions → Share, open the link in a private window and press Play. `npm run dispatch -- doctor` lists `key.SHARE_SECRET` as set or not set.
+4. Rotating `SHARE_SECRET` stops every sent link at once (their tokens no longer verify). The rows stay: Share on an item then signs its same link under the new secret, with its play count and expiry kept.

@@ -567,6 +567,8 @@ self.addEventListener("fetch", (event) => {
   if (request.headers.has("range")) return;
   if (request.destination === "audio" || request.destination === "video") return;
   if (AUDIO_PATH.test(url.pathname) || url.pathname.startsWith("/api/")) return;
+  // A shared listen page (D153) is not part of the app: never kept, so a stopped link never opens.
+  if (url.pathname.startsWith("/s/")) return;
 
   if (url.pathname.startsWith("/_astro/")) {
     event.respondWith(healed(event, cacheFirst(event, SHELL_CACHE)));

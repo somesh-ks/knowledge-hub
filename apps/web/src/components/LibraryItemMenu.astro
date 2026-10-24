@@ -91,6 +91,18 @@ const menuId = `card-menu-${id}`;
     <button class="hero-menu-item" type="button" role="menuitem" data-menu="share">
       <Icon name="shareArrow" />Share
     </button>
+    {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
+    <template data-share-stop-template>
+      <button
+        class="hero-menu-item"
+        type="button"
+        role="menuitem"
+        data-menu="unshare"
+        data-share-stop={id}
+      >
+        <Icon name="blocked" />Stop sharing
+      </button>
+    </template>
     {
       deletable && (
         <button
