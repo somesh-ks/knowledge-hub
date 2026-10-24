@@ -1,5 +1,4 @@
 ---
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 import MenuSheet from "./MenuSheet.astro";
 
@@ -45,7 +44,6 @@ const menuId = `card-menu-${id}`;
   data-episode={kind === "episode" ? id : undefined}
   data-library-briefing={kind === "briefing" ? id : undefined}
   data-topics={topics?.join(" ")}
-  data-open-passphrase={!PASSPHRASE_REQUIRED ? OPEN_PASSPHRASE : undefined}
 >
   <button
     class="icon-btn card-more press"

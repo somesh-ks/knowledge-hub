@@ -43,14 +43,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.regen-pass {
-  margin-block-start: var(--space-4);
-}
-
-.regen-pass .sheet-field-label {
-  padding-inline: 0;
-}
-
 /* ------------------------------------------------------------------ the confirm */
 
 dialog.confirm-dialog {

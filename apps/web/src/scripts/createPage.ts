@@ -1,18 +1,14 @@
 import { track } from "../lib/analytics";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import type { Voice } from "../lib/voices";
-import { sheetGestures } from "./pullDismiss";
 import { startRun } from "./runStatus";
 import { mountSamples } from "./voiceSamples";
 
 /**
- * The Create form: the button's length, the passphrase dialog (while the form has
- * one) and the request. The form lives on /create and in the Create sheet; both call `installCreate`.
+ * The Create form: the button's length and the request. The form lives on /create and in the Create sheet; both call `installCreate`.
  * Every sentence it shows is in the markup (`[data-k]`), not here. Once a run has started it hands
  * the run to the status indicator (runStatus.ts), which follows it, and calls `onStart`.
  */
-const KEY = "dispatch:narrate-passphrase";
-
 /** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
 const VOICES_UNAVAILABLE = "Couldn't load the voice list. Default and your saved voice stay.";
 
@@ -21,19 +17,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   root.dataset.ready = "";
   const $ = (selector: string) => root.querySelector(selector) as HTMLElement;
   const form = $("[data-create-form]") as HTMLFormElement;
-  // Set by the page while no passphrase is asked for: what to send in its place. The page then
-  // has no dialog, and the form's own button sends the request.
-  const open = root.dataset.openPassphrase;
-  const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]");
   const topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
   const copy = (key: string) => root.querySelector(`[data-k="${key}"]`)?.textContent ?? "";
-  const store = (run: (s: Storage) => unknown) => {
-    try {
-      return run(localStorage);
-    } catch {
-      return null;
-    }
-  };
   // Shows a line of error text, or hides the line when given none.
   const say = (name: string, text?: string) => {
     const line = root.querySelector<HTMLElement>(`[data-error="${name}"]`);
@@ -239,20 +224,19 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   }
 
   /**
-   * Sends the request. A refused passphrase is the caller's to explain; every other answer is
-   * shown here, and a started run is followed. The button is busy until the answer is shown.
+   * Sends the request. Every answer is shown here, and a started run is followed. The button is
+   * busy until the answer is shown.
    */
-  async function post(passphrase: string, button: HTMLButtonElement): Promise<"wrong" | "done"> {
+  async function post(button: HTMLButtonElement): Promise<void> {
     busy(button, true);
     const sent = request();
     try {
       const res = await fetch("/api/podcast", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ passphrase, request: sent }),
+        body: JSON.stringify({ request: sent }),
       }).catch(() => null);
       const body = (await res?.json().catch(() => null)) ?? {};
-      if (res?.status === 401) return "wrong";
       // Asked for, and what came of it: a cap that turns readers away (429) shows up here first.
       track("create_episode", {
         outcome:
@@ -262,7 +246,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
               ? "limited"
               : "failed",
       });
-      dialog?.close();
       if (res?.status !== 202 || !body.run_id) {
         say(
           "form",
@@ -276,15 +259,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
                   ? withErrorRef(copy("503"), body)
                   : copy("crashed"),
         );
-        return "done";
+        return;
       }
       // The request goes with the run, so a failure can send it again (Try again).
-      startRun(body.run_id, undefined, {
-        body: { request: sent },
-        ...(open !== undefined ? { open } : {}),
-      });
+      startRun(body.run_id, undefined, { body: { request: sent } });
       onStart?.();
-      return "done";
     } finally {
       busy(button, false);
     }
@@ -379,46 +358,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       return;
     }
     say("form");
-    if (open !== undefined || !dialog) {
-      // Nothing was asked, so a refusal here is the service's, not a mistyped passphrase.
-      const sent = await post(open ?? "", $("[data-submit]") as HTMLButtonElement);
-      if (sent === "wrong") say("form", copy("refused"));
-      return;
-    }
-    say("dialog");
-    const pass = dialog.querySelector<HTMLInputElement>('[name="passphrase"]');
-    const remember = dialog.querySelector<HTMLInputElement>('[name="remember"]');
-    if (pass) pass.value = String(store((s) => s.getItem(KEY)) ?? "");
-    if (remember) remember.checked = pass?.value !== "";
-    dialog.showModal();
+    await post($("[data-submit]") as HTMLButtonElement);
   });
-
-  if (dialog) {
-    const dform = $("[data-dialog-form]") as HTMLFormElement;
-    const pass = dform.elements.namedItem("passphrase") as HTMLInputElement;
-    const remember = dform.elements.namedItem("remember") as HTMLInputElement;
-    const send = $("[data-dialog-submit]") as HTMLButtonElement;
-    $("[data-cancel]").addEventListener("click", () => dialog.close());
-    sheetGestures(dialog);
-
-    dform.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      if (sending) return;
-      const passphrase = pass.value.trim();
-      if (!passphrase) {
-        say("dialog", copy("passphrase"));
-        pass.focus();
-        return;
-      }
-      if ((await post(passphrase, send)) === "wrong") {
-        store((s) => s.removeItem(KEY));
-        say("dialog", copy("401"));
-        pass.select();
-        return;
-      }
-      store((s) => (remember.checked ? s.setItem(KEY, passphrase) : s.removeItem(KEY)));
-    });
-  }
 
   // While a run is going the form says so from the start, and the line goes once the run is over.
   const reflectRun = () => {
@@ -431,44 +372,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (!running() && showing) say("form");
   };
   document.addEventListener("dispatch:run", reflectRun);
-
-  /** Puts a request back into the form: Try again opens it this way when it cannot send itself. */
-  fillers.set(root, (sent) => {
-    for (const [name, value] of [
-      ["length", sent.length_minutes],
-      ["format", sent.format],
-      ["window", sent.window_days],
-      ["tone", sent.tone],
-    ] as const) {
-      const input = form.querySelector<HTMLInputElement>(
-        `input[name="${name}"][value="${CSS.escape(String(value))}"]`,
-      );
-      if (input) input.checked = true;
-    }
-    const ids = new Set(Array.isArray(sent.topic_ids) ? sent.topic_ids.map(String) : []);
-    for (const topic of topics) {
-      topic.checked = (topic.dataset.ids || topic.value).split(" ").every((id) => ids.has(id));
-    }
-    for (const [name, value] of [
-      ["voice", sent.voice_id],
-      ["voice_b", sent.voice_id_b],
-    ] as const) {
-      const select = form.querySelector<HTMLSelectElement>(`select[name="${name}"]`);
-      if (!select || typeof value !== "string") continue;
-      // The voice list may not be in yet: the voice is kept as an option of its own until it is.
-      if (![...select.options].some((option) => option.value === value)) {
-        select.add(new Option(value, value));
-      }
-      select.value = value;
-      select.dispatchEvent(new Event("picker:sync"));
-      syncSample(select);
-    }
-    const title = form.elements.namedItem("title");
-    if (title instanceof HTMLInputElement) {
-      title.value = typeof sent.title === "string" ? sent.title : "";
-    }
-    sync();
-  });
 
   sync();
   if (running()) say("form", busyLine());
@@ -485,14 +388,6 @@ function running(): boolean {
 /** The form's line while a run is going; the indicator's markup holds it (RunStatus.astro). */
 function busyLine(): string {
   return document.querySelector<HTMLElement>("[data-run-status]")?.dataset.busyCreate ?? "";
-}
-
-type Request = Record<string, unknown>;
-const fillers = new WeakMap<HTMLElement, (sent: Request) => void>();
-
-/** Fills an installed form with a request it sent before. */
-export function fillCreate(root: HTMLElement, sent: unknown): void {
-  if (sent && typeof sent === "object") fillers.get(root)?.(sent as Request);
 }
 
 // On /create the page loads this file and the form is in the page. Elsewhere the sheet calls

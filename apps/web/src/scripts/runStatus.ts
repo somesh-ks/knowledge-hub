@@ -10,9 +10,7 @@
  * live.
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
- * out again and the new run is followed. When it cannot be sent from here (no passphrase to send,
- * or a refused one), the form is opened again, filled in with it. A finished run goes away once its
- * episode has been opened.
+ * out again and the new run is followed. A finished run goes away once its episode has been opened.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 
@@ -30,11 +28,9 @@ const SITE_POLLS = 240;
 type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed";
 /** What the run does to an episode that exists. Absent means a new episode. */
 type Kind = "regenerate" | "delete";
-/** What it takes to send a run's request again: the body without the passphrase. */
+/** What it takes to send a run's request again: its body. */
 export interface Retry {
   body: Record<string, unknown>;
-  /** The passphrase the page sends while none is asked for (lib/access.ts); it is not a secret. */
-  open?: string;
 }
 interface Stored {
   id: number;
@@ -70,7 +66,6 @@ const FINISHED: Phase[] = ["done", "started", "failed"];
 const STALE_REWRITE_MS = 10 * 60_000;
 /** Phases of a run that is still going: Create waits for it (createPage.ts). */
 export const GOING = ["queued", "running", "updating"];
-const PASSPHRASE_KEY = "dispatch:narrate-passphrase";
 let following = 0;
 /** True while a Try again request is out. */
 let retrying = false;
@@ -121,26 +116,6 @@ export function focusCreate(): void {
 function samePage(href: string): boolean {
   const path = new URL(href, location.href).pathname.replace(/\/$/, "");
   return path === location.pathname.replace(/\/$/, "");
-}
-
-/** The passphrase a Try again sends: the open one, or the one remembered on this device. */
-function passphraseFor(run: Stored): string | null {
-  if (run.retry?.open !== undefined) return run.retry.open;
-  try {
-    return localStorage.getItem(PASSPHRASE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Whether Try again can do something: send the request, or open its form again. A new episode's form
- * opens anywhere; a rewrite's panel only on its own episode's page.
- */
-function canRetry(run: Stored): boolean {
-  if (!run.retry) return false;
-  if (passphraseFor(run) !== null || run.kind !== "regenerate") return true;
-  return samePage(`/e/${run.episode}`);
 }
 
 function show(run: Stored | null): void {
@@ -226,7 +201,7 @@ function show(run: Stored | null): void {
     log.hidden = !href;
   }
   const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
-  if (again) again.hidden = !(run?.phase === "failed" && canRetry(run));
+  if (again) again.hidden = !(run?.phase === "failed" && run.retry);
   const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
   if (close) close.hidden = !finished;
   // The page reserves room for the indicator while it is up, the way it does for the player bar.
@@ -452,19 +427,13 @@ function refusal(root: HTMLElement, res: Response | null, reply: Record<string, 
 
 /**
  * Try again: the failed run's request goes out again and the new run is followed. A refusal says
- * why in the line, in the form's words; a cooldown names its own wait. With no passphrase to send,
- * or a refused one, the form opens again, filled in.
+ * why in the line, in the form's words; a cooldown names its own wait.
  */
 async function retry(): Promise<void> {
   const run = read();
   const root = document.querySelector<HTMLElement>("[data-run-status]");
   const button = root?.querySelector<HTMLButtonElement>("[data-run-retry]");
   if (!run?.retry || !root || !button || retrying) return;
-  const passphrase = passphraseFor(run);
-  if (passphrase === null) {
-    reopen(run);
-    return;
-  }
   retrying = true;
   const words = button.textContent;
   button.setAttribute("aria-disabled", "true");
@@ -472,7 +441,7 @@ async function retry(): Promise<void> {
   const res = await fetch("/api/podcast", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ passphrase, ...run.retry.body }),
+    body: JSON.stringify(run.retry.body),
   }).catch(() => null);
   const reply = (await res?.json().catch(() => null)) ?? {};
   retrying = false;
@@ -484,36 +453,5 @@ async function retry(): Promise<void> {
     focusCreate();
     return;
   }
-  if (res?.status === 401) {
-    reopen(run);
-    return;
-  }
   set({ ...run, note: refusal(root, res, reply) || undefined });
-}
-
-/** Opens the run's form again, filled in with its request: the Create sheet, or a rewrite's panel. */
-function reopen(run: Stored): void {
-  const body = run.retry?.body ?? {};
-  if (run.kind === "regenerate") {
-    const trigger = document.querySelector<HTMLElement>('[data-episode-action="regenerate"]');
-    if (!trigger) return;
-    void import("./episodeActions").then((actions) => {
-      actions.openEpisodeAction(trigger);
-      const feedback = document.querySelector<HTMLTextAreaElement>(
-        'dialog.regen-sheet [name="feedback"]',
-      );
-      if (feedback && typeof body.feedback === "string") feedback.value = body.feedback;
-    });
-    return;
-  }
-  const trigger = [...document.querySelectorAll<HTMLElement>("[data-create-open]")].find(
-    (create) => create.getClientRects().length,
-  );
-  void Promise.all([import("./createSheet"), import("./createPage")]).then(([sheet, page]) => {
-    sheet.openCreateSheet(trigger ?? null);
-    const form =
-      document.querySelector<HTMLElement>("dialog.create-sheet:not(.regen-sheet) [data-create]") ??
-      document.querySelector<HTMLElement>("main [data-create]");
-    if (form) page.fillCreate(form, body.request);
-  });
 }

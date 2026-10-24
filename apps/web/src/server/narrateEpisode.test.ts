@@ -1,8 +1,6 @@
-import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { planEpisodeNarration } from "@dispatch/engine/segments";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
-import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
 import { createFakeSpeechify, FAKE_AUDIO } from "../testing/fakeSpeechify";
 import { MS_PER_CHARACTER, type ServerEnv, withSecondVoice } from "./config";
@@ -31,19 +29,12 @@ const ORIGIN = "https://news.someshks.work";
 const MONTH = "2026-10";
 const TODAY = "2026-10-07";
 const ID = "ep-20261007-1930";
-const PASSPHRASE = "correct horse battery staple";
 const SPEECHIFY_KEY = "speechify-test-key-8f3a9c1e2b7d";
 const BLOB_TOKEN = "vercel_blob_rw_teststore_0123456789abcdefghij";
 /** The engine's default voice and model, and the second host's voice for these tests. */
 const VOICE = "geffen_32";
 const VOICE_B = "second_voice_7";
 const MODEL = "simba-3.2";
-
-let passphraseHash = "";
-
-beforeAll(() => {
-  passphraseHash = cheapPassphraseHash(PASSPHRASE);
-});
 
 interface Turn {
   idx: number;
@@ -96,7 +87,6 @@ function setup(options: Options = {}) {
   const idle = new AbortController();
   const deps: NarrateDeps = {
     env: {
-      GENERATE_PASSPHRASE_HASH: passphraseHash,
       SPEECHIFY_API_KEY: SPEECHIFY_KEY,
       BLOB_READ_WRITE_TOKEN: BLOB_TOKEN,
       ...options.env,
@@ -104,7 +94,6 @@ function setup(options: Options = {}) {
     fetch: speech.fetch,
     now: () => clock,
     delay: async () => {},
-    verifyPassphrase,
     openBlob: () => blob,
     digests: { readDigest: async () => null, readTimeline: async () => null },
     ...(options.withBundle === false ? {} : { episodes }),
@@ -120,7 +109,7 @@ type Result = Awaited<ReturnType<typeof handleNarrate>>;
 const post = (context: Context, fields: Record<string, unknown> = {}, id = ID) =>
   handleNarrate(
     {
-      bodyText: JSON.stringify({ digest: id, passphrase: PASSPHRASE, ...fields }),
+      bodyText: JSON.stringify({ digest: id, ...fields }),
       origin: ORIGIN,
       expectedOrigin: ORIGIN,
     },
@@ -161,9 +150,10 @@ describe("episode ids", () => {
 
   it("can be sent with a turn's segment key", () => {
     expect(turnKey(12)).toBe("t12");
-    expect(
-      parseNarrateRequest(JSON.stringify({ digest: ID, passphrase: PASSPHRASE, segment: "t12" })),
-    ).toEqual({ digest: ID, passphrase: PASSPHRASE, segment: "t12" });
+    expect(parseNarrateRequest(JSON.stringify({ digest: ID, segment: "t12" }))).toEqual({
+      digest: ID,
+      segment: "t12",
+    });
   });
 });
 
@@ -455,7 +445,7 @@ describe("POST /api/narrate for an episode", () => {
       await post(context),
     ];
     const everything = JSON.stringify(results) + context.logs.join("\n");
-    for (const secret of [SPEECHIFY_KEY, BLOB_TOKEN, passphraseHash, PASSPHRASE]) {
+    for (const secret of [SPEECHIFY_KEY, BLOB_TOKEN]) {
       expect(everything).not.toContain(secret);
     }
   });

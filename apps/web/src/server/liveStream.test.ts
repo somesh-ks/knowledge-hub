@@ -9,7 +9,6 @@ const ID = "ep-20261013-1200";
 const env = {
   GITHUB_DISPATCH_TOKEN: "github_pat_secret_value_123456",
   GITHUB_REPOSITORY: REPO,
-  GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
   BLOB_READ_WRITE_TOKEN: BLOB_TOKEN,
   SPEECHIFY_API_KEY: "speechify-key-for-tests",
 };

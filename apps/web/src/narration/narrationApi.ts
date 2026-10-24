@@ -25,7 +25,6 @@ export type LookupResult =
 
 /** The server's refusals that mean something specific to a listener. Every other one is "failed". */
 const KNOWN: Record<string, NarrationFailure> = {
-  wrong_passphrase: "wrong_passphrase",
   daily_cap: "daily_cap",
   monthly_budget: "monthly_budget",
   not_narratable: "not_narratable",
@@ -116,7 +115,7 @@ function parseTimeline(value: unknown): NarrationTimeline | null {
   return itemsOk && sectionsOk ? (value as NarrationTimeline) : null;
 }
 
-/** GET /api/narrate. Free, needs no passphrase, and never makes audio. */
+/** GET /api/narrate. Free, and never makes audio. */
 export async function lookupNarration(digestId: string, deps: ApiDeps): Promise<LookupResult> {
   let response: Response;
   try {
@@ -150,10 +149,9 @@ export async function lookupNarration(digestId: string, deps: ApiDeps): Promise<
 export async function narrateSegment(
   digestId: string,
   key: string,
-  passphrase: string,
   deps: ApiDeps,
 ): Promise<NarrateResult> {
-  const request: NarrateRequest = { digest: digestId, passphrase, segment: key };
+  const request: NarrateRequest = { digest: digestId, segment: key };
   let response: Response;
   try {
     response = await deps.fetch("/api/narrate", {
@@ -174,16 +172,9 @@ export async function narrateSegment(
 /** What a recording is called in copy: an episode has a transcript, a briefing its text. */
 export type NarrationNoun = "briefing" | "episode";
 
-/**
- * What to tell the listener, and what to do next, naming the recording as the page does. Null
- * where the interface asks instead of telling.
- */
-export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): string | null {
+/** What to tell the listener, and what to do next, naming the recording as the page does. */
+export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): string {
   switch (reason) {
-    case "passphrase_required":
-      return null;
-    case "wrong_passphrase":
-      return "That passphrase is not right. Check it and try again.";
     case "daily_cap":
       return "Daily narration limit reached. Try again tomorrow.";
     case "monthly_budget":
@@ -238,11 +229,11 @@ function failureSummary(reason: NarrationFailure): string | undefined {
   }
 }
 
-/** What the player shows for a file the narration could not make; null where the interface asks. */
+/** What the player shows for a file the narration could not make. */
 export function describeNarrationFailure(
   reason: NarrationFailure,
   noun: NarrationNoun,
-): { message: string; summary?: string; standing: boolean } | null {
+): { message: string; summary?: string; standing: boolean } {
   // The notice has its own Try again where a retry helps, so the words are not repeated there.
   const message =
     reason === "failed"
@@ -250,6 +241,5 @@ export function describeNarrationFailure(
       : reason === "unavailable"
         ? "Narration ran into a problem on the server."
         : failureCopy(reason, noun);
-  if (!message) return null;
   return { message, summary: failureSummary(reason), standing: STANDING_REASONS.has(reason) };
 }

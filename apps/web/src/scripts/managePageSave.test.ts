@@ -53,7 +53,6 @@ describe("flush", () => {
   const states: string[] = [];
   const context = (changes: Map<string, Pending>): SaveContext => ({
     changes,
-    dialog: null,
     show: (_message, state) => void states.push(state),
   });
 
@@ -84,7 +83,7 @@ describe("flush", () => {
 
   it("keeps what went through, so a page opened before the build can show it", async () => {
     const changes = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     const kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
     expect(savedOps(kept, Date.now())).toEqual([{ op: "schedule.set", hour: 7 }]);
   });
@@ -101,7 +100,7 @@ describe("flush", () => {
       done: () => void told.push("done"),
     };
     const changes = new Map([["a", row]]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     // Refused: the row is told, and the change stays for the toast's Retry.
     expect(told).toEqual(["fail"]);
     expect(changes.has("a")).toBe(true);
@@ -110,7 +109,7 @@ describe("flush", () => {
       "fetch",
       vi.fn(async () => new Response(JSON.stringify({ status: 202, run_id: 1 }), { status: 202 })),
     );
-    await flush(context(changes), "open");
+    await flush(context(changes));
     expect(told).toEqual(["fail", "done"]);
     expect(changes.size).toBe(0);
   });
@@ -123,7 +122,7 @@ describe("flush", () => {
     const changes = new Map([
       ["a", change({ op: "source.add", url: "https://a.example/feed.xml" })],
     ]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     expect(changes.get("a")?.failed).toBe(true);
     // The page is left with the refusal on it: the next page shows nothing for it.
     const leaving = context(changes);
@@ -136,18 +135,18 @@ describe("flush", () => {
       "fetch",
       vi.fn(async () => new Response(JSON.stringify({ status: 202, run_id: 1 }), { status: 202 })),
     );
-    await flush(context(changes), "open");
+    await flush(context(changes));
     expect(changes.size).toBe(0);
   });
 
   it("holds a change made inside the server's gap, quietly, and sends what gathered in one request", async () => {
     const changes = new Map([["a", change({ op: "source.set", id: "a", enabled: false })]]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     expect(posted).toHaveLength(1);
     states.length = 0;
 
     changes.set("b", change({ op: "source.set", id: "b", enabled: false }));
-    const second = flush(context(changes), "open");
+    const second = flush(context(changes));
     await vi.advanceTimersByTimeAsync(GAP_MS / 2);
     // Nothing sent while the gap runs: the server would refuse it.
     expect(posted).toHaveLength(1);
@@ -165,11 +164,10 @@ describe("flush", () => {
 
   it("still sends a change held in the gap when its page was swapped away and its toast throws", async () => {
     const changes = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     changes.set("b", change({ op: "schedule.set", length_minutes: 10 }));
     const gone: SaveContext = {
       changes,
-      dialog: null,
       show: () => {
         throw new DOMException("Invalid on disconnected popover elements", "InvalidStateError");
       },
@@ -177,7 +175,7 @@ describe("flush", () => {
         throw new Error("the page is gone");
       },
     };
-    const second = flush(gone, "open");
+    const second = flush(gone);
     // Leaving keeps the waiting edit, marked pending, for the page opened next.
     keepWaiting(gone);
     let kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
@@ -200,10 +198,10 @@ describe("flush", () => {
 
   it("drops edits marked pending when the run that carried them fails", async () => {
     const changes = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     changes.set("b", change({ op: "schedule.set", hour: 9 }));
     const gone = context(changes);
-    const second = flush(gone, "open");
+    const second = flush(gone);
     keepWaiting(gone);
     vi.mocked(fetch).mockResolvedValueOnce(new Response("{}", { status: 500 }));
     await vi.advanceTimersByTimeAsync(GAP_MS);
@@ -214,11 +212,11 @@ describe("flush", () => {
 
   it("sends another page's changes that came while a run was busy, once it is done", async () => {
     const first = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
-    await flush(context(first), "open");
+    await flush(context(first));
     first.set("b", change({ op: "schedule.set", hour: 8 }));
-    const held = flush(context(first), "open");
+    const held = flush(context(first));
     const next = new Map([["c", change({ op: "source.set", id: "c", enabled: true })]]);
-    await flush(context(next), "open");
+    await flush(context(next));
     await vi.advanceTimersByTimeAsync(GAP_MS * 3);
     await held;
     expect(posted).toHaveLength(3);
@@ -227,10 +225,10 @@ describe("flush", () => {
 
   it("says nothing when every change was put back during the gap", async () => {
     const changes = new Map([["a", change({ op: "source.set", id: "a", enabled: false })]]);
-    await flush(context(changes), "open");
+    await flush(context(changes));
     states.length = 0;
     changes.set("b", change({ op: "source.set", id: "b", enabled: false }));
-    const second = flush(context(changes), "open");
+    const second = flush(context(changes));
     changes.delete("b");
     await vi.advanceTimersByTimeAsync(GAP_MS);
     await second;
@@ -250,7 +248,6 @@ describe("a left page's held run", () => {
     const said: [string, string][] = [];
     const context: SaveContext = {
       changes,
-      dialog: null,
       show: (message, state) => void said.push([message, state]),
       here: () => here,
     };
@@ -262,9 +259,9 @@ describe("a left page's held run", () => {
   async function leaveInGap(): Promise<{ run: Promise<void>; left: SaveContext }> {
     const changes = new Map([["schedule", change({ op: "schedule.set", hour: 9 })]]);
     const { context: left } = page(changes);
-    await flush(left, "open");
+    await flush(left);
     changes.set("schedule", change({ op: "schedule.set", length_minutes: 3 }));
-    const run = flush(left, "open");
+    const run = flush(left);
     keepWaiting(left);
     return { run, left };
   }
@@ -345,7 +342,7 @@ describe("a left page's held run", () => {
 
     const before = posted.length;
     await vi.advanceTimersByTimeAsync(GAP_MS);
-    await flush(open, "open");
+    await flush(open);
     expect(posted.slice(before)).toEqual([
       [
         { op: "schedule.set", length_minutes: 3 },
@@ -365,7 +362,7 @@ describe("a left page's held run", () => {
     adopt(open);
     expect(said).toEqual([["Couldn't reach the site. Not saved yet.", "error"]]);
     const before = posted.length;
-    await flush(open, "open");
+    await flush(open);
     expect(posted.slice(before)).toEqual([[{ op: "schedule.set", length_minutes: 3 }]]);
   });
 
@@ -388,7 +385,7 @@ describe("a left page's held run", () => {
   it("shows each of several left pages' edits as pending until its own run ends", async () => {
     const { run: first } = await leaveInGap();
     const second = page(new Map([["b", change({ op: "source.set", id: "b", enabled: false })]]));
-    const queued = flush(second.context, "open");
+    const queued = flush(second.context);
     keepWaiting(second.context);
     expect(savedOps(pending(), Date.now())).toContainEqual({
       op: "source.set",
@@ -411,7 +408,7 @@ describe("a left page's held run", () => {
     const changes = new Map([["a", change({ op: "schedule.set", hour: 9 })]]);
     const { context, said } = page(changes, true);
     answers.push(500);
-    const run = flush(context, "open");
+    const run = flush(context);
     keepWaiting(context);
     await run;
     expect(heard).toEqual([]);
@@ -482,10 +479,10 @@ describe("a held change lost while no settings page is open", () => {
       }),
     );
     const changes = new Map([["schedule", change({ op: "schedule.set", hour: 9 })]]);
-    const left: SaveContext = { changes, dialog: null, show: () => {}, here: () => false };
-    await flush(left, "open");
+    const left: SaveContext = { changes, show: () => {}, here: () => false };
+    await flush(left);
     changes.set("schedule", change({ op: "schedule.set", length_minutes: 3 }));
-    const run = flush(left, "open");
+    const run = flush(left);
     keepWaiting(left);
     open = settingsPage ? "weekly" : "today";
     await vi.advanceTimersByTimeAsync(GAP_MS);

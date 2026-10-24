@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { resumeKey } from "../player/core/resume";
 import { createHarness, FakeAudio, makeDigestWithoutAudio } from "../player/core/testing";
 import type { PlayerDigestData } from "../types/contracts";
-import { createNarrationController, type PassphraseAnswer } from "./narrationController";
+import { createNarrationController } from "./narrationController";
 import { narrationSource } from "./narrationPlan";
 import { forgetNarrated, narratedOrPage } from "./narrationRegistry";
 import { createSwitchableAudio } from "./switchableAudio";
@@ -13,11 +13,10 @@ const ids = page.items.map((item) => item.id);
 interface ServerState {
   /** Segment keys that already have a file. */
   narrated: Set<string>;
-  passphrase: string;
   /** Answer every POST with this refusal instead of narrating. */
   refuse: { status: number; error: string } | null;
   whole: { url: string; duration_ms: number } | null;
-  posts: Array<{ segment: string; passphrase: string }>;
+  posts: Array<{ segment: string }>;
   lookups: number;
 }
 
@@ -40,7 +39,6 @@ function segment(key: string, state: ServerState) {
 function setup(overrides: Partial<ServerState> = {}) {
   const server: ServerState = {
     narrated: new Set(),
-    passphrase: "open sesame",
     refuse: null,
     whole: null,
     posts: [],
@@ -50,9 +48,6 @@ function setup(overrides: Partial<ServerState> = {}) {
   const element = new FakeAudio();
   const audio = createSwitchableAudio(element);
   const harness = createHarness({ createAudio: () => audio });
-  const remembered = { value: null as string | null };
-  const asked: boolean[] = [];
-  const answers: Array<PassphraseAnswer | null> = [];
   const said: string[] = [];
   const preparing: Array<string | null> = [];
 
@@ -86,29 +81,13 @@ function setup(overrides: Partial<ServerState> = {}) {
             segments: ["intro", ...ids].map((key) => segment(key, server)),
           });
         }
-        const body = JSON.parse(String(init.body)) as { segment: string; passphrase: string };
-        server.posts.push({ segment: body.segment, passphrase: body.passphrase });
-        if (body.passphrase !== server.passphrase) {
-          return json(401, { status: 401, error: "wrong_passphrase" });
-        }
+        const body = JSON.parse(String(init.body)) as { segment: string };
+        server.posts.push({ segment: body.segment });
         if (server.refuse) return json(server.refuse.status, server.refuse);
         server.narrated.add(body.segment);
         void url;
         return json(200, { status: 200, segment: segment(body.segment, server) });
       },
-    },
-    passphrase: {
-      get: () => remembered.value,
-      set: (answer) => {
-        remembered.value = answer.value;
-      },
-      clear: () => {
-        remembered.value = null;
-      },
-    },
-    askPassphrase: ({ wrong }) => {
-      asked.push(wrong);
-      return Promise.resolve(answers.shift() ?? null);
     },
     notify: (message) => said.push(message),
     setPreparing: (digestId) => preparing.push(digestId),
@@ -122,9 +101,6 @@ function setup(overrides: Partial<ServerState> = {}) {
     element,
     harness,
     controller,
-    remembered,
-    asked,
-    answers,
     said,
     preparing,
     settle,
@@ -137,19 +113,16 @@ beforeEach(() => {
 
 describe("prewarm", () => {
   it("makes the intro and the first story in the background, and plays nothing", async () => {
-    const { controller, remembered, server, harness, said, asked, settle } = setup();
-    remembered.value = "open sesame";
+    const { controller, server, harness, said, settle } = setup();
     await controller.prewarm(page);
     await settle();
     expect(server.posts.map((post) => post.segment)).toEqual(["intro", ids[0]]);
     expect(harness.store.getState().status).toBe("idle");
     expect(said).toEqual([]);
-    expect(asked).toEqual([]);
   });
 
   it("a press while it runs joins the request instead of sending another", async () => {
-    const { controller, remembered, server, element } = setup();
-    remembered.value = "open sesame";
+    const { controller, server, element } = setup();
     const warming = controller.prewarm(page);
     await expect(controller.play(page)).resolves.toBe("playing");
     await warming;
@@ -158,19 +131,10 @@ describe("prewarm", () => {
     expect(element.src).toBe("https://store.test/intro.mp3");
   });
 
-  it("does nothing without a passphrase to ask with, and never opens the sheet", async () => {
-    const { controller, server, asked, settle } = setup();
-    await controller.prewarm(page);
-    await settle();
-    expect(server.posts).toEqual([]);
-    expect(asked).toEqual([]);
-  });
-
   it("stays silent about a refusal, and a press then tries again and says so", async () => {
-    const { controller, remembered, server, said, settle } = setup({
+    const { controller, server, said, settle } = setup({
       refuse: { status: 429, error: "daily_cap" },
     });
-    remembered.value = "open sesame";
     await controller.prewarm(page);
     await settle();
     expect(said).toEqual([]);
@@ -182,12 +146,10 @@ describe("prewarm", () => {
 });
 
 describe("createNarrationController", () => {
-  it("asks for the passphrase, makes the first file, then plays the briefing as one track", async () => {
-    const { controller, answers, server, element, harness, preparing, asked } = setup();
-    answers.push({ value: "open sesame", remember: false });
+  it("makes the first file, then plays the briefing as one track", async () => {
+    const { controller, server, element, harness, preparing } = setup();
     await expect(controller.play(page)).resolves.toBe("playing");
 
-    expect(asked).toEqual([false]);
     // The intro is made before the player hears about the briefing at all.
     expect(server.posts[0]?.segment).toBe("intro");
     expect(element.src).toBe("https://store.test/intro.mp3");
@@ -200,8 +162,7 @@ describe("createNarrationController", () => {
   });
 
   it("makes the next story while the first file plays", async () => {
-    const { controller, answers, server, element, settle } = setup();
-    answers.push({ value: "open sesame", remember: false });
+    const { controller, server, element, settle } = setup();
     await controller.play(page);
     element.loadMetadata(3);
     element.startPlaying();
@@ -210,94 +171,50 @@ describe("createNarrationController", () => {
   });
 
   it("starts from the story that was tapped, and makes that file first", async () => {
-    const { controller, answers, server, harness } = setup();
-    answers.push({ value: "open sesame", remember: false });
+    const { controller, server, harness } = setup();
     await controller.play(page, ids[2]);
     expect(server.posts[0]?.segment).toBe(ids[2]);
     expect(harness.store.getState().itemIndex).toBe(2);
   });
 
   it("plays the tapped story, not a position saved on an earlier visit", async () => {
-    const { controller, answers, element, harness, settle } = setup();
+    const { controller, element, harness, settle } = setup();
     harness.storage.setItem(resumeKey(page.id), "12");
-    answers.push({ value: "open sesame", remember: false });
     await controller.play(page, ids[2]);
     await settle();
     expect(harness.store.getState().itemIndex).toBe(2);
     expect(element.src).toBe(`https://store.test/${ids[2]}.mp3`);
   });
 
-  it("needs no passphrase when every story is already narrated", async () => {
-    const { controller, asked, server, element } = setup({ narrated: new Set(["intro", ...ids]) });
+  it("confirms only the first file when every story is already narrated", async () => {
+    const { controller, server, element } = setup({ narrated: new Set(["intro", ...ids]) });
     await expect(controller.play(page)).resolves.toBe("playing");
-    expect(asked).toEqual([]);
-    expect(server.posts).toEqual([]);
+    expect(server.posts).toEqual([{ segment: "intro" }]);
     expect(element.src).toBe("https://store.test/intro.mp3");
   });
 
   it("plays the finished single file when someone made one since the page was built", async () => {
-    const { controller, element, harness, asked } = setup({
+    const { controller, element, harness } = setup({
       whole: { url: "https://store.test/whole.mp3", duration_ms: 120_000 },
     });
     await controller.play(page);
-    expect(asked).toEqual([]);
     expect(element.src).toBe("https://store.test/whole.mp3");
     expect(harness.store.getState().track?.timeline?.items.map((item) => item.startSec)).toEqual([
       0, 30, 60, 90,
     ]);
   });
 
-  it("asks again after a wrong passphrase, and says it was wrong", async () => {
-    const { controller, answers, asked, server, remembered } = setup();
-    answers.push({ value: "guess", remember: true }, { value: "open sesame", remember: true });
-    await expect(controller.play(page)).resolves.toBe("playing");
-    expect(asked).toEqual([false, true]);
-    expect(server.posts.map((post) => post.passphrase)).toEqual(["guess", "open sesame"]);
-    expect(remembered.value).toBe("open sesame");
-  });
-
-  it("forgets a remembered passphrase that the server no longer accepts", async () => {
-    const { controller, answers, asked, remembered } = setup();
-    remembered.value = "an old one";
-    answers.push({ value: "open sesame", remember: false });
-    await expect(controller.play(page)).resolves.toBe("playing");
-    expect(asked).toEqual([true]);
-  });
-
-  it("stops quietly when the listener closes the passphrase sheet", async () => {
-    const { controller, harness, said, preparing, server } = setup();
-    await expect(controller.play(page)).resolves.toBe("cancelled");
-    expect(harness.store.getState().digestId).toBeNull();
-    expect(said).toEqual([]);
-    expect(server.posts).toEqual([]);
-    expect(preparing).toEqual([page.id, null]);
-  });
-
-  it("gives up after three wrong passphrases", async () => {
-    const { controller, answers, said, server } = setup();
-    answers.push(
-      { value: "one", remember: false },
-      { value: "two", remember: false },
-      { value: "three", remember: false },
-    );
-    await expect(controller.play(page)).resolves.toBe("failed");
-    expect(server.posts).toHaveLength(3);
-    expect(said).toEqual(["That passphrase is not right. Check it and try again."]);
-  });
-
   it("names a cap in words and never loads the player", async () => {
-    const { controller, answers, said, harness } = setup({
+    const { controller, said, harness } = setup({
       refuse: { status: 429, error: "daily_cap" },
     });
-    answers.push({ value: "open sesame", remember: false });
     await expect(controller.play(page)).resolves.toBe("failed");
     expect(said[0]).toBe("Daily narration limit reached. Try again tomorrow.");
     expect(harness.store.getState().digestId).toBeNull();
   });
 
   it("looks the briefing up once, and plays it again without asking the server", async () => {
-    const { controller, answers, server, harness } = setup();
-    answers.push({ value: "open sesame", remember: false });
+    const { controller, server, harness } = setup();
     await controller.play(page);
     harness.store.pause();
     await expect(controller.play(page, ids[0])).resolves.toBe("playing");
@@ -305,8 +222,7 @@ describe("createNarrationController", () => {
   });
 
   it("hands the page its narrated copy back after a navigation away and back", async () => {
-    const { controller, answers } = setup();
-    answers.push({ value: "open sesame", remember: false });
+    const { controller } = setup();
     await controller.play(page);
     const again: PlayerDigestData = makeDigestWithoutAudio();
     const patched = narratedOrPage(again);

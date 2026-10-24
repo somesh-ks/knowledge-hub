@@ -11,8 +11,6 @@ import Toaster from "./Toaster";
 
 const loadGenerate = () => import("./GenerateSheet");
 const GenerateSheet = lazy(loadGenerate);
-// Not preloaded when idle: it is only ever needed after a tap on Play, which fetches it.
-const NarrateSheet = lazy(() => import("./NarrateSheet"));
 
 function whenIdle(task: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
@@ -25,15 +23,12 @@ function whenIdle(task: () => void): () => void {
 
 /**
  * The sheets island. Buttons carry `data-open="generate"` (or `data-open-sheet`) and are
- * handled by delegation, so the page needs no wiring. Each sheet is its own chunk, mounted on first
- * open; only Generate is fetched ahead, when the browser is idle.
+ * handled by delegation, so the page needs no wiring. The sheet is its own chunk, mounted on first
+ * open and fetched ahead when the browser is idle.
  */
 export default function SheetsRoot() {
   const [active, setActive] = useState<SheetName | null>(null);
-  const [mounted, setMounted] = useState<Record<SheetName, boolean>>({
-    generate: false,
-    narrate: false,
-  });
+  const [mounted, setMounted] = useState<Record<SheetName, boolean>>({ generate: false });
 
   const openSheet = useCallback((name: SheetName) => {
     setMounted((current) => (current[name] ? current : { ...current, [name]: true }));
@@ -88,7 +83,6 @@ export default function SheetsRoot() {
     });
   }, []);
 
-  // Only Generate is warmed: Narrate is needed only after a tap on Play, which fetches it.
   useEffect(() => whenIdle(() => void loadGenerate()), []);
 
   return (
@@ -98,14 +92,6 @@ export default function SheetsRoot() {
           <GenerateSheet
             open={active === "generate"}
             onOpenChange={(open) => closeSheet("generate", open)}
-          />
-        ) : null}
-      </Suspense>
-      <Suspense fallback={null}>
-        {mounted.narrate ? (
-          <NarrateSheet
-            open={active === "narrate"}
-            onOpenChange={(open) => closeSheet("narrate", open)}
           />
         ) : null}
       </Suspense>

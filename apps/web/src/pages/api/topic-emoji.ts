@@ -12,7 +12,7 @@ export const prerender = false;
 const jevKey = process.env.TYPESAFE_API_KEY;
 const geminiKey = process.env.GEMINI_API_KEY;
 
-// The route is open (D41) and an answer costs up to two paid requests (Jev, then Gemini), so a
+// The route is open (D160) and an answer costs up to two paid requests (Jev, then Gemini), so a
 // request that would ask a model takes one slot of a per-minute cap shared by every instance; past
 // it the free fallback answers.
 const ASKS_PER_MINUTE = 20;

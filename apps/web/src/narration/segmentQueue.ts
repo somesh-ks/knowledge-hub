@@ -6,16 +6,13 @@
  * monthly counter is a read-then-write, so requests never overlap; a file the listener is waiting
  * for jumps the line instead.
  *
- * A refusal that will not change by trying again (wrong passphrase, the daily cap, the monthly
- * budget) stops the queue until `reset` is called, so one bad passphrase is one request, not
- * nineteen.
+ * A refusal that will not change by trying again (the daily cap, the monthly budget) stops the
+ * queue until `reset` is called, so one refusal is one request, not nineteen.
  */
 import type { Playlist, TrackSegment } from "./trackAudio";
 
 /** Why a file could not be made. The names are the server's error codes, plus two of the client's. */
 export type NarrationFailure =
-  | "passphrase_required"
-  | "wrong_passphrase"
   | "daily_cap"
   | "monthly_budget"
   | "not_narratable"
@@ -41,8 +38,6 @@ export class NarrationError extends Error {
  * later request is still sent.
  */
 const STANDING: ReadonlySet<NarrationFailure> = new Set([
-  "passphrase_required",
-  "wrong_passphrase",
   "daily_cap",
   "monthly_budget",
   "not_narratable",
@@ -54,9 +49,7 @@ export type NarrateResult = { ok: true; url: string } | { ok: false; reason: Nar
 export interface SegmentQueueOptions {
   segments: TrackSegment[];
   /** One request for one segment. Resolves either way; it never throws. */
-  narrate(key: string, passphrase: string): Promise<NarrateResult>;
-  /** The passphrase for this session, or null when the listener has not given one. */
-  getPassphrase(): string | null;
+  narrate(key: string): Promise<NarrateResult>;
   /**
    * Called when a request is refused, so the interface can say why. `needed` is true when the
    * playhead was waiting for that file, false when it was only being made ahead of time.
@@ -78,7 +71,7 @@ export interface SegmentQueue extends Playlist {
    * file that is known to exist, and nothing at all after a standing refusal. Returns at once.
    */
   warm(index: number): void;
-  /** Clears a standing refusal, after a new passphrase for instance. */
+  /** Clears a standing refusal, for a fresh press of Play. */
   reset(): void;
   /**
    * Stops making files ahead of time. A request already sent is allowed to finish, and a later
@@ -151,16 +144,8 @@ export function createSegmentQueue(options: SegmentQueueOptions): SegmentQueue {
       pump();
       return;
     }
-    const passphrase = options.getPassphrase();
-    if (passphrase === null) {
-      line.unshift(index);
-      standing = "passphrase_required";
-      options.onFailure?.("passphrase_required", (waiters.get(index)?.length ?? 0) > 0);
-      refuseAll("passphrase_required");
-      return;
-    }
     inFlight = index;
-    options.narrate(segment.key, passphrase).then((outcome) => {
+    options.narrate(segment.key).then((outcome) => {
       inFlight = null;
       settle(index, outcome);
       pump();

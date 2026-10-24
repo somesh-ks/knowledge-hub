@@ -91,7 +91,7 @@ describe("story votes", () => {
     const carried = new Set<string>();
     while (votes.length + blocks.length > 0) {
       const ops = nextRequest(blocks, votes);
-      const parsed = parseConfigRequest(JSON.stringify({ passphrase: "open", op: ops }));
+      const parsed = parseConfigRequest(JSON.stringify({ op: ops }));
       expect(parsed).not.toBeNull();
       for (const op of ops)
         if (op.op === "profile.vote") for (const vote of op.votes) carried.add(vote.story_id);

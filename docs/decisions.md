@@ -52,7 +52,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
 | D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
-| D41 | The passphrase step is switched off, with its code kept | active |
+| D41 | Passphrase off, code kept | superseded by D160 |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
@@ -171,6 +171,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
+| D160 | No passphrase | active |
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | Captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
@@ -1761,6 +1762,15 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: D157 kept `site_behind` a warning because the next push may clear it, and warnings reach the owner on Mondays; a deploy that stays missing a day will not clear. A smoke run Vercel starts belongs to `vercel[bot]`, so its failure email reached no one.
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
+
+## D160: the passphrase is removed completely
+
+- Date: 2026-10-22 (the owner: "remove passphrase completely", after approving D153's stage 0, which would have turned it back on; that stage was dropped before it merged)
+- Decision: there is no passphrase anywhere. The four routes that spend or edit (`/api/generate`, `/api/podcast`, `/api/config`, and `/api/narrate` POST) check the origin, the body and their caps, and never answer 401. Request bodies carry no `passphrase`; one that a page built before this still sends is ignored. The prompts are gone: the narration sheet ("Make the audio"), the Create dialog, the Regenerate, Delete and settings-save fields, and the device memory `dispatch:narrate-passphrase`, which nothing reads or writes now. `GENERATE_PASSPHRASE_HASH`, `npm run passphrase`, `@dispatch/core/passphrase` and the scrypt verifier are deleted. A failed run's Try again always resends its request, so the path that reopened the form after a refused passphrase is gone too.
+- Cost: anyone who opens the site, a shared link included, can start a briefing, an episode, narration, a regeneration or a delete, and edit topics, sources and the schedule, bounded only by the daily caps, the monthly narration budget and the per-minute caps (D150). This is D41's risk with no switch left to turn back.
+- Rejected: keeping the code behind a switch (D41); asking once per device (D153's stage 0).
+- Supersedes: D41. Amends: D153 (stage 0 dropped).
+- Revisit if: someone other than the owner spends or edits. The answer then is accounts or a per-device token, not a shared passphrase.
 
 ## D161: a story's publisher sits above its headline
 

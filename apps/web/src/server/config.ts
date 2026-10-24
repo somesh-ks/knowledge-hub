@@ -2,7 +2,7 @@ import { DEFAULT_SECOND_VOICE } from "@dispatch/engine/segments";
 
 /**
  * The environment the API routes need. All are Vercel environment variables. Generate and status use
- * the first three; narrate uses the passphrase hash and everything below it.
+ * the GitHub token and repository; narrate uses everything from the Speechify key down.
  */
 export interface ServerEnv {
   /** Neon Postgres (D149); the config store is used only with DISPATCH_CONFIG_STORE=postgres too. */
@@ -10,7 +10,6 @@ export interface ServerEnv {
   DISPATCH_CONFIG_STORE?: string;
   GITHUB_DISPATCH_TOKEN?: string;
   GITHUB_REPOSITORY?: string;
-  GENERATE_PASSPHRASE_HASH?: string;
   SPEECHIFY_API_KEY?: string;
   SPEECHIFY_VOICE_ID?: string;
   /** The second host of a two-voice episode. Blank means the first voice reads both. */
@@ -33,7 +32,6 @@ export interface ServerConfig {
   repo: string;
   /** "owner/repo", as configured. */
   repository: string;
-  passphraseHash: string;
 }
 
 const REPOSITORY = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/;
@@ -41,15 +39,13 @@ const REPOSITORY = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/;
 /** Returns null when anything is missing or malformed, so a half-configured site answers "unavailable". */
 export function readServerConfig(env: ServerEnv): ServerConfig | null {
   const token = env.GITHUB_DISPATCH_TOKEN?.trim();
-  const passphraseHash = env.GENERATE_PASSPHRASE_HASH?.trim();
   const match = REPOSITORY.exec(env.GITHUB_REPOSITORY?.trim() ?? "");
-  if (!token || !passphraseHash || !match?.[1] || !match[2]) return null;
+  if (!token || !match?.[1] || !match[2]) return null;
   return {
     token,
     owner: match[1],
     repo: match[2],
     repository: `${match[1]}/${match[2]}`,
-    passphraseHash,
   };
 }
 
@@ -61,13 +57,12 @@ export function missingSettings(env: ServerEnv): string[] {
   return [
     ...(env.GITHUB_DISPATCH_TOKEN?.trim() ? [] : ["GITHUB_DISPATCH_TOKEN"]),
     ...(REPOSITORY.exec(env.GITHUB_REPOSITORY?.trim() ?? "") ? [] : ["GITHUB_REPOSITORY"]),
-    ...(env.GENERATE_PASSPHRASE_HASH?.trim() ? [] : ["GENERATE_PASSPHRASE_HASH"]),
   ];
 }
 
 /** What the log redactor must never let through. */
 export function secretsOf(config: ServerConfig | null): string[] {
-  return config ? [config.token, config.passphraseHash] : [];
+  return config ? [config.token] : [];
 }
 
 /**
@@ -78,7 +73,6 @@ export type BlobCredentials = { token: string } | { oidcToken: string; storeId: 
 
 export interface NarrateConfig {
   blob: BlobCredentials;
-  passphraseHash: string;
   speechifyKey: string;
   /** Unset means the engine's default voice. */
   voiceId?: string;
@@ -176,9 +170,8 @@ export function readNarrateConfig(
   env: ServerEnv,
   requestOidcToken?: () => string | null,
 ): NarrateConfig | null {
-  const passphraseHash = env.GENERATE_PASSPHRASE_HASH?.trim();
   const speechifyKey = credential(env.SPEECHIFY_API_KEY);
-  if (!passphraseHash || !speechifyKey) return null;
+  if (!speechifyKey) return null;
 
   // The two optional settings may be absent, but a value that is present has to be usable.
   const voiceId = readVoiceId(env);
@@ -192,7 +185,6 @@ export function readNarrateConfig(
   if (!blob) return null;
   return {
     blob,
-    passphraseHash,
     speechifyKey,
     ...(voiceId ? { voiceId } : {}),
     ...(voiceIdB ? { voiceIdB } : {}),
@@ -207,5 +199,5 @@ export function blobSecretsOf(credentials: BlobCredentials | null): string[] {
 
 /** What the log redactor must never let through for the narrate route. */
 export function narrateSecretsOf(config: NarrateConfig | null): string[] {
-  return config ? [config.speechifyKey, config.passphraseHash, ...blobSecretsOf(config.blob)] : [];
+  return config ? [config.speechifyKey, ...blobSecretsOf(config.blob)] : [];
 }

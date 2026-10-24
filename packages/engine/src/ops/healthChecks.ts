@@ -552,7 +552,7 @@ const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``;
 
 /**
- * `client_faults` (D158), warnings only: the endpoint is open (D41), so anyone can forge a report,
+ * `client_faults` (D158), warnings only: the endpoint is open (D160), so anyone can forge a report,
  * extensions inject scripts the CSP blocks, and a deploy or an upstream blip (Speechify, Anthropic)
  * raises a burst of server errors. Judged over the last 24 hours across builds (content commits
  * redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,

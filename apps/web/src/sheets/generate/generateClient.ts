@@ -2,7 +2,6 @@
  * The Generate sheet's network layer. Plain functions over an injected `fetch`, so every response
  * and outcome is testable without a network.
  */
-import { PASSPHRASE_REQUIRED } from "../../lib/access";
 import { isSiteAnswer, withErrorRef } from "../../lib/errorRef";
 import type { GenerateRequest, StatusResponse } from "../../types/contracts";
 import { GENERATE_STEPS } from "../../types/contracts";
@@ -15,9 +14,7 @@ export interface ClientDeps {
 }
 
 export type StartRejection =
-  | "empty"
   | "offline"
-  | "wrongPassphrase"
   | "cooldown"
   | "dailyCap"
   | "unavailable"
@@ -29,13 +26,7 @@ export type StartResult =
   | { kind: "rejected"; reason: StartRejection; message: string; retryAfterSeconds?: number };
 
 export const MESSAGES = {
-  empty: PASSPHRASE_REQUIRED
-    ? "Enter the passphrase to continue."
-    : "This site was built without its passphrase, so nothing was started.",
   offline: "You are offline. Reconnect, then try again.",
-  wrongPassphrase: PASSPHRASE_REQUIRED
-    ? "That passphrase does not match. Check it and try again."
-    : "The server's passphrase setting does not match this site's, so nothing was started.",
   // The server logged why; the reference it sent is added to this (lib/errorRef.ts).
   unavailable: "The server ran into a problem, so no briefing was started.",
   crashed:
@@ -87,13 +78,10 @@ function retryAfterSeconds(body: Record<string, unknown> | null, response: Respo
  * success, and it needs a numeric run id, because without one there is nothing to poll.
  */
 export async function startGenerate(
-  passphrase: string,
   deps: ClientDeps,
   feedback = "",
   topics?: readonly string[],
 ): Promise<StartResult> {
-  const trimmed = passphrase.trim();
-  if (!trimmed) return { kind: "rejected", reason: "empty", message: MESSAGES.empty };
   if (!deps.isOnline()) return { kind: "rejected", reason: "offline", message: MESSAGES.offline };
 
   const note = feedback.trim();
@@ -104,7 +92,6 @@ export async function startGenerate(
       ? undefined
       : document.querySelector<HTMLElement>("[data-briefing]")?.dataset.briefing;
   const request: GenerateRequest = {
-    passphrase: trimmed,
     ...(note ? { feedback: note } : {}),
     ...(topics && replace ? { topics: [...topics] } : {}),
     ...(replace ? { replace } : {}),
@@ -136,8 +123,6 @@ export async function startGenerate(
     }
     case 400:
       return { kind: "rejected", reason: "invalid", message: MESSAGES.invalid };
-    case 401:
-      return { kind: "rejected", reason: "wrongPassphrase", message: MESSAGES.wrongPassphrase };
     case 429: {
       const seconds = retryAfterSeconds(body, response);
       const wait = formatRetryAfter(seconds);
