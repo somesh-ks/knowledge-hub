@@ -17,6 +17,12 @@ export interface GroundingTarget {
   why?: string | undefined;
   /** Extracted source text. Untrusted. */
   sourceText: string;
+  /**
+   * The source's title and outlet, which the writer reads above the text (write/prompt.ts). An
+   * extracted body rarely repeats its headline, so a sentence naming the product or outlet from
+   * the title read as an added name. Untrusted, like the text.
+   */
+  heading?: string | undefined;
 }
 
 export interface SentenceVerdict {
@@ -92,7 +98,7 @@ export class JevGrounder implements Grounder {
   async ground(target: GroundingTarget): Promise<GroundingVerdict> {
     const sentences = groundedSentences(target);
     const sentenceVerdicts = await mapConcurrent(sentences, this.options.concurrency ?? 8, (s) =>
-      this.checkSentence(s.field, s.sentence, target.sourceText),
+      this.checkSentence(s.field, s.sentence, target.sourceText, target.heading),
     );
     return { id: target.id, sentences: sentenceVerdicts };
   }
@@ -101,13 +107,15 @@ export class JevGrounder implements Grounder {
     field: GroundedField,
     sentence: string,
     sourceText: string,
+    heading: string | undefined,
   ): Promise<SentenceVerdict> {
-    const excerpt = bestExcerpt(sourceText, sentence);
+    const best = bestExcerpt(sourceText, sentence).text;
+    const excerpt = heading ? `${heading}\n\n${best}` : best;
     try {
       const raw = await withRetry(
         () =>
           this.options.client.systemOne({
-            state: { sentence, source_excerpt: excerpt.text },
+            state: { sentence, source_excerpt: excerpt },
             questions: { supported: GROUNDING_QUESTION },
             model: this.options.model ?? DEFAULT_JEV_MODEL,
           }),
