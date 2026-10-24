@@ -44,7 +44,9 @@
   inset-block: var(--space-1);
   inset-inline: calc(var(--space-4) * -1);
   z-index: var(--z-beneath);
-  border-radius: var(--row-radius);
+  /* Fully round on the page, as the rail's rows are (owner, 2026-10-24); a card's tile takes the
+     card's inner radius (.card-group > .row-action::after). */
+  border-radius: var(--row-tile-radius);
   /* The layer is the fill's own alpha, never the element's opacity: that would fade the focus ring
      drawn on this element to the same 8% and leave a keyboard user no ring to see. */
   background: transparent;
