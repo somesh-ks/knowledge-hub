@@ -642,7 +642,7 @@ describe("source ops", () => {
   it("refuses a duplicate, a dead page and an unknown topic, and writes nothing", async () => {
     const duplicate = await apply({ op: "source.add", url: "https://alpha.example/feed.xml" }, {});
     expect(duplicate.code).toBe(1);
-    expect(repo.errors.join("\n")).toContain("Already a source: alpha");
+    expect(repo.errors.join("\n")).toContain("Already a source: Alpha.");
 
     const dead = await apply(
       { op: "source.add", url: "https://gone.example/" },

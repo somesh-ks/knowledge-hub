@@ -1,2 +1,7 @@
+# Nothing here is for search: every page says noindex, by a meta tag and the X-Robots-Tag header.
+# Briefings, episodes and their covers stay fetchable so a pasted link draws its card (D153).
 User-agent: *
+Allow: /d/
+Allow: /e/
+Allow: /covers/
 Disallow: /

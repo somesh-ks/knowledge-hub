@@ -416,6 +416,7 @@
   --card-radius: var(--radius-2xl);
   --card-inner-radius: var(--radius-lg);
   --card-content-radius: var(--radius-sm);
+  --card-chip-hover: 4%;
 
   color-scheme: light;
 }
@@ -468,6 +469,7 @@
     --shadow-raised: var(--shadow-raised-dark);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
+    --card-chip-hover: var(--state-hover);
     color-scheme: dark;
   }
 }
@@ -519,6 +521,7 @@
   --shadow-raised: var(--shadow-raised-dark);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
+  --card-chip-hover: var(--state-hover);
   color-scheme: dark;
 }
 

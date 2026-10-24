@@ -423,6 +423,11 @@ export type ConfigResponse =
        * x.", "There is no topic y."), as the function applies the edit itself. Shown in the toast.
        */
       reason?: string;
+      /**
+       * With `reason`: which op of the request's `op` list was refused (0 for a lone op), so the
+       * page can drop that change and send the rest. Absent when no single op was to blame.
+       */
+      op_index?: number;
     }
   | { status: 429; error: "cooldown"; retry_after_s: number }
   /** Config store only (D149): another edit changed the same settings first; reload and redo. */

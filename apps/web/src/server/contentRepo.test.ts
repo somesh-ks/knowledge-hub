@@ -1,0 +1,86 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join, relative, sep } from "node:path";
+import { beforeEach, expect, it } from "vitest";
+import { diskFiles } from "../lib/contentFiles";
+import { loadSite } from "../lib/site";
+import { loadStoreSite, MANIFEST_TTL_MS, resetContentRepo } from "./contentRepo";
+
+/**
+ * A page rendered on request reads the content store (D173) through the same readers as the build.
+ * The bugs this prevents: the store path parsing the files differently from the build, so a page
+ * shows other briefings than the Library; and the manifest read on every request, which would spend
+ * the store's monthly read allowance (a blocked store stops narration for 30 days).
+ */
+
+const ENV = { BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_teststore1_0123456789abcdef" };
+const FIXTURES = join(__dirname, "..", "fixtures");
+
+let store: Map<string, string>;
+let manifestReads: number;
+
+/** The fixture briefings, published to the fake store as `dispatch content sync` would. */
+async function fillStore(updatedAt: string, leaveOut = ""): Promise<void> {
+  const files: Record<string, string> = {};
+  for (const path of await diskFiles.list(join(FIXTURES, "digests"))) {
+    const repoPath = `Digests/${relative(join(FIXTURES, "digests"), path).split(sep).join("/")}`;
+    if (repoPath === leaveOut) continue;
+    const text = await readFile(path, "utf8");
+    files[repoPath] = createHash("sha256").update(text).digest("hex");
+    store.set(`content/${repoPath}`, text);
+  }
+  store.set("content/manifest.json", JSON.stringify({ version: 1, updated_at: updatedAt, files }));
+}
+
+const fakeFetch = async (url: string): Promise<Response> => {
+  const { pathname } = new URL(url);
+  if (pathname === "/content/manifest.json") manifestReads++;
+  const text = store.get(pathname.slice(1));
+  return text === undefined ? new Response(null, { status: 404 }) : new Response(text);
+};
+
+beforeEach(() => {
+  resetContentRepo();
+  store = new Map();
+  manifestReads = 0;
+});
+
+it("lists the same briefings from the store as the build does from the checkout", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const fromStore = await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 });
+  // The build's reader, pointed at the fixtures' copy of Digests/.
+  const fixtureSite = await loadSite({
+    root: "",
+    env: {},
+    files: {
+      list: async (dir) =>
+        (await diskFiles.list(join(FIXTURES, "digests"))).map((path) =>
+          join(dir, relative(join(FIXTURES, "digests"), path)),
+        ),
+      read: (path) => diskFiles.read(join(FIXTURES, "digests", relative("Digests", path))),
+    },
+  });
+
+  expect(fromStore?.entries.map((entry) => entry.id)).toEqual(
+    fixtureSite.entries.map((entry) => entry.id),
+  );
+  expect(fromStore?.entries.length).toBeGreaterThan(0);
+});
+
+it("reads the manifest once per window and reloads when it changes", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+
+  await loadStoreSite(deps);
+  now = MANIFEST_TTL_MS - 1;
+  await loadStoreSite(deps);
+  expect(manifestReads).toBe(1);
+
+  const before = (await loadStoreSite(deps))?.entries.length ?? 0;
+  await fillStore("2026-10-24T13:00:00Z", "Digests/2026/10/2026-10-05.md");
+  now = MANIFEST_TTL_MS + 1;
+  const site = await loadStoreSite(deps);
+  expect(manifestReads).toBe(2);
+  expect(site?.entries.length).toBe(before - 1);
+});
