@@ -46,7 +46,7 @@ interface Prefs {
   installHidden: boolean;
 }
 
-const STORAGE_KEY = "dispatch-prototype";
+const STORAGE_KEY = "singularity-prototype";
 
 function loadPrefs(): Prefs {
   const fallback: Prefs = {
@@ -133,7 +133,7 @@ applyTheme();
 
 /* ------------------------------------------------------------------ shells */
 
-must("wordmarkSlot").innerHTML = `${MARK_SVG}<span>Dispatch</span>`;
+must("wordmarkSlot").innerHTML = `${MARK_SVG}<span>Singularity</span>`;
 must("generateIcon").innerHTML = icon("refresh");
 must("settingsIcon").innerHTML = icon("sliders");
 
@@ -289,7 +289,8 @@ function renderRoute(moveFocus = true): void {
       heading.focus({ preventScroll: true });
     }
   }
-  document.title = route() === "archive" ? "Archive, Dispatch" : "Wednesday 7 October, Dispatch";
+  document.title =
+    route() === "archive" ? "Archive, Singularity" : "Wednesday 7 October, Singularity";
 }
 
 window.addEventListener("hashchange", () => {
@@ -623,7 +624,7 @@ if (open === "settings") openSheet(settingsDialog);
 
 declare global {
   interface Window {
-    dispatchPrototype: { player: typeof player; sound: typeof sound; prefs: Prefs };
+    singularityPrototype: { player: typeof player; sound: typeof sound; prefs: Prefs };
   }
 }
-window.dispatchPrototype = { player, sound, prefs };
+window.singularityPrototype = { player, sound, prefs };

@@ -4,7 +4,7 @@ import {
   JudgmentEntry,
   JudgmentsFile,
   TopicJudgmentsFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { mergeJudgments } from "../judge/cache.js";

@@ -98,7 +98,7 @@ test.describe("moving between destinations", () => {
     // A saved page carries the time it was saved; that is what lets the worker answer at once.
     const stamp = await page.evaluate(async () => {
       const response = await fetch("/library", { headers: { accept: "text/html" } });
-      return response.headers.get("x-dispatch-stored-at");
+      return response.headers.get("x-singularity-stored-at");
     });
     expect(Number(stamp)).toBeGreaterThan(0);
   });
@@ -106,7 +106,7 @@ test.describe("moving between destinations", () => {
   test("a page load still asks the network", async ({ page }) => {
     await openWarm(page);
     const response = await page.goto("/library");
-    expect(response?.headers()["x-dispatch-stored-at"]).toBeUndefined();
+    expect(response?.headers()["x-singularity-stored-at"]).toBeUndefined();
     await expect(heading(page)).toHaveText("Library");
   });
 

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { LastRunFile, type Outcome, STATE_FILES } from "@dispatch/core";
+import { LastRunFile, type Outcome, STATE_FILES } from "@singularity/core";
 import { type ContentFiles, diskFiles } from "./contentFiles";
 
 /** What the site needs from state/last-run.json: the newest run of any kind. */

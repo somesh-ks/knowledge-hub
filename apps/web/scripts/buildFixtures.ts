@@ -8,20 +8,20 @@ import {
   type LastRunFile,
   SECTIONS,
   serializeDigestFile,
-} from "@dispatch/core";
-import { pickCover } from "@dispatch/cover";
+} from "@singularity/core";
+import { pickCover } from "@singularity/cover";
 import { FIXTURE_ITEM_SETS, toDigestItems } from "./fixtureContent";
 
 /**
  * Writes the three fixture digests the e2e tests and the visual review use. They are generated with
  * core's serializer so they can never drift from the real file format, and they sit under
- * apps/web/src/fixtures/. The site reads them only when DISPATCH_FIXTURES=1.
+ * apps/web/src/fixtures/. The site reads them only when SINGULARITY_FIXTURES=1.
  *
  * Run: npx tsx apps/web/scripts/buildFixtures.ts
  */
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "fixtures");
-const AUDIO_URL = "https://fixtures.dispatch.invalid/audio.wav";
+const AUDIO_URL = "https://fixtures.singularity.invalid/audio.wav";
 /** Each item gets this long in the fixture audio file. The file is synthesized at build time. */
 export const FIXTURE_ITEM_MS = 3000;
 

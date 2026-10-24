@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { htmlToText } from "../normalize/htmlToText.js";
 import { loadFeed, requireFeedUrl } from "./feedItems.js";

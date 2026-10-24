@@ -25,7 +25,9 @@ async function pastHero(page: Page): Promise<void> {
 /** Narration as the server answers it when every file already exists (reader.spec.ts). */
 async function serveNarration(page: Page): Promise<void> {
   const ids = await page.evaluate(() => {
-    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    const data = JSON.parse(
+      document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+    );
     return (data.items as { id: string }[]).map((item) => item.id);
   });
   await page.context().route("**/api/narrate?digest=*", (route) =>

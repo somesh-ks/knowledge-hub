@@ -1,4 +1,4 @@
-import { daysBetween, type SourceStat, type SourceStatsFile } from "@dispatch/core";
+import { daysBetween, type SourceStat, type SourceStatsFile } from "@singularity/core";
 
 /** The window a source's counters cover. */
 export const STATS_WINDOW_DAYS = 30;

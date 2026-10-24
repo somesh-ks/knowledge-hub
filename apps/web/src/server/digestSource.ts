@@ -1,4 +1,4 @@
-import { audioTimelineRelPath, digestRelPath } from "@dispatch/core";
+import { audioTimelineRelPath, digestRelPath } from "@singularity/core";
 import type { DigestSource } from "./narrate";
 
 /**

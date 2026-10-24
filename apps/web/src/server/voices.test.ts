@@ -1,4 +1,4 @@
-import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
+import { HOST_NAME_POOLS, hostNamesFor } from "@singularity/core/hosts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "./github";
 import {

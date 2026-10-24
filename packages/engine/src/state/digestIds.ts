@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { DigestId } from "@dispatch/core";
+import { DigestId } from "@singularity/core";
 
 async function listDir(path: string): Promise<string[]> {
   try {

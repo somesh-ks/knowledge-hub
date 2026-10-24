@@ -1,5 +1,5 @@
-import type { ClientFault } from "@dispatch/engine/faults-store";
-import type { VitalsReport } from "@dispatch/engine/vitals-store";
+import type { ClientFault } from "@singularity/engine/faults-store";
+import type { VitalsReport } from "@singularity/engine/vitals-store";
 import { describe, expect, it } from "vitest";
 import { parseClientFault } from "./faults";
 import {

@@ -235,7 +235,7 @@ describe("digests committed before the four-beat voice", () => {
   );
 });
 
-// The one order of briefings (the site, `dispatch status`, `dispatch health`). Ordering by
+// The one order of briefings (the site, `singularity status`, `singularity health`). Ordering by
 // generated_at alone took a regenerated older briefing for the newest and faulted site_stale.
 describe("compareNewestFirst", () => {
   it("orders by date, then by when a same-day briefing was written", () => {

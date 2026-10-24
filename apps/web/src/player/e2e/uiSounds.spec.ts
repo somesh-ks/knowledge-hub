@@ -12,7 +12,7 @@ declare global {
 /**
  * The delegated interface cues on the real site: a navigation link, a Contents entry, a filter
  * chip and a switch each make exactly one cue of the right kind, and none once Sounds is off.
- * `dispatch:cue` names the cue the delegate chose and the engine accepted; the oscillator count is
+ * `singularity:cue` names the cue the delegate chose and the engine accepted; the oscillator count is
  * the independent check that audio was really produced.
  */
 test.beforeEach(async ({ page }) => {
@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
     window.__heard = [];
     window.__oscillators = 0;
     window.__context = null;
-    document.addEventListener("dispatch:cue", (event) => {
+    document.addEventListener("singularity:cue", (event) => {
       window.__heard.push((event as CustomEvent<string>).detail);
     });
     const OriginalContext = window.AudioContext;

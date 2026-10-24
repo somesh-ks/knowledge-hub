@@ -1,4 +1,4 @@
-import type { Report } from "@dispatch/core";
+import type { Report } from "@singularity/core";
 
 const usd = (n: number): string => `$${n.toFixed(n < 1 ? 4 : 2)}`;
 

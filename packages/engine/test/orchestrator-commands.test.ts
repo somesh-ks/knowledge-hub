@@ -28,7 +28,7 @@ import { FIXTURE_CONFIG } from "./score-factories.js";
 
 let scratch: string;
 beforeEach(async () => {
-  scratch = await mkdtemp(join(tmpdir(), "dispatch-cmd-"));
+  scratch = await mkdtemp(join(tmpdir(), "singularity-cmd-"));
 });
 afterEach(async () => {
   await rm(scratch, { recursive: true, force: true, maxRetries: 3 });
@@ -55,7 +55,7 @@ async function captureStderr<T>(fn: () => Promise<T>): Promise<{ result: T; stde
 
 // --- status ------------------------------------------------------------------------------------
 
-describe("dispatch status", () => {
+describe("singularity status", () => {
   async function seedRepoFiles(): Promise<void> {
     await put("config/sources.json", json(sourcesFile()));
     await put(
@@ -203,7 +203,7 @@ describe("dispatch status", () => {
 
 // --- extract -----------------------------------------------------------------------------------
 
-describe("dispatch extract", () => {
+describe("singularity extract", () => {
   const items = [...sourceItems("blog-a", 3, "x")];
   const textFor = (item: { id: string }, length: number): ExtractedText => ({
     text: `${item.id} `.repeat(Math.ceil(length / 13)).slice(0, length),
@@ -299,7 +299,7 @@ describe("dispatch extract", () => {
 
 // --- eval --------------------------------------------------------------------------------------
 
-describe("dispatch eval", () => {
+describe("singularity eval", () => {
   it("refuses without --yes and says it uses keys and money", async () => {
     const calls: string[][] = [];
     const command = makeEvalCommand(async () => async (argv) => {
@@ -343,7 +343,7 @@ describe("dispatch eval", () => {
 
 // --- run command -------------------------------------------------------------------------------
 
-describe("dispatch run: arguments and output", () => {
+describe("singularity run: arguments and output", () => {
   function runCommand() {
     const world = makeWorld(scratch);
     return { world, command: makeRunCommand(() => world.deps) };
@@ -368,7 +368,7 @@ describe("dispatch run: arguments and output", () => {
         captureStdout(() => makeRunCommand(() => makeWorld(scratch).deps)(args, ctx)),
       );
       expect(result.result).toBe(2);
-      expect(stderr).toContain("Usage: dispatch run");
+      expect(stderr).toContain("Usage: singularity run");
     }
   });
 
@@ -404,7 +404,7 @@ describe("dispatch run: arguments and output", () => {
 
 // --- learn --commit ----------------------------------------------------------------------------
 
-describe("dispatch learn --commit", () => {
+describe("singularity learn --commit", () => {
   let template: string;
   let repo: TestRepo;
   beforeAll(async () => {
@@ -480,7 +480,7 @@ describe("dispatch learn --commit", () => {
     try {
       const { code } = await apply(["--commit", "--no-push"]);
       expect(code).toBe(0);
-      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("dispatch-bot");
+      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("singularity-bot");
     } finally {
       for (const [key, value] of [
         ["GIT_CONFIG_GLOBAL", saved.global],
@@ -590,7 +590,7 @@ describe("dispatch learn --commit", () => {
 
 // --- job summary -------------------------------------------------------------------------------
 
-describe("dispatch run: the GitHub job summary", () => {
+describe("singularity run: the GitHub job summary", () => {
   async function runWithSummary(args: string[], summary: string | undefined) {
     const world = makeWorld(scratch);
     const command = makeRunCommand(
@@ -605,7 +605,7 @@ describe("dispatch run: the GitHub job summary", () => {
     const summary = join(scratch, "summary.md");
     await runWithSummary(["--stage", "gate"], summary);
     const text = await readFile(summary, "utf8");
-    expect(text).toContain("### dispatch run --stage gate");
+    expect(text).toContain("### singularity run --stage gate");
     expect(text).toContain("Run is due (scheduled)");
     expect(text).toContain("2026-10-07 (regular)");
   });

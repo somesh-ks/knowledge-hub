@@ -1,4 +1,4 @@
-import { stockholmDate } from "@dispatch/core";
+import { stockholmDate } from "@singularity/core";
 import { commitAndPush } from "../git/commit.js";
 import { recordFailure } from "../state/runRecord.js";
 import { readLastRun, writeLastRun } from "../state/store.js";

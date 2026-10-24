@@ -1,4 +1,4 @@
-import type { DigestKind } from "@dispatch/core";
+import type { DigestKind } from "@singularity/core";
 
 export interface FetchWindow {
   from: Date;

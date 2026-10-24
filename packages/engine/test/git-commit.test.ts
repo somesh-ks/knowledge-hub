@@ -1,6 +1,6 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
-import { serializeDigestFile } from "@dispatch/core";
+import { serializeDigestFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commitAndPush, DEFAULT_BOT, identityFromEnv } from "../src/git/commit.js";
 import { markCopiedFromStore } from "../src/store/configDocs.js";
@@ -79,8 +79,8 @@ describe("commitAndPush: what it commits", () => {
       `${DEFAULT_BOT.name}|${DEFAULT_BOT.email}|${DEFAULT_BOT.name}|${DEFAULT_BOT.email}`,
     );
     expect(DEFAULT_BOT).toEqual({
-      name: "dispatch-bot",
-      email: "dispatch-bot@users.noreply.github.com",
+      name: "singularity-bot",
+      email: "singularity-bot@users.noreply.github.com",
     });
     expect(localGitConfig(pair.a, "user.name")).toBe("");
     expect(localGitConfig(pair.a, "user.email")).toBe("");
@@ -424,7 +424,7 @@ describe("commitAndPush: pushing", () => {
     expect(git(pair.remote, "rev-parse", "refs/heads/main~1")).toBe(concurrent);
     expect(outcome.status === "pushed" && outcome.sha).toBe(head(pair.a));
     expect(git(pair.remote, "log", "-1", "--format=%an|%cn|%ce", "refs/heads/main")).toBe(
-      `dispatch-bot|dispatch-bot|${DEFAULT_BOT.email}`,
+      `singularity-bot|singularity-bot|${DEFAULT_BOT.email}`,
     );
   });
 

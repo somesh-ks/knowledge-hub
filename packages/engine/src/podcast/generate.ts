@@ -7,7 +7,7 @@ import {
   type StructureBlock,
   serializeEpisodeFile,
   storedStructure,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { Logger } from "../context.js";
 import { createHttpClient, type HttpClient } from "../http.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";

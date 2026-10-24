@@ -6,7 +6,7 @@ import {
   type Source,
   type SourceStatsFile,
   TopicsFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { PoolFile } from "../src/fetch/pool.js";
 import { GeneralJudge } from "../src/judge/generalJudge.js";

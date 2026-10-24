@@ -19,7 +19,7 @@ const FIXTURES = join(__dirname, "..", "fixtures");
 let store: Map<string, string>;
 let manifestReads: number;
 
-/** The fixture briefings, published to the fake store as `dispatch content sync` would. */
+/** The fixture briefings, published to the fake store as `singularity content sync` would. */
 async function fillStore(updatedAt: string, leaveOut = ""): Promise<void> {
   const files: Record<string, string> = {};
   for (const path of await diskFiles.list(join(FIXTURES, "digests"))) {

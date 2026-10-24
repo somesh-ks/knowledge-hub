@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { COVER_MODES, type CoverMode } from "@dispatch/cover";
+import { COVER_MODES, type CoverMode } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
 import {
   COVER_SIZES,

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { type Env, loadModelRouting, Preferences, STATE_FILES } from "@dispatch/core";
+import { type Env, loadModelRouting, Preferences, STATE_FILES } from "@singularity/core";
 import { z } from "zod";
 import { loadQueries } from "../fetch/queries.js";
 import type { GitRunner } from "../git/runGit.js";
@@ -103,7 +103,7 @@ export async function configChecks(root: string): Promise<Check[]> {
   const sources = await readFileIfPresent(join(root, "config/sources.json"));
   if (sources === null) {
     checks.push(
-      fail("config.sources", "config/sources.json is missing", "Run `dispatch sources import`."),
+      fail("config.sources", "config/sources.json is missing", "Run `singularity sources import`."),
     );
   } else {
     try {
@@ -115,7 +115,7 @@ export async function configChecks(root: string): Promise<Check[]> {
         fail(
           "config.sources",
           `invalid (${firstIssue(error)})`,
-          "Run `dispatch sources import` to rebuild it from config/sources.md.",
+          "Run `singularity sources import` to rebuild it from config/sources.md.",
         ),
       );
     }

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { CONFIG_FILES, parseConfigOps, SourcesUserFile, STATE_FILES } from "@dispatch/core";
+import { CONFIG_FILES, parseConfigOps, SourcesUserFile, STATE_FILES } from "@singularity/core";
 import {
   applyConfigOp,
   type ConfigBundle,
@@ -37,7 +37,7 @@ import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
 import { loadStructureFile, serializeStructure } from "../structure/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
 
-const USAGE = `Usage: dispatch config <command>
+const USAGE = `Usage: singularity config <command>
 
   apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries, weights, schedule
                                      or podcast structure.
@@ -55,7 +55,7 @@ const USAGE = `Usage: dispatch config <command>
                                      store is on here (the switch, or a run's note that it copied),
                                      as it would undo edits made in the app; --force overrides.
 
-Ops (see ConfigOp in @dispatch/core):
+Ops (see ConfigOp in @singularity/core):
   {"op":"topic.upsert","topic":{"name":"...","description":"...","keywords":["..."]}}
   {"op":"topic.remove","id":"..."}
   {"op":"source.add","url":"https://...","topic_ids":["..."]}
@@ -90,7 +90,7 @@ async function readText(path: string): Promise<string | null> {
   }
 }
 
-/** Same format `dispatch learn` writes, so preferences diffs stay small. */
+/** Same format `singularity learn` writes, so preferences diffs stay small. */
 function serializePreferences(data: unknown): string {
   return `${JSON.stringify(data, null, 2)}\n`;
 }
@@ -143,7 +143,7 @@ export function renderBundle(bundle: ConfigBundle): Record<string, string> {
 }
 
 /**
- * `dispatch config apply|commit`. `apply` validates one op, applies it in memory, and writes
+ * `singularity config apply|commit`. `apply` validates one op, applies it in memory, and writes
  * only the files whose content changed. `commit` commits those files through the write guard,
  * whose allowlist for this command names exactly them. Exit codes: 0 done, 1 failure, 2 usage.
  */
@@ -342,7 +342,7 @@ async function runCommit(argv: string[], ctx: CommandContext): Promise<number> {
 }
 
 /**
- * `dispatch config seed`: load the committed config files into Postgres (D149) and create the site's
+ * `singularity config seed`: load the committed config files into Postgres (D149) and create the site's
  * rate-limit counter table. Run by hand by the owner; no workflow calls it. Rows that exist are
  * kept, so it is safe to run again; `--replace` refreshes the differing ones before switch-on.
  */

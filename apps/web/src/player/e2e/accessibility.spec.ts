@@ -77,7 +77,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
               state: "completed",
               step: "writing",
               outcome: "failed",
-              run_url: "https://github.com/example/dispatch/actions/runs/79",
+              run_url: "https://github.com/example/singularity/actions/runs/79",
             },
       );
     });

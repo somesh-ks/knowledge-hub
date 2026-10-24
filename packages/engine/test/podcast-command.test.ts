@@ -38,7 +38,7 @@ describe("the podcast allowlist", () => {
   });
 });
 
-describe("dispatch podcast", () => {
+describe("singularity podcast", () => {
   let pair: RepoPair;
   let root: string;
 

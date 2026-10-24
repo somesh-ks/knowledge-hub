@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import type { LastRunFile } from "@dispatch/core";
+import type { LastRunFile } from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { git } from "./git-testRepo.js";
 import {

@@ -25,9 +25,9 @@ import {
 
 import { whenIdle } from "./idle";
 
-const VIEW_KEY = "dispatch:library-view";
+const VIEW_KEY = "singularity:library-view";
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
-const LIBRARY_URL_KEY = "dispatch:library-url";
+const LIBRARY_URL_KEY = "singularity:library-url";
 
 interface Card {
   id: string;
@@ -324,10 +324,10 @@ function install(): void {
   // Episodes this device deleted may be taken out of the page after this script has counted it.
   // It goes with the page too: apply() writes the root, and an old visit's would hide the New
   // episode button on a later one.
-  document.addEventListener("dispatch:library-pruned", apply);
+  document.addEventListener("singularity:library-pruned", apply);
   document.addEventListener(
     "astro:before-swap",
-    () => document.removeEventListener("dispatch:library-pruned", apply),
+    () => document.removeEventListener("singularity:library-pruned", apply),
     { once: true },
   );
   apply();

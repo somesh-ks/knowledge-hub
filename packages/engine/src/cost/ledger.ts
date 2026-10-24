@@ -10,7 +10,7 @@ import {
   OWNER_USER,
   PriceTable,
   priceUnits,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { writeJson } from "../curate/output.js";
 
 /**

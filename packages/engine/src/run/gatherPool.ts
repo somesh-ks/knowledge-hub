@@ -4,7 +4,7 @@ import {
   type Item,
   type Source,
   type SourcesFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { loadPreferences } from "../curate/inputs.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll, selectSources } from "../fetch/fetchAll.js";
@@ -68,7 +68,7 @@ export interface GatherResult {
 }
 
 /**
- * Sources in, one ranked pool out: the same steps as `dispatch fetch`, with the window and the id
+ * Sources in, one ranked pool out: the same steps as `singularity fetch`, with the window and the id
  * supplied by the run plan. The weekly kind also runs weekly-tier sources; every other kind runs
  * daily-tier sources only.
  *

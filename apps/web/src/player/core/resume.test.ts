@@ -24,8 +24,8 @@ function memory(): StorageLike & { map: Map<string, string> } {
 
 describe("played", () => {
   it("uses the key the Library reads", () => {
-    expect(PLAYED_KEY_PREFIX).toBe("dispatch:played:");
-    expect(playedKey("2026-10-07")).toBe("dispatch:played:2026-10-07");
+    expect(PLAYED_KEY_PREFIX).toBe("singularity:played:");
+    expect(playedKey("2026-10-07")).toBe("singularity:played:2026-10-07");
   });
 
   it("marks an item played when its position reaches the end, and forgets the position", () => {

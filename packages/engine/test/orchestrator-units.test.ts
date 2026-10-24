@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { type Category, type Digest, seedTopicsFile } from "@dispatch/core";
+import { type Category, type Digest, seedTopicsFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Selection } from "../src/curate/selectionFile.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
@@ -36,7 +36,7 @@ import { FIXTURE_CONFIG, plainPreferences } from "./score-factories.js";
 
 let root: string;
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-units-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-units-"));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true, maxRetries: 3 });
@@ -75,7 +75,7 @@ describe("pass state", () => {
 
   it("names the stage and the next step when an earlier stage is missing", async () => {
     await expect(requireStage(root, PASS, "judge", "writing")).rejects.toThrow(
-      /2026-10-07: the judge stage has not run, so writing cannot start\. Run `dispatch run --stage judge` first\./,
+      /2026-10-07: the judge stage has not run, so writing cannot start\. Run `singularity run --stage judge` first\./,
     );
     await markStage(root, PASS, "judge", { at: WED.toISOString() });
     await expect(requireStage(root, PASS, "judge", "writing")).resolves.toBeDefined();

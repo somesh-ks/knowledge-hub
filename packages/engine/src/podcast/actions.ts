@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type Episode, episodeRelPath, PodcastCommand, parseEpisodeFile } from "@dispatch/core";
+import { type Episode, episodeRelPath, PodcastCommand, parseEpisodeFile } from "@singularity/core";
 import { InvalidRequestError, PodcastError } from "./types.js";
 
 /** Parse the `--request` JSON: a new episode, a deletion or a regeneration. */

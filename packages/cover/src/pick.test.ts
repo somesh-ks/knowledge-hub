@@ -1,4 +1,4 @@
-import { CATEGORIES, COVER_TEMPLATES, CoverSpec } from "@dispatch/core";
+import { CATEGORIES, COVER_TEMPLATES, CoverSpec } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { DARK_PALETTE_IDS, groundDistance, PALETTE_IDS } from "./palettes.js";
 import { pickCover } from "./pick.js";

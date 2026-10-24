@@ -18,7 +18,7 @@ on:
 concurrency:
   # Its own group: sharing the run's group would let an episode request replace a queued briefing.
   # The push rebases and retries, so the two can overlap.
-  group: dispatch-podcast
+  group: singularity-podcast
   cancel-in-progress: false
 
 # Every step that calls a model can reach Claude and Gemini (config/models.json): a secret is only
@@ -65,7 +65,7 @@ jobs:
           # saved, not a run-old copy. Either one unset leaves it on the committed files.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
-        run: npm run --silent dispatch -- podcast --request "$REQUEST"
+        run: npm run --silent singularity -- podcast --request "$REQUEST"
 
   # Narrates the new episode turn by turn into the files the site plays from, so its first Play
   # starts from stored audio. A separate job: the episode is already committed, so a failure here

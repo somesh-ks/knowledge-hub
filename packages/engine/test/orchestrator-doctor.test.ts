@@ -22,7 +22,7 @@ const SECRETS = {
 
 let root: string;
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-doctor-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-doctor-"));
   for (const file of ["config/preferences.json", "config/voice.md"]) {
     await mkdir(dirname(join(root, file)), { recursive: true });
     await cp(join(FIXTURE_CONFIG, basename(file)), join(root, file));
@@ -195,7 +195,7 @@ describe("doctor: offline", () => {
       '{ "version": 1, "sources": [{ "id": "x" }] }',
       "utf8",
     );
-    await writeFile(join(root, "config/voice.md"), "# Dispatch voice\n", "utf8");
+    await writeFile(join(root, "config/voice.md"), "# Singularity voice\n", "utf8");
     const { code, report } = await doctor([]);
     expect(code).toBe(1);
     expect(check(report, "config.preferences")).toMatchObject({ status: "fail" });

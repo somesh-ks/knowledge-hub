@@ -53,7 +53,7 @@ export interface RunLocation {
 /**
  * Find a run's directory and pool. `run` names `.cache/run/<id>`; `pool` names the pool file
  * (and, without `run`, its folder is the run directory); with neither, the newest run that has
- * the marker file is used: the pool `dispatch fetch` just wrote, or the selection `dispatch
+ * the marker file is used: the pool `singularity fetch` just wrote, or the selection `dispatch
  * curate` just wrote when `marker` is "selection.json".
  */
 export async function resolveRunLocation(
@@ -73,8 +73,8 @@ export async function resolveRunLocation(
   if (latest === null) {
     throw new Error(
       marker === "pool.json"
-        ? "No pool found under .cache/run. Run `dispatch fetch` first, or pass --run or --pool."
-        : "No selection found under .cache/run. Run `dispatch curate` first, or pass --run or --selection.",
+        ? "No pool found under .cache/run. Run `singularity fetch` first, or pass --run or --pool."
+        : "No selection found under .cache/run. Run `singularity curate` first, or pass --run or --selection.",
     );
   }
   return { runDir: latest, poolPath: join(latest, "pool.json") };

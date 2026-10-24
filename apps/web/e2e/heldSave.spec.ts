@@ -37,7 +37,9 @@ const toastText = (page: Page) => page.locator("[data-bar] [data-bar-text]");
 const spoken = (page: Page) => page.locator("[data-live]");
 const note = (page: Page) => page.locator("[data-saved-note]");
 const pendingStored = (page: Page) =>
-  page.evaluate(() => (localStorage.getItem("dispatch:saved-edits") ?? "").includes('"pending"'));
+  page.evaluate(() =>
+    (localStorage.getItem("singularity:saved-edits") ?? "").includes('"pending"'),
+  );
 
 /** Daily: Time saved, Length changed inside the gap, Back to Settings, and Daily opened again. */
 async function holdDailyLength(page: Page): Promise<void> {

@@ -25,9 +25,9 @@ const state = (page: Page) =>
   page.evaluate(() => {
     const api = (
       window as unknown as {
-        dispatchPrototype: { player: { getState: () => Record<string, unknown> } };
+        singularityPrototype: { player: { getState: () => Record<string, unknown> } };
       }
-    ).dispatchPrototype;
+    ).singularityPrototype;
     return api.player.getState();
   });
 
@@ -57,8 +57,8 @@ async function main(): Promise<void> {
     "sound engine scheduled a cue through the real engine",
     await page.evaluate(() => {
       const api = (
-        window as unknown as { dispatchPrototype: { sound: { activeVoices: () => number } } }
-      ).dispatchPrototype;
+        window as unknown as { singularityPrototype: { sound: { activeVoices: () => number } } }
+      ).singularityPrototype;
       return typeof api.sound.activeVoices() === "number";
     }),
   );
@@ -278,8 +278,8 @@ async function main(): Promise<void> {
   );
   const soundsDefault = await page2.evaluate(
     () =>
-      (window as unknown as { dispatchPrototype: { prefs: { sounds: boolean } } }).dispatchPrototype
-        .prefs.sounds,
+      (window as unknown as { singularityPrototype: { prefs: { sounds: boolean } } })
+        .singularityPrototype.prefs.sounds,
   );
   check("reduced motion: sounds default off", soundsDefault === false);
   await reduced.close();

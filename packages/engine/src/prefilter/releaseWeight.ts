@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 
 const VERSION = /(\d+)\.(\d+)\.(\d+)/;
 

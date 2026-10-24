@@ -55,7 +55,8 @@ function hideIn(doc: Document): void {
     removed += 1;
   }
   // The Library's script may have counted its cards before this module loaded: it counts again.
-  if (doc === document && removed > 0) document.dispatchEvent(new Event("dispatch:library-pruned"));
+  if (doc === document && removed > 0)
+    document.dispatchEvent(new Event("singularity:library-pruned"));
 }
 
 /** A page for a deleted episode has nothing to show: go to the Library as it was left. */

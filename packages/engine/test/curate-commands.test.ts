@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { JudgmentsFile, parseDigestFile, seedTopicsFile } from "@dispatch/core";
+import { JudgmentsFile, parseDigestFile, seedTopicsFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeCurateCommand } from "../src/commands/curate.js";
 import { makeRenderCommand } from "../src/commands/render.js";
@@ -70,7 +70,7 @@ async function seedPool(count: number): Promise<ReturnType<typeof makePool>> {
   return pool;
 }
 
-describe("dispatch curate: api mode", () => {
+describe("singularity curate: api mode", () => {
   it("writes selection, written items, judgments and a report, and prints JSON", async () => {
     const pool = await seedPool(6);
     const { factory } = factoryFor(pool.table);
@@ -216,7 +216,7 @@ describe("dispatch curate: api mode", () => {
   });
 });
 
-describe("dispatch curate: errors", () => {
+describe("singularity curate: errors", () => {
   const cmd = makeCurateCommand(factoryFor(new Map()).factory);
 
   it.each([
@@ -231,7 +231,7 @@ describe("dispatch curate: errors", () => {
     const { ctx, logs } = makeContext(tr.root, { env: ENV });
     expect(await cmd(argv, ctx)).toBe(2);
     expect(
-      logs.some((l) => l.level === "error" && l.message.includes("Usage: dispatch curate")),
+      logs.some((l) => l.level === "error" && l.message.includes("Usage: singularity curate")),
     ).toBe(true);
   });
 
@@ -276,7 +276,7 @@ const AGENT_SUMMARY =
   "Springlet swaps the rest target without resetting velocity. Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript. A fixed timestep keeps the motion the same on slow phones.";
 const AGENT_WHY = "Copy the retargeting pattern for drawers and toasts";
 
-describe("dispatch curate: agent mode", () => {
+describe("singularity curate: agent mode", () => {
   const agent = makeCurateCommand();
 
   it("writes the JSON Schema and waits for a selection", async () => {
@@ -536,7 +536,7 @@ async function seedRender(count = 6): Promise<ReturnType<typeof makeFixture>> {
   return fixture;
 }
 
-describe("dispatch render", () => {
+describe("singularity render", () => {
   const render = makeRenderCommand({ coverPicker: () => COVER });
 
   it("writes a valid digest file from a selection", async () => {
@@ -643,10 +643,10 @@ describe("dispatch render", () => {
   });
 });
 
-describe("dispatch validate", () => {
+describe("singularity validate", () => {
   const writeDigest = async (name: string, mutate?: (text: string) => string): Promise<string> => {
     const { digest } = buildFixtureDigest(6);
-    const { serializeDigestFile } = await import("@dispatch/core");
+    const { serializeDigestFile } = await import("@singularity/core");
     const path = join(tr.root, name);
     const text = serializeDigestFile(digest);
     await writeFile(path, mutate ? mutate(text) : text);

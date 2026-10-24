@@ -11,7 +11,7 @@ const chains = [
   [{ name: "typecheck", command: "npm run typecheck:packages" }],
   [{ name: "lint", command: "npm run lint" }],
   [{ name: "test", command: "npm test" }],
-  [{ name: "site types", command: "npm run check -w @dispatch/web" }],
+  [{ name: "site types", command: "npm run check -w @singularity/web" }],
   [{ name: "docs", command: "node scripts/docsCheck.mjs" }],
 ];
 if (process.argv.includes("--build")) {

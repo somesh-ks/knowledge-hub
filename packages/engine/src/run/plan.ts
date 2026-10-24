@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { DigestId, DigestKind } from "@dispatch/core";
+import { DigestId, DigestKind } from "@singularity/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
@@ -101,7 +101,7 @@ export async function readPlan(root: string): Promise<Plan | null> {
 export async function requirePlan(root: string): Promise<Plan> {
   const plan = await readPlan(root);
   if (plan === null) {
-    throw new StageFailure("No plan found. Run `dispatch run --stage gate` first.");
+    throw new StageFailure("No plan found. Run `singularity run --stage gate` first.");
   }
   return plan;
 }
@@ -159,7 +159,7 @@ export async function requireStage(
   const state = await readPassState(root, pass);
   if (state[stage] === undefined) {
     throw new StageFailure(
-      `${pass.id}: the ${stage} stage has not run, so ${needed} cannot start. Run \`dispatch run --stage ${stage}\` first.`,
+      `${pass.id}: the ${stage} stage has not run, so ${needed} cannot start. Run \`singularity run --stage ${stage}\` first.`,
     );
   }
   return state;

@@ -16,8 +16,8 @@ export interface BotIdentity {
 }
 
 export const DEFAULT_BOT: BotIdentity = {
-  name: "dispatch-bot",
-  email: "dispatch-bot@users.noreply.github.com",
+  name: "singularity-bot",
+  email: "singularity-bot@users.noreply.github.com",
 };
 
 /**

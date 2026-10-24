@@ -65,11 +65,11 @@ export function openCreateSheet(trigger: HTMLElement | null): void {
     if (!entry) return;
     entry = false;
     event.preventDefault();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     if (sheet.open) sheet.close();
   };
   history.pushState({ ...history.state, createSheet: true }, "");
-  addEventListener("dispatch:back", onBack);
+  addEventListener("singularity:back", onBack);
   sheet.addEventListener(
     "close",
     () => {

@@ -1,4 +1,4 @@
-import { hostNamesFor } from "@dispatch/core/hosts";
+import { hostNamesFor } from "@singularity/core/hosts";
 import { describe, expect, it } from "vitest";
 import {
   hostOf,

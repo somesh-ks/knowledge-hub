@@ -6,7 +6,7 @@ import {
   loadEnv,
   parseDigestFile,
   STATE_FILES,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SpeechifyError } from "../src/audio/speechify.js";
 import { buildSpokenText } from "../src/audio/spokenText.js";
@@ -68,7 +68,7 @@ const forbidden: Partial<AudioCommandDeps> = {
   },
 };
 
-describe("dispatch audio", () => {
+describe("singularity audio", () => {
   let temp: TempRoot;
   let ctx: TestContext;
   beforeEach(async () => {
@@ -311,7 +311,7 @@ describe("dispatch audio", () => {
   });
 });
 
-describe("dispatch publish", () => {
+describe("singularity publish", () => {
   let pair: RepoPair;
   let ctx: TestContext;
   beforeEach(async () => {
@@ -392,7 +392,7 @@ describe("dispatch publish", () => {
         "state/usage.json",
       ]);
       expect(git(pair.remote, "log", "-1", "--format=%an|%ae", "refs/heads/main")).toBe(
-        "dispatch-bot|dispatch-bot@users.noreply.github.com",
+        "singularity-bot|singularity-bot@users.noreply.github.com",
       );
       expect(remoteHead()).toBe(git(pair.a, "rev-parse", "HEAD"));
       expect(audioOf("2026-10-07")?.url).toContain("audio/2026-10-07.mp3");

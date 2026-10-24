@@ -1,4 +1,4 @@
-import { DigestId } from "@dispatch/core";
+import { DigestId } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { allocateDigestId } from "../src/gate/allocateDigestId.js";
 import { fetchWindow } from "../src/gate/fetchWindow.js";

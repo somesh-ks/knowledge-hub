@@ -12,7 +12,7 @@ import {
   priceUnits,
   type Report,
   TIME_ZONE,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { NarrationState } from "./narrationState";
 
 /**

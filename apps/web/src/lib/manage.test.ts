@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CATEGORIES, GENERAL_TOPICS } from "@dispatch/core";
+import { CATEGORIES, GENERAL_TOPICS } from "@singularity/core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   buildCandidates,

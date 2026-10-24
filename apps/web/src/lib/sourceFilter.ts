@@ -4,7 +4,7 @@
  * type) agree.
  * Imports no runtime from core: the page script loads this file.
  */
-import type { SourceFormat } from "@dispatch/core";
+import type { SourceFormat } from "@singularity/core";
 
 export const FORMAT_LABEL: Record<SourceFormat, string> = {
   blog: "Blog",

@@ -17,7 +17,7 @@ import {
 } from "../src/audio/index.js";
 
 /**
- * `@dispatch/engine/audio` is bundled into the site's narrate function, which has no repository to
+ * `@singularity/engine/audio` is bundled into the site's narrate function, which has no repository to
  * read and must not carry the run pipeline. This walks the entry's run-time imports and fails when a
  * module outside src/audio, or a package outside the short allowlist, becomes reachable.
  */
@@ -26,7 +26,7 @@ const AUDIO_DIR = resolve(import.meta.dirname, "..", "src", "audio");
 const ENTRY = join(AUDIO_DIR, "index.ts");
 
 /** Packages the entry may load at run time. Every `node:` module is refused, node:fs above all. */
-const ALLOWED_PACKAGES = new Set(["@dispatch/core", "zod"]);
+const ALLOWED_PACKAGES = new Set(["@singularity/core", "zod"]);
 
 /** Specifiers a file loads at run time. Type-only imports are erased by the compiler, so they do not count. */
 function runtimeImports(file: string): string[] {
@@ -91,7 +91,7 @@ function walk(entry: string): ImportGraph {
   return { files: [...seen].map((file) => basename(file)).sort(), violations };
 }
 
-describe("@dispatch/engine/audio", () => {
+describe("@singularity/engine/audio", () => {
   it("exposes the narration code the narrate function calls", () => {
     const exposed = {
       buildSpokenText,

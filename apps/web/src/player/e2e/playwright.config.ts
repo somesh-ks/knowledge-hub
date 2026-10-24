@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * The player suite, on real digest pages from the fixture build (DISPATCH_FIXTURES=1), served by
+ * The player suite, on real digest pages from the fixture build (SINGULARITY_FIXTURES=1), served by
  * the static server the site suite uses. Run with:
  *   npx playwright test -c apps/web/src/player/e2e/playwright.config.ts
  *

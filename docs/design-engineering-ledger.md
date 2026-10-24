@@ -152,7 +152,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Axe runs on every route in both schemes.
 - **Theme.**
   - A 512-byte head script applies the stored choice before first paint (D20). Anything else a page restores, such as the Library's gallery or list view, waits one frame for the page script, because the head budget has no room (2026-10-08).
-  - One store: `dispatch:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
+  - One store: `singularity:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
   - The theme change crossfades with a view transition, and `theme-color` metas follow. It first decodes the new theme's covers on screen (at most 400 ms), and the bars fade inside the page's picture, after "there is a glitch in the screen when I switch the app theme" (2026-10-16, D122).
 - **Ambient light.** The ask was "clever integration of shaders but mild" (2026-10-08, D48).
   - A CSS field of the cover's colours, with a 128px WebGL canvas faded over it.
@@ -188,7 +188,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Why the crossfade ran: Astro's swap keeps only a fixed set of root attributes, so `data-astro-nav` was dropped and the 330 ms default played. `navigation.ts:77` carries it onto `event.newDocument` in `astro:before-swap`.
   - The incoming page fades up in 100 ms, with an 8px settle into or out of a briefing.
   - `navigationBoost.ts` replaces the view-transition snapshot with an immediate swap: a one-shot stand-in for `document.startViewTransition`, branded with a WeakSet, that marks the new document `data-nav-swap` (`:66`, `:118`, `:138`). It skips two frames of snapshot capture.
-  - The service worker answers a move from a stamped copy (`x-dispatch-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads once after a deploy, never while offline (2026-10-08).
+  - The service worker answers a move from a stamped copy (`x-singularity-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads once after a deploy, never while offline (2026-10-08).
   - A touch `pointerdown` starts the fetch about 100 ms before the tap ends.
   - The pressed nav item lights up before the page arrives.
 - **Motion rules in tokens.**

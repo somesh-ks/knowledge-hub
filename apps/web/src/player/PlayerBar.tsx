@@ -21,7 +21,7 @@ import PlayerCover from "./ui/PlayerCover";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /** The page the bar's open button controls. An element id, so it keeps the product's first name. */
-export const PLAYER_PAGE_ID = "dispatch-player-page";
+export const PLAYER_PAGE_ID = "singularity-player-page";
 
 /**
  * The bar's own scrubber, along its top edge, on screens wide enough for the bar to stay put. A

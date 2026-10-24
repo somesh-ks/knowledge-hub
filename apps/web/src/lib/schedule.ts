@@ -8,7 +8,7 @@ import {
   ScheduleFile,
   scheduleZone,
   type WeeklySchedule,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 

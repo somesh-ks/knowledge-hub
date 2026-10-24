@@ -10,7 +10,7 @@ import { resolveHostNames } from "./voices";
 
 /**
  * POST /api/podcast: check the request and the passphrase, check the episode limits against
- * GitHub, dispatch podcast.yml with the request as its one input. Built like /api/generate and with
+ * GitHub, singularity podcast.yml with the request as its one input. Built like /api/generate and with
  * the same guards, and tested the same way: every side effect is a parameter. A new discussion also
  * names its hosts after its voices here, because the workflow has no Speechify key to do it.
  */

@@ -5,7 +5,7 @@ import type {
   SourceCandidatesFile,
   Topic,
   TopicJudgmentEntry,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { parseFeed } from "../fetch/feedParser.js";

@@ -21,7 +21,7 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - Discussion episodes use a second voice by default (`dominic_32`). The two hosts take names that fit their voices (D74); the writer is told them. The transcript names a speaker only where the speaker changes; a readout names nobody.
 - Custom episodes are narrated in the voices of their request.
 - Twelve episodes a day, two minutes apart.
-- The writer is told the length in words and a script is held to what its stories can carry. Since D80 the writer is asked for 95% of what the stories can carry and a script within 5% of the floor is kept, so most episodes are written once; a script attempt stops after 8 minutes. `dispatch podcast --dry-run` measures one request without writing.
+- The writer is told the length in words and a script is held to what its stories can carry. Since D80 the writer is asked for 95% of what the stories can carry and a script within 5% of the floor is kept, so most episodes are written once; a script attempt stops after 8 minutes. `singularity podcast --dry-run` measures one request without writing.
 - Real dry runs put 5 and 10 minute episodes at 83 to 90% of the length asked for.
 
 ### Run indicator

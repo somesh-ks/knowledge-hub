@@ -13,7 +13,7 @@ import {
   SOURCE_FORMATS,
   type SourceFormat,
   sourceScore,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
@@ -661,7 +661,7 @@ export interface LoadManageOptions {
 }
 
 /**
- * Reads everything under `root`: config/ and state/. With DISPATCH_FIXTURES=1 the root is the invented
+ * Reads everything under `root`: config/ and state/. With SINGULARITY_FIXTURES=1 the root is the invented
  * fixtures, so a production build can never show them.
  */
 export async function loadManage(options: LoadManageOptions = {}): Promise<ManageData> {

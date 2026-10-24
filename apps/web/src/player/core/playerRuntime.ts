@@ -112,7 +112,7 @@ export function playBriefingOnArrival(digestId: string): void {
 
 let queue: PlayQueue | null = null;
 
-/** The listener's queue (playQueue.ts). Every change is told to the page as dispatch:queue-changed. */
+/** The listener's queue (playQueue.ts). Every change is told to the page as singularity:queue-changed. */
 export function getPlayQueue(): PlayQueue {
   queue ??= createPlayQueue({
     storage: safeLocalStorage(),
@@ -285,14 +285,14 @@ export function startPlayerRuntime(): () => void {
     if (!entry) return;
     entry = false;
     event.preventDefault();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     if (playerSheet.getSnapshot().open) void playerSheet.collapse();
   };
   // The navigation is already on its way; giving the entry back would turn it around.
   const dropEntry = (): void => {
     if (!entry) return;
     entry = false;
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
   };
   const offEntry = playerSheet.subscribe(() => {
     const open = playerSheet.getSnapshot().open;
@@ -301,7 +301,7 @@ export function startPlayerRuntime(): () => void {
     if (open) {
       history.pushState({ ...history.state, playerOpen: true }, "");
       entry = true;
-      addEventListener("dispatch:back", onBack);
+      addEventListener("singularity:back", onBack);
     } else if (entry) {
       // Closed any other way: give the entry back. The pop this causes reaches onBack, which swallows it.
       history.go(-1);
@@ -360,7 +360,7 @@ export function startPlayerRuntime(): () => void {
     offState();
     offWake();
     offEntry();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     stopTheme();
     stopSound();
     if (activeReader === reader) activeReader = null;

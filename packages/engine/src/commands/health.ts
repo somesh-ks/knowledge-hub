@@ -6,13 +6,13 @@ import { readStore, readWatchedHead } from "../ops/healthChecks.js";
 import { configStoreUrl } from "../store/configPaths.js";
 
 const USAGE =
-  "Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--perf <perf.json>] [--json]";
+  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--perf <perf.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 const DEFAULT_CEILING_USD = 5;
 
 /**
- * `dispatch health`: faults in runs, narration, data, cost, the live site and its field Web Vitals;
+ * `singularity health`: faults in runs, narration, data, cost, the live site and its field Web Vitals;
  * exits 1 on a fault.
  */
 export const run: CommandRun = async (argv, ctx) => {

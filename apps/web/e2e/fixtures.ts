@@ -181,7 +181,7 @@ export async function wakeIslands(page: Page): Promise<void> {
     const scope = window as { dispatchAwake?: boolean };
     if (scope.dispatchAwake) return;
     scope.dispatchAwake = true;
-    dispatchEvent(new Event("dispatch:wake"));
+    dispatchEvent(new Event("singularity:wake"));
   });
 }
 
@@ -204,7 +204,7 @@ async function coversSettled(page: Page): Promise<void> {
     const images = [...document.querySelectorAll<HTMLImageElement>("astro-island img")];
     // A lazy image off screen is never fetched, so it is not waited for.
     if (!images.every((image) => image.complete || image.loading === "lazy")) return false;
-    const data = document.getElementById("dispatch-digest-data")?.textContent;
+    const data = document.getElementById("singularity-digest-data")?.textContent;
     const large = data
       ? (JSON.parse(data) as { cover?: { src1024?: string } }).cover?.src1024
       : null;

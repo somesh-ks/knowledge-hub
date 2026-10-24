@@ -3,7 +3,7 @@ import { missingTable, withTable } from "./pgErrors.js";
 
 /**
  * Client faults in Neon (D158), beside the field vitals (vitalsStore.ts): `/api/report` adds a page's
- * uncaught error, unhandled rejection or CSP violation, `dispatch health` reads the week. Vercel
+ * uncaught error, unhandled rejection or CSP violation, `singularity health` reads the week. Vercel
  * Hobby keeps function logs for an hour, so a log line alone was never seen. A row holds only the
  * kind, the route template, the start of the message (cut before anything a reader typed could
  * be), for CSP the directive and the blocked origin, the origin or scheme of the script that

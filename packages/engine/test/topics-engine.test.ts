@@ -1,4 +1,4 @@
-import { ConfigOpBatch, parseConfigOps } from "@dispatch/core";
+import { ConfigOpBatch, parseConfigOps } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { clusterStories } from "../src/dedupe/storyCluster.js";
 import { scriptSystemPrompt } from "../src/podcast/prompt.js";

@@ -1,5 +1,5 @@
-import type { CoverSpec } from "@dispatch/core";
-import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@dispatch/cover";
+import type { CoverSpec } from "@singularity/core";
+import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@singularity/cover";
 import type { PlayerDigestData } from "../types/contracts";
 import { type ContentFiles, diskFiles } from "./contentFiles";
 import type { DigestEntry } from "./digests";
