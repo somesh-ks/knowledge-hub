@@ -330,3 +330,62 @@ export function sourceCounts(
   const listed = Object.values(spots).filter((spot) => page === undefined || spot.page === page);
   return { total: listed.length, on: listed.filter((spot) => spot.on).length };
 }
+
+// -------------------------------------------------------------------------------- topic chip lists
+
+/** A topic chip as a page drew it: what it sends, the topic or section ids it stands for, its words. */
+export interface TopicChip {
+  value: string;
+  ids: readonly string[];
+  label: string;
+}
+
+/** What the saved edits do to a list of topic chips drawn at build. */
+export interface ChipChanges {
+  /** Chips to hide: every topic they stand for was removed, switched off or left out of `scope`. */
+  hide: Set<string>;
+  /** New words for a chip whose one topic was renamed. */
+  rename: Map<string, string>;
+  /** Topics the build did not have, in the order saved: a chip to add for each. */
+  add: TopicChip[];
+}
+
+/**
+ * A topic chip list (the Create panel's, a podcast's, Regenerate's) with the saved edits laid over
+ * it, so a topic added, renamed or removed in Settings shows in every list without a deploy (D173).
+ * `built` is every topic id the build knew, chip or not; `scope` names the list in topic.scope and
+ * schedule.set ("custom" for Create), and is left out where a list has no scope.
+ */
+export function savedChips(
+  chips: readonly TopicChip[],
+  built: ReadonlySet<string>,
+  ops: readonly ConfigOp[],
+  scope?: "daily" | "weekly" | "custom",
+): ChipChanges {
+  const { topics, removedTopics } = savedTopics(ops);
+  const changes: ChipChanges = { hide: new Set(), rename: new Map(), add: [] };
+  let skipped: Set<string> | undefined;
+  for (const op of ops) {
+    if (op.op !== "schedule.set" || !scope) continue;
+    const list = scope === "daily" ? op.skip_topics : op[scope]?.skip_topics;
+    if (list) skipped = new Set(list);
+  }
+  const out = (id: string): boolean => {
+    if (removedTopics.has(id) || topics.get(id)?.enabled === false) return true;
+    const inScope = scope ? savedScope(ops, scope, [id]) : undefined;
+    if (inScope !== undefined) return !inScope;
+    return skipped?.has(id) ?? false;
+  };
+  const drawn = new Set(chips.flatMap((chip) => chip.ids));
+  for (const chip of chips) {
+    if (chip.ids.length > 0 && chip.ids.every(out)) changes.hide.add(chip.value);
+    const [only] = chip.ids;
+    const name = chip.ids.length === 1 && only !== undefined ? topics.get(only)?.name : undefined;
+    if (name && name !== chip.label) changes.rename.set(chip.value, name);
+  }
+  for (const [id, topic] of topics) {
+    if (built.has(id) || drawn.has(id) || out(id)) continue;
+    changes.add.push({ value: id, ids: [id], label: topic.name });
+  }
+  return changes;
+}
