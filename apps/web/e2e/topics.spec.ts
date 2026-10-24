@@ -676,11 +676,14 @@ test.describe("a topic's page", () => {
     // height each time (owner, 2026-10-23). The bar is pinned on this page (data-pins-bar).
     await open(page, "/settings/topics/design");
     const block = page.locator(".source-filter[data-chips]");
-    await page.evaluate(() => window.scrollTo(0, 600));
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(600);
+    // The page's end and a step back up from it: both past where the block sticks.
+    const bottom = await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      return window.scrollY;
+    });
     const stuck = await block.boundingBox();
-    await page.evaluate(() => window.scrollTo(0, 480));
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(480);
+    await page.evaluate((y) => window.scrollTo(0, y), bottom - 80);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(bottom - 80);
     await expect.poll(() => block.boundingBox()).toEqual(stuck);
     await expect(page.locator("html")).not.toHaveAttribute("data-bar-hidden", "");
   });
