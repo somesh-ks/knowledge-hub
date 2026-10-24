@@ -20,8 +20,9 @@ A briefing or an episode is shared as a public listen link that plays its stored
 ### The listen page, `/s/<token>`
 - Rendered on the server, `Cache-Control: public, max-age=0, s-maxage=300`, `X-Robots-Tag: noindex, nofollow` and the `robots` meta. 410 for a stopped or expired link, 404 for an unknown one.
 - Shows the cover, the title, the date (a briefing: Daily or Weekly briefing), the length from the stored files, "Shared by" `SHARE_DISPLAY_NAME` (Somesh), Play with a position slider, the stories with their outlets and a link to each original, and the transcript folded.
-- No app bar, navigation, menus, manifest, service worker or link into the app. Its script stays under 8 KB gzipped (`LISTEN_PAGE_BUDGET_BYTES`, its own line in `checkBundle`).
+- No app bar, navigation, menus, manifest, service worker or link into the app but the Privacy line below. Its script stays under 8 KB gzipped (`LISTEN_PAGE_BUDGET_BYTES`, its own line in `checkBundle`).
 - Card: `og:title`, `og:description` (160 characters at most), `og:image` (`/covers/<id>-1024.png`, 1024 square), `og:image:alt`, `og:site_name` Singularity, `twitter:card` summary. `robots.txt` allows `/s/` and `/covers/` so previewers can fetch them.
+- Under the stories, the call to action (stage 3). Send it to someone shares the same `/s/<token>` with `?ref=share&g=` one past the page's own `g`, at most 9 (`sendOnUrl`, `MAX_GENERATION`), through the share sheet, or copies it and says "Link copied": no new token, nothing written on the server. Worth it or Not for me sends `react`; the chosen one stays pressed. Each event is sent once a page view ([analytics.md](analytics.md)). Under them, the one link into the app: "No cookies. Somesh sees how many people listened, not who." to `/settings/privacy`, which lists what the page counts.
 - Play calls `POST /api/share-play` with the token and plays the answered files one after another in one audio element. It never calls `/api/narrate`; a file that will not play is skipped with one line.
 
 ### Caps
@@ -36,4 +37,4 @@ A briefing or an episode is shared as a public listen link that plays its stored
 - `apps/web/src/lib/share.ts` (the owner's numbers), `apps/web/src/server/share.ts`, `apps/web/src/server/shareSite.ts`, `apps/web/src/server/listenView.ts`
 - `apps/web/src/pages/api/share.ts`, `apps/web/src/pages/api/share-play.ts`, `apps/web/src/pages/s/[token].astro`, `apps/web/src/scripts/listenPage.ts`, `apps/web/src/styles/listen.css`
 - `apps/web/src/scripts/shareLink.ts`, `packages/engine/src/store/shareStore.ts`
-- Tests: `shareStore.test.ts` (the play gate), `server/share.test.ts` (HMAC before the database), `lib/listenAnalytics.test.ts` (no token in analytics), `e2e/share.spec.ts` (the journey)
+- Tests: `shareStore.test.ts` (the play gate), `server/share.test.ts` (HMAC before the database), `lib/listenAnalytics.test.ts` (no token in analytics; `g` grows by one and stops at 9), `e2e/share.spec.ts` (the journey)

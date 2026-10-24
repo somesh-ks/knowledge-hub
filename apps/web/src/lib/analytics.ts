@@ -22,6 +22,7 @@ export type AnalyticsEvent =
   | "install"
   | "create_episode"
   | "vote"
+  | "react"
   | "story_open";
 
 /** Simple Analytics takes flat text, numbers and booleans; nothing here may name a person. */

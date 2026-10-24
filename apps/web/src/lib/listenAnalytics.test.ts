@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ANALYTICS_HOST } from "./analytics";
-import { LISTEN_PATH, listenMetadata } from "./listenAnalytics";
+import {
+  LISTEN_PATH,
+  listenMetadata,
+  listenReactMetadata,
+  listenShareMetadata,
+  sendOnUrl,
+} from "./listenAnalytics";
 
 const TOKEN = "AAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBB";
 
@@ -63,5 +69,40 @@ describe("the listen page's analytics", () => {
       path: (page[overwriter] as () => string)(),
     });
     for (const part of TOKEN.split(".")) expect(everything).not.toContain(part);
+  });
+
+  // The same bug for the call to action (stage 3): Send it to someone and Worth it counted with the
+  // link they share, which would put working links on the dashboard.
+  it("sends share and react with the item and no token", async () => {
+    const sent: unknown[][] = [];
+    const page: Record<string, unknown> = {
+      location: { hostname: ANALYTICS_HOST, pathname: `/s/${TOKEN}`, search: "?ref=share&g=3" },
+      sa_event: (...args: unknown[]) => sent.push(args),
+    };
+    vi.stubGlobal("window", page);
+    vi.stubGlobal("navigator", { doNotTrack: null });
+    const { track } = await import("./analytics");
+    track("share", listenShareMetadata("2026-10-07", "copied", "?ref=share&g=3"));
+    track("react", listenReactMetadata("2026-10-07", "up"));
+
+    expect(sent).toEqual([
+      ["share", { outcome: "copied", surface: "listen", generation: 3, item: "2026-10-07" }],
+      ["react", { value: "up", surface: "listen", item: "2026-10-07" }],
+    ]);
+    for (const part of TOKEN.split(".")) expect(JSON.stringify(sent)).not.toContain(part);
+  });
+});
+
+describe("Send it to someone", () => {
+  // The bug it prevents: a sent-on link that keeps the page's own `g` (every generation counted as
+  // the first) or grows past 9 (plan section 4 caps it, and the dashboard's breakdown with it).
+  it("shares the same link with g one higher, stopping at 9", () => {
+    const page = `https://news.someshks.work/s/${TOKEN}`;
+    const g = (href: string) => new URL(sendOnUrl(href)).searchParams.get("g");
+    expect(sendOnUrl(`${page}?ref=share&g=1`)).toBe(`${page}?ref=share&g=2`);
+    expect(g(page)).toBe("2");
+    expect(g(`${page}?ref=share&g=8`)).toBe("9");
+    expect(g(`${page}?ref=share&g=9`)).toBe("9");
+    expect(g(`${page}?ref=share&g=40`)).toBe("9");
   });
 });

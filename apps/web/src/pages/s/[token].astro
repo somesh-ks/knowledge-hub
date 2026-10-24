@@ -209,6 +209,24 @@ const coverAlt = view
             </details>
           )}
 
+          <section class="listen-section listen-act" aria-label="Send it on">
+            <button type="button" class="btn-secondary listen-send" data-listen-send>
+              <Icon name="shareArrow" />Send it to someone
+            </button>
+            <div class="listen-react" role="group" aria-label="Was it worth hearing?">
+              <button type="button" class="btn listen-reaction" aria-pressed="false" data-listen-react="up">
+                <Icon name="thumbsUp" />Worth it
+              </button>
+              <button type="button" class="btn listen-reaction" aria-pressed="false" data-listen-react="down">
+                <Icon name="thumbsDown" />Not for me
+              </button>
+            </div>
+            <p class="listen-status" role="status" data-listen-note />
+            <p class="listen-privacy">
+              <a href="/settings/privacy">No cookies. {SHARE_DISPLAY_NAME} sees how many people listened, not who.</a>
+            </p>
+          </section>
+
           <footer class="listen-foot">
             <p>Singularity, a design engineering briefing. Each story links to its original reporting.</p>
           </footer>

@@ -1,5 +1,11 @@
 import { installAnalytics, track } from "../lib/analytics";
-import { LISTEN_PATH, listenMetadata } from "../lib/listenAnalytics";
+import {
+  LISTEN_PATH,
+  listenMetadata,
+  listenReactMetadata,
+  listenShareMetadata,
+  sendOnUrl,
+} from "../lib/listenAnalytics";
 
 /**
  * The public listen page's one script (pages/s/[token].astro, D153). Play asks /api/share-play,
@@ -179,4 +185,60 @@ if (root && audio && play && seek && elapsed && status) {
       if (audio.paused) void audio.play().catch(() => playing(false));
     } else load(next, offset);
   });
+}
+
+/*
+ * The call to action (D153 stage 3). Send it to someone shares this same link with `g` one higher:
+ * no new token and nothing written on the server by a stranger. Worth it or Not for me is a `react`.
+ * Each is counted once a page view: one says enough, and a listener pressing again is not a second.
+ */
+const send = document.querySelector<HTMLButtonElement>("[data-listen-send]");
+const note = document.querySelector<HTMLElement>("[data-listen-note]");
+const reactions = document.querySelectorAll<HTMLButtonElement>("[data-listen-react]");
+
+if (root && send && note) {
+  const item = root.dataset.item ?? "";
+  const title = document.querySelector("h1")?.textContent?.trim() ?? document.title;
+  let shareCounted = false;
+  const counted = (outcome: "shared" | "copied"): void => {
+    if (shareCounted) return;
+    shareCounted = true;
+    track("share", listenShareMetadata(item, outcome, location.search));
+  };
+
+  send.addEventListener("click", async () => {
+    const url = sendOnUrl(location.href);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        counted("shared");
+        return;
+      } catch (error) {
+        // Closed the sheet: nothing sent. Any other failure falls back to a copy.
+        if (error instanceof Error && error.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      note.textContent = "Link copied";
+      counted("copied");
+    } catch {
+      note.textContent = "Could not copy. Copy this page's address instead.";
+    }
+  });
+
+  let reacted = false;
+  for (const button of reactions) {
+    button.addEventListener("click", () => {
+      if (reacted) return;
+      reacted = true;
+      const value = button.dataset.listenReact === "down" ? "down" : "up";
+      for (const each of reactions) {
+        if (each === button) each.setAttribute("aria-pressed", "true");
+        else each.setAttribute("aria-disabled", "true");
+      }
+      note.textContent = `Thanks. ${value === "up" ? "Glad it was worth it." : "Noted."}`;
+      track("react", listenReactMetadata(item, value));
+    });
+  }
 }

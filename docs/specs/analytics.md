@@ -21,7 +21,8 @@ Cookieless counts of visits and a few named events on news.someshks.work, throug
 | `download` | a Library item is saved for offline listening | `kind` |
 | `install` | the browser reports the app installed (`appinstalled`, Chromium only) | none |
 | `create_episode` | Catch up got an answer | `outcome` started, limited (429) or failed |
-| `listen_*` | as above, on a listen page ([sharing.md](sharing.md)) | `kind`, `surface` listen, `generation` (`g`, 1 to 9), `item` |
+| `listen_*`, `share` | as above, on a listen page ([sharing.md](sharing.md)) | `kind` or `outcome`, `surface` listen, `generation` (`g`, 1 to 9), `item` |
+| `react` | Worth it or Not for me, on a listen page | `value` up or down, `surface` listen, `item` |
 
 A listen page reports its views and events as the path `/s` (`data-path-overwriter`): no token reaches the dashboard.
 
@@ -65,11 +66,10 @@ Scenario: a reader opens a briefing in the installed app, taps Play and switches
 - Every page sends `Referrer-Policy: no-referrer`, so a reload or a full page load inside the site arrives with no referrer and counts as a unique visit; moves through the client router do not.
 - A listen offline (a download) sends nothing.
 - The owner's own visits count unless excluded ("Block your visits" extension or IP exclusion).
-- An event sent from the page a shared link opened carries that page's query (`ref=share`, seen in a local check of the real script), so a listen from a shared visit can be told apart; one after a move inside the site cannot.
+- An event sent from the page a shared link opened carries its query (`ref=share`, seen in a local check of the real script); one after a move inside the site does not.
 
 ## Code
 
 - `apps/web/src/lib/analytics.ts`, `apps/web/src/player/core/listenEvents.ts`, `apps/web/src/scripts/shareLink.ts`
-- `apps/web/astro.config.mjs` and `apps/web/vercel.json` (the policies)
 - `apps/web/src/pages/settings/privacy.astro`
 - Field Web Vitals: `apps/web/src/scripts/vitals.ts`, `apps/web/src/server/vitals.ts`, `packages/core/src/vitals.ts`, `packages/engine/src/store/vitalsStore.ts`, `checkFieldVitals` in `packages/engine/src/ops/healthChecks.ts`

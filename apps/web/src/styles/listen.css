@@ -267,6 +267,55 @@
   font-weight: var(--text-label-weight);
 }
 
+/* ------------------------------------------------------------------ send it on */
+
+/* The call to action (stage 3): the tonal block button, then the two reactions, then the line that
+   links to the Privacy page, all at the column's start. */
+.listen-act {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+/* The tonal button at its words' width: a full-width bar reads as a sheet's commit, not a page's. */
+.listen-send {
+  width: auto;
+}
+
+/* Text buttons whose boxes start at the column's edge, as Send's does, so a chosen one's tonal fill
+   never runs into the page gutter on a phone. */
+.listen-react {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+/* The chosen reaction is tonal, as a pressed vote is (story-controls.css); the other goes quiet. */
+.listen-reaction[aria-pressed="true"] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+  cursor: default;
+}
+
+.listen-privacy {
+  margin-block-start: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+}
+
+.listen-privacy a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-hairline);
+  text-underline-offset: var(--space-1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .listen-privacy a:hover {
+    text-decoration-color: currentcolor;
+  }
+}
+
 /* ------------------------------------------------------------------ foot */
 
 .listen-foot {
