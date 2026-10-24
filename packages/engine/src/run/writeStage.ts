@@ -377,7 +377,11 @@ async function writePass(
   ): Promise<PassResult> => {
     const selection: Selection =
       survivors.length === 0
-        ? nothingSelection(pass)
+        ? {
+            ...nothingSelection(pass),
+            // Validation refills a sized pass from its reserve even when writing left too few.
+            ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
+          }
         : {
             ...nothingSelection(pass),
             outcome: "selected",
@@ -411,6 +415,7 @@ async function writePass(
 
   if (chosen.outcome === "nothing") {
     deps.log.info("Nothing cleared the bar", { pass: pass.id, qualifying: chosen.qualifying });
+    await writeJson(file("reserve.json"), { version: 1, items: [] });
     return finish([], new Map(), [], []);
   }
 
@@ -450,6 +455,7 @@ async function writePass(
   await writeJson(file("reserve.json"), {
     version: 1,
     ...(context.feedback === undefined ? {} : { feedback: context.feedback }),
+    taste: { liked: [...context.taste.liked], disliked: [...context.taste.disliked] },
     items: reserve,
   });
 
@@ -541,6 +547,8 @@ export async function writeFinalists(args: {
   sourceNames: Record<string, string>;
   feedback: string | undefined;
   taste: Taste;
+  /** Headlines the episode already airs, which the writer sees beside the finalists'. */
+  airing?: readonly string[];
   drop: (id: string, stage: DropStage, reason: string) => void;
 }): Promise<{
   materials: Map<string, SourceMaterial>;
@@ -575,6 +583,7 @@ export async function writeFinalists(args: {
     [...materials.values()],
     args.feedback,
     args.taste,
+    args.airing ?? [],
   );
   for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
   const voice = await enforceVoice({
@@ -589,13 +598,16 @@ export async function writeFinalists(args: {
   return { materials, methods, writeResult, voice };
 }
 
-/** The stories a larger selection adds to the one that was written, best first. */
+/**
+ * The stories a larger selection adds to the one that was written, in that selection's own order,
+ * so a refill keeps the balance of topics and sections selection gave it.
+ */
 export function reserveAfter(
   written: readonly SelectedItem[],
   larger: readonly SelectedItem[],
 ): SelectedItem[] {
   const taken = new Set(written.map((sel) => sel.item.id));
-  return larger.filter((sel) => !taken.has(sel.item.id)).sort((a, b) => b.score - a.score);
+  return larger.filter((sel) => !taken.has(sel.item.id));
 }
 
 async function extractSafely(runtime: ApiRuntime, item: Item): Promise<ExtractedText | null> {

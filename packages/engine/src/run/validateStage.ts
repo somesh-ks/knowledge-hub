@@ -9,8 +9,7 @@ import {
 } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
-import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
-import { tasteHeadlines } from "../profile/votes.js";
+import { describeError } from "../llm/errors.js";
 import { readLastRun } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
@@ -42,7 +41,9 @@ interface Fitted {
 /** The pass's reserve, or none: a pass written before reserves existed, or not sized. */
 async function readReserve(path: string): Promise<ReserveFile> {
   const parsed = ReserveFile.safeParse(await readJsonIfExists(path, "reserve.json"));
-  return parsed.success ? parsed.data : { version: 1, items: [] };
+  return parsed.success
+    ? parsed.data
+    : { version: 1, taste: { liked: [], disliked: [] }, items: [] };
 }
 
 interface ValidateDrop {
@@ -85,7 +86,15 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     const state = await requireStage(deps.root, pass, "write", "validating");
     const file = (name: string): string => passFile(deps.root, pass.id, name);
     const at = deps.now().toISOString();
-    if (state.write?.outcome === "nothing") {
+    // Writing can leave a sized pass under the floor; its reserve may still fill it.
+    const reserve = await readReserve(file("reserve.json"));
+    const refillable =
+      !reserve.refilled &&
+      reserve.items.length > 0 &&
+      (await readJsonIfExists(file("selection.json"), "selection.json").then(
+        (raw) => Selection.safeParse(raw).data?.length_chars !== undefined,
+      ));
+    if (state.write?.outcome === "nothing" && !refillable) {
       await markStage(deps.root, pass, "validate", {
         at,
         outcome: "nothing",
@@ -201,57 +210,85 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     let fitted = fit(grounding.kept);
     // Grounding and validation cut a sized briefing after its spares were counted: the 2026-10-24
     // daily wrote 14 for five minutes and aired 7 (3.0 minutes). One round writes replacements
-    // from the stories selection would have taken next, then fits the briefing again.
-    const refill = { written: 0, kept: 0 };
+    // from the stories selection would have taken next, then fits the briefing again. It is best
+    // effort: a failure keeps the briefing that already validated.
+    const refill: { written: number; kept: number; error?: string } = { written: 0, kept: 0 };
     const refillDrops: WrittenFile["dropped"] = [];
+    const refillFacts = new Map<string, { extract_method?: string; rewritten_fields: string[] }>();
     const lengthChars = selection.length_chars;
-    if (lengthChars !== undefined && fitted.chars < lengthChars) {
-      const reserve = await readReserve(file("reserve.json"));
+    const room = VOICE_LIMITS.items.hardMax - fitted.survivors.length;
+    if (lengthChars !== undefined && fitted.chars < lengthChars && room > 0 && !reserve.refilled) {
       const poolById = new Map(pool.items.map((item) => [item.id, item]));
       const missing = Math.ceil((lengthChars - fitted.chars) / STORY_CHARS);
       const candidates = reserve.items
         .filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id))
-        .slice(0, withSpares(missing));
+        .slice(0, Math.min(withSpares(missing), room));
       if (candidates.length > 0) {
-        const profile = await createFileProfileStore(deps.root).read(OWNER_ID);
-        const { materials: fresh, voice } = await writeFinalists({
-          runtime,
-          linter,
-          finalists: candidates.map((entry) => ({
-            item: poolById.get(entry.id) as Item,
-            category: entry.writer_category,
-          })),
-          sourceNames,
-          feedback: reserve.feedback,
-          taste: tasteHeadlines(profile.votes),
-          drop: (id, stage, reason) => refillDrops.push({ id, stage, reason }),
-        });
-        for (const [id, material] of fresh) materials.set(id, material);
-        for (const entry of candidates) {
-          const passed = voice.passed.find((p) => p.item.id === entry.id);
-          if (!passed) continue;
-          entryOf.set(entry.id, {
-            id: entry.id,
-            category: entry.category,
-            score: entry.score,
-            ...writtenText(passed.item),
+        try {
+          const {
+            materials: fresh,
+            methods,
+            voice,
+          } = await writeFinalists({
+            runtime,
+            linter,
+            finalists: candidates.map((entry) => ({
+              item: poolById.get(entry.id) as Item,
+              category: entry.writer_category,
+            })),
+            sourceNames,
+            feedback: reserve.feedback,
+            taste: reserve.taste,
+            airing: fitted.survivors.map((g) => g.item.headline),
+            drop: (id, stage, reason) => refillDrops.push({ id, stage, reason }),
+          });
+          for (const [id, material] of fresh) materials.set(id, material);
+          for (const entry of candidates) {
+            const passed = voice.passed.find((p) => p.item.id === entry.id);
+            if (!passed) continue;
+            entryOf.set(entry.id, {
+              id: entry.id,
+              category: entry.category,
+              score: entry.score,
+              ...writtenText(passed.item),
+            });
+            const method = methods.get(entry.id);
+            refillFacts.set(entry.id, {
+              ...(method ? { extract_method: method } : {}),
+              rewritten_fields: passed.rewrittenFields,
+            });
+          }
+          const extra = await groundAndRepair({
+            grounder: runtime.grounder,
+            writer: runtime.writer,
+            linter,
+            items: voice.passed.map((p) => p.item),
+            materials,
+          });
+          const invalid = new Set(validateDrops.map((d) => d.id));
+          const refitted = fit(
+            [...grounding.kept, ...extra.kept].filter((g) => !invalid.has(g.item.id)),
+          );
+          grounding.kept.push(...extra.kept);
+          grounding.dropped.push(...extra.dropped);
+          fitted = refitted;
+          const refilled = new Set(extra.kept.map((g) => g.item.id));
+          refill.written = voice.passed.length;
+          refill.kept = fitted.survivors.filter((g) => refilled.has(g.item.id)).length;
+          deps.log.info("Refilled the briefing after validation", { pass: pass.id, ...refill });
+        } catch (error) {
+          refill.error = describeError(error, deps.secrets);
+          refillDrops.length = 0;
+          refillFacts.clear();
+          deps.log.warn("The refill failed; the validated stories stand", {
+            pass: pass.id,
+            reason: refill.error,
           });
         }
-        refill.written = voice.passed.length;
-        const extra = await groundAndRepair({
-          grounder: runtime.grounder,
-          writer: runtime.writer,
-          linter,
-          items: voice.passed.map((p) => p.item),
-          materials,
-        });
-        grounding.kept.push(...extra.kept);
-        grounding.dropped.push(...extra.dropped);
-        const refilled = new Set(extra.kept.map((g) => g.item.id));
-        const invalid = new Set(validateDrops.map((d) => d.id));
-        fitted = fit(grounding.kept.filter((g) => !invalid.has(g.item.id)));
-        refill.kept = fitted.survivors.filter((g) => refilled.has(g.item.id)).length;
-        deps.log.info("Refilled the briefing after validation", { pass: pass.id, ...refill });
+        // The replacements' source text is persisted with the rest, so a re-run of validate grounds
+        // them against what they were written from, and the reserve is marked used: one round.
+        await writeJson(file("materials.json"), { version: 1, items: [...materials.values()] });
+        await writeJson(file("reserve.json"), { ...reserve, refilled: true });
       }
     }
     const { survivors, spare } = fitted;
@@ -267,7 +304,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         ? { ...selection, outcome: "nothing", verified: false, items: [] }
         : { ...asSelection(finalists), outcome: "selected", verified },
     );
-    const rewritten = updatedWritten(written, finalists, grounding.dropped);
+    const rewritten = updatedWritten(written, finalists, grounding.dropped, refillFacts);
     await writeJson(file("written.json"), {
       ...rewritten,
       dropped: [
@@ -291,6 +328,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       spares_unaired: [...spare],
       refill_written: refill.written,
       refill_kept: refill.kept,
+      ...(refill.error ? { refill_error: refill.error } : {}),
       warnings,
     });
     await markStage(deps.root, pass, "validate", {
@@ -311,6 +349,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       validate_dropped: validateDrops.length,
       refill_written: refill.written,
       refill_kept: refill.kept,
+      ...(refill.error ? { refill_error: refill.error } : {}),
     });
   }
   return { stage: "validate", ok: true, dry_run: plan.dry_run, passes };
@@ -321,8 +360,13 @@ function updatedWritten(
   written: WrittenFile,
   finalists: readonly GroundedItem[],
   dropped: Awaited<ReturnType<typeof groundAndRepair>>["dropped"],
+  /** What the write stage would have recorded for each replacement validation wrote. */
+  refilled: ReadonlyMap<string, { extract_method?: string; rewritten_fields: string[] }>,
 ): WrittenFile {
-  const before = new Map(written.items.map((entry) => [entry.id, entry]));
+  const before = new Map<string, { extract_method?: string; rewritten_fields: string[] }>([
+    ...written.items.map((entry) => [entry.id, entry] as const),
+    ...refilled,
+  ]);
   return {
     version: 1,
     items: finalists.map((g) => {

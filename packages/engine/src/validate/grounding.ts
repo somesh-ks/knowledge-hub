@@ -110,12 +110,12 @@ export class JevGrounder implements Grounder {
     heading: string | undefined,
   ): Promise<SentenceVerdict> {
     const best = bestExcerpt(sourceText, sentence).text;
-    const excerpt = { text: heading ? `${heading}\n\n${best}` : best };
+    const excerpt = heading ? `${heading}\n\n${best}` : best;
     try {
       const raw = await withRetry(
         () =>
           this.options.client.systemOne({
-            state: { sentence, source_excerpt: excerpt.text },
+            state: { sentence, source_excerpt: excerpt },
             questions: { supported: GROUNDING_QUESTION },
             model: this.options.model ?? DEFAULT_JEV_MODEL,
           }),

@@ -68,6 +68,12 @@ export const ReserveFile = z.object({
   version: z.literal(1),
   /** What the owner asked to improve, for the writer prompt of the replacements. */
   feedback: z.string().optional(),
+  /** The vote headlines the write stage told the writer, so replacements share its moment. */
+  taste: z
+    .object({ liked: z.array(z.string()), disliked: z.array(z.string()) })
+    .default({ liked: [], disliked: [] }),
+  /** Set once validation has written replacements, so a re-run of validate refills no more. */
+  refilled: z.boolean().optional(),
   items: z.array(
     z.object({
       id: z.string(),
