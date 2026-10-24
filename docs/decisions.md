@@ -162,7 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; off until set |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
-| D151 | CI fails on a high advisory; path-to-regexp overridden | active |
+| D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
 | D153 | Engagement and sharing | active |
 | D154 | Simple Analytics and a Privacy page | active |
@@ -172,9 +172,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
 | D161 | Publisher above the headline | active; amends D31 |
-| D165 | YouTube captions via Firecrawl | amends D138 |
+| D165 | Captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
-| D172 | Store reads keep a device copy | amends D149 |
+| D167 | One shape per control | amends D72 |
+| D168 | Catch up, bolt, swipe toasts | amends D52 |
+| D169 | Queue gestures | amends D126 |
+| D170 | Podcast structure | accepted |
+| D171 | Richer covers | amends D121 |
+| D172 | Store reads keep a copy | amends D149 |
+| D173 | Data off the deploy path | proposed |
+| D175 | Ruleset on `main` | amends D143 |
 
 ---
 
@@ -1672,6 +1679,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: the CI audit step runs `npm audit --omit=dev --audit-level=high` (was `critical`). The one high advisory, GHSA-9wv6-86v2-598j in `path-to-regexp` 6.1.0 (an exact pin of `@vercel/routing-utils` under `@astrojs/vercel`), is answered by a root `overrides` entry that holds it at 6.3.0, the patched release of the same major.
 - Why: hardening.md recommended it; Dependabot cannot fix an exact pin, and the upstream fix was a major of the adapter.
 - Cost: routing-utils builds route regexes with 6.1.0 on purpose and compiles each with 6.3.0 only to log `[vc] PATH TO REGEXP PATH DIFF`; with both at 6.3.0 that warning can never fire, and a pattern with two parameters in one segment (`/:a-:b`) compiles differently. Today's output is identical (`.vercel/output/config.json` and every `.vc-config.json`, 39 routes) and the unoverridden build logged no diff. After a change to `vercel.json`'s sources or the adapter, diff `config.json` against `main`. A new high advisory with no fix in range turns every PR red until it is answered.
+- 2026-10-24: two more high advisories. `undici` (GHSA-xjj6-f33q-929c) moved inside its declared ranges to 6.29.1 under `@vercel/blob` and 8.12.3 under `unifont`, no override; `zod` 4.1.11, an exact pin in `@vercel/cli-config` under `@vercel/blob`, is held at 4.6.7 (the version the rest of the tree uses) by a second override.
 - Revisit if: `@vercel/routing-utils` pins a patched `path-to-regexp` (drop the override), or a high advisory has no fix to take (decide then: an override, or accept it here by name).
 
 ## D152: a full-screen phone sheet shows its Close
@@ -1779,6 +1787,57 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
 - Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
 
+## D167: one control has one shape wherever it stands, and every list is a bottom sheet on a phone
+
+- Date: 2026-10-23 (the owner: "different types of drop-down and chips with different radius, that shouldn't be possible in a design system unless requested"; "some dropdowns have a blue flash on click on phones and not others"; "most of the drop downs on phone should be using a bottom sheet"; "the chevron optically aligns with the search bar")
+- Decision: A chip, a select chip, a select's value, a segmented control and the search field are pills everywhere, in a card as on the page. The three concentric overrides of 2026-10-22 go: `.card-group` chips and select values (`primitives.css`), the Costs card's chips (`costs.css`, which also kept a chevron 8px from the end; it now shares the Library chip's 16px), and the topic panel's switch, field, Add and chips (`topics.css`), with the Listen in value. A row's tile and a button keep the concentric radius (`.card-group .btn`, `.row-action::after`), and a form's text fields keep `--field-radius`: the Add source panel's selects stand beside text inputs and follow them. Under 40rem every list that opens from a field is a bottom sheet with the sheet's corners, surface and scrim: a select's drawn list (`::picker(select)`, CSS alone), the searchable picker (`picker.ts` sets `data-sheet` and lets CSS place it) and the multi-select (fixed in place; the card around it rises to `--z-sheet`). A select and an input lose the tap highlight (`foundations.css`): the flash showed on native selects and not on the buttons beside them. A Sources row and a source row take the search field's 16px inline padding, so the emoji and the chevron sit where the field's glyph and clear button do; the chevron is no longer pulled out to the edge.
+- Why: the concentric rule gave one chip three radii (pill on the Library, 8px in a card, 8px in the topic panel) and one select chip two, which read as different components; the owner saw it on the phone a day after choosing it. A phone's anchored popover under a value is small and far from the thumb; the More menu is already a sheet there.
+- Cost: a popover's backdrop lets a tap through, so a tap on the scrim can also press what is under it (as the More menu's can); the multi-select is not a popover, so its sheet is drawn inside the card's layer and the card is lifted over the navigation bar while it is open. `lightningcss` rejects `::picker(select)::backdrop` and fails the build, so the select sheet's scrim is a spread of its shadow (`0 0 0 100vmax`).
+- Rejected: making the multi-select a popover with anchor positioning (desktop placement would need anchors in every engine, or JS); pills for the panel's text fields (a textarea pill); a scrim-less sheet.
+- Amends: the card rule of 2026-10-22 (D72's tonal language, [ledger](design-engineering-ledger.md) section 1) for chips, select values and segmented controls.
+- Revisit if: Firefox and Safari draw the select list natively on phones (they keep the system picker, which is a sheet of its own), or a tap on the scrim reaches a control under it in use.
+
+## D168: the primary action is Catch up, Latest is a bolt, and a toast swipes away
+
+- Date: 2026-10-23 (the owner: "rename new episode to catch-up, change fire emoji for latest to zap emoji"; "I need to be able to swipe away snack bars or toasts on mobile")
+- Decision: The action that makes an episode on request is called Catch up on the floating button, the side column, the sheet's title, the Create page and the Library's empty state, and in the manifest's shortcut: the name of the kind those episodes are filed under (the Library chip, Listen in), so the button names what it makes. Spelled "Catch up", the app's existing noun, not the owner's "catch-up". Latest's glyph is Phosphor's lightning, regular and fill; the flame is gone from the glyph set. A toast slides sideways under a finger and leaves past 35% of its width or at 0.6 px/ms (`Toaster.tsx`); a shorter drag springs it back. A swipe dismisses, it never undoes: a removal's wait still ends in the removal. A mouse does not drag it, and a press on its buttons is theirs.
+- Why: "New episode" named the mechanism; the Library already called the result Catch up. A phone's snackbar is swiped away everywhere else, and the toast's close button shows only while an action is offered.
+- Cost: four browser tests and four specs renamed; a reader who learnt "New episode" finds Catch up in its place.
+- Amends: D52 (the floating button's word).
+
+## D169: queue rows move by drag and menu, and the phone's controls hold still
+
+- Date: 2026-10-23 (the owner: "the up next & stories tabs must be segmented selectors"; "the up next list items must be draggable on long press on mobile, by click on desktop... replaced with a swipe left gesture for removing a track from queue... have 3 dots icon buttons"; "it is annoying when I scroll up to see the glitch when the top navigation bar also shows up with sticky sources bar"; "the tabs on podcast details page are placed too close"; "drop-down consistency must also happen on all pages"; "two icon segmented selector items to switch between chart and table"; "the status text must be on the right side")
+- Decision:
+  - The player's Stories and Up next switch keeps the segmented look at every width; on a phone it sits in a sticky bar on the page's colour (`.player-tabs-bar`) instead of becoming a tab line.
+  - A queue row has no handle and no cross. It moves by the browser's own drag and drop (`draggable`: a long press lifts it under a finger, a press and pull with a mouse; the list keeps scrolling), the row it is over shows an accent line on the edge it would join, and a sideways swipe to the left takes it off (past 35% of its width or 0.6 px/ms; a short one springs back). The dots at its end open the header's More menu (`hero-menu-list menu-sheet`: a popover under the dots, a bottom sheet on a phone) with Move up, Move down and Remove from queue, which is also the keyboard's way, announced as before.
+  - A page with a block that sticks under the app bar (a topic's search and chips) pins the bar: `data-pins-bar` on the block, read by the header's scroll script. The bar had slid away and back as the reader scrolled, moving the block by its height each time.
+  - Section tabs sit 16px each side (32px apart), the indicator under the words; the strip takes the extra back at the gutter.
+  - Every select is a pill, in a form too: the Create sheet's selects and pickers, the Add source panel's, the multi-select trigger. Text fields keep `--field-radius`.
+  - The Costs card switches between its chart and its table with two glyph tabs (chart, table) at the end of the filter row, the segmented navigation made compact; the "Show as a table" disclosure under the card is gone.
+  - A weight row's stop name sits at the end of its first line, across from the name.
+- Why: the handle and cross made the row read as a form; a phone's lists move by long press and swipe. Native drag and drop is the one way a long press can lift a row while the list still scrolls (a pointer-events drag needs `touch-action: none`, which kills scrolling; that is why the handle existed). The bar pin was the owner's own first suggestion and costs 56px; making the block follow the bar as the briefing's tabs do (`--tabs-follow`) would take a measuring script per page.
+- Cost: the drag ghost is the browser's; the drop line is the only drawn feedback. A swipe on a mouse works too (owner's ask) and so a sideways mouse drag never starts a reorder; vertical does. Four sheet mechanisms now exist for one look (ledger gap 11).
+- Rejected: a pointer-events long-press drag (no scrolling); anchor-positioned React popovers with their own anchors (the header menu's `--hero-more` name resolves to the nearest dots, so the shared rules serve).
+- Amends: D126 (the queue's handle and cross).
+
+## D170: a modular podcast structure, accepted
+
+- Date: 2026-10-23 (the owner: "there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections)... The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it")
+- Status: accepted, not built. [The design](design/podcast-structure.md) answers the ask: one structure per kind (daily, weekly, catch up) as an ordered list of blocks (hello, rundown, sections with depth and count, top picks, trending, release news, close, sign-off) in `config/structure.json`, one `structure.set` op, read by curate (section order and allowances) and by the episode planner and prompt; a Preferences view with the queue's reorder gestures and a sheet to add or edit a block; defaults that reproduce today's shapes exactly, so nothing changes until edited. The owner answered its five questions on 2026-10-24 (both shapes follow it, a `custom` block with a title and a brief, one list per kind, no separate Catch up editor, its own file); the design holds the answers.
+- Why: a briefing's reading order and an episode's script shape live in two files nobody can edit; the owner wants to compose them.
+- Revisit if: phase 1 of the design shows the planner cannot reproduce today's shapes from the default blocks.
+
+## D171: covers take a step of colour: chroma to 0.16, the light stock deeper and tinted
+
+- Date: 2026-10-23 (the owner: "the album arts of the podcasts are very dull, they need to be refreshing in all themes but still be optimized for dark and light theme")
+- Decision: `MAX_CHROMA` rises from 0.12 to 0.16 and every palette's ground and accent in `tokens/covers.json` carries 1.4 times its chroma, capped there (text roles unchanged). The monthly paper (`series/paper.ts`) reads as a coloured stock: its least chroma 0.045 to 0.09, its inks 1.4 times the scheme's colour (was 1.25), and the light theme's stocks a step deeper (weekly 0.92 to 0.88, on-demand 0.86 to 0.81, daily 0.80 to 0.74 in OKLCH lightness); the dark theme's stocks stay, since the dark page already carried full chroma. Every contrast floor is still held by the code and the family tests; the site's cover cache key hashes the renderer and the palettes, so the next build redraws every cover.
+- Why: D121 answered "too saturated" on 2026-10-15 with a 0.12 cap and pale papers; eight days of the October paper read as dull on the phone. The paper is nine tenths of each cover, so its tint and depth move the grid more than any ink.
+- Cost: a grid of a month is more colourful than D121 measured for (its colourfulness check is not rerun here); the owner's "too bright on light mode" weeklies are a step deeper, not brighter. One hue family a month is still the scheme's rule, so variety across a month comes from the forms, not the hues.
+- Rejected: more hues per month (D121's harmony); a different paper per series (the owner chose close steps).
+- Amends: D121 (the cap and the stocks' lightness).
+- Revisit if: the owner judges the October grid on the phone in both themes; the contact sheet (`npm run covers:sheet`) is the review aid.
+
 ## D172: a settings page keeps the store's last answer on the device
 
 - Date: 2026-10-24 (the owner: "make sure our app is professional industry grade", after asking how Spotify's settings feel instant)
@@ -1786,3 +1845,20 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
 - Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
 - Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
+
+## D173: episodes and settings leave the deploy path, proposed
+
+- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; "how does a professional music app like spotify or youtube handle this?"; "make sure our app is professional industry grade")
+- Status: proposed. [The design](design/data-off-the-deploy-path.md) keeps the page shell and the digests built and makes what changes between builds data: settings through the store (D149, D172, done) and episodes as Blob files with a small index the Library lays over itself, a monthly git copy for the record, and the device keeping the last index (D172's pattern). Episode deploys go from two to none; a run still deploys. Three questions for the owner close it.
+- Why: Dispatch treats data as code, so a save or an episode is a build and a deploy; the big apps ship code a few times a week and move data at run time. For one user, static pages stay the fastest shape, so only the data moves.
+- Rejected: rendering the Library at request time (a function call a visit, Neon's cold start, the static page lost); moving digests too (a run deploys anyway); keeping every episode in git (one deploy an episode stays).
+- Revisit if: the owner answers the questions, which turns this into a build decision.
+
+## D175: `main` is protected by a ruleset, with the Actions app as the only bypass
+
+- Date: 2026-10-24 (the owner: "Rulesets for main branch to have industry grade checks and quality checks to make sure main branch is always stable")
+- Decision: a GitHub ruleset on the default branch, kept in `.github/rulesets/main.json` (runbook 12): no deletion, no force push, linear history, every change through a pull request with its threads resolved and squash as the only merge method, the `check` and `browser` jobs required and the branch up to date with `main` at merge time. The GitHub Actions app bypasses it always, so the engine's own commits (digests, narration, episodes, config) keep landing; no person does.
+- Why: on 2026-10-24 two PRs that each passed CI alone put `main` over the learnings budget, so `docsCheck` failed on `main` itself; and nothing stopped a direct push or a force push. Strict required checks test the merged state; the ruleset turns D143's "review before every merge" and D148's "CI on pull requests" from habit into a rule the host enforces.
+- Cost: each merge first updates its branch and waits for CI again (about 4 minutes, 15 with the browser suites); with several PRs open they merge one at a time. Rulesets on a private repository need GitHub Pro.
+- Rejected: requiring the `review` check (Dependabot's PRs merge without the label, and the review runs only when the label is added); required approvals (one owner cannot approve their own PR); signed commits (the engine's are unsigned); a person as a bypass actor (then the rule is a habit again).
+- Revisit if: a workflow starts pushing with a token that is not the Actions app's (it would need its own bypass), or merges queue up behind the strict check for longer than they save.

@@ -10,6 +10,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [specs/README.md](specs/README.md) | What each capability does now, one spec each | Before changing a capability you do not know |
 | [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, every design ask and fix by surface, gaps, open asks | Before UI work |
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
+| [design/podcast-structure.md](design/podcast-structure.md) | The modular script structure for every episode kind, with the owner's answers (D170, accepted, not built) | Before building the Preferences structure view |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
 | [engineering/delivery-failures.md](engineering/delivery-failures.md) | Why PRs, CI and deploys failed, and the rules that stop each one | Before pushing, and when a check is red |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
@@ -21,5 +22,6 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources | When asked for references |
 | [history/](history/README.md) | One note per session: why something was done | Only for the why behind a change |
 | [prototype/](prototype/) | Generated prototype pages and the sound lab (built by `scripts/`) | Rarely |
+| [design/data-off-the-deploy-path.md](design/data-off-the-deploy-path.md) | Episodes and settings as data read at run time, no deploy per save or episode (D173, proposed) | Before building the episode index or moving episodes to Blob |
 
 The first build's plan, vision and UI spec (`plan/build-plan.md`, `plan/vision.md`, `design/design-spec.md`) were retired on 2026-10-19; later decisions had overridden most of them. Read them with `git show 91bc533:docs/<path>`.

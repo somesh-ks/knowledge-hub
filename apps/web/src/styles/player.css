@@ -2207,9 +2207,8 @@
  * The list's two views, Stories and Up next, are a tablist in .segmented-nav's markup
  * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
  * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
- * the status bar's room as the page scrolls), the tabs share the width, a hairline runs under them
- * and a bar in the accent slides under the chosen one. Same buttons, same arrow keys; only the
- * look differs, so nothing here restyles .segmented-nav itself.
+ * the status bar's room as the page scrolls) it sits in a sticky bar on the page's colour. Same
+ * buttons, same arrow keys, the same look at every width (D169).
  */
 .segmented-nav.player-tabs {
   flex: none;
@@ -2235,46 +2234,23 @@
     min-height: 100cqb;
   }
 
-  /* Stays under the status bar's room while the page scrolls, on the page's own colour so the words
-     passing under it do not show. */
-  .segmented-nav.player-tabs {
-    --tab-bar: calc(var(--stroke-rail) * 1.5);
+  /* The switch stays under the status bar's room while the list scrolls, on the page's own colour
+     so the words passing under it do not show; the control inside keeps its segmented look (owner,
+     2026-10-23, D169: a navigational switch, not a tab line, which drew a bar under the chosen tab
+     from 2026-10-21 to then). */
+  .player-tabs-bar {
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
-    flex: none;
     margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
       calc(max(var(--player-padding), var(--safe-right)) * -1);
-    margin-block-end: 0;
-    border-radius: 0;
+    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) var(--space-2)
+      max(var(--player-padding), var(--safe-left));
     background: var(--color-surface);
-    box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
   }
 
-  /* The pill becomes the bar under the chosen tab: one column wide, at the foot of the line. */
-  .segmented-nav.player-tabs::before {
-    inset-block: auto 0;
-    inset-inline-start: 0;
-    width: calc(100% / var(--seg-n));
-    height: var(--tab-bar);
-    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-    background: var(--color-accent);
-    box-shadow: none;
-    transform: translateX(calc(var(--seg-i) * 100%));
-  }
-
-  .player-tabs .segmented-nav-tab {
-    min-height: var(--tabs-height);
-    border-radius: 0;
-  }
-
-  /* The press layer covers the whole tab, in the page's ink. */
-  .player-tabs .segmented-nav-tab::after {
-    inset: 0;
-  }
-
-  .player-tabs .segmented-nav-tab:focus-visible {
-    border-radius: var(--radius-sm);
+  .segmented-nav.player-tabs {
+    margin-block-end: 0;
   }
 
   /* The list's own room under the tab line. */
@@ -2882,8 +2858,9 @@
 
 /* ------------------------------------------------------------------ the queue */
 
-/* The queue (the Up next view): a row is the item's thumbnail and title, with a remove button and a
-   drag handle after it. */
+/* The queue (the Up next view): a row is the item's thumbnail and title, with its menu's dots after
+   it (D169). The row moves by the browser's own drag and drop (a long press with a finger, a press
+   and pull with a mouse) and slides left under a finger to leave; a vertical pan still scrolls. */
 .player-queue-row {
   display: flex;
   flex: 1;
@@ -2931,22 +2908,44 @@
   align-items: center;
   border-radius: var(--row-radius);
   background: var(--color-surface);
+  /* A sideways swipe is the row's; up and down stays the list's scroll. */
+  touch-action: pan-y;
+  transition:
+    translate var(--duration-press-out) var(--ease-out),
+    opacity var(--duration-press-out) var(--ease-out);
 }
 
-/* The row being dragged rides over its neighbours on the container tone, with no shadow. */
+/* Under the finger the row follows at once; leaving, it fades as it slides out. */
+.player-queue-item[data-swiping] {
+  transition: none;
+}
+
+.player-queue-item[data-leaving] {
+  opacity: 0;
+}
+
+/* The row being dragged dims where it was; the row it is over shows the edge it would join. */
 .player-queue-item[data-dragging] {
-  z-index: var(--z-raised);
-  background: var(--color-surface-container);
+  opacity: 0.5;
 }
 
-.player-queue-handle {
+.player-queue-item[data-drop="before"] {
+  box-shadow: inset 0 var(--stroke-ring) 0 var(--color-accent);
+}
+
+.player-queue-item[data-drop="after"] {
+  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+}
+
+.player-queue-more {
   flex: none;
-  cursor: grab;
-  touch-action: none;
 }
 
-.player-queue-item[data-dragging] .player-queue-handle {
-  cursor: grabbing;
+/* The menu hangs under its own dots: the last --hero-more before it in the page (hero.css). */
+@supports (top: anchor(bottom)) {
+  .player-queue-more {
+    anchor-name: --hero-more;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {

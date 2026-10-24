@@ -45,6 +45,13 @@ const homeLabel =
   const calm = matchMedia("(prefers-reduced-motion: reduce)");
   let last = 0;
   let queued = false;
+  // A page with a block that sticks under the bar (a topic's search and chips, data-pins-bar) keeps
+  // the bar: as the bar came and went, the block jumped by its height each time (owner, 2026-10-23).
+  let pinned = false;
+  function readPinned(): void {
+    pinned = document.querySelector("[data-pins-bar]") !== null;
+  }
+  readPinned();
   function setHidden(hidden: boolean): void {
     root.toggleAttribute("data-bar-hidden", hidden);
     const bar = document.querySelector<HTMLElement>(".app-bar");
@@ -57,7 +64,7 @@ const homeLabel =
     if (jumping) return;
     const y = Math.max(0, scrollY);
     const delta = y - last;
-    if (y < 64 || calm.matches) {
+    if (y < 64 || calm.matches || pinned) {
       setHidden(false);
       last = y;
     } else if (delta < 0 && atScrollEnd()) {
@@ -96,7 +103,7 @@ const homeLabel =
     jumping = true;
     jumpFrom = Math.max(0, scrollY);
     wasHidden = root.hasAttribute("data-bar-hidden");
-    if ((event as CustomEvent<{ down: boolean }>).detail.down) setHidden(true);
+    if ((event as CustomEvent<{ down: boolean }>).detail.down && !pinned) setHidden(true);
     addEventListener("scrollend", endJump, { once: true });
     // scrollend is missing from older engines and never fires for a jump that did not move.
     jumpTimer = window.setTimeout(endJump, JUMP_MS);
@@ -116,6 +123,8 @@ const homeLabel =
   });
   document.addEventListener("astro:page-load", () => {
     last = Math.max(0, scrollY);
+    readPinned();
+    if (pinned) setHidden(false);
   });
 
   // Back goes where the person came from when that was inside the app (Astro numbers its history

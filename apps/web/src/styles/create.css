@@ -352,8 +352,9 @@
   line-height: var(--font-leading-label);
 }
 
-/* A tonal select with its own chevron: the container tone, no outline, the row's corners. The text
-   stays at the body size, so iOS never zooms into it. */
+/* A tonal select with its own chevron: the container tone, no outline, the pill every select is
+   (D167; the row's corners until 2026-10-23). The text stays at the body size, so iOS never zooms
+   into it. */
 .create-select {
   position: relative;
   display: grid;
@@ -365,7 +366,7 @@
   padding-inline: var(--field-padding)
     calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   border: var(--stroke-hairline) solid transparent;
-  border-radius: var(--row-radius);
+  border-radius: var(--button-radius);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
   font: inherit;

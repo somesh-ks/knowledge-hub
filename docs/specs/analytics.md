@@ -20,7 +20,7 @@ Cookieless counts of visits and a few named events on news.someshks.work, throug
 | `vote` | a story is voted up or down (a press that clears a vote is not counted) | `value`, `topic` |
 | `download` | a Library item is saved for offline listening | `kind` |
 | `install` | the browser reports the app installed (`appinstalled`, Chromium only) | none |
-| `create_episode` | New episode got an answer | `outcome` started, limited (429) or failed |
+| `create_episode` | Catch up got an answer | `outcome` started, limited (429) or failed |
 
 A shared link carries `?ref=share`, which Simple Analytics reports as the referrer `share`: messaging apps send no referrer of their own, so the tag is the attribution.
 
