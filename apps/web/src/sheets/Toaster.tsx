@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { swipeLeaves } from "../lib/swipeAway";
+import { createVelocityTracker, TAP_SLOP_PX } from "../player/core/gestureMath";
 import Icon from "../player/ui/Icon";
 import { dismissToast, getToast, subscribeToast, type ToastContent } from "./toastStore";
-
-/** A swipe past this share of the toast's width takes it away. */
-const SWIPE_SHARE = 0.35;
-/** So does a shorter, quicker one: pixels per millisecond over the whole swipe. */
-const SWIPE_SPEED = 0.6;
 
 /**
  * The toast: a top-layer popover on the inverse surface, centered above the navigation bar and the
@@ -45,32 +42,42 @@ export default function Toaster() {
     else if (!toast && open) element.hidePopover();
   }, [toast]);
 
-  // A finger slides the toast sideways, as Material's snackbar goes: past a third of its width, or
-  // quickly, it leaves and is dismissed (a dismissal, never an Undo); short of that it springs back.
-  // Its buttons keep their presses, and a mouse never drags it.
+  // A finger slides the toast sideways, as Material's snackbar goes: once it has moved past the tap
+  // slop sideways it is a swipe, and on release it leaves when the shared rule says so
+  // (lib/swipeAway.ts: a share of the width, or speed over the last 100 ms, never under twice the
+  // slop) or springs back. Its buttons keep their presses, and a mouse never drags it.
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    let drag: { id: number; x: number; at: number; dx: number } | null = null;
+    const tracker = createVelocityTracker();
+    let press: { id: number; x: number; y: number; swiping: boolean; dx: number } | null = null;
     const onDown = (event: PointerEvent): void => {
       if (event.pointerType === "mouse" || (event.target as Element).closest("button")) return;
-      drag = { id: event.pointerId, x: event.clientX, at: event.timeStamp, dx: 0 };
-      element.setPointerCapture(event.pointerId);
-      element.dataset.dragging = "";
+      press = { id: event.pointerId, x: event.clientX, y: event.clientY, swiping: false, dx: 0 };
+      tracker.reset({ value: event.clientX, t: event.timeStamp });
     };
     const onMove = (event: PointerEvent): void => {
-      if (!drag || event.pointerId !== drag.id) return;
-      drag.dx = event.clientX - drag.x;
-      element.style.translate = `${drag.dx}px 0`;
+      if (!press || event.pointerId !== press.id) return;
+      const dx = event.clientX - press.x;
+      const dy = event.clientY - press.y;
+      tracker.push(event.clientX, event.timeStamp);
+      if (!press.swiping) {
+        if (Math.abs(dx) < TAP_SLOP_PX || Math.abs(dx) <= Math.abs(dy)) return;
+        press.swiping = true;
+        element.setPointerCapture(event.pointerId);
+        element.dataset.dragging = "";
+      }
+      press.dx = dx;
+      element.style.translate = `${dx}px 0`;
     };
     const onUp = (event: PointerEvent): void => {
-      if (!drag || event.pointerId !== drag.id) return;
-      const { dx, at } = drag;
-      drag = null;
+      if (!press || event.pointerId !== press.id) return;
+      const { swiping, dx } = press;
+      press = null;
+      if (!swiping) return;
       delete element.dataset.dragging;
-      const speed = Math.abs(dx) / Math.max(1, event.timeStamp - at);
       // Leaving, it keeps sliding the way it went while the popover's own exit fades it.
-      if (Math.abs(dx) > element.offsetWidth * SWIPE_SHARE || speed > SWIPE_SPEED) {
+      if (swipeLeaves(dx, element.offsetWidth, tracker.velocity())) {
         element.style.translate = `${Math.sign(dx) * element.offsetWidth * 1.5}px 0`;
         dismissToast();
       } else element.style.translate = "";

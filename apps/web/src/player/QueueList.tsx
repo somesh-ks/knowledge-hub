@@ -1,13 +1,10 @@
 import { useRef } from "react";
+import { swipeLeaves } from "../lib/swipeAway";
 import { announce } from "./core/announcerDom";
+import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
 import QueueRow, { type QueueGestures } from "./QueueRow";
 
-/** A swipe past this share of the row's width, or quicker than SWIPE_SPEED (px/ms), takes it off. */
-const SWIPE_SHARE = 0.35;
-const SWIPE_SPEED = 0.6;
-/** Movement under this, in px, is still a press; past it the finger has chosen an axis. */
-const SLOP_PX = 8;
 /** How long a row slides out before the queue drops it: --duration-press-out and a frame. */
 const LEAVE_MS = 180;
 /** How long after a swipe the row's own click is not a play. */
@@ -19,7 +16,6 @@ interface Press {
   id: string;
   x0: number;
   y0: number;
-  at: number;
   dx: number;
   /** Undecided, a sideways swipe of ours, or a press the browser owns (a scroll or a drag). */
   mode: "idle" | "swipe" | "other";
@@ -28,9 +24,10 @@ interface Press {
 /**
  * The queue in order (D162). A row moves by the browser's drag and drop: a long press lifts it under
  * a finger, a press and pull does with a mouse, and the list scrolls as it always did; the row it
- * is over shows an accent line on the edge it would join. A sideways swipe is ours: left takes the
- * row off the queue, short of a third of its width it springs back. The dots' menu does the same
- * with a key or a tap and says where the row went.
+ * is over shows an accent line on the edge it would join. A sideways swipe is ours: past the tap
+ * slop it follows the finger, and on release the shared rule (lib/swipeAway.ts) says whether a
+ * swipe to the left takes the row off or it springs back. The dots' menu does the same with a key
+ * or a tap and says where the row went.
  */
 export default function QueueList({ ids }: { ids: readonly string[] }) {
   const listRef = useRef<HTMLUListElement>(null);
@@ -38,15 +35,16 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   const swipedUntil = useRef(0);
   const dragFrom = useRef<number | null>(null);
   const dropAt = useRef<number | null>(null);
+  const marked = useRef<HTMLElement | null>(null);
+  const tracker = useRef(createVelocityTracker());
 
   const rows = (): HTMLElement[] => [
     ...(listRef.current?.querySelectorAll<HTMLElement>(".player-queue-item") ?? []),
   ];
   const clearDrag = (): void => {
-    for (const row of rows()) {
-      row.removeAttribute("data-dragging");
-      row.removeAttribute("data-drop");
-    }
+    for (const row of rows()) row.removeAttribute("data-dragging");
+    marked.current?.removeAttribute("data-drop");
+    marked.current = null;
     dragFrom.current = null;
     dropAt.current = null;
   };
@@ -62,22 +60,23 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
         id: ids[index] ?? "",
         x0: event.clientX,
         y0: event.clientY,
-        at: event.timeStamp,
         dx: 0,
         mode: "idle",
       };
+      tracker.current.reset({ value: event.clientX, t: event.timeStamp });
     },
     onPointerMove(event) {
       const current = press.current;
       if (!current || current.pointerId !== event.pointerId) return;
       const dx = event.clientX - current.x0;
       const dy = event.clientY - current.y0;
+      tracker.current.push(event.clientX, event.timeStamp);
       if (current.mode === "idle") {
-        if (Math.abs(dx) >= SLOP_PX && Math.abs(dx) > Math.abs(dy)) {
+        if (Math.abs(dx) >= TAP_SLOP_PX && Math.abs(dx) > Math.abs(dy)) {
           current.mode = "swipe";
           current.row.setPointerCapture(event.pointerId);
           current.row.dataset.swiping = "";
-        } else if (Math.abs(dy) >= SLOP_PX) current.mode = "other";
+        } else if (Math.abs(dy) >= TAP_SLOP_PX) current.mode = "other";
       }
       if (current.mode !== "swipe") return;
       // Ours, not the player page's own pull.
@@ -95,8 +94,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       const { row, dx, id } = current;
       delete row.dataset.swiping;
       swipedUntil.current = event.timeStamp + SWIPE_CLICK_MS;
-      const speed = Math.abs(dx) / Math.max(1, event.timeStamp - current.at);
-      if (dx < 0 && (-dx > row.offsetWidth * SWIPE_SHARE || speed > SWIPE_SPEED)) {
+      if (dx < 0 && swipeLeaves(dx, row.offsetWidth, tracker.current.velocity())) {
         row.dataset.leaving = "";
         row.style.translate = `${-row.offsetWidth * 1.2}px 0`;
         window.setTimeout(() => getPlayQueue().remove(id), LEAVE_MS);
@@ -104,8 +102,12 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     },
     swiped: () => performance.now() < swipedUntil.current,
     onDragStart(event, index) {
-      // A finger already moving sideways is swiping, not dragging.
-      if (press.current?.mode === "swipe") {
+      // A finger already moving sideways is swiping, not dragging; the dots and the menu have
+      // presses of their own, and a pull on them is not a reorder.
+      if (
+        press.current?.mode === "swipe" ||
+        (event.target as Element).closest(".player-queue-more, .player-queue-menu")
+      ) {
         event.preventDefault();
         return;
       }
@@ -121,8 +123,10 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       event.dataTransfer.dropEffect = "move";
       const box = event.currentTarget.getBoundingClientRect();
       const after = event.clientY > box.top + box.height / 2;
-      for (const row of rows()) row.removeAttribute("data-drop");
+      if (marked.current !== event.currentTarget) marked.current?.removeAttribute("data-drop");
+      marked.current = event.currentTarget;
       if (index !== dragFrom.current) event.currentTarget.dataset.drop = after ? "after" : "before";
+      else event.currentTarget.removeAttribute("data-drop");
       dropAt.current = index + (after ? 1 : 0);
     },
     onDrop(event) {

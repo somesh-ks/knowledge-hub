@@ -281,7 +281,9 @@
   padding-inline: 0;
 }
 
-.costs[data-view="table"] .costs-chart,
+/* With nothing spent the chart panel stays in table view too: it holds the "No paid runs" note,
+   and the table is hidden for being empty (costsPage.ts). */
+.costs[data-view="table"]:not([data-empty]) .costs-chart,
 .costs:not([data-view="table"]) .costs-table {
   display: none;
 }

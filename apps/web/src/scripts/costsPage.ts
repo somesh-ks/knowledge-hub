@@ -543,6 +543,8 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   }
   const blank = pick<HTMLElement>("[data-costs-empty]");
   if (blank) blank.hidden = !empty;
+  // With nothing to show, the chart panel and its note stand in for the table too (costs.css).
+  pick<HTMLElement>("[data-costs]")?.toggleAttribute("data-empty", empty);
   renderBreakdown(data, by);
   renderTable(drawn);
   const table = pick<HTMLElement>("[data-costs-table]");

@@ -669,6 +669,22 @@ test.describe("a topic's page", () => {
     });
   });
 
+  test("the search block holds still and the app bar stays while the page scrolls down and back up", async ({
+    page,
+  }) => {
+    // The block sticks under the app bar; a bar that slid away and came back moved it by its
+    // height each time (owner, 2026-10-23). The bar is pinned on this page (data-pins-bar).
+    await open(page, "/settings/topics/design");
+    const block = page.locator(".source-filter[data-chips]");
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(600);
+    const stuck = await block.boundingBox();
+    await page.evaluate(() => window.scrollTo(0, 480));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(480);
+    await expect.poll(() => block.boundingBox()).toEqual(stuck);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bar-hidden", "");
+  });
+
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
     await page.clock.install();
     const { sent } = await setup(page);

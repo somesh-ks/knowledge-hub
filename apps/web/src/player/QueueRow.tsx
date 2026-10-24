@@ -1,4 +1,4 @@
-import type { DragEvent, PointerEvent, ToggleEvent } from "react";
+import type { DragEvent, KeyboardEvent, PointerEvent, ToggleEvent } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
@@ -26,8 +26,9 @@ interface QueueRowProps {
   gestures: QueueGestures;
 }
 
-/** How far under its dots the menu opens where anchor positioning is missing (hero.css). */
-const MENU_GAP_PX = 8;
+/** How far under its dots the menu opens where anchor positioning is missing (as heroMenu.ts). */
+const MENU_GAP_PX = 4;
+const ITEM = '[role="menuitem"]:not(:disabled)';
 
 /**
  * One queued item: its cover, its title and what it is. The row plays it now. A drag moves it (a
@@ -41,13 +42,33 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
   const title = meta?.title ?? longDateFromDigestId(id);
   const menuId = `player-queue-menu-${id}`;
   const closeMenu = (): void => document.getElementById(menuId)?.hidePopover();
-  // Without anchor positioning the menu is placed from the dots' box, as the header's menu is.
-  const place = (event: ToggleEvent<HTMLDivElement>): void => {
-    if (event.newState !== "open") return;
-    const box = event.currentTarget.previousElementSibling?.getBoundingClientRect();
+  // Open, the menu takes focus on its first item and, without anchor positioning, is placed from
+  // the dots' box as heroMenu.ts places the header's; closed, focus returns to the dots, which
+  // heroMenu.ts does not do for a menu it was not installed for (the player stands on every page).
+  const onToggle = (event: ToggleEvent<HTMLDivElement>): void => {
+    const menu = event.currentTarget;
+    const dots = menu.previousElementSibling as HTMLElement | null;
+    if (event.newState !== "open") {
+      if (menu.contains(document.activeElement) || document.activeElement === document.body)
+        dots?.focus({ preventScroll: true });
+      return;
+    }
+    menu.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true });
+    if (CSS.supports("top", "anchor(bottom)")) return;
+    const box = dots?.getBoundingClientRect();
     if (!box) return;
-    event.currentTarget.style.setProperty("--menu-top", `${box.bottom + MENU_GAP_PX}px`);
-    event.currentTarget.style.setProperty("--menu-right", `${window.innerWidth - box.right}px`);
+    menu.style.setProperty("--menu-top", `${box.bottom + MENU_GAP_PX}px`);
+    menu.style.setProperty("--menu-right", `${document.documentElement.clientWidth - box.right}px`);
+  };
+  // Up and Down move between the items, Home and End to the ends; Escape is the popover's own.
+  const onMenuKey = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const items = [...event.currentTarget.querySelectorAll<HTMLElement>(ITEM)];
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    const n = items.length;
+    const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: n - 1 }[event.key];
+    if (to === undefined || n === 0) return;
+    event.preventDefault();
+    items[((to % n) + n) % n]?.focus({ preventScroll: true });
   };
   return (
     <li
@@ -93,7 +114,8 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
         popover="auto"
         role="menu"
         aria-label={title}
-        onToggle={place}
+        onToggle={onToggle}
+        onKeyDown={onMenuKey}
       >
         <button
           className="hero-menu-item"
