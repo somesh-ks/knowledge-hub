@@ -149,6 +149,19 @@ describe("JevGrounder", () => {
     expect(verdict.id).toBe("aaaaaaaaaaaa");
   });
 
+  // The writer reads the title above the text; an extracted body rarely repeats it, so a sentence
+  // naming the product from the title was checked against a window that never named it.
+  it("checks each sentence against the source's title as well as its text", async () => {
+    const fake = fakeJev(() => 0.9);
+    const body = `${"Drawers and sheets settle without a jump. ".repeat(40)}Toasts follow the same pattern.`;
+    await new JevGrounder({ client: fake, retry: NO_WAIT }).ground(
+      target({ sourceText: body, heading: "Springlet 2.0 ships (Motion Weekly)" }),
+    );
+    for (const call of fake.calls) {
+      expect(call.state.source_excerpt).toContain("Springlet 2.0 ships (Motion Weekly)");
+    }
+  });
+
   it("asks nothing about a why line the item does not have", async () => {
     const fake = fakeJev(() => 0.9);
     const { why: _why, ...withoutWhy } = target();

@@ -9,18 +9,14 @@
 
 /* ------------------------------------------------------------------ the card */
 
-/* A content card, not rows: room on all four sides, the row's 16px on a phone and 24px from 40rem,
-   as the topic card has. */
-.costs-card {
+/* A content card, not rows: the card's padding on all four sides, at every width. A row card keeps
+   half an inset above and below for its tiles (.card-group, primitives.css); once PR 227 raised the
+   card tokens that rule won here too, leaving the chips 8px under a 32px corner and the meter 8px
+   over the foot while the sides had 24px (2026-10-23). The page's class lifts this over it. */
+.costs .costs-card {
   /* No head above it, so it keeps the air a head would give it under the page's note. */
   margin-block-start: var(--space-6);
-  padding-block: var(--space-4);
-}
-
-@media (min-width: 40rem) {
-  .costs .costs-card {
-    padding: var(--space-6);
-  }
+  padding: var(--card-padding);
 }
 
 /* While a refetch runs the last frame holds, dimmed: no skeleton, no jump. The chips stay lit. */
@@ -63,7 +59,7 @@
    padding in from the card's corner it takes that corner's radius less the padding (concentric). */
 .costs-card .sort-field {
   --sort-field-bg: var(--color-surface-overlay);
-  border-radius: var(--radius-sm);
+  border-radius: calc(var(--card-radius) - var(--card-padding));
 }
 
 /* Material's dropdown chip: 16px before the words, the chevron 8px from the end. */

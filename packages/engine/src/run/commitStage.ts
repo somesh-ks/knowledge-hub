@@ -10,7 +10,6 @@ import {
   VOICE_LIMITS,
   withGeneralTopics,
 } from "@dispatch/core";
-import { recordRunCosts } from "../cost/ledger.js";
 import {
   linkSourceIds,
   loadJudgments,
@@ -25,7 +24,6 @@ import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
-import { loadScheduleZone } from "../schedule/store.js";
 import { markSeen, pruneJudgments, pruneSeen } from "../state/prune.js";
 import { recordRun } from "../state/runRecord.js";
 import { recordSourceStats, type SourceCounts } from "../state/sourceStats.js";
@@ -62,6 +60,7 @@ import {
 import { removeDigestFiles } from "./replace.js";
 import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js";
 import { readSourceCounts } from "./sourceCounts.js";
+import { recordSpend } from "./spend.js";
 import type { CommitReport, DigestReport, RunDeps, RunOptions } from "./types.js";
 
 /** What the commit stage reads for one pass. */
@@ -151,7 +150,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   if (plan.passes.length === 0) return commitGated(deps, options, plan, dryRun);
 
   // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.
-  if (!adopted) await deps.spend?.begin(root, plan.created_at);
+  if (!adopted) await deps.spend?.begin(root, plan.created_at, deps.log);
   const spend = adopted ? undefined : deps.spend?.totals();
 
   const passData: PassData[] = [];
@@ -327,14 +326,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   }
   if (statsTouched) await writeSourceStats(root, sourceStats);
   if (spend) lastRun = { ...lastRun, spend: { at: nowIso, ...spend } };
-  if (spend && deps.spend) {
-    await recordRunCosts(
-      root,
-      { requests: spend.requests, units: deps.spend.unitTotals() },
-      { runId: plan.created_at, at: nowIso, passKind: plan.passes[0]?.kind ?? "regular" },
-      await loadScheduleZone(root),
-    );
-  }
+  if (spend && deps.spend) await recordSpend(root, deps.spend, plan, nowIso);
   await writeLastRun(root, lastRun);
 
   const message =

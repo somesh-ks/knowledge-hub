@@ -54,7 +54,16 @@ export interface RewriteRequest {
  */
 export interface Writer {
   /** `feedback` is the owner's note on what to improve; it shapes wording and emphasis, never facts. */
-  write(items: readonly SourceMaterial[], feedback?: string, taste?: Taste): Promise<WriteResult>;
+  /**
+   * `airing` names the headlines the episode already carries beyond `items` (a refill's
+   * replacements join written stories), so the writer sees the episode's other headlines.
+   */
+  write(
+    items: readonly SourceMaterial[],
+    feedback?: string,
+    taste?: Taste,
+    airing?: readonly string[],
+  ): Promise<WriteResult>;
   /** Rewrite one field to fix the listed problems. Null when the model could not. */
   rewrite(request: RewriteRequest): Promise<string | null>;
 }

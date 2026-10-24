@@ -2,7 +2,6 @@ import type { Item } from "@dispatch/core";
 import { z } from "zod";
 import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
-import { FIRECRAWL_SKIP_CEILING, FIRECRAWL_SKIP_STOPPED } from "./firecrawlBudget.js";
 import { extractEntries } from "./firecrawlExtract.js";
 import { type SourceFetcher, SourceSkipped } from "./types.js";
 
@@ -125,7 +124,7 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
       throw error;
     }
     if (page === null) {
-      throw new SourceSkipped(guard.stopped ? FIRECRAWL_SKIP_STOPPED : FIRECRAWL_SKIP_CEILING);
+      throw new SourceSkipped(guard.skipNote);
     }
   } else {
     page = await load();
