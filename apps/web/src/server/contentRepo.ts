@@ -130,3 +130,15 @@ export async function readFromContentRepo(label: string): Promise<Response | nul
   readSiteFrom(load);
   return null;
 }
+
+/**
+ * The site's 404 for an id the repository does not hold. The 404 page is built, not part of this
+ * function, so it is fetched from the site's own edge.
+ */
+export async function notFoundPage(pageUrl: URL): Promise<Response> {
+  const notFound = await fetch(new URL("/404", pageUrl)).catch(() => null);
+  return new Response(notFound?.ok ? await notFound.text() : "Not found", {
+    status: 404,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}

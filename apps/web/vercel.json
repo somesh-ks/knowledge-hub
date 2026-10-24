@@ -110,6 +110,12 @@
       "schedule": "0 23 * * *"
     }
   ],
+  "rewrites": [
+    {
+      "source": "/covers/:path*",
+      "destination": "https://irmb7o0qwtveacjt.public.blob.vercel-storage.com/content/covers/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
