@@ -173,10 +173,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | YouTube captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
-| D167 | One shape per control; phone sheets | amends D72 |
-| D168 | Catch up, a bolt, swipe-away toasts | amends D52 |
-| D169 | Queue gestures; pinned bar | amends D126 |
-| D170 | Modular podcast structure | accepted |
+| D167 | One shape per control | amends D72 |
+| D168 | Catch up, bolt, swipe-away toasts | amends D52 |
+| D169 | Queue gestures | amends D126 |
+| D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 
 ---
