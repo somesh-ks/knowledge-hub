@@ -1,11 +1,10 @@
 import { stockholmDate } from "@dispatch/core";
-import { recordRunCosts } from "../cost/ledger.js";
 import { commitAndPush } from "../git/commit.js";
-import { loadScheduleZone } from "../schedule/store.js";
 import { recordFailure } from "../state/runRecord.js";
 import { readLastRun, writeLastRun } from "../state/store.js";
 import { decideKinds } from "./gate.js";
 import { readPlan } from "./plan.js";
+import { recordSpend } from "./spend.js";
 import type { CommitReport, RunDeps, RunOptions } from "./types.js";
 
 function report(reason: string, commit: CommitReport["commit"]): CommitReport {
@@ -50,13 +49,8 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
 
   const at = now.toISOString();
   if (plan && deps.spend) {
-    await deps.spend.begin(deps.root, plan.created_at, deps.log);
-    await recordRunCosts(
-      deps.root,
-      { requests: deps.spend.totals().requests, units: deps.spend.unitTotals() },
-      { runId: plan.created_at, at, passKind: plan.passes[0]?.kind ?? "regular" },
-      await loadScheduleZone(deps.root),
-    );
+    await deps.spend.resume(deps.root, plan.created_at);
+    await recordSpend(deps.root, deps.spend, plan, at);
   }
   await writeLastRun(deps.root, recordFailure(await readLastRun(deps.root), kinds, at));
   const message = `chore(state): run ${stockholmDate(now)} failed`;

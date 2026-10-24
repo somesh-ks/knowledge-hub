@@ -177,6 +177,7 @@ describe("the spend record", () => {
     await month("2026-11", [
       spent("2026-11-01T05:37:00.000Z", after),
       spent(run, 20), // this run's own record never counts against it
+      spent("2026-11-04T05:37:00.000Z", 25), // a later run's: after this one started
     ]);
     const tracker = new SpendTracker();
     await tracker.begin(root, run);
@@ -184,9 +185,9 @@ describe("the spend record", () => {
     expect(left).toBeLessThan(FIRECRAWL_RUN_CEILING);
     expect(tracker.guard.scrapeRoom).toBe(left);
     expect(tracker.guard.listingRoom).toBe(Math.floor(left * FIRECRAWL_LISTING_SHARE));
-    // A quiet week leaves the run its own ceiling.
-    const quiet = new SpendTracker();
-    await quiet.begin(root, "2026-11-20T05:37:00.000Z");
-    expect(quiet.guard.scrapeRoom).toBe(FIRECRAWL_RUN_CEILING);
+    // A quiet week leaves the next run its own ceiling, though the same tracker held the last
+    // one to less.
+    await tracker.begin(root, "2026-11-20T05:37:00.000Z");
+    expect(tracker.guard.scrapeRoom).toBe(FIRECRAWL_RUN_CEILING);
   });
 });

@@ -26,7 +26,8 @@ export const FIRECRAWL_RATE_LIMIT_STOP = 3;
 
 /** Why a listing source did nothing, shown as the source's note in the fetch report. */
 export const FIRECRAWL_SKIP_CEILING = "skipped: Firecrawl listing ceiling reached this run";
-export const FIRECRAWL_SKIP_WEEKLY = "skipped: Firecrawl's weekly budget is nearly spent";
+export const FIRECRAWL_SKIP_WEEKLY =
+  "skipped: Firecrawl's weekly budget left this run fewer listings";
 export const FIRECRAWL_SKIP_STOPPED = "skipped: Firecrawl is rate limited, stopped for this run";
 
 export interface FirecrawlState {
@@ -116,10 +117,14 @@ export class FirecrawlGuard {
       : Math.min(own, Math.floor(this.weekly * FIRECRAWL_LISTING_SHARE));
   }
 
-  /** Why a listing source was left out: the run's ceiling, the week's budget, or 429s. */
+  /**
+   * Why a listing source was left out: 429s, the week's budget when it lowered the run's
+   * listings, or else the run's own ceiling.
+   */
   get skipNote(): string {
     if (this.stopped) return FIRECRAWL_SKIP_STOPPED;
-    return this.weekly === null ? FIRECRAWL_SKIP_CEILING : FIRECRAWL_SKIP_WEEKLY;
+    const own = this.limits.listing ?? FIRECRAWL_LISTING_CEILING;
+    return this.listingCeiling < own ? FIRECRAWL_SKIP_WEEKLY : FIRECRAWL_SKIP_CEILING;
   }
 
   /** Replace the counts, as when a later stage picks up what an earlier one spent. */

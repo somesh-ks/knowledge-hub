@@ -127,6 +127,17 @@ export async function loadAllCosts(root: string): Promise<CostRecord[]> {
   return mergeRecords(...lists);
 }
 
+/** The UTC months from `since`'s to `until`'s, as the ledger's file names have them ("2026-10"). */
+function monthsBetween(since: Date, until: Date): string[] {
+  const months: string[] = [];
+  const at = new Date(Date.UTC(since.getUTCFullYear(), since.getUTCMonth(), 1));
+  while (at.getTime() <= until.getTime()) {
+    months.push(at.toISOString().slice(0, 7));
+    at.setUTCMonth(at.getUTCMonth() + 1);
+  }
+  return months;
+}
+
 /**
  * Firecrawl requests (listing and scrape) the ledger records from `since` to `until`, other runs
  * only. Reads the month files the span touches (a record's month is that of its `at`).
@@ -138,7 +149,8 @@ export async function firecrawlUsedSince(
   excludeRun: string,
 ): Promise<number> {
   const from = since.toISOString();
-  const months = [...new Set([from.slice(0, 7), until.toISOString().slice(0, 7)])];
+  const to = until.toISOString();
+  const months = monthsBetween(since, until);
   const records = mergeRecords(...(await Promise.all(months.map((m) => readMonth(root, m)))));
   return records
     .filter(
@@ -146,7 +158,8 @@ export async function firecrawlUsedSince(
         record.provider === "firecrawl" &&
         record.product === "scrape" &&
         record.run_id !== excludeRun &&
-        record.at >= from,
+        record.at >= from &&
+        record.at <= to,
     )
     .reduce((sum, record) => sum + (record.units.credits ?? record.units.requests ?? 0), 0);
 }
