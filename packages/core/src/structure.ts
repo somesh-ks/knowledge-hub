@@ -41,6 +41,25 @@ const Depth = z.enum(["deep", "brief"]);
 export type BlockDepth = z.infer<typeof Depth>;
 
 /**
+ * Settings a story block holds that code enforces exactly, whatever model writes (the owner,
+ * 2026-10-24: "deterministic parameters ... we've gotta stay robust"). `per_source` is the most
+ * stories one outlet may bring to the block; `max_age_hours` leaves out stories older than that.
+ * Absent means the engine's own (two per outlet across the briefing, any age within the window).
+ */
+export const PER_SOURCE_MAX = 4;
+export const MAX_AGE_STOPS = [12, 24, 48, 72, 168] as const;
+const StoryRules = {
+  per_source: z.number().int().min(1).max(PER_SOURCE_MAX).optional(),
+  max_age_hours: z
+    .number()
+    .int()
+    .refine((hours) => (MAX_AGE_STOPS as readonly number[]).includes(hours), {
+      message: `max_age_hours is one of ${MAX_AGE_STOPS.join(", ")}`,
+    })
+    .optional(),
+};
+
+/**
  * Counts are optional on purpose: absent means the engine's own allowance (three Top picks, five
  * stories for a section with an allowance of its own, the length's rundown), which is how the
  * defaults reproduce today's episodes without copying today's constants into the file.
@@ -56,19 +75,23 @@ const SectionBlock = z.object({
   id: SectionId,
   depth: Depth.default("brief"),
   max_stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const TopPicksBlock = z.object({
   type: z.literal("top_picks"),
   stories: z.number().int().min(1).max(6).optional(),
   depth: Depth.default("deep"),
+  ...StoryRules,
 });
 const TrendingBlock = z.object({
   type: z.literal("trending"),
   stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const ReleaseNewsBlock = z.object({
   type: z.literal("release_news"),
   stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const CustomBlock = z.object({
   type: z.literal("custom"),
@@ -368,4 +391,31 @@ export function storedBlockPrompt(
   key: string,
 ): string | null {
   return file?.prompts?.[kind]?.[key] ?? null;
+}
+
+/** A story block's own rules for a section, or none when no block names it or it sets none. */
+export function blockStoryRules(
+  blocks: readonly StructureBlock[],
+  section: string,
+): { per_source?: number; max_age_hours?: number } {
+  for (const block of blocks) {
+    const named =
+      (block.type === "section" && block.id === section) ||
+      (block.type === "top_picks" && section === TOP_PICKS_SECTION) ||
+      (block.type === "trending" && section === TRENDING_BLOCK_SECTION) ||
+      (block.type === "release_news" && section === RELEASE_NEWS_SECTION);
+    if (!named) continue;
+    if (
+      block.type === "section" ||
+      block.type === "top_picks" ||
+      block.type === "trending" ||
+      block.type === "release_news"
+    ) {
+      return {
+        ...(block.per_source === undefined ? {} : { per_source: block.per_source }),
+        ...(block.max_age_hours === undefined ? {} : { max_age_hours: block.max_age_hours }),
+      };
+    }
+  }
+  return {};
 }

@@ -1,4 +1,5 @@
 import {
+  blockStoryRules,
   type DigestKind,
   isBuiltinSection,
   RELEASE_NEWS_SECTION,
@@ -34,6 +35,8 @@ export interface SectionPlan {
   rundown: number | null;
   /** The owner's prompt for the section's stories (D178), or undefined for the built-in one. */
   prompt(section: string): string | undefined;
+  /** The block's own rules for its stories: most per outlet and how old they may be. */
+  rules(section: string): { per_source?: number; max_age_hours?: number };
 }
 
 /** Stories a briefing's rundown names when its block leaves the count to the engine. */
@@ -46,6 +49,7 @@ export const DEFAULT_SECTION_PLAN: SectionPlan = {
   limit: () => null,
   rundown: null,
   prompt: () => undefined,
+  rules: () => ({}),
 };
 
 /** The key a section's block prompt is kept under (blockPromptKey in core). */
@@ -70,6 +74,7 @@ export function sectionPlanFor(
   const listed = new Set(order);
   return {
     prompt,
+    rules: (section) => blockStoryRules(blocks, section),
     order,
     topPicks: listed.has(TOP_PICKS_SECTION)
       ? (sectionLimit(blocks, TOP_PICKS_SECTION) ?? DEFAULT_TOP_PICKS)

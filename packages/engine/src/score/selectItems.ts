@@ -11,6 +11,7 @@ import {
   SECTIONS,
   snapWeight,
   TECH_SECTION,
+  TOP_PICKS_SECTION,
   VOICE_LIMITS,
 } from "@dispatch/core";
 import {
@@ -57,8 +58,10 @@ export type DropReason =
   | "never_publish"
   | "below_threshold"
   | "over_cap"
-  /** A third story or later from one outlet (OUTLET_CAP). */
+  /** A third story or later from one outlet (OUTLET_CAP), or past its block's own count. */
   | "over_outlet"
+  /** Older than its block lets a story be (`max_age_hours`). */
+  | "too_old"
   /** A Tech releases candidate beyond that section's own allowance. */
   | "over_tech_cap"
   /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
@@ -111,6 +114,8 @@ export interface SelectInput {
   onlyTopics?: readonly string[];
   /** The briefing's structure: section order, Top picks and allowances. Absent is the default. */
   plan?: SectionPlan;
+  /** The run's clock, for a block's age limit; absent leaves every story's age alone. */
+  now?: Date;
 }
 
 export interface SelectResult {
@@ -198,20 +203,44 @@ export function compareCandidates(
  * so with fewer than three other items there are fewer than three picks. Also used after later
  * stages drop items, so top picks always stay the best three that remain.
  */
+/**
+ * The Top picks among ranked candidates (none with a section of its own or release news): the
+ * best, up to the plan's count, with no more from one outlet than the block's `per_source`.
+ */
+export function choosePicks(ranked: readonly Candidate[], plan: SectionPlan): Candidate[] {
+  const most = plan.rules(TOP_PICKS_SECTION).per_source;
+  const outlets = new Map<string, number>();
+  const picks: Candidate[] = [];
+  for (const candidate of ranked) {
+    if (picks.length >= plan.topPicks) break;
+    if (most !== undefined) {
+      const outlet = outletOf(candidate.item);
+      const count = outlets.get(outlet) ?? 0;
+      if (count >= most) continue;
+      outlets.set(outlet, count + 1);
+    }
+    picks.push(candidate);
+  }
+  return picks;
+}
+
 export function assignSections(
   chosen: readonly Candidate[],
   plan: SectionPlan = DEFAULT_SECTION_PLAN,
 ): SelectedItem[] {
   const ranked = [...chosen].sort(compareCandidates);
-  let picks = 0;
+  const picks = new Set(
+    choosePicks(
+      ranked.filter((candidate) => !hasOwnSection(candidate) && !isReleaseStory(candidate)),
+      plan,
+    ),
+  );
   const withSection: SelectedItem[] = ranked.map((candidate) => {
     // Library, framework and changelog news is never a Top pick and closes the episode.
     if (!hasOwnSection(candidate) && isReleaseStory(candidate)) {
       return { ...candidate, section: RELEASE_SECTION };
     }
-    const pick = !hasOwnSection(candidate) && picks < plan.topPicks;
-    if (pick) picks += 1;
-    return { ...candidate, section: pick ? "top" : candidate.home };
+    return { ...candidate, section: picks.has(candidate) ? "top" : candidate.home };
   });
   // Built-in sections keep their fixed order. A custom section follows them, in order of its best
   // story, so the digest reads the same whatever order the topics were added in.
@@ -412,16 +441,31 @@ export function selectItems(input: SelectInput): SelectResult {
   // One outlet cannot fill a briefing: its best OUTLET_CAP stories stay, the rest give way. The outlet
   // is the story's host, so one publisher's several feeds count once; a story bound for its own
   // section (a general topic's) is outside the cap, since those sections draw on a few outlets.
+  // A block that sets its own count per outlet (D170, the owner's "deterministic parameters")
+  // counts within that block instead, and one with an age limit leaves out older stories.
   const perOutlet = new Map<string, number>();
+  const blockOf = (candidate: Candidate): string =>
+    isReleaseStory(candidate) ? RELEASE_SECTION : candidate.home;
   const withinCap = ranked.filter((candidate) => {
-    if (hasOwnSection(candidate)) return true;
+    const block = blockOf(candidate);
+    const rules = plan.rules(block);
+    const hours = rules.max_age_hours;
+    if (hours !== undefined && input.now !== undefined) {
+      const at = Date.parse(candidate.item.published_at ?? candidate.item.fetched_at);
+      if (input.now.getTime() - at > hours * 3_600_000) {
+        dropped.push({ id: candidate.item.id, reason: "too_old", score: candidate.score });
+        return false;
+      }
+    }
+    if (hasOwnSection(candidate) && rules.per_source === undefined) return true;
     const outlet = outletOf(candidate.item);
-    const count = perOutlet.get(outlet) ?? 0;
-    if (count >= OUTLET_CAP) {
+    const key = rules.per_source === undefined ? outlet : `${block}\u0000${outlet}`;
+    const count = perOutlet.get(key) ?? 0;
+    if (count >= (rules.per_source ?? OUTLET_CAP)) {
       dropped.push({ id: candidate.item.id, reason: "over_outlet", score: candidate.score });
       return false;
     }
-    perOutlet.set(outlet, count + 1);
+    perOutlet.set(key, count + 1);
     return true;
   });
   ranked.splice(0, ranked.length, ...withinCap);
@@ -430,7 +474,7 @@ export function selectItems(input: SelectInput): SelectResult {
   const pickable = ranked.filter(
     (candidate) => !hasOwnSection(candidate) && !isReleaseStory(candidate),
   );
-  const picks = new Set(pickable.slice(0, plan.topPicks));
+  const picks = new Set(choosePicks(pickable, plan));
   const main: Candidate[] = [];
   for (const candidate of ranked) {
     if (hasOwnSection(candidate)) continue;

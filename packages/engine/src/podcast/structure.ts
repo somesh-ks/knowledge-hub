@@ -5,6 +5,7 @@ import {
   TRENDING_BLOCK_SECTION,
 } from "@dispatch/core";
 import { RELEASE_CATEGORY } from "../score/releaseNotes.js";
+import { outletOf } from "../score/selectItems.js";
 import type { PodcastStory } from "./types.js";
 
 /**
@@ -112,7 +113,24 @@ export function shapeStories(
         : block.type === "top_picks" || block.type === "trending" || block.type === "release_news"
           ? block.stories
           : undefined;
-    const taken = (byKey.get(key) ?? []).slice(0, most ?? Number.POSITIVE_INFINITY);
+    // A block's own count per outlet holds here too; its age limit is the form's window's to set.
+    const perSource =
+      block.type === "section" ||
+      block.type === "top_picks" ||
+      block.type === "trending" ||
+      block.type === "release_news"
+        ? block.per_source
+        : undefined;
+    const outlets = new Map<string, number>();
+    const taken = (byKey.get(key) ?? [])
+      .filter((story) => {
+        if (perSource === undefined) return true;
+        const outlet = outletOf({ url: story.url, source_id: story.source });
+        const count = outlets.get(outlet) ?? 0;
+        outlets.set(outlet, count + 1);
+        return count < perSource;
+      })
+      .slice(0, most ?? Number.POSITIVE_INFINITY);
     const isDeep =
       (block.type === "section" || block.type === "top_picks") && block.depth === "deep";
     if (isDeep) deep.push(...taken.map((story) => story.item_id));
