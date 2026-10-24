@@ -16,7 +16,7 @@ const { sections } = Astro.props;
 {
   sections.length > 1 && (
     <div class="tabs-bar" data-tabs-bar>
-      <nav class="tabs" aria-label="Sections" data-section-tabs>
+      <nav class="tabs scroll-fade-inline" aria-label="Sections" data-section-tabs>
         {sections.map((section, index) => (
           <a
             class="tab"

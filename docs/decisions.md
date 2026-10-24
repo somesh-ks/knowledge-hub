@@ -186,6 +186,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
+| D181 | Claude writes only | active |
+| D183 | Costs page counts Anthropic's bill | active |
 | D179 | Every name says Singularity; saved state moves once | active |
 
 ---
@@ -1910,3 +1912,18 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: D30 kept the old names to protect saved preferences, positions and downloads; a one-time move protects them as well, and reading both variable names means no run fails before the owner renames a setting.
 - Rejected: keeping D30 (the owner wants one name); a rename without the move (wipes what a phone saved).
 - Revisit when: the owner has renamed the GitHub and Vercel variables and every device has opened the site once; then the old-name readers, `storageRename.js` and the audio move can go.
+
+## D181: Claude writes the scripts; Jev judges, Gemini backs it up
+
+- Date: 2026-10-24 (the owner: "use jev mostly and use gemini models as backup. use anthropic models mostly for script generation")
+- Decision: in `config/models.json` Claude Haiku leaves every chain: judge, taste fit and source format are Jev then Gemini Flash Lite, grounding Jev then Gemini Flash, fact extraction Gemini Flash Lite then Flash. Sonnet keeps the story writer, its rewrites and the podcast script. The story writer sends no effort (the model's default) and its rewrites medium, in place of #187's medium and low.
+- Why: since #187 (2026-10-22) a daily run made 43 to 49 Claude calls, against 19 to 22 before, about 27 of them voice rewrites of one field each, every one resending the article (about 5k tokens). Weaker first drafts were the likely cause; a rewrite costs more than the thinking the lower effort saved.
+- Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
+
+## D183: The Costs page counts what Anthropic billed, not only what the app recorded
+
+- Date: 2026-10-24 (the owner: "show all costs in the cost page including evals and others to get accurate cost")
+- Decision: with `ANTHROPIC_ADMIN_KEY` set on Vercel, `/api/costs` reads Anthropic's cost report (Admin API, by UTC day, cached 10 minutes) and adds, per day, the billed total less the ledger's Anthropic records as one "Outside the app" record (kind `outside_app`, no run). Without the key the page says spend outside the app is not counted. Other providers stay metered.
+- Why: the ledger sees only the app's own calls. The episode eval (estimated at $4 to $6 a run, 12 runs on 24 Oct) and local scripts reach the bill but never the page, so the page read far below the bill. The bill is the only source that catches spend nobody thought to meter.
+- Revisit if: another project shares the Anthropic organization (the report covers the whole organization, so its spend would land in "Outside the app"), or Gemini spend grows enough to need its billing export.
+
