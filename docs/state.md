@@ -19,7 +19,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e
 
 ## Not working or unverified
 
-- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
+- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev in production and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
@@ -44,9 +44,9 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e
 - Config store (D149): rows replaced 2026-10-24; the GitHub variable and Vercel's flag wait on the owner (runbook 11.1). closed when: a phone's edit shows on a laptop and a run names the store.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `dispatch` group); production's `GITHUB_DISPATCH_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
 - Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on production.
-- Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note's map.
-- A 15 minute episode falls short (71% general, 45% owner topics on a 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
-- The first press on a cold audio device blocks about 200 ms (`new AudioContext()` in `packages/sound`). closed when: the owner decides whether to change that package's first rule.
+- Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note.
+- A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
+- The first press on a cold audio device blocks about 200 ms (`new AudioContext()` in `packages/sound`). closed when: the owner decides on that package's first rule.
 - The daily Type is saved but not applied (narration reads the digest in one voice). closed when: the owner decides on a podcast step in `audio.yml` or drops the field.
 - With a mouse a story chip grows 11px from idle to played (it reserves "Play again"). closed when: the chip keeps one width in a browser assertion.
 - On a 360x740 phone the sticky Generate bar covers More options on `/create` at rest. closed when: axe reports no obscured target there.
