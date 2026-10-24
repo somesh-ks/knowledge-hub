@@ -684,6 +684,35 @@ test.describe("a topic's page", () => {
     });
   });
 
+  test("the search block holds still and the app bar stays while the page scrolls down and back up", async ({
+    page,
+  }) => {
+    // The block sticks under the app bar; a bar that slid away and came back moved it by its
+    // height each time (owner, 2026-10-23). The bar is pinned on this page (data-pins-bar).
+    // A short screen, so the fixture page scrolls far enough to hold the block stuck at two
+    // positions clear of its card's end (at the very end the card's edge pushes the block up).
+    await page.setViewportSize({ width: 390, height: 600 });
+    await open(page, "/settings/topics/design");
+    const block = page.locator(".source-filter[data-chips]");
+    // Where the block meets its sticky edge, from its own place and inset: two scroll positions
+    // past it, both well inside the card the block sticks within.
+    const stickAt = await block.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top +
+        window.scrollY -
+        Number.parseFloat(getComputedStyle(el).top),
+    );
+    const far = Math.round(stickAt + 100);
+    const near = Math.round(stickAt + 40);
+    await page.evaluate((y) => window.scrollTo(0, y), far);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(far);
+    const stuck = await block.boundingBox();
+    await page.evaluate((y) => window.scrollTo(0, y), near);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(near);
+    await expect.poll(() => block.boundingBox()).toEqual(stuck);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bar-hidden", "");
+  });
+
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
     await page.clock.install();
     const { sent } = await setup(page);

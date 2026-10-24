@@ -273,7 +273,8 @@
   color: var(--color-danger);
 }
 
-.hero-menu-item[aria-disabled="true"] {
+.hero-menu-item[aria-disabled="true"],
+.hero-menu-item:disabled {
   color: var(--color-on-surface-disabled);
   cursor: default;
 }

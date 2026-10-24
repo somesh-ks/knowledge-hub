@@ -1,11 +1,11 @@
 # Create
 
-New episode and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D68, D76, D82, D114; history: docs/history/.
+Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D68, D76, D82, D114; history: docs/history/.
 
 ## Requirements
 
 ### Form
-- New episode is the primary action (D76): a side button on wide screens, a floating button on phones, a panel for the form (full screen on a phone, a side panel on desktop) and a compact progress indicator.
+- Catch up is the primary action (D76): a side button on wide screens, a floating button on phones, a panel for the form (full screen on a phone, a side panel on desktop) and a compact progress indicator.
 - `/create` is the same form as a page under the Library, with Back to it.
 - Fields: Title ("Optional" beside it), Topics, Length, Look back. More options holds Format (Readout or Discussion, a segmented choice; a discussion's line names its two hosts), Voice or Voices (each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114).
 - Every episode is written for the owner; there is no General audience (D114).
@@ -28,7 +28,7 @@ New episode and custom episodes. What it does now. Reasons: D37, D43, D60, D66 t
 - Making something shows live stages: seven for a briefing (one per workflow step, then "Updating the site"), three for an episode ("Getting ready", "Making the episode", "Adding it to your Library"; `podcast.yml` makes the whole episode in one step).
 - Scenario: WHEN a run fails THEN its request is kept and Try again is offered; the next run's bar starts from empty. A refusal names its own wait; a request that cannot go from the line reopens the form filled in.
 - Opening the new episode, or having it on screen, clears "Episode ready".
-- Scenario: WHEN an episode is still being made THEN New episode says so instead of sending a second request.
+- Scenario: WHEN an episode is still being made THEN Catch up says so instead of sending a second request.
 - After a publish the indicator reads `/latest.json` every 2.5 s and, when an episode goes live, pre-narrates its first two turns (D82).
 - A new episode can be heard from a live copy in Blob while it is written (Listen now on the run card, about 35 to 45 s) (D105).
 - Toasts share one quiet style with an icon for success and failure.

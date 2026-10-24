@@ -5,6 +5,8 @@
  * tooltip, not in stacked colours (2026-10-22). Plain DOM and inline SVG, no framework and no chart
  * library: the numbers are one fetch, and this page loads nothing else.
  */
+import { mountSegmentedNav } from "./segmentedNav";
+
 interface Rollup {
   usd: number;
   runs: number;
@@ -541,6 +543,8 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   }
   const blank = pick<HTMLElement>("[data-costs-empty]");
   if (blank) blank.hidden = !empty;
+  // With nothing to show, the chart panel and its note stand in for the table too (costs.css).
+  pick<HTMLElement>("[data-costs]")?.toggleAttribute("data-empty", empty);
   renderBreakdown(data, by);
   renderTable(drawn);
   const table = pick<HTMLElement>("[data-costs-table]");
@@ -585,4 +589,12 @@ for (const select of document.querySelectorAll("#costs-range, #costs-by")) {
   select.addEventListener("change", () => void load());
 }
 wireChart();
+// Chart or table: the switch at the end of the filter row sets the card's view (costs.css).
+const viewSwitch = pick<HTMLElement>("[data-costs-view]");
+const costsCard = pick<HTMLElement>("[data-costs]");
+if (viewSwitch && costsCard) {
+  mountSegmentedNav(viewSwitch, (value) => {
+    costsCard.dataset.view = value;
+  });
+}
 void load();
