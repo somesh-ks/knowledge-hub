@@ -412,9 +412,9 @@
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
   --card-padding: var(--space-6);
-  --card-inset: var(--space-4);
+  --card-inset: var(--space-1);
   --card-radius: var(--radius-2xl);
-  --card-inner-radius: var(--radius-lg);
+  --card-inner-radius: var(--radius-sheet);
   --card-content-radius: var(--radius-sm);
 
   color-scheme: light;
