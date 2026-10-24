@@ -601,7 +601,7 @@ test.describe("a topic's page", () => {
 
     // The bug (D149): with the config store on, an edit saved on one device reached no other until
     // a rebuild, and a toggle sent from that stale page put the old value back.
-    test("an edit saved on another device shows here without a rebuild, and a store that is down leaves the built page", async ({
+    test("an edit saved on another device shows here without a rebuild, and a store that is down shows what this device last read", async ({
       page,
       context,
       baseURL,
@@ -661,9 +661,24 @@ test.describe("a topic's page", () => {
       await expect(box).toBeChecked();
       await expect(kiln).toBeHidden();
 
+      // Another device adds Glaze Monthly; this one reads it once, then loses the store (Neon
+      // asleep, or offline). The page shows what it last read (D172), not the build, which never
+      // had Glaze Monthly, and the local edits still lie over it.
+      user.added.push({
+        ...user.added[0],
+        id: "glaze-monthly",
+        name: "Glaze Monthly",
+        url: "https://glaze.example/",
+        feed_url: "https://glaze.example/feed.xml",
+        topic_ids: ["design_engineering_craft"],
+      });
+      stored = { "config/sources.user.json": JSON.stringify(user) };
+      await page.reload();
+      await expect(source(page, "Glaze Monthly")).toBeVisible();
       stored = null;
       await page.reload();
       await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+      await expect(source(page, "Glaze Monthly")).toBeVisible();
       await expect(box).toBeChecked();
       await expect(kiln).toBeHidden();
     });

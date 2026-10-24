@@ -162,7 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; off until set |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
-| D151 | CI fails on a high advisory; path-to-regexp overridden | active |
+| D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
 | D154 | Simple Analytics and a Privacy page | active |
 | D155 | Software Engineering topic | active; amends D69 |
@@ -174,10 +174,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D165 | YouTube captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
 | D167 | One shape per control | amends D72 |
-| D168 | Catch up, bolt, swipe-away toasts | amends D52 |
+| D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126 |
 | D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
+| D172 | Store reads keep a device copy | amends D149 |
 
 ---
 
@@ -1817,3 +1818,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: more hues per month (D121's harmony); a different paper per series (the owner chose close steps).
 - Amends: D121 (the cap and the stocks' lightness).
 - Revisit if: the owner judges the October grid on the phone in both themes; the contact sheet (`npm run covers:sheet`) is the review aid.
+
+## D172: a settings page keeps the store's last answer on the device
+
+- Date: 2026-10-24 (the owner: "make sure our app is professional industry grade", after asking how Spotify's settings feel instant)
+- Decision: `configStoreRead.ts` keeps the last answer `GET /api/config` gave in `localStorage` (`dispatch:store-read`, one build's edits). A page asks the store as before; when the store has not answered within 300 ms the page lays the device's copy over itself and the read goes on, so a late answer serves the next read and replaces the copy. A failed read leaves the copy standing. A copy from another build is ignored, as a read from another build is.
+- Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
+- Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
+- Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
