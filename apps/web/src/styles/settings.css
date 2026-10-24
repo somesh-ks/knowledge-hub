@@ -485,7 +485,14 @@
   min-width: 0;
   max-inline-size: 70%;
   /* The select reaches the chevron's side: the row's edge is where the chevron's ink ends. */
-  margin-inline-end: calc(var(--space-2) * -1);
+  margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px)) * -1);
+}
+
+/* In a card the fill's box ends one inset from the card's edge, where a row's tile ends (2026-10-24,
+   the inset went to 4px); the select reaches further and pads by as much, so its value and chevron
+   stay where the link rows' values and chevrons end. */
+.card-group .settings-row .value-select {
+  --value-select-pull: calc(var(--card-padding) - var(--card-inset) - var(--space-2));
 }
 
 .settings-row .value-select > select.manage-input {
@@ -493,7 +500,13 @@
   min-inline-size: 0;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-4) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
+  padding-inline: var(--space-4)
+    calc(
+      var(--space-2) +
+      var(--value-select-pull, 0px) +
+      var(--size-icon) +
+      var(--field-chevron-gap)
+    );
   border-color: transparent;
   border-radius: var(--button-radius);
   color: var(--color-on-surface);
@@ -503,7 +516,7 @@
 }
 
 .settings-row .value-select > .icon {
-  inset-inline-end: var(--space-2);
+  inset-inline-end: calc(var(--space-2) + var(--value-select-pull, 0px));
 }
 
 /* On Settings the model is a row's current value, as every other row's hint is: the muted colour at
@@ -517,7 +530,13 @@
    values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
    the stored value is set, which comes later and so still wins. */
 .settings-view .value-select > select.manage-input {
-  padding-inline-end: calc(var(--space-2) + var(--size-icon) * 0.72 + var(--field-chevron-gap));
+  padding-inline-end: calc(
+    var(--space-2) +
+    var(--value-select-pull, 0px) +
+    var(--size-icon) *
+    0.72 +
+    var(--field-chevron-gap)
+  );
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
 }
@@ -526,7 +545,7 @@
    (`.row-action .icon` above), so this one moves the same way inside the select's fill, whose box
    stays one inset from the card's edge (the design audit, 2026-10-22: 5.6px apart). */
 .settings-view .value-select > .icon {
-  inset-inline-end: calc(var(--space-2) - var(--size-icon) * 0.28);
+  inset-inline-end: calc(var(--space-2) + var(--value-select-pull, 0px) - var(--size-icon) * 0.28);
 }
 
 .settings-row .value-select > select.manage-input:focus-visible {
