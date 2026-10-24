@@ -42,7 +42,6 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
 | `DISPATCH_GIT_NAME`, `DISPATCH_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
-| `GENERATE_PASSPHRASE_HASH` | Section 1.8 |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
 ### 1.3 Pick the writer model
@@ -63,7 +62,7 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 
 1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
 2. Set Root Directory to `apps/web`. Leave "Include source files outside of the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
-3. Add the three Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`) in section 1.9, or by hand in the dashboard.
+3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
 4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `DISPATCH_GIT_NAME` and `DISPATCH_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `dispatch-bot`, and Hobby blocks those deploys.
 
 ### 1.5 Create the Blob store
@@ -89,13 +88,9 @@ Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 3. Set an expiry and record it in section 6.
 4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
 
-### 1.8 Create the Generate passphrase
+### 1.8 No passphrase
 
-1. Run `npm run passphrase`.
-2. Type a passphrase of 8 or more characters twice. Echo is off.
-3. The script writes only the scrypt hash to `.env` as `GENERATE_PASSPHRASE_HASH`. Remember the passphrase; nothing stores it.
-
-The passphrase is the only gate on the Generate button. Make it long.
+The site has no passphrase (D160): anyone who opens it can start runs and narration inside the caps. If `GENERATE_PASSPHRASE_HASH` is still set in Vercel or `.env`, delete it; nothing reads it.
 
 ### 1.9 Send the secrets
 
@@ -144,7 +139,7 @@ Do this on the current iOS, once a digest with audio is live. Note the iOS versi
 4. Flip the silent switch. Narration keeps playing; interface sounds go quiet. Flip it back and open Settings: the switch and volume control the sounds.
 5. Change the speed, rotate the phone, and trigger a notification or call during playback. After a call the player offers to resume and does not start by itself.
 6. Switch to airplane mode and relaunch: the last briefing opens and the banner says you are offline.
-7. Open Generate and tap the passphrase field: the page must not zoom. Do not run Generate yet unless you want a second digest.
+7. Open Regenerate and tap the comments field: the page must not zoom. Do not run Generate yet unless you want a second digest.
 
 ---
 
@@ -195,7 +190,7 @@ Every `run.yml` run ends in one outcome:
 
 Pick one. Each starts `run.yml` with `mode=on-demand`, which skips the gate.
 
-1. **Site button.** Open the Generate sheet, enter the passphrase, watch the progress steps. Limits: one on-demand run per 6 hours and three per 24 hours. The count includes runs started any other way.
+1. **Site button.** Open the Generate sheet and watch the progress steps. Limits: one on-demand run per 6 hours and three per 24 hours. The count includes runs started any other way.
 2. **GitHub CLI.**
 
 ```bash
@@ -242,7 +237,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 1. Create the new key at the service. Delete the old one after the new one works.
 2. Edit the value in `.env`.
 3. Run `npm run secrets:push`.
-4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`, `GENERATE_PASSPHRASE_HASH`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
+4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
 
 | Key | Rotate at | Used by |
 | --- | --- | --- |
@@ -254,7 +249,6 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
 | `GITHUB_DISPATCH_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
-| `GENERATE_PASSPHRASE_HASH` | `npm run passphrase` | Generate button |
 
 Track expiry here. Fill the dates when you create each token and set a calendar reminder two weeks before.
 
@@ -319,11 +313,9 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 | Message | Cause | Fix |
 | --- | --- | --- |
-| "That passphrase does not match. Check it and try again." | Typo, or the stored hash does not match | Retry. If forgotten, run `npm run passphrase`, then `npm run secrets:push -- --only vercel`, then redeploy from the Vercel dashboard |
 | "Generate is on cooldown. Try again in ..." or "Generate has reached its limit for today. Try again in ..." | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
 | "The server ran into a problem, so ... Error ref 3f9a1c." (Create, Generate, Regenerate, Delete, saving settings) | The function answered but could not do the job: a Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Search the Vercel function logs for `ref 3f9a1c`: the lines name the missing variable or GitHub's answer. Then fix the variable, or rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
 | "The server crashed before it could answer ..." | The function failed before it ran (a broken deploy, a missing native binary) or threw | Open the deployment's function logs in Vercel; redeploy or roll back. A thrown error is logged as `[api/...] [ref ...] crashed:` |
-| "The server's passphrase setting does not match this site's ..." | The site sends its built-in passphrase and the server's `GENERATE_PASSPHRASE_HASH` does not match it | Set the hash for the built-in passphrase (`npm run passphrase`, then `npm run secrets:push -- --only vercel`) and redeploy |
 
 ---
 

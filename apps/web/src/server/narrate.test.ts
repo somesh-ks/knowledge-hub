@@ -1,8 +1,6 @@
 import { AudioTimeline, type Digest, serializeDigestFile } from "@dispatch/core";
-import { verifyPassphrase } from "@dispatch/core/passphrase";
 import { buildSpokenText, type SpokenSegment, spokenSegments } from "@dispatch/engine/audio";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
 import {
@@ -21,7 +19,6 @@ import {
   PRE_SYNTHESIS_BOUND_MS,
   SYNTHESIS_DEADLINE_MS,
 } from "./functionLimits.mjs";
-import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
 import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
 import {
@@ -55,7 +52,6 @@ const MONTH = "2026-10";
 /** The Stockholm date at NOW, and how long that day has left (it is 14:00 there). */
 const TODAY = "2026-10-07";
 const UNTIL_MIDNIGHT_S = 10 * 3600;
-const PASSPHRASE = "correct horse battery staple";
 const SPEECHIFY_KEY = "speechify-test-key-8f3a9c1e2b7d";
 /** The store's name is the fourth part, and with it the public address: FAKE_BLOB_HOST. */
 const BLOB_TOKEN = "vercel_blob_rw_teststore_0123456789abcdefghij";
@@ -64,12 +60,6 @@ const UPSTREAM = "UPSTREAM-DETAIL-4c1f";
 /** The engine's default voice and model, which the segment file names are hashed with. */
 const VOICE = "geffen_32";
 const MODEL = "simba-3.2";
-
-let passphraseHash = "";
-
-beforeAll(() => {
-  passphraseHash = cheapPassphraseHash(PASSPHRASE);
-});
 
 interface FakeDigests extends DigestSource {
   timelines: Map<string, unknown>;
@@ -119,7 +109,6 @@ function setup(options: SetupOptions = {}) {
   const state = { cancelled: 0 };
   const deps: NarrateDeps = {
     env: {
-      GENERATE_PASSPHRASE_HASH: passphraseHash,
       SPEECHIFY_API_KEY: SPEECHIFY_KEY,
       BLOB_READ_WRITE_TOKEN: BLOB_TOKEN,
       ...options.env,
@@ -131,7 +120,6 @@ function setup(options: SetupOptions = {}) {
       delays.push(milliseconds);
       clock += milliseconds;
     },
-    verifyPassphrase,
     openBlob: (credentials) => {
       opened.push(credentials);
       return blob;
@@ -184,8 +172,7 @@ function setup(options: SetupOptions = {}) {
 type Setup = ReturnType<typeof setup>;
 type Result = ApiResult<NarrateBody>;
 
-const body = (fields: Record<string, unknown> = {}) =>
-  JSON.stringify({ digest: ID, passphrase: PASSPHRASE, ...fields });
+const body = (fields: Record<string, unknown> = {}) => JSON.stringify({ digest: ID, ...fields });
 const input = (bodyText: string = body(), origin: string | null = ORIGIN) => ({
   bodyText,
   origin,
@@ -313,7 +300,7 @@ function segmentBody(result: Result) {
 function expectNothingLeaked(result: Result, logs: string[]) {
   const answer = JSON.stringify(result);
   const everything = answer + logs.join("\n");
-  for (const secret of [SPEECHIFY_KEY, BLOB_TOKEN, passphraseHash, PASSPHRASE]) {
+  for (const secret of [SPEECHIFY_KEY, BLOB_TOKEN]) {
     expect(everything).not.toContain(secret);
   }
   expect(answer).not.toContain(UPSTREAM);
@@ -347,8 +334,9 @@ describe("parseDigestId", () => {
 });
 
 describe("parseNarrateRequest", () => {
-  it("reads the digest and the passphrase from a JSON body", () => {
-    expect(parseNarrateRequest(body())).toEqual({ digest: ID, passphrase: PASSPHRASE });
+  it("reads the digest from a JSON body, and ignores a passphrase an older page still sends", () => {
+    expect(parseNarrateRequest(body())).toEqual({ digest: ID });
+    expect(parseNarrateRequest(body({ passphrase: "left over" }))).toEqual({ digest: ID });
   });
 
   it("rejects anything else", () => {
@@ -357,13 +345,8 @@ describe("parseNarrateRequest", () => {
       "not json",
       "[]",
       "null",
-      JSON.stringify({ digest: ID }),
-      JSON.stringify({ passphrase: PASSPHRASE }),
-      body({ passphrase: "" }),
-      body({ passphrase: 42 }),
       body({ digest: "everything" }),
       body({ digest: 20261007 }),
-      body({ passphrase: "x".repeat(257) }),
       body({ pad: "y".repeat(2048) }),
     ]) {
       expect(parseNarrateRequest(bad)).toBeNull();
@@ -374,7 +357,6 @@ describe("parseNarrateRequest", () => {
     for (const segment of ["intro", "outro", "00000000000a"]) {
       expect(parseNarrateRequest(body({ segment }))).toEqual({
         digest: ID,
-        passphrase: PASSPHRASE,
         segment,
       });
     }
@@ -647,9 +629,9 @@ describe("GET /api/narrate", () => {
     expect(lookupBody(await lookup(timelineOnly)).audio).toBeNull();
   });
 
-  it("needs no passphrase and no Speechify key, and spends nothing: no characters, no operations", async () => {
+  it("needs no Speechify key, and spends nothing: no characters, no operations", async () => {
     const context = setup({
-      env: { GENERATE_PASSPHRASE_HASH: undefined, SPEECHIFY_API_KEY: undefined },
+      env: { SPEECHIFY_API_KEY: undefined },
     });
     expect((await lookup(context)).status).toBe(200);
     expect(context.speech.calls).toHaveLength(0);
@@ -671,11 +653,7 @@ describe("GET /api/narrate", () => {
 
 describe("POST /api/narrate: who may ask", () => {
   it("answers 503 and touches nothing when the site is not configured", async () => {
-    for (const missing of [
-      "GENERATE_PASSPHRASE_HASH",
-      "SPEECHIFY_API_KEY",
-      "BLOB_READ_WRITE_TOKEN",
-    ] as const) {
+    for (const missing of ["SPEECHIFY_API_KEY", "BLOB_READ_WRITE_TOKEN"] as const) {
       const context = setup({ env: { [missing]: undefined } });
       expect(await post(context)).toEqual({
         status: 503,
@@ -688,28 +666,24 @@ describe("POST /api/narrate: who may ask", () => {
 
   it("answers 400 for a body that is not the expected shape, or a bad digest id", async () => {
     const context = setup();
-    for (const bad of ["", "not json", "{}", body({ passphrase: "" }), body({ digest: "../x" })]) {
+    for (const bad of ["", "not json", "{}", body({ digest: "../x" })]) {
       expect((await post(context, bad)).status).toBe(400);
     }
     expect(context.opened).toHaveLength(0);
   });
 
   // The burst cap is shared by every visitor (D150): a request another site sends, or one that fails
-  // the body or passphrase check, must not use a slot, or a loop elsewhere would hold the owner's
+  // the body check, must not use a slot, or a loop elsewhere would hold the owner's
   // minute full. One past the cap is refused before the store is opened, so a flood reads nothing.
-  it("answers another origin before the passphrase, takes a burst slot only once every check passes, and refuses past it before the store", async () => {
-    const verify = vi.fn(verifyPassphrase);
+  it("answers another origin, takes a burst slot only once every check passes, and refuses past it before the store", async () => {
     const limiter = createSharedLimiter({ databaseUrl: undefined, now: () => NOW });
     const context = setup({
-      overrides: { verifyPassphrase: verify, burst: burstCap("narrate", 1, limiter, () => NOW) },
+      overrides: { burst: burstCap("narrate", 1, limiter, () => NOW) },
     });
     const segment = body({ segment: "intro" });
     const elsewhere = await handleNarrate(input(segment, "https://evil.example"), context.deps);
     expect(elsewhere.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
     expect((await post(context, "not json")).status).toBe(400);
-    const wrong = body({ segment: "intro", passphrase: "not the passphrase" });
-    expect((await post(context, wrong)).status).toBe(401);
 
     expect((await post(context, segment)).status).toBe(200);
     const opened = context.opened.length;
@@ -718,21 +692,6 @@ describe("POST /api/narrate: who may ask", () => {
       body: { error: "cooldown" },
     });
     expect(context.opened).toHaveLength(opened);
-  });
-
-  it("answers 401 with a constant extra delay for a wrong passphrase", async () => {
-    const context = setup();
-    const result = await post(context, body({ passphrase: "not the passphrase" }));
-    expect(result).toEqual({ status: 401, body: { status: 401, error: "wrong_passphrase" } });
-    expect(context.delays).toEqual([WRONG_PASSPHRASE_DELAY_MS]);
-    expect(context.opened).toHaveLength(0);
-    expect(context.speech.calls).toHaveLength(0);
-  });
-
-  it("never echoes the submitted passphrase", async () => {
-    const context = setup();
-    const result = await post(context, body({ passphrase: "my private guess" }));
-    expect(JSON.stringify(result) + context.logs.join("\n")).not.toContain("my private guess");
   });
 });
 
@@ -1436,7 +1395,7 @@ describe("POST /api/narrate: when the upload fails", () => {
 
 describe("POST /api/narrate: nothing leaks", () => {
   it("keeps keys, tokens and upstream bodies out of every error answer", async () => {
-    const leaky = new Error(`${UPSTREAM} ${SPEECHIFY_KEY} ${BLOB_TOKEN} ${passphraseHash}`);
+    const leaky = new Error(`${UPSTREAM} ${SPEECHIFY_KEY} ${BLOB_TOKEN}`);
     const scenarios: Array<{
       status: number;
       arrange: (context: Setup) => void;
@@ -1699,9 +1658,8 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.blob.calls).toEqual([]);
   });
 
-  it("asks for the same passphrase and the same origin as the whole digest", async () => {
+  it("asks for the same origin as the whole digest", async () => {
     const context = setup();
-    expect((await postSegment(context, "intro", { passphrase: "not it" })).status).toBe(401);
     const crossOrigin = input(body({ segment: "intro" }), "https://evil.example");
     expect((await handleNarrate(crossOrigin, context.deps)).status).toBe(400);
     expect(context.blob.calls).toEqual([]);
@@ -1998,7 +1956,7 @@ describe("POST /api/narrate with a segment", () => {
   });
 
   it("answers 503 when the store cannot be reached, with nothing spent and nothing leaked", async () => {
-    const leaky = new Error(`${UPSTREAM} ${SPEECHIFY_KEY} ${BLOB_TOKEN} ${passphraseHash}`);
+    const leaky = new Error(`${UPSTREAM} ${SPEECHIFY_KEY} ${BLOB_TOKEN}`);
     for (const op of ["head", "fetch"] as const) {
       const context = setup();
       seedState(context, 10);

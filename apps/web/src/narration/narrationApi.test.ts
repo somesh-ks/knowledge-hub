@@ -169,7 +169,7 @@ describe("lookupNarration", () => {
 });
 
 describe("narrateSegment", () => {
-  it("posts the briefing, the segment and the passphrase, and returns the file", async () => {
+  it("posts the briefing, and the segment, and returns the file", async () => {
     const { api, calls } = deps(() =>
       json(200, {
         status: 200,
@@ -181,13 +181,12 @@ describe("narrateSegment", () => {
         },
       }),
     );
-    const result = await narrateSegment("2026-10-07", "a1b2c3d4e5f6", "open sesame", api);
+    const result = await narrateSegment("2026-10-07", "a1b2c3d4e5f6", api);
     expect(result).toEqual({ ok: true, url: "https://store.test/audio/x/seg/a.def.mp3" });
     expect(calls[0]?.url).toBe("/api/narrate");
     expect(calls[0]?.init?.method).toBe("POST");
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
       digest: "2026-10-07",
-      passphrase: "open sesame",
       segment: "a1b2c3d4e5f6",
     });
   });
@@ -204,36 +203,33 @@ describe("narrateSegment", () => {
         },
       }),
     );
-    expect(await narrateSegment("d", "a", "p", other.api)).toEqual({ ok: false, reason: "failed" });
+    expect(await narrateSegment("d", "a", other.api)).toEqual({ ok: false, reason: "failed" });
     const empty = deps(() =>
       json(200, { status: 200, segment: { key: "a", item_id: "a", characters: 1, audio: null } }),
     );
-    expect(await narrateSegment("d", "a", "p", empty.api)).toEqual({ ok: false, reason: "failed" });
+    expect(await narrateSegment("d", "a", empty.api)).toEqual({ ok: false, reason: "failed" });
   });
 
   it("names the refusals that stop narration", async () => {
     for (const [status, error] of [
-      [401, "wrong_passphrase"],
       [429, "daily_cap"],
       [429, "monthly_budget"],
     ] as const) {
       const { api } = deps(() => json(status, { status, error, retry_after_s: 60 }));
-      expect(await narrateSegment("d", "a", "p", api)).toEqual({ ok: false, reason: error });
+      expect(await narrateSegment("d", "a", api)).toEqual({ ok: false, reason: error });
     }
   });
 
   it("treats a voice or storage failure as worth another try", async () => {
     for (const error of ["synthesis_failed", "storage_failed", "took_too_long"]) {
       const { api } = deps(() => json(502, { status: 502, error }));
-      expect(await narrateSegment("d", "a", "p", api)).toEqual({ ok: false, reason: "failed" });
+      expect(await narrateSegment("d", "a", api)).toEqual({ ok: false, reason: "failed" });
     }
   });
 });
 
 describe("failureCopy", () => {
   const reasons = [
-    "passphrase_required",
-    "wrong_passphrase",
     "daily_cap",
     "monthly_budget",
     "not_narratable",
@@ -247,10 +243,6 @@ describe("failureCopy", () => {
   it("says what happened and what to do, in plain sentences", () => {
     for (const reason of reasons) {
       const message = failureCopy(reason, "briefing");
-      if (reason === "passphrase_required") {
-        expect(message).toBeNull();
-        continue;
-      }
       expect(message, reason).toMatch(/^[A-Z].*\.$/);
       expect(message, reason).not.toMatch(/[\u2014\u2013!]/);
       // It never explains the interface ("the text is still here to read").
@@ -263,8 +255,7 @@ describe("failureCopy", () => {
   it("names an episode as an episode", () => {
     expect(failureCopy("not_narratable", "episode")).toBe("This episode cannot be read aloud.");
     expect(failureCopy("digest_not_found", "episode")).toMatch(/^This episode /);
-    for (const reason of reasons)
-      expect(failureCopy(reason, "episode") ?? "").not.toMatch(/briefing/);
+    for (const reason of reasons) expect(failureCopy(reason, "episode")).not.toMatch(/briefing/);
     expect(failureCopy("daily_cap", "episode")).toBe(
       "Daily narration limit reached. Try again tomorrow.",
     );

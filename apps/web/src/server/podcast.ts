@@ -1,13 +1,6 @@
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
-import {
-  type GenerateDeps,
-  type GenerateInput,
-  isSameOrigin,
-  MAX_BODY_CHARS,
-  MAX_PASSPHRASE_CHARS,
-  WRONG_PASSPHRASE_DELAY_MS,
-} from "./generate";
+import { type GenerateDeps, type GenerateInput, isSameOrigin, MAX_BODY_CHARS } from "./generate";
 import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
 import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY } from "./limits";
@@ -124,9 +117,7 @@ export type EpisodeAction =
   | { action: "delete"; id: string }
   | { action: "regenerate"; id: string; feedback?: string; topic_ids?: string[] };
 
-export type ParsedPodcastBody =
-  | { passphrase: string; request: PodcastRequest }
-  | ({ passphrase: string } & EpisodeAction);
+export type ParsedPodcastBody = { request: PodcastRequest } | EpisodeAction;
 
 /** The feedback of a regenerate: control characters become spaces, 1 to 500 characters once trimmed. */
 export function cleanFeedback(value: unknown): string | null {
@@ -136,7 +127,10 @@ export function cleanFeedback(value: unknown): string | null {
   return cleaned.length >= 1 && cleaned.length <= MAX_FEEDBACK_CHARS ? cleaned : null;
 }
 
-/** The passphrase and the episode request out of a JSON body, or null when it is not that shape. */
+/**
+ * The episode request out of a JSON body, or null when it is not that shape. A `passphrase` field
+ * that a page built before D160 still sends is ignored.
+ */
 export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
   if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return null;
   let parsed: unknown;
@@ -146,17 +140,14 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
     return null;
   }
   if (!isRecord(parsed)) return null;
-  const { passphrase } = parsed;
-  if (typeof passphrase !== "string") return null;
-  if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
   const { action } = parsed;
   if (action === undefined) {
     const request = parsePodcastRequest(parsed.request);
-    return request ? { passphrase, request } : null;
+    return request ? { request } : null;
   }
   const { id } = parsed;
   if (typeof id !== "string" || !EPISODE_ID.test(id)) return null;
-  if (action === "delete") return { passphrase, action, id };
+  if (action === "delete") return { action, id };
   if (action === "regenerate") {
     // Both are optional: blank comments mean none, and no topics keep the episode's own.
     const blank =
@@ -172,7 +163,6 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
       topicIds = checked;
     }
     return {
-      passphrase,
       action,
       id,
       ...(feedback ? { feedback } : {}),
@@ -197,12 +187,6 @@ export async function handlePodcast(
   const body = parsePodcastBody(input.bodyText);
   if (body === null) return invalid;
   if ("action" in body && !(deps.episodeIds?.() ?? []).includes(body.id)) return invalid;
-
-  const isValid = await deps.verifyPassphrase(body.passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;
@@ -239,9 +223,8 @@ export async function handlePodcast(
 
     const names = await hostNames;
     const startedAt = deps.now();
-    const { passphrase: _passphrase, ...rest } = body;
     const command =
-      "request" in rest ? { ...rest.request, ...(names ? { host_names: names } : {}) } : rest;
+      "request" in body ? { ...body.request, ...(names ? { host_names: names } : {}) } : body;
     const inputs = { request: JSON.stringify(command) };
     let runId = await github.dispatchWorkflowFile(PODCAST_WORKFLOW_FILE, inputs);
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {

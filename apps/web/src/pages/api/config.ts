@@ -11,7 +11,6 @@ import seedSources from "../../../../../config/sources.json?raw";
 import builtSourcesUser from "../../../../../config/sources.user.json?raw";
 import builtTopics from "../../../../../config/topics.json?raw";
 import type { BuiltConfigFiles } from "../../lib/configHash";
-import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
 import { burstCap } from "../../server/rateLimit";
@@ -35,7 +34,6 @@ export const POST: APIRoute = ({ request, url }) =>
         fetch,
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-        verifyPassphrase: passphraseCheck(),
         burst: burstCap("config", EDITS_PER_MINUTE),
         log,
         baseFiles: { "config/sources.json": seedSources },

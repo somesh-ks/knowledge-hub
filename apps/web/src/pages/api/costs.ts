@@ -12,7 +12,7 @@ import { sharedLimit } from "../../server/rateLimit";
 // Runs on demand: the report reads the narrate function's usage documents from Blob.
 export const prerender = false;
 
-// The route is open on purpose (the owner's passphrase is off site-wide, D41) and each answer reads
+// The route is open on purpose (the site has no passphrase, D160) and each answer reads
 // Blob, so the site answers at most this many a minute across instances; past it the answer is 429.
 const REPORTS_PER_MINUTE = 30;
 

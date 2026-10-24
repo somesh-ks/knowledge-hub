@@ -4,10 +4,10 @@
  */
 export const OPEN_SHEET_EVENT = "dispatch:open-sheet";
 
-export type SheetName = "generate" | "narrate";
+export type SheetName = "generate";
 
 export function isSheetName(value: unknown): value is SheetName {
-  return value === "generate" || value === "narrate";
+  return value === "generate";
 }
 
 export function requestSheet(name: SheetName): void {

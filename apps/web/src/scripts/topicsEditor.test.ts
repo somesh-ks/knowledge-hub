@@ -135,9 +135,6 @@ describe("problemText", () => {
 
 describe("failureText", () => {
   it("names the refusal and says the change is not saved yet", () => {
-    expect(failureText(401)).toBe(
-      "The server's passphrase setting does not match this site's. Not saved yet.",
-    );
     expect(failureText(503)).toBe("The server ran into a problem. Not saved yet.");
     expect(failureText(0)).toBe("Couldn't reach the site. Not saved yet.");
     expect(failureText(400)).toBe("The server turned that change down. Not saved yet.");
@@ -160,12 +157,6 @@ describe("failureText", () => {
       "The server ran into a problem. Not saved yet. Error ref 3f9a1c.",
     );
     expect(failureText(500, {})).toBe("The server crashed before it could answer. Not saved yet.");
-  });
-
-  it("never asks for the passphrase back in a message that is not about it", () => {
-    for (const status of [400, 429, 503, 0]) {
-      expect(failureText(status)).not.toMatch(/passphrase/i);
-    }
   });
 });
 

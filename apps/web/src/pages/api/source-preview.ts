@@ -7,7 +7,7 @@ import { handleSourcePreview } from "../../server/sourcePreview";
 export const prerender = false;
 
 // Jev places the format when the server has a key (TYPESAFE_API_KEY on Vercel); without one the rule stands.
-// Each placing is a paid call on an open route (D41), so the site asks at most this many a minute
+// Each placing is a paid call on an open route (D160), so the site asks at most this many a minute
 // across instances; past it the rule stands.
 const JEV_PER_MINUTE = 20;
 const classifier = process.env.TYPESAFE_API_KEY

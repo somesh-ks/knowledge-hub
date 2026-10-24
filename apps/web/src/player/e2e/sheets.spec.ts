@@ -1,6 +1,5 @@
 import type { Route } from "@playwright/test";
 import { expect, SITE, test } from "./helpers";
-import { enterPassphrase, PASSPHRASE_REQUIRED } from "./passphrase";
 
 function reply(route: Route, status: number, body: Record<string, unknown>) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -37,11 +36,6 @@ test("Regenerate: the run request, the six steps while it goes, then the new bri
   // The sheet polls on the page clock, so the run's minutes pass in a moment.
   await page.clock.install();
   const dialog = await player.openGenerate();
-  if (!PASSPHRASE_REQUIRED) {
-    // With the passphrase step off (D41) the sheet asks for nothing.
-    await expect(dialog.getByLabel("Passphrase")).toHaveCount(0);
-  }
-  await enterPassphrase(dialog);
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   const steps = dialog.getByRole("list", { name: "Progress" }).getByRole("listitem");
   await expect(steps).toHaveCount(6);
@@ -51,10 +45,7 @@ test("Regenerate: the run request, the six steps while it goes, then the new bri
     "true",
   );
   // Regenerate replaces the briefing on the page over its own window (D104).
-  expect(sent).toEqual({
-    passphrase: PASSPHRASE_REQUIRED ? "secret" : "open",
-    replace: SITE.path.replace("/d/", ""),
-  });
+  expect(sent).toEqual({ replace: SITE.path.replace("/d/", "") });
   await page.clock.runFor(3_100);
   await expect(steps.nth(1)).toContainText("In progress");
   await expect(steps.nth(0)).toContainText("Done");

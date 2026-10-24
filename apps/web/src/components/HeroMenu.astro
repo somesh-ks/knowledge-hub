@@ -1,5 +1,4 @@
 ---
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 import MenuSheet from "./MenuSheet.astro";
 
@@ -30,7 +29,6 @@ const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
   data-episode-actions=""
   data-episode={episodeId}
   data-briefing={briefingId}
-  data-open-passphrase={!PASSPHRASE_REQUIRED ? OPEN_PASSPHRASE : undefined}
 >
   <button
     class="icon-btn hero-more press"

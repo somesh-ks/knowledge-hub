@@ -16,20 +16,18 @@ function segments(): TrackSegment[] {
   }));
 }
 
-function setup(passphrase: string | null = "open sesame") {
+function setup() {
   const list = segments();
   const sent: string[] = [];
   const answers = new Map<string, (result: NarrateResult) => void>();
   const failures: Array<[NarrationFailure, boolean]> = [];
   const progress: number[] = [];
-  const phrase = { value: passphrase };
   const queue = createSegmentQueue({
     segments: list,
     narrate(key) {
       sent.push(key);
       return new Promise((resolve) => answers.set(key, resolve));
     },
-    getPassphrase: () => phrase.value,
     onFailure: (reason, needed) => failures.push([reason, needed]),
     onProgress: (ready) => progress.push(ready),
   });
@@ -39,7 +37,7 @@ function setup(passphrase: string | null = "open sesame") {
     await settle();
   };
   const ok = (key: string) => answer(key, { ok: true, url: `https://blob.test/${key}.mp3` });
-  return { list, queue, sent, failures, progress, phrase, answer, ok, settle };
+  return { list, queue, sent, failures, progress, answer, ok, settle };
 }
 
 const reasonOf = (error: unknown) => (error as NarrationError).reason;
@@ -149,39 +147,27 @@ describe("createSegmentQueue", () => {
     const { queue, sent, answer, failures } = setup();
     // The expectation is attached before the answer, so the rejection always has a handler.
     const wanted = expect(queue.ensure(1)).rejects.toSatisfy(
-      (error) => reasonOf(error) === "wrong_passphrase",
+      (error) => reasonOf(error) === "daily_cap",
     );
     queue.prepare(2);
     queue.prepare(3);
-    await answer("a", { ok: false, reason: "wrong_passphrase" });
+    await answer("a", { ok: false, reason: "daily_cap" });
     await wanted;
-    // One bad passphrase is one request, not one per story.
+    // One refusal is one request, not one per story.
     expect(sent).toEqual(["a"]);
-    await expect(queue.ensure(2)).rejects.toSatisfy(
-      (error) => reasonOf(error) === "wrong_passphrase",
-    );
-    expect(failures).toEqual([["wrong_passphrase", true]]);
+    await expect(queue.ensure(2)).rejects.toSatisfy((error) => reasonOf(error) === "daily_cap");
+    expect(failures).toEqual([["daily_cap", true]]);
   });
 
-  it("carries on after reset, with the new passphrase", async () => {
-    const { queue, sent, answer, ok, phrase } = setup();
+  it("carries on after reset", async () => {
+    const { queue, sent, answer, ok } = setup();
     void queue.ensure(1).catch(() => {});
-    await answer("a", { ok: false, reason: "wrong_passphrase" });
-    phrase.value = "the right one";
+    await answer("a", { ok: false, reason: "daily_cap" });
     queue.reset();
     const again = queue.ensure(1);
     expect(sent).toEqual(["a", "a"]);
     await ok("a");
     await expect(again).resolves.toBe("https://blob.test/a.mp3");
-  });
-
-  it("asks for the passphrase before sending anything when there is none", async () => {
-    const { queue, sent, failures } = setup(null);
-    await expect(queue.ensure(1)).rejects.toSatisfy(
-      (error) => reasonOf(error) === "passphrase_required",
-    );
-    expect(sent).toEqual([]);
-    expect(failures).toEqual([["passphrase_required", true]]);
   });
 
   it("does not spend a second request on a hint for a file that just failed", async () => {

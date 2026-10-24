@@ -1,5 +1,5 @@
 /**
- * The Generate flow as an external store: submit the passphrase, poll the run, map its outcome.
+ * The Generate flow as an external store: submit the request, poll the run, map its outcome.
  * It lives at module scope so a run keeps going when the sheet closes. Polling cadence follows the
  * sheet: every 3 seconds with backoff while it is open, a slow 15-second check while it is closed
  * so the toast can still say "Briefing ready", and none at all once the run has finished.
@@ -32,7 +32,7 @@ export interface GenerateState {
   failedAt: GenerateStep | null;
   digestId: string | null;
   runUrl: string | null;
-  /** The inline error under the passphrase field. */
+  /** The inline error over the sheet's Regenerate button. */
   fieldError: string | null;
   /** The status endpoint stopped answering. The run may still be going. */
   lostContact: boolean;
@@ -86,11 +86,9 @@ function isActive(phase: GeneratePhase): boolean {
 export interface GenerateStore {
   getState(): GenerateState;
   subscribe(listener: () => void): () => void;
-  submit(passphrase: string, feedback?: string, topics?: readonly string[]): Promise<void>;
+  submit(feedback?: string, topics?: readonly string[]): Promise<void>;
   /** Clears a finished run or an inline error so the form comes back. */
   reset(): void;
-  /** Clears the inline error while the listener types, so it never lingers over a fresh attempt. */
-  clearError(): void;
   /** Tells the store whether the sheet is showing, which sets the polling cadence. */
   setSheetOpen(open: boolean): void;
   /** Picks up a run remembered in session storage and checks it now. */
@@ -271,10 +269,10 @@ export function createGenerateStore(options: GenerateStoreOptions): GenerateStor
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    async submit(passphrase, feedback, topics) {
+    async submit(feedback, topics) {
       if (state.phase === "starting" || isActive(state.phase)) return;
       setState({ phase: "starting", fieldError: null });
-      const result = await startGenerate(passphrase, clientDeps, feedback, topics);
+      const result = await startGenerate(clientDeps, feedback, topics);
       if (disposed) return;
       if (result.kind === "rejected") {
         setState({ phase: "idle", fieldError: result.message });
@@ -287,9 +285,6 @@ export function createGenerateStore(options: GenerateStoreOptions): GenerateStor
       schedule();
     },
     reset,
-    clearError() {
-      if (state.fieldError !== null) setState({ fieldError: null });
-    },
     setSheetOpen(open) {
       if (open === sheetOpen) return;
       sheetOpen = open;

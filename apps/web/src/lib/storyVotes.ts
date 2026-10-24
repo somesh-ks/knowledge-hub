@@ -16,8 +16,7 @@ export const SEND_AFTER_MS = 10 * 60 * 1000;
 export const MAX_PER_OP = 15;
 /**
  * The longest request body the server reads (MAX_CONFIG_BODY_CHARS in server/configEdit.ts); a
- * longer one is refused as invalid, every time. Room is left for the passphrase (up to 256 characters,
- * more once escaped) and the wrapping.
+ * longer one is refused as invalid, every time. Room is left for the wrapping.
  */
 export const MAX_BODY_CHARS = 8192 - 512;
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
@@ -366,8 +365,6 @@ export function stopFailure(outlet: string, status: number): { message: string; 
       };
     case 400:
       return { message: `Could not stop ${outlet}: its address was not accepted.`, retry: "no" };
-    case 401:
-      return { message: `Could not stop ${outlet}: the change was refused.`, retry: "no" };
     default:
       return {
         message: `Could not stop ${outlet}: the site answered ${status}. Try again later.`,

@@ -1,5 +1,4 @@
 ---
-import { PASSPHRASE_REQUIRED } from "../lib/access";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
@@ -31,12 +30,6 @@ const MAX_FEEDBACK_CHARS = 500;
 const COPY = {
   topics: "Pick at least one topic.",
   left: "characters left",
-  ...(PASSPHRASE_REQUIRED
-    ? {
-        passphrase: "Enter the passphrase to continue.",
-        "401": "That passphrase does not match. Check it and try again.",
-      }
-    : {}),
   "400": "The server turned that request down. Reload the page and try again.",
   cooldown: "You can do that again in",
   daily_cap: "That's today's limit. Try again in",
@@ -45,8 +38,6 @@ const COPY = {
   // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).
   crashed:
     "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
-  // A 401 when the site sends its own passphrase: the deployment's settings disagree.
-  refused: "The server's passphrase setting does not match this site's, so nothing was started.",
   network: "Couldn't reach the site. Check your connection, then try again.",
 } as const;
 ---
@@ -103,20 +94,6 @@ const COPY = {
                   aria-describedby="regen-count"
                 />
                 <p class="create-hint regen-count" id="regen-count" data-count aria-live="polite" hidden />
-                {PASSPHRASE_REQUIRED && (
-                  <div class="sheet-field regen-pass">
-                    <label class="sheet-field-label" for="regen-passphrase">Passphrase</label>
-                    <input
-                      class="sheet-input"
-                      id="regen-passphrase"
-                      name="passphrase"
-                      type="password"
-                      autocomplete="off"
-                      autocapitalize="none"
-                      spellcheck="false"
-                    />
-                  </div>
-                )}
               </section>
               <div class="create-submit">
                 <button class="btn-primary" type="submit" data-submit>
@@ -139,20 +116,6 @@ const COPY = {
             <p class="create-hint confirm-lede" id="delete-lede">
               It will be removed from the Library on every device. This cannot be undone.
             </p>
-            {PASSPHRASE_REQUIRED && (
-              <div class="sheet-field">
-                <label class="sheet-field-label" for="delete-passphrase">Passphrase</label>
-                <input
-                  class="sheet-input"
-                  id="delete-passphrase"
-                  name="passphrase"
-                  type="password"
-                  autocomplete="off"
-                  autocapitalize="none"
-                  spellcheck="false"
-                />
-              </div>
-            )}
             <p class="create-error" role="alert" data-error hidden>
               <Icon name="alert" /><span />
             </p>

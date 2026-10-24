@@ -1,6 +1,5 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import Icon from "../player/ui/LazyIcon";
@@ -35,14 +34,12 @@ interface GenerateSheetProps {
 }
 
 /**
- * Regenerate a briefing: its topics (this run only, ticked from the original), comments for the writer (optional), a passphrase while one is asked for (lib/access.ts), a run that takes a
- * few minutes, and an honest outcome. The
- * run lives in a module-level store, so closing the sheet does not stop it and reopening finds it.
+ * Regenerate a briefing: its topics (this run only, ticked from the original), comments for the
+ * writer (optional), a run that takes a few minutes, and an honest outcome. The run lives in a module-level store, so closing the sheet does not stop it and reopening finds it.
  */
 export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps) {
   const state = useGenerateState();
   const store = getGenerateStore();
-  const inputRef = useRef<HTMLInputElement>(null);
   const feedbackRef = useRef<HTMLTextAreaElement>(null);
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
@@ -83,13 +80,6 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     });
   }
 
-  // A wrong passphrase keeps focus on the field and selects its text, so retyping is one motion.
-  useEffect(() => {
-    if (!state.fieldError) return;
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, [state.fieldError]);
-
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (busy) return;
@@ -106,17 +96,11 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
       const changed = original.size !== ticked.size || [...ticked].some((v) => !original.has(v));
       if (changed) topics = idsOfChips(page.chips.filter((c) => ticked.has(c.value)));
     }
-    void store.submit(
-      PASSPHRASE_REQUIRED ? (inputRef.current?.value ?? "") : OPEN_PASSPHRASE,
-      feedbackRef.current?.value ?? "",
-      topics,
-    );
+    void store.submit(feedbackRef.current?.value ?? "", topics);
   }
 
   function tryAgain(): void {
     store.reset();
-    // The field remounts empty; focus it once it exists.
-    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   return (
@@ -179,33 +163,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
               disabled={busy}
             />
           </Field.Root>
-          {PASSPHRASE_REQUIRED ? (
-            <Field.Root invalid={Boolean(state.fieldError)} disabled={busy} className="sheet-field">
-              <Field.Label className="sheet-field-label">Passphrase</Field.Label>
-              <Field.Control
-                ref={inputRef}
-                className="sheet-input"
-                type="password"
-                name="passphrase"
-                autoComplete="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                enterKeyHint="go"
-                onChange={() => store.clearError()}
-              />
-              <Field.Description className="sheet-field-hint">
-                The passphrase set when Singularity was set up.
-              </Field.Description>
-              <Field.Error
-                match={Boolean(state.fieldError)}
-                className="sheet-field-error"
-                role="alert"
-              >
-                <Icon name="alert" />
-                <span>{state.fieldError}</span>
-              </Field.Error>
-            </Field.Root>
-          ) : state.fieldError ? (
+          {state.fieldError ? (
             <p className="sheet-field-error" role="alert">
               <Icon name="alert" />
               <span>{state.fieldError}</span>

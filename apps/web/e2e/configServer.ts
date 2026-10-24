@@ -56,12 +56,10 @@ export async function routeConfigServer(page: Page): Promise<ConfigServer> {
         env: {
           GITHUB_DISPATCH_TOKEN: "t",
           GITHUB_REPOSITORY: "o/r",
-          GENERATE_PASSPHRASE_HASH: "h",
         },
         fetch: github,
         now: () => now,
         delay: async () => {},
-        verifyPassphrase: async () => true,
       },
     );
     server.statuses.push(result.status);
