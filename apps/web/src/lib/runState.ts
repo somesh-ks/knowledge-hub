@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { LastRunFile, type Outcome, STATE_FILES } from "@dispatch/core";
+import { type ContentFiles, diskFiles } from "./contentFiles";
 
 /** What the site needs from state/last-run.json: the newest run of any kind. */
 export interface LastRunSummary {
@@ -23,9 +23,13 @@ export function summarizeLastRun(file: LastRunFile | null): LastRunSummary {
 }
 
 /** Reads state/last-run.json under `root`. A missing or unreadable file means no run is known. */
-export async function readLastRun(root: string): Promise<LastRunSummary> {
+export async function readLastRun(
+  root: string,
+  reader: ContentFiles = diskFiles,
+): Promise<LastRunSummary> {
   try {
-    const raw = await readFile(join(root, STATE_FILES.lastRun), "utf8");
+    const raw = await reader.read(join(root, STATE_FILES.lastRun));
+    if (raw === null) return NO_RUN;
     return summarizeLastRun(LastRunFile.parse(JSON.parse(raw)));
   } catch {
     return NO_RUN;
