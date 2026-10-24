@@ -1,5 +1,5 @@
 import type { ContentFiles } from "../lib/contentFiles";
-import { loadSite, type Site } from "../lib/site";
+import { loadSite, readSiteFrom, type Site } from "../lib/site";
 import { type BlobFetch, readPublicText } from "./blobStore";
 import { readPublicBlobBase, type ServerEnv } from "./config";
 
@@ -98,4 +98,35 @@ export async function loadStoreSite(deps: ContentRepoDeps): Promise<Site | null>
     if (held?.site === site) held = null;
   });
   return site;
+}
+
+/**
+ * The guard every page rendered on request starts with: point getSite() at the repository (so the
+ * page and every component it draws read the same content), or answer 503 when the store does not.
+ * A page then reads `await getSite()` as a built page does.
+ */
+export async function readFromContentRepo(label: string): Promise<Response | null> {
+  const load = async (): Promise<Site> => {
+    const site = await loadStoreSite({
+      env: process.env,
+      fetch,
+      now: Date.now,
+      log: (message) => console.error(`[${label}] ${message}`),
+    });
+    if (site === null) throw new Error("the content store has no manifest");
+    return site;
+  };
+  try {
+    await load();
+  } catch (error) {
+    console.error(
+      `[${label}] content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
+    );
+    return new Response("This page could not be loaded right now. Try again in a minute.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "60" },
+    });
+  }
+  readSiteFrom(load);
+  return null;
 }
