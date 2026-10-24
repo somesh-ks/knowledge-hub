@@ -1,19 +1,15 @@
 name: episode-eval
 
 # Scores the episode fixtures in loop/ against loop/rubric.md: Jev labels importance, the newest
-# Sonnet scores quality. On a pull request it also rewrites the latest replay with main's writer
-# prompt and with the branch's, so a prompt change is judged before and after on the same stories.
+# Sonnet scores quality. On a pull request it rewrites the latest replay with main's writer prompt
+# and with the branch's, so a prompt change is judged before and after on the same stories.
 # The keys exist only as repository secrets, so the eval with its judges runs here.
-# Only for what it judges: the writer, its voice, the judges and the loop. Any engine change ran it
-# (48 runs in a week, six minutes and paid model calls each) and capped Actions minutes (D148).
+# Only on request: add the `eval` label to a pull request (re-add it to run again), or start it by
+# hand. On every push to a writer, judge or loop change it ran 12 times on 2026-10-24, each about
+# 40 Sonnet calls on the API key and none of them in the cost ledger (D180).
 on:
   pull_request:
-    paths:
-      - "loop/**"
-      - "packages/engine/src/write/**"
-      - "packages/engine/src/judge/**"
-      - "config/voice.md"
-      - ".github/workflows/episode-eval.yml"
+    types: [labeled]
   workflow_dispatch:
 
 permissions:
@@ -22,7 +18,10 @@ permissions:
 jobs:
   eval:
     # Secrets reach pull requests from this repository only, never from a fork.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'eval' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -52,11 +51,19 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
           set +e
-          npx tsx loop/eval.ts | tee eval.md
-          status=${PIPESTATUS[0]}
-          # Each loop iteration's replay of October's stories (loop/replay.ts), judged the same way.
-          # The writer before and after this branch's prompt, on the same stories.
-          for episode in loop/results/replay-*/replay-*/ rewrites/*/; do
+          : > eval.md
+          status=0
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # The writer before and after this branch's prompt, on the same stories. The fixtures and
+            # earlier replays never change on a pull request, so judging them again bought nothing.
+            episodes=(rewrites/*/)
+          else
+            npx tsx loop/eval.ts | tee eval.md
+            status=${PIPESTATUS[0]}
+            # Each loop iteration's replay of October's stories (loop/replay.ts), judged the same way.
+            episodes=(loop/results/replay-*/replay-*/)
+          fi
+          for episode in "${episodes[@]}"; do
             [ -d "$episode" ] || continue
             npx tsx loop/eval.ts "${episode%/}" | tee -a eval.md
           done

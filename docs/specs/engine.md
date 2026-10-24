@@ -14,7 +14,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - Release news: library, framework and changelog stories (a release note, or a story judged a developer tool launch) take at most 6% of the selected stories (about a tenth of what airs), are never Top picks, and are filed in the Launches section, which reads last in briefings, weeklies and custom episodes.
 - A blocked outlet is cut on every fetch path; matching reads the item's own URL (D108). Votes nudge ranking, the Firecrawl listing order and the writer.
 - Regenerate replaces a digest over its own window (`dispatch run --replace`); `--delete` removes a digest and its timeline (D104). Regenerate may choose topics again (D109).
-- `episode-eval.yml` scores main's writer against the branch's on frozen replays and prints the judge's reasons (`loop/inspect.ts`).
+- `episode-eval.yml` (`eval` label, D180) scores main's writer against the branch's on frozen replays, with the judge's reasons.
 
 ### Sizing and spares
 - A briefing is sized by the owner's length alone at 1,066 spoken characters a minute (measured; podcasts 968) and airs the best survivors until their measured narration fills it (D119), at most 48 stories.

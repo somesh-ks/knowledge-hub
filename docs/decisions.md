@@ -186,6 +186,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
+| D180 | Episode eval on the `eval` label only | active; amends D148 |
 
 ---
 
@@ -1901,3 +1902,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: the islands as Astro markup and a vanilla toaster (the doc's first sketch; the directive keeps the islands, `transition:persist` and SSR as they were); hydrating at idle without an input (the bytes and the 100 ms hydration task come back on every visit).
 - Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
 - Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
+
+## D180: the episode eval runs only when asked, and on a pull request judges only the branch's rewrites
+
+- Date: 2026-10-24 (the owner: "generating a podcast script shouldnt be this expensive as today", "especially anthropic api costs")
+- Decision: `episode-eval.yml` runs when a pull request gets the `eval` label (re-add it to run again) or by hand, never on a push. On a pull request it judges only the four rewritten episodes (main's prompt and the branch's, daily and weekly); a manual run judges the fixtures and every replay as before.
+- Why: it ran on every push to a writer, judge or `loop/` change, 12 times on 2026-10-24 (the rename and structure PRs), and each run made about 40 Sonnet calls on the API key: four replay rewrites and two scores of about 20 episodes, 16 of them fixtures and replays a pull request never changes. Estimated at $4 to $6 a run, in no cost ledger, against about $1.10 for a briefing run.
+- Amends: D148's "`episode-eval.yml` runs only for the writer, the judges, the voice and `loop/`".
+- Revisit if: a writer or voice change merges without an eval and an episode gets worse, or the eval's spend is recorded and found small.
