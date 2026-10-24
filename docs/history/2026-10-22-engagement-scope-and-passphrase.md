@@ -8,7 +8,7 @@ A User engagement item under Settings, Analytics, with a lightweight tool or a b
 
 ## What was decided
 
-- No analytics vendor for events: Vercel Web Analytics has no custom events on Hobby, and Plausible and Umami keep the read API a Settings page needs on paid plans. Events go into Neon beside the D150 counters (D153). Simple Analytics, set up in another session the same day (D154), keeps visits and referrers until stage 2 decides.
+- Counting: the first draft put events in Neon, since Vercel has no custom events on Hobby and Plausible and Umami keep their read APIs on paid plans. Simple Analytics, set up in another session the same day (D154), already counted the loops, so on 2026-10-24 the owner had D153 aligned with it: one counter, the listen page sending D154's events with more metadata, and Neon keeping only the share links' play counts.
 - Sharing: an expiring link to a listen page that plays stored audio only, with link previews first, because Share can only send a page's address today.
 - The passphrase: stage 0 first turned it back on with a cap on wrong guesses. The owner then asked to remove it completely, and to gate actions with OAuth later by hiding them from logged-out users. Stage 0 was dropped unmerged (branch `claude/lock-actions`), and #221 removes the passphrase everywhere (D160).
 

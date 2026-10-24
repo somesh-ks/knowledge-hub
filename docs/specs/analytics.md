@@ -40,7 +40,7 @@ What would change a decision:
 
 ## Opportunities not built
 
-1. Link previews: no page has Open Graph or Twitter tags, so a shared briefing pastes as a bare address in Messages, WhatsApp or Slack. Each briefing and episode already has a 1024 px cover. The cheapest lift to visits per share.
+1. Link previews (D153 stage 0): no page has Open Graph or Twitter tags, so a shared briefing pastes as a bare address in Messages, WhatsApp or Slack. Each briefing and episode already has a 1024 px cover. The cheapest lift to visits per share.
 2. A first visit from `ref=share` that says in one line what Singularity is, next to Play.
 3. Share at a moment: a link to a story or a time in the episode, from the player.
 4. A podcast feed, which brings readers back through their own podcast app (its plays are not counted here: the audio comes from Blob).
