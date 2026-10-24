@@ -4,6 +4,7 @@ import { recordFailure } from "../state/runRecord.js";
 import { readLastRun, writeLastRun } from "../state/store.js";
 import { decideKinds } from "./gate.js";
 import { readPlan } from "./plan.js";
+import { recordSpend } from "./spend.js";
 import type { CommitReport, RunDeps, RunOptions } from "./types.js";
 
 function report(reason: string, commit: CommitReport["commit"]): CommitReport {
@@ -24,9 +25,10 @@ function report(reason: string, commit: CommitReport["commit"]): CommitReport {
  * state/last-run.json, committed through the write guard, so the next `health` reports
  * `run_failed` (and heals once) instead of reading the run before; the record, newer than the
  * run, keeps `run_died` quiet for it. The gate's plan says what was due; without one (the job died
- * before the gate) the gate is asked again. Nothing is recorded for a dry run, a replacement or
- * an on-demand run (they leave the cadence alone, so `run_died` still reports them), for a run
- * that was not due, or once the commit stage has committed.
+ * before the gate) the gate is asked again. What the run's stages spent goes to the cost ledger
+ * with it, so Firecrawl's weekly budget counts a failed run. Nothing is recorded for a dry run, a
+ * replacement or an on-demand run (they leave the cadence alone, so `run_died` still reports
+ * them), for a run that was not due, or once the commit stage has committed.
  */
 export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promise<CommitReport> {
   const now = deps.now();
@@ -46,6 +48,10 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
   if (kinds.length === 0) return skip("Nothing was due, so nothing was lost.");
 
   const at = now.toISOString();
+  if (plan && deps.spend) {
+    await deps.spend.resume(deps.root, plan.created_at);
+    await recordSpend(deps.root, deps.spend, plan, at);
+  }
   await writeLastRun(deps.root, recordFailure(await readLastRun(deps.root), kinds, at));
   const message = `chore(state): run ${stockholmDate(now)} failed`;
   const committed = await commitAndPush({
