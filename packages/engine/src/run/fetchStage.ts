@@ -231,6 +231,10 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
         skipped: skipped.length,
       },
       failed_sources: failed.map((result) => result.source_id),
+      // Read through Firecrawl because YouTube refused the runner (fetchAll's relay).
+      relayed_sources: gathered.results
+        .filter((result) => result.via === "firecrawl")
+        .map((result) => result.source_id),
       fetched: gathered.pool.report.fetched,
       blocked: gathered.blocked,
       after_dedupe: gathered.pool.report.dedupe.output,

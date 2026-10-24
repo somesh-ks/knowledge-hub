@@ -17,6 +17,7 @@ const ScrapeResponse = z.object({
   data: z
     .object({
       markdown: z.string().nullish(),
+      rawHtml: z.string().nullish(),
       metadata: z
         .object({
           title: z.union([z.string(), z.array(z.string())]).nullish(),
@@ -29,9 +30,46 @@ const ScrapeResponse = z.object({
     .optional(),
 });
 
+type ScrapeData = NonNullable<z.infer<typeof ScrapeResponse>["data"]>;
+
 export interface ScrapedPage {
   markdown: string;
   title: string | undefined;
+}
+
+/** POST /v2/scrape for one URL in one format; throws on a failed scrape or a 4xx/5xx page. */
+async function requestScrape(
+  url: string,
+  format: "markdown" | "rawHtml",
+  config: { apiKey: string; baseUrl?: string | undefined },
+  http: HttpClient,
+  signal: AbortSignal | undefined,
+  retries?: number,
+): Promise<ScrapeData> {
+  const baseUrl = (config.baseUrl ?? FIRECRAWL_BASE_URL).replace(/\/+$/, "");
+  const payload = await http.postJson(
+    `${baseUrl}/v2/scrape`,
+    {
+      url,
+      formats: [format],
+      ...(format === "markdown" ? { onlyMainContent: true } : {}),
+      maxAge: MAX_AGE_MS,
+      timeout: SCRAPE_TIMEOUT_MS,
+    },
+    {
+      signal,
+      headers: { authorization: `Bearer ${config.apiKey}` },
+      timeoutMs: SCRAPE_TIMEOUT_MS + 10_000,
+      ...(retries === undefined ? {} : { retries }),
+    },
+  );
+  const parsed = ScrapeResponse.safeParse(payload);
+  if (!parsed.success) throw new Error("unexpected Firecrawl response shape");
+  const { success, error, data } = parsed.data;
+  if (!success || !data) throw new Error(`Firecrawl scrape failed: ${error ?? "no data"}`);
+  const status = data.metadata?.statusCode;
+  if (typeof status === "number" && status >= 400) throw new Error(`page returned HTTP ${status}`);
+  return data;
 }
 
 /** POST /v2/scrape for one URL, main content as markdown. */
@@ -41,33 +79,27 @@ export async function scrapePage(
   http: HttpClient,
   signal: AbortSignal | undefined,
 ): Promise<ScrapedPage> {
-  const baseUrl = (config.baseUrl ?? FIRECRAWL_BASE_URL).replace(/\/+$/, "");
-  const payload = await http.postJson(
-    `${baseUrl}/v2/scrape`,
-    {
-      url,
-      formats: ["markdown"],
-      onlyMainContent: true,
-      maxAge: MAX_AGE_MS,
-      timeout: SCRAPE_TIMEOUT_MS,
-    },
-    {
-      signal,
-      headers: { authorization: `Bearer ${config.apiKey}` },
-      timeoutMs: SCRAPE_TIMEOUT_MS + 10_000,
-    },
-  );
-  const parsed = ScrapeResponse.safeParse(payload);
-  if (!parsed.success) throw new Error("unexpected Firecrawl response shape");
-  const { success, error, data } = parsed.data;
-  if (!success || !data) throw new Error(`Firecrawl scrape failed: ${error ?? "no data"}`);
-  const status = data.metadata?.statusCode;
-  if (typeof status === "number" && status >= 400) throw new Error(`page returned HTTP ${status}`);
+  const data = await requestScrape(url, "markdown", config, http, signal);
   const title = data.metadata?.title;
   return {
     markdown: data.markdown ?? "",
     title: Array.isArray(title) ? title[0] : (title ?? undefined),
   };
+}
+
+/**
+ * One URL's body as served (a feed's XML), not its main content. One request, never retried by
+ * the client, so the one the caller took from the run's budget is the one Firecrawl meters.
+ */
+export async function scrapeRaw(
+  url: string,
+  config: { apiKey: string; baseUrl?: string | undefined },
+  http: HttpClient,
+  signal: AbortSignal | undefined,
+): Promise<string> {
+  const data = await requestScrape(url, "rawHtml", config, http, signal, 0);
+  if (!data.rawHtml) throw new Error("Firecrawl scrape failed: no data");
+  return data.rawHtml;
 }
 
 /**
