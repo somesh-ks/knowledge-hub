@@ -12,9 +12,13 @@ import "../../styles/topics.css";
 
 // The type mix (config/preferences.json): one for every topic, so one slider per source type here
 // rather than on each topic's page (2026-10-20). Normal is the default and is not in the file.
+// Listed alphabetically by label (2026-10-24), not in SOURCE_FORMATS order.
 const { typeMix } = await loadManage();
 const stops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
-const rows = SOURCE_FORMATS.map((format) => ({
+const formats = [...SOURCE_FORMATS].sort((a, b) =>
+  FORMAT_LABEL[a].localeCompare(FORMAT_LABEL[b], undefined, { sensitivity: "base" }),
+);
+const rows = formats.map((format) => ({
   id: `type-${format}`,
   label: FORMAT_LABEL[format],
   name: `${FORMAT_LABEL[format]} sources`,
