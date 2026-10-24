@@ -65,6 +65,17 @@ export function collapseWhitespace(text: string): string {
   return stripHidden(text).replace(/\s+/g, " ").trim();
 }
 
+/** Tags removed until none are left, so "<<b>i>" cannot leave a "<i>" behind. */
+export function stripTags(html: string): string {
+  let text = html;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, "");
+  } while (text !== previous);
+  return text;
+}
+
 /**
  * Plain text from feed or page HTML. The result is data only: it is never rendered as HTML, so
  * regex tag removal is enough, and anything that looks like markup in the output is just text.
@@ -77,7 +88,7 @@ export function htmlToText(html: string): string {
   const withBreaks = withoutBlocks
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(new RegExp(`</?(${BLOCK_TAGS})\\b[^>]*>`, "gi"), "\n");
-  const stripped = withBreaks.replace(/<[^>]*>/g, "");
+  const stripped = stripTags(withBreaks);
   return stripHidden(decodeEntities(stripped))
     .split("\n")
     .map((line) => line.replace(/[^\S\n]+/g, " ").trim())

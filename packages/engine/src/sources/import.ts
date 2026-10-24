@@ -99,7 +99,7 @@ function fromRow(row: MdRow, warnings: string[]): Source | null {
     };
   }
 
-  if (host.endsWith("youtube.com")) {
+  if (host === "youtube.com" || host.endsWith(".youtube.com")) {
     const handle = /\/@([^/]+)/.exec(parsed.pathname)?.[1];
     if (handle && YOUTUBE_SEED.some((seed) => seed.handle.toLowerCase() === handle.toLowerCase())) {
       return null;

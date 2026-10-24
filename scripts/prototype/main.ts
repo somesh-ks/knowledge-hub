@@ -36,7 +36,9 @@ import {
 /* ------------------------------------------------------------------ setup */
 
 type PageState = "normal" | "offline" | "nothing" | "preparing" | "stale" | "error" | "empty";
-type ThemePref = "system" | "light" | "dark";
+const THEMES = ["system", "light", "dark"] as const;
+type ThemePref = (typeof THEMES)[number];
+const RATES = [1, 1.25, 1.5, 2];
 
 interface Prefs {
   theme: ThemePref;
@@ -58,10 +60,23 @@ function loadPrefs(): Prefs {
   };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...fallback, ...(JSON.parse(raw) as Partial<Prefs>) } : fallback;
+    if (!raw) return fallback;
+    // Each field is checked, not spread: the settings sheet writes these values into its markup.
+    const saved = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      theme: THEMES.find((theme) => theme === saved.theme) ?? fallback.theme,
+      sounds: typeof saved.sounds === "boolean" ? saved.sounds : fallback.sounds,
+      volume: unitNumber(saved.volume) ?? fallback.volume,
+      rate: RATES.find((rate) => rate === saved.rate) ?? fallback.rate,
+      installHidden: saved.installHidden === true,
+    };
   } catch {
     return fallback;
   }
+}
+
+function unitNumber(value: unknown): number | undefined {
+  return typeof value === "number" && value >= 0 && value <= 1 ? Number(value) : undefined;
 }
 
 function savePrefs(): void {

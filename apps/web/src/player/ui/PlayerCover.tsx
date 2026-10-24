@@ -3,9 +3,13 @@ import type { PlayerDigestData } from "../../types/contracts";
 
 const MODES = ["light", "dark"] as const;
 
+/** A cover the site drew: its path comes from page JSON, so anything else is not shown. */
+const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))$/;
+
 /** The cover drawn for one theme: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`. */
 function themedSrc(src: string, mode: (typeof MODES)[number]): string {
-  return src.replace(/^\/covers\//, `/covers/${mode}/`);
+  const file = COVER_FILE.exec(src)?.[1];
+  return file ? `/covers/${mode}/${encodeURIComponent(file)}` : "";
 }
 
 interface PlayerCoverProps {

@@ -57,7 +57,7 @@ function attribute(attributes: string, name: string): string | null {
 export function parseScripts(html: string): ScriptTag[] {
   const headEnd = html.indexOf("</head>");
   const tags: ScriptTag[] = [];
-  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
+  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)) {
     const attributes = match[1] ?? "";
     const type = attribute(attributes, "type");
     tags.push({

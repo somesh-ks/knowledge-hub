@@ -52,6 +52,7 @@
   --color-blue-700: oklch(53.18% 0.1807 258.3);
   --color-blue-800: oklch(48.69% 0.1677 259.1);
   --color-blue-900: oklch(44.32% 0.1531 259.9);
+  --color-blue-910: oklch(42% 0.095 260);
   --color-blue-925: oklch(37% 0.075 260);
   --color-blue-950: oklch(31.25% 0.0331 262.9);
   --color-green-50: oklch(96.5% 0.03 155);
@@ -96,7 +97,6 @@
     0px 1px 3px 1px oklch(4% 0.02 250 / 0.3);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
-  --space-3: 0.75rem;
   --space-4: 1rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
@@ -109,6 +109,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-sheet: 1.75rem;
+  --radius-2xl: 2rem;
   --radius-round: 9999px;
   --stroke-hairline: 1px;
   --stroke-rail: 2px;
@@ -199,6 +200,7 @@
   --color-surface-overlay: var(--color-white);
   --color-surface-inverse: var(--color-grey-850);
   --color-on-surface: var(--color-grey-950);
+  --color-on-surface-reading: var(--color-grey-750);
   --color-on-surface-muted: var(--color-grey-700);
   --color-on-surface-subtle: var(--color-grey-650);
   --color-on-surface-disabled: var(--color-grey-500);
@@ -246,6 +248,7 @@
   --layout-measure: 34rem;
   --size-touch: 2.75rem;
   --size-touch-comfortable: 3rem;
+  --size-icon-sm: 1rem;
   --size-icon: 1.25rem;
   --size-icon-lg: 1.5rem;
   --breakpoint-wide: 40rem;
@@ -258,12 +261,12 @@
   --text-display-leading: var(--font-leading-display);
   --text-lead-family: var(--font-ui);
   --text-lead-size: var(--font-size-lead);
-  --text-lead-weight: var(--font-weight-medium);
+  --text-lead-weight: var(--font-weight-regular);
   --text-lead-tracking: var(--font-tracking-lead);
   --text-lead-leading: var(--font-leading-lead);
   --text-title-family: var(--font-ui);
   --text-title-size: var(--font-size-title);
-  --text-title-weight: var(--font-weight-medium);
+  --text-title-weight: var(--font-weight-regular);
   --text-title-tracking: var(--font-tracking-title);
   --text-title-leading: var(--font-leading-title);
   --text-heading-family: var(--font-ui);
@@ -303,7 +306,7 @@
   --cover-radius-large: var(--radius-sm);
   --cover-size-thumb: 2.75rem;
   --cover-size-row: 2.5rem;
-  --cover-size-hero: 5.5rem;
+  --cover-size-hero: clamp(8rem, 36vw, 10rem);
   --cover-size-hero-wide: 8rem;
   --cover-size-player: 22rem;
   --cover-outline: var(--color-image-outline);
@@ -394,11 +397,11 @@
   --toast-fg: var(--color-on-surface-inverse);
   --toast-shadow: var(--shadow-popover);
   --banner-radius: var(--radius-sm);
-  --banner-padding: var(--space-3);
+  --banner-padding: var(--space-4);
   --archive-row-padding: var(--space-2);
   --archive-row-radius: var(--radius-lg);
   --chip-height: 2.25rem;
-  --chip-padding-start: var(--space-3);
+  --chip-padding-start: var(--space-2);
   --chip-padding-end: var(--space-4);
   --chip-gap: var(--space-2);
   --chip-glyph: 1.25rem;
@@ -423,6 +426,12 @@
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
+  --card-padding: var(--space-6);
+  --card-inset: var(--space-4);
+  --card-radius: var(--radius-2xl);
+  --card-inner-radius: var(--radius-lg);
+  --card-content-radius: var(--radius-sm);
+  --card-chip-hover: 4%;
 
   color-scheme: light;
 }
@@ -436,6 +445,7 @@
     --color-surface-overlay: var(--color-grey-800);
     --color-surface-inverse: var(--color-grey-200);
     --color-on-surface: var(--color-grey-200);
+    --color-on-surface-reading: var(--color-grey-400);
     --color-on-surface-muted: var(--color-grey-450);
     --color-on-surface-subtle: var(--color-grey-500);
     --color-on-surface-disabled: var(--color-grey-650);
@@ -450,7 +460,7 @@
     --color-accent-subtle: var(--color-blue-950);
     --color-accent-container: var(--color-blue-925);
     --color-on-accent-container: var(--color-blue-100);
-    --color-accent-container-high: var(--color-blue-800);
+    --color-accent-container-high: var(--color-blue-910);
     --color-on-accent-container-high: var(--color-blue-50);
     --color-on-accent: var(--color-grey-950);
     --color-cover-accent: var(--color-accent);
@@ -474,6 +484,7 @@
     --shadow-raised: var(--shadow-raised-dark);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
+    --card-chip-hover: var(--state-hover);
     color-scheme: dark;
   }
 }
@@ -486,6 +497,7 @@
   --color-surface-overlay: var(--color-grey-800);
   --color-surface-inverse: var(--color-grey-200);
   --color-on-surface: var(--color-grey-200);
+  --color-on-surface-reading: var(--color-grey-400);
   --color-on-surface-muted: var(--color-grey-450);
   --color-on-surface-subtle: var(--color-grey-500);
   --color-on-surface-disabled: var(--color-grey-650);
@@ -500,7 +512,7 @@
   --color-accent-subtle: var(--color-blue-950);
   --color-accent-container: var(--color-blue-925);
   --color-on-accent-container: var(--color-blue-100);
-  --color-accent-container-high: var(--color-blue-800);
+  --color-accent-container-high: var(--color-blue-910);
   --color-on-accent-container-high: var(--color-blue-50);
   --color-on-accent: var(--color-grey-950);
   --color-cover-accent: var(--color-accent);
@@ -524,21 +536,23 @@
   --shadow-raised: var(--shadow-raised-dark);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
+  --card-chip-hover: var(--state-hover);
   color-scheme: dark;
 }
 
 /* Reduced motion: movement durations collapse, fades and color changes keep their timing. */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --duration-enter: 0.01ms;
-    --duration-exit: 0.01ms;
     --duration-sheet-in: 0.01ms;
     --duration-sheet-out: 0.01ms;
     --duration-drawer-full: 0.01ms;
-    --duration-stagger: 0.01ms;
     --duration-spring-settle: 0.01ms;
     --duration-spring-release: 0.01ms;
     --duration-spring-pop: 0.01ms;
+    --scale-enter: 1;
+    --distance-micro: 0px;
+    --distance-base: 0px;
+    --distance-medium: 0px;
   }
 }
 
@@ -692,13 +706,41 @@
       .aside-link,
       .app-nav-item,
       .create-fab,
-      .row-action
+      .row-action,
+      .icon-btn,
+      .edit-address-link
     )
   ) {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* A story's headline stays selectable; it only loses the tap flash. */
+  :where(a.story-link) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* A select or an input draws its own press and open states, so it loses the flash too; a text
+     field keeps its selection and double tap (2026-10-23: a select flashed blue on a phone where the
+     button beside it did not). */
+  :where(select, input) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* In-app navigation does not open the system's link sheet on a long press (app.ts also stops the
+     context menu in an installed app). External story links keep it, so they stay copyable. */
+  :where(
+    .app-nav-item,
+    .app-nav-create,
+    .app-bar-back,
+    .wordmark,
+    .create-fab,
+    .card-link,
+    .cover-image
+  ) {
+    -webkit-touch-callout: none;
   }
 
   :where(a) {
@@ -885,7 +927,7 @@
 
   /* A programmatic focus target (a heading after navigation) shows no ring for pointer users. */
   [tabindex="-1"]:focus:not(:focus-visible) {
-    outline: none;
+    outline: none; /* keyboard focus keeps the :focus-visible ring above */
   }
 
   /* Clear of a notch or the status bar in the installed app. */
@@ -894,7 +936,7 @@
     inset-block-start: max(var(--space-2), var(--safe-top));
     inset-inline-start: max(var(--space-2), var(--safe-left));
     z-index: var(--z-toast);
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-2) var(--space-4);
     border-radius: var(--button-radius);
     background: var(--color-surface-inverse);
     color: var(--color-on-surface-inverse);
@@ -929,6 +971,8 @@
     transform: scale(var(--scale-press-subtle));
   }
 
+  /* .hover-fill: the standard hover state layer (D72) for a control with no fill of its own, such
+     as an emoji picker cell (owner, 2026-10-24). Layered, so a control's own chosen fill wins. */
   @media (hover: hover) and (pointer: fine) {
     .hover-fill:hover {
       background-color: color-mix(
@@ -1010,13 +1054,15 @@
 @layer foundations.sheet {
   /* Scroll lock while a modal is open. The stable scrollbar gutter goes with the scrollbar, or a
      panel docked to the right and its scrim would stop short of the window's edge. The page keeps
-     the gutter's width as padding instead (app.ts measures it), so it holds still under the scrim. */
-  :root:has(dialog[open]) {
+     the gutter's width as padding instead (app.ts measures it), so it holds still under the scrim.
+     rootState.ts sets data-dialog-open while a dialog is open, before the frame is drawn: a root :has()
+     restyled the whole page on every change to it (D147). */
+  :root[data-dialog-open] {
     overflow: hidden;
     scrollbar-gutter: auto;
   }
 
-  :root:has(dialog[open]) body {
+  :root[data-dialog-open] body {
     padding-inline-end: var(--gutter, 0px);
   }
 
@@ -1094,7 +1140,7 @@
   /* The dialog and its panel receive focus on open, as containers. The controls inside carry the ring. */
   dialog:focus-visible,
   .sheet-panel:focus-visible {
-    outline: none;
+    outline: none; /* a landing point, not a control: the ring is each control's (:focus-visible) */
     box-shadow: none;
   }
 
@@ -1184,13 +1230,22 @@
 }
 
 /*
- * Reduced motion. Movement durations are already collapsed by tokens.css. What remains here is
- * what tokens cannot express: no smooth scrolling, entrance by opacity alone, a spinner that
- * pulses instead of rotating, and view transitions that crossfade.
+ * Reduced motion. The travel distances and the enter scale are zeroed by tokens.css and the sheet and
+ * spring durations collapse; enter, exit and stagger keep their time, so fades stay. What remains
+ * here is what tokens cannot express: no smooth scrolling, entrance by opacity alone, a spinner
+ * that pulses instead of rotating, and view transitions that crossfade.
  */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  /* .enter rises by a distance token that is 0 here; with no transform at all, the rise is not a
+     transition either, only the fade and the unblur. */
+  @starting-style {
+    .enter {
+      transform: none;
+    }
   }
 
   .stagger > * {
@@ -1334,7 +1389,7 @@ html[data-mini="visible"] main {
   gap: var(--space-2);
   min-width: var(--size-touch);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--button-radius);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -1509,7 +1564,7 @@ html[data-mini="visible"] main {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: start;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--banner-radius);
   background: var(--tone-bg);
@@ -1553,7 +1608,7 @@ html[data-mini="visible"] main {
 .banner-action {
   align-self: center;
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--control-radius-sm);
   color: var(--color-on-surface);
   font-weight: var(--font-weight-semibold);
@@ -1611,7 +1666,7 @@ html[data-mini="visible"] main {
 }
 
 .hero-meta {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   line-height: var(--font-leading-caption);
@@ -1624,7 +1679,7 @@ html[data-mini="visible"] main {
 
 .hero-hint {
   grid-column: 1 / -1;
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
 }
@@ -1633,7 +1688,7 @@ html[data-mini="visible"] main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
   min-height: var(--cta-height);
   padding-inline: var(--space-4);
@@ -1648,7 +1703,7 @@ html[data-mini="visible"] main {
 .cta-main {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .cta-time {
@@ -1772,9 +1827,9 @@ html[data-mini="visible"] main {
   justify-content: space-between;
   gap: var(--space-4);
   min-height: var(--size-touch);
-  padding-inline: var(--space-2) var(--space-3);
-  margin-inline: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
-  width: calc(100% + var(--space-2) + var(--space-3));
+  padding-inline: var(--space-2) var(--space-4);
+  margin-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
+  width: calc(100% + var(--space-2) + var(--space-4));
   border-radius: var(--sheet-row-radius);
   text-align: start;
   font-family: var(--text-heading-family);
@@ -1889,7 +1944,7 @@ html[data-mini="visible"] main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-block-start: var(--space-1);
 }
 
@@ -1897,7 +1952,7 @@ html[data-mini="visible"] main {
   display: flex;
   flex-wrap: wrap;
   min-width: 0;
-  column-gap: var(--space-3);
+  column-gap: var(--space-4);
   font-size: var(--font-size-meta);
   line-height: var(--font-leading-caption);
   color: var(--color-on-surface-muted);
@@ -1909,7 +1964,7 @@ html[data-mini="visible"] main {
 }
 
 .item-summary {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   font-family: var(--text-reading-family);
   font-size: var(--text-reading-size);
   font-weight: var(--text-reading-weight);
@@ -1920,7 +1975,7 @@ html[data-mini="visible"] main {
 }
 
 .item-why {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
   max-width: var(--layout-measure);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -2000,7 +2055,7 @@ html[data-mini="visible"] main {
 }
 
 .earlier .section-title {
-  margin-block-end: var(--space-3);
+  margin-block-end: var(--space-4);
 }
 
 .archive-list {
@@ -2011,7 +2066,7 @@ html[data-mini="visible"] main {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--archive-row-padding);
   margin-inline: calc(var(--archive-row-padding) * -1);
   border-radius: var(--archive-row-radius);
@@ -2115,8 +2170,8 @@ html[data-mini="visible"] main {
   justify-content: space-between;
   gap: var(--space-4);
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
-  margin-inline: calc(var(--space-3) * -1);
+  padding-inline: var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
   border-radius: var(--sheet-row-radius);
   font-family: var(--text-heading-family);
   font-size: var(--text-heading-size);
@@ -2162,7 +2217,7 @@ html[data-mini="visible"] main {
 }
 
 .month-body {
-  padding-block: var(--space-1) var(--space-3);
+  padding-block: var(--space-1) var(--space-4);
 }
 
 /* ------------------------------------------------------------------ mini player */
@@ -2226,7 +2281,7 @@ html[data-mini="visible"] main {
   display: grid;
   grid-template-columns: var(--mini-player-cover-size) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: var(--mini-player-control-size);
   padding-inline-end: var(--space-2);
   border-radius: var(--mini-player-control-radius);
@@ -2642,7 +2697,7 @@ dialog.player::backdrop {
   gap: var(--space-4);
   width: 100%;
   min-height: var(--size-touch-comfortable);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--sheet-row-radius);
   text-align: start;
   font-weight: var(--font-weight-semibold);
@@ -2658,7 +2713,7 @@ dialog.player::backdrop {
   display: inline-block;
   width: var(--space-2);
   height: var(--space-2);
-  margin-inline-end: var(--space-3);
+  margin-inline-end: var(--space-4);
   border-radius: var(--radius-xs);
   background: var(--color-cover-accent);
 }
@@ -2916,7 +2971,7 @@ fieldset {
 .hint-card {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--banner-padding);
   border-radius: var(--banner-radius);
   background: var(--color-surface-sunken);
@@ -2941,7 +2996,7 @@ fieldset {
 .hint-card .btn {
   grid-column: 2;
   justify-self: start;
-  margin-inline-start: calc(var(--space-3) * -1);
+  margin-inline-start: calc(var(--space-4) * -1);
 }
 
 /* Fields */
@@ -3111,7 +3166,7 @@ fieldset {
     0;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: max-content;
   max-width: min(calc(100% - var(--page-gutter) * 2), var(--layout-dialog));
   min-height: var(--toast-min-height);
@@ -3147,7 +3202,7 @@ fieldset {
 
 .toast-action {
   min-height: var(--size-touch);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border-radius: var(--control-radius-sm);
   font-weight: var(--font-weight-semibold);
   background: color-mix(in oklch, var(--toast-fg) 14%, transparent);
@@ -3207,10 +3262,10 @@ fieldset {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
+    gap: var(--space-4);
     min-height: var(--size-touch);
-    padding-inline: var(--space-3);
-    margin-inline: calc(var(--space-3) * -1);
+    padding-inline: var(--space-4);
+    margin-inline: calc(var(--space-4) * -1);
     border-radius: var(--sheet-row-radius);
     color: var(--color-on-surface-muted);
     font-size: var(--font-size-meta);
@@ -3430,7 +3485,7 @@ fieldset {
 /* ------------------------------------------------------------------ refinements */
 
 .back-link {
-  margin-inline-start: calc(var(--space-3) * -1);
+  margin-inline-start: calc(var(--space-4) * -1);
 }
 
 .year-group > summary .icon {
@@ -3476,7 +3531,7 @@ fieldset {
 }
 
 .field + .botcheck {
-  margin-block-start: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
 /* Very narrow phones: the cover stacks above the date so the date keeps its size. */
@@ -5681,6 +5736,8 @@ fieldset {
   }
 
   // scripts/prototype/main.ts
+  var THEMES = ["system", "light", "dark"];
+  var RATES = [1, 1.25, 1.5, 2];
   var STORAGE_KEY = "singularity-prototype";
   function loadPrefs() {
     const fallback = {
@@ -5692,10 +5749,21 @@ fieldset {
     };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
+      if (!raw) return fallback;
+      const saved = JSON.parse(raw);
+      return {
+        theme: THEMES.find((theme) => theme === saved.theme) ?? fallback.theme,
+        sounds: typeof saved.sounds === "boolean" ? saved.sounds : fallback.sounds,
+        volume: unitNumber(saved.volume) ?? fallback.volume,
+        rate: RATES.find((rate) => rate === saved.rate) ?? fallback.rate,
+        installHidden: saved.installHidden === true
+      };
     } catch {
       return fallback;
     }
+  }
+  function unitNumber(value) {
+    return typeof value === "number" && value >= 0 && value <= 1 ? Number(value) : void 0;
   }
   function savePrefs() {
     try {

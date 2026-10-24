@@ -118,7 +118,7 @@ export async function buildSourceFromUrl(
     };
   }
 
-  if (host.endsWith("youtube.com")) {
+  if (host === "youtube.com" || host.endsWith(".youtube.com")) {
     const channelId = await resolveYoutubeChannel(input.url, deps).catch(() => undefined);
     if (!channelId)
       throw new AddSourceError(
