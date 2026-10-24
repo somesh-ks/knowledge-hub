@@ -140,9 +140,12 @@ function githubSources(): Source[] {
 
 function youtubeSources(): Source[] {
   return YOUTUBE_SEED.map((seed) => ({
+    // High signal: a video title rarely names a preferred keyword, so without it the prefilter
+    // dropped every video before the judge saw one (25 of 25 from 9 to 24 October 2026).
     ...baseSource(seed.id, seed.name, `https://www.youtube.com/@${seed.handle}`, {
       category_hint: seed.category_hint,
       enabled: false,
+      high_signal: true,
     }),
     type: "youtube" as const,
     options: {

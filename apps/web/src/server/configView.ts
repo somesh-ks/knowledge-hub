@@ -142,6 +142,7 @@ function sketch(source: ManageSource, page: string): StoreSource {
     enabled: source.enabled,
     lean: source.lean,
     general: source.topic_ids.some((id) => isGeneralTopicId(id)),
+    high_signal: source.high_signal,
   };
 }
 
@@ -180,6 +181,7 @@ function sourceChanges(
       ...(moved ? { topic_ids: source.topic_ids } : {}),
       ...(before.format === source.format ? {} : { format: source.format }),
       ...(before.lean === source.lean ? {} : { lean: source.lean }),
+      ...(before.high_signal === source.high_signal ? {} : { high_signal: source.high_signal }),
     };
     if (Object.keys(update).length > 0)
       ops.push({ op: "source.update", id: source.id, ...update } as ConfigOp);
