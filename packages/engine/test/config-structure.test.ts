@@ -38,3 +38,13 @@ it("a topic made after the structure was saved still plays in the stored kind, a
   const after = await repo.readJson<StructureFile>("config/structure.json");
   expect(after.kinds.daily?.map((block) => block.type)).toEqual(["hello", "top_picks", "sign_off"]);
 });
+
+it("putting a general topic into a stored kind adds the section its stories are filed under, not the shared general one", async () => {
+  const daily = [{ type: "hello" }, { type: "top_picks" }, { type: "sign_off" }];
+  expect(await apply({ op: "structure.set", kind: "daily", blocks: daily })).toBe(0);
+  expect(await apply({ op: "topic.scope", ids: ["world", "trending"], daily: true })).toBe(0);
+  const file = await repo.readJson<StructureFile>("config/structure.json");
+  expect(
+    file.kinds.daily?.map((block) => (block.type === "section" ? block.id : block.type)),
+  ).toEqual(["hello", "top_picks", "world", "sign_off"]);
+});

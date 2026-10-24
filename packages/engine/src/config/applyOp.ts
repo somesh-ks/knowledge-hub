@@ -5,6 +5,7 @@ import {
   MAX_CUSTOM_TOPICS,
   type ParsedConfigOp,
   type Preferences,
+  publishSection,
   RESERVED_TOPIC_IDS,
   type ScheduleFile,
   type Source,
@@ -581,7 +582,9 @@ function setScope(
       let blocks = kinds[kind];
       if (blocks === undefined) continue;
       for (const id of ids) {
-        const section = next.topics.topics.find((topic) => topic.id === id)?.section_id;
+        // The section its stories are filed under: a general topic publishes under its own id.
+        const topic = next.topics.topics.find((entry) => entry.id === id);
+        const section = topic ? publishSection(topic) : undefined;
         if (section !== undefined) blocks = withSectionBlock(blocks, section);
       }
       kinds[kind] = blocks;
@@ -599,7 +602,7 @@ function setStructure(
 ): OpOutcome {
   const known = new Set<string>([
     ...STRUCTURE_SECTIONS,
-    ...bundle.topics.topics.map((topic) => topic.section_id),
+    ...bundle.topics.topics.map((topic) => publishSection(topic)),
     ...GENERAL_TOPICS.map((topic) => topic.id),
   ]);
   for (const block of op.blocks) {

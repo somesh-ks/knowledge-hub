@@ -272,6 +272,8 @@ export function withSectionBlock(
   blocks: readonly StructureBlock[],
   section: string,
 ): StructureBlock[] {
+  // Top picks, Trending and release news have blocks of their own, which the owner places.
+  if (isBlockSection(section)) return [...blocks];
   if (blocks.some((block) => block.type === "section" && block.id === section)) return [...blocks];
   if (blocks.length >= MAX_STRUCTURE_BLOCKS) return [...blocks];
   const before = blocks.findIndex(

@@ -1,4 +1,5 @@
 import {
+  type Category,
   defaultStructure,
   digestSections,
   parseDigestFile,
@@ -10,7 +11,10 @@ import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";
 import { sectionPlanFor } from "../src/score/sectionPlan.js";
+import { selectItems } from "../src/score/selectItems.js";
+import type { ScoredItem } from "../src/score/types.js";
 import { buildFixtureDigest } from "./render-factories.js";
+import { makeEntry, makeItem } from "./score-factories.js";
 
 const blocks = (input: StructureBlockInput[]) => StructureBlocks.parse(input);
 
@@ -42,6 +46,46 @@ describe("a briefing follows its stored structure (D170)", () => {
     }).digest;
     expect(serializeDigestFile(saved)).toBe(serializeDigestFile(plain));
   });
+});
+
+it("a structure of Top picks and release news alone still airs both, though it lists no section", () => {
+  // Release stories and Top picks are filed away from their home section, so a left-out home
+  // dropped them all before they could be filed (review of #254).
+  let seq = 0;
+  const scored = (category: Category, score: number, title = "A story"): ScoredItem => {
+    seq += 1;
+    const item = makeItem({ id: seq.toString(16).padStart(12, "0"), title });
+    const entry = makeEntry(item, { category });
+    const breakdown = { taste: score, craftFactor: 1, penaltyFactor: 1, bonus: 0 };
+    return { item, entry, score, topCategory: category, breakdown };
+  };
+  const plan = sectionPlanFor(
+    blocks([
+      { type: "hello" },
+      { type: "top_picks" },
+      { type: "release_news" },
+      { type: "sign_off" },
+    ]),
+  );
+  const result = selectItems({
+    scored: [
+      scored("design_engineering_craft", 0.9),
+      scored("frontier_model_releases", 0.85),
+      scored("ai_ux_interaction_patterns", 0.8),
+      scored("css_canvas_motion_techniques", 0.75),
+      scored("developer_tool_launches", 0.7, "Astro 6.0 ships a new router"),
+    ],
+    kind: "regular",
+    floor: 1,
+    cap: 12,
+    plan,
+  });
+  expect(result.selected.map((selected) => selected.section)).toEqual([
+    "top",
+    "top",
+    "top",
+    "launches",
+  ]);
 });
 
 describe("a structured Catch up script over its length", () => {

@@ -379,10 +379,7 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const scored of input.scored) {
     const verdict = eligibility(scored, threshold, input.weights);
     if (verdict.eligible) {
-      // Release news is filed by what a story is, not by its home, so it is checked once ranked.
-      if (!plan.includes(verdict.candidate.home)) {
-        dropped.push({ id: scored.item.id, reason: "not_in_structure", score: scored.score });
-      } else if (
+      if (
         input.skipTopics?.includes(verdict.candidate.category) ||
         (input.onlyTopics && !input.onlyTopics.includes(verdict.candidate.category))
       ) {
@@ -428,16 +425,31 @@ export function selectItems(input: SelectInput): SelectResult {
     return true;
   });
   ranked.splice(0, ranked.length, ...withinCap);
+  // A section the structure leaves out still lends its best stories to Top picks when that block
+  // is in it. Release news is filed by what a story is, not by its home, so it has a check of its own.
+  const pickable = ranked.filter(
+    (candidate) => !hasOwnSection(candidate) && !isReleaseStory(candidate),
+  );
+  const picks = new Set(pickable.slice(0, plan.topPicks));
   const main: Candidate[] = [];
   for (const candidate of ranked) {
     if (hasOwnSection(candidate)) continue;
     if (isReleaseNote(candidate.item) && isPatchRelease(candidate.item)) {
       dropped.push({ id: candidate.item.id, reason: "release_note", score: candidate.score });
-    } else if (isReleaseStory(candidate) && !plan.includes(RELEASE_SECTION)) {
+    } else if (
+      isReleaseStory(candidate)
+        ? !plan.includes(RELEASE_SECTION)
+        : !plan.includes(candidate.home) && !picks.has(candidate)
+    ) {
       dropped.push({ id: candidate.item.id, reason: "not_in_structure", score: candidate.score });
     } else main.push(candidate);
   }
-  const own = ranked.filter(hasOwnSection);
+  const own = ranked.filter((candidate) => {
+    if (!hasOwnSection(candidate)) return false;
+    if (plan.includes(candidate.home)) return true;
+    dropped.push({ id: candidate.item.id, reason: "not_in_structure", score: candidate.score });
+    return false;
+  });
   // The main sections leave room for one story from each section with an allowance of its own.
   const ownSections = new Set(own.map((candidate) => candidate.home)).size;
   // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
