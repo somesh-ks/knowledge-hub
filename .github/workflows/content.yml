@@ -1,0 +1,45 @@
+name: content
+
+# Mirrors the site's content (Digests/, Podcasts/, the run state) into the content store in Vercel
+# Blob after every workflow that commits it (D173). Nothing reads the store until the pages do;
+# git stays the backup. `dispatch content sync` sends only what changed and is safe to run again,
+# so a failed or skipped sync is finished by the next one. Run it by hand to fill the store.
+#
+# workflow_run, not push: the engine pushes with the Actions token, and GitHub starts no workflow
+# for a push made with it.
+
+on:
+  workflow_run:
+    workflows: [run, podcast, audio, config]
+    types: [completed]
+  workflow_dispatch:
+
+# One sync at a time; a queued one reads the newest main, so it covers every sync it waited behind.
+concurrency:
+  group: content
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+
+      - name: Sync
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: npm run --silent dispatch -- content sync

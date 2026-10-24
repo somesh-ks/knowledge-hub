@@ -1,76 +1,57 @@
-# Data off the deploy path: episodes and settings as data, not code
+# Content as data: builds for code only
 
-A design for the owner's ask of 2026-10-24: make the app feel like a professional one, where a setting or a new episode shows at once and nothing rebuilds. Nothing here is built; D167 records it as proposed. Code and tests win where they differ once it is built.
+The owner's direction of 2026-10-24: "I want the app to access everything from the database as content repository always, the builds only happen for app improvements and feature builds. the same with settings, sources, etc." D173 records it. This doc is the plan; code and tests win where they differ once it is built.
 
 ## Where the deploys come from today
 
-Vercel builds `main` on every push that touches a watched path (`apps/web/vercel.json`, `ignoreCommand`). The pushes:
-
-| Push | By | Per | Deploys | Why it deploys |
-| :--- | :--- | :--- | :--- | :--- |
-| A digest (`Digests/`, `state/`) | `run.yml` | run, every second day | 1 | Pages are built from the digests |
-| Its narration metadata | `audio.yml` after the run | run | 1 | The player reads the audio fields from the build |
-| An episode (`Podcasts/`) | `podcast.yml` | episode | 1 | The Library and the episode page are built from the file |
-| Its narration | `audio.yml` | episode | 1 | As above |
-| A settings save | `config.yml` | save | 1 | Settings pages are built from `config/`; with the store on (D149), none |
-| Code | a PR merge | merge | 1 | Code |
-
-So an episode costs two deploys and a settings save one, until the store is on. Neon (D149) removes the settings deploy only; D166 makes the settings page show the device's copy when the store is slow or away.
-
-## What the big apps do, and what carries over
-
-Spotify and YouTube ship code a few times a week and keep the user's data in a database and a store, read while the app runs; a save changes a row, a new episode is an upload plus a row, and the screen updates first and syncs behind. Dispatch treats data as code, so every change is a build.
-
-For one user with pre-built pages, the whole pattern is not worth copying: static pages on a CDN are the fastest and cheapest pages there are, and a database read on every page load would make them slower (Neon's free tier sleeps). What carries over is the split: **the page shell and the digests stay built; what changes between builds is read as data, with a copy on the device.**
+Vercel builds `main` on every push that touches a path in `ignoreCommand` (`apps/web/vercel.json`): `Digests/`, `Podcasts/`, `config/`, three `state/` files and the code. So a run deploys twice (digest, then narration metadata), an episode twice (file, then narration), and a config snapshot once. Every page, cover, `/latest.json` and the search index is built from those files.
 
 ## The model
 
-Two kinds of thing change between builds: settings (D149, done) and episodes (this design). Digests stay built: a run deploys anyway, and a briefing page is the product.
+- **Content lives in Vercel Blob, the content store.** Blob is served from the CDN, so a read has no cold start; Neon's free tier sleeps, which is why it does not hold what every page load reads.
+- **Settings and sources live in Neon** (D149, on since 2026-10-24), read at run time with the device's copy in front (D172).
+- **Git is the backup, not the source.** The engine still commits what it writes, for history and recovery, and those commits stop deploying (step 4).
+- **The build ships code only.** Pages that show content are rendered on request from the store, with a short shared cache (`s-maxage=60, stale-while-revalidate`) so a visit seldom waits on a function and new content shows within a minute. A page arrives with its content in the HTML, as today; no page becomes a script that fetches its own content.
+- **One content repository.** Every content read goes through one module (`server/contentRepo.ts`: get a briefing, list briefings, get an episode, list episodes, the last run). No page reads Blob or the disk itself. Today it reads Blob. With many users (the owner, 2026-10-24: "this needs to be scaled for the future when we have many more users") it reads Postgres with a user id on each row, and no page changes: Blob files cannot be queried per user, and an edge cache keyed by URL cannot hold a personal page.
 
-### Episodes
+## The content store
 
-- **The file stays the record**, written by `dispatch podcast` as today, but to Vercel Blob (`episodes/<id>.md`, the narration beside it under `audio/<id>/`) instead of `Podcasts/` in git. One Blob write, no commit, no deploy. A monthly `chore(podcasts)` commit copies the month's files into `Podcasts/` for the git record and the offline copy, as the config store's snapshot does.
-- **An index**, `episodes/index.json` in Blob (id, title, kind, length, cover, published_at, narrated), rewritten by the engine after each write and after narration. One small file, fetched with `no-cache`, the way `/latest.json` is fetched today.
-- **The Library and the episode page** are built as today from `Podcasts/` (the monthly copy), and on load lay the index over themselves as the settings pages lay the store (savedView.ts): episodes the build lacks are drawn from the index, the newest first; an episode in the index and not in the build opens `/podcast/?id=` as the topic shell does (D142), reading its file from Blob. The device keeps the last index (D166's pattern), so a reload or an offline open shows what it last saw.
-- **Playback** already streams from Blob (D127, D128); nothing changes in the player.
-- **Deletion and regeneration** (D108) delete or rewrite the Blob file and the index entry; the monthly copy follows.
+`dispatch content sync` (`engine/src/publish/contentSync.ts`) mirrors the repository's content into the store under `content/<repository path>`: every file under `Digests/` and `Podcasts/`, and `state/last-run.json`, `source-stats.json` and `source-candidates.json`. It compares the checkout with `content/manifest.json` (each path and its SHA-256), sends what changed, deletes what is gone and writes the manifest last, so a sync that dies half way is finished by the next. `content.yml` runs it after every `run`, `podcast`, `audio` and `config` workflow (`workflow_run`: a push with the Actions token starts no workflow), and by hand to fill the store. `episodes/index.json` (PR #252) is rewritten when an episode changes.
 
-### Settings
+The files keep the repository's format, so the site reads them with the parsers it already has (`readDigestFiles`, `parseEpisodeFile`, `readLastRun`), pointed at the store instead of the disk.
 
-Done in D149 and D166. What remains is the snapshot: a run copies the store into `config/` and commits it, so git stays the record and the offline copy. Nothing else deploys.
+## The pages
 
-### What still deploys
+- **Home, Library, a briefing (`/d/<id>`), an episode (`/e/<id>`), `/latest.json`, the search index:** rendered on request through the content repository, with the short shared cache.
+- **Covers:** drawn on demand by the same renderer and cached, or written by the engine beside the content; the proof decides.
+- **`/api/narrate`** reads an episode's text from the store instead of its bundle (`episodeSource.ts`).
+- **Offline:** the service worker keeps the pages it has served, as today.
 
-A run (digest and narration, two deploys every second day) and code. Episodes and settings never.
+## Settings and sources
 
-## Gaps this closes, and how
+The pages are already built shells with the store laid over them (D149, D166, D172), and a new topic opens a shell before any build (D142). What remains: the run's `config/` snapshot commit stops deploying (step 4), and every settings screen is checked to read the store, not only its built copy.
 
-1. **Two deploys an episode.** None: a write and an index.
-2. **An episode takes a build to show.** The index is read on load; the Create sheet's "it is live" check (`/latest.json` today) reads the index too.
-3. **Offline.** The device keeps the index and the service worker keeps the episode files it has played (D127); an episode never opened is not offline, as today.
-4. **The git record.** The monthly copy keeps every episode in git, a month late at most. `config/` is already snapshotted by each run.
-5. **site_behind and the smoke check (D159).** They watch code deploys; an episode write is not a deploy, so neither fires. The health check gains one row: the index names an episode whose file is missing, or the reverse.
-6. **Cost.** Blob writes are free on Hobby below the storage line; two fewer deploys an episode; the build no longer bundles every episode file (`episodeSource.ts` globs `Podcasts/`), so a build gets smaller as episodes grow, instead of larger.
-7. **The narrate function** (`/api/narrate`) reads the episode text from Blob instead of its bundle. One Blob read a request, cached by the function for the deploy.
+## Order
 
-## What does not change
+Each step ships alone and leaves production working.
 
-Digests, the briefing pages, the player, the service worker's shell, the engine's run and audio jobs, the config store.
+1. **The engine fills the content store** (`dispatch content sync`, `content.yml`). Nothing reads it yet.
+2. **The content repository and one page:** `server/contentRepo.ts` over the store, and `/e/<id>` rendered on request through it, on a preview deploy. It settles the function's cold start, the cache header and the covers before the rest moves.
+3. **The other pages and `/api/narrate` read the store.** A page whose content the store does not answer falls back to the build's copy until step 4.
+4. **Settings and sources:** check every screen reads the store, not only its built copy.
+5. **The switch.** `ignoreCommand` watches code only (`apps/web`, `packages`, `tokens`, `scripts`, the package files). From then on a run, an episode or a save never deploys. The owner approves this step before it merges.
 
-## Open questions for the owner
+## Health
 
-1. Is a month-late git copy of episodes enough, or should every episode still be committed (then one deploy an episode remains, the narration's goes)?
-2. The Library page: built from the monthly copy and overlaid (as designed), or rendered at request time from the index (always current, a function call a visit, no static page)?
-3. Should digests follow later (a run writes to Blob, no deploy), or stay as code for good? The design says stay.
+`dispatch health` and the smoke check (D159) gain rows: each index parses; every id an index names has its file and covers; the newest briefing in the store matches the newest in git. `site_behind` keeps watching code deploys only.
 
-## Found while building phase 1
+## What it costs
 
-- **Covers are built too.** `/covers/<id>-512.webp` is drawn at build time (`pages/covers/`), so an episode that is not in the build has no cover. The engine draws the episode's cover sizes and writes them to Blob beside the file, or the card shows a plain plate until the build.
-- **A card needs a page to open.** Phase 1 as written lists an episode the build lacks, but `/e/<id>` does not exist until the build. The shell page (phase 2) has to land with the overlay, not after it.
-- **Each episode can stay in git without a deploy.** Taking `../../Podcasts` out of `ignoreCommand` in `apps/web/vercel.json` keeps the per-episode commit and drops its deploy; the next code or digest deploy builds it. This answers question 1 without a monthly copy.
+- A request the shared cache cannot answer renders on a function (a cold start, about a second); within the cache window a visit is served from the edge as a static page is.
+- Pages depend on a running function, the part that broke in #152; the smoke check (#154) covers it, and step 3's fallback holds until step 5.
+- Blob operations: a few writes a sync and one read a render, inside the Hobby allowance at one user's volume.
 
-## Phasing
+## Built so far
 
-1. The index (the engine side is built, `publish/episodeIndex.ts`): the engine writes `episodes/index.json` after each episode and narration; the Library lays it over itself; the Create sheet reads it. Episodes still committed. No deploy saved yet, but the "it is live" wait goes from a build to a second.
-2. Episodes to Blob, the monthly copy, the shell page for an unbuilt episode, the narrate function reading Blob. The episode deploys go.
-3. The health row and the runbook.
+- `episodes/index.json` (PR #252).
+- `dispatch content sync` and `content.yml` (step 1).

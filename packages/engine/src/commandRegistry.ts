@@ -122,6 +122,16 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     load: async () => (await import("./commands/run.js")).run,
   },
   {
+    name: "content",
+    summary: "Mirror the digests, episodes and run state into the content store (Blob)",
+    help: `Usage: dispatch content sync
+
+Uploads every file under Digests/ and Podcasts/ and the run state the site reads to Vercel Blob
+under content/<path>, deletes what is gone and rewrites content/manifest.json and the episode
+index. Only changed files are sent. Uses BLOB_READ_WRITE_TOKEN (D173).`,
+    load: async () => (await import("./commands/content.js")).run,
+  },
+  {
     name: "podcast",
     summary: "Write one episode of Singularity from published digests and commit it",
     help: `Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]
