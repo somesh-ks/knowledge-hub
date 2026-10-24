@@ -1918,6 +1918,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-24 (the owner: "use jev mostly and use gemini models as backup. use anthropic models mostly for script generation")
 - Decision: in `config/models.json` Claude Haiku leaves every chain: judge, taste fit and source format are Jev then Gemini Flash Lite, grounding Jev then Gemini Flash, fact extraction Gemini Flash Lite then Flash. Sonnet keeps the story writer, its rewrites and the podcast script. The story writer sends no effort (the model's default) and its rewrites medium, in place of #187's medium and low.
 - Why: since #187 (2026-10-22) a daily run made 43 to 49 Claude calls, against 19 to 22 before, about 27 of them voice rewrites of one field each, every one resending the article (about 5k tokens). Weaker first drafts were the likely cause; a rewrite costs more than the thinking the lower effort saved.
+- Later the same day: a voice rewrite sends the first 4,000 characters of its source, not up to 10,000 (`rewriteOnce.ts`); grounding repairs still send the whole text.
 - Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
 
 ## D183: The Costs page counts what Anthropic billed, not only what the app recorded
