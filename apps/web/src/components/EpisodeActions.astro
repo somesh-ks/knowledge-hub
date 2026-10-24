@@ -63,7 +63,7 @@ const COPY = {
               <section class="create-group" aria-labelledby="regen-topics-label">
                 {/* A field label, as Comments is: not a second title under the panel's own. */}
                 <div class="sheet-field-label regen-label" id="regen-topics-label">Topics</div>
-                <fieldset class="filter-chips" aria-labelledby="regen-topics-label">
+                <fieldset class="filter-chips" aria-labelledby="regen-topics-label" data-built-topics={manageTopics.map((topic) => topic.id).join(" ")}>
                   {chips.map((chip) => (
                     <label class="filter-chip">
                       <input

@@ -16,7 +16,9 @@ import { resolveHostNames } from "./voices";
  */
 
 /** `episodeIds` lists the episodes this build knows; delete and regenerate refuse any other id. */
-export type PodcastDeps = GenerateDeps & { episodeIds?: () => readonly string[] };
+export type PodcastDeps = GenerateDeps & {
+  episodeIds?: () => readonly string[] | Promise<readonly string[]>;
+};
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
 
@@ -186,7 +188,7 @@ export async function handlePodcast(
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const body = parsePodcastBody(input.bodyText);
   if (body === null) return invalid;
-  if ("action" in body && !(deps.episodeIds?.() ?? []).includes(body.id)) return invalid;
+  if ("action" in body && !((await deps.episodeIds?.()) ?? []).includes(body.id)) return invalid;
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

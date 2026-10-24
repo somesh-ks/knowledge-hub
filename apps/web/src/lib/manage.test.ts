@@ -676,7 +676,7 @@ describe("loadManage", () => {
     });
     const real = await loadManage({ root, env: {} });
     expect(real.sources.map((source) => source.id)).toEqual(["real"]);
-    const fixtures = await loadManage({ root, env: { DISPATCH_FIXTURES: "1" } });
+    const fixtures = await loadManage({ root, env: { SINGULARITY_FIXTURES: "1" } });
     expect(fixtures.sources.map((source) => source.id)).toEqual(["invented"]);
   });
 });

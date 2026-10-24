@@ -1,5 +1,6 @@
 import { track } from "../lib/analytics";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { hasSaved, storeOn } from "../lib/savedKey";
 import type { Voice } from "../lib/voices";
 import { startRun } from "./runStatus";
 import { mountSamples } from "./voiceSamples";
@@ -17,7 +18,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   root.dataset.ready = "";
   const $ = (selector: string) => root.querySelector(selector) as HTMLElement;
   const form = $("[data-create-form]") as HTMLFormElement;
-  const topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
+  // Read again once the saved settings are laid over the form, which can add a topic's chip.
+  let topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
   const copy = (key: string) => root.querySelector(`[data-k="${key}"]`)?.textContent ?? "";
   // Shows a line of error text, or hides the line when given none.
   const say = (name: string, text?: string) => {
@@ -361,6 +363,25 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     await post($("[data-submit]") as HTMLButtonElement);
   });
 
+  /**
+   * The panel starts from the settings as saved, not as built (D173): a voice, format or length
+   * chosen in Settings, and a topic added, renamed or removed there, show without a deploy.
+   */
+  async function overlaySaved(): Promise<void> {
+    if (!hasSaved() && !storeOn()) return;
+    const view = await import("./savedView").catch(() => null);
+    if (!view) return;
+    if (storeOn()) await view.loadStore();
+    const changed = view.overlayCreate(form, view.readSaved());
+    topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
+    if (!changed) return;
+    for (const select of voiceSelects) {
+      select.dispatchEvent(new Event("picker:sync"));
+      syncSample(select);
+    }
+    sync();
+  }
+
   // While a run is going the form says so from the start, and the line goes once the run is over.
   const reflectRun = () => {
     if (!root.isConnected) {
@@ -375,6 +396,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   sync();
   if (running()) say("form", busyLine());
+  void overlaySaved();
   void loadVoices();
   // The voices are chosen from a list with a search field.
   void import("./picker").then((module) => module.mountPickers(form));

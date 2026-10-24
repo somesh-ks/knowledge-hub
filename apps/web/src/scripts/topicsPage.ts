@@ -130,8 +130,13 @@ function mount(root: HTMLElement): void {
   });
 
   // The search and chips (sourceFilter.ts) read the address, so a reload or Back finds them set.
+  // They read the rows once the saved edits are laid over them, so a source stored since the build
+  // is found too.
   if (root.querySelector("[data-filter]")) {
-    void import("./sourceFilter").then((module) => module.mountFilter(root)).catch(() => {});
+    void saved
+      .then(() => import("./sourceFilter"))
+      .then((module) => module.mountFilter(root))
+      .catch(() => {});
   }
 
   root.dataset.ready = "";

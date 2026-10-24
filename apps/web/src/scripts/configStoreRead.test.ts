@@ -90,4 +90,36 @@ describe("loadStore", () => {
     await older;
     expect(storeRead()?.ops).toEqual(ops);
   });
+
+  // The bug (D173): a store that answered after the page stopped waiting was applied only on the
+  // next page view, so an edit made on another device stayed hidden with nothing to say so.
+  it("offers a reload when the store answers after the page stopped waiting", async () => {
+    vi.useFakeTimers();
+    const { STORE_READ_TIMEOUT_MS, loadStore } = await fresh();
+    const { TOAST_EVENT } = await import("./toastEvent");
+    const toasts: unknown[] = [];
+    vi.stubGlobal("document", {
+      querySelector: (selector: string) =>
+        selector.startsWith("meta") ? { content: "built-here" } : null,
+      dispatchEvent: (event: CustomEvent) => {
+        if (event.type === TOAST_EVENT) toasts.push(event.detail);
+        return false;
+      },
+      addEventListener: () => {},
+    });
+    vi.stubGlobal("localStorage", fakeStorage());
+    const answers: ((response: Response) => void)[] = [];
+    vi.stubGlobal("fetch", () => new Promise<Response>((resolve) => answers.push(resolve)));
+
+    const slow = loadStore(0);
+    await vi.advanceTimersByTimeAsync(STORE_READ_TIMEOUT_MS);
+    expect(await slow).toBeNull();
+    expect(toasts).toEqual([]);
+    const ops = [{ op: "source.set", id: "studio-notes", enabled: false }];
+    answers[0]?.(
+      Response.json({ status: 200, built: "built-here", written_at: 1, ops, sources: [] }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
+  });
 });

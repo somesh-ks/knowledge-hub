@@ -23,8 +23,8 @@ The files keep the repository's format, so the site reads them with the parsers 
 ## The pages
 
 - **Home, Library, a briefing (`/d/<id>`), an episode (`/e/<id>`), `/latest.json`, the search index:** rendered on request through the content repository, with the short shared cache.
-- **Covers:** drawn on demand by the same renderer and cached, or written by the engine beside the content; the proof decides.
-- **`/api/narrate`** reads an episode's text from the store instead of its bundle (`episodeSource.ts`).
+- **Covers:** the build draws what it holds; after each sync `apps/web/scripts/storeCovers.ts` draws, once per id, the covers of the store's content into `content/covers/` (eight files an id), and a `vercel.json` rewrite sends a `/covers/` request the build cannot answer there.
+- **`/api/narrate`, `/api/narrate-marks`, `/api/generate`, `/api/podcast`** read briefings, timelines and episodes through `server/contentSources.ts`: the store first, the bundle when the store cannot answer or lacks the file.
 - **Offline:** the service worker keeps the pages it has served, as today.
 
 ## Settings and sources
@@ -56,4 +56,6 @@ Each step ships alone and leaves production working.
 - `episodes/index.json` (PR #252).
 - `dispatch content sync` and `content.yml` (step 1).
 - `server/contentRepo.ts` and `/d/<id>` on request (step 2, PR #259).
-- Home, Library, `/latest.json` and the search index on request (step 3, first part). Still built: `/e/<id>`, covers, `/api/narrate`'s episode text.
+- Home, Library, `/latest.json` and the search index on request (step 3, PR #264).
+- `/e/<id>` on request, store covers, the API routes on the store (step 3, rest).
+- Step 4, settings: the cost ledger and price table (PR #269); Play's voice from the stored schedule (PR #271); the Create panel (voices, format, length, topics) and the Daily, Weekly and Regenerate topic chips laid over from the store, which now passes on Create's voices. The Sources list and topic pages show stored sources, moves, formats, leans, new topics in the panels and renames; a store answer that comes after a page is drawn offers a reload. Not covered: a renamed topic's generated picture, drawn at build.

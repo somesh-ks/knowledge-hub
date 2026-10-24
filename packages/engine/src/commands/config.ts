@@ -371,7 +371,7 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
     (configStoreUrl(ctx.env) !== null || (await copiedFromStore(ctx.root)))
   ) {
     ctx.log.error(
-      "The config store is on here (DISPATCH_CONFIG_STORE, or a run noted it copied the store), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
+      "The config store is on here (SINGULARITY_CONFIG_STORE, or a run noted it copied the store), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
     );
     return 1;
   }

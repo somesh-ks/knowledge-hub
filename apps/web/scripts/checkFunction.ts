@@ -14,7 +14,8 @@ import { fileURLToPath } from "node:url";
  * Usage: npx tsx apps/web/scripts/checkFunction.ts (after a build with the adapter)
  */
 
-if (process.env.DISPATCH_STATIC_ONLY === "1") process.exit(0);
+if ((process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1")
+  process.exit(0);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const source = join(HERE, "..", ".vercel", "output", "functions", "_render.func");

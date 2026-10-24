@@ -1,4 +1,7 @@
+import { DEFAULT_SCHEDULE } from "@dispatch/core";
 import type { Page, Route } from "@playwright/test";
+import { configHash } from "../src/lib/configHash";
+import { BUILT_FILES, routeConfigStore } from "./configServer";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
@@ -855,5 +858,34 @@ test.describe("axe, the Create page and episodes", () => {
   test("an episode page has none", async ({ page }) => {
     await page.goto(EPISODE);
     await expectNoViolationsInEitherScheme(page);
+  });
+});
+
+test.describe("the Create page with the config store on", () => {
+  // The bug (D173): the panel was drawn from the settings as built, so a topic added in Settings had
+  // no chip and a voice or length chosen there was not what Generate sent, until the next deploy.
+  test("starts from the settings as stored, and sends them", async ({ page, context, baseURL }) => {
+    const topics = JSON.parse(BUILT_FILES["config/topics.json"] ?? "{}");
+    const model = topics.topics[0];
+    topics.topics.push({ ...model, id: "pottery", name: "Pottery", origin: "custom" });
+    const custom = { ...DEFAULT_SCHEDULE.custom, length_minutes: 10, voice_id: "voice-stored" };
+    await routeConfigStore(page, () => ({
+      "config/topics.json": JSON.stringify(topics),
+      "config/schedule.json": JSON.stringify({ ...DEFAULT_SCHEDULE, custom }),
+    }));
+    await context.addCookies([
+      { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+    ]);
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 9, started_at: "x" });
+    await openCreate(page);
+    await chip(page, "Pottery").click();
+    await expect(submit(page)).toHaveText("Generate • 10 mins");
+    await submit(page).click();
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      length_minutes: 10,
+      voice_id: "voice-stored",
+      topic_ids: expect.arrayContaining(["pottery"]),
+    });
   });
 });
