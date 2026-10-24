@@ -19,7 +19,7 @@ A briefing or an episode is shared as a public listen link that plays its stored
 - The token is never sent to analytics, and the service worker never keeps a `/s/` page.
 
 ### The shared page, `/s/<token>`
-- The app's own briefing or episode page for the link's item (DigestView, EpisodeView with `shareToken`), with the app around it: no More menu (Regenerate, Delete, Stop sharing) and no Regenerate or Delete panels. The owner asked for "a simple addition", not a page of its own (2026-10-24).
+- The app's own briefing or episode page for the link's item (DigestView, EpisodeView with `shareToken`), with the app around it: no More menu (Regenerate, Delete, Stop sharing) no Regenerate or Delete panels, and no Earlier shelf, whose cards lead to the owner's pages. The owner asked for "a simple addition", not a page of its own (2026-10-24).
 - Rendered on the server, `Cache-Control: public, max-age=0, s-maxage=300` and `X-Robots-Tag: noindex, nofollow`. 410 for a stopped or expired link and for one whose item was deleted or regenerated, 404 for an unknown one, each an empty state. The page, the routes and narration read the same content: the repository's (D173).
 - Card: the item's own (`briefingCard`, `episodeCard`, linkCard.ts). `robots.txt` allows `/s/` and `/covers/` so previewers can fetch them.
 - Play is the app's player. On a shared page its lookup is `POST /api/share-play` with the token from the address (narrationApi.ts), which answers the item's narration lookup with the link's stored files, each confirmed, so the player never calls `/api/narrate`. The page's own file is dropped from its player data (`sharedPlayer`), and it never prewarms: a lookup is a counted play. A refused play says so (`link_limit`, `month_limit`, `link_gone`).
