@@ -63,11 +63,34 @@ export interface ContentRepoDeps {
   log?: (message: string) => void;
 }
 
-let held: { at: number; updatedAt: string; site: Promise<Site> } | null = null;
+let heldManifest: { at: number; base: string; manifest: Manifest } | null = null;
+let heldSite: { updatedAt: string; site: Promise<Site> } | null = null;
 
 /** Forget what this instance holds. For tests. */
 export function resetContentRepo(): void {
-  held = null;
+  heldManifest = null;
+  heldSite = null;
+}
+
+/** The store's manifest, read fresh at most once per MANIFEST_TTL_MS. Null when there is none. */
+async function currentManifest(
+  deps: ContentRepoDeps,
+): Promise<{ base: string; manifest: Manifest } | null> {
+  if (heldManifest && deps.now() - heldManifest.at < MANIFEST_TTL_MS) return heldManifest;
+  const base = readPublicBlobBase(deps.env);
+  if (base === null) return null;
+  // `t` is never used by the store; it makes a URL the CDN has not cached.
+  const text = await readPublicText(`${base}/${MANIFEST_PATH}?t=${deps.now()}`, deps.fetch);
+  const manifest = text === null ? null : parseManifest(text);
+  if (manifest === null) return null;
+  heldManifest = { at: deps.now(), base, manifest };
+  return heldManifest;
+}
+
+/** The store's files by repository path, or null when the store is not configured or empty. */
+export async function loadStoreFiles(deps: ContentRepoDeps): Promise<ContentFiles | null> {
+  const current = await currentManifest(deps);
+  return current && storeFiles(current.base, current.manifest, deps.fetch);
 }
 
 /**
@@ -75,27 +98,19 @@ export function resetContentRepo(): void {
  * when the store is not configured or has no manifest, so the caller can answer "unavailable".
  */
 export async function loadStoreSite(deps: ContentRepoDeps): Promise<Site | null> {
-  if (held && deps.now() - held.at < MANIFEST_TTL_MS) return held.site;
-  const base = readPublicBlobBase(deps.env);
-  if (base === null) return null;
-  // `t` is never used by the store; it makes a URL the CDN has not cached.
-  const text = await readPublicText(`${base}/${MANIFEST_PATH}?t=${deps.now()}`, deps.fetch);
-  const manifest = text === null ? null : parseManifest(text);
-  if (manifest === null) return null;
-  if (held && held.updatedAt === manifest.updated_at) {
-    held.at = deps.now();
-    return held.site;
-  }
+  const current = await currentManifest(deps);
+  if (current === null) return null;
+  if (heldSite?.updatedAt === current.manifest.updated_at) return heldSite.site;
   const site = loadSite({
     root: "",
     env: {},
-    files: storeFiles(base, manifest, deps.fetch),
+    files: storeFiles(current.base, current.manifest, deps.fetch),
     warn: (message) => deps.log?.(message),
   });
-  held = { at: deps.now(), updatedAt: manifest.updated_at, site };
+  heldSite = { updatedAt: current.manifest.updated_at, site };
   // A failed load is not kept, so the next request tries again.
   site.catch(() => {
-    if (held?.site === site) held = null;
+    if (heldSite?.site === site) heldSite = null;
   });
   return site;
 }
@@ -129,4 +144,16 @@ export async function readFromContentRepo(label: string): Promise<Response | nul
   }
   readSiteFrom(load);
   return null;
+}
+
+/**
+ * The site's 404 for an id the repository does not hold. The 404 page is built, not part of this
+ * function, so it is fetched from the site's own edge.
+ */
+export async function notFoundPage(pageUrl: URL): Promise<Response> {
+  const notFound = await fetch(new URL("/404", pageUrl)).catch(() => null);
+  return new Response(notFound?.ok ? await notFound.text() : "Not found", {
+    status: 404,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
 }

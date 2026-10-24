@@ -6,7 +6,7 @@ import type { DigestEntry } from "../../lib/digests";
 import { listenLength } from "../../lib/digestView";
 import { briefingCard } from "../../lib/linkCard";
 import { getSite } from "../../lib/site";
-import { CONTENT_CDN_CACHE, readFromContentRepo } from "../../server/contentRepo";
+import { CONTENT_CDN_CACHE, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
 
 // Rendered on request from the content repository (D173), so a new briefing shows without a build.
 // The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
@@ -33,13 +33,8 @@ if (!Astro.isPrerendered) {
   const site = await getSite();
   const index = site.entries.findIndex((entry) => entry.id === Astro.params.id);
   const entry = site.entries[index];
-  // The 404 page is built, not part of this function, so it is fetched from the site's own edge.
   if (!entry) {
-    const notFound = await fetch(new URL("/404", Astro.url)).catch(() => null);
-    return new Response(notFound?.ok ? await notFound.text() : "Not found", {
-      status: 404,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    return notFoundPage(Astro.url);
   }
   props = { entry, earlier: site.entries.slice(index + 1, index + 4), isLatest: index === 0 };
   Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
