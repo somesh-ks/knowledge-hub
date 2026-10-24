@@ -179,6 +179,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
+| D173 | Data off the deploy path | proposed |
 | D175 | Ruleset on `main` | amends D143 |
 
 ---
@@ -1827,6 +1828,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
 - Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
 - Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
+
+## D173: episodes and settings leave the deploy path, proposed
+
+- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; "how does a professional music app like spotify or youtube handle this?"; "make sure our app is professional industry grade")
+- Status: proposed. [The design](design/data-off-the-deploy-path.md) keeps the page shell and the digests built and makes what changes between builds data: settings through the store (D149, D172, done) and episodes as Blob files with a small index the Library lays over itself, a monthly git copy for the record, and the device keeping the last index (D172's pattern). Episode deploys go from two to none; a run still deploys. Three questions for the owner close it.
+- Why: Dispatch treats data as code, so a save or an episode is a build and a deploy; the big apps ship code a few times a week and move data at run time. For one user, static pages stay the fastest shape, so only the data moves.
+- Rejected: rendering the Library at request time (a function call a visit, Neon's cold start, the static page lost); moving digests too (a run deploys anyway); keeping every episode in git (one deploy an episode stays).
+- Revisit if: the owner answers the questions, which turns this into a build decision.
 
 ## D175: `main` is protected by a ruleset, with the Actions app as the only bypass
 
