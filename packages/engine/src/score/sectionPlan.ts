@@ -32,7 +32,7 @@ export interface SectionPlan {
   limit(section: string): number | null;
   /** Stories the narration's rundown names, or null for no rundown. */
   rundown: number | null;
-  /** The owner's prompt for the section's stories (D177), or undefined for the built-in one. */
+  /** The owner's prompt for the section's stories (D178), or undefined for the built-in one. */
   prompt(section: string): string | undefined;
 }
 

@@ -10,7 +10,7 @@ export interface SourceMaterial {
   author?: string;
   category: Category;
   text: string;
-  /** The owner's prompt for the block this story airs in (D177); absent for the built-in one. */
+  /** The owner's prompt for the block this story airs in (D178); absent for the built-in one. */
   prompt?: string;
 }
 

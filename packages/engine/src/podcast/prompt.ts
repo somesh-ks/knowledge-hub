@@ -46,13 +46,13 @@ function shapeLines(structure: EpisodeStructure): string[] {
   ];
 }
 
-/** Said in a step that follows the owner's prompt for that part (D177) instead of its own. */
+/** Said in a step that follows the owner's prompt for that part (D178) instead of its own. */
 const OWNER_PART = "as the OWNER INSTRUCTIONS for it in the message say";
 
 /**
  * The order of an episode that follows a Catch up structure (D170): the stories in the order the
  * message gives them, each marked with how it is told, the owner's blocks where they stand, and a
- * rundown and close only when the structure has them. A part the owner wrote a prompt for (D177)
+ * rundown and close only when the structure has them. A part the owner wrote a prompt for (D178)
  * points at that prompt, which the message carries delimited; the rest read the built-in prompts.
  */
 function structuredShapeLines(structure: EpisodeStructure, shape: ScriptShape): string[] {

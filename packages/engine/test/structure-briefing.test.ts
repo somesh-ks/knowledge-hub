@@ -143,7 +143,7 @@ describe("a structured Catch up script over its length", () => {
   });
 });
 
-it("a Catch up block's own prompt reaches the script delimited, once, before its stories, and the rest keep the built-in prompt (D177)", () => {
+it("a Catch up block's own prompt reaches the script delimited, once, before its stories, and the rest keep the built-in prompt (D178)", () => {
   const story = (id: string, section: string): PodcastStory => ({
     item_id: id,
     headline: `Headline ${id}`,

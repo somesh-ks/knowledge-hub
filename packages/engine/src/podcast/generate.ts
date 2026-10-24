@@ -258,7 +258,7 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     }),
   };
   // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
-  // A block prompt (D177) set on the defaults runs the defaults as a structure, so it is read.
+  // A block prompt (D178) set on the defaults runs the defaults as a structure, so it is read.
   const file = await loadStructureFile(input.root);
   const prompts = file?.prompts?.catch_up ?? {};
   const blocks =

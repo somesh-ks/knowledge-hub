@@ -269,7 +269,7 @@ export function structureViewOf(json: unknown): StructureView {
   };
 }
 
-/** The owner's block prompts (D177) by kind; a missing or malformed file has none. */
+/** The owner's block prompts (D178) by kind; a missing or malformed file has none. */
 export type PromptView = Record<StructureKind, Record<string, string>>;
 
 export function promptViewOf(json: unknown): PromptView {

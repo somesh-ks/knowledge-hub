@@ -3,7 +3,7 @@
  * a chip for each podcast kind, its blocks as rows, Add under them. A row moves by its dots (Move up,
  * Move down) or by the browser's drag and drop (a long press or a mouse pull, as the queue does,
  * D169), and Edit opens the block's sheet: its depth, its stories on fixed stops, a close's length,
- * an owner block's title and brief, and the block's prompt in this kind (D177). Every change saves
+ * an owner block's title and brief, and the block's prompt in this kind (D178). Every change saves
  * itself as the topics editor's do (autosave.ts, D115): a kind's blocks go as one structure.set and a
  * prompt as one structure.prompt; a removal leaves at once and waits with Undo (D142).
  *

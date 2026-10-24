@@ -49,7 +49,7 @@ it("putting a general topic into a stored kind adds the section its stories are 
   ).toEqual(["hello", "top_picks", "world", "sign_off"]);
 });
 
-it("a block's own prompt survives a reorder of its kind, and putting back the built-in one removes it (D177)", async () => {
+it("a block's own prompt survives a reorder of its kind, and putting back the built-in one removes it (D178)", async () => {
   const prompt = "Write each design story as one plain sentence on what changed for a designer.";
   expect(
     await apply({ op: "structure.prompt", kind: "daily", key: "section:design", prompt }),

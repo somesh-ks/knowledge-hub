@@ -387,7 +387,7 @@ export type ConfigOp =
     }
   /**
    * The profile ops (block, unblock, vote), structure.set (one podcast kind's whole list of
-   * blocks, D170) and structure.prompt (one block's prompt, D177) are core's own definitions: one
+   * blocks, D170) and structure.prompt (one block's prompt, D178) are core's own definitions: one
    * place for their shape.
    */
   | Extract<

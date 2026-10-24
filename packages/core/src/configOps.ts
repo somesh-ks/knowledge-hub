@@ -104,7 +104,7 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
  * - structure.set: replace one podcast kind's whole list of blocks (D170) in config/structure.json,
  *   as weights.set replaces weights: idempotent, no index arithmetic on the wire.
- * - structure.prompt: replace one block's prompt in one kind (D177), or put back the built-in
+ * - structure.prompt: replace one block's prompt in one kind (D178), or put back the built-in
  *   prompt with null. Daily and weekly take prompts for story blocks only.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
@@ -201,7 +201,7 @@ export const ConfigOp = z.discriminatedUnion("op", [
         ctx.addIssue({ code: "custom", message, path: ["blocks"] });
       }
     }),
-  // One block's prompt (D177), apart from structure.set so a reorder never carries prompts and a
+  // One block's prompt (D178), apart from structure.set so a reorder never carries prompts and a
   // prompt of six thousand characters fits one request. null puts back the built-in prompt.
   z
     .object({

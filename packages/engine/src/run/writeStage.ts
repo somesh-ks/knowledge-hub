@@ -429,7 +429,7 @@ async function writePass(
   const topCategoryOf = new Map(scored.map((s) => [s.item.id, s.topCategory]));
   const writerCategoryOf = (sel: { item: Item; category: string }): Category =>
     writerCategory(sel.category, topCategoryOf.get(sel.item.id));
-  // The section each story would air in, for the owner's prompt of that block (D177). Writing can
+  // The section each story would air in, for the owner's prompt of that block (D178). Writing can
   // drop a Top pick and promote the next story, which then keeps the prompt of its own section.
   const sectionOf = new Map(
     assignSections(chosen.selected, sectionPlan).map((sel) => [sel.item.id, sel.section]),
@@ -550,7 +550,7 @@ async function readGeneralCounts(
 
 /**
  * A finalist to write: the item, the built-in category its writer prompt is told, and the owner's
- * prompt for its block when there is one (D177).
+ * prompt for its block when there is one (D178).
  */
 export interface Finalist {
   item: Item;

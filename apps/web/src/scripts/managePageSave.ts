@@ -59,7 +59,7 @@ function refusalReason(body: unknown): string | null {
 export const MAX_OPS = 8;
 /**
  * The longest body one request may be (MAX_CONFIG_BODY_CHARS in server/configEdit.ts): a block's
- * prompt (D177) runs to thousands of characters, so it and a structure.set can outgrow one request.
+ * prompt (D178) runs to thousands of characters, so it and a structure.set can outgrow one request.
  */
 export const MAX_BODY_CHARS = 8192;
 

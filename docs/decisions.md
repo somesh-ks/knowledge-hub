@@ -184,7 +184,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
-| D177 | Block prompts | amends D170 |
+| D178 | Block prompts | amends D170 |
 
 ---
 
@@ -1883,7 +1883,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
 
-## D177: each block's prompt is the owner's to replace, per kind
+## D178: each block's prompt is the owner's to replace, per kind
 
 - Date: 2026-10-24 (the owner: "the block level model instructions must be open for editing"; on the cards, "The full prompt per block" and "Separate per kind")
 - Decision: `config/structure.json` keeps `prompts` by kind and block key (`section:<id>` or the block type), apart from the blocks, set one at a time by `structure.prompt` (null puts back the built-in). The built-in prompts live in `packages/core/src/blockPrompts.ts`, the strings the engine sends, so the page shows exactly what the writer is told. Daily and weekly: a story block's prompt replaces the fields and fact rules for the stories of that section (they are batched apart); the voice from `config/voice.md`, the source handling and the reply's JSON shape stay in code, and the linter, numbers and grounding checks still run. The hello, rundown and sign-off are spoken by code there, so they take no prompt. Catch up: every block but an owner block (whose brief is its prompt) takes one, delimited in the message as the owner's text; a prompt set while the kind is on its defaults runs the defaults as a structure.
