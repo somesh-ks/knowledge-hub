@@ -362,7 +362,7 @@
 
   /* A programmatic focus target (a heading after navigation) shows no ring for pointer users. */
   [tabindex="-1"]:focus:not(:focus-visible) {
-    outline: none;
+    outline: none; /* keyboard focus keeps the :focus-visible ring above */
   }
 
   /* Clear of a notch or the status bar in the installed app. */
@@ -575,7 +575,7 @@
   /* The dialog and its panel receive focus on open, as containers. The controls inside carry the ring. */
   dialog:focus-visible,
   .sheet-panel:focus-visible {
-    outline: none;
+    outline: none; /* a landing point, not a control: the ring is each control's (:focus-visible) */
     box-shadow: none;
   }
 
