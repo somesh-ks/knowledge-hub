@@ -323,9 +323,21 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     case "source.add": {
       const url = webUrl(value.url);
       if (url === null) return null;
-      if (value.topic_ids === undefined) return { op: "source.add", url };
-      const ids = topicIds(value.topic_ids);
-      return ids === null ? null : { op: "source.add", url, topic_ids: ids };
+      const ids = value.topic_ids === undefined ? undefined : topicIds(value.topic_ids);
+      // The page names the new source's id, so an edit sent before the next run can find it.
+      const source = value.id === undefined ? undefined : id(value.id);
+      const format =
+        value.format === undefined
+          ? undefined
+          : (SOURCE_FORMATS.find((entry) => entry === value.format) ?? null);
+      if (ids === null || source === null || format === null) return null;
+      return {
+        op: "source.add",
+        url,
+        ...(ids === undefined ? {} : { topic_ids: ids }),
+        ...(source === undefined ? {} : { id: source }),
+        ...(format === undefined ? {} : { format }),
+      };
     }
     case "source.set": {
       const source = id(value.id);
