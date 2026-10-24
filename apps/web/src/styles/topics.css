@@ -1620,6 +1620,10 @@
   content-visibility: auto;
   contain-intrinsic-size: auto var(--size-touch);
   border-radius: var(--radius-sm);
+  /* Optical centre (owner, 2026-10-24): the line sits on the UI font's baseline, so the emoji font's
+     ink rode 0.05em high (1px at 20px, measured on Segoe UI Emoji across the grid). The pad is a
+     font metric, the same for every emoji; centred, the ink lands within a device pixel. */
+  padding-block-start: calc(var(--font-size-title) * 0.1);
   font-size: var(--font-size-title);
   line-height: 1;
 }
