@@ -40,8 +40,19 @@ export function failureText(status: number, body?: unknown): string {
   if (status >= 500 && body !== undefined && !isSiteAnswer(body)) {
     return "The server crashed before it could answer. Not saved yet.";
   }
-  const reason = REASONS[status];
+  const reason = refusalReason(body) ?? REASONS[status];
   return withErrorRef(reason ? `${reason} Not saved yet.` : "Saving failed on the server.", body);
+}
+
+/**
+ * Why the server refused the edit, when it says (the config store's answer, D149): the engine's own
+ * sentence, "Already a source: x." or "There is no topic y.", which beats "turned that change down".
+ */
+function refusalReason(body: unknown): string | null {
+  if (typeof body !== "object" || body === null || !("reason" in body)) return null;
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (reason.length === 0) return null;
+  return /[.!?]$/.test(reason) ? reason : `${reason}.`;
 }
 
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */

@@ -197,7 +197,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 - Date: 2026-10-05
 - Status: Confirmed
-- Decision: The repository root is `C:\Users\soke\Desktop\Agents\2. Hobbies\1. Projects\2. News outlet`.
+- Decision: The repository root is the owner's existing project folder on the laptop, five levels under the home directory.
 - Reason: It already holds the planning files. The base path is 66 characters, and deep `node_modules` paths can approach the 260-character Windows limit, so enabling long paths is optional hardening that needs the owner's approval.
 - Rejected: A shorter path elsewhere on disk.
 

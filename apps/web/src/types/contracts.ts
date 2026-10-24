@@ -409,7 +409,15 @@ export type ConfigResponse =
        */
       time_changed?: boolean;
     }
-  | { status: 400; error: "invalid_request" }
+  | {
+      status: 400;
+      error: "invalid_request";
+      /**
+       * With the config store on (D149): the sentence the edit was refused with ("Already a source:
+       * x.", "There is no topic y."), as the function applies the edit itself. Shown in the toast.
+       */
+      reason?: string;
+    }
   | { status: 429; error: "cooldown"; retry_after_s: number }
   /** Config store only (D149): another edit changed the same settings first; reload and redo. */
   | { status: 409; error: "conflict" }
