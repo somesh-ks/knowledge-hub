@@ -203,19 +203,23 @@ describe("grounding and validation", () => {
     expect(written.items.every((entry) => entry.verified)).toBe(true);
   });
 
+  const SCHEDULE_3_MINUTES = json({
+    version: 1,
+    hour: 7,
+    cadence_days: 2,
+    length_minutes: 3,
+    skip_topics: [],
+    weekly: { skip_topics: [] },
+  });
+
+  /** The validate stage's report for the day's pass. */
+  const validateReport = (): Promise<Record<string, unknown>> =>
+    readJson(repo.root, ".cache/run/2026-10-07/validate-report.json");
+
   // The 2026-10-15 daily chose 14 stories for five minutes and aired 4: every story lost after
   // selection came off the owner's length.
   it("fills the owner's length with a spare when grounding drops a story", LONG, async () => {
-    await seed(repo.root, {
-      "config/schedule.json": json({
-        version: 1,
-        hour: 7,
-        cadence_days: 2,
-        length_minutes: 3,
-        skip_topics: [],
-        weekly: { skip_topics: [] },
-      }),
-    });
+    await seed(repo.root, { "config/schedule.json": SCHEDULE_3_MINUTES });
     const feeds = goodFeeds(12);
     const unsupported = Object.values(feeds).map((items) => items[0]?.id as string);
     const world = makeWorld(repo.root, {
@@ -228,7 +232,137 @@ describe("grounding and validation", () => {
     expect(result.report).toMatchObject({ outcome: "published", items: 4 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
     expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
+    // The spares filled it, so no replacement was written.
+    expect(await validateReport()).toMatchObject({ refill_written: 0 });
   });
+
+  /**
+   * Feeds of `count` stories, each from an outlet of its own, so the two-per-outlet cap leaves
+   * selection more qualifying stories than a three-minute briefing writes.
+   */
+  function manyOutlets(count: number): Record<string, Item[]> {
+    const feeds = goodFeeds(count, "wide");
+    for (const items of Object.values(feeds)) {
+      items.forEach((item, index) => {
+        const url = `https://${item.source_id}-${index}.example/${item.id}`;
+        items[index] = { ...item, id: itemId(url), url, canonical_url: url };
+      });
+    }
+    return feeds;
+  }
+
+  /** A writer that tells every story but the first `keep` it is given with an unsupported claim. */
+  function writerKeeping(keep: number) {
+    let seen = 0;
+    let refill = false;
+    const writer = fakeWriter({
+      write: (material) => {
+        seen += 1;
+        const bad = refill ? refillUnsupported : seen > keep;
+        return bad
+          ? {
+              ...okWritten(material),
+              summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+            }
+          : okWritten(material);
+      },
+    });
+    let refillUnsupported = false;
+    const calls = { write: 0 };
+    const write = writer.write.bind(writer);
+    writer.write = async (...args) => {
+      calls.write += 1;
+      return write(...args);
+    };
+    return {
+      writer,
+      calls,
+      /** From here on the writer is telling validation's replacements. */
+      startRefill: (unsupported: boolean) => {
+        refill = true;
+        refillUnsupported = unsupported;
+      },
+    };
+  }
+
+  async function stagedWithRefill(
+    world: ReturnType<typeof makeWorld>,
+    startRefill: () => void,
+  ): Promise<void> {
+    for (const stage of ["gate", "fetch", "judge", "write"] as const) {
+      expect((await runStage(world, { stage })).code).toBe(0);
+    }
+    startRefill();
+    for (const stage of ["validate", "commit"] as const) {
+      expect((await runStage(world, { stage })).code).toBe(0);
+    }
+  }
+
+  // The 2026-10-24 daily wrote 14 stories for five minutes, grounding and validation cut 7, and
+  // it aired 3.0 minutes: nothing replaced a story cut after the write stage.
+  it(
+    "a briefing whose validation cuts most of its stories is topped up from the reserve, once",
+    LONG,
+    async () => {
+      await seed(repo.root, {
+        "config/schedule.json": SCHEDULE_3_MINUTES,
+        "config/sources.json": json({
+          ...sourcesFile(),
+          sources: sourcesFile().sources.map((entry) => ({
+            ...entry,
+            options: { pool_cap: "20" },
+          })),
+        }),
+      });
+      const { writer, calls, startRefill } = writerKeeping(2);
+      const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
+      let writtenFirst = 0;
+      await stagedWithRefill(world, () => {
+        writtenFirst = writer.materials.length;
+        calls.write = 0;
+        startRefill(false);
+      });
+      // Two stories survived the write stage's grounding: below the floor, nothing would air.
+      expect(await exists(repo.root, DIGEST_PATH)).toBe(true);
+      const digest = await readDigest(repo.root, DIGEST_PATH);
+      expect(digest.items.length).toBeGreaterThanOrEqual(4);
+      const refilled = writer.materials.slice(writtenFirst).map((m) => m.id);
+      expect(digest.items.some((item) => refilled.includes(item.id))).toBe(true);
+      // One round: one more request to the writer, none of it a story written before.
+      expect(calls.write).toBe(1);
+      const before = new Set(writer.materials.slice(0, writtenFirst).map((m) => m.id));
+      expect(refilled.some((id) => before.has(id))).toBe(false);
+      const report = await validateReport();
+      expect(report.refill_written).toBeGreaterThan(0);
+      expect(report.refill_kept).toBeGreaterThan(0);
+    },
+  );
+
+  it(
+    "publishes what validates when the replacements are cut too, without a second round",
+    LONG,
+    async () => {
+      await seed(repo.root, {
+        "config/schedule.json": SCHEDULE_3_MINUTES,
+        "config/sources.json": json({
+          ...sourcesFile(),
+          sources: sourcesFile().sources.map((entry) => ({
+            ...entry,
+            options: { pool_cap: "20" },
+          })),
+        }),
+      });
+      const { writer, calls, startRefill } = writerKeeping(3);
+      const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
+      await stagedWithRefill(world, () => {
+        calls.write = 0;
+        startRefill(true);
+      });
+      expect(calls.write).toBe(1);
+      expect(await validateReport()).toMatchObject({ refill_kept: 0 });
+      expect((await readDigest(repo.root, DIGEST_PATH)).items).toHaveLength(3);
+    },
+  );
 
   // A 15-minute briefing writes spares past the digest's 48 stories; with nothing dropped, the
   // validate stage built a digest of every survivor and failed the schema (2026-10-18 review).
