@@ -181,7 +181,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Data off the deploy path | proposed |
+| D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 
 ---
@@ -1856,13 +1856,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
 - Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
 
-## D173: episodes and settings leave the deploy path, proposed
+## D173: content is data read through one repository; builds ship code only
 
-- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; "how does a professional music app like spotify or youtube handle this?"; "make sure our app is professional industry grade")
-- Status: proposed. [The design](design/data-off-the-deploy-path.md) keeps the page shell and the digests built and makes what changes between builds data: settings through the store (D149, D172, done) and episodes as Blob files with a small index the Library lays over itself, a monthly git copy for the record, and the device keeping the last index (D172's pattern). Episode deploys go from two to none; a run still deploys. Three questions for the owner close it.
-- Why: Dispatch treats data as code, so a save or an episode is a build and a deploy; the big apps ship code a few times a week and move data at run time. For one user, static pages stay the fastest shape, so only the data moves.
-- Rejected: rendering the Library at request time (a function call a visit, Neon's cold start, the static page lost); moving digests too (a run deploys anyway); keeping every episode in git (one deploy an episode stays).
-- Revisit if: the owner answers the questions, which turns this into a build decision.
+- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; then "I want the app to access everything from the database as content repository always, the builds only happen for app improvements and feature builds. the same with settings, sources, etc."; "keep it smooth, the app is light so far - no need for too much of optimization. but keep the deployments lower, content is fetched from database, this needs to be scaled for the future when we have many more users.")
+- Decision: briefings, episodes and the run state live in Vercel Blob (the content store), mirrored from git by `dispatch content sync`; settings and sources stay in Neon (D149). Every content read goes through one repository module; pages that show content render on request through it with a short shared cache. Git is the backup; once the pages read the store, data commits stop deploying. [The plan](design/data-off-the-deploy-path.md) orders it in five steps.
+- Why: every data commit was a build and a deploy: minutes before new content shows, and since D146 a "New version available" on every open screen. Blob is served from the CDN with no cold start; Neon's free tier sleeps, so it does not hold what every page reads. Rendering on request keeps the Astro components and the content in the HTML, where client-side shells would rewrite every page as a script. The repository seam lets content move to Postgres, one row per user, when there are many users, without touching a page.
+- Rejected: Neon for content today (cold starts on page loads; it is the many-users store); ISR with on-demand refresh (more moving parts than one user needs, and it cannot cache a personal page); client-side shells that fetch content (a rewrite of every page, and a loading flash); a monthly git copy of episodes (git stays the per-commit backup instead).
+- Revisit if: a second user's content arrives (the repository moves to Postgres), or the step 2 proof shows cold starts the shared cache does not hide.
 
 ## D175: `main` is protected by a ruleset, with the Actions app as the only bypass
 

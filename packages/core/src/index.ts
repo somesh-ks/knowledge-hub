@@ -5,6 +5,7 @@ export * from "./costs.js";
 export * from "./digest.js";
 export * from "./digestFile.js";
 export * from "./env.js";
+export * from "./episodeIndex.js";
 export * from "./episodeScript.js";
 export * from "./generalTopics.js";
 export * from "./hosts.js";

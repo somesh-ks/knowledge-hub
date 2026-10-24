@@ -62,6 +62,18 @@
   --sort-field-bg: var(--color-surface-overlay);
 }
 
+/* And it hovers as a card's chip does: the card's chip layer, half the state layer in light, so a
+   white chip under the pointer stays above the card's tone (owner, 2026-10-24). */
+@media (hover: hover) and (pointer: fine) {
+  .costs-card .sort-field:not([data-active]):hover {
+    background: color-mix(
+      in oklch,
+      var(--sort-field-bg),
+      var(--color-on-surface) var(--card-chip-hover)
+    );
+  }
+}
+
 .costs-answer {
   grid-area: answer;
   display: grid;
@@ -272,6 +284,7 @@
   background: var(--color-surface-overlay);
 }
 
+/* Its glyphs centre in their tabs as any glyph tab's do (primitives.css, 2026-10-24). */
 .costs-view > .segmented-nav-tab {
   min-height: var(--chip-height);
   padding-inline: 0;

@@ -28,7 +28,7 @@ export interface AddSourceInput {
   /** Ids already in use, so the new id never collides with a seed or earlier added source. */
   takenIds: ReadonlySet<string>;
   /** Registry entries to compare against, so the same page or feed is not added twice. */
-  existing: readonly Pick<Source, "id" | "url" | "feed_url">[];
+  existing: readonly Pick<Source, "id" | "name" | "url" | "feed_url">[];
 }
 
 const LEADING_WWW = /^www\./;
@@ -57,6 +57,7 @@ export function sourceIdFor(url: string, taken: ReadonlySet<string>): string {
   }
 }
 
+/** The name of the source already following one of these addresses, as the owner sees it. */
 function duplicateOf(
   existing: AddSourceInput["existing"],
   ...urls: (string | null)[]
@@ -65,7 +66,7 @@ function duplicateOf(
   return existing.find(
     (source) =>
       keys.has(urlKey(source.url)) || (source.feed_url && keys.has(urlKey(source.feed_url))),
-  )?.id;
+  )?.name;
 }
 
 /**
