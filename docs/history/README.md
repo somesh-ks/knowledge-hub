@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-24 | [YouTube through Firecrawl, the refill, and Firecrawl's week](2026-10-24-youtube-relay-refill-and-firecrawl-week.md) | YouTube's feeds refused to the runners are read through Firecrawl (#235); validation refills a briefing it cut short (#237); Firecrawl 100 a week, 50 a run (D166); four review rounds, colliding decision numbers |
 | 2026-10-24 | [The store's answer kept on the device](2026-10-24-store-device-copy.md) | Settings pages show what the device last read when the store is slow or down (D172) |
 | 2026-10-23 | [The Costs card and the visual audit](2026-10-23-costs-card-and-visual-audit.md) | Costs as one card with chips, figure, chart and breakdown; measured concentric radii; the audit built by four workers (#224 to #226, #228); a dark ramp step out of order, reduced motion split off, the publisher moved above the headline |
 | 2026-10-22 | [Hardening round 4, and landing the finished branches](2026-10-22-hardening-round-four-and-landing-branches.md) | Preview deploys limited to `main` and `preview/*` with branch cleanup; #205, #206, #216, #218 landed; the release cap kept in review; a 45-minute browser job; health watches Neon, stored config and the deploy, and warnings reach the owner weekly (D157); pages report functions Vercel killed (D158); one left text edge on card pages; a missing deploy faults a day on (D159) |

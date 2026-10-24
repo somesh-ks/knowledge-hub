@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LastRunFile } from "@dispatch/core";
@@ -7,7 +7,9 @@ import { extractFullText, FEED_TEXT_ENOUGH_CHARS } from "../src/extract/extractT
 import { createFirecrawlScrape } from "../src/extract/firecrawlScrape.js";
 import {
   FIRECRAWL_LISTING_CEILING,
+  FIRECRAWL_LISTING_SHARE,
   FIRECRAWL_RUN_CEILING,
+  FIRECRAWL_WEEKLY_BUDGET,
   FirecrawlGuard,
   planFirecrawlListing,
 } from "../src/fetch/firecrawlBudget.js";
@@ -141,5 +143,51 @@ describe("the spend record", () => {
     const other = new SpendTracker();
     await other.begin(root, "2026-10-10T06:00:00.000Z");
     expect(other.totals().requests.jev).toBeUndefined();
+  });
+
+  // The owner set Firecrawl to 100 requests a week (2026-10-24); a run only knew its own 30.
+  it("gives a run what the 7 days before it left of the weekly budget", async () => {
+    const root = await mkdtemp(join(tmpdir(), "spend-"));
+    dirs.push(root);
+    // The week runs across a month, so it spans two ledger files.
+    const run = "2026-11-02T05:37:00.000Z";
+    const spent = (run_id: string, credits: number) => ({
+      id: `${run_id}|daily|fetch|firecrawl|scrape|owner`,
+      at: run_id,
+      run_id,
+      kind: "daily",
+      timezone: "Europe/Stockholm",
+      user: "owner",
+      scope: "shared",
+      stage: "fetch",
+      provider: "firecrawl",
+      product: "scrape",
+      units: { credits },
+      usd: 0,
+    });
+    const month = (name: string, records: unknown[]) =>
+      writeFile(join(root, `state/costs-${name}.json`), JSON.stringify({ version: 1, records }));
+    await mkdir(join(root, "state"));
+    const before = 30;
+    const after = 40;
+    await month("2026-10", [
+      spent("2026-10-25T05:37:00.000Z", 50), // eight days back: outside the week
+      spent("2026-10-29T05:37:00.000Z", before),
+    ]);
+    await month("2026-11", [
+      spent("2026-11-01T05:37:00.000Z", after),
+      spent(run, 20), // this run's own record never counts against it
+      spent("2026-11-04T05:37:00.000Z", 25), // a later run's: after this one started
+    ]);
+    const tracker = new SpendTracker();
+    await tracker.begin(root, run);
+    const left = FIRECRAWL_WEEKLY_BUDGET - before - after;
+    expect(left).toBeLessThan(FIRECRAWL_RUN_CEILING);
+    expect(tracker.guard.scrapeRoom).toBe(left);
+    expect(tracker.guard.listingRoom).toBe(Math.floor(left * FIRECRAWL_LISTING_SHARE));
+    // A quiet week leaves the next run its own ceiling, though the same tracker held the last
+    // one to less.
+    await tracker.begin(root, "2026-11-20T05:37:00.000Z");
+    expect(tracker.guard.scrapeRoom).toBe(FIRECRAWL_RUN_CEILING);
   });
 });
