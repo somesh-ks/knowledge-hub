@@ -44,7 +44,7 @@ const hasAudio = entry.audioMode === "ready";
   <PlayerData data={entry.player} />
 </main>
 {/* After main in the document, as on the page: the contents column sits past the reading column. */}
-<ChapterAside sections={sections} />
+{sections.length > 1 && <ChapterAside sections={sections} />}
 
 <script>
   // Loaded on demand, so it stays one shared module. A script this small is otherwise inlined into

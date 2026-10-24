@@ -1,15 +1,19 @@
 ---
 import { episodeCover } from "../lib/covers";
-import { episodeHighlights } from "../lib/episodeHighlights";
+import { storyCount } from "../lib/digestView";
+import { episodeSections } from "../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
-import { headlineParts, longDate } from "../lib/format";
+import { headlineParts } from "../lib/format";
+import type { SectionRef } from "../lib/sectionLabel";
 import AmbientLight from "./AmbientLight.astro";
+import Chapter from "./Chapter.astro";
+import ChapterAside from "./ChapterAside.astro";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
 import HeroMenu from "./HeroMenu.astro";
-import Icon from "./Icon.astro";
 import PlayCta from "./PlayCta.astro";
 import PlayerData from "./PlayerData.astro";
+import SectionTabs from "./SectionTabs.astro";
 import StoryControls from "./StoryControls.astro";
 import "../styles/episode.css";
 
@@ -19,14 +23,14 @@ interface Props {
   summaries?: ReadonlyMap<string, string>;
   /** Briefing topics by item id: the topic a vote on a story the episode shares with a briefing names. */
   topics?: ReadonlyMap<string, string>;
+  /** Briefing sections by item id: the highlights are grouped under them (highlightSections). */
+  sections?: ReadonlyMap<string, SectionRef>;
 }
 
-const { entry, summaries, topics } = Astro.props;
+const { entry, summaries, topics, sections: sectionOf } = Astro.props;
 const { episode } = entry;
 const length = episodeLength(episode);
-// "7 October": the long date without its weekday.
-const day = longDate(episode.date).split(" ").slice(1).join(" ");
-const highlights = episodeHighlights(episode, summaries);
+const sections = episodeSections(episode, { summaries, sections: sectionOf });
 // A story only the episode covers takes the episode's first topic.
 const fallbackTopic = episode.request.topic_ids[0] ?? "general";
 ---
@@ -49,7 +53,10 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
     />
     <div class="hero-text">
       <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
-      <p class="meta hero-facts"><span>{FORMAT_LABELS[episode.format]}</span><span>{day}</span></p>
+      {/* As a briefing's facts ("Weekly · 12 stories"): the date is on the cover. */}
+      <p class="meta hero-facts">
+        <span>{FORMAT_LABELS[episode.format]}</span><span>{storyCount(episode.sources.length)}</span>
+      </p>
     </div>
     <HeroMenu sharePath={`/e/${entry.id}`} episodeId={entry.id} />
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
@@ -59,64 +66,68 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
   <EpisodeActions id={entry.id} selected={episode.request.topic_ids} />
 
   {/* The script is read in the player. The page is for the news itself: each story the episode
-       covers, what was said about it, and the way to the source. */}
+       covers, what was said about it, and the way to the source, grouped by section as a briefing
+       is, with its tabs and contents column from two sections (SectionTabs.astro). */}
   {
-    highlights.length > 0 && (
-      <section class="episode-block" aria-labelledby="episode-highlights-title">
-        <h2 class="section-head" id="episode-highlights-title">Highlights</h2>
-        <ul class="rows episode-highlights" role="list">
-          {highlights.map((highlight) => (
-            <li class="episode-highlight">
-              {/* As a briefing's story (Item.astro): the headline is the link to the source, and
-                  the publisher above it is its quiet attribution. */}
-              {highlight.host && (
-                <a
-                  class="source-link story-source episode-highlight-link"
-                  href={highlight.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  tabindex="-1"
-                  aria-hidden="true"
-                  title={highlight.publisher}
-                >
-                  <span>{highlight.publisher}</span>
-                  <Icon name="openInNew" />
-                </a>
-              )}
-              <h3 class="episode-highlight-title">
-                {highlight.host ? (
-                  <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
-                    {headlineParts(highlight.headline).map((part) =>
-                      part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
-                    )}
-                    <span class="sr-only">(opens in a new tab)</span>
+    sections.length > 0 && (
+      <div class="briefing" id="briefing">
+        <SectionTabs sections={sections} />
+        {sections.map((section) => (
+          <Chapter section={section}>
+            {section.highlights.map((highlight) => (
+              <article class="episode-highlight">
+                {/* As a briefing's story (Item.astro): the headline is the link to the source,
+                    and the publisher above it is its quiet attribution. */}
+                {highlight.host && (
+                  <a
+                    class="source-link story-source episode-highlight-link"
+                    href={highlight.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    tabindex="-1"
+                    aria-hidden="true"
+                    title={highlight.publisher}
+                  >
+                    <span>{highlight.publisher}</span>
                   </a>
-                ) : (
-                  headlineParts(highlight.headline).map((part) =>
-                    part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
-                  )
                 )}
-              </h3>
-              {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
-              <div class="story-actions episode-highlight-actions">
-                <StoryControls
-                  id={highlight.itemId}
-                  url={highlight.url}
-                  headline={highlight.headline}
-                  topic={topics?.get(highlight.itemId) ?? fallbackTopic}
-                  source={highlight.source}
-                  outlet={highlight.publisher}
-                  canBlock={highlight.host !== null}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+                <h3 class="episode-highlight-title">
+                  {highlight.host ? (
+                    <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
+                      {headlineParts(highlight.headline).map((part) =>
+                        part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                      )}
+                      <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                  ) : (
+                    headlineParts(highlight.headline).map((part) =>
+                      part.nowrap ? <span class="no-break">{part.text}</span> : part.text,
+                    )
+                  )}
+                </h3>
+                {highlight.text && <p class="episode-highlight-text">{highlight.text}</p>}
+                <div class="story-actions episode-highlight-actions">
+                  <StoryControls
+                    id={highlight.itemId}
+                    url={highlight.url}
+                    headline={highlight.headline}
+                    topic={topics?.get(highlight.itemId) ?? fallbackTopic}
+                    source={highlight.source}
+                    outlet={highlight.publisher}
+                    canBlock={highlight.host !== null}
+                  />
+                </div>
+              </article>
+            ))}
+          </Chapter>
+        ))}
+      </div>
     )
   }
   <PlayerData data={entry.player} />
 </main>
+{/* After main, as on a briefing: the contents column sits past the reading column. */}
+{sections.length > 1 && <ChapterAside sections={sections} />}
 
 <script>
   // Shared with the briefing pages: it shares the page's address.
