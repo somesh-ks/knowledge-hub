@@ -47,40 +47,42 @@ const SPLITS = [
               </select>
               <Icon name="chevronDown" />
             </label>
-            {/* Chart or table (owner, 2026-10-23): the segmented navigation as two glyph tabs, compact
-                 (costs.css). The card's data-view shows one panel and hides the other (costsPage.ts). */}
-            <div class="segmented-nav costs-view" role="tablist" aria-label="Show as" data-costs-view>
-              <button
-                class="segmented-nav-tab"
-                type="button"
-                role="tab"
-                id="costs-view-chart"
-                aria-selected="true"
-                aria-controls="costs-chart"
-                aria-label="Chart"
-                data-value="chart"
-              >
-                <Icon name="chartBar" />
-              </button>
-              <button
-                class="segmented-nav-tab"
-                type="button"
-                role="tab"
-                id="costs-view-table"
-                aria-selected="false"
-                aria-controls="costs-grid"
-                aria-label="Table"
-                tabindex="-1"
-                data-value="table"
-              >
-                <Icon name="table" />
-              </button>
-            </div>
           </div>
           <div class="costs-answer costs-data" aria-live="polite">
             <h2 class="costs-label" id="costs-total-label" data-costs-label>Total spend</h2>
             <p class="costs-total" data-costs-total>Loading</p>
             <p class="costs-detail" data-costs-detail>&nbsp;</p>
+          </div>
+          {/* Chart or table (owner, 2026-10-23): the segmented navigation as two glyph tabs, compact
+               (costs.css). The card's data-view shows one panel and hides the other (costsPage.ts).
+               After the answer in the reading order, just before the panels it switches; placed at
+               the filter row's end from 40rem and beside the answer on a phone (D176). */}
+          <div class="segmented-nav costs-view" role="tablist" aria-label="Show as" data-costs-view>
+            <button
+              class="segmented-nav-tab"
+              type="button"
+              role="tab"
+              id="costs-view-chart"
+              aria-selected="true"
+              aria-controls="costs-chart"
+              aria-label="Chart"
+              data-value="chart"
+            >
+              <Icon name="chartBar" />
+            </button>
+            <button
+              class="segmented-nav-tab"
+              type="button"
+              role="tab"
+              id="costs-view-table"
+              aria-selected="false"
+              aria-controls="costs-grid"
+              aria-label="Table"
+              tabindex="-1"
+              data-value="table"
+            >
+              <Icon name="table" />
+            </button>
           </div>
         </div>
 
@@ -95,7 +97,7 @@ const SPLITS = [
         </div>
 
         <div class="costs-table" id="costs-grid" role="tabpanel" aria-labelledby="costs-view-table" data-costs-table>
-          <div class="costs-table-scroll"><table data-costs-grid></table></div>
+          <div class="costs-table-scroll scroll-fade-inline"><table data-costs-grid></table></div>
         </div>
       </section>
       <p class="settings-note costs-note" data-costs-note></p>

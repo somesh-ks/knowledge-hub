@@ -287,6 +287,65 @@
   }
 }
 
+/* ------------------------------------------------------------------ scroll fade */
+
+/*
+ * A sideways scroller's hidden edge fades while more lies past it, by its own scroll, as the section
+ * tabs above and the Library's shelf fade theirs (2026-10-24: the shared form, first used by the
+ * Costs table, whose last column was cut with nothing saying there was more). The properties are
+ * registered at 0px, so a scroller with nothing to scroll (an inactive timeline) or a browser
+ * without scroll timelines shows no fade at all. The element keeps its own overflow.
+ * Markup: <div class="costs-table-scroll scroll-fade-inline"> on an element with overflow-x: auto.
+ */
+@property --scroll-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --scroll-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.scroll-fade-inline {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black var(--scroll-fade-start),
+    black calc(100% - var(--scroll-fade-end)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black var(--scroll-fade-start),
+    black calc(100% - var(--scroll-fade-end)),
+    transparent 100%
+  );
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: scroll-fade-inline;
+  animation-timing-function: var(--ease-linear);
+  animation-timeline: scroll(self inline);
+}
+
+@keyframes scroll-fade-inline {
+  0% {
+    --scroll-fade-start: 0px;
+    --scroll-fade-end: var(--space-8);
+  }
+  10%,
+  90% {
+    --scroll-fade-start: var(--space-8);
+    --scroll-fade-end: var(--space-8);
+  }
+  100% {
+    --scroll-fade-start: var(--space-8);
+    --scroll-fade-end: 0px;
+  }
+}
+
 /* ------------------------------------------------------------------ segmented choice */
 
 /*

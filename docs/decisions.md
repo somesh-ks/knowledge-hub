@@ -183,6 +183,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D172 | Store reads keep a copy | amends D149 |
 | D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
+| D176 | Phone Costs switch | amends D169 |
 
 ---
 
@@ -1872,3 +1873,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: each merge first updates its branch and waits for CI again (about 4 minutes, 15 with the browser suites); with several PRs open they merge one at a time. Rulesets on a private repository need GitHub Pro.
 - Rejected: requiring the `review` check (Dependabot's PRs merge without the label, and the review runs only when the label is added); required approvals (one owner cannot approve their own PR); signed commits (the engine's are unsigned); a person as a bypass actor (then the rule is a habit again).
 - Revisit if: a workflow starts pushing with a token that is not the Actions app's (it would need its own bypass), or merges queue up behind the strict check for longer than they save.
+
+## D176: on a phone the Costs chart or table switch sits beside the figure
+
+- Date: 2026-10-24
+- Decision: from 40rem the switch stays at the end of the filter row (D169); below it, it sits at the end of the answer's first line, level with "Estimated spend", and the chips keep their row. It follows the answer in the reading order, just before the panels it switches.
+- Why: at 390px the two pill chips and the switch do not fit one row, so the switch wrapped to a row of its own, 72px of nothing above the figure (screenshot, 2026-10-24). The owner chose the figure's line over the empty row.
+- Rejected: the empty row it had; narrower chips (the pills are D167's one shape).
+- Amends: D169's Costs bullet, on a phone only.
+- Revisit if: the chips and the switch fit one row on a phone.
