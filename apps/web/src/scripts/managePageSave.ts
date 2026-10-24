@@ -67,11 +67,6 @@ export interface Pending {
   now: string;
   /** Refused or not sent: kept for Retry on this page, but not a change that is on its way. */
   failed?: boolean;
-  /**
-   * The engine refused this change for good (its 400 named the change's op): it waits for Retry and
-   * no longer rides along with later changes, which it would take down with it.
-   */
-  refused?: boolean;
   /** A control that shows its own outcome: told when its request was refused or did not go. */
   fail?: () => void;
   /** And when it was saved, whether by its own request or by a retry. */
@@ -537,9 +532,14 @@ export async function flush(context: SaveContext): Promise<void> {
    * "Adding" and then "Added" itself, so the toast saying it too would be the same news twice.
    */
   let rowSays = true;
-  /** What this run sends: everything waiting but a change the engine refused for good. */
+  /**
+   * Changes the engine refused for good in this run (a refusal that named its op): they stay for
+   * Retry but are not sent again here, so one change that can never be accepted does not hold back
+   * the edits made after it.
+   */
+  const refused = new Set<string>();
   const going = (): Map<string, Pending> =>
-    new Map([...changes].filter(([, pending]) => !pending.refused));
+    new Map([...changes].filter(([key]) => !refused.has(key)));
   // Everything waiting goes now, a refused change included: it is on its way again.
   for (const pending of changes.values()) pending.failed = false;
   try {
@@ -575,7 +575,7 @@ export async function flush(context: SaveContext): Promise<void> {
           for (const key of keys) {
             const pending = changes.get(key);
             if (!pending) continue;
-            pending.refused = true;
+            refused.add(key);
             pending.failed = true;
             pending.fail?.();
           }

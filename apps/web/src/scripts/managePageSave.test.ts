@@ -180,14 +180,6 @@ describe("flush", () => {
     expect([...changes.keys()]).toEqual(["dup"]);
     expect(changes.get("dup")?.failed).toBe(true);
     expect(states.at(-1)).toBe("error");
-
-    // The next change goes alone: the refused one waits for Retry.
-    changes.set("c", change({ op: "source.set", id: "c", enabled: true }));
-    const next = flush(context(changes));
-    await vi.advanceTimersByTimeAsync(GAP_MS);
-    await next;
-    expect(posted).toHaveLength(3);
-    expect(posted[2]).toEqual([{ op: "source.set", id: "c", enabled: true }]);
   });
 
   it("holds a change made inside the server's gap, quietly, and sends what gathered in one request", async () => {

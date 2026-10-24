@@ -180,11 +180,8 @@ export function mountAutosave(
     const act = (event.target as Element).closest<HTMLButtonElement>("button")?.dataset.act;
     // Each one takes its own button away: Retry sends quietly, with the toast gone.
     if (act) handBack();
-    if (act === "retry") {
-      // Retry is the one thing that sends a change the engine refused for good once more.
-      for (const pending of changes.values()) delete pending.refused;
-      now();
-    } else if (act === "undo") options.undo?.();
+    if (act === "retry") now();
+    else if (act === "undo") options.undo?.();
     else if (act === "dismiss") open(false);
   });
   // Leaving or hiding the page sends what is waiting; a request on its way finishes with keepalive.
