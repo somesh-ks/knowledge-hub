@@ -297,15 +297,22 @@ describe("grounding and validation", () => {
     world: ReturnType<typeof makeWorld>,
     startRefill: () => void,
     validateRuns = 1,
-  ): Promise<void> {
+  ): Promise<{ write: unknown; validate: unknown }> {
+    let write: unknown;
     for (const stage of ["gate", "fetch", "judge", "write"] as const) {
-      expect((await runStage(world, { stage })).code).toBe(0);
+      const result = await runStage(world, { stage });
+      expect(result.code).toBe(0);
+      write = result.report;
     }
     startRefill();
+    let validate: unknown;
     for (let run = 0; run < validateRuns; run++) {
-      expect((await runStage(world, { stage: "validate" })).code).toBe(0);
+      const result = await runStage(world, { stage: "validate" });
+      expect(result.code).toBe(0);
+      validate = result.report;
     }
     expect((await runStage(world, { stage: "commit" })).code).toBe(0);
+    return { write, validate };
   }
 
   /** A three-minute briefing whose feeds give selection more stories than it writes. */
@@ -356,11 +363,16 @@ describe("grounding and validation", () => {
     },
   );
 
+  // A re-run of validate after that refill once marked the pass "nothing" while its selection,
+  // which the commit publishes, held the refilled stories (2026-10-24 review).
   it("refills a sized briefing the write stage left under the floor", LONG, async () => {
     await seedWide();
-    const { writer, startRefill } = writerKeeping(2, "voice");
+    const { writer, calls, startRefill } = writerKeeping(2, "voice");
     const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
-    await stagedWithRefill(world, () => startRefill("ok"));
+    const stages = await stagedWithRefill(world, () => startRefill("ok"), 2);
+    expect(stages.write).toMatchObject({ passes: [{ outcome: "nothing" }] });
+    expect(stages.validate).toMatchObject({ passes: [{ outcome: "selected" }] });
+    expect(calls.write).toBe(1);
     expect((await readDigest(repo.root, DIGEST_PATH)).items.length).toBeGreaterThanOrEqual(3);
   });
 

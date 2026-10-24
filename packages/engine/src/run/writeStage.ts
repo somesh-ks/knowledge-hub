@@ -41,7 +41,7 @@ import {
   sourceFactsMap,
   type TopicLayer,
 } from "../score/scoreTopics.js";
-import { assignSections, capFor, selectItems } from "../score/selectItems.js";
+import { assignSections, capFor, compareCandidates, selectItems } from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
@@ -434,7 +434,7 @@ async function writePass(
     drop,
   });
 
-  // A sized briefing keeps the next stories selection would have taken, in its order, so
+  // A sized briefing keeps the next stories selection would have taken, best first, so
   // validation can write replacements when grounding cuts it short of its length (refill).
   const reserve =
     wanted === undefined
@@ -599,15 +599,16 @@ export async function writeFinalists(args: {
 }
 
 /**
- * The stories a larger selection adds to the one that was written, in that selection's own order,
- * so a refill keeps the balance of topics and sections selection gave it.
+ * The stories a larger selection adds to the one that was written, best first. The larger
+ * selection keeps the caps on topics and outlets; its own order is by section, so a refill that
+ * took its first few would draw them all from the leading sections.
  */
 export function reserveAfter(
   written: readonly SelectedItem[],
   larger: readonly SelectedItem[],
 ): SelectedItem[] {
   const taken = new Set(written.map((sel) => sel.item.id));
-  return larger.filter((sel) => !taken.has(sel.item.id));
+  return larger.filter((sel) => !taken.has(sel.item.id)).sort(compareCandidates);
 }
 
 async function extractSafely(runtime: ApiRuntime, item: Item): Promise<ExtractedText | null> {

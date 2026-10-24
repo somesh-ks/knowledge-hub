@@ -41,10 +41,11 @@ interface Fitted {
 /** The pass's reserve, or none: a pass written before reserves existed, or not sized. */
 async function readReserve(path: string): Promise<ReserveFile> {
   const parsed = ReserveFile.safeParse(await readJsonIfExists(path, "reserve.json"));
-  return parsed.success
-    ? parsed.data
-    : { version: 1, taste: { liked: [], disliked: [] }, items: [] };
+  return parsed.success ? parsed.data : ReserveFile.parse({ version: 1, items: [] });
 }
+
+/** What the write stage records of a story beside its text, kept for a replacement too. */
+type WrittenFacts = { extract_method?: string; rewritten_fields: string[] };
 
 interface ValidateDrop {
   id: string;
@@ -86,15 +87,19 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     const state = await requireStage(deps.root, pass, "write", "validating");
     const file = (name: string): string => passFile(deps.root, pass.id, name);
     const at = deps.now().toISOString();
-    // Writing can leave a sized pass under the floor; its reserve may still fill it.
     const reserve = await readReserve(file("reserve.json"));
-    const refillable =
-      !reserve.refilled &&
-      reserve.items.length > 0 &&
-      (await readJsonIfExists(file("selection.json"), "selection.json").then(
-        (raw) => Selection.safeParse(raw).data?.length_chars !== undefined,
-      ));
-    if (state.write?.outcome === "nothing" && !refillable) {
+    // Writing can leave a sized pass under the floor; its reserve may still fill it. A re-run of
+    // validate after that refill finds the refilled stories in the selection and checks them again.
+    const unwritten =
+      state.write?.outcome === "nothing" &&
+      (await readJsonIfExists(file("selection.json"), "selection.json").then((raw) => {
+        const saved = Selection.safeParse(raw).data;
+        if (saved === undefined) return true;
+        const refillable =
+          !reserve.refilled && reserve.items.length > 0 && saved.length_chars !== undefined;
+        return !refillable && saved.items.length === 0;
+      }));
+    if (unwritten) {
       await markStage(deps.root, pass, "validate", {
         at,
         outcome: "nothing",
@@ -214,7 +219,8 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     // effort: a failure keeps the briefing that already validated.
     const refill: { written: number; kept: number; error?: string } = { written: 0, kept: 0 };
     const refillDrops: WrittenFile["dropped"] = [];
-    const refillFacts = new Map<string, { extract_method?: string; rewritten_fields: string[] }>();
+    const refillFacts = new Map<string, WrittenFacts>();
+    let refillDone = false;
     const lengthChars = selection.length_chars;
     const room = VOICE_LIMITS.items.hardMax - fitted.survivors.length;
     if (lengthChars !== undefined && fitted.chars < lengthChars && room > 0 && !reserve.refilled) {
@@ -224,6 +230,10 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         .filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id))
         .slice(0, Math.min(withSpares(missing), room));
       if (candidates.length > 0) {
+        // A refit that fails part way leaves its drops and warnings behind; the catch puts back
+        // those of the briefing that stands.
+        const dropsBefore = validateDrops.length;
+        const warningsBefore = warnings;
         try {
           const {
             materials: fresh,
@@ -275,20 +285,24 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
           const refilled = new Set(extra.kept.map((g) => g.item.id));
           refill.written = voice.passed.length;
           refill.kept = fitted.survivors.filter((g) => refilled.has(g.item.id)).length;
+          refillDone = true;
           deps.log.info("Refilled the briefing after validation", { pass: pass.id, ...refill });
         } catch (error) {
           refill.error = describeError(error, deps.secrets);
           refillDrops.length = 0;
           refillFacts.clear();
+          validateDrops.length = dropsBefore;
+          warnings = warningsBefore;
           deps.log.warn("The refill failed; the validated stories stand", {
             pass: pass.id,
             reason: refill.error,
           });
         }
         // The replacements' source text is persisted with the rest, so a re-run of validate grounds
-        // them against what they were written from, and the reserve is marked used: one round.
-        await writeJson(file("materials.json"), { version: 1, items: [...materials.values()] });
-        await writeJson(file("reserve.json"), { ...reserve, refilled: true });
+        // them against what they were written from.
+        if (refillDone) {
+          await writeJson(file("materials.json"), { version: 1, items: [...materials.values()] });
+        }
       }
     }
     const { survivors, spare } = fitted;
@@ -317,6 +331,9 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         })),
       ],
     });
+    // Marked used last, once the selection holds the replacements: one round, and a run stopped
+    // before this point refills again on a re-run.
+    if (refillDone) await writeJson(file("reserve.json"), { ...reserve, refilled: true });
     await writeJson(file("validate-report.json"), {
       version: 1,
       id: pass.id,
@@ -361,9 +378,9 @@ function updatedWritten(
   finalists: readonly GroundedItem[],
   dropped: Awaited<ReturnType<typeof groundAndRepair>>["dropped"],
   /** What the write stage would have recorded for each replacement validation wrote. */
-  refilled: ReadonlyMap<string, { extract_method?: string; rewritten_fields: string[] }>,
+  refilled: ReadonlyMap<string, WrittenFacts>,
 ): WrittenFile {
-  const before = new Map<string, { extract_method?: string; rewritten_fields: string[] }>([
+  const before = new Map<string, WrittenFacts>([
     ...written.items.map((entry) => [entry.id, entry] as const),
     ...refilled,
   ]);
