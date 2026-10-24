@@ -170,11 +170,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
-| D160 | One shape per control; phone sheets | amends D72 |
-| D161 | Catch up, a bolt, swipe-away toasts | amends D52 |
-| D162 | Queue gestures; pinned bar; pill selects | amends D126 |
-| D163 | Modular podcast structure | accepted |
-| D164 | Richer covers | amends D121 |
+| D167 | One shape per control; phone sheets | amends D72 |
+| D168 | Catch up, a bolt, swipe-away toasts | amends D52 |
+| D169 | Queue gestures; pinned bar; pill selects | amends D126 |
+| D170 | Modular podcast structure | accepted |
+| D171 | Richer covers | amends D121 |
 
 ---
 
@@ -1739,7 +1739,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
 
-## D160: one control has one shape wherever it stands, and every list is a bottom sheet on a phone
+## D167: one control has one shape wherever it stands, and every list is a bottom sheet on a phone
 
 - Date: 2026-10-23 (the owner: "different types of drop-down and chips with different radius, that shouldn't be possible in a design system unless requested"; "some dropdowns have a blue flash on click on phones and not others"; "most of the drop downs on phone should be using a bottom sheet"; "the chevron optically aligns with the search bar")
 - Decision: A chip, a select chip, a select's value, a segmented control and the search field are pills everywhere, in a card as on the page. The three concentric overrides of 2026-10-22 go: `.card-group` chips and select values (`primitives.css`), the Costs card's chips (`costs.css`, which also kept a chevron 8px from the end; it now shares the Library chip's 16px), and the topic panel's switch, field, Add and chips (`topics.css`), with the Listen in value. A row's tile and a button keep the concentric radius (`.card-group .btn`, `.row-action::after`), and a form's text fields keep `--field-radius`: the Add source panel's selects stand beside text inputs and follow them. Under 40rem every list that opens from a field is a bottom sheet with the sheet's corners, surface and scrim: a select's drawn list (`::picker(select)`, CSS alone), the searchable picker (`picker.ts` sets `data-sheet` and lets CSS place it) and the multi-select (fixed in place; the card around it rises to `--z-sheet`). A select and an input lose the tap highlight (`foundations.css`): the flash showed on native selects and not on the buttons beside them. A Sources row and a source row take the search field's 16px inline padding, so the emoji and the chevron sit where the field's glyph and clear button do; the chevron is no longer pulled out to the edge.
@@ -1749,7 +1749,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: the card rule of 2026-10-22 (D72's tonal language, [ledger](design-engineering-ledger.md) section 1) for chips, select values and segmented controls.
 - Revisit if: Firefox and Safari draw the select list natively on phones (they keep the system picker, which is a sheet of its own), or a tap on the scrim reaches a control under it in use.
 
-## D161: the primary action is Catch up, Latest is a bolt, and a toast swipes away
+## D168: the primary action is Catch up, Latest is a bolt, and a toast swipes away
 
 - Date: 2026-10-23 (the owner: "rename new episode to catch-up, change fire emoji for latest to zap emoji"; "I need to be able to swipe away snack bars or toasts on mobile")
 - Decision: The action that makes an episode on request is called Catch up on the floating button, the side column, the sheet's title, the Create page and the Library's empty state, and in the manifest's shortcut: the name of the kind those episodes are filed under (the Library chip, Listen in), so the button names what it makes. Spelled "Catch up", the app's existing noun, not the owner's "catch-up". Latest's glyph is Phosphor's lightning, regular and fill; the flame is gone from the glyph set. A toast slides sideways under a finger and leaves past 35% of its width or at 0.6 px/ms (`Toaster.tsx`); a shorter drag springs it back. A swipe dismisses, it never undoes: a removal's wait still ends in the removal. A mouse does not drag it, and a press on its buttons is theirs.
@@ -1757,7 +1757,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: four browser tests and four specs renamed; a reader who learnt "New episode" finds Catch up in its place.
 - Amends: D52 (the floating button's word).
 
-## D162: queue rows move by drag and menu, and the phone's controls hold still
+## D169: queue rows move by drag and menu, and the phone's controls hold still
 
 - Date: 2026-10-23 (the owner: "the up next & stories tabs must be segmented selectors"; "the up next list items must be draggable on long press on mobile, by click on desktop... replaced with a swipe left gesture for removing a track from queue... have 3 dots icon buttons"; "it is annoying when I scroll up to see the glitch when the top navigation bar also shows up with sticky sources bar"; "the tabs on podcast details page are placed too close"; "drop-down consistency must also happen on all pages"; "two icon segmented selector items to switch between chart and table"; "the status text must be on the right side")
 - Decision:
@@ -1773,14 +1773,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: a pointer-events long-press drag (no scrolling); anchor-positioned React popovers with their own anchors (the header menu's `--hero-more` name resolves to the nearest dots, so the shared rules serve).
 - Amends: D126 (the queue's handle and cross).
 
-## D163: a modular podcast structure, accepted
+## D170: a modular podcast structure, accepted
 
 - Date: 2026-10-23 (the owner: "there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections)... The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it")
 - Status: accepted, not built. [The design](design/podcast-structure.md) answers the ask: one structure per kind (daily, weekly, catch up) as an ordered list of blocks (hello, rundown, sections with depth and count, top picks, trending, release news, close, sign-off) in `config/structure.json`, one `structure.set` op, read by curate (section order and allowances) and by the episode planner and prompt; a Preferences view with the queue's reorder gestures and a sheet to add or edit a block; defaults that reproduce today's shapes exactly, so nothing changes until edited. The owner answered its five questions on 2026-10-24 (both shapes follow it, a `custom` block with a title and a brief, one list per kind, no separate Catch up editor, its own file); the design holds the answers.
 - Why: a briefing's reading order and an episode's script shape live in two files nobody can edit; the owner wants to compose them.
 - Revisit if: phase 1 of the design shows the planner cannot reproduce today's shapes from the default blocks.
 
-## D164: covers take a step of colour: chroma to 0.16, the light stock deeper and tinted
+## D171: covers take a step of colour: chroma to 0.16, the light stock deeper and tinted
 
 - Date: 2026-10-23 (the owner: "the album arts of the podcasts are very dull, they need to be refreshing in all themes but still be optimized for dark and light theme")
 - Decision: `MAX_CHROMA` rises from 0.12 to 0.16 and every palette's ground and accent in `tokens/covers.json` carries 1.4 times its chroma, capped there (text roles unchanged). The monthly paper (`series/paper.ts`) reads as a coloured stock: its least chroma 0.045 to 0.09, its inks 1.4 times the scheme's colour (was 1.25), and the light theme's stocks a step deeper (weekly 0.92 to 0.88, on-demand 0.86 to 0.81, daily 0.80 to 0.74 in OKLCH lightness); the dark theme's stocks stay, since the dark page already carried full chroma. Every contrast floor is still held by the code and the family tests; the site's cover cache key hashes the renderer and the palettes, so the next build redraws every cover.

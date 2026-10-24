@@ -150,7 +150,7 @@
 
 .topic-card-foot .multiselect-trigger {
   /* Its shape is a settings row's value (multiselect.css, the pill): one control, one shape (owner,
-     2026-10-23, D160; on 2026-10-22 it took the card's inner radius). */
+     2026-10-23, D167; on 2026-10-22 it took the card's inner radius). */
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
 }
@@ -202,7 +202,7 @@
 }
 
 /* The switch, the field, the Add button and the chips in the card keep the pills they are on the
-   Library and the Sources index: one control, one shape (owner, 2026-10-23, D160; from 2026-10-22 to
+   Library and the Sources index: one control, one shape (owner, 2026-10-23, D167; from 2026-10-22 to
    then they took the card's radius less its padding). */
 
 /* On the card's fill the switch's track, the field, the Add button and the chips take the page's own

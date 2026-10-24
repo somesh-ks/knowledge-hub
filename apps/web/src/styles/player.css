@@ -2208,7 +2208,7 @@
  * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
  * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
  * the status bar's room as the page scrolls) it sits in a sticky bar on the page's colour. Same
- * buttons, same arrow keys, the same look at every width (D162).
+ * buttons, same arrow keys, the same look at every width (D169).
  */
 .segmented-nav.player-tabs {
   flex: none;
@@ -2236,7 +2236,7 @@
 
   /* The switch stays under the status bar's room while the list scrolls, on the page's own colour
      so the words passing under it do not show; the control inside keeps its segmented look (owner,
-     2026-10-23, D162: a navigational switch, not a tab line, which drew a bar under the chosen tab
+     2026-10-23, D169: a navigational switch, not a tab line, which drew a bar under the chosen tab
      from 2026-10-21 to then). */
   .player-tabs-bar {
     position: sticky;
@@ -2859,7 +2859,7 @@
 /* ------------------------------------------------------------------ the queue */
 
 /* The queue (the Up next view): a row is the item's thumbnail and title, with its menu's dots after
-   it (D162). The row moves by the browser's own drag and drop (a long press with a finger, a press
+   it (D169). The row moves by the browser's own drag and drop (a long press with a finger, a press
    and pull with a mouse) and slides left under a finger to leave; a vertical pan still scrolls. */
 .player-queue-row {
   display: flex;

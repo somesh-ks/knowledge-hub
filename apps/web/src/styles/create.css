@@ -353,7 +353,7 @@
 }
 
 /* A tonal select with its own chevron: the container tone, no outline, the pill every select is
-   (D160; the row's corners until 2026-10-23). The text stays at the body size, so iOS never zooms
+   (D167; the row's corners until 2026-10-23). The text stays at the body size, so iOS never zooms
    into it. */
 .create-select {
   position: relative;

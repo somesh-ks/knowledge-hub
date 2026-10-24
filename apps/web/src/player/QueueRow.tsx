@@ -34,7 +34,7 @@ const ITEM = '[role="menuitem"]:not(:disabled)';
  * One queued item: its cover, its title and what it is. The row plays it now. A drag moves it (a
  * long press with a finger, a press and pull with a mouse: the browser's own drag and drop), a swipe
  * to the left takes it off the queue, and the dots at its end open a menu that does both with a key
- * or a tap: Move up, Move down, Remove (D162). The menu is the header's More menu (hero.css): a
+ * or a tap: Move up, Move down, Remove (D169). The menu is the header's More menu (hero.css): a
  * popover under the dots, a bottom sheet on a phone.
  */
 export default function QueueRow({ id, index, count, gestures }: QueueRowProps) {

@@ -1,7 +1,7 @@
 import { TAP_SLOP_PX } from "../player/core/gestureMath";
 
 /**
- * When a sideways swipe takes its row or toast away (D161, D162), shared by the toast and the queue
+ * When a sideways swipe takes its row or toast away (D168, D169), shared by the toast and the queue
  * so the two never drift: past this share of the width, or this fast over the last 100 ms (the
  * player's velocity tracker), and never short of twice the tap slop, so a thumb that drifts under a
  * tap is a tap. The slop itself (TAP_SLOP_PX) says when a press has become a swipe at all.

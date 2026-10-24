@@ -27,7 +27,7 @@
   padding-inline: var(--field-padding)
     calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   border: var(--stroke-hairline) solid var(--field-border);
-  /* A pill, as every select is (D160), in a form as in a row. */
+  /* A pill, as every select is (D167), in a form as in a row. */
   border-radius: var(--button-radius);
   background: none;
   color: var(--color-on-surface);
@@ -272,7 +272,7 @@
   }
 }
 
-/* On a phone the list is a bottom sheet (owner, 2026-10-23, D160), as a select's drawn list and
+/* On a phone the list is a bottom sheet (owner, 2026-10-23, D167), as a select's drawn list and
    the picker's are: held by the screen's bottom edge, with the sheet's corners and surface and a
    slide in place of the scale. The list is no popover, so the scrim is a spread of its own shadow,
    and the card around it rises over the navigation bar (topics.css). Last, so it outweighs the

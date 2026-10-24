@@ -68,6 +68,8 @@ test.describe("story controls", () => {
     await stop(page.locator("[data-story-controls]").first());
     const toast = page.locator(".toast");
     await expect(toast).toBeVisible();
+    // Its box is read once it has come to rest: CI caught it mid-entrance (y 712.09 against 712).
+    await toast.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
     const cdp = await page.context().newCDPSession(page);
     const rest = (await toast.boundingBox()) as { x: number; y: number; width: number };
     const y = rest.y + 20;

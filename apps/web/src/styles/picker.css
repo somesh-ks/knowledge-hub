@@ -183,7 +183,7 @@
   }
 }
 
-/* On a phone the list is a bottom sheet (picker.ts sets data-sheet; owner, 2026-10-23, D160), as a
+/* On a phone the list is a bottom sheet (picker.ts sets data-sheet; owner, 2026-10-23, D167), as a
    select's drawn list is (primitives.css): the screen's bottom edge, the sheet's corners and
    surface, a scrim, and a slide up and down in place of the fade and the scale. */
 @media (width < 40rem) {

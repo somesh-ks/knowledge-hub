@@ -22,7 +22,7 @@ interface Press {
 }
 
 /**
- * The queue in order (D162). A row moves by the browser's drag and drop: a long press lifts it under
+ * The queue in order (D169). A row moves by the browser's drag and drop: a long press lifts it under
  * a finger, a press and pull does with a mouse, and the list scrolls as it always did; the row it
  * is over shows an accent line on the edge it would join. A sideways swipe is ours: past the tap
  * slop it follows the finger, and on release the shared rule (lib/swipeAway.ts) says whether a

@@ -1005,7 +1005,7 @@
     }
   }
 
-  /* On a phone the list is a bottom sheet (owner, 2026-10-23, D160), as the More menu is (hero.css,
+  /* On a phone the list is a bottom sheet (owner, 2026-10-23, D167), as the More menu is (hero.css,
      .menu-sheet): held by the screen's bottom edge, not the field, with the sheet's corners and
      surface, a scrim behind it, and a slide up and down in place of the fade. Later than the
      Library's margin rule above, so it outweighs it at the same specificity. */
@@ -1250,7 +1250,7 @@
    in from the edge takes the inner radius, a button one padding in the content radius. A row's tile
    sits the inset clear of the card's edges and of the next row's tile, so it never runs into a
    corner. A chip, a select's value and a segmented control keep their pill in a card as out of it:
-   one control has one shape wherever it stands (owner, 2026-10-23, D160). */
+   one control has one shape wherever it stands (owner, 2026-10-23, D167). */
 .card-group > .row-action::after {
   inset-block: calc(var(--card-inset) / 2);
   inset-inline: calc(var(--card-inset) - var(--card-padding));

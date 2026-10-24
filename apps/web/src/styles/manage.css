@@ -505,7 +505,7 @@ select.manage-input {
   padding-block: 0;
   padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
-  /* A pill, as every select is (D160); the text fields beside it keep the field radius. */
+  /* A pill, as every select is (D167); the text fields beside it keep the field radius. */
   border-radius: var(--button-radius);
   border-color: var(--field-border);
   background: none;

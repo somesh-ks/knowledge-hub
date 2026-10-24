@@ -61,7 +61,7 @@
 
 /* On the card's tone a chip steps up to the overlay tone, as a card's filter chips do. Its shape and
    padding are the shared select chip's (primitives.css), as the Library's: one control, one shape
-   (owner, 2026-10-23, D160; until then a concentric 8px corner and a chevron 8px from the end). */
+   (owner, 2026-10-23, D167; until then a concentric 8px corner and a chevron 8px from the end). */
 .costs-card .sort-field {
   --sort-field-bg: var(--color-surface-overlay);
 }

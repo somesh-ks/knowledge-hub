@@ -45,7 +45,7 @@ const TINT_STEP = 0.09;
 /**
  * The paper's least chroma: enough to read as a coloured stock in the month's hue, not as grey. At
  * 0.03 the paper, nine tenths of every cover, made the grid look dull (2026-10-16); at 0.045 the
- * owner still called the covers "very dull" (2026-10-23, D164), so the stock took a step of chroma
+ * owner still called the covers "very dull" (2026-10-23, D171), so the stock took a step of chroma
  * and the light theme's stocks a step of depth (SERIES_L), the dark theme's as they were.
  */
 const PAPER_CHROMA = 0.09;
