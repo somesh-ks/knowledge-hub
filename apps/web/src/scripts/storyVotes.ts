@@ -357,10 +357,29 @@ function block(controls: HTMLElement): void {
   });
 }
 
+/**
+ * A shared page (/s/<token>) is the owner's briefing in a stranger's hands: their presses must not
+ * tune the owner's feed. A vote shows on the control and is counted in analytics, and is neither kept
+ * nor sent; stopping an outlet needs an account of one's own.
+ */
+const onSharedPage = (): boolean => document.querySelector("main[data-shared]") !== null;
+
+function sharedPress(button: Element, controls: HTMLElement): void {
+  if (!(button instanceof HTMLElement && button.dataset.vote)) {
+    toast({ message: "Stopping an outlet needs your own account. Sign-up is coming soon." });
+    return;
+  }
+  const on = button.getAttribute("aria-pressed") !== "true";
+  for (const other of controls.querySelectorAll<HTMLElement>("[data-vote]"))
+    other.setAttribute("aria-pressed", String(on && other === button));
+  if (on) track("vote", { value: button.dataset.vote, topic: controls.dataset.topic ?? "" });
+}
+
 /** A press on a control with `data-vote` or `data-block`. */
 export function handle(button: Element): void {
   const controls = button.closest<HTMLElement>("[data-story-controls]");
   if (!controls) return;
+  if (onSharedPage()) return sharedPress(button, controls);
   if (button instanceof HTMLElement && button.dataset.vote) {
     const value = button.dataset.vote === "down" ? "down" : "up";
     const state = press(load(), refOf(controls), value, Date.now());
@@ -375,6 +394,7 @@ export function handle(button: Element): void {
 
 /** A story's link was followed: the open waits on the device for the next request. */
 export function opened(controls: HTMLElement): void {
+  if (onSharedPage()) return track("story_open", { topic: controls.dataset.topic ?? "" });
   save(recordOpen(load(), refOf(controls), Date.now()));
   track("story_open", { topic: controls.dataset.topic ?? "" });
   schedule();

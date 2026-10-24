@@ -176,6 +176,13 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   // The player fetches the link's stored files, which the play route answered.
   await expect.poll(() => asked.some((url) => url.startsWith(`${BLOB}/audio/${ID}/`))).toBe(true);
 
+  // The stranger's like shows on the control but never tunes the owner's feed, even on leaving.
+  const like = listener.getByRole("button", { name: /^Like: / }).first();
+  await like.click();
+  await expect(like).toHaveAttribute("aria-pressed", "true");
+  await listener.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+  expect(asked.filter((url) => url.includes("/api/config"))).toEqual([]);
+
   expect(asked.filter((url) => url.includes("/api/narrate"))).toEqual([]);
   for (const url of asked)
     expect(url, "nothing leaves for analytics in a test").not.toContain("simpleanalytics");
