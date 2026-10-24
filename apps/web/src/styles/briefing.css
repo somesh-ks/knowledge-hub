@@ -287,8 +287,13 @@ html[data-offline] .story-actions > .chip {
   letter-spacing: var(--text-heading-tracking);
 }
 
-/* When the briefing or episode was written, at the foot of its page: the last quiet line, with the
-   air of a section above it (owner, 2026-10-24). */
+/* When the briefing or episode was written: a quiet line after the stories, with the air of a
+   section above it, and above the earlier briefings on a briefing page (owner, 2026-10-24). */
 .page-made {
   padding-block: var(--space-12) var(--space-8);
+}
+
+/* Above the earlier briefings the shelf's own air sets the two apart, so the line adds none below. */
+.page-made:has(+ .earlier) {
+  padding-block-end: 0;
 }
