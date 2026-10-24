@@ -93,7 +93,7 @@ it("reports engine costs the build does not have from the store's ledger", async
 it("reads the schedule Play narrates with from the settings store, the build's when it fails", async () => {
   const stored = { version: 1, marker: "stored" };
   const withStore = (read: () => Promise<string | null>) => () => ({
-    ...deps({ ...ENV, DATABASE_URL: "postgres://test", DISPATCH_CONFIG_STORE: "postgres" })(),
+    ...deps({ ...ENV, DATABASE_URL: "postgres://test", SINGULARITY_CONFIG_STORE: "postgres" })(),
     readStoredSchedule: read,
   });
 

@@ -436,7 +436,7 @@ export function createReaderSync(
   window.addEventListener("offline", scheduleWrite);
   // Back from the cache, or the player saved where it is: the chips and the cards follow.
   window.addEventListener("pageshow", onMemory);
-  window.addEventListener("dispatch:resume", onMemory);
+  window.addEventListener("singularity:resume", onMemory);
   document.addEventListener("click", onClick);
   document.addEventListener("astro:before-swap", onBeforeSwap);
 
@@ -501,7 +501,7 @@ export function createReaderSync(
       window.removeEventListener("online", scheduleWrite);
       window.removeEventListener("offline", scheduleWrite);
       window.removeEventListener("pageshow", onMemory);
-      window.removeEventListener("dispatch:resume", onMemory);
+      window.removeEventListener("singularity:resume", onMemory);
       document.removeEventListener("click", onClick);
       document.removeEventListener("astro:before-swap", onBeforeSwap);
     },

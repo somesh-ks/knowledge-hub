@@ -7,7 +7,7 @@ const BLOB_TOKEN = "vercel_blob_rw_teststore_0123456789abcdefghij";
 const BASE = "https://teststore.public.blob.vercel-storage.com";
 const ID = "ep-20261013-1200";
 const env = {
-  GITHUB_DISPATCH_TOKEN: "github_pat_secret_value_123456",
+  GITHUB_SINGULARITY_TOKEN: "github_pat_secret_value_123456",
   GITHUB_REPOSITORY: REPO,
   BLOB_READ_WRITE_TOKEN: BLOB_TOKEN,
   SPEECHIFY_API_KEY: "speechify-key-for-tests",

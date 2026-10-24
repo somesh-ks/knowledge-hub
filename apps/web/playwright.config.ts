@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.PORT ?? 4321);
 
 /**
- * The suite builds the site with the invented fixture digests (DISPATCH_FIXTURES=1), serves the
+ * The suite builds the site with the invented fixture digests (SINGULARITY_FIXTURES=1), serves the
  * output with a static server that applies vercel.json's headers, and drives it in Chromium at a
  * phone and a desktop size. Run `npx playwright install chromium` once.
  *

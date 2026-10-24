@@ -6,7 +6,7 @@ import type { ClientDirective } from "astro";
  * asked for, or the browser is idle after the first input (docs/engineering/first-load-js.md, cut 1).
  * The wake also fetches the island's whole graph at once, so it arrives in one round trip.
  */
-const WAKE_EVENT = "dispatch:wake";
+const WAKE_EVENT = "singularity:wake";
 
 interface WakeScope {
   dispatchAwake?: boolean;

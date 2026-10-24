@@ -67,8 +67,8 @@ function isTokenValue(value: unknown): value is TokenValue {
   return false;
 }
 
-function dispatchExtension(extensions: Record<string, unknown>): Record<string, unknown> {
-  const own = extensions.dispatch;
+function singularityExtension(extensions: Record<string, unknown>): Record<string, unknown> {
+  const own = extensions.singularity;
   return isRecord(own) ? own : {};
 }
 
@@ -84,7 +84,7 @@ export function parseTokens(raw: unknown): TokenDocument {
       if (!isTokenValue(value)) throw new Error(`Invalid $value at ${path.join(".")}`);
       if (!groupType) throw new Error(`Token ${path.join(".")} has no $type`);
       const extensions = isRecord(node.$extensions) ? node.$extensions : {};
-      const own = dispatchExtension(extensions);
+      const own = singularityExtension(extensions);
       const mode = isRecord(own.mode) ? own.mode : {};
       const dark = mode.dark;
       if (dark !== undefined && !isTokenValue(dark)) {
@@ -112,7 +112,7 @@ export function parseTokens(raw: unknown): TokenDocument {
   };
 
   visit(raw, [], "");
-  const root = isRecord(raw.$extensions) ? dispatchExtension(raw.$extensions) : {};
+  const root = isRecord(raw.$extensions) ? singularityExtension(raw.$extensions) : {};
   const fluid = isRecord(root.fluid) ? root.fluid : {};
   return {
     tokens,
@@ -209,7 +209,7 @@ export function renderValue(type: string, value: TokenValue, doc: TokenDocument)
     case "color":
     case "dimension":
     case "duration":
-    case "dispatch-easing":
+    case "singularity-easing":
       return String(value);
     case "number":
     case "fontWeight":
@@ -227,7 +227,7 @@ export function renderValue(type: string, value: TokenValue, doc: TokenDocument)
       const layers = Array.isArray(value) ? value : [value];
       return layers.map((layer) => renderShadowLayer(layer, doc)).join(",\n    ");
     }
-    case "dispatch-fluid-dimension": {
+    case "singularity-fluid-dimension": {
       if (typeof value !== "object" || value === null || Array.isArray(value)) {
         throw new Error("fluid dimension needs {min, max}");
       }

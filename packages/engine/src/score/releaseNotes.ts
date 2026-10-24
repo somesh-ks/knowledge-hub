@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 
 /**
  * A version number standing as its own word: "ttok 0.4", "@shadcn/registry@0.1.3", "v2.1.0",

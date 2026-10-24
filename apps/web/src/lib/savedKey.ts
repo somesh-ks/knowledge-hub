@@ -2,7 +2,7 @@
  * Where the edits saved in the last few minutes are kept (lib/savedOverlay.ts). On its own so a
  * page's first script can ask whether there are any without loading the rest.
  */
-export const SAVED_KEY = "dispatch:saved-edits";
+export const SAVED_KEY = "singularity:saved-edits";
 
 /** Whether anything saved may still be waiting for the build: then the page loads savedView.ts. */
 export function hasSaved(): boolean {
@@ -19,5 +19,5 @@ export function hasSaved(): boolean {
  * editor reads its starting point. The build says so in a meta tag; without it nothing is asked.
  */
 export function storeOn(): boolean {
-  return document.querySelector('meta[name="dispatch-config-store"]') !== null;
+  return document.querySelector('meta[name="singularity-config-store"]') !== null;
 }

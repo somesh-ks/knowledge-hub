@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { DigestId, PodcastFeedback } from "@dispatch/core";
+import { DigestId, PodcastFeedback } from "@singularity/core";
 import type { CommandContext, CommandRun } from "../context.js";
 import { RUN_MODES, type RunMode } from "../gate/decideRun.js";
 import { buildDeps } from "../run/buildDeps.js";
@@ -91,7 +91,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
 }
 
 /**
- * `dispatch run`: the staged pipeline the workflows call. The command only parses flags and
+ * `singularity run`: the staged pipeline the workflows call. The command only parses flags and
  * prints; `runPipeline` holds the logic and takes every dependency as a parameter.
  */
 export function makeRunCommand(

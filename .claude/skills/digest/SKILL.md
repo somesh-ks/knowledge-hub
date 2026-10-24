@@ -1,12 +1,12 @@
 ---
 name: digest
-description: "Generate one Dispatch digest from inside the repository clone and report one result line. Auto-picks a local API run when model keys exist, an agent-mode run the session curates when they do not, or a remote GitHub Actions run; honors the on-demand cooldown (one per 6 hours, three per 24) and exits early when a run is in progress or nothing is due. Use when the user types /digest or says generate my news, run dispatch, make the weekly digest, dry run the briefing, digest status. Spends money and can push commits, so run it only on explicit request. Not for reading a digest, changing taste (use /learn), or working outside a clone (use sk-dispatch)."
+description: "Generate one Singularity digest from inside the repository clone and report one result line. Auto-picks a local API run when model keys exist, an agent-mode run the session curates when they do not, or a remote GitHub Actions run; honors the on-demand cooldown (one per 6 hours, three per 24) and exits early when a run is in progress or nothing is due. Use when the user types /digest or says generate my news, run dispatch, make the weekly digest, dry run the briefing, digest status. Spends money and can push commits, so run it only on explicit request. Not for reading a digest, changing taste (use /learn), or working outside a clone (use sk-dispatch)."
 argument-hint: "[--remote|--local|--agent] [--weekly] [--dry-run] [--since <date>] | status"
 disable-model-invocation: true
 allowed-tools:
   - Read
   - Write(.cache/run/**)
-  - Bash(npm run --silent dispatch:*)
+  - Bash(npm run --silent singularity:*)
   - Bash(node .claude/skills/digest/scripts/cooldown.mjs:*)
   - Bash(node .claude/skills/digest/scripts/pool-view.mjs:*)
   - Bash(gh workflow run:*)
@@ -19,9 +19,9 @@ allowed-tools:
 
 # Digest
 
-Produces one Dispatch digest on request and ends with one result line. `D` means `npm run --silent dispatch --` and `S` means `node .claude/skills/digest/scripts`, both from the repository root.
+Produces one Singularity digest on request and ends with one result line. `D` means `npm run --silent singularity --` and `S` means `node .claude/skills/digest/scripts`, both from the repository root.
 
-Live status (a host that runs inline commands fills this in; otherwise run it in step 1): !`npm run --silent dispatch -- status --json`
+Live status (a host that runs inline commands fills this in; otherwise run it in step 1): !`npm run --silent singularity -- status --json`
 
 ## Rules
 

@@ -1,4 +1,4 @@
-import { hashOf, type Topic } from "@dispatch/core";
+import { hashOf, type Topic } from "@singularity/core";
 import { type Questions, score } from "@typesafe-ai/sdk";
 import { STATE_LIMITS } from "./questions.js";
 

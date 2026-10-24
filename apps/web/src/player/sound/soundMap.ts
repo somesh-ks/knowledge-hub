@@ -7,7 +7,7 @@
  * changes or keyboard navigation), every sound has a visual twin, and narration is sacred (the
  * engine skips or ducks per recipe; this layer only chooses names).
  */
-import type { PlayOptions, SoundName } from "@dispatch/sound";
+import type { PlayOptions, SoundName } from "@singularity/sound";
 import type { PlayerEvent } from "../core/playerTypes";
 import { detentGain } from "../core/scrubberMath";
 

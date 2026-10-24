@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { GENERAL_TOPICS, type Source } from "@dispatch/core";
+import { GENERAL_TOPICS, type Source } from "@singularity/core";
 import { choice } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
@@ -17,7 +17,7 @@ import {
   saveUserSources,
 } from "../sources/registry.js";
 
-const USAGE = `Usage: dispatch classify-lean [--out <dir>] [--apply <lean.json>]
+const USAGE = `Usage: singularity classify-lean [--out <dir>] [--apply <lean.json>]
 
   (no flag)         Ask Jev for the political lean of every general news source and write
                     lean-review.md and lean.json to --out (default: the system temp folder).
@@ -83,7 +83,7 @@ async function applyLeans(file: string, root: string): Promise<number> {
   return 0;
 }
 
-/** `dispatch classify-lean`: rates the general news sources, with a review table first. */
+/** `singularity classify-lean`: rates the general news sources, with a review table first. */
 export const run: CommandRun = async (argv, ctx) => {
   try {
     const { values } = parseArgs({
@@ -128,7 +128,7 @@ export const run: CommandRun = async (argv, ctx) => {
       };
     });
 
-    const out = resolve(values.out ?? join(tmpdir(), "dispatch-lean-review"));
+    const out = resolve(values.out ?? join(tmpdir(), "singularity-lean-review"));
     await mkdir(out, { recursive: true });
     const name = (lean: number | null): string =>
       lean === null

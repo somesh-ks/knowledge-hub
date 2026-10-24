@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { PodcastCommand, parseEpisodeFile } from "@dispatch/core";
+import { PodcastCommand, parseEpisodeFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makePodcastCommand } from "../src/commands/podcast.js";
 import { parseCommand } from "../src/podcast/actions.js";
@@ -86,7 +86,7 @@ describe("the feedback paragraph", () => {
   });
 });
 
-describe("dispatch podcast delete and regenerate", () => {
+describe("singularity podcast delete and regenerate", () => {
   let pair: RepoPair;
   let root: string;
 

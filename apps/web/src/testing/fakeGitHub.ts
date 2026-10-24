@@ -25,7 +25,7 @@ export interface FakeGitHub {
   on(key: string, reply: FakeReply | (() => FakeReply)): void;
 }
 
-export const REPO = "owner/dispatch";
+export const REPO = "owner/singularity";
 const PREFIX = `https://api.github.com/repos/${REPO}`;
 
 export function createFakeGitHub(): FakeGitHub {
@@ -73,7 +73,7 @@ export function runJson(overrides: Record<string, unknown> = {}): Record<string,
     conclusion: null,
     created_at: "2026-10-07T05:00:00Z",
     run_started_at: "2026-10-07T05:00:05Z",
-    html_url: "https://github.com/owner/dispatch/actions/runs/4242",
+    html_url: "https://github.com/owner/singularity/actions/runs/4242",
     repository: { full_name: REPO },
     ...overrides,
   };

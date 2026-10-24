@@ -35,7 +35,7 @@ test.describe("service worker", () => {
       return { names, urls };
     });
     // The name carries a version, bumped with the shell; serviceWorker.test.ts holds which.
-    expect(cached.names.some((name) => /^dispatch-shell-v\d+$/.test(name))).toBe(true);
+    expect(cached.names.some((name) => /^singularity-shell-v\d+$/.test(name))).toBe(true);
     expect(cached.urls).toContain("/offline");
     expect(cached.urls).toContain("/");
     expect(cached.urls.some((url) => url.startsWith("/_astro/") && url.endsWith(".css"))).toBe(
@@ -182,7 +182,8 @@ test.describe("service worker", () => {
       ]);
     const build = () =>
       page.evaluate(
-        () => document.querySelector('meta[name="dispatch-build"]')?.getAttribute("content") ?? "",
+        () =>
+          document.querySelector('meta[name="singularity-build"]')?.getAttribute("content") ?? "",
       );
     await ship();
     await page.goto("/");

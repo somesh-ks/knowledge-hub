@@ -7,7 +7,7 @@ import {
   parseDigestFile,
   STATE_FILES,
   serializeDigestFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadUsage } from "../src/audio/budget.js";
 import { SpeechifyError } from "../src/audio/speechify.js";

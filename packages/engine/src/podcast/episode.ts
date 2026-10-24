@@ -10,7 +10,7 @@ import {
   SECTION_TITLES,
   type Section,
   serializeEpisodeFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPicker.js";
 import type { PodcastStory, ScriptTurn } from "./types.js";
 

@@ -1,4 +1,4 @@
-import { PreviewError, type SourcePreview } from "@dispatch/engine/source-preview";
+import { PreviewError, type SourcePreview } from "@singularity/engine/source-preview";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   assertPublicHost,

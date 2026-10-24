@@ -1,4 +1,4 @@
-import type { Effort } from "@dispatch/core";
+import type { Effort } from "@singularity/core";
 
 /** What one provider call needs. The adapters below turn it into an Anthropic or Gemini request. */
 export interface ApiRequest {

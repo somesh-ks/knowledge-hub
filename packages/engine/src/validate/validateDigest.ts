@@ -14,7 +14,7 @@ import {
   TECH_SECTION,
   type TopicsFile,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { isHttpUrl } from "../extract/urlSafety.js";
 import { digestWords, listenMinutes, readMinutes } from "../render/readTime.js";
 import { RELEASE_SECTION } from "../score/releaseNotes.js";

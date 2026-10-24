@@ -13,7 +13,7 @@ import {
   TopicJudgmentsFile,
   TopicsFile,
   UsageFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { parseQueries } from "../src/fetch/queries.js";
 import { parseVoice } from "../src/voice/voice.js";

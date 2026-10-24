@@ -1,4 +1,4 @@
-import { activeCustomTopics, type Preferences, resolveTopics, type Topic } from "@dispatch/core";
+import { activeCustomTopics, type Preferences, resolveTopics, type Topic } from "@singularity/core";
 
 /** The topics of a repository that has never had one added: the resolved seed. */
 export function loadTopicsFromSeed(preferences: Preferences): { custom: Topic[] } {
@@ -10,7 +10,7 @@ export function loadTopicsFromSeed(preferences: Preferences): { custom: Topic[] 
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { loadEnv } from "@dispatch/core";
+import { loadEnv } from "@singularity/core";
 import { type CommandContext, createLogger } from "../src/context.js";
 import { makeSource } from "./fetch-helpers.js";
 import {

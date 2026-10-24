@@ -1,5 +1,5 @@
-import { CATEGORIES } from "@dispatch/core";
-import type { SqlClient } from "@dispatch/engine/config-store";
+import { CATEGORIES } from "@singularity/core";
+import type { SqlClient } from "@singularity/engine/config-store";
 import { describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { ConfigOp } from "../types/contracts";
@@ -28,7 +28,7 @@ function setup(overrides: Partial<ConfigDeps> = {}) {
   const logs: string[] = [];
   const deps: ConfigDeps = {
     env: {
-      GITHUB_DISPATCH_TOKEN: TOKEN,
+      GITHUB_SINGULARITY_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
     },
     fetch: github.fetch,
@@ -818,10 +818,10 @@ describe("handleConfig with the config store on (D149)", () => {
   const block: ConfigOp = { op: "profile.block", domain: "spam.example" };
   const storeDeps = (store: ReturnType<typeof fakeStore>): Partial<ConfigDeps> => ({
     env: {
-      GITHUB_DISPATCH_TOKEN: TOKEN,
+      GITHUB_SINGULARITY_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
       DATABASE_URL: "postgres://fake",
-      DISPATCH_CONFIG_STORE: "postgres",
+      SINGULARITY_CONFIG_STORE: "postgres",
     },
     connectConfigStore: async () => store.sql,
     baseFiles: { "config/sources.json": JSON.stringify({ version: 1, sources: [] }) },

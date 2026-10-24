@@ -37,7 +37,7 @@ export function configHash(files: Readonly<Record<string, string | undefined>>):
 }
 
 /**
- * The digest of the files this build reads (the fixtures with DISPATCH_FIXTURES=1), as the pages
+ * The digest of the files this build reads (the fixtures with SINGULARITY_FIXTURES=1), as the pages
  * read them. A file that is missing reads as empty; any other read error fails the build rather than
  * give its pages a digest no answer matches.
  */

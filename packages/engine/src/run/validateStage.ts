@@ -1,4 +1,4 @@
-import { type Digest, type Item, VOICE_LIMITS } from "@dispatch/core";
+import { type Digest, type Item, VOICE_LIMITS } from "@singularity/core";
 import { buildSpokenText, SpokenTextTooLongError } from "../audio/spokenText.js";
 import {
   linkSourceIds,

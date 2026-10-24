@@ -152,7 +152,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Axe runs on every route in both schemes.
 - **Theme.**
   - A 512-byte head script applies the stored choice before first paint (D20). Anything else a page restores, such as the Library's gallery or list view, waits one frame for the page script, because the head budget has no room (2026-10-08).
-  - One store: `dispatch:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
+  - One store: `singularity:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
   - The theme change crossfades with a view transition, and `theme-color` metas follow. It first decodes the new theme's covers on screen (at most 400 ms), and the bars fade inside the page's picture, after "there is a glitch in the screen when I switch the app theme" (2026-10-16, D122).
 - **Ambient light.** The ask was "clever integration of shaders but mild" (2026-10-08, D48).
   - A CSS field of the cover's colours, with a 128px WebGL canvas faded over it.
@@ -188,7 +188,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Why the crossfade ran: Astro's swap keeps only a fixed set of root attributes, so `data-astro-nav` was dropped and the 330 ms default played. `navigation.ts:77` carries it onto `event.newDocument` in `astro:before-swap`.
   - The incoming page fades up in 100 ms, with an 8px settle into or out of a briefing.
   - `navigationBoost.ts` replaces the view-transition snapshot with an immediate swap: a one-shot stand-in for `document.startViewTransition`, branded with a WeakSet, that marks the new document `data-nav-swap` (`:66`, `:118`, `:138`). It skips two frames of snapshot capture.
-  - The service worker answers a move from a stamped copy (`x-dispatch-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads once after a deploy, never while offline (2026-10-08).
+  - The service worker answers a move from a stamped copy (`x-singularity-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads once after a deploy, never while offline (2026-10-08).
   - A touch `pointerdown` starts the fetch about 100 ms before the tap ends.
   - The pressed nav item lights up before the page arrives.
 - **Motion rules in tokens.**
@@ -420,7 +420,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Queue (Up next).** No handle, no cross: a row moves by the browser's drag and drop (long press or mouse pull), swipes left to leave, and its dots open the header's menu with Move up, Move down, Remove (D169). The Stories and Up next switch keeps the segmented look on a phone, in a sticky bar.
 - **App bar on a page with a sticky block.** Pinned (`data-pins-bar`): it no longer slides away and back under a topic's search and chips (D169).
 - **Section tabs.** 16px each side, the indicator under the words (D169: "placed too close to each other").
-- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169); on a phone, where it found no room beside the chips and sat alone on a row, at the end of the answer's first line (D177, 2026-10-24). The table, wider than a phone's card, fades its hidden edge (`.scroll-fade-inline`). The breakdown's third option reads "Shared or own", so the two chips hold one row from 390px (owner, 2026-10-24); from 40rem the answer's column keeps its words and the chips wrap in theirs, so the head never changes height with a choice.
+- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169); on a phone, where it found no room beside the chips and sat alone on a row, at the end of the answer's first line (D177, 2026-10-24). The table, wider than a phone's card, fades its hidden edge (`.scroll-fade-inline`). The breakdown's third option reads "Shared or own", so the two chips hold one row from 390px (owner, 2026-10-24); from 40rem the answer's column keeps its words and the chips wrap in theirs, against the switch, so the head never changes height with a choice.
 - **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D171: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
 ### Sound

@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { PodcastRequest, Source } from "@dispatch/core";
+import type { PodcastRequest, Source } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HttpClient } from "../src/http.js";
 import { titleNames } from "../src/podcast/episode.js";

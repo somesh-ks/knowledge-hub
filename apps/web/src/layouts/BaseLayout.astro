@@ -17,6 +17,8 @@ import type { LinkCard } from "../lib/linkCard";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
 import bannersInit from "../scripts/bannersInit.js?raw";
+// Moves keys saved as dispatch:* before D179, so it runs before anything reads them.
+import storageRename from "../scripts/storageRename.js?raw";
 // The theme script runs inline in the head so a stored light or dark choice never flashes the other
 // theme before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
 import themeInit from "../scripts/themeInit.js?raw";
@@ -154,8 +156,8 @@ const back =
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
     <meta name="description" content={description} />
-    <meta name="dispatch-build" content={BUILD_ID} />
-    {configStore && <meta name="dispatch-config-store" content={configStore} />}
+    <meta name="singularity-build" content={BUILD_ID} />
+    {configStore && <meta name="singularity-config-store" content={configStore} />}
     <title>{pageTitle}</title>
     {
       card && (
@@ -179,6 +181,7 @@ const back =
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href={appFont} as="font" type="font/woff2" crossorigin />
+    <script is:inline set:html={storageRename.trim()} />
     <script is:inline set:html={themeInit.trim()} />
     <ClientRouter fallback="swap" />
   </head>

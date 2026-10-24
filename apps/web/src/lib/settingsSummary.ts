@@ -4,7 +4,7 @@
  * each line into the page and the browser works the same line out again from an edit saved since
  * the build (scripts/settingsSaved.ts).
  */
-import { SUPPORTED_TIMEZONES, scheduleZone, TIME_ZONE } from "@dispatch/core/time";
+import { SUPPORTED_TIMEZONES, scheduleZone, TIME_ZONE } from "@singularity/core/time";
 import { WEEKDAYS } from "./nextRun";
 
 export const CADENCES = [

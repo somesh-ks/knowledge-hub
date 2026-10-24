@@ -205,7 +205,7 @@ export const EMPTY_SOURCE_STATS: SourceStatsFile = { version: 1, sources: {} };
 
 const quality = z.number().min(0).max(1);
 
-/** One feed `dispatch sources suggest` looked at, kept so the app can show why it did or did not make the cut. */
+/** One feed `singularity sources suggest` looked at, kept so the app can show why it did or did not make the cut. */
 export const SourceCandidate = z.object({
   /** Source id the entry would get. */
   id: z.string(),

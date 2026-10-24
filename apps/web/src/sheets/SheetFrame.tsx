@@ -20,11 +20,11 @@ function useBackCloses(open: boolean, close: () => void): void {
       if (!entry) return;
       entry = false;
       event.preventDefault();
-      removeEventListener("dispatch:back", onBack);
+      removeEventListener("singularity:back", onBack);
       if (shown) closeRef.current();
     };
     history.pushState({ ...history.state, sheet: true }, "");
-    addEventListener("dispatch:back", onBack);
+    addEventListener("singularity:back", onBack);
     return () => {
       shown = false;
       // Closed any other way: give the entry back. The pop this causes reaches onBack, which

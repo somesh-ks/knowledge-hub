@@ -17,7 +17,7 @@ on:
 # GitHub keeps one pending run per group: if several changes are sent while a digest is building,
 # only the newest waits. The app shows the change as pending until its commit appears.
 concurrency:
-  group: dispatch
+  group: singularity
   cancel-in-progress: false
 
 permissions:
@@ -51,7 +51,7 @@ jobs:
         env:
           OP: ${{ inputs.op }}
         run: |
-          npm run --silent dispatch -- config apply --op "$OP" --json | tee "$RUNNER_TEMP/apply.json"
+          npm run --silent singularity -- config apply --op "$OP" --json | tee "$RUNNER_TEMP/apply.json"
           echo "topic_id=$(jq -r '.topic_id // empty' "$RUNNER_TEMP/apply.json")" >> "$GITHUB_OUTPUT"
           echo "new_topic=$(jq -r '.new_topic' "$RUNNER_TEMP/apply.json")" >> "$GITHUB_OUTPUT"
 
@@ -65,7 +65,7 @@ jobs:
           TOPIC_ID: ${{ steps.apply.outputs.topic_id }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: npm run --silent dispatch -- sources suggest --topic "$TOPIC_ID" --json
+        run: npm run --silent singularity -- sources suggest --topic "$TOPIC_ID" --json
 
       - name: Commit
         shell: bash
@@ -75,4 +75,4 @@ jobs:
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
         run: |
           message="$(jq -r '.commit_message' "$RUNNER_TEMP/apply.json")"
-          npm run --silent dispatch -- config commit --message "$message" --json
+          npm run --silent singularity -- config commit --message "$message" --json

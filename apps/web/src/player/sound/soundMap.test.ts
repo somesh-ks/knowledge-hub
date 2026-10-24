@@ -1,4 +1,4 @@
-import type { PlayOptions, SoundName } from "@dispatch/sound";
+import type { PlayOptions, SoundName } from "@singularity/sound";
 import { describe, expect, it } from "vitest";
 import { announcementForEvent, createAnnouncer } from "../core/announcements";
 import type { PlayerEvent } from "../core/playerTypes";

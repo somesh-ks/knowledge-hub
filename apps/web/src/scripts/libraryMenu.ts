@@ -88,14 +88,14 @@ async function onPick(item: HTMLElement): Promise<void> {
       // The player answers in the event's detail (playerRuntime.ts): an item queued already, or
       // playing now, is not added twice.
       const detail: { id: string; added?: boolean } = { id };
-      document.dispatchEvent(new CustomEvent("dispatch:queue-add", { detail }));
+      document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail }));
       toast(detail.added === false ? "Already in the queue" : "Added to queue");
       return;
     }
     case "share":
       if ((await shareLink(title, path)) === "copied") {
         toast("Link copied", "success");
-        document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "success" }));
+        document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
       }
       return;
   }

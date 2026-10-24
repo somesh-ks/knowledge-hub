@@ -59,7 +59,7 @@ describe("app icons", () => {
   });
 
   it("writes the icon files", () => {
-    const directory = mkdtempSync(join(tmpdir(), "dispatch-icons-"));
+    const directory = mkdtempSync(join(tmpdir(), "singularity-icons-"));
     temporary.push(directory);
     const written = buildIcons(directory, TOKENS);
     expect(written).toEqual(expect.arrayContaining(["apple-touch-icon.png", "favicon.svg"]));

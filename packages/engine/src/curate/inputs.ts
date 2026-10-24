@@ -14,7 +14,7 @@ import {
   SourcesFile,
   SourcesUserFile,
   STATE_FILES,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import { mergeUserSources } from "../sources/registry.js";
 
@@ -96,7 +96,7 @@ export interface ParsedPool {
   items: Item[];
   /** Entries that did not match the Item schema and were skipped. */
   invalid: number;
-  /** What `dispatch fetch` recorded about the run, when the pool is its `{ version, id, ... }` file. */
+  /** What `singularity fetch` recorded about the run, when the pool is its `{ version, id, ... }` file. */
   meta: PoolMeta;
   /** Items each source returned before dedupe, from the fetch report; absent for a bare array. */
   fetchedBySource?: Record<string, number>;
@@ -161,6 +161,6 @@ export function parsePool(raw: unknown): ParsedPool {
 export async function loadPool(path: string): Promise<ParsedPool> {
   const raw = await readJsonIfExists(path, "the pool file");
   if (raw === null)
-    throw new Error(`The pool file does not exist: ${path}. Run \`dispatch fetch\` first.`);
+    throw new Error(`The pool file does not exist: ${path}. Run \`singularity fetch\` first.`);
   return parsePool(raw);
 }

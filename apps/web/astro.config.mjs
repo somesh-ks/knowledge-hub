@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
 import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
-import { withModulePreloads } from "./src/lib/bundleBudget.ts";
+import { importGraph, withModulePreloads } from "./src/lib/bundleBudget.ts";
 import { BUILT_CONFIG_PATHS } from "./src/lib/configHash.ts";
 import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
@@ -16,27 +16,28 @@ process.env.SINGULARITY_REPO_ROOT ??=
   process.env.DISPATCH_REPO_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
 process.env.DISPATCH_REPO_ROOT ??= process.env.SINGULARITY_REPO_ROOT;
 
-// The inline scripts must run before first paint, so they cannot be external files: the theme in the
-// head, the device banners and the Library's saved view. Their hashes go into the
+// The inline scripts must run before first paint, so they cannot be external files: the saved-key
+// move and the theme in the head, the device banners and the Library's saved view. Their hashes go into the
 // Content-Security-Policy instead of allowing inline scripts in general.
 const inlineScriptHash = (path) => {
   const code = readFileSync(new URL(path, import.meta.url), "utf8").trim();
   return `sha256-${createHash("sha256").update(code).digest("base64")}`;
 };
 const inlineScriptHashes = [
+  inlineScriptHash("./src/scripts/storageRename.js"),
   inlineScriptHash("./src/scripts/themeInit.js"),
   inlineScriptHash("./src/scripts/bannersInit.js"),
   inlineScriptHash("./src/scripts/libraryViewInit.js"),
 ];
 
 /**
- * @dispatch/cover finds its font files relative to its own source file (import.meta.url). Bundling
+ * @singularity/cover finds its font files relative to its own source file (import.meta.url). Bundling
  * moves that code into a build chunk, which would point the renderer at a folder with no fonts and
  * leave every cover without its date. This pins the URL to the real source file before bundling.
  */
 function keepCoverFontsReachable() {
   return {
-    name: "dispatch-cover-fonts",
+    name: "singularity-cover-fonts",
     enforce: "pre",
     transform(code, id) {
       const file = id.split("?")[0].replaceAll("\\", "/");
@@ -52,17 +53,37 @@ function keepCoverFontsReachable() {
  * pressable 1.3 to 2.5 s sooner on a throttled phone with the largest paint unchanged
  * (docs/engineering/first-load-js.md). Links, not inline scripts: the policy hashes every inline script.
  * A `client:wake` island gets none: its modules load when the page wakes it (scripts/islandWake.ts).
+ * The pages rendered on request (D173) are not in the build's HTML: the scripts' imports go into
+ * MODULE_GRAPH_FILE, which the function carries, and middleware.ts adds their links from it. It is
+ * written at `astro:build:generated`, before the adapter's `astro:build:done` packs the function.
  */
+const MODULE_GRAPH_FILE = "./.cache/module-graph.json";
+
 function preloadPageModules() {
+  const reader = (dir) => {
+    const root = fileURLToPath(dir);
+    return (url) => {
+      const file = join(root, url);
+      return existsSync(file) ? readFileSync(file, "utf8") : null;
+    };
+  };
   return {
-    name: "dispatch-module-preload",
+    name: "singularity-module-preload",
     hooks: {
+      "astro:build:generated": ({ dir }) => {
+        const assets = join(fileURLToPath(dir), "_astro");
+        const urls = existsSync(assets)
+          ? readdirSync(assets)
+              .filter((name) => name.endsWith(".js"))
+              .map((name) => `/_astro/${name}`)
+          : [];
+        const target = fileURLToPath(new URL(MODULE_GRAPH_FILE, import.meta.url));
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, JSON.stringify(importGraph(urls, reader(dir))));
+      },
       "astro:build:done": ({ dir }) => {
         const root = fileURLToPath(dir);
-        const read = (url) => {
-          const file = join(root, url);
-          return existsSync(file) ? readFileSync(file, "utf8") : null;
-        };
+        const read = reader(dir);
         for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
           if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
           const file = join(entry.parentPath, entry.name);
@@ -78,7 +99,7 @@ function preloadPageModules() {
 /** `client:wake`: an island that hydrates when the page wakes it (src/lib/wakeDirective.ts). */
 function wakeDirective() {
   return {
-    name: "dispatch-wake-directive",
+    name: "singularity-wake-directive",
     hooks: {
       "astro:config:setup": ({ addClientDirective }) => {
         addClientDirective({
@@ -99,7 +120,7 @@ const staticOnly =
 
 function stubApiRoutesForStaticBuild() {
   return {
-    name: "dispatch-static-only",
+    name: "singularity-static-only",
     hooks: {
       "astro:route:setup": ({ route }) => {
         // With no adapter every route is prerendered: the API stubs, the pages rendered on request
@@ -117,6 +138,8 @@ function stubApiRoutesForStaticBuild() {
 const FILES_PAGES_READ = [
   "./src/styles/tokens.css",
   "../../packages/core/package.json",
+  // Written during the build, before the adapter packs the function (preloadPageModules).
+  MODULE_GRAPH_FILE,
   // config/structure.json exists only once the owner edits a structure (D170); the adapter refuses
   // an include that is not there.
   ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`).filter((path) =>

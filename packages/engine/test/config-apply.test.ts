@@ -1,4 +1,4 @@
-import type { Preferences, Source, SourcesUserFile, TopicsFile } from "@dispatch/core";
+import type { Preferences, Source, SourcesUserFile, TopicsFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
 import { prefilter } from "../src/prefilter/prefilter.js";

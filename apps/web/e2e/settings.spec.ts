@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, expectNoViolationsInEitherScheme, test, violations } from "./fixtures";
 
-const PREFERENCES_KEY = "dispatch:preferences";
+const PREFERENCES_KEY = "singularity:preferences";
 
 /** Safari on an iPhone: the one browser the Home Screen hint is written for. */
 const IOS_SAFARI =
@@ -186,7 +186,7 @@ test.describe("settings page", () => {
 
 test.describe("settings page, Home Screen hint", () => {
   test("stays hidden in a browser that cannot add to the Home Screen", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("dispatch:install-hint-visits", "5"));
+    await page.addInitScript(() => localStorage.setItem("singularity:install-hint-visits", "5"));
     await openSettings(page);
     await expect(page.getByText("Add Singularity to your Home Screen")).toBeHidden();
   });

@@ -1,9 +1,9 @@
 /**
- * The sound engine, loaded lazily. `@dispatch/sound` stays out of the first-load bundle: it is
+ * The sound engine, loaded lazily. `@singularity/sound` stays out of the first-load bundle: it is
  * fetched when the browser is idle or at the first gesture, whichever comes first. Until then every
  * cue is a quiet no-op, which is the right behavior: no sound is ever required.
  */
-import type { SoundEngine } from "@dispatch/sound";
+import type { SoundEngine } from "@singularity/sound";
 import type { PlayerStore } from "../core/playerTypes";
 import type { PreferencesStore } from "../core/preferences";
 import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";
@@ -31,7 +31,7 @@ export interface SoundWiring {
 
 function loadEngine({ store, preferences }: SoundWiring): Promise<void> {
   const wanted = generation;
-  loading ??= import("@dispatch/sound")
+  loading ??= import("@singularity/sound")
     .then(({ createSoundEngine, installGestureUnlock }) => {
       if (wanted !== generation) return;
       engine = createSoundEngine({

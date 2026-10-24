@@ -1,6 +1,6 @@
 import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseDigestFile } from "@dispatch/core";
+import { parseDigestFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeCurateCommand } from "../src/commands/curate.js";
 import { makeRenderCommand } from "../src/commands/render.js";
@@ -34,7 +34,7 @@ afterEach(async () => {
   await tr.cleanup();
 });
 
-/** The shape `dispatch fetch` writes: a header plus the ranked items. */
+/** The shape `singularity fetch` writes: a header plus the ranked items. */
 const fetchPool = (items: unknown[], header: Record<string, unknown> = {}) => ({
   version: 1,
   id: "2026-10-06",
@@ -113,7 +113,7 @@ describe("run location", () => {
   });
 
   it("explains what to do when there is nothing to find", async () => {
-    await expect(resolveRunLocation(tr.root, {})).rejects.toThrow(/Run `dispatch fetch` first/);
+    await expect(resolveRunLocation(tr.root, {})).rejects.toThrow(/Run `singularity fetch` first/);
   });
 
   it("rejects a run id that is a path", async () => {
@@ -121,7 +121,7 @@ describe("run location", () => {
   });
 });
 
-describe("curate with the pool dispatch fetch writes", () => {
+describe("curate with the pool singularity fetch writes", () => {
   it("takes the kind, run id and window from the pool", async () => {
     const pool = makePool(goodSpecs(5));
     await writeRunFile(tr.root, "2026-10-06", "pool.json", fetchPool(pool.items));
@@ -174,7 +174,7 @@ describe("curate with the pool dispatch fetch writes", () => {
   });
 });
 
-describe("render with the pool dispatch fetch writes", () => {
+describe("render with the pool singularity fetch writes", () => {
   const seed = async (id: string): Promise<void> => {
     const fixture = makeFixture(5);
     await writeRunFile(tr.root, id, "pool.json", fetchPool(fixture.items, { id, kind: "regular" }));

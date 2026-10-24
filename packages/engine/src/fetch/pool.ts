@@ -1,4 +1,4 @@
-import { DigestId, DigestKind, Item } from "@dispatch/core";
+import { DigestId, DigestKind, Item } from "@singularity/core";
 import { z } from "zod";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import { stableStringify } from "../state/stableJson.js";
@@ -6,7 +6,7 @@ import { stableStringify } from "../state/stableJson.js";
 const isoDateTime = z.string().datetime({ offset: true });
 const count = z.number().int().nonnegative();
 
-/** The hand-off from `dispatch fetch` to curation: ranked candidates plus how they were found. */
+/** The hand-off from `singularity fetch` to curation: ranked candidates plus how they were found. */
 export const PoolFile = z.object({
   version: z.literal(1),
   /** Digest id the pool was gathered for, which is also its run directory name. */

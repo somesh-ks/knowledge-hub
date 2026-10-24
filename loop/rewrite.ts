@@ -91,7 +91,7 @@ await mapConcurrent(batches, 4, async (batch) => {
   const boundary = newBoundary();
   const { value, served } = await router.callModel("story_writer", {
     schema: Output,
-    schemaName: "dispatch_items",
+    schemaName: "singularity_items",
     messages: [
       { role: "system", content: prompt.writerSystemPrompt(voice, boundary) },
       {

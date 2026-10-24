@@ -1,4 +1,4 @@
-import type { ModelStep } from "@dispatch/core";
+import type { ModelStep } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import type { JevClientLike } from "../judge/jev.js";

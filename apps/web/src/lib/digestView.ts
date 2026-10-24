@@ -1,4 +1,4 @@
-import { type DigestItem, digestSections } from "@dispatch/core";
+import { type DigestItem, digestSections } from "@singularity/core";
 import { briefingLengthLabel, storyLengthLabel } from "../player/core/readerMath";
 import type { DigestEntry } from "./digests";
 import { formatClock, pluralize } from "./format";

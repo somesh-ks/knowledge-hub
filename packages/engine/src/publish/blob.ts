@@ -1,4 +1,4 @@
-import { DigestId } from "@dispatch/core";
+import { DigestId } from "@singularity/core";
 import { del, list, put } from "@vercel/blob";
 
 /** Prefix every narration lives under, so pruning can never touch other blobs in the store. */

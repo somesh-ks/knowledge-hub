@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import { STATE_LIMITS } from "./questions.js";
 
 /** What a judge sees of an item. Title and snippet only, never fetched page text. */

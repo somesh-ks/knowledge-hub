@@ -1,8 +1,8 @@
 /**
  * What a card says of what the device remembers, on any page (the Library, the Earlier shelf): a
  * half-heard item shows a thin bar under its cover, and a finished one says "Played" in place of its
- * length. The player keeps the second it reached under dispatch:resume:<id> and, once the item is
- * finished, dispatch:played:<id> instead (resume.ts). readerSync.ts calls this on every page load.
+ * length. The player keeps the second it reached under singularity:resume:<id> and, once the item is
+ * finished, singularity:played:<id> instead (resume.ts). readerSync.ts calls this on every page load.
  */
 import { type Remembered, readRemembered, safeLocalStorage } from "./resume";
 

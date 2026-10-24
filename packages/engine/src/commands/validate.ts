@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import { parseDigestFile, VOICE_LIMITS } from "@dispatch/core";
+import { parseDigestFile, VOICE_LIMITS } from "@singularity/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import { loadPool, loadSources } from "../curate/inputs.js";
 import { emit } from "../curate/output.js";
@@ -10,10 +10,10 @@ import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 
-export const VALIDATE_USAGE = "Usage: dispatch validate <digest-path> [--pool <path>]";
+export const VALIDATE_USAGE = "Usage: singularity validate <digest-path> [--pool <path>]";
 
 /**
- * `dispatch validate <digest-path>`: schema, item limits, voice lint, section and Top picks
+ * `singularity validate <digest-path>`: schema, item limits, voice lint, section and Top picks
  * rules on any digest file. With `--pool` it also checks that every URL came from the pool.
  * Exit codes: 0 valid (warnings allowed), 1 errors found or the file could not be read, 2 usage.
  */

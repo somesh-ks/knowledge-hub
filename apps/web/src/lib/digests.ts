@@ -4,9 +4,9 @@ import {
   type Digest,
   type DigestItem,
   digestSections,
-} from "@dispatch/core";
-import { paletteAccent } from "@dispatch/cover";
-import { leadInWords } from "@dispatch/engine/audio";
+} from "@singularity/core";
+import { paletteAccent } from "@singularity/cover";
+import { leadInWords } from "@singularity/engine/audio";
 import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contracts";
 import type { DigestSource } from "./digestFiles";
 import { longDate } from "./format";

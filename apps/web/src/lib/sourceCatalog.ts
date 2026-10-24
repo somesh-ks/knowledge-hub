@@ -21,7 +21,7 @@ export interface LoadCatalogOptions {
   env?: Record<string, string | undefined>;
 }
 
-/** Reads the catalogue. With DISPATCH_FIXTURES=1 it reads the invented one, so a real build never shows it. */
+/** Reads the catalogue. With SINGULARITY_FIXTURES=1 it reads the invented one, so a real build never shows it. */
 export async function loadSourceCatalog(
   options: LoadCatalogOptions = {},
 ): Promise<CatalogSource[]> {

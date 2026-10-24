@@ -10,7 +10,7 @@ Narration on Play, voices, audio.yml, prewarming, budgets. What it does now. Rea
 - Narration comes from Speechify through `/api/narrate` with word marks (`/api/narrate-marks`); the transcript follows them, with an estimate where a segment has none.
 - The page may play audio only from its own address and the Blob store (D62).
 - Scenario: WHEN narration is refused or fails (503, or a deployment with no narration route: 405, 501) THEN the page says "Narration is not available right now".
-- Scenario: WHEN `dispatch publish` runs THEN recent episodes lacking stored turns are narrated whole (`publishEpisodes.ts`): `audio/<ep-id>/seg/t<idx>.<hash>.mp3` and `.marks.json`, the hash being sha256 of voice, model and text, 12 characters (`segmentStore.ts`, `core/episodeScript.ts`). `podcast.yml` calls `audio.yml` after an episode commit (D128). A changed voice or model gives a new hash and narrates again.
+- Scenario: WHEN `singularity publish` runs THEN recent episodes lacking stored turns are narrated whole (`publishEpisodes.ts`): `audio/<ep-id>/seg/t<idx>.<hash>.mp3` and `.marks.json`, the hash being sha256 of voice, model and text, 12 characters (`segmentStore.ts`, `core/episodeScript.ts`). `podcast.yml` calls `audio.yml` after an episode commit (D128). A changed voice or model gives a new hash and narrates again.
 - Briefings are pre-narrated by `audio.yml` after each run.
 - A new episode can be heard from a live copy in Blob while it is written (D105).
 - Mobile interface sounds unlock on click and play through the iOS silent switch (D105).
@@ -22,7 +22,7 @@ Narration on Play, voices, audio.yml, prewarming, budgets. What it does now. Rea
 - A discussion's second voice defaults to `dominic_32`.
 
 ### Budgets
-- Three narrations a day (`NARRATE_DAILY_CAP`, `apps/web/src/server/limits.ts`) and the budget counters are enforced; a prewarm on the site spends one of the three (D82), while pre-narration in `dispatch publish` counts against the monthly Speechify budget only (D128); Play never asks for anything (no passphrase, D160).
+- Three narrations a day (`NARRATE_DAILY_CAP`, `apps/web/src/server/limits.ts`) and the budget counters are enforced; a prewarm on the site spends one of the three (D82), while pre-narration in `singularity publish` counts against the monthly Speechify budget only (D128); Play never asks for anything (no passphrase, D160).
 - `POST /api/narrate` takes the shared burst cap (bucket `narrate`, D150) once the origin and body pass and before the store is opened; past it the answer is 429 `cooldown` until the minute ends.
 - Speechify client tests run through an in-memory fake fetch.
 

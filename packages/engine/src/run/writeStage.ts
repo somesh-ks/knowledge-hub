@@ -7,7 +7,7 @@ import {
   type SourceStatsFile,
   type Topic,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";

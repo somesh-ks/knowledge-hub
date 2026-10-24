@@ -1,4 +1,4 @@
-import type { DigestKind, ScheduleFile } from "@dispatch/core";
+import type { DigestKind, ScheduleFile } from "@singularity/core";
 import type { RunMode } from "../gate/decideRun.js";
 
 /**

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { type Item, itemId, type JudgmentEntry, type Source } from "@dispatch/core";
+import { type Item, itemId, type JudgmentEntry, type Source } from "@singularity/core";
 import type { FetchDeps } from "../src/fetch/types.js";
 import type { FetchWindow } from "../src/gate/fetchWindow.js";
 import { createHttpClient, type FetchImpl } from "../src/http.js";

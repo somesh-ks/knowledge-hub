@@ -94,7 +94,7 @@ if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // The build goes with it (D158), read once here: in-app moves swap the head's meta for the new
 // page's while this bundle, the one that raised the fault, keeps running.
 // Kept a few hundred bytes: it is on every page's first load.
-const build = document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content;
+const build = document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content;
 let reports = 0;
 const report = (fault: object): void => {
   if (reports++ < 5)
@@ -131,8 +131,8 @@ addEventListener("vite:preloadError", () => {
   // Offline, a failed import is the network's doing and a reload would lose the page.
   if (!navigator.onLine) return;
   try {
-    if (sessionStorage.getItem("dispatch:reloaded")) return;
-    sessionStorage.setItem("dispatch:reloaded", "1");
+    if (sessionStorage.getItem("singularity:reloaded")) return;
+    sessionStorage.setItem("singularity:reloaded", "1");
   } catch {
     return;
   }
@@ -182,7 +182,7 @@ if (counted()) {
   document.addEventListener("visibilitychange", vitals, { once: true });
 }
 try {
-  if (localStorage.getItem("dispatch:deleted-episodes")) void import("./deletedEpisodes");
+  if (localStorage.getItem("singularity:deleted-episodes")) void import("./deletedEpisodes");
 } catch {
   // Storage can be blocked; nothing is then hidden.
 }

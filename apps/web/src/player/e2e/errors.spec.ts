@@ -9,7 +9,9 @@ type Answer = { file: boolean } | { refusal: string; status?: number };
  */
 async function serve(page: Page, answer: (key: string) => Answer): Promise<void> {
   const ids = await page.evaluate(() => {
-    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    const data = JSON.parse(
+      document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+    );
     return (data.items as { id: string }[]).map((item) => item.id);
   });
   const keys = ["intro", ...ids];

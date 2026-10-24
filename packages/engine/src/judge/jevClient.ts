@@ -1,4 +1,4 @@
-import { type Env, requireKey } from "@dispatch/core";
+import { type Env, requireKey } from "@singularity/core";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import type { JevClientLike } from "./jev.js";
 

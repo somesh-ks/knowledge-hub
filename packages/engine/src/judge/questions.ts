@@ -1,4 +1,4 @@
-import { type CategoryOrNone, hashOf } from "@dispatch/core";
+import { type CategoryOrNone, hashOf } from "@singularity/core";
 import { choice, noul, score } from "@typesafe-ai/sdk";
 
 /**

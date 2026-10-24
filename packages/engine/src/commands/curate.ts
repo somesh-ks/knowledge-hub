@@ -1,6 +1,6 @@
 import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestKind, JudgmentsFile, requireKey } from "@dispatch/core";
+import { DigestKind, JudgmentsFile, requireKey } from "@singularity/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { validateAgentSelection } from "../curate/agentMode.js";
 import { type ApiRuntimeFactory, createApiRuntime } from "../curate/apiRuntime.js";
@@ -26,7 +26,7 @@ import { loadVoice } from "../voice/voice.js";
 import { writtenText } from "../write/text.js";
 
 export const CURATE_USAGE =
-  "Usage: dispatch curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>] [--out <dir>] [--run <id>] [--since <iso>] [--threshold <0-1>]";
+  "Usage: singularity curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>] [--out <dir>] [--run <id>] [--since <iso>] [--threshold <0-1>]";
 
 interface Flags {
   mode: "api" | "agent" | undefined;
@@ -88,7 +88,7 @@ function parseFlags(argv: string[]): Flags {
 }
 
 /**
- * `dispatch curate`. API mode judges, scores, selects, extracts, writes and validates through the
+ * `singularity curate`. API mode judges, scores, selects, extracts, writes and validates through the
  * model clients and writes `selection.json`, `written.json`, `judgments.json` and
  * `curate-report.json` under `.cache/run/<id>/`. Agent mode writes `selection-schema.json`, then
  * validates the `selection.json` a Claude Code session provides and marks it unverified.

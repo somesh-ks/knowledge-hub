@@ -7,7 +7,7 @@ import { findRepoRoot } from "./repoRoot";
 import { type LastRunSummary, readLastRun, showsNothingBanner } from "./runState";
 
 /** Fixture digests point their audio here. It is replaced by a same-origin file at build time. */
-export const FIXTURE_AUDIO_HOST = "fixtures.dispatch.invalid";
+export const FIXTURE_AUDIO_HOST = "fixtures.singularity.invalid";
 export const FIXTURE_AUDIO_PATH = "/fixtures/audio.wav";
 
 export function usesFixtures(env: Record<string, string | undefined> = process.env): boolean {
@@ -47,7 +47,7 @@ export interface LoadSiteOptions {
  */
 export async function loadSite(options: LoadSiteOptions = {}): Promise<Site> {
   const env = options.env ?? process.env;
-  const warn = options.warn ?? ((message: string) => console.warn(`[dispatch] ${message}`));
+  const warn = options.warn ?? ((message: string) => console.warn(`[singularity] ${message}`));
   const root = options.root ?? findRepoRoot(process.cwd(), env);
   const fixtures = usesFixtures(env);
   const fixturesRoot = join(root, "apps", "web", "src", "fixtures");

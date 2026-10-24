@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { Digest, DigestItem, Section } from "@dispatch/core";
-import { digestRelPath, loadEnv, serializeDigestFile } from "@dispatch/core";
+import type { Digest, DigestItem, Section } from "@singularity/core";
+import { digestRelPath, loadEnv, serializeDigestFile } from "@singularity/core";
 import type {
   MarksSynthesis,
   SpeechMark,
@@ -252,7 +252,7 @@ export interface TempRoot {
   cleanup(): Promise<void>;
 }
 
-export async function makeTempRoot(prefix = "dispatch-audio-"): Promise<TempRoot> {
+export async function makeTempRoot(prefix = "singularity-audio-"): Promise<TempRoot> {
   const root = await mkdtemp(join(tmpdir(), prefix));
   return {
     root,

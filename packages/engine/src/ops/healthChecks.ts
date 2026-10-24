@@ -18,7 +18,7 @@ import {
   VITAL_METRICS,
   VITAL_THRESHOLDS,
   type VitalMetric,
-} from "@dispatch/core";
+} from "@singularity/core";
 import {
   type EpisodeVoiceEnv,
   planEpisodeNarration,
@@ -51,7 +51,7 @@ import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
 
 /**
- * The checks hardening round 3 added to `dispatch health` (docs/engineering/hardening.md): the
+ * The checks hardening round 3 added to `singularity health` (docs/engineering/hardening.md): the
  * config files and episodes parse, and a run that died before it recorded anything. Each one reports
  * through the sink with a stable code, as health.ts's own checks do.
  */

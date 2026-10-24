@@ -41,7 +41,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D27 | Owner and Dependabot pull requests merge automatically | active |
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
-| D30 | The reader is called Singularity; identifiers keep `dispatch` | active |
+| D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
 | D31 | The visual language follows Google Podcasts and YouTube Music | active; the outlined play chip is tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
@@ -186,6 +186,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
+| D179 | Every name says Singularity; saved state moves once | active |
 
 ---
 
@@ -1901,3 +1902,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: the islands as Astro markup and a vanilla toaster (the doc's first sketch; the directive keeps the islands, `transition:persist` and SSR as they were); hydrating at idle without an input (the bytes and the 100 ms hydration task come back on every visit).
 - Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
 - Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
+
+## D179: Every name says Singularity; saved state moves once
+
+- Date: 2026-10-24 (the owner: "I'd like to move everything that's named dispatch to singularity", then chose the full rename with migration)
+- Decision: this replaces D30. The packages are `@singularity/*`, the CLI is `npm run singularity`, and the agents, reports, User-Agent, element ids, page events, storage keys (`singularity:*`), service worker caches, token extensions, workflow groups, `SINGULARITY_*` variables and docs say Singularity. Saved state moves once: a head script (`storageRename.js`) renames every `dispatch:*` key before anything reads it, and downloaded episodes are copied from `dispatch-audio-v1` by the page and moved by the new worker. Old variable names are still read: `adoptOldNames` in the engine and `secrets:push`, `vars.SINGULARITY_X || vars.DISPATCH_X` in workflows, and the config store switch on the site. The site's token is `GITHUB_SINGULARITY_TOKEN` (the owner renamed it first; `GITHUB_DISPATCH_TOKEN` is still read). `workflow_dispatch` and the verb stay. Past decisions and `docs/history/` keep the old name.
+- Why: D30 kept the old names to protect saved preferences, positions and downloads; a one-time move protects them as well, and reading both variable names means no run fails before the owner renames a setting.
+- Rejected: keeping D30 (the owner wants one name); a rename without the move (wipes what a phone saved).
+- Revisit when: the owner has renamed the GitHub and Vercel variables and every device has opened the site once; then the old-name readers, `storageRename.js` and the audio move can go.

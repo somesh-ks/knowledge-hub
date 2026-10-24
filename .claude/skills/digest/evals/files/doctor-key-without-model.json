@@ -21,7 +21,7 @@
     {
       "id": "repo",
       "status": "ok",
-      "summary": "/work/dispatch"
+      "summary": "/work/singularity"
     },
     {
       "id": "remote",
@@ -122,13 +122,13 @@
       "id": "model.SINGULARITY_MODEL",
       "status": "warn",
       "summary": "not set",
-      "hint": "The writer cannot run. Run `dispatch models` to pick one, then set SINGULARITY_MODEL in .env."
+      "hint": "The writer cannot run. Run `singularity models` to pick one, then set SINGULARITY_MODEL in .env."
     },
     {
       "id": "model.SINGULARITY_FALLBACK_MODEL",
       "status": "warn",
       "summary": "not set",
-      "hint": "There is no failover if the primary id is retired. Run `dispatch models` to pick one, then set SINGULARITY_FALLBACK_MODEL in .env."
+      "hint": "There is no failover if the primary id is retired. Run `singularity models` to pick one, then set SINGULARITY_FALLBACK_MODEL in .env."
     }
   ]
 }

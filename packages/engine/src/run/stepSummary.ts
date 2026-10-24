@@ -10,7 +10,7 @@ export function formatStepSummary(
   stage: StageName | "run",
   report: PipelineResult["report"],
 ): string {
-  return `### dispatch ${stage === "run" ? "run" : `run --stage ${stage}`}\n\n\`\`\`text\n${formatReport(report)}\n\`\`\`\n`;
+  return `### singularity ${stage === "run" ? "run" : `run --stage ${stage}`}\n\n\`\`\`text\n${formatReport(report)}\n\`\`\`\n`;
 }
 
 /**

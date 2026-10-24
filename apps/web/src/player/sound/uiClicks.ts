@@ -85,7 +85,7 @@ function isPersonal(event: Event, target: Element): boolean {
 }
 
 export function onUiEvent(event: Event): void {
-  if (event.type === "dispatch:sound") {
+  if (event.type === "singularity:sound") {
     const kind = (event as CustomEvent<unknown>).detail;
     if (kind === "success" || kind === "failure") playUiCue(cueForOutcome(kind));
     return;
@@ -119,7 +119,7 @@ export function onUiEvent(event: Event): void {
 /** Plays the cue and announces it, so a test (and anything else that cares) sees which was heard. */
 function say(cue: Cue | null): void {
   if (cue && playUiCue(cue))
-    document.dispatchEvent(new CustomEvent("dispatch:cue", { detail: cue.name }));
+    document.dispatchEvent(new CustomEvent("singularity:cue", { detail: cue.name }));
 }
 
 /** An open or close the press already sounded (or that follows one) is not sounded again. */

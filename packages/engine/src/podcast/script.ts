@@ -1,4 +1,4 @@
-import type { PodcastRequest } from "@dispatch/core";
+import type { PodcastRequest } from "@singularity/core";
 import type { Logger } from "../context.js";
 import { BudgetExceededError, describeError } from "../llm/errors.js";
 import type { Taste } from "../profile/tasteNote.js";

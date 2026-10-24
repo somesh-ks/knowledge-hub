@@ -181,7 +181,7 @@ test.describe("playback on a briefing", () => {
     await expect.poll(() => time(page)).toBeGreaterThan(9);
     await player.finger.press(player.dialog.getByRole("button", { name: "Pause", exact: true }));
     const saved = Number(
-      await page.evaluate(() => localStorage.getItem("dispatch:resume:2026-10-07")),
+      await page.evaluate(() => localStorage.getItem("singularity:resume:2026-10-07")),
     );
     expect(saved).toBeGreaterThan(9);
     await page.reload({ waitUntil: "networkidle" });

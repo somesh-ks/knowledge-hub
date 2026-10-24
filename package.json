@@ -1,5 +1,5 @@
 {
-  "name": "dispatch",
+  "name": "singularity",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,16 +10,16 @@
     "packages/*"
   ],
   "scripts": {
-    "dispatch": "tsx packages/engine/src/cli.ts",
-    "typecheck": "npm run typecheck:packages && npm run check -w @dispatch/web",
+    "singularity": "tsx packages/engine/src/cli.ts",
+    "typecheck": "npm run typecheck:packages && npm run check -w @singularity/web",
     "typecheck:packages": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:fast": "vitest run --exclude '**/git-*.test.ts'",
     "gate": "node scripts/gate.mjs",
-    "build": "npm run build -w @dispatch/web",
-    "dev": "npm run dev -w @dispatch/web",
+    "build": "npm run build -w @singularity/web",
+    "dev": "npm run dev -w @singularity/web",
     "tokens": "tsx scripts/buildTokens.ts",
     "design-check": "vitest run apps/web/src/styles/styles.test.ts scripts/buildTokens.test.ts",
     "glyphs": "tsx scripts/buildGlyphs.ts",

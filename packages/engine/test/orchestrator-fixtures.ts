@@ -11,8 +11,8 @@ import {
   parseDigestFile,
   type Source,
   serializeDigestFile,
-} from "@dispatch/core";
-import { pickCover } from "@dispatch/cover";
+} from "@singularity/core";
+import { pickCover } from "@singularity/cover";
 import type { Logger } from "../src/context.js";
 import type { ApiRuntime } from "../src/curate/apiRuntime.js";
 import type { PoolFile } from "../src/fetch/pool.js";
@@ -346,7 +346,7 @@ export interface TestRepo {
 
 /** Build the seed repository once; tests copy it instead of repeating a dozen git calls. */
 export async function buildTemplate(): Promise<string> {
-  const base = await mkdtemp(join(tmpdir(), "dispatch-orch-tpl-"));
+  const base = await mkdtemp(join(tmpdir(), "singularity-orch-tpl-"));
   const remote = join(base, "remote.git");
   const a = join(base, "a");
   const b = join(base, "b");
@@ -367,7 +367,7 @@ export async function buildTemplate(): Promise<string> {
 }
 
 export async function instantiate(template: string): Promise<TestRepo> {
-  const base = await mkdtemp(join(tmpdir(), "dispatch-orch-"));
+  const base = await mkdtemp(join(tmpdir(), "singularity-orch-"));
   await cp(template, base, { recursive: true });
   const remote = join(base, "remote.git");
   const root = join(base, "a");
@@ -440,7 +440,7 @@ export function head(cwd: string): string {
   return git(cwd, "rev-parse", "HEAD");
 }
 
-/** A pool file as `dispatch fetch` writes it, for tests that start from a pool. */
+/** A pool file as `singularity fetch` writes it, for tests that start from a pool. */
 export function poolFile(
   id: string,
   items: readonly Item[],

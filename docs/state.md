@@ -42,7 +42,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
 - Config store (D149): on since 2026-10-24 (`/api/config` answers 200, rows seeded from `main` that day). closed when: a phone's edit shows on a laptop and a run names the store.
-- A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `dispatch` group); production's `GITHUB_DISPATCH_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
+- A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
 - Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on production.
 - Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
@@ -56,7 +56,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 - Unverified (D106 to D109): the volume slider's linger and hold while dragged, the highlight's pause on a live briefing, a vote batch sent on unload, a briefing regenerated with a topic its run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
-- `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
+- `doctor --online` does not check `GITHUB_SINGULARITY_TOKEN`, and no end-to-end test applies a real op array through `config apply`. closed when: both exist.
 - [Analytics](specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
 - Link cards (D153 stage 0). closed when: a briefing link pasted in WhatsApp, iMessage and Slack shows its card.
 - `serviceWorker.spec.ts:140` failed 1 of 373 local runs (an icon stylesheet preload as the page went offline), never in CI. closed when: a trace names the cause or 500 runs pass.
@@ -69,7 +69,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
-- A save made while a briefing runs waits in the `dispatch` queue, and a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
+- A save made while a briefing runs waits in the `singularity` queue; a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
 
 ## Next
 

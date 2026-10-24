@@ -1,4 +1,4 @@
-import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@dispatch/core";
+import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@singularity/core";
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore, readFresh } from "../../server/blobStore";
