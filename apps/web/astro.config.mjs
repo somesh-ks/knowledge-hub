@@ -51,6 +51,7 @@ function keepCoverFontsReachable() {
  * beside the CSS instead of one round trip at a time after idle. A hand-edited build made the bar
  * pressable 1.3 to 2.5 s sooner on a throttled phone with the largest paint unchanged
  * (docs/engineering/first-load-js.md). Links, not inline scripts: the policy hashes every inline script.
+ * A `client:wake` island gets none: its modules load when the page wakes it (scripts/islandWake.ts).
  */
 function preloadPageModules() {
   return {
@@ -69,6 +70,21 @@ function preloadPageModules() {
           const hinted = withModulePreloads(html, read);
           if (hinted !== html) writeFileSync(file, hinted);
         }
+      },
+    },
+  };
+}
+
+/** `client:wake`: an island that hydrates when the page wakes it (src/lib/wakeDirective.ts). */
+function wakeDirective() {
+  return {
+    name: "dispatch-wake-directive",
+    hooks: {
+      "astro:config:setup": ({ addClientDirective }) => {
+        addClientDirective({
+          name: "wake",
+          entrypoint: fileURLToPath(new URL("./src/lib/wakeDirective.ts", import.meta.url)),
+        });
       },
     },
   };
@@ -117,6 +133,7 @@ export default defineConfig({
     : vercel({ maxDuration: FUNCTION_MAX_DURATION_S, includeFiles: FILES_PAGES_READ }),
   integrations: [
     react(),
+    wakeDirective(),
     preloadPageModules(),
     ...(staticOnly ? [stubApiRoutesForStaticBuild()] : []),
   ],

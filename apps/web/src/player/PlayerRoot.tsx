@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import "../styles/player.css";
-import { startPlayerRuntime } from "./core/playerRuntime";
 import { loadPlayerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerSurface from "./PlayerSurface";
@@ -16,15 +15,14 @@ function whenIdle(task: () => void): () => void {
 }
 
 /**
- * The player island. Mount it once in the base layout as a persistent `client:idle` island: it
- * owns the audio store's wiring (Media Session, the reader coupling, announcements, sounds) and
- * renders the player surface. The page's controls are a separate chunk, fetched when the browser
+ * The player island. Mount it once in the base layout as a persistent `client:wake` island: it
+ * renders the player surface over the audio store, whose wiring (Media Session, the reader coupling,
+ * announcements, sounds) the layout's script starts at load, without React. The page's controls are a separate chunk, fetched when the browser
  * is idle, so reading and pressing play never wait on them.
  */
 export default function PlayerRoot() {
   const coverSrc = usePlayerState().track?.digest.cover.src1024;
 
-  useEffect(() => startPlayerRuntime(), []);
   // Ready before it is wanted: the open page's controls and the surface's motion. A failure here
   // is retried at the first touch on the bar.
   useEffect(

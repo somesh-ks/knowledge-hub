@@ -7,9 +7,11 @@ import {
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
+  gzipBytes,
   overBudget,
   unallowedInlineScripts,
   unhintedModules,
+  wakeModules,
 } from "../src/lib/bundleBudget";
 import { linkCardProblems } from "../src/lib/linkCard";
 
@@ -55,8 +57,11 @@ for (const page of pagesIn(root)) {
   const html = readFileSync(page, "utf8");
   const report = firstLoadReport(entryScripts(html), read);
   largest = Math.max(largest, report.totalGzip);
+  const woken = [...new Set(wakeModules(html, read).flat())];
+  const wakeBytes = woken.reduce((sum, url) => sum + gzipBytes(read(url) ?? ""), 0);
+  const onWake = woken.length > 0 ? `, ${kilobytes(wakeBytes)} more on wake` : "";
   console.log(
-    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files`,
+    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files${onWake}`,
   );
   failures.push(...overBudget([{ name, totalGzip: report.totalGzip }]));
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);
