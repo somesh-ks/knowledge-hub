@@ -124,7 +124,7 @@ Ask, then what was built, then the decision. Values are as built.
   - `accent-container` for chosen or current.
   - `accent-container-high` for actions that are not places, such as New episode (D86).
   - State layers: hover 8%, press 12% of the control's ink.
-  - Pills for buttons, chips, select chips, select values, segmented controls and the search field, in a card as on the page (D160, 2026-10-23: "that shouldn't be possible in a design system"). For one day (2026-10-22) chips and select values in a card took the card's concentric radius; the owner reversed it on the phone. 12px rows, outlines only on text fields (3:1, D54).
+  - Pills for buttons, chips, select chips, select values, segmented controls and the search field, in a card as on the page, and for every select in a form (D162: the Create sheet, the Add panel, the multi-select; text fields keep 8px) (D160, 2026-10-23: "that shouldn't be possible in a design system"). For one day (2026-10-22) chips and select values in a card took the card's concentric radius; the owner reversed it on the phone. 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
   - Two weights, regular and medium; a test bans a third (D90).
@@ -407,6 +407,11 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
   - The action is called Catch up, the kind its episodes are filed under, on the floating button, the side column, the sheet's title and the Library's empty state; Latest's glyph is a bolt, not a flame (D161, 2026-10-23).
 - **Toast.** Swipes away sideways under a finger, springs back from a short drag, never undoes (D161, `Toaster.tsx`).
+- **Queue (Up next).** No handle, no cross: a row moves by the browser's drag and drop (long press or mouse pull), swipes left to leave, and its dots open the header's menu with Move up, Move down, Remove (D162). The Stories and Up next switch keeps the segmented look on a phone, in a sticky bar.
+- **App bar on a page with a sticky block.** Pinned (`data-pins-bar`): it no longer slides away and back under a topic's search and chips (D162).
+- **Section tabs.** 16px each side, the indicator under the words (D162: "placed too close to each other").
+- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D162).
+- **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D164: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
 ### Sound
 - **Engine.**
@@ -445,7 +450,9 @@ The craft that makes components hold still and answer clearly. Each was a report
 | Time zone removed, then asked back | D89, D100 | Do not remove a control the owner asked for to simplify; ask first. |
 | Format and second voice removed, then back | D91, D100 | A control that does not act yet is still wanted when it states intent. |
 | Bar chevron added, then removed | D85, D102 | The whole bar is the control; extra affordances read as clutter. |
-| Chips and select values concentric in a card, then pills again a day later | 2026-10-22, D160 | A radius rule that gives one control two shapes reads as two components; judge it on the phone, not in a measurement. |
+| Chips and select values concentric in a card, then pills again a day later | 2026-10-22, D160 |
+| Covers capped at chroma 0.12 on pale paper, then a step of colour eight days later | D121, D164 | "Too saturated" and "very dull" are both judged in a grid on the phone; keep the contact sheet in the loop and move in steps. |
+| The player's tab line on a phone, then the segmented control everywhere | 2026-10-21, D162 | One control, one look at every width; a phone variant of a control is a second component. | A radius rule that gives one control two shapes reads as two components; judge it on the phone, not in a measurement. |
 | Source names as links, then plain text | D69, D83 | One element, one job: the row opens the editor. |
 | Saved toast and "Live in about a minute" line, then silence | D79, D115 | Truthful status the owner did not ask to see is noise. |
 | General audience and its preset Undo, then retired | D67, D87, D114 | A mode one person never uses is cost, not choice. |
@@ -662,8 +669,8 @@ Read before any UI that a phone shows (the default: every browser test runs on t
 4. **Edges line up with the search field.** A row that shares a column with the search field sits its emoji and its chevron 16px in, the field's own padding, so they line up with the field's glyph and its clear button (2026-10-23).
 5. **No tap flash, every control shows its own press.** `foundations.css` clears the highlight on buttons, links that act, labels, selects and inputs; the press is a state layer (8% hover, 12% press) on the control's own fill. A flash on one control and not its neighbour is the first thing the owner sees.
 6. **Targets.** 44px for every control, 48 for a field, 56 for a one-line row, 64 to 72 for two lines; a 36px chip gets its target from an `::after`. A sticky bar never covers a target at rest (`a11y.spec.ts`, axe).
-7. **The thumb's reach.** The one primary action floats bottom-end and folds to its glyph while reading; the navigation is a bottom bar; a toast sits above the bar and the docked player; sheets rise from the bottom; the app bar carries only Back and the wordmark. Nothing a reader needs often sits at the top.
-8. **Swipe and pull.** A toast swipes away sideways (a dismissal, never an Undo: `Toaster.tsx`); a menu sheet pulls closed; the player pulls down. A short gesture springs back to the same box, and a browser test compares the box to itself, never to a number.
+7. **The thumb's reach.** Every row's actions live in a dots menu at its end (a bottom sheet on a phone), never in a row of icon buttons. The one primary action floats bottom-end and folds to its glyph while reading; the navigation is a bottom bar; a toast sits above the bar and the docked player; sheets rise from the bottom; the app bar carries only Back and the wordmark. Nothing a reader needs often sits at the top.
+8. **Swipe and pull.** A toast swipes away sideways (a dismissal, never an Undo: `Toaster.tsx`); a queue row swipes left to leave and moves by a long press (the browser's drag and drop, the one way a long press lifts a row while the list still scrolls); a menu sheet pulls closed; the player pulls down. A short gesture springs back to the same box, and a browser test compares the box to itself, never to a number.
 9. **Nothing moves under a finger.** A field grows on focus only with a fine pointer; the picker does not focus its search on a coarse pointer, so the keyboard never covers the list; inputs are 16px so iOS never zooms; fixed elements are held by their bottom edge, so the address bar moves them in one frame.
 10. **Widths.** Under 40rem is a phone (sheets, one column, the bottom bar); under 64rem there is no side column (the floating action, the sticky search). Test at 390 by 844 (Pixel 7) and 1280 by 800, light and dark, and screenshot every open state before a PR.
 

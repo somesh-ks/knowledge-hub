@@ -22,6 +22,10 @@
 
 Asked while the suites ran: checks at the end of a sheet's rows; "New episode" renamed Catch up (the kind its episodes are filed under) on the floating button, the side column, the sheet, the Create page, the Library's empty state and the manifest shortcut; Latest's flame swapped for Phosphor's lightning in `tokens/glyphs.json` (`npm run glyphs`); a toast that swipes away sideways (`Toaster.tsx`: past 35% of its width or 0.6 px/ms; a swipe dismisses and never undoes; one phone test in `storyVotes.spec.ts` compares the box to itself after a short drag). The ledger gained section 11, the phone patterns, for agents.
 
+## The third round (D162 to D164)
+
+Eight more asks at once. Built: the app bar pinned on pages with a sticky block (`data-pins-bar`); the player's switch segmented at every width in a sticky bar; queue rows reordered by native drag and drop (a long press on a phone, a pull with a mouse), removed by a swipe left, with a dots menu for Move up, Move down and Remove (the handle and the cross went); every select a pill in forms too; section tabs 16px apart; the Costs card's chart/table glyph switch; the weight rows' stop names at the row's end; covers with a 0.16 chroma cap and a deeper, tinted light stock (D164, judged on `npm run covers:sheet`). Written, not built: the modular podcast structure (D163, [design](../design/podcast-structure.md)) with five questions for the owner. Checked: the live Analytics page loads ($0.43, 10 runs); the one path to "Unavailable" is a non-200 from `/api/costs`.
+
 ## The Neon switch-on
 
 - The seed workflow ran its first time, as a dry run with replace: four rows differ from the committed files, the GitHub secret is set.

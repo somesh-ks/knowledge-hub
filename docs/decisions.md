@@ -172,6 +172,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D159 | Deploy alerts | amends D157 |
 | D160 | One shape per control; phone lists are sheets | amends the 2026-10-22 card rule |
 | D161 | Catch up, a bolt, swipe-away toasts | amends D52 |
+| D162 | Queue gestures and menu; pinned bar; pill selects everywhere | amends D126 |
+| D163 | Modular podcast structure | proposed |
+| D164 | Richer covers | amends D121 |
 
 ---
 
@@ -1752,3 +1755,36 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: "New episode" named the mechanism; the Library already called the result Catch up. A phone's snackbar is swiped away everywhere else, and the toast's close button shows only while an action is offered.
 - Cost: four browser tests and four specs renamed; a reader who learnt "New episode" finds Catch up in its place.
 - Amends: D52 (the floating button's word).
+
+## D162: queue rows move by drag and menu, and the phone's controls hold still
+
+- Date: 2026-10-23 (the owner: "the up next & stories tabs must be segmented selectors"; "the up next list items must be draggable on long press on mobile, by click on desktop... replaced with a swipe left gesture for removing a track from queue... have 3 dots icon buttons"; "it is annoying when I scroll up to see the glitch when the top navigation bar also shows up with sticky sources bar"; "the tabs on podcast details page are placed too close"; "drop-down consistency must also happen on all pages"; "two icon segmented selector items to switch between chart and table"; "the status text must be on the right side")
+- Decision:
+  - The player's Stories and Up next switch keeps the segmented look at every width; on a phone it sits in a sticky bar on the page's colour (`.player-tabs-bar`) instead of becoming a tab line.
+  - A queue row has no handle and no cross. It moves by the browser's own drag and drop (`draggable`: a long press lifts it under a finger, a press and pull with a mouse; the list keeps scrolling), the row it is over shows an accent line on the edge it would join, and a sideways swipe to the left takes it off (past 35% of its width or 0.6 px/ms; a short one springs back). The dots at its end open the header's More menu (`hero-menu-list menu-sheet`: a popover under the dots, a bottom sheet on a phone) with Move up, Move down and Remove from queue, which is also the keyboard's way, announced as before.
+  - A page with a block that sticks under the app bar (a topic's search and chips) pins the bar: `data-pins-bar` on the block, read by the header's scroll script. The bar had slid away and back as the reader scrolled, moving the block by its height each time.
+  - Section tabs sit 16px each side (32px apart), the indicator under the words; the strip takes the extra back at the gutter.
+  - Every select is a pill, in a form too: the Create sheet's selects and pickers, the Add source panel's, the multi-select trigger. Text fields keep `--field-radius`.
+  - The Costs card switches between its chart and its table with two glyph tabs (chart, table) at the end of the filter row, the segmented navigation made compact; the "Show as a table" disclosure under the card is gone.
+  - A weight row's stop name sits at the end of its first line, across from the name.
+- Why: the handle and cross made the row read as a form; a phone's lists move by long press and swipe. Native drag and drop is the one way a long press can lift a row while the list still scrolls (a pointer-events drag needs `touch-action: none`, which kills scrolling; that is why the handle existed). The bar pin was the owner's own first suggestion and costs 56px; making the block follow the bar as the briefing's tabs do (`--tabs-follow`) would take a measuring script per page.
+- Cost: the drag ghost is the browser's; the drop line is the only drawn feedback. A swipe on a mouse works too (owner's ask) and so a sideways mouse drag never starts a reorder; vertical does. Four sheet mechanisms now exist for one look (ledger gap 11).
+- Rejected: a pointer-events long-press drag (no scrolling); anchor-positioned React popovers with their own anchors (the header menu's `--hero-more` name resolves to the nearest dots, so the shared rules serve).
+- Amends: D126 (the queue's handle and cross).
+
+## D163: a modular podcast structure, proposed
+
+- Date: 2026-10-23 (the owner: "there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections)... The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it")
+- Status: proposed. [The design](design/podcast-structure.md) answers the ask: one structure per kind (daily, weekly, catch up) as an ordered list of blocks (hello, rundown, sections with depth and count, top picks, trending, release news, close, sign-off) in `config/structure.json`, one `structure.set` op, read by curate (section order and allowances) and by the episode planner and prompt; a Preferences view with the queue's reorder gestures and a sheet to add or edit a block; defaults that reproduce today's shapes exactly, so nothing changes until edited. Five open questions for the owner close it.
+- Why: a briefing's reading order and an episode's script shape live in two files nobody can edit; the owner wants to compose them.
+- Revisit if: the owner answers the open questions, which turns this into a build decision.
+
+## D164: covers take a step of colour: chroma to 0.16, the light stock deeper and tinted
+
+- Date: 2026-10-23 (the owner: "the album arts of the podcasts are very dull, they need to be refreshing in all themes but still be optimized for dark and light theme")
+- Decision: `MAX_CHROMA` rises from 0.12 to 0.16 and every palette's ground and accent in `tokens/covers.json` carries 1.4 times its chroma, capped there (text roles unchanged). The monthly paper (`series/paper.ts`) reads as a coloured stock: its least chroma 0.045 to 0.09, its inks 1.4 times the scheme's colour (was 1.25), and the light theme's stocks a step deeper (weekly 0.92 to 0.88, on-demand 0.86 to 0.81, daily 0.80 to 0.74 in OKLCH lightness); the dark theme's stocks stay, since the dark page already carried full chroma. Every contrast floor is still held by the code and the family tests; the site's cover cache key hashes the renderer and the palettes, so the next build redraws every cover.
+- Why: D121 answered "too saturated" on 2026-10-15 with a 0.12 cap and pale papers; eight days of the October paper read as dull on the phone. The paper is nine tenths of each cover, so its tint and depth move the grid more than any ink.
+- Cost: a grid of a month is more colourful than D121 measured for (its colourfulness check is not rerun here); the owner's "too bright on light mode" weeklies are a step deeper, not brighter. One hue family a month is still the scheme's rule, so variety across a month comes from the forms, not the hues.
+- Rejected: more hues per month (D121's harmony); a different paper per series (the owner chose close steps).
+- Amends: D121 (the cap and the stocks' lightness).
+- Revisit if: the owner judges the October grid on the phone in both themes; the contact sheet (`npm run covers:sheet`) is the review aid.

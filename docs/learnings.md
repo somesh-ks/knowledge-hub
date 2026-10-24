@@ -67,6 +67,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `dispatch doctor --online` after any credential change.
 
 ## Site and service worker
+- 2026-10-23: a long-press drag that must keep the list scrolling cannot be pointer events (`touch-action: none` kills the scroll): use `draggable`, and cancel `dragstart` when the press is already a sideways swipe.
 - 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in a versioned cache).
 
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
@@ -82,7 +83,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-23: lightningcss fails the build on `::picker(select)::backdrop`: scrim a sheet with a shadow spread (`0 0 0 100vmax`). A page stylesheet's `::picker` rule beats the shared one by load order; scope it to `(width >= 40rem)`.
 - 2026-10-22: Vercel checks `vercel.json`'s schema only on its servers; a failure stops every deploy (#220's 341-character `ignoreCommand`, limit 256, until #222). `vercelJson.test.ts` checks it.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry drops the package): set its version, `resolved` and `integrity`, then `npm ci`. In a linked worktree the adapter build's function check fails (`devalue` missing); check it after a real `npm ci`.
-- 2026-10-14: moving `detentGain` out of scrubberMath (the ranked cut) saved 0 KB: the bar imports scrubberMath too, so Rollup moved it whole into another eager chunk. Split by who imports it (the open scrubber's helpers into their own file) and check the built chunks, not the source.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
 - 2026-10-11: Biome rewrote a generic arrow function, `<T,>(x: T) => ...`, to `<T>(x: T) => ...` in an Astro frontmatter, which the Astro compiler rejects, so a lint-clean commit broke the build. Use a `function` declaration for generics in `.astro` files and build before pushing one.
 - 2026-10-08: a glyph listed only for the lazy icon set renders nothing through the eager `Icon`; `tsc` passes and only `astro check` catches it. Run `astro check` before a PR: CI does not.
