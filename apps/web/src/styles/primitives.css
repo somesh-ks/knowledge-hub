@@ -1227,12 +1227,14 @@
   background: var(--color-surface-overlay);
 }
 
+/* Its hover layer is the card's chip layer: half the state layer in light, where the full one took a
+   white chip past the card's own tone and it melted in (owner, 2026-10-24). */
 @media (hover: hover) and (pointer: fine) {
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
     background: color-mix(
       in oklch,
       var(--color-surface-overlay),
-      var(--color-on-surface) var(--state-hover)
+      var(--color-on-surface) var(--card-chip-hover)
     );
   }
 }

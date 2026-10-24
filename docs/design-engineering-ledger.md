@@ -123,7 +123,7 @@ Ask, then what was built, then the decision. Values are as built.
   - `surface-container` for the page's own controls.
   - `accent-container` for chosen or current.
   - `accent-container-high` for actions that are not places, such as the phone's floating New episode (D86); in dark it is blue-910, a lifted step like light's, never a fill (2026-10-23). In the rail New episode takes `surface-container` with accent ink, so beside the current row it is not a second selection (owner, 2026-10-22).
-  - State layers: hover 8%, press 12% of the control's ink.
+  - State layers: hover 8%, press 12% of the control's ink. A chip on a card hovers at half that in light (`--card-chip-hover`): the full layer took a white chip to L 94 on the card's L 95 and it melted in (owner, 2026-10-24).
   - Pills for buttons and chips on the page; inside a card they take its concentric radius (the owner chose this over pills everywhere, 2026-10-22). 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
