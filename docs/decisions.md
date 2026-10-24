@@ -171,6 +171,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
 | D161 | Publisher above the headline | active; amends D31 |
+| D173 | Episodes and settings as data, off the deploy path | proposed |
 
 ---
 
@@ -1742,3 +1743,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: the name cut with an ellipsis in the row (the owner's first call, 2026-10-22, before the measurement); dropping its glyph on a phone (about three letters more); a row that wraps (the orphan controls the owner had asked to remove).
 - Amends: D31's type rule that a quiet line goes under its title, never above it, for the publisher alone.
 - Revisit if: the chip and the controls narrow enough to hold a whole name beside them.
+
+## D173: episodes and settings leave the deploy path, proposed
+
+- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; "how does a professional music app like spotify or youtube handle this?"; "make sure our app is professional industry grade")
+- Status: proposed. [The design](design/data-off-the-deploy-path.md) keeps the page shell and the digests built and makes what changes between builds data: settings through the store (D149, D172, done) and episodes as Blob files with a small index the Library lays over itself, a monthly git copy for the record, and the device keeping the last index (D172's pattern). Episode deploys go from two to none; a run still deploys. Three questions for the owner close it.
+- Why: Dispatch treats data as code, so a save or an episode is a build and a deploy; the big apps ship code a few times a week and move data at run time. For one user, static pages stay the fastest shape, so only the data moves.
+- Rejected: rendering the Library at request time (a function call a visit, Neon's cold start, the static page lost); moving digests too (a run deploys anyway); keeping every episode in git (one deploy an episode stays).
+- Revisit if: the owner answers the questions, which turns this into a build decision.
