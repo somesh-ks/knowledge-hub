@@ -171,6 +171,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
 | D161 | Publisher above the headline | active; amends D31 |
+| D160 | Firecrawl 100 a week | amends D42 |
 
 ---
 
@@ -1725,6 +1726,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Privacy: no IP, user agent or identifier; fault reports are sent without D154's DNT and GPC opt-out, as before, and the Privacy page says so.
 - Rejected: storing the full message with quoted text removed by pairing quotes (review showed a reader's text survived: an email inside a JSON parse error, apostrophes, « » quotes); judging only the current build (content commits redeploy several times a day and wiped the history); a fault on one blocked script.
 - Revisit if: a warning turns out to be forged or extension noise (raise the threshold or add a per-page token), or the owner wants faults counted per reader.
+
+## D160: Firecrawl gets 100 requests a week, at most 50 a run
+
+- Date: 2026-10-24 (the owner: "change firecrawl budget to 100 per week")
+- Decision: each stage reads the cost ledger for the Firecrawl requests (listing pages and scrapes) other runs made in the 7 days before this one, and holds the run to what is left, at most 50 (was 30, D42); listings keep 55% of a run's room. A failed run's spend goes to the ledger with its failure record. A listing source left out for the week says so in its note. A ledger that does not read, or a run with no start time, warns and leaves the run its own 50.
+- Why: the YouTube relay (#235) and the article scrapes press on 30 a run. A weekly cap lets one run use more while the week stays at the owner's number; 50 is half the week, so one run can never spend it all.
+- Not counted: Alexandria credits (their own cap of 30 a run, D138), dry runs and failed on-demand runs, which commit nothing.
+- Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
 
 ## D159: a missing deploy is a fault a day on, and a failed smoke check opens an issue
 

@@ -127,14 +127,20 @@ export async function loadAllCosts(root: string): Promise<CostRecord[]> {
   return mergeRecords(...lists);
 }
 
-/** Firecrawl requests (listing and scrape) the ledger records since `since`, other runs only. */
+/**
+ * Firecrawl requests (listing and scrape) the ledger records from `since` to `until`, other runs
+ * only. Reads the month files the span touches (a record's month is that of its `at`).
+ */
 export async function firecrawlUsedSince(
   root: string,
   since: Date,
+  until: Date,
   excludeRun: string,
 ): Promise<number> {
   const from = since.toISOString();
-  return (await loadAllCosts(root))
+  const months = [...new Set([from.slice(0, 7), until.toISOString().slice(0, 7)])];
+  const records = mergeRecords(...(await Promise.all(months.map((m) => readMonth(root, m)))));
+  return records
     .filter(
       (record) =>
         record.provider === "firecrawl" &&

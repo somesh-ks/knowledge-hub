@@ -7,7 +7,9 @@ import { extractFullText, FEED_TEXT_ENOUGH_CHARS } from "../src/extract/extractT
 import { createFirecrawlScrape } from "../src/extract/firecrawlScrape.js";
 import {
   FIRECRAWL_LISTING_CEILING,
+  FIRECRAWL_LISTING_SHARE,
   FIRECRAWL_RUN_CEILING,
+  FIRECRAWL_WEEKLY_BUDGET,
   FirecrawlGuard,
   planFirecrawlListing,
 } from "../src/fetch/firecrawlBudget.js";
@@ -147,7 +149,8 @@ describe("the spend record", () => {
   it("gives a run what the 7 days before it left of the weekly budget", async () => {
     const root = await mkdtemp(join(tmpdir(), "spend-"));
     dirs.push(root);
-    const run = "2026-10-24T05:37:00.000Z";
+    // The week runs across a month, so it spans two ledger files.
+    const run = "2026-11-02T05:37:00.000Z";
     const spent = (run_id: string, credits: number) => ({
       id: `${run_id}|daily|fetch|firecrawl|scrape|owner`,
       at: run_id,
@@ -162,24 +165,28 @@ describe("the spend record", () => {
       units: { credits },
       usd: 0,
     });
+    const month = (name: string, records: unknown[]) =>
+      writeFile(join(root, `state/costs-${name}.json`), JSON.stringify({ version: 1, records }));
     await mkdir(join(root, "state"));
-    const records = [
-      spent("2026-10-16T05:37:00.000Z", 50), // eight days back: outside the week
-      spent("2026-10-20T05:37:00.000Z", 45),
-      spent("2026-10-22T05:37:00.000Z", 30),
+    const before = 30;
+    const after = 40;
+    await month("2026-10", [
+      spent("2026-10-25T05:37:00.000Z", 50), // eight days back: outside the week
+      spent("2026-10-29T05:37:00.000Z", before),
+    ]);
+    await month("2026-11", [
+      spent("2026-11-01T05:37:00.000Z", after),
       spent(run, 20), // this run's own record never counts against it
-    ];
-    await writeFile(
-      join(root, "state/costs-2026-10.json"),
-      JSON.stringify({ version: 1, records }),
-    );
+    ]);
     const tracker = new SpendTracker();
     await tracker.begin(root, run);
-    expect(tracker.guard.scrapeRoom).toBe(100 - 45 - 30);
-    expect(tracker.guard.listingRoom).toBe(Math.floor(25 * 0.55));
-    // A quiet week leaves the run its own ceiling, half the week.
+    const left = FIRECRAWL_WEEKLY_BUDGET - before - after;
+    expect(left).toBeLessThan(FIRECRAWL_RUN_CEILING);
+    expect(tracker.guard.scrapeRoom).toBe(left);
+    expect(tracker.guard.listingRoom).toBe(Math.floor(left * FIRECRAWL_LISTING_SHARE));
+    // A quiet week leaves the run its own ceiling.
     const quiet = new SpendTracker();
     await quiet.begin(root, "2026-11-20T05:37:00.000Z");
-    expect(quiet.guard.scrapeRoom).toBe(50);
+    expect(quiet.guard.scrapeRoom).toBe(FIRECRAWL_RUN_CEILING);
   });
 });

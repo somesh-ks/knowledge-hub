@@ -26,6 +26,7 @@ export const FIRECRAWL_RATE_LIMIT_STOP = 3;
 
 /** Why a listing source did nothing, shown as the source's note in the fetch report. */
 export const FIRECRAWL_SKIP_CEILING = "skipped: Firecrawl listing ceiling reached this run";
+export const FIRECRAWL_SKIP_WEEKLY = "skipped: Firecrawl's weekly budget is nearly spent";
 export const FIRECRAWL_SKIP_STOPPED = "skipped: Firecrawl is rate limited, stopped for this run";
 
 export interface FirecrawlState {
@@ -83,33 +84,42 @@ export interface FirecrawlLimits {
  */
 export class FirecrawlGuard {
   private state: FirecrawlState;
-  private limits: FirecrawlLimits;
-  private readonly base: FirecrawlLimits;
+  private readonly limits: FirecrawlLimits;
+  /** What the weekly budget left this run, when it is less than the run's own ceiling. */
+  private weekly: number | null = null;
   private readonly pages = new Map<string, Promise<unknown>>();
 
   constructor(initial: FirecrawlState = EMPTY_FIRECRAWL_STATE, limits: FirecrawlLimits = {}) {
     this.state = { ...initial, skipped: [...initial.skipped] };
     this.limits = limits;
-    this.base = limits;
   }
 
   /**
    * Hold this run to `room` requests at most (what the weekly budget has left), the listing share
-   * scaled with it. Never above the guard's own limits; a later call replaces an earlier one.
+   * scaled with it. Never above the guard's own limits; a later call replaces an earlier one, and
+   * a room that is not a number leaves the run its own limits.
    */
   limitTo(room: number): void {
-    const ceiling = Math.max(
-      0,
-      Math.min(Math.floor(room), this.base.ceiling ?? FIRECRAWL_RUN_CEILING),
-    );
-    this.limits = {
-      ...this.base,
-      ceiling,
-      listing: Math.min(
-        this.base.listing ?? FIRECRAWL_LISTING_CEILING,
-        Math.floor(ceiling * FIRECRAWL_LISTING_SHARE),
-      ),
-    };
+    const own = this.limits.ceiling ?? FIRECRAWL_RUN_CEILING;
+    const left = Number.isFinite(room) ? Math.max(0, Math.floor(room)) : own;
+    this.weekly = left < own ? left : null;
+  }
+
+  private get ceiling(): number {
+    return this.weekly ?? this.limits.ceiling ?? FIRECRAWL_RUN_CEILING;
+  }
+
+  private get listingCeiling(): number {
+    const own = this.limits.listing ?? FIRECRAWL_LISTING_CEILING;
+    return this.weekly === null
+      ? own
+      : Math.min(own, Math.floor(this.weekly * FIRECRAWL_LISTING_SHARE));
+  }
+
+  /** Why a listing source was left out: the run's ceiling, the week's budget, or 429s. */
+  get skipNote(): string {
+    if (this.stopped) return FIRECRAWL_SKIP_STOPPED;
+    return this.weekly === null ? FIRECRAWL_SKIP_CEILING : FIRECRAWL_SKIP_WEEKLY;
   }
 
   /** Replace the counts, as when a later stage picks up what an earlier one spent. */
@@ -132,15 +142,16 @@ export class FirecrawlGuard {
   /** Listing requests still allowed. */
   get listingRoom(): number {
     if (this.stopped) return 0;
-    const ceiling = this.limits.ceiling ?? FIRECRAWL_RUN_CEILING;
-    const listing = this.limits.listing ?? FIRECRAWL_LISTING_CEILING;
-    return Math.max(0, Math.min(listing - this.state.listing, ceiling - this.used));
+    return Math.max(
+      0,
+      Math.min(this.listingCeiling - this.state.listing, this.ceiling - this.used),
+    );
   }
 
   /** Scrape requests still allowed: the ceiling less everything already spent. */
   get scrapeRoom(): number {
     if (this.stopped) return 0;
-    return Math.max(0, (this.limits.ceiling ?? FIRECRAWL_RUN_CEILING) - this.used);
+    return Math.max(0, this.ceiling - this.used);
   }
 
   /** True when this run already fetched the page, so asking again is free. */

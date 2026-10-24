@@ -151,7 +151,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   if (plan.passes.length === 0) return commitGated(deps, options, plan, dryRun);
 
   // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.
-  if (!adopted) await deps.spend?.begin(root, plan.created_at);
+  if (!adopted) await deps.spend?.begin(root, plan.created_at, deps.log);
   const spend = adopted ? undefined : deps.spend?.totals();
 
   const passData: PassData[] = [];

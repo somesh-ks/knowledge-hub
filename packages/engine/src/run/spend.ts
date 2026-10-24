@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type { RunSpend } from "@dispatch/core";
 import { z } from "zod";
+import type { Logger } from "../context.js";
 import { firecrawlUsedSince } from "../cost/ledger.js";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
@@ -54,7 +55,7 @@ export class SpendTracker {
   private base: Record<string, number> = {};
   private baseUnits: Record<string, number> = {};
 
-  async begin(root: string, run: string): Promise<void> {
+  async begin(root: string, run: string, log?: Logger): Promise<void> {
     if (this.run === run) return;
     this.run = run;
     this.base = {};
@@ -68,13 +69,21 @@ export class SpendTracker {
       this.guard.restore(parsed.data.firecrawl);
     }
     // The weekly budget: what other runs spent in the 7 days before this one (the ledger records a
-    // run at its commit, so the run in progress is never counted twice). A ledger that does not
-    // read leaves the run its own ceiling.
+    // run at its commit, or at its failure record, so the run in progress is never counted twice).
+    // A ledger that does not read leaves the run its own ceiling, and says so.
     const started = Date.parse(run);
-    if (Number.isFinite(started)) {
+    if (!Number.isFinite(started)) {
+      log?.warn("The run has no start time: Firecrawl's weekly budget is not applied", { run });
+      return;
+    }
+    try {
       const since = new Date(started - WEEK_MS);
-      const used = await firecrawlUsedSince(root, since, run).catch(() => 0);
+      const used = await firecrawlUsedSince(root, since, new Date(started), run);
       this.guard.limitTo(FIRECRAWL_WEEKLY_BUDGET - used);
+    } catch (error) {
+      log?.warn("The cost ledger did not read: Firecrawl's weekly budget is not applied", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
