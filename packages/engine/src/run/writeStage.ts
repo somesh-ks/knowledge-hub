@@ -1,5 +1,6 @@
 import {
   activeFitTopics,
+  type Category,
   type Item,
   type Preferences,
   type ScheduleFile,
@@ -40,9 +41,9 @@ import {
   sourceFactsMap,
   type TopicLayer,
 } from "../score/scoreTopics.js";
-import { assignSections, capFor, selectItems } from "../score/selectItems.js";
+import { assignSections, capFor, compareCandidates, selectItems } from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
-import type { ScoredItem } from "../score/types.js";
+import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { writerCategory } from "../topics/writerCategory.js";
@@ -299,12 +300,10 @@ async function writePass(
     lengthOf === null
       ? undefined
       : storiesForMinutes(lengthOf, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax);
-  const chosen = selectItems({
+  const selectArgs = {
     scored: [...scored, ...generalScored],
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    cap: wanted === undefined ? capFor(pass.kind) : WRITE_MAX,
-    total: wanted === undefined ? VOICE_LIMITS.items.hardMax : withSpares(wanted),
     weights: preferences.weights,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.
@@ -312,6 +311,11 @@ async function writePass(
       pass.kind === "regular" ? skipTopics : pass.kind === "weekly" ? weeklySkipTopics : [],
     // Regenerate with chosen topics: a candidate stays only when its category is one of them.
     ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
+  };
+  const chosen = selectItems({
+    ...selectArgs,
+    cap: wanted === undefined ? capFor(pass.kind) : WRITE_MAX,
+    total: wanted === undefined ? VOICE_LIMITS.items.hardMax : withSpares(wanted),
   });
   for (const d of chosen.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
 
@@ -373,7 +377,11 @@ async function writePass(
   ): Promise<PassResult> => {
     const selection: Selection =
       survivors.length === 0
-        ? nothingSelection(pass)
+        ? {
+            ...nothingSelection(pass),
+            // Validation refills a sized pass from its reserve even when writing left too few.
+            ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
+          }
         : {
             ...nothingSelection(pass),
             outcome: "selected",
@@ -407,50 +415,49 @@ async function writePass(
 
   if (chosen.outcome === "nothing") {
     deps.log.info("Nothing cleared the bar", { pass: pass.id, qualifying: chosen.qualifying });
+    await writeJson(file("reserve.json"), { version: 1, items: [] });
     return finish([], new Map(), [], []);
   }
 
   // The writer prompt still takes a built-in category. A custom topic's story gets the nearest
   // one the judge found for it, because the prompt text comes from the source, not the label.
   const topCategoryOf = new Map(scored.map((s) => [s.item.id, s.topCategory]));
-  // A finalist with no readable source cannot be written, so it drops.
-  const extracted = await mapConcurrent(chosen.selected, EXTRACT_CONCURRENCY, async (sel) => ({
-    sel,
-    text: await enrichThin(runtime, sel.item, await extractSafely(runtime, sel.item)),
-  }));
-  const materials = new Map<string, SourceMaterial>();
-  const methods = new Map<string, string>();
-  for (const { sel, text } of extracted) {
-    if (!text) {
-      drop(sel.item.id, "extract", "no readable source text");
-      continue;
-    }
-    methods.set(sel.item.id, text.method);
-    materials.set(sel.item.id, {
-      id: sel.item.id,
-      title: sel.item.title,
-      source: sourceNames[sel.item.source_id] ?? sel.item.source_id,
-      ...(sel.item.author ? { author: sel.item.author } : {}),
-      category: writerCategory(sel.category, topCategoryOf.get(sel.item.id)),
-      text: text.text,
-    });
-  }
-
-  const writeResult = await runtime.writer.write(
-    [...materials.values()],
-    context.feedback,
-    context.taste,
-  );
-  for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
-  const voice = await enforceVoice({
-    written: writeResult.written,
-    materials,
-    writer: runtime.writer,
+  const writerCategoryOf = (sel: { item: Item; category: string }): Category =>
+    writerCategory(sel.category, topCategoryOf.get(sel.item.id));
+  const { materials, methods, writeResult, voice } = await writeFinalists({
+    runtime,
     linter,
+    finalists: chosen.selected.map((sel) => ({ item: sel.item, category: writerCategoryOf(sel) })),
+    sourceNames,
+    feedback: context.feedback,
+    taste: context.taste,
+    drop,
   });
-  for (const d of voice.dropped) {
-    drop(d.id, "voice", d.violations.map((v) => v.message).join(" ") || "no source material");
-  }
+
+  // A sized briefing keeps the next stories selection would have taken, best first, so
+  // validation can write replacements when grounding cuts it short of its length (refill).
+  const reserve =
+    wanted === undefined
+      ? []
+      : reserveAfter(
+          chosen.selected,
+          selectItems({
+            ...selectArgs,
+            cap: withSpares(wanted) * 2,
+            total: withSpares(wanted) * 2,
+          }).selected,
+        ).map((sel) => ({
+          id: sel.item.id,
+          category: sel.category,
+          score: sel.score,
+          writer_category: writerCategoryOf(sel),
+        }));
+  await writeJson(file("reserve.json"), {
+    version: 1,
+    ...(context.feedback === undefined ? {} : { feedback: context.feedback }),
+    taste: { liked: [...context.taste.liked], disliked: [...context.taste.disliked] },
+    items: reserve,
+  });
 
   const keptIds = new Set(voice.passed.map((p) => p.item.id));
   // One narration request carries the whole episode, so the stories must fit it together. A
@@ -520,6 +527,88 @@ async function readGeneralCounts(
   } catch {
     return {};
   }
+}
+
+/** A finalist to write: the item and the built-in category its writer prompt is told. */
+export interface Finalist {
+  item: Item;
+  category: Category;
+}
+
+/**
+ * Extract, write and voice-check finalists: the write stage's selection, and validation's
+ * replacements (refill). A finalist with no readable source cannot be written, so it drops; every
+ * drop is reported through `drop`, in the order the stages lose them.
+ */
+export async function writeFinalists(args: {
+  runtime: ApiRuntime;
+  linter: Linter;
+  finalists: readonly Finalist[];
+  sourceNames: Record<string, string>;
+  feedback: string | undefined;
+  taste: Taste;
+  /** Headlines the episode already airs, which the writer sees beside the finalists'. */
+  airing?: readonly string[];
+  drop: (id: string, stage: DropStage, reason: string) => void;
+}): Promise<{
+  materials: Map<string, SourceMaterial>;
+  methods: Map<string, string>;
+  writeResult: Awaited<ReturnType<ApiRuntime["writer"]["write"]>>;
+  voice: Awaited<ReturnType<typeof enforceVoice>>;
+}> {
+  const { runtime, drop } = args;
+  const extracted = await mapConcurrent(args.finalists, EXTRACT_CONCURRENCY, async (sel) => ({
+    sel,
+    text: await enrichThin(runtime, sel.item, await extractSafely(runtime, sel.item)),
+  }));
+  const materials = new Map<string, SourceMaterial>();
+  const methods = new Map<string, string>();
+  for (const { sel, text } of extracted) {
+    if (!text) {
+      drop(sel.item.id, "extract", "no readable source text");
+      continue;
+    }
+    methods.set(sel.item.id, text.method);
+    materials.set(sel.item.id, {
+      id: sel.item.id,
+      title: sel.item.title,
+      source: args.sourceNames[sel.item.source_id] ?? sel.item.source_id,
+      ...(sel.item.author ? { author: sel.item.author } : {}),
+      category: sel.category,
+      text: text.text,
+    });
+  }
+
+  const writeResult = await runtime.writer.write(
+    [...materials.values()],
+    args.feedback,
+    args.taste,
+    args.airing ?? [],
+  );
+  for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
+  const voice = await enforceVoice({
+    written: writeResult.written,
+    materials,
+    writer: runtime.writer,
+    linter: args.linter,
+  });
+  for (const d of voice.dropped) {
+    drop(d.id, "voice", d.violations.map((v) => v.message).join(" ") || "no source material");
+  }
+  return { materials, methods, writeResult, voice };
+}
+
+/**
+ * The stories a larger selection adds to the one that was written, best first. The larger
+ * selection keeps the caps on topics and outlets; its own order is by section, so a refill that
+ * took its first few would draw them all from the leading sections.
+ */
+export function reserveAfter(
+  written: readonly SelectedItem[],
+  larger: readonly SelectedItem[],
+): SelectedItem[] {
+  const taken = new Set(written.map((sel) => sel.item.id));
+  return larger.filter((sel) => !taken.has(sel.item.id)).sort(compareCandidates);
 }
 
 async function extractSafely(runtime: ApiRuntime, item: Item): Promise<ExtractedText | null> {

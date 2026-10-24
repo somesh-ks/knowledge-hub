@@ -1,13 +1,21 @@
 import { join } from "node:path";
 import type { RunSpend } from "@dispatch/core";
 import { z } from "zod";
+import type { Logger } from "../context.js";
+import { firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
-import { EMPTY_FIRECRAWL_STATE, FirecrawlGuard } from "../fetch/firecrawlBudget.js";
+import {
+  EMPTY_FIRECRAWL_STATE,
+  FIRECRAWL_WEEKLY_BUDGET,
+  FirecrawlGuard,
+} from "../fetch/firecrawlBudget.js";
 import { RequestMeter } from "../llm/requestMeter.js";
+import { loadScheduleZone } from "../schedule/store.js";
 import { runCacheDir } from "./plan.js";
 
 const count = z.number().int().nonnegative();
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** `.cache/run/spend.json`: what the stages of one run have spent so far, keyed by the run's plan. */
 const SpendFile = z.object({
@@ -48,18 +56,45 @@ export class SpendTracker {
   private base: Record<string, number> = {};
   private baseUnits: Record<string, number> = {};
 
-  async begin(root: string, run: string): Promise<void> {
+  /**
+   * Load what earlier stages of `run` spent, without the weekly budget: for a process that only
+   * reports the run (its failure record).
+   */
+  async resume(root: string, run: string): Promise<void> {
     if (this.run === run) return;
     this.run = run;
     this.base = {};
     this.baseUnits = {};
     this.guard.restore(EMPTY_FIRECRAWL_STATE);
+    this.guard.limitTo(Number.POSITIVE_INFINITY);
     const raw = await readJsonIfExists(spendPath(root), "spend.json").catch(() => null);
     const parsed = raw === null ? null : SpendFile.safeParse(raw);
     if (parsed?.success && parsed.data.run === run) {
       this.base = { ...parsed.data.requests };
       this.baseUnits = { ...parsed.data.units };
       this.guard.restore(parsed.data.firecrawl);
+    }
+  }
+
+  async begin(root: string, run: string, log?: Logger): Promise<void> {
+    if (this.run === run) return;
+    await this.resume(root, run);
+    // The weekly budget: what other runs spent in the 7 days before this one (the ledger records a
+    // run at its commit, or at its failure record, so the run in progress is never counted twice).
+    // A ledger that does not read leaves the run its own ceiling, and says so.
+    const started = Date.parse(run);
+    if (!Number.isFinite(started)) {
+      log?.warn("The run has no start time: Firecrawl's weekly budget is not applied", { run });
+      return;
+    }
+    try {
+      const since = new Date(started - WEEK_MS);
+      const used = await firecrawlUsedSince(root, since, new Date(started), run);
+      this.guard.limitTo(FIRECRAWL_WEEKLY_BUDGET - used);
+    } catch (error) {
+      log?.warn("The cost ledger did not read: Firecrawl's weekly budget is not applied", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -107,6 +142,24 @@ export class SpendTracker {
       // The record is a convenience; the run goes on.
     }
   }
+}
+
+/**
+ * Put a run's spend in the cost ledger, under its first pass's kind: at its commit, or with its
+ * failure record. Never throws (`recordRunCosts`).
+ */
+export async function recordSpend(
+  root: string,
+  tracker: SpendTracker,
+  plan: { created_at: string; passes: readonly { kind: string }[] },
+  at: string,
+): Promise<void> {
+  await recordRunCosts(
+    root,
+    { requests: tracker.totals().requests, units: tracker.unitTotals() },
+    { runId: plan.created_at, at, passKind: plan.passes[0]?.kind ?? "regular" },
+    await loadScheduleZone(root),
+  );
 }
 
 /** One line for a report: "jev 41, firecrawl_listing 14, ...". */

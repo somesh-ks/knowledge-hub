@@ -149,7 +149,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D135 | No batch API for the scheduled runs | active |
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
-| D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
+| D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
 | D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
@@ -171,6 +171,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
+| D161 | Publisher above the headline | active; amends D31 |
+| D166 | Firecrawl 100 a week | amends D42 |
 
 ---
 
@@ -1748,3 +1750,20 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: D157 kept `site_behind` a warning because the next push may clear it, and warnings reach the owner on Mondays; a deploy that stays missing a day will not clear. A smoke run Vercel starts belongs to `vercel[bot]`, so its failure email reached no one.
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
+
+## D161: a story's publisher sits above its headline
+
+- Date: 2026-10-23
+- Decision: in a briefing's story and an episode's highlight, the publisher's quiet link (muted, label size, its open-in-new glyph) is a line of its own above the headline, shortened only when wider than the column. The row under the text holds the Play chip and the story controls, on one line at every width.
+- Why: in one row with the chip (112px, sized for "Play again") and three 44px controls, the publisher kept about six letters at 360px and one at 320 for every name in the fixture (measured 2026-10-23). The owner chose the order a news list uses over a cut name or controls wrapping to an orphan line.
+- Rejected: the name cut with an ellipsis in the row (the owner's first call, 2026-10-22, before the measurement); dropping its glyph on a phone (about three letters more); a row that wraps (the orphan controls the owner had asked to remove).
+- Amends: D31's type rule that a quiet line goes under its title, never above it, for the publisher alone.
+- Revisit if: the chip and the controls narrow enough to hold a whole name beside them.
+
+## D166: Firecrawl gets 100 requests a week, at most 50 a run
+
+- Date: 2026-10-24 (the owner: "change firecrawl budget to 100 per week")
+- Decision: each stage reads the cost ledger for the Firecrawl requests (listing pages and scrapes) other runs made in the 7 days before this one, and holds the run to what is left, at most 50 (was 30, D42); listings keep 55% of a run's room. A failed run's spend goes to the ledger with its failure record. A listing source left out for the week says so in its note. A ledger that does not read, or a run with no start time, warns and leaves the run its own 50.
+- Why: the YouTube relay (#235) and the article scrapes press on 30 a run. A weekly cap lets one run use more while the week stays at the owner's number; 50 is half the week, so one run can never spend it all.
+- Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
+- Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.

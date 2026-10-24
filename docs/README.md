@@ -11,6 +11,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, every design ask and fix by surface, gaps, open asks | Before UI work |
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
+| [engineering/delivery-failures.md](engineering/delivery-failures.md) | Why PRs, CI and deploys failed, and the rules that stop each one | Before pushing, and when a check is red |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
 | [engineering/engagement-and-share-plan.md](engineering/engagement-and-share-plan.md) | The User engagement page, analytics tool comparison and share-a-link loop, in stages (D153) | Before building engagement or sharing |
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |

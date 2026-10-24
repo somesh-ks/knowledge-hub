@@ -440,6 +440,19 @@ html[data-mini="visible"] main {
   }
 }
 
+/* With reduced motion the pill fades in where it stands; it does not grow. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
+    animation: nav-pill-fade var(--duration-enter) var(--ease-out);
+  }
+}
+
+@keyframes nav-pill-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* An item carries its outlined and its filled icon; which one shows follows aria-current alone. */
 .app-nav-item:not([aria-current="page"]) .app-nav-icon-current,
 .app-nav-item[aria-current="page"] .app-nav-icon-rest {

@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-23 | [The Costs card and the visual audit](2026-10-23-costs-card-and-visual-audit.md) | Costs as one card with chips, figure, chart and breakdown; measured concentric radii; the audit built by four workers (#224 to #226, #228); a dark ramp step out of order, reduced motion split off, the publisher moved above the headline |
 | 2026-10-22 | [Engagement scoped, the passphrase removed](2026-10-22-engagement-scope-and-passphrase.md) | First-party events and share links planned with link previews first (D153); the passphrase removed, OAuth later (D160); why checks and deploys failed |
 | 2026-10-22 | [Hardening round 4, and landing the finished branches](2026-10-22-hardening-round-four-and-landing-branches.md) | Preview deploys limited to `main` and `preview/*` with branch cleanup; #205, #206, #216, #218 landed; the release cap kept in review; a 45-minute browser job; health watches Neon, stored config and the deploy, and warnings reach the owner weekly (D157); pages report functions Vercel killed (D158); one left text edge on card pages; a missing deploy faults a day on (D159) |
 | 2026-10-22 | [Settings refinements and four workers](2026-10-22-settings-refinements-and-four-workers.md) | Row values at the end, concentric card radii, chips by name, version 0.9 shared; Software Engineering, Costs charts, knob grow and engagement split off; a removed worktree and colliding decision numbers |

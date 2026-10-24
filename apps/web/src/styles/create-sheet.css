@@ -169,13 +169,24 @@ html[data-dialog-open] .create-fab {
   inset-inline-end: calc(max(var(--space-4), var(--safe-right)) + var(--gutter, 0px));
 }
 
-/* With reduced motion it only fades, out and back in; it does not move. */
+/* With reduced motion it only fades, out and back in; it does not move. The fifth entry is the
+   inset-block-end glide, which is movement, so it takes no time (--duration-enter no longer
+   collapses: fades keep it). */
 @media (prefers-reduced-motion: reduce) {
+  .create-fab {
+    transition-duration:
+      var(--duration-state), var(--duration-press-out), var(--duration-hover), 0s, 0s;
+  }
+
+  .create-fab:active {
+    transition-duration:
+      var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s, 0s;
+  }
+
   html[data-player="open"] .create-fab,
   html[data-dialog-open] .create-fab {
     transform: none;
-    transition-duration:
-      var(--duration-hover), 0s, var(--duration-hover), 0s, var(--duration-enter);
+    transition-duration: var(--duration-hover), 0s, var(--duration-hover), 0s, 0s;
     transition-delay: 0s, 0s, 0s, var(--duration-hover), 0s;
   }
 }
@@ -288,11 +299,12 @@ html[data-has-hero]:not([data-hero-away]) .play-fab {
   transition-delay: 0s, 0s, 0s, var(--duration-exit), 0s, 0s, 0s;
 }
 
-/* With reduced motion the exit takes no time, so it goes at once, and it comes back without moving. */
+/* With reduced motion it fades out and back in without moving; the exit keeps its fade. */
 @media (prefers-reduced-motion: reduce) {
   html:not([data-fab]) .play-fab,
   html[data-has-hero]:not([data-hero-away]) .play-fab {
     transform: none;
+    transition-duration: var(--duration-exit), 0s, var(--duration-hover), 0s, 0s;
   }
 }
 

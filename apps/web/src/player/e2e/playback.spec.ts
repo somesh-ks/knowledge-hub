@@ -33,19 +33,20 @@ test.describe("playback on a briefing", () => {
     await expect(player.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
   });
 
-  test("a story chip keeps one size, so the publisher beside it never moves", async ({
+  test("a story chip keeps one width through idle, playing, paused and played, so the controls beside it never move", async ({
     player,
     page,
   }) => {
     await player.open();
     const story = page.locator(".story").first();
     const chip = story.locator("[data-play-item]");
-    const source = story.locator(".story-source");
+    const controls = story.locator(".story-controls");
     const measure = async () => ({
       chip: (await chip.boundingBox())?.width,
-      source: (await source.boundingBox())?.x,
+      controls: (await controls.boundingBox())?.x,
     });
-    const seen: Record<string, { chip?: number; source?: number }> = {};
+    // One width in every state (D106), so the story controls on the line hold their place.
+    const seen: Record<string, { chip?: number; controls?: number }> = {};
     await expect(chip).toBeVisible();
     seen.idle = await measure();
     await player.play();
@@ -59,9 +60,9 @@ test.describe("playback on a briefing", () => {
     await player.dock.getByRole("button", { name: "Play", exact: true }).click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
     seen.played = await measure();
-    const sources = new Set(Object.values(seen).map((s) => s.source));
+    const places = new Set(Object.values(seen).map((s) => s.controls));
     const widths = new Set(Object.values(seen).map((s) => s.chip));
-    expect(sources.size, JSON.stringify(seen)).toBe(1);
+    expect(places.size, JSON.stringify(seen)).toBe(1);
     expect(widths.size, JSON.stringify(seen)).toBe(1);
   });
 
