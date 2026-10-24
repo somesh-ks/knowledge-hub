@@ -173,11 +173,45 @@ export const AUDIO_DIGEST = "/d/2026-10-07";
 export const SILENT_DIGEST = "/d/2026-10-05";
 
 /**
- * Resolves once the player and sheets islands have hydrated. Until then a tap on a play chip
- * reaches nobody, so a test that plays something waits for this first.
+ * Wakes the player and sheets islands, as the page's first input would once the browser is idle
+ * (scripts/islandWake.ts), without the input's own side effects (the focus ring, a press).
+ */
+export async function wakeIslands(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const scope = window as { dispatchAwake?: boolean };
+    if (scope.dispatchAwake) return;
+    scope.dispatchAwake = true;
+    dispatchEvent(new Event("dispatch:wake"));
+  });
+}
+
+/**
+ * Resolves once the player and sheets islands have woken and hydrated. They wait for a first input
+ * or a start, so a test that reads the bar, a sheet or a toast wakes them first.
  */
 export async function hydrated(page: Page): Promise<void> {
+  await wakeIslands(page);
   await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+  await coversSettled(page);
+}
+
+/**
+ * The woken player draws the page's covers and decodes the large one at idle. A test that goes
+ * offline next would cut those loads short and fail on their console errors, so it waits for them.
+ */
+async function coversSettled(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const images = [...document.querySelectorAll<HTMLImageElement>("astro-island img")];
+    // A lazy image off screen is never fetched, so it is not waited for.
+    if (!images.every((image) => image.complete || image.loading === "lazy")) return false;
+    const data = document.getElementById("dispatch-digest-data")?.textContent;
+    const large = data
+      ? (JSON.parse(data) as { cover?: { src1024?: string } }).cover?.src1024
+      : null;
+    return (
+      !large || performance.getEntriesByType("resource").some((entry) => entry.name.endsWith(large))
+    );
+  });
 }
 
 /**

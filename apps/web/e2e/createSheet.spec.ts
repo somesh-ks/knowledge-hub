@@ -88,7 +88,7 @@ test.describe("Create as the primary action", () => {
     await page.goto("/");
     await page.locator(".app-nav-item", { hasText: "Library" }).click();
     await expect(page).toHaveURL(/\/library$/);
-    await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+    await hydrated(page);
     await trigger(page).click();
     await expect(sheet(page)).toBeVisible();
     await page.goBack();

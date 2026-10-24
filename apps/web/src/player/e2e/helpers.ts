@@ -370,7 +370,14 @@ export class PlayerPage {
 
   async open(path: string = SITE.path): Promise<void> {
     await this.page.goto(path, { waitUntil: "networkidle" });
-    // The islands hydrate when the browser is idle.
+    // The islands wake on a first input once the browser is idle (scripts/islandWake.ts); this
+    // wakes them as that would, without the input's own side effects.
+    await this.page.evaluate(() => {
+      const scope = window as { dispatchAwake?: boolean };
+      if (scope.dispatchAwake) return;
+      scope.dispatchAwake = true;
+      dispatchEvent(new Event("dispatch:wake"));
+    });
     await this.page.waitForFunction(() => document.querySelector("astro-island[ssr]") === null);
     await expect(this.root).toHaveAttribute("data-mini", "hidden");
   }
