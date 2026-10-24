@@ -144,12 +144,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
-| D133 | The second owner round: Up next is a player tab beside Stories (transcript only under the playing story; full-bleed tabs on a phone, the navigation control on a desktop); Settings in tonal card groups with About and a change log; one search field and one chip style everywhere, held by style rules; a flat navigation control; topic emoji from Jev; Other hidden; no Daily type; a Library bottom sheet on phones; plain outline icons | active; amends D126, D127, D129, D132 |
+| D133 | The second owner round: Up next as a player tab, Settings cards, one search and chip style, Jev emoji, no Daily type | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
 | D135 | No batch API for the scheduled runs | active |
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
-| D138 | Firecrawl Alexandria enriches a story whose own text was read but came up thin, under per-run and per-story credit caps; it never stands in for an unread article | active |
+| D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
 | D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
@@ -171,6 +171,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
 | D161 | Publisher above the headline | active; amends D31 |
+| D165 | YouTube captions via Firecrawl | amends D138 |
+| D166 | Firecrawl 100 a week | amends D42 |
+| D172 | Store reads keep a device copy | amends D149 |
 
 ---
 
@@ -1742,3 +1745,27 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: the name cut with an ellipsis in the row (the owner's first call, 2026-10-22, before the measurement); dropping its glyph on a phone (about three letters more); a row that wraps (the orphan controls the owner had asked to remove).
 - Amends: D31's type rule that a quiet line goes under its title, never above it, for the publisher alone.
 - Revisit if: the chip and the controls narrow enough to hold a whole name beside them.
+
+## D165: YouTube captions come through Firecrawl when YouTube refuses the runner
+
+- Date: 2026-10-24 (the owner: "yt-dlp is a very reliable option, use this"; then "look into possible workarounds to make the youtube transcription extraction reliable")
+- Decision: when youtube.com's player API refuses the run (it has refused GitHub's runners since about 2026-10-14), the extractor asks Firecrawl's Alexandria provider `youtube-com/videos/video_transcript` for the same captions. One scrape request a video from the run's Firecrawl budget (`FirecrawlGuard.relay`, so a video relayed once in a run is not paid twice), about 5 credits a video, metered in the cost ledger under firecrawl/alexandria. Order stays: cache, youtube.com (free), Firecrawl, Gemini (3 a run), the description. The method recorded is `captions`, as they are.
+- Why: the block is on the address, not the tool. Measured from a datacenter address on 2026-10-24: the watch page answers 429 and every yt-dlp player client (default, tv, mweb, web_embedded) ends in "Sign in to confirm you're not a bot"; yt-dlp's maintainers say a PO-token provider does not lift that wall (yt-dlp #15865) and point to cookies. Firecrawl already holds a key, a budget and a ledger row here (D138), and its provider makes the InnerTube call our own code makes, from an address YouTube serves. Measured live the same day: a full transcript in one call.
+- Rejected: yt-dlp with a Google account's cookies in a secret (works, but YouTube may flag the account for automated use, the cookies expire, and the workflow gains Python and a secret to rotate); a PO-token sidecar (does not answer the sign-in wall); a paid residential proxy (a monthly bill for one feature); a hosted transcript API (a new vendor and key for what Firecrawl already sells).
+- Revisit if: Firecrawl's provider goes away or its price rises above a scrape's worth (then yt-dlp with a throwaway account's cookies is the next step, behind the same `relay` budget), or YouTube serves the runners again (then the free path answers first and Firecrawl is never asked).
+
+## D166: Firecrawl gets 100 requests a week, at most 50 a run
+
+- Date: 2026-10-24 (the owner: "change firecrawl budget to 100 per week")
+- Decision: each stage reads the cost ledger for the Firecrawl requests (listing pages and scrapes) other runs made in the 7 days before this one, and holds the run to what is left, at most 50 (was 30, D42); listings keep 55% of a run's room. A failed run's spend goes to the ledger with its failure record. A listing source left out for the week says so in its note. A ledger that does not read, or a run with no start time, warns and leaves the run its own 50.
+- Why: the YouTube relay (#235) and the article scrapes press on 30 a run. A weekly cap lets one run use more while the week stays at the owner's number; 50 is half the week, so one run can never spend it all.
+- Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
+- Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
+
+## D172: a settings page keeps the store's last answer on the device
+
+- Date: 2026-10-24 (the owner: "make sure our app is professional industry grade", after asking how Spotify's settings feel instant)
+- Decision: `configStoreRead.ts` keeps the last answer `GET /api/config` gave in `localStorage` (`dispatch:store-read`, one build's edits). A page asks the store as before; when the store has not answered within 300 ms the page lays the device's copy over itself and the read goes on, so a late answer serves the next read and replaces the copy. A failed read leaves the copy standing. A copy from another build is ignored, as a read from another build is.
+- Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
+- Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
+- Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
