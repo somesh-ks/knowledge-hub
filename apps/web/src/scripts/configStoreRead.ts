@@ -9,12 +9,17 @@
  * last answer it read (D172): a store that is slow (Neon waking), down or unreachable (offline)
  * answers from that copy after a short grace, so the page shows what this device last knew rather
  * than the build, which is a run old by design. A store that answers in time, or answers later, is
- * what the next read and the copy hold. With no copy, an outage costs freshness, never the page.
+ * what the next read and the copy hold; one that answers after the page is drawn, with something
+ * new, is offered in a toast as a reload (D173). With no copy, an outage costs freshness, never the
+ * page.
  */
 import type { ConfigOp, ConfigReadBody, StoreSource } from "../types/contracts";
+import { sendToast } from "./toastEvent";
 
 /** How long a page waits for the store before it keeps its built copy. */
 export const STORE_READ_TIMEOUT_MS = 2500;
+/** How long a read the page stopped waiting for may still answer, to offer what it found. */
+const STORE_READ_LIMIT_MS = 20_000;
 
 /** One read serves the scripts of one page view; a page opened a second later asks again. */
 const REUSE_MS = 1000;
@@ -86,7 +91,7 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
   // A read reused within the second answers as storeRead does: for the page now in the document.
   if (last && now - last.at < REUSE_MS) return last.read.then(() => storeRead());
   const stop = new AbortController();
-  const timer = setTimeout(() => stop.abort(), STORE_READ_TIMEOUT_MS);
+  const timer = setTimeout(() => stop.abort(), STORE_READ_LIMIT_MS);
   const asked = { at: now } as { at: number; read: Promise<ConfigReadBody | null> };
   const cached = readCache();
   asked.read = fetch("/api/config", {
@@ -105,7 +110,20 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
       return body ?? (last === asked ? current : null);
     });
   last = asked;
-  if (!cached) return asked.read;
+  if (!cached) {
+    // The page keeps its built copy after the wait; a store that answers later is offered.
+    let late = false;
+    void asked.read.then((body) => {
+      if (late && body && (body.ops.length > 0 || body.sources.length > 0)) offerReload();
+    });
+    const wait = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        late = true;
+        resolve(null);
+      }, STORE_READ_TIMEOUT_MS);
+    });
+    return Promise.race([asked.read, wait]);
+  }
   // The copy stands until the store answers; a read that ends after the grace updates `current`
   // for whatever reads next, and the copy for the next page.
   if (current === null) current = cached;
@@ -117,7 +135,40 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
   const fromCache = new Promise<ConfigReadBody>((resolve) => {
     setTimeout(() => resolve(cached), CACHE_GRACE_MS);
   });
-  return Promise.race([fromStore, fromCache]).then((body) => (settled ? body : cached));
+  return Promise.race([fromStore, fromCache]).then((body) => {
+    // The page shows the copy: a store that answers after it, with something else, is offered.
+    if (!settled)
+      void asked.read.then((later) => {
+        if (later && sameEdits(later, cached) === false) offerReload();
+      });
+    return settled ? body : cached;
+  });
+}
+
+const sameEdits = (a: ConfigReadBody, b: ConfigReadBody): boolean =>
+  JSON.stringify([a.ops, a.sources]) === JSON.stringify([b.ops, b.sources]);
+
+/**
+ * A store answer that came after the page was drawn: the editors have read their starting point, so
+ * the page is not redrawn under the reader. The toast offers a reload, which shows it.
+ */
+function offerReload(): void {
+  const up = (): boolean => {
+    try {
+      return document.querySelector(".toast:popover-open") !== null;
+    } catch {
+      return false;
+    }
+  };
+  sendToast(
+    {
+      message: "Settings changed on another device",
+      actionLabel: "Reload",
+      onAction: () => location.reload(),
+    },
+    document,
+    { key: "store", unless: up },
+  );
 }
 
 /** What the last read found, or null before one answered (or when none could). */
