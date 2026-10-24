@@ -80,7 +80,9 @@ test.describe("on a phone", () => {
           ...base,
           report: {
             ...base.report,
-            buckets: [{ bucket: "2026-10-20", total: { usd: 2.55, runs: 1, shared_usd: 0 }, groups }],
+            buckets: [
+              { bucket: "2026-10-20", total: { usd: 2.55, runs: 1, shared_usd: 0 }, groups },
+            ],
             total: { usd: 2.55, runs: 1, shared_usd: 0 },
           },
         },
