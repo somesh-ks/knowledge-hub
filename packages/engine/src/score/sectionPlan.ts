@@ -27,13 +27,19 @@ export interface SectionPlan {
   includes(section: string): boolean;
   /** Most stories the structure allows the section, or null for the engine's own allowance. */
   limit(section: string): number | null;
+  /** Stories the narration's rundown names, or null for no rundown. */
+  rundown: number | null;
 }
+
+/** Stories a briefing's rundown names when its block leaves the count to the engine. */
+export const DEFAULT_RUNDOWN = 3;
 
 export const DEFAULT_SECTION_PLAN: SectionPlan = {
   order: null,
   topPicks: DEFAULT_TOP_PICKS,
   includes: () => true,
   limit: () => null,
+  rundown: null,
 };
 
 /** The plan for a kind's stored blocks; null blocks (the kind was never edited) give the default. */
@@ -48,7 +54,13 @@ export function sectionPlanFor(blocks: readonly StructureBlock[] | null): Sectio
       : 0,
     includes: (section) => listed.has(section),
     limit: (section) => sectionLimit(blocks, section),
+    rundown: rundownOf(blocks),
   };
+}
+
+function rundownOf(blocks: readonly StructureBlock[]): number | null {
+  const block = blocks.find((entry) => entry.type === "rundown");
+  return block?.type === "rundown" ? (block.stories ?? DEFAULT_RUNDOWN) : null;
 }
 
 /** The structure a digest kind follows. A briefing made on request has none of its own. */

@@ -161,10 +161,39 @@ export const StructureBlocks = z
   });
 
 /** Shape of config/structure.json. A kind left out runs on its defaults. */
-export const StructureFile = z.object({
-  version: z.literal(1),
-  kinds: z.partialRecord(StructureKind, StructureBlocks),
-});
+/**
+ * Blocks only a kind written by the script writer can follow. Daily and weekly are narrated by
+ * code around stories written one by one, so a close or an owner's brief has nobody to write it
+ * there (the owner chose Catch up only, 2026-10-24, D176); their rundown is read from the chapters.
+ */
+export const SCRIPT_ONLY_BLOCKS: readonly StructureBlockType[] = ["close", "custom"];
+
+/** What a kind refuses beyond the shared rules; empty when the blocks fit the kind. */
+export function kindProblems(
+  kind: StructureKind,
+  blocks: readonly StructureBlockInput[],
+): string[] {
+  if (kind === "catch_up") return [];
+  const refused = blocks.find((block) => SCRIPT_ONLY_BLOCKS.includes(block.type));
+  return refused === undefined
+    ? []
+    : [
+        `A ${kind} episode has no ${refused.type === "custom" ? "block of your own" : "close"}; only Catch up does.`,
+      ];
+}
+
+export const StructureFile = z
+  .object({
+    version: z.literal(1),
+    kinds: z.partialRecord(StructureKind, StructureBlocks),
+  })
+  .superRefine((file, ctx) => {
+    for (const kind of STRUCTURE_KINDS) {
+      for (const message of kindProblems(kind, file.kinds[kind] ?? [])) {
+        ctx.addIssue({ code: "custom", message, path: ["kinds", kind] });
+      }
+    }
+  });
 export type StructureFile = z.infer<typeof StructureFile>;
 
 /**

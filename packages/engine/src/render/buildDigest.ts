@@ -132,6 +132,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
     audio: input.audio,
     cover: input.coverPicker({ digestId: id, date, kind: input.kind, items }),
     ...(sectionTitles ? { section_titles: sectionTitles } : {}),
+    ...(input.plan?.rundown ? { rundown: input.plan.rundown } : {}),
     items,
   });
 }

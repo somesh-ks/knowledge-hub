@@ -24,6 +24,7 @@ describe("a briefing follows its stored structure (D170)", () => {
     const plan = sectionPlanFor(
       blocks([
         { type: "hello" },
+        { type: "rundown", stories: 2 },
         { type: "top_picks", stories: 2 },
         { type: "section", id: "ai" },
         { type: "section", id: "design" },
@@ -37,6 +38,35 @@ describe("a briefing follows its stored structure (D170)", () => {
     expect(order).toEqual(["top", "ai", "design", "ui-craft"]);
     expect(reread.items.filter((item) => item.section === "top")).toHaveLength(2);
     expect(buildSpokenText(reread).sectionStarts.map((start) => start.slug)).toEqual(order);
+  });
+
+  it("names its first stories by their chapters after the opening when the structure has a rundown, and a briefing without one has none", () => {
+    const plan = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "rundown", stories: 2 },
+        { type: "top_picks" },
+        { type: "section", id: "ai" },
+        { type: "sign_off" },
+      ]),
+    );
+    const labelled = (digest: ReturnType<typeof buildFixtureDigest>["digest"]) =>
+      parseDigestFile(
+        serializeDigestFile({
+          ...digest,
+          items: digest.items.map((item, index) => ({
+            ...item,
+            chapter: `Story ${["one", "two", "three"][index] ?? "more"}`,
+          })),
+        }),
+      );
+    const opening = (text: string) => text.split("\n\n")[0];
+    expect(opening(buildSpokenText(labelled(buildFixtureDigest(8, { plan }).digest)).text)).toMatch(
+      /Coming up: Story one and Story two\.$/,
+    );
+    expect(opening(buildSpokenText(labelled(buildFixtureDigest(8).digest)).text)).not.toMatch(
+      /Coming up/,
+    );
   });
 
   it("a saved structure equal to the defaults writes the same briefing as no structure", () => {

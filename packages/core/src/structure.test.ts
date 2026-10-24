@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultStructure, STRUCTURE_KINDS, StructureBlocks } from "./structure.js";
+import { defaultStructure, STRUCTURE_KINDS, StructureBlocks, StructureFile } from "./structure.js";
 
 describe("the structure schema refuses a broken episode shape", () => {
   const hello = { type: "hello" };
@@ -17,6 +17,12 @@ describe("the structure schema refuses a broken episode shape", () => {
     ],
   ])("refuses %s", (_name, value) => {
     expect(StructureBlocks.safeParse(value).success).toBe(false);
+  });
+
+  it("refuses a close or a block of your own in a daily or weekly kind, which code narrates, and takes them for Catch up", () => {
+    const close = [hello, design, { type: "close" }, signOff];
+    expect(StructureFile.safeParse({ version: 1, kinds: { daily: close } }).success).toBe(false);
+    expect(StructureFile.safeParse({ version: 1, kinds: { catch_up: close } }).success).toBe(true);
   });
 
   it("accepts every kind's defaults, so an untouched kind always validates", () => {

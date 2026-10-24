@@ -2,7 +2,7 @@ import { z } from "zod";
 import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
-import { StructureBlocks, StructureKind } from "./structure.js";
+import { kindProblems, StructureBlocks, StructureKind } from "./structure.js";
 import {
   MAX_KEYWORDS,
   MixStop,
@@ -185,7 +185,13 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
       { message: "set at least one scope" },
     ),
-  z.object({ op: z.literal("structure.set"), kind: StructureKind, blocks: StructureBlocks }),
+  z
+    .object({ op: z.literal("structure.set"), kind: StructureKind, blocks: StructureBlocks })
+    .superRefine((value, ctx) => {
+      for (const message of kindProblems(value.kind, value.blocks)) {
+        ctx.addIssue({ code: "custom", message, path: ["blocks"] });
+      }
+    }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),
