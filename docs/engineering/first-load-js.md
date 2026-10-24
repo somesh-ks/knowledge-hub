@@ -2,7 +2,7 @@
 
 **After the cuts (2026-10-14, #111 to #115, D112):** every page names its eager modules in modulepreload links; the player's eager glyphs, the open scrubber's helpers and the player surface's motion left the first load; the Blocked outlets editor loads at idle. Per page, gzipped: Today, a briefing and an episode 104.9; Library 105.6; Create 102.8; Settings 105.1; Daily, Weekly and Model 103.1; Topics and a topic 105.7 (the heaviest); Blocked outlets 102.8; Offline 102.9; 404 102.5. playerRuntime is 11.4 KB (was 14.9). The budget is 109 KB. On the throttled profile below, on a quiet 4-core container, medians of 5: the bar is pressable at about 3.6 s on Today, a briefing and Topics (was 4.7 to 5.1 s), LCP about 1.7 s on each, before and after. Cuts 2 (in part), 3, 4 and 6 and the modulepreload hints are built; cut 1 is parked by the owner; the tables below are the measurement of 2026-10-14 before the cuts.
 
-Measured 2026-10-14 on `main` at `377f4e3`, static build (`DISPATCH_STATIC_ONLY=1`). Sizes are gzipped, counted the way `apps/web/scripts/checkBundle.ts` counts them: every script, modulepreload and island module a page names, plus their static imports. Dynamic `import()` is lazy and not counted. The budget was 150 KB (D103), 110 KB (D53) and 104 KB before. The heaviest page, Blocked outlets, was at 111.0 KB.
+Measured 2026-10-14 on `main` at `377f4e3`, static build (`SINGULARITY_STATIC_ONLY=1`). Sizes are gzipped, counted the way `apps/web/scripts/checkBundle.ts` counts them: every script, modulepreload and island module a page names, plus their static imports. Dynamic `import()` is lazy and not counted. The budget was 150 KB (D103), 110 KB (D53) and 104 KB before. The heaviest page, Blocked outlets, was at 111.0 KB.
 
 Declined, not to be prototyped again: preact/compat (about 57 KB off every page, owner declined 2026-10-10). React stays.
 
@@ -120,7 +120,7 @@ Guardrails for any cut: the service worker follows script imports six levels dee
 
 ## How to measure again
 
-1. `DISPATCH_STATIC_ONLY=1 npm run build -w @dispatch/web` prints every page's total.
+1. `SINGULARITY_STATIC_ONLY=1 npm run build -w @dispatch/web` prints every page's total.
 2. Chunk map: a tsx script that imports `entryScripts` and `staticImports` from `src/lib/bundleBudget.ts`, walks static imports from each page's entries (eager), then dynamic `import(...)` in the `"`, `'` and backtick forms (lazy), and gzips each file.
 3. Module shares: add `sourcemap: true` to `vite.build` in `apps/web/astro.config.mjs` for one build, decode each `.map`'s mappings into bytes per source, share the chunk's gzip size out in proportion, then revert the config.
 4. Runtime: the CDP run above. Run the variants interleaved, one run of each in turn, and say whether the machine was busy: absolute numbers move 2x with load.

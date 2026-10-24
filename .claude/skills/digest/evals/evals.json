@@ -12,11 +12,11 @@
         "runs-clear.json",
         "gate-dry-run.json"
       ],
-      "expected_output": "Checks status, doctor and the in-flight pipe first, picks local mode because the Nebius key and model id are set, announces mode and digest id in one line, preflights with the gate dry run, runs the pipeline with --no-push, then asks once before git push and ends with one result line.",
+      "expected_output": "Checks status, doctor and the in-flight pipe first, picks local mode because the writer key and model id are set, announces mode and digest id in one line, preflights with the gate dry run, runs the pipeline with --no-push, then asks once before git push and ends with one result line.",
       "expectations": [
         "The agent reads status and runs doctor with --json before any command that spends money",
         "The agent pipes gh run list into cooldown.mjs with --in-progress-only and proceeds because it prints clear",
-        "The agent picks local mode because key.NEBIUS_API_KEY and model.DISPATCH_MODEL are both ok",
+        "The agent picks local mode because key.ANTHROPIC_API_KEY and model.SINGULARITY_MODEL are both ok",
         "The agent announces the mode and the digest id 2026-10-06 in one line before spending",
         "The agent runs the gate stage with --dry-run as a free preflight before the full run",
         "The agent runs the full pipeline with --mode on-demand and --no-push and does not pass --force",

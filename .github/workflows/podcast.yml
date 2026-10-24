@@ -59,12 +59,12 @@ jobs:
           # The live copy of the script (streams/ in Blob), so the site can play the opening while the
           # rest is written. Without it the episode is made as before and there is no live copy.
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
-          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
           # The config store (D149), as in run.yml's Gate step: the episode reads the topics the app
           # saved, not a run-old copy. Either one unset leaves it on the committed files.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
         run: npm run --silent dispatch -- podcast --request "$REQUEST"
 
   # Narrates the new episode turn by turn into the files the site plays from, so its first Play

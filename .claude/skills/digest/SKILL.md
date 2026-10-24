@@ -58,7 +58,7 @@ Without `--in-progress-only` the same pipe also enforces the limits: one `workfl
 | Request | Mode |
 | :--- | :--- |
 | `--remote` | remote |
-| `--local` | local; needs `key.NEBIUS_API_KEY` and `model.DISPATCH_MODEL` both `ok` in `D doctor --json` |
+| `--local` | local; needs `key.ANTHROPIC_API_KEY` and `model.SINGULARITY_MODEL` both `ok` in `D doctor --json` |
 | `--agent` | agent |
 | none | auto: both doctor checks `ok` means local. Otherwise agent when this session can read, write and run commands. Otherwise remote. |
 

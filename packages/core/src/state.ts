@@ -71,7 +71,7 @@ export type RunRecord = z.infer<typeof RunRecord>;
 /** Paid requests one run made, by service, written by the commit stage. */
 export const RunSpend = z.object({
   at: isoDateTime,
-  /** Request counts by service: jev, nebius, exa, firecrawl_listing, firecrawl_scrape. */
+  /** Request counts by service: jev, anthropic, gemini, exa, firecrawl_listing, firecrawl_scrape. */
   requests: z.record(z.string(), z.number().int().nonnegative()),
   /** 429 replies from Firecrawl; three stop it for the rest of the run. */
   firecrawl_rate_limited: z.number().int().nonnegative().default(0),

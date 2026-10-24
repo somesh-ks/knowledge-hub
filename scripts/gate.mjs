@@ -15,7 +15,11 @@ const chains = [
   [{ name: "docs", command: "node scripts/docsCheck.mjs" }],
 ];
 if (process.argv.includes("--build")) {
-  chains[3].push({ name: "build", command: "npm run build", env: { DISPATCH_STATIC_ONLY: "1" } });
+  chains[3].push({
+    name: "build",
+    command: "npm run build",
+    env: { SINGULARITY_STATIC_ONLY: "1" },
+  });
 }
 
 const run = ({ name, command, env }) =>

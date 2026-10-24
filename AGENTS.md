@@ -19,7 +19,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 - Run commands through PowerShell, not Git Bash: a Git Bash process costs 3 to 8 s here, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @dispatch/web` and `npm run e2e:player -w @dispatch/web` (about 6 minutes each): the browser suites. Run both before every PR that touches the site, `packages` or the tokens (CI runs them for some paths), then push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
-- `DISPATCH_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
+- `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
 - `npm run dev`: the site with the Agentation toolbar for notes on elements; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`): left running across an install, it serves broken islands.
 
 ## Rules

@@ -674,10 +674,16 @@ describe("commitAndPush: pushing", () => {
 describe("identityFromEnv", () => {
   it("returns the owner identity only when both variables are set", () => {
     expect(identityFromEnv({})).toBeUndefined();
-    expect(identityFromEnv({ DISPATCH_GIT_NAME: "Somesh" })).toBeUndefined();
+    expect(identityFromEnv({ SINGULARITY_GIT_NAME: "Somesh" })).toBeUndefined();
     expect(
-      identityFromEnv({ DISPATCH_GIT_NAME: "Somesh", DISPATCH_GIT_EMAIL: "  " }),
+      identityFromEnv({ SINGULARITY_GIT_NAME: "Somesh", SINGULARITY_GIT_EMAIL: "  " }),
     ).toBeUndefined();
+    expect(
+      identityFromEnv({
+        SINGULARITY_GIT_NAME: " Somesh ",
+        SINGULARITY_GIT_EMAIL: "1+somesh@users.noreply.github.com",
+      }),
+    ).toEqual({ name: "Somesh", email: "1+somesh@users.noreply.github.com" });
     expect(
       identityFromEnv({
         DISPATCH_GIT_NAME: " Somesh ",

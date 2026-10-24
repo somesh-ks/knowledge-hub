@@ -141,7 +141,7 @@ describe("loadSourceCatalog", () => {
       ["apps", "web", "src", "fixtures", "config"],
       JSON.stringify({ sources: [entry({ id: "fixture-one" })] }),
     );
-    const found = await loadSourceCatalog({ root, env: { DISPATCH_FIXTURES: "1" } });
+    const found = await loadSourceCatalog({ root, env: { SINGULARITY_FIXTURES: "1" } });
     expect(found.map((source) => source.id)).toEqual(["fixture-one"]);
     // Without the switch the same root has no real catalogue.
     expect(await loadSourceCatalog({ root, env: {} })).toEqual([]);

@@ -85,7 +85,7 @@
       "hint": "Jev is off: the Nebius fallback judge answers and digests are unverified. Get a key at console.typesafe.ai."
     },
     {
-      "id": "key.NEBIUS_API_KEY",
+      "id": "key.ANTHROPIC_API_KEY",
       "status": "ok",
       "summary": "set"
     },
@@ -119,12 +119,12 @@
       "summary": "not set (optional)"
     },
     {
-      "id": "model.DISPATCH_MODEL",
+      "id": "model.SINGULARITY_MODEL",
       "status": "ok",
       "summary": "set (Qwen/Qwen3-32B)"
     },
     {
-      "id": "model.DISPATCH_FALLBACK_MODEL",
+      "id": "model.SINGULARITY_FALLBACK_MODEL",
       "status": "ok",
       "summary": "set (openai/gpt-oss-120b)"
     }
