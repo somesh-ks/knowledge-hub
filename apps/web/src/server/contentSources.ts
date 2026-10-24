@@ -5,6 +5,7 @@ import {
   digestRelPath,
   PriceTable,
 } from "@dispatch/core";
+import { configStoreUrl } from "@dispatch/engine/config-paths";
 import { type ContentRepoDeps, loadStoreFiles } from "./contentRepo";
 import { bundledCostRecords, bundledPrices } from "./costSource";
 import { bundledDigestIds, bundledDigests } from "./digestSource";
@@ -17,8 +18,8 @@ import type { DigestSource, EpisodeBundle } from "./narrate";
  * answer (not configured, unreachable), a read falls back to this build's bundled copy, which is
  * what the routes read before. When it answers, it is the only answer: a deleted briefing is gone.
  *
- * The cost report reads the engine's ledger and price table the same way. The schedule is still
- * the build's (config/, D149 moves it).
+ * The cost report reads the engine's ledger and price table the same way. The schedule, for the
+ * voice Play narrates a briefing in, is read from the settings store (D149).
  */
 
 const runtime = (): ContentRepoDeps => ({ env: process.env, fetch, now: Date.now });
@@ -59,9 +60,63 @@ const markdownIds = (paths: readonly string[]): string[] =>
     .sort()
     .reverse();
 
+/** How long an instance keeps the stored schedule: a voice edit reaches Play within this. */
+export const SCHEDULE_TTL_MS = 30_000;
+/** Play waits on this read, and Neon can be waking from idle. */
+const SCHEDULE_TIMEOUT_MS = 2_500;
+
+let heldSchedule: { at: number; value: Promise<unknown> } | null = null;
+
+/** Forget the held schedule. For tests. */
+export function resetStoredSchedule(): void {
+  heldSchedule = null;
+}
+
+/**
+ * config/schedule.json as the settings store holds it (D149), parsed: a voice saved on the Voice
+ * page is in the store at once and in the build only after a deploy. Undefined when the store is
+ * off, holds no schedule or does not answer in time, so the build's copy stands in.
+ */
+async function storedSchedule(deps: ContentRepoDeps): Promise<unknown> {
+  const storeUrl = configStoreUrl(deps.env);
+  if (storeUrl === null) return undefined;
+  if (heldSchedule && deps.now() - heldSchedule.at < SCHEDULE_TTL_MS) return heldSchedule.value;
+  const value = (async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const late = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("no answer in time")), SCHEDULE_TIMEOUT_MS);
+      });
+      const read = (deps.readStoredSchedule ?? defaultReadStoredSchedule)(storeUrl);
+      const text = await Promise.race([read, late]);
+      return text === null ? undefined : (JSON.parse(text) as unknown);
+    } catch (error) {
+      console.error(
+        `[content] stored schedule unreadable, using the build's: ${error instanceof Error ? error.message : "unknown"}`,
+      );
+      // Not held, so the next Play asks again.
+      heldSchedule = null;
+      return undefined;
+    } finally {
+      clearTimeout(timer);
+    }
+  })();
+  heldSchedule = { at: deps.now(), value };
+  return value;
+}
+
+const defaultReadStoredSchedule = async (storeUrl: string): Promise<string | null> => {
+  // Loaded only with the store on, so the function never loads the driver while it is off.
+  const { readStoredSchedule } = await import("./configStore");
+  return readStoredSchedule(storeUrl, {});
+};
+
 export function contentDigests(deps: () => ContentRepoDeps = runtime): DigestSource {
   return {
-    readSchedule: () => bundledDigests.readSchedule?.() ?? Promise.resolve(null),
+    async readSchedule() {
+      const stored = await storedSchedule(deps());
+      return stored === undefined ? (bundledDigests.readSchedule?.() ?? null) : stored;
+    },
     async readDigest(id) {
       const text = await storeRead(digestRelPath(id), deps());
       return text === undefined ? bundledDigests.readDigest(id) : text;
