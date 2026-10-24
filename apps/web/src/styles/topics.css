@@ -814,8 +814,9 @@
   display: flex;
   flex: none;
   gap: var(--space-2);
-  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  /* On a phone the full-screen sheet's 24px gutter (owner, 2026-10-24, create-sheet.css). */
+  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
+  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-6), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
   background: var(--sheet-bg);
 }
@@ -882,6 +883,35 @@
     background: color-mix(
       in oklch,
       var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+/* Inside a card (the Structure sheet's Writing instructions, 2026-10-24) the card is already the
+   container's fill, so a text field there takes the page's surface instead, as the Topics card's
+   switch and search field do (.topic-panel above), and stays a field you can see. */
+.topics-panel
+  .card-group
+  :is(input, textarea).manage-input:not(
+    :focus-visible,
+    [readonly],
+    [aria-invalid]:not([aria-invalid="false"])
+  ) {
+  background: var(--color-surface);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .topics-panel
+    .card-group
+    :is(input, textarea).manage-input:not(
+      :focus-visible,
+      [readonly],
+      [aria-invalid]:not([aria-invalid="false"])
+    ):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface),
       var(--color-on-surface) var(--state-hover)
     );
   }
@@ -1654,9 +1684,26 @@
   display: none;
 }
 
-/* The kind's chips sit a full step under the switch, and the blocks a step under them. */
-.structure-kinds {
+/* The kind's tabs (2026-10-24: chips read as filters, the owner) and Reorder at the strip's end sit
+   a full step under the switch, and the blocks a step under them. The strip's own padding is the
+   page's gutter; in the card the first label starts at the card's words instead, its 16px of tab
+   padding pulled back, and Reorder's words end where the rows' dots do. */
+.structure-kinds-bar {
+  display: flex;
+  align-items: center;
   margin-block-start: var(--space-6);
+}
+
+.structure-kinds {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-inline-start: calc(var(--space-4) * -1);
+  padding-inline: 0;
+}
+
+.structure-reorder {
+  flex: none;
+  margin-inline-end: calc(var(--space-4) * -1);
 }
 
 .structure-list {
@@ -1683,11 +1730,21 @@
  * glyph's own air so the names still share one edge; a frame row keeps the same room empty.
  * Markup: <button class="icon-btn structure-grip" data-grip aria-label="Move Design"><svg/></button>
  */
+/* Reorder mode (owner, 2026-10-24: "I'm worried about accidental reorders"): the grips and their
+   room show only once Reorder is pressed, and then the dots, the pencils and Add step aside, so the
+   list does one thing at a time. structureEditor.ts sets data-reordering on the pane. */
+.pref-view-structure:not([data-reordering]) :is(.structure-grip, .structure-grip-room),
+.pref-view-structure[data-reordering]
+  :is(.structure-menu, .structure-edit, .structure-add > .btn-secondary) {
+  display: none;
+}
+
 .structure-grip,
 .structure-grip-room {
   flex: none;
   width: var(--size-touch-comfortable);
-  min-height: var(--size-touch-comfortable);
+  /* As tall as the dots it stands in for, so a row keeps its height in and out of Reorder. */
+  min-height: var(--size-touch);
   margin-inline: calc(var(--space-4) * -1) calc(var(--space-4) * -1 + var(--space-2));
 }
 

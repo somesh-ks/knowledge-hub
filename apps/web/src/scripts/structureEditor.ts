@@ -1,7 +1,8 @@
 /**
  * The Structure view on the Preferences page (D170, docs/design/podcast-structure.md "The screen"):
- * a chip for each podcast kind, its blocks as rows, Add under them. A row moves by its grip (pulled
- * with a finger or a mouse, or the arrow keys) or its dots (Move up, Move down), and Edit opens the
+ * a tab for each podcast kind, its blocks as rows, Add and Reorder under them. A row moves by its
+ * dots (Move up, Move down) or, once Reorder is pressed, by its grip (pulled with a finger or a mouse,
+ * or the arrow keys), and Edit opens the
  * block's sheet: its depth, its stories, how many may come from one source and how new they must
  * be (the rules code holds it to), a close's length, an owner block's title and brief, and, closed
  * under Writing instructions, the block's prompt in this kind (D178). Every change saves
@@ -39,6 +40,7 @@ import { mountAutosave } from "./autosave";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { MAX_BODY_CHARS, type Pending } from "./managePageSave";
 import { sheetGestures } from "./pullDismiss";
+import { mountSegmentedNav, selectTab } from "./segmentedNav";
 
 const KINDS: readonly StructureKind[] = ["daily", "weekly", "catch_up"];
 
@@ -175,8 +177,9 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   const chosen = new URLSearchParams(location.search).get("kind");
   let kind: StructureKind = kindOf(chosen);
-  for (const input of pane.querySelectorAll<HTMLInputElement>('input[name="structure-kind"]'))
-    input.checked = input.value === kind;
+  const kindTabs = pane.querySelector<HTMLElement>(".structure-kinds");
+  const panel = pane.querySelector<HTMLElement>("[data-structure-panel]");
+  if (kindTabs) selectTab(kindTabs, kind);
 
   const say = (message: string): void => {
     if (live) live.textContent = message;
@@ -187,6 +190,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     const rows = blocks[kind];
     list.innerHTML = rowsHtml(kind, rows, data, skip);
     list.setAttribute("aria-label", `${KIND_LABEL[kind]} blocks`);
+    panel?.setAttribute("aria-labelledby", `structure-kind-${kind}`);
     if (fit) fit.textContent = fitLine(kind, rows, data.sections, skip);
     const offers = addOffers(kind, rows, data.sections);
     addItems.replaceChildren(
@@ -252,15 +256,22 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     autosave.changed();
   };
 
-  pane.addEventListener("change", (event) => {
-    const input = event.target as HTMLInputElement;
-    if (input.name !== "structure-kind" || !input.checked) return;
-    kind = kindOf(input.value);
-    render();
-    const url = new URL(location.href);
-    if (kind === "daily") url.searchParams.delete("kind");
-    else url.searchParams.set("kind", kind);
-    history.replaceState(history.state, "", url);
+  // The kind's tabs keep their choice in the address (?kind=, segmentedNav.ts), so a reload finds it.
+  if (kindTabs)
+    mountSegmentedNav(kindTabs, (value) => {
+      kind = kindOf(value);
+      render();
+    });
+
+  // Reorder shows the grips and hides the dots and Add; Done puts them back. Outside it a row has
+  // no handle, so nothing a finger does by chance moves a block (owner, 2026-10-24).
+  const reorder = pane.querySelector<HTMLButtonElement>("[data-reorder]");
+  reorder?.addEventListener("click", () => {
+    const on = pane.dataset.reordering === undefined;
+    if (on) pane.dataset.reordering = "";
+    else delete pane.dataset.reordering;
+    reorder.textContent = on ? "Done" : "Reorder";
+    say(on ? "Reorder on. Drag a block by its handle, or use the arrow keys." : "Reorder off.");
   });
 
   pane.addEventListener("click", (event) => {

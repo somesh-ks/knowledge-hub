@@ -101,7 +101,7 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
               </div>
             </section>
 
-            {/* A chip for each kind, one chosen; its blocks in order; Add under them. The rows are
+            {/* A tab for each kind and Reorder; its blocks in order; Add under them. The rows are
                  lib/structureView.ts's markup, drawn again by the editor after each change. */}
             <section
               class="topic-view-pane pref-view-structure"
@@ -110,24 +110,40 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
               aria-labelledby="pref-tab-structure"
               data-structure={JSON.stringify(structure)}
             >
-              <fieldset class="filter-chips filter-chips-scroll structure-kinds" aria-label="Podcast">
-                {
-                  STRUCTURE_KINDS.map((kind) => (
-                    <label class="filter-chip">
-                      <input type="radio" name="structure-kind" value={kind} checked={kind === firstKind} />
-                      <Icon name="check" class="filter-chip-check" />
-                      <span>{KIND_LABEL[kind]}</span>
-                    </label>
-                  ))
-                }
-              </fieldset>
+              {/* Three views of one list, so tabs, not chips: chips read as filters (owner, 2026-10-24).
+                   Reorder sits at the strip's end, in reach above the list however long it is. */}
+              <div class="structure-kinds-bar">
+                <div class="tabs structure-kinds" role="tablist" aria-label="Podcast" data-param="kind">
+                  {
+                    STRUCTURE_KINDS.map((kind) => (
+                      <button
+                        class="tab"
+                        type="button"
+                        role="tab"
+                        id={`structure-kind-${kind}`}
+                        aria-controls="structure-panel"
+                        aria-selected={kind === firstKind ? "true" : "false"}
+                        tabindex={kind === firstKind ? 0 : -1}
+                        data-value={kind}
+                      >
+                        {KIND_LABEL[kind]}
+                      </button>
+                    ))
+                  }
+                </div>
+                {/* The grips show only after this is pressed, so a stray drag down the page never
+                    moves a block (owner, 2026-10-24: "I'm worried about accidental reorders"). */}
+                <button class="btn structure-reorder" type="button" data-reorder data-needs-js>Reorder</button>
+              </div>
               <p class="sr-only" id="structure-grip-hint">Drag to move, or press the up and down arrow keys.</p>
-              <ol
-                class="rows topic-controls structure-list"
-                aria-label={`${KIND_LABEL[firstKind]} blocks`}
-                data-structure-list
-                set:html={rowsHtml(firstKind, structure.blocks[firstKind], structure, structure.skip)}
-              ></ol>
+              <div role="tabpanel" id="structure-panel" aria-labelledby={`structure-kind-${firstKind}`} data-structure-panel>
+                <ol
+                  class="rows topic-controls structure-list"
+                  aria-label={`${KIND_LABEL[firstKind]} blocks`}
+                  data-structure-list
+                  set:html={rowsHtml(firstKind, structure.blocks[firstKind], structure, structure.skip)}
+                ></ol>
+              </div>
               <div class="structure-add" style="--row-anchor: --structure-add">
                 <button
                   class="btn-secondary"
@@ -255,7 +271,7 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
             {/* The prompt, kept but out of the way: closed under its own row at the sheet's foot, as
                  Create's More options is, since prompt styles change as models do (the owner,
                  2026-10-24). */}
-            <details class="create-more structure-advanced" data-part="prompt">
+            <details class="create-more card-group structure-advanced" data-part="prompt">
               <summary class="create-more-summary">
                 <span class="create-more-text">
                   <span class="create-more-title">Writing instructions (advanced)</span>
