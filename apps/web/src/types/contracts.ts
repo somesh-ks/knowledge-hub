@@ -385,8 +385,14 @@ export type ConfigOp =
       weekly?: boolean;
       custom?: boolean;
     }
-  /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
-  | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;
+  /**
+   * The profile ops (block, unblock, vote) and structure.set (one podcast kind's whole list of
+   * blocks, D170) are core's own definitions: one place for their shape.
+   */
+  | Extract<
+      CoreConfigOp,
+      { op: "profile.block" | "profile.unblock" | "profile.vote" | "structure.set" }
+    >;
 
 /** One vote on a story, as profile.vote carries it (VoteInput in core). */
 export type ProfileVote = Extract<CoreConfigOp, { op: "profile.vote" }>["votes"][number];

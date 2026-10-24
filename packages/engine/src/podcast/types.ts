@@ -1,5 +1,6 @@
 import type { PodcastRequest } from "@dispatch/core";
 import type { Taste } from "../profile/tasteNote.js";
+import type { ScriptShape } from "./structure.js";
 
 /** Raised for a problem the listener can act on: a bad request, too few stories, an unusable script. */
 export class PodcastError extends Error {
@@ -48,6 +49,8 @@ export interface ScriptInput {
   deadline_at?: number | undefined;
   /** Turns already written and shown to the listener; the script continues right after them. */
   opening?: readonly ScriptTurn[] | undefined;
+  /** The Catch up structure's asks (D170); absent is the shape every episode had before it. */
+  shape?: ScriptShape | undefined;
 }
 
 export interface TurnRewrite {

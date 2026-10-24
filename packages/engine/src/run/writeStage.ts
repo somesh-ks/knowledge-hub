@@ -41,6 +41,7 @@ import {
   sourceFactsMap,
   type TopicLayer,
 } from "../score/scoreTopics.js";
+import { loadSectionPlan } from "../score/sectionPlan.js";
 import { assignSections, capFor, compareCandidates, selectItems } from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
@@ -213,6 +214,7 @@ async function writePass(
     votePrefs,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
+  const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
   const byId = new Map(pool.items.map((item) => [item.id, item]));
@@ -311,6 +313,7 @@ async function writePass(
       pass.kind === "regular" ? skipTopics : pass.kind === "weekly" ? weeklySkipTopics : [],
     // Regenerate with chosen topics: a candidate stays only when its category is one of them.
     ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
+    plan: sectionPlan,
   };
   const chosen = selectItems({
     ...selectArgs,
@@ -473,7 +476,10 @@ async function writePass(
     keptIds.delete(id);
     drop(id, "voice", "the episode's narration would run past one request");
   }
-  const survivors = assignSections(chosen.selected.filter((sel) => keptIds.has(sel.item.id)));
+  const survivors = assignSections(
+    chosen.selected.filter((sel) => keptIds.has(sel.item.id)),
+    sectionPlan,
+  );
   if (survivors.length < VOICE_LIMITS.items.floor) {
     // Extraction and writing failures are infrastructure; voice drops are editorial.
     const infra = chosen.selected.length - materials.size + writeResult.failed.length;

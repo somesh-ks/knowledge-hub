@@ -76,5 +76,5 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e
 3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the first-load cuts (item 2) within 130 KB (D141).
 4. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
 5. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).
-6. Calibrate the Jev thresholds on the golden set (`eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path; one generated briefing to see Design and Trending, then tune the Trending threshold.
+6. Calibrate the Jev thresholds on the golden set (`eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path; tune the Trending threshold on a real briefing.
 7. Tests left by the D99 cuts, if they cost less than they save: `gate-decideRun` DST cases, `voice-lint`, the `heldSave` and `readerContract` tables, the Library filter table.
