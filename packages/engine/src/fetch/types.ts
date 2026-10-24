@@ -39,6 +39,8 @@ export interface SourceResult {
   error?: string;
   /** Why a source did nothing without failing, such as a missing API key. */
   note?: string;
+  /** Read through Firecrawl because its host refused the runner (fetchAll's relay). */
+  via?: "firecrawl";
 }
 
 /** Thrown by a fetcher that cannot run in this environment. Not a failure. */

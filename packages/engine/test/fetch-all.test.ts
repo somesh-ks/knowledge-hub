@@ -2,9 +2,10 @@ import type { Item, Source } from "@dispatch/core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TYPE_LIMITS, fetchAll, selectSources } from "../src/fetch/fetchAll.js";
 import { FETCHERS } from "../src/fetch/fetchers.js";
+import { EMPTY_FIRECRAWL_STATE, FirecrawlGuard } from "../src/fetch/firecrawlBudget.js";
 import { createLimiter } from "../src/fetch/limiter.js";
 import { type SourceFetcher, SourceSkipped } from "../src/fetch/types.js";
-import { fakeFetch, makeDeps, makeItem, makeSource, WIDE } from "./fetch-helpers.js";
+import { fakeFetch, fixture, makeDeps, makeItem, makeSource, WIDE } from "./fetch-helpers.js";
 
 const deps = makeDeps(fakeFetch({}));
 const itemFor = (source: Source): Item =>
@@ -139,6 +140,64 @@ describe("fetchAll", () => {
       typeLimits: { firecrawl: { concurrency: 2 } },
     });
     expect(peak).toBe(2);
+  });
+
+  // YouTube answered every channel feed with HTTP 404 to GitHub's runners from about 2026-10-14
+  // while serving it to other hosts: four channels and a channel filed as RSS went silent.
+  it("reads a feed YouTube refused through Firecrawl, within the run's budget, and only YouTube's", async () => {
+    const feed = (id: string) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
+    const sources = [
+      makeSource({
+        id: "fireship",
+        type: "youtube",
+        feed_url: null,
+        options: { channel_id: "UCa" },
+      }),
+      makeSource({ id: "friday-checkout", feed_url: feed("UCb") }),
+      makeSource({ id: "blog", feed_url: "https://example.com/feed.xml" }),
+    ];
+    const relayed: string[] = [];
+    let firecrawl = 200;
+    const fake = fakeFetch({
+      "https://www.youtube.com/feeds/": { status: 404 },
+      "https://api.firecrawl.dev/v2/scrape": (_url, init) => {
+        relayed.push((JSON.parse(String(init?.body)) as { url: string }).url);
+        const data = { rawHtml: fixture("fetch-youtube.xml"), metadata: { statusCode: 200 } };
+        return new Response(JSON.stringify({ success: true, data }), {
+          status: firecrawl,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    const run = (guard: FirecrawlGuard) =>
+      fetchAll(sources, WIDE, makeDeps(fake, { firecrawl: { apiKey: "key", guard } }), {
+        mode: "regular",
+        sleep: async () => {},
+      });
+    // A budget of one: the first refused feed is relayed, the second keeps its refusal.
+    const once = new FirecrawlGuard(EMPTY_FIRECRAWL_STATE, { ceiling: 1, listing: 0 });
+    const { results } = await run(once);
+    expect(results.map((r) => [r.source_id, r.ok])).toEqual([
+      ["fireship", true],
+      ["friday-checkout", false],
+      ["blog", false],
+    ]);
+    expect(results[0]).toMatchObject({ via: "firecrawl" });
+    expect(results[0]?.count).toBeGreaterThan(0);
+    expect(results[1]?.error).toBe("HTTP 404; through Firecrawl: Firecrawl budget spent");
+    expect(relayed).toEqual([feed("UCa")]);
+    expect(once.snapshot.scrape).toBe(1);
+    // The weekly pass reads the same feeds: the relayed one comes from the run's cache, free.
+    const weekly = await run(once);
+    expect(weekly.results[0]).toMatchObject({ ok: true, via: "firecrawl" });
+    expect(relayed).toHaveLength(1);
+    // Each rate-limited relay counts toward the run's stop and says why it failed.
+    firecrawl = 429;
+    const limited = new FirecrawlGuard();
+    const again = await run(limited);
+    expect(again.results[0]?.error).toMatch(/^HTTP 404; through Firecrawl: HTTP 429/);
+    expect(limited.snapshot.rate_limited).toBe(2);
+    expect(relayed).toHaveLength(3);
   });
 
   it("reports a skipped source as ok with a note, not as a failure", async () => {
