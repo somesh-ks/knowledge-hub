@@ -21,7 +21,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses until then); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
-- YouTube text: captions and Gemini worked on live videos (2026-10-19); no full run used them. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
+- YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
 - Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.

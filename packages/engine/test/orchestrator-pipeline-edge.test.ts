@@ -407,7 +407,10 @@ describe("grounding and validation", () => {
     const { writer, calls, startRefill } = writerKeeping(2, "voice");
     const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
     const stages = await stagedWithRefill(world, () => startRefill("ok"), 2);
-    expect(stages.write).toMatchObject({ passes: [{ outcome: "nothing" }] });
+    // Its losses are in the stage JSON, by stage and reason (the artifact is out of reach).
+    expect(stages.write).toMatchObject({
+      passes: [{ outcome: "nothing", lost: { voice: expect.any(Number) } }],
+    });
     expect(stages.validate).toMatchObject({ passes: [{ outcome: "selected" }] });
     expect(calls.write).toBe(1);
     expect((await readDigest(repo.root, DIGEST_PATH)).items.length).toBeGreaterThanOrEqual(3);

@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-24 | [YouTube text through Firecrawl](2026-10-24-youtube-text-through-firecrawl.md) | The datacenter block measured; captions through Firecrawl's transcript provider behind the run's budget (D165) |
 | 2026-10-24 | [YouTube through Firecrawl, the refill, and Firecrawl's week](2026-10-24-youtube-relay-refill-and-firecrawl-week.md) | YouTube's feeds refused to the runners are read through Firecrawl (#235); validation refills a briefing it cut short (#237); Firecrawl 100 a week, 50 a run (D166); four review rounds, colliding decision numbers |
 | 2026-10-24 | [The store's answer kept on the device](2026-10-24-store-device-copy.md) | Settings pages show what the device last read when the store is slow or down (D172) |
 | 2026-10-23 | [The Costs card and the visual audit](2026-10-23-costs-card-and-visual-audit.md) | Costs as one card with chips, figure, chart and breakdown; measured concentric radii; the audit built by four workers (#224 to #226, #228); a dark ramp step out of order, reduced motion split off, the publisher moved above the headline |

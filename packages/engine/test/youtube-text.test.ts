@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createVideoText, withVideoText } from "../src/extract/youtubeText.js";
+import { FirecrawlGuard } from "../src/fetch/firecrawlBudget.js";
 import { makeItem } from "./score-factories.js";
 
 const speech = "Today we look at the new release and what it changes for designers. ".repeat(6);
@@ -17,14 +18,31 @@ const video = makeItem({
   snippet: "short",
 });
 
-function fakeNet(opts: { captions: boolean }) {
+function fakeNet(opts: { captions: boolean; blocked?: boolean }) {
   const calls: string[] = [];
   const fn = (async (input: RequestInfo | URL) => {
     const url = String(input);
-    calls.push(url.startsWith("https://generativelanguage") ? "gemini" : url);
+    calls.push(
+      url.startsWith("https://generativelanguage")
+        ? "gemini"
+        : url.startsWith("https://api.firecrawl.dev")
+          ? "firecrawl"
+          : url,
+    );
     if (url.startsWith("https://generativelanguage")) {
       return Response.json({ candidates: [{ content: { parts: [{ text: speech }] } }] });
     }
+    if (url.startsWith("https://api.firecrawl.dev")) {
+      return Response.json({
+        success: true,
+        data: {
+          creditsCost: 5,
+          alexandria: [{ data: { has_transcript: true, full_text: speech } }],
+        },
+      });
+    }
+    // YouTube to a datacenter address: a 429 on the player, as GitHub's runners see (2026-10-24).
+    if (opts.blocked) return new Response("", { status: 429 });
     if (url.includes("/youtubei/v1/player")) {
       const captionTracks = opts.captions ? [track] : [];
       return Response.json({ captions: { playerCaptionsTracklistRenderer: { captionTracks } } });
@@ -70,6 +88,32 @@ describe("YouTube video text", () => {
     });
     expect((await third(other))?.method).toBe("transcription");
     expect(none.calls).toContain("gemini");
+  });
+
+  it("with youtube.com refusing the runner, captions come through Firecrawl from the scrape budget, and Gemini is asked only once that budget is spent", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "video-text-"));
+    const guard = new FirecrawlGuard(undefined, { ceiling: 1, listing: 0 });
+    const credits: number[] = [];
+    const blocked = fakeNet({ captions: false, blocked: true });
+    const read = createVideoText({
+      apiKey: "k",
+      models: async () => ["m"],
+      cachePath: join(dir, "video-text.json"),
+      fetchImpl: blocked.fn,
+      firecrawl: { apiKey: "fc", guard, onCredits: (spent) => credits.push(spent) },
+    });
+    expect((await read(video))?.method).toBe("captions");
+    expect(blocked.calls).toContain("firecrawl");
+    expect(blocked.calls).not.toContain("gemini");
+    expect(credits).toEqual([5]);
+
+    // The one scrape of the budget is spent: the next video is transcribed, not relayed.
+    const other = makeItem({
+      url: "https://www.youtube.com/watch?v=zzzzzzzzzzz",
+      source_type: "youtube",
+    });
+    expect((await read(other))?.method).toBe("transcription");
+    expect(blocked.calls.filter((call) => call === "firecrawl")).toHaveLength(1);
   });
 
   it("falls back to the description, or nothing, when captions and transcription both fail", async () => {

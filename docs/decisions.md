@@ -171,6 +171,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
 | D161 | Publisher above the headline | active; amends D31 |
+| D165 | YouTube captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
 | D172 | Store reads keep a device copy | amends D149 |
 
@@ -1745,6 +1746,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D31's type rule that a quiet line goes under its title, never above it, for the publisher alone.
 - Revisit if: the chip and the controls narrow enough to hold a whole name beside them.
 
+## D165: YouTube captions come through Firecrawl when YouTube refuses the runner
+
+- Date: 2026-10-24 (the owner: "yt-dlp is a very reliable option, use this"; then "look into possible workarounds to make the youtube transcription extraction reliable")
+- Decision: when youtube.com's player API refuses the run (it has refused GitHub's runners since about 2026-10-14), the extractor asks Firecrawl's Alexandria provider `youtube-com/videos/video_transcript` for the same captions. One scrape request a video from the run's Firecrawl budget (`FirecrawlGuard.relay`, so a video relayed once in a run is not paid twice), about 5 credits a video, metered in the cost ledger under firecrawl/alexandria. Order stays: cache, youtube.com (free), Firecrawl, Gemini (3 a run), the description. The method recorded is `captions`, as they are.
+- Why: the block is on the address, not the tool. Measured from a datacenter address on 2026-10-24: the watch page answers 429 and every yt-dlp player client (default, tv, mweb, web_embedded) ends in "Sign in to confirm you're not a bot"; yt-dlp's maintainers say a PO-token provider does not lift that wall (yt-dlp #15865) and point to cookies. Firecrawl already holds a key, a budget and a ledger row here (D138), and its provider makes the InnerTube call our own code makes, from an address YouTube serves. Measured live the same day: a full transcript in one call.
+- Rejected: yt-dlp with a Google account's cookies in a secret (works, but YouTube may flag the account for automated use, the cookies expire, and the workflow gains Python and a secret to rotate); a PO-token sidecar (does not answer the sign-in wall); a paid residential proxy (a monthly bill for one feature); a hosted transcript API (a new vendor and key for what Firecrawl already sells).
+- Revisit if: Firecrawl's provider goes away or its price rises above a scrape's worth (then yt-dlp with a throwaway account's cookies is the next step, behind the same `relay` budget), or YouTube serves the runners again (then the free path answers first and Firecrawl is never asked).
+
 ## D166: Firecrawl gets 100 requests a week, at most 50 a run
 
 - Date: 2026-10-24 (the owner: "change firecrawl budget to 100 per week")
@@ -1752,6 +1761,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the YouTube relay (#235) and the article scrapes press on 30 a run. A weekly cap lets one run use more while the week stays at the owner's number; 50 is half the week, so one run can never spend it all.
 - Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
 - Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
+
+## D165: YouTube captions come through Firecrawl when YouTube refuses the runner
+
+- Date: 2026-10-24 (the owner: "yt-dlp is a very reliable option, use this"; then "look into possible workarounds to make the youtube transcription extraction reliable")
+- Decision: when youtube.com's player API refuses the run (it has refused GitHub's runners since about 2026-10-14), the extractor asks Firecrawl's Alexandria provider `youtube-com/videos/video_transcript` for the same captions. One scrape request a video from the run's Firecrawl budget (`FirecrawlGuard.relay`, so a video relayed once in a run is not paid twice), about 5 credits a video, metered in the cost ledger under firecrawl/alexandria. Order stays: cache, youtube.com (free), Firecrawl, Gemini (3 a run), the description. The method recorded is `captions`, as they are.
+- Why: the block is on the address, not the tool. Measured from a datacenter address on 2026-10-24: the watch page answers 429 and every yt-dlp player client (default, tv, mweb, web_embedded) ends in "Sign in to confirm you're not a bot"; yt-dlp's maintainers say a PO-token provider does not lift that wall (yt-dlp #15865) and point to cookies. Firecrawl already holds a key, a budget and a ledger row here (D138), and its provider makes the InnerTube call our own code makes, from an address YouTube serves. Measured live the same day: a full transcript in one call.
+- Rejected: yt-dlp with a Google account's cookies in a secret (works, but YouTube may flag the account for automated use, the cookies expire, and the workflow gains Python and a secret to rotate); a PO-token sidecar (does not answer the sign-in wall); a paid residential proxy (a monthly bill for one feature); a hosted transcript API (a new vendor and key for what Firecrawl already sells).
+- Revisit if: Firecrawl's provider goes away or its price rises above a scrape's worth (then yt-dlp with a throwaway account's cookies is the next step, behind the same `relay` budget), or YouTube serves the runners again (then the free path answers first and Firecrawl is never asked).
 
 ## D172: a settings page keeps the store's last answer on the device
 
