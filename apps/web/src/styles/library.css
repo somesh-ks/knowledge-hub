@@ -648,18 +648,7 @@ html[data-library-page="empty"] {
   margin-inline-end: calc(var(--space-4) * -1);
 }
 
-@property --shelf-left-mask {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --shelf-right-mask {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 40px;
-}
-
+/* Its ends fade by .scroll-fade-inline (primitives.css), 40px wide. */
 .shelf {
   display: flex;
   gap: var(--space-4);
@@ -672,43 +661,7 @@ html[data-library-page="empty"] {
   scroll-snap-type: x proximity;
   scroll-padding-inline: var(--page-gutter-start);
   scrollbar-width: none;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0px,
-    black var(--shelf-left-mask, 0px),
-    black calc(100% - var(--shelf-right-mask, 40px)),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0px,
-    black var(--shelf-left-mask, 0px),
-    black calc(100% - var(--shelf-right-mask, 40px)),
-    transparent 100%
-  );
-  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
-  animation-name: shelf-scroll-fade;
-  animation-timing-function: var(--ease-linear);
-  animation-timeline: scroll(self inline);
-}
-
-@keyframes shelf-scroll-fade {
-  0% {
-    --shelf-left-mask: 0px;
-    --shelf-right-mask: 40px;
-  }
-  10% {
-    --shelf-left-mask: 40px;
-    --shelf-right-mask: 40px;
-  }
-  90% {
-    --shelf-left-mask: 40px;
-    --shelf-right-mask: 40px;
-  }
-  100% {
-    --shelf-left-mask: 40px;
-    --shelf-right-mask: 0px;
-  }
+  --scroll-fade-size: calc(var(--space-8) + var(--space-2));
 }
 
 .shelf::-webkit-scrollbar {

@@ -3,9 +3,14 @@ import type { PlayerDigestData } from "../../types/contracts";
 
 const MODES = ["light", "dark"] as const;
 
+/** A cover the site drew: its path comes from page JSON, so anything else is not shown. */
+const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))$/;
+
 /** The cover drawn for one theme: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`. */
 function themedSrc(src: string, mode: (typeof MODES)[number]): string {
-  return src.replace(/^\/covers\//, `/covers/${mode}/`);
+  const file = COVER_FILE.exec(src)?.[1];
+  // encodeURIComponent changes nothing the pattern lets through; it marks the path safe for CodeQL.
+  return file ? `/covers/${mode}/${encodeURIComponent(file)}` : "";
 }
 
 interface PlayerCoverProps {
@@ -31,27 +36,30 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
       data-weekly={weekly ? "" : undefined}
       style={style}
     >
-      {MODES.map((mode) => (
-        <img
-          key={mode}
-          className="player-cover-image"
-          data-mode={mode}
-          src={themedSrc(cover.src512, mode)}
-          srcSet={
-            size === "player"
-              ? `${themedSrc(cover.src512, mode)} 512w, ${themedSrc(cover.src1024, mode)} 1024w`
-              : undefined
-          }
-          sizes={size === "player" ? "(min-width: 40rem) 22rem, calc(100vw - 3rem)" : undefined}
-          alt=""
-          width={size === "thumb" ? 44 : 352}
-          height={size === "thumb" ? 44 : 352}
-          decoding="async"
-          // The other theme's image is display: none, so a lazy one is never fetched.
-          loading="lazy"
-          draggable={false}
-        />
-      ))}
+      {MODES.map((mode) => {
+        const src = themedSrc(cover.src512, mode);
+        // A path that is not a drawn cover leaves the key-colored box, never an empty src.
+        if (!src) return null;
+        return (
+          <img
+            key={mode}
+            className="player-cover-image"
+            data-mode={mode}
+            src={src}
+            srcSet={
+              size === "player" ? `${src} 512w, ${themedSrc(cover.src1024, mode)} 1024w` : undefined
+            }
+            sizes={size === "player" ? "(min-width: 40rem) 22rem, calc(100vw - 3rem)" : undefined}
+            alt=""
+            width={size === "thumb" ? 44 : 352}
+            height={size === "thumb" ? 44 : 352}
+            decoding="async"
+            // The other theme's image is display: none, so a lazy one is never fetched.
+            loading="lazy"
+            draggable={false}
+          />
+        );
+      })}
     </span>
   );
 }
@@ -64,20 +72,24 @@ export function PlayerCoverGlow({ cover }: { cover: PlayerDigestData["cover"] })
   return (
     <span className="player-cover-glow" aria-hidden="true">
       <span className="player-cover-glow-light">
-        {MODES.map((mode) => (
-          <img
-            key={mode}
-            className="player-cover-image"
-            data-mode={mode}
-            src={themedSrc(cover.src512, mode)}
-            alt=""
-            width={352}
-            height={352}
-            decoding="async"
-            loading="lazy"
-            draggable={false}
-          />
-        ))}
+        {MODES.map((mode) => {
+          const src = themedSrc(cover.src512, mode);
+          if (!src) return null;
+          return (
+            <img
+              key={mode}
+              className="player-cover-image"
+              data-mode={mode}
+              src={src}
+              alt=""
+              width={352}
+              height={352}
+              decoding="async"
+              loading="lazy"
+              draggable={false}
+            />
+          );
+        })}
       </span>
     </span>
   );

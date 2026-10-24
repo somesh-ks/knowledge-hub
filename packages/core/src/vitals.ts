@@ -45,7 +45,10 @@ const NAMED_PAGE = /^\/(?:library|create|offline|analytics|settings(?:\/[a-z]+(?
  * sends this and the server applies it again, so nothing else is ever stored.
  */
 export function vitalPage(path: string): string {
-  const trimmed = path.length > 1 ? path.replace(/\/+$/, "") : path;
+  // A loop, not `/\/+$/`: the path is the visitor's, and that regex is quadratic on a run of "/".
+  let end = path.length;
+  if (end > 1) while (end > 0 && path[end - 1] === "/") end--;
+  const trimmed = path.slice(0, end);
   if (trimmed === "/") return "/";
   const dynamic = DYNAMIC_PAGE.exec(trimmed);
   if (dynamic) return `/${dynamic[1]}/[id]`;

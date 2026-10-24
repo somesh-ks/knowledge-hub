@@ -3,7 +3,8 @@ import DigestView from "../../components/DigestView.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import EpisodeView from "../../components/EpisodeView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { listenLength } from "../../lib/digestView";
+import { hasSectionTabs, listenLength } from "../../lib/digestView";
+import { episodeSections } from "../../lib/episodeHighlights";
 import { episodeLength, storyLookups } from "../../lib/episodes";
 import { briefingCard, episodeCard } from "../../lib/linkCard";
 import { getSite } from "../../lib/site";
@@ -50,6 +51,13 @@ const site = itemId ? await getSite() : null;
 const index = site && itemId ? site.entries.findIndex((entry) => entry.id === itemId) : -1;
 const briefing = site?.entries[index];
 const episode = site?.episodes.find((entry) => entry.id === itemId);
+const lookups = episode && site ? storyLookups(site.entries) : undefined;
+// Tabs and the contents column from two sections, as on the owner's pages.
+const tabs = briefing
+  ? hasSectionTabs(briefing)
+  : episode && lookups
+    ? episodeSections(episode.episode, lookups).length > 1
+    : false;
 if (status === 200 && !briefing && !episode) status = 404;
 
 Astro.response.status = status;
@@ -79,7 +87,8 @@ const hint =
       title={briefing.player.title}
       view="home"
       nav={null}
-      layout="aside"
+      layout={tabs ? "aside" : "single"}
+      tabs={tabs}
       digestId={briefing.id}
       card={briefingCard(briefing)}
       audio={{
@@ -100,12 +109,14 @@ const hint =
       title={episode.episode.title}
       view="library"
       nav={null}
+      layout={tabs ? "aside" : "single"}
+      tabs={tabs}
       digestId={episode.id}
       card={episodeCard(episode)}
       audio={{ noun: "episode", length: episodeLength(episode.episode) }}
       skipLabel="Skip to the episode"
     >
-      <EpisodeView entry={episode} {...storyLookups(site.entries)} shareToken={token} />
+      <EpisodeView entry={episode} {...lookups} shareToken={token} />
     </BaseLayout>
   ) : (
     <BaseLayout title={message} view="home" nav={null} skipLabel="Skip to the content">

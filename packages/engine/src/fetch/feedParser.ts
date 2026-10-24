@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { stripTags } from "../normalize/htmlToText.js";
 
 export interface FeedEntry {
   title: string | undefined;
@@ -111,7 +112,7 @@ function authorName(raw: string | undefined): string | undefined {
   const parenthesized = /\(([^)]+)\)/.exec(raw);
   if (parenthesized?.[1]) return parenthesized[1].trim();
   if (/^\S+@\S+$/.test(raw.trim())) return undefined;
-  return raw.replace(/<[^>]*>/g, "").trim() || undefined;
+  return stripTags(raw).trim() || undefined;
 }
 
 function authorsOf(entry: Node): string | undefined {

@@ -44,6 +44,7 @@ const VERCEL_ENV = [
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
   "ANTHROPIC_API_KEY",
+  "ANTHROPIC_ADMIN_KEY",
   "TYPESAFE_API_KEY",
   // The topic emoji backup (Gemini Flash-Lite) runs on a site request.
   "GEMINI_API_KEY",

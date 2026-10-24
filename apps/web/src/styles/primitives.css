@@ -122,20 +122,10 @@
 /*
  * Sticky under the app bar, scrollable sideways, with an accent underline on the section in view.
  * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
- * Markup: <div class="tabs-bar"><nav class="tabs"><a class="tab" aria-current="true">...</a></nav></div>
+ * Its ends fade by .scroll-fade-inline (below).
+ * Markup: <div class="tabs-bar"><nav class="tabs scroll-fade-inline"><a class="tab" aria-current="true">...</a></nav></div>
  * A filter's tabs are buttons in a tablist, the chosen one aria-selected (SourceFilter.astro).
  */
-@property --tabs-left-mask {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --tabs-right-mask {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 32px;
-}
 
 /* The bar sticks and carries the surface and the line under it; the strip inside it scrolls and
    fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls
@@ -159,43 +149,6 @@
   overscroll-behavior-x: contain;
   scroll-padding-inline: var(--page-gutter-start);
   scrollbar-width: none;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0px,
-    black var(--tabs-left-mask, 0px),
-    black calc(100% - var(--tabs-right-mask, 32px)),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0px,
-    black var(--tabs-left-mask, 0px),
-    black calc(100% - var(--tabs-right-mask, 32px)),
-    transparent 100%
-  );
-  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
-  animation-name: tabs-scroll-fade;
-  animation-timing-function: var(--ease-linear);
-  animation-timeline: scroll(self inline);
-}
-
-@keyframes tabs-scroll-fade {
-  0% {
-    --tabs-left-mask: 0px;
-    --tabs-right-mask: 32px;
-  }
-  10% {
-    --tabs-left-mask: 32px;
-    --tabs-right-mask: 32px;
-  }
-  90% {
-    --tabs-left-mask: 32px;
-    --tabs-right-mask: 32px;
-  }
-  100% {
-    --tabs-left-mask: 32px;
-    --tabs-right-mask: 0px;
-  }
 }
 
 .tabs::-webkit-scrollbar {
@@ -290,12 +243,15 @@
 /* ------------------------------------------------------------------ scroll fade */
 
 /*
- * A sideways scroller's hidden edge fades while more lies past it, by its own scroll, as the section
- * tabs above and the Library's shelf fade theirs (2026-10-24: the shared form, first used by the
- * Costs table, whose last column was cut with nothing saying there was more). The properties are
- * registered at 0px, so a scroller with nothing to scroll (an inactive timeline) or a browser
- * without scroll timelines shows no fade at all. The element keeps its own overflow.
- * Markup: <div class="costs-table-scroll scroll-fade-inline"> on an element with overflow-x: auto.
+ * A sideways scroller's hidden edge fades while more lies past it, by its own scroll (2026-10-24: the
+ * shared form, first used by the Costs table, whose last column was cut with nothing saying there
+ * was more; the section tabs and the Earlier shelf gave up their own copies for it the same day).
+ * The properties are registered at 0px, so a scroller with nothing to scroll (an inactive timeline)
+ * or a browser without scroll timelines shows no fade at all. The fade is 32px; a scroller sets
+ * --scroll-fade-size for another (the Earlier shelf, 40px). The element keeps its own overflow.
+ * Markup: class="scroll-fade-inline" on an element with overflow-x: auto, as
+ * <div class="costs-table-scroll scroll-fade-inline">, <nav class="tabs scroll-fade-inline">,
+ * <ul class="shelf scroll-fade-inline">.
  */
 @property --scroll-fade-start {
   syntax: "<length>";
@@ -345,15 +301,15 @@
 @keyframes scroll-fade-inline {
   0% {
     --scroll-fade-start: 0px;
-    --scroll-fade-end: var(--space-8);
+    --scroll-fade-end: var(--scroll-fade-size, var(--space-8));
   }
   10%,
   90% {
-    --scroll-fade-start: var(--space-8);
-    --scroll-fade-end: var(--space-8);
+    --scroll-fade-start: var(--scroll-fade-size, var(--space-8));
+    --scroll-fade-end: var(--scroll-fade-size, var(--space-8));
   }
   100% {
-    --scroll-fade-start: var(--space-8);
+    --scroll-fade-start: var(--scroll-fade-size, var(--space-8));
     --scroll-fade-end: 0px;
   }
 }
@@ -1346,9 +1302,14 @@
    2026-10-22, "the padding around the list menus ... must be spacious": the words 24px in, the tiles
    16px in on every side. The card adds half the inset above and below and each tile takes the other
    half inside its row, so the first and last tiles sit one inset from the edge, two tiles sit one
-   inset apart, and the rows keep their 64px rhythm. */
+   inset apart, and the rows keep their 64px rhythm.
+   2026-10-24, the owner: "I want the padding to be less and the list items to be spacious to improve
+   click area ... 4px padding is decent": the inset is 4px, a link row's box is its tile (one inset
+   from the card's edges, its words still the padding in), so the whole tile is the target and
+   nothing outside it is. The card adds the inset above and below and two rows sit one inset apart;
+   each row keeps 64px. */
 .card-group {
-  padding-block: calc(var(--card-inset) / 2);
+  padding-block: var(--card-inset);
   padding-inline: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
@@ -1359,10 +1320,19 @@
    sits the inset clear of the card's edges and of the next row's tile, so it never runs into a
    corner. A chip, a select's value and a segmented control keep their pill in a card as out of it:
    one control has one shape wherever it stands (owner, 2026-10-23, D167). */
+.card-group > .row-action {
+  width: auto;
+  margin-inline: calc(var(--card-inset) - var(--card-padding));
+  padding-inline: calc(var(--card-padding) - var(--card-inset));
+}
+
 .card-group > .row-action::after {
-  inset-block: calc(var(--card-inset) / 2);
-  inset-inline: calc(var(--card-inset) - var(--card-padding));
+  inset: 0;
   border-radius: var(--card-inner-radius);
+}
+
+.card-group > :is(.row-action, .settings-row) + :is(.row-action, .settings-row) {
+  margin-block-start: var(--card-inset);
 }
 
 .card-group .btn {

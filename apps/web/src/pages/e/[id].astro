@@ -2,8 +2,10 @@
 import type { GetStaticPaths } from "astro";
 import EpisodeView from "../../components/EpisodeView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { episodeSections } from "../../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, storyLookups } from "../../lib/episodes";
 import { episodeCard } from "../../lib/linkCard";
+import type { SectionRef } from "../../lib/sectionLabel";
 import { getSite } from "../../lib/site";
 import { CONTENT_CDN_CACHE, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
 
@@ -21,6 +23,7 @@ interface Props {
   entry: EpisodeEntry;
   summaries: ReadonlyMap<string, string>;
   topics: ReadonlyMap<string, string>;
+  sections: ReadonlyMap<string, SectionRef>;
 }
 
 let props = Astro.props as Props;
@@ -36,7 +39,8 @@ if (!Astro.isPrerendered) {
   Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
 }
 
-const { entry, summaries, topics } = props;
+const { entry, summaries, topics, sections } = props;
+const tabs = episodeSections(entry.episode, { summaries, sections }).length > 1;
 ---
 
 <BaseLayout
@@ -45,7 +49,9 @@ const { entry, summaries, topics } = props;
   digestId={entry.id}
   card={episodeCard(entry)}
   audio={{ noun: "episode", length: episodeLength(entry.episode) }}
+  layout={tabs ? "aside" : "single"}
+  tabs={tabs}
   skipLabel="Skip to the episode"
 >
-  <EpisodeView entry={entry} summaries={summaries} topics={topics} />
+  <EpisodeView entry={entry} summaries={summaries} topics={topics} sections={sections} />
 </BaseLayout>

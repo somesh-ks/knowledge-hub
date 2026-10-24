@@ -33,6 +33,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | Name | Where to get it |
 | --- | --- |
 | `ANTHROPIC_API_KEY` | Anthropic console. Create a key used only for this project; it serves Claude Sonnet and Haiku |
+| `ANTHROPIC_ADMIN_KEY` | Anthropic console, Settings, Admin keys (optional: the Costs page reads Anthropic's bill with it, D183; Vercel only) |
 | `TYPESAFE_API_KEY` | console.typesafe.ai |
 | `EXA_API_KEY` | Exa dashboard |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard |

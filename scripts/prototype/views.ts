@@ -220,8 +220,10 @@ export function miniMarkup(): string {
 
 /* ------------------------------------------------------------------ expanded player */
 
+/** The playback speeds offered, in the player and as the default in settings. */
+export const RATES = [1, 1.25, 1.5, 2];
+
 export function playerMarkup(timeline: Timeline, rate: number): string {
-  const rates = [1, 1.25, 1.5, 2];
   return `
     <div class="player-scrim" id="playerScrim"></div>
     <div class="player-panel" id="playerPanel" tabindex="-1" data-cover-key style="--cover-key:${paletteFor(CURRENT_ID).key}">
@@ -252,12 +254,10 @@ export function playerMarkup(timeline: Timeline, rate: number): string {
         <fieldset class="player-group">
           <legend class="player-section-title">Speed</legend>
           <div class="segmented" id="speedGroup">
-            ${rates
-              .map(
-                (value) =>
-                  `<label><input type="radio" name="speed" value="${value}" ${value === rate ? "checked" : ""}><span>${value}x</span></label>`,
-              )
-              .join("")}
+            ${RATES.map(
+              (value) =>
+                `<label><input type="radio" name="speed" value="${value}" ${value === rate ? "checked" : ""}><span>${value}x</span></label>`,
+            ).join("")}
           </div>
         </fieldset>
         <h3 class="player-section-title">Chapters</h3>
@@ -279,7 +279,6 @@ export function settingsMarkup(state: {
     ["light", "Light"],
     ["dark", "Dark"],
   ];
-  const rates = [1, 1.25, 1.5, 2];
   return `
     <div class="sheet-panel" tabindex="-1">
       <div class="sheet-head">
@@ -314,12 +313,10 @@ export function settingsMarkup(state: {
       <fieldset class="sheet-group">
         <legend>Default speed</legend>
         <div class="segmented">
-          ${rates
-            .map(
-              (value) =>
-                `<label><input type="radio" name="defaultSpeed" value="${value}" ${value === state.rate ? "checked" : ""}><span>${value}x</span></label>`,
-            )
-            .join("")}
+          ${RATES.map(
+            (value) =>
+              `<label><input type="radio" name="defaultSpeed" value="${value}" ${value === state.rate ? "checked" : ""}><span>${value}x</span></label>`,
+          ).join("")}
         </div>
       </fieldset>
 

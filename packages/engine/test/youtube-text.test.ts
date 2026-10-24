@@ -25,14 +25,14 @@ function fakeNet(opts: { captions: boolean; blocked?: boolean }) {
     calls.push(
       url.startsWith("https://generativelanguage")
         ? "gemini"
-        : url.startsWith("https://api.firecrawl.dev")
+        : url.startsWith("https://api.firecrawl.dev/")
           ? "firecrawl"
           : url,
     );
     if (url.startsWith("https://generativelanguage")) {
       return Response.json({ candidates: [{ content: { parts: [{ text: speech }] } }] });
     }
-    if (url.startsWith("https://api.firecrawl.dev")) {
+    if (url.startsWith("https://api.firecrawl.dev/")) {
       return Response.json({
         success: true,
         data: {

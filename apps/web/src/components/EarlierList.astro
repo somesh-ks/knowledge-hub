@@ -20,7 +20,7 @@ const { entries } = Astro.props;
           See all
         </a>
       </div>
-      <ul class="shelf" role="list">
+      <ul class="shelf scroll-fade-inline" role="list">
         {entries.map((entry) => <BriefingCard entry={entry} />)}
       </ul>
     </section>

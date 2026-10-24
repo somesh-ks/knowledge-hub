@@ -349,7 +349,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
   - The Generate bar's line shows only while the bar is really stuck (D87).
   - The section strip is opaque, so text never shows through under it (D88).
-  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first); the section tabs and the Library shelf still carry their own copies of it. A scroller a keyboard must reach is a tab stop only while it overflows, and its ring is drawn on its parent, since the mask clips its own (the Costs table, axe `scrollable-region-focusable`, 2026-10-24).
+  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first), 32px or its `--scroll-fade-size`; the section tabs and the Earlier shelf (40px) dropped their own copies for it the same day. A scroller that fits, or a browser without scroll timelines (Firefox before 159), shows no fade: the old copies rested with a fixed end fade there. A scroller a keyboard must reach is a tab stop only while it overflows, and its ring is drawn on its parent, since the mask clips its own (the Costs table, axe `scrollable-region-focusable`, 2026-10-24).
   - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
   - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
 - **Speech and status.**
@@ -366,7 +366,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Play chip.**
   - One width; Played shows Play again only under a mouse or focus (D106, #116).
   - Its state machine: idle, current, played, preparing, error, unavailable.
-- **A story.** The publisher above the headline, muted and whole (D161); under the text one row, the Play chip and the controls at its end, never wrapping (owner, 2026-10-22 and 2026-10-23). Every quiet line of facts takes one separator: a centred dot in a 12px box (`--meta-dot`, 2026-10-22).
+- **A story.** The publisher above the headline, muted, whole and underlined with no link glyph (D161; owner, 2026-10-24); no Why line (owner, 2026-10-24); under the text, 16px down, one row, the Play chip and the controls at its end, never wrapping (owner, 2026-10-22 and 2026-10-23). Every quiet line of facts takes one separator: a centred dot in a 12px box (`--meta-dot`, 2026-10-22). Section tabs and the contents column only from two sections, on a briefing and an episode alike, whose highlights take their briefings' sections and whose facts read "Discussion · 5 stories" (owner, 2026-10-24).
 - **Library.**
   - A cover grid with one facts line per card (D78).
   - Search, filter and sort live in the address.

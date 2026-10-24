@@ -55,6 +55,16 @@
   border-radius: var(--row-radius);
 }
 
+/* The tile is the row's own box (owner, 2026-10-24: "optical alignment of list's hover state and
+   search bar and heading"): it starts where the heading's text and the search field start and ends
+   where the field, or from 64rem the Add button, ends, with the emoji and words inside it. It once
+   reached 16px past both, out to the screen's edge on a phone. A source found by the search or
+   waiting under Add source has its tile on the same edges. */
+.topics .row-action::after,
+:is(.topics-library, .topics-added) .source-edit {
+  inset-inline: 0;
+}
+
 .topics .row-action .icon {
   color: var(--color-on-surface-subtle);
 }
