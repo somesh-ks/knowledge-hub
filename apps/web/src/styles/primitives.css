@@ -1297,9 +1297,11 @@
   }
 }
 
-/* Inside a card the dividers, where a page draws them, start and end at the card's content edge. */
+/* Inside a card the dividers, where a page draws them, run the card's full width, edge to edge
+   (owner, 2026-10-24, on the Structure sheet: "the divider should go full bleed"; until then they
+   stopped at the content edge). */
 .card-group > * + *::before {
-  inset-inline: 0;
+  inset-inline: calc(var(--card-padding) * -1);
 }
 
 /* A card of one note (the install card): an accent tone says it is an offer, not a setting. */
