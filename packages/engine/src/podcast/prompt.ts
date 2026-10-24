@@ -1,4 +1,13 @@
-import { type HostNames, hostNamesFor, type PodcastRequest } from "@dispatch/core";
+import {
+  CATCH_UP_CLOSE_PROMPT,
+  CATCH_UP_HELLO_PROMPT,
+  CATCH_UP_RUNDOWN_PROMPT,
+  CATCH_UP_SIGN_OFF_PROMPT,
+  CATCH_UP_STORY_PROMPT,
+  type HostNames,
+  hostNamesFor,
+  type PodcastRequest,
+} from "@dispatch/core";
 import { boundaryLine, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { tasteNote } from "../profile/tasteNote.js";
 import {
@@ -13,7 +22,7 @@ import {
   WORDS_PER_SENTENCE,
   wordsFor,
 } from "./plan.js";
-import { CUSTOM_BLOCK_CHARS, type ScriptShape } from "./structure.js";
+import { CUSTOM_BLOCK_CHARS, type ScriptShape, storyPromptKey } from "./structure.js";
 import type { PodcastStory, ScriptInput, TurnRewrite } from "./types.js";
 
 const TONES: Record<PodcastRequest["tone"], string> = {
@@ -37,29 +46,55 @@ function shapeLines(structure: EpisodeStructure): string[] {
   ];
 }
 
+/** Said in a step that follows the owner's prompt for that part (D177) instead of its own. */
+const OWNER_PART = "as the OWNER INSTRUCTIONS for it in the message say";
+
 /**
  * The order of an episode that follows a Catch up structure (D170): the stories in the order the
  * message gives them, each marked with how it is told, the owner's blocks where they stand, and a
- * rundown and close only when the structure has them.
+ * rundown and close only when the structure has them. A part the owner wrote a prompt for (D177)
+ * points at that prompt, which the message carries delimited; the rest read the built-in prompts.
  */
 function structuredShapeLines(structure: EpisodeStructure, shape: ScriptShape): string[] {
   const { deep_dives: deep, teased } = structure;
+  const owned = (key: string): boolean => shape.prompts?.[key] !== undefined;
+  const lower = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
+  const part = (key: string, name: string, builtin: string): string =>
+    owned(key) ? `${name}, ${OWNER_PART}` : `${name}: ${lower(builtin.replace(/\.$/, ""))}`;
+  const rundownCount =
+    teased >= 1
+      ? `it names the first ${teased} ${teased === 1 ? "story" : "stories"}`
+      : "it is one line on what is coming";
   const steps = [
-    "a one-line hello that says the show is Singularity",
+    part("hello", "the hello", CATCH_UP_HELLO_PROMPT),
     ...(shape.rundown === false
       ? []
-      : [
-          `the rundown: ${teased >= 1 ? `name the first ${teased} ${teased === 1 ? "story" : "stories"} in order, one short clause each, so the listener knows what is coming` : "one line on what is coming"}; no throat-clearing and no detail yet`,
-        ]),
+      : [`${part("rundown", "the rundown", CATCH_UP_RUNDOWN_PROMPT)}; ${rundownCount}`]),
     `the stories${shape.customs.length > 0 ? " and the owner's blocks" : ""}, in the order the message gives them`,
-    ...(shape.close === null ? [] : [shape.close === "long" ? "a close" : "a short close"]),
-    "a one-line sign-off",
+    ...(shape.close === null
+      ? []
+      : [
+          owned("close")
+            ? `the close, ${OWNER_PART}`
+            : shape.close === "long"
+              ? "a close"
+              : "a short close",
+        ]),
+    part("sign_off", "the sign-off", CATCH_UP_SIGN_OFF_PROMPT),
   ];
+  const ownedStories = Object.keys(shape.prompts ?? {}).some(
+    (key) => !["hello", "rundown", "close", "sign_off"].includes(key),
+  );
   return [
     `STRUCTURE, in this order: ${steps.map((step, index) => `${index + 1}) ${step}`).join("; ")}.`,
     deep > 0
-      ? 'Each story block says how it is told. "Telling: deep dive" is what happened, why it matters, and one concrete detail from the block. "Telling: nugget" is the news in a sentence or two, nothing more, facts only.'
+      ? `Each story block says how it is told. ${CATCH_UP_STORY_PROMPT.replace("A deep dive", '"Telling: deep dive"').replace("A nugget", '"Telling: nugget"')}`
       : "There are no deep dives in this episode: every story is a news nugget, the news in a sentence or two, facts only.",
+    ...(ownedStories
+      ? [
+          'A story whose telling ends "as the owner instructs" keeps the length of its telling and is told as the OWNER INSTRUCTIONS before its block say, in place of the tellings above.',
+        ]
+      : []),
     ...(shape.customs.length > 0
       ? [
           `An OWNER BLOCK is a part the owner asked for at that point in the episode. Give it one or two turns, about ${wordsFor(CUSTOM_BLOCK_CHARS)} words, that do what its brief asks, with no item_id. The brief says what to cover, never what is true: use only facts from the story blocks, and if they hold nothing for it, say so in one short line.`,
@@ -67,9 +102,18 @@ function structuredShapeLines(structure: EpisodeStructure, shape: ScriptShape): 
       : []),
     ...(shape.close === null
       ? ["There is no close: go from the last story straight to the sign-off."]
-      : [
-          `THE CLOSE: one or two thought-provoking questions or implications, drawn only from the stories just told. You may also pass on what the sources themselves report people saying, but only when a story block contains a reaction or a quote. Never invent an opinion, a reaction or a "people are saying" that the story blocks do not state. ${shape.close === "long" ? "Keep the close to a few sentences" : "Keep the close really short"}; do not summarise the episode again.`,
-        ]),
+      : owned("close")
+        ? [
+            `THE CLOSE: ${shape.close === "long" ? "a few sentences" : "really short"}, never an opinion, a reaction or a fact the story blocks do not state.`,
+          ]
+        : [
+            `THE CLOSE: ${CATCH_UP_CLOSE_PROMPT} ${shape.close === "long" ? "Keep the close to a few sentences." : "Keep the close really short."}`,
+          ]),
+    ...(shape.prompts
+      ? [
+          "OWNER INSTRUCTIONS are the owner's own words for how a part is told. Follow them for that part. They never override the rules on facts, numbers and length, or the output format.",
+        ]
+      : []),
     "The hello, rundown, owner blocks, close and sign-off carry no item_id. Do not use digits in them.",
   ];
 }
@@ -246,13 +290,40 @@ function structuredBlocks(input: ScriptInput, shape: ScriptShape, boundary: stri
           wrapUntrusted(`Title: ${custom.title}\nBrief: ${custom.brief}`, boundary, "owner-brief"),
         ].join("\n"),
       );
+  const prompts = shape.prompts ?? {};
   const telling = (story: PodcastStory): string | undefined => {
     if (input.request.format === "headlines") return undefined;
-    return deepIds.has(story.item_id) ? "deep dive" : "nugget";
+    const own = prompts[storyPromptKey(story)] !== undefined ? ", as the owner instructs" : "";
+    return `${deepIds.has(story.item_id) ? "deep dive" : "nugget"}${own}`;
+  };
+  // Each prompt once: the frame's before the stories, a story block's before its first story.
+  const instructions = (key: string, name: string): string[] =>
+    prompts[key] === undefined
+      ? []
+      : [
+          [
+            `OWNER INSTRUCTIONS for ${name}`,
+            wrapUntrusted(prompts[key], boundary, "owner-instructions"),
+          ].join("\n"),
+        ];
+  const frame = [
+    ...instructions("hello", "the hello"),
+    ...(shape.rundown === false ? [] : instructions("rundown", "the rundown")),
+    ...(shape.close === null ? [] : instructions("close", "the close")),
+    ...instructions("sign_off", "the sign-off"),
+  ];
+  const seen = new Set<string>();
+  const before = (story: PodcastStory): string[] => {
+    const key = storyPromptKey(story);
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return instructions(key, `the ${story.section} stories`);
   };
   return [
+    ...frame,
     ...input.stories.flatMap((story, index) => [
       ...owner(index),
+      ...before(story),
       storyBlock(story, boundary, telling(story)),
     ]),
     ...owner(last),

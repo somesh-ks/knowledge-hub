@@ -249,6 +249,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
             finalists: candidates.map((entry) => ({
               item: poolById.get(entry.id) as Item,
               category: entry.writer_category,
+              prompt: sectionPlan.prompt(entry.section ?? entry.category),
             })),
             sourceNames,
             feedback: reserve.feedback,

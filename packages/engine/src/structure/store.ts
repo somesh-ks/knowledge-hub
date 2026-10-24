@@ -41,5 +41,18 @@ export function serializeStructure(file: StructureFile): string {
     const blocks = checked.kinds[kind];
     if (blocks !== undefined) kinds[kind] = blocks;
   }
-  return `${JSON.stringify({ version: checked.version, kinds }, null, 2)}\n`;
+  const prompts: NonNullable<StructureFile["prompts"]> = {};
+  for (const kind of STRUCTURE_KINDS) {
+    const kept = checked.prompts?.[kind];
+    if (kept === undefined) continue;
+    prompts[kind] = Object.fromEntries(
+      Object.entries(kept).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+    );
+  }
+  const body = {
+    version: checked.version,
+    kinds,
+    ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
+  };
+  return `${JSON.stringify(body, null, 2)}\n`;
 }

@@ -55,6 +55,8 @@ export const MaterialsFile = z.object({
       /** The writer is told the nearest built-in category, even for a custom topic. */
       category: Category,
       text: z.string(),
+      /** The owner's prompt for the story's block (D177), so a later rewrite keeps to it. */
+      prompt: z.string().optional(),
     }),
   ),
 });
@@ -82,6 +84,8 @@ export const ReserveFile = z.object({
       score: z.number().min(0).max(1),
       /** The built-in category the writer prompt is told. */
       writer_category: Category,
+      /** The section it would air in, for its block's prompt (D177); older files have none. */
+      section: z.string().optional(),
     }),
   ),
 });

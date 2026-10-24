@@ -612,11 +612,33 @@ function setStructure(
   }
   const next = clone(bundle);
   next.structure = {
+    ...(bundle.structure ?? {}),
     version: 1,
     kinds: { ...(bundle.structure?.kinds ?? {}), [op.kind]: op.blocks },
   };
   const name = op.kind === "catch_up" ? "Catch up" : op.kind;
   return { next, summary: `set the ${name} structure` };
+}
+
+/** Replace one block's prompt in a kind (D177), or drop it so the built-in prompt applies. */
+function setBlockPrompt(
+  op: Extract<ParsedConfigOp, { op: "structure.prompt" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  const prompts = { ...(bundle.structure?.prompts?.[op.kind] ?? {}) };
+  if (op.prompt === null) delete prompts[op.key];
+  else prompts[op.key] = op.prompt;
+  const all = { ...(bundle.structure?.prompts ?? {}), [op.kind]: prompts };
+  if (Object.keys(prompts).length === 0) delete all[op.kind];
+  const { prompts: _old, ...rest } = bundle.structure ?? { version: 1 as const, kinds: {} };
+  next.structure = { ...rest, ...(Object.keys(all).length > 0 ? { prompts: all } : {}) };
+  const name = op.kind === "catch_up" ? "Catch up" : op.kind;
+  const block = op.key.replace(/^section:/, "").replace("_", " ");
+  return {
+    next,
+    summary: `${op.prompt === null ? "reset" : "set"} the ${name} prompt for ${block}`,
+  };
 }
 
 function definedOnly<T extends object>(value: T | undefined): Partial<T> {
@@ -715,6 +737,8 @@ export async function applyConfigOp(
       return setScope(op, bundle);
     case "structure.set":
       return setStructure(op, bundle);
+    case "structure.prompt":
+      return setBlockPrompt(op, bundle);
     case "profile.block":
       return blockDomain(op, bundle);
     case "profile.vote":

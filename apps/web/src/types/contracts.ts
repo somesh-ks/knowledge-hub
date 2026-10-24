@@ -386,12 +386,20 @@ export type ConfigOp =
       custom?: boolean;
     }
   /**
-   * The profile ops (block, unblock, vote) and structure.set (one podcast kind's whole list of
-   * blocks, D170) are core's own definitions: one place for their shape.
+   * The profile ops (block, unblock, vote), structure.set (one podcast kind's whole list of
+   * blocks, D170) and structure.prompt (one block's prompt, D177) are core's own definitions: one
+   * place for their shape.
    */
   | Extract<
       CoreConfigOp,
-      { op: "profile.block" | "profile.unblock" | "profile.vote" | "structure.set" }
+      {
+        op:
+          | "profile.block"
+          | "profile.unblock"
+          | "profile.vote"
+          | "structure.set"
+          | "structure.prompt";
+      }
     >;
 
 /** One vote on a story, as profile.vote carries it (VoteInput in core). */

@@ -19,6 +19,20 @@ export interface ScriptShape {
   customs: readonly { title: string; brief: string; before: number }[];
   /** Stories told as deep dives when the length has room for them, in the order told. */
   deep: readonly string[];
+  /**
+   * The owner's prompts (D177) by block key ("hello", "rundown", "close", "sign_off", and a story
+   * block's key, the same as `blockPromptKey` in core). A block left out keeps its built-in prompt.
+   */
+  prompts?: Readonly<Record<string, string>>;
+}
+
+/** The key a story's block prompt is kept under. */
+export function storyPromptKey(story: Pick<PodcastStory, "section" | "category">): string {
+  const key = blockKey(story);
+  if (key === TOP_PICKS_SECTION) return "top_picks";
+  if (key === TRENDING_BLOCK_SECTION) return "trending";
+  if (key === RELEASE_NEWS_SECTION) return "release_news";
+  return `section:${key}`;
 }
 
 /** Characters an owner block is planned at: a turn or two. */
@@ -73,6 +87,7 @@ export function airsUnder(
 export function shapeStories(
   stories: readonly PodcastStory[],
   blocks: readonly StructureBlock[],
+  prompts: Readonly<Record<string, string>> = {},
 ): { stories: PodcastStory[]; shape: ScriptShape } {
   const byKey = new Map<string, PodcastStory[]>();
   for (const story of stories) {
@@ -115,6 +130,7 @@ export function shapeStories(
       close: close === undefined ? null : close.length,
       customs,
       deep,
+      ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
     },
   };
 }

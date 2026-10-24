@@ -111,8 +111,12 @@ export class LlmWriter implements Writer {
     taste?: Taste,
     airing: readonly string[] = [],
   ): Promise<WriteResult> {
+    // A batch shares one system prompt, so stories under an owner's block prompt (D177) are
+    // batched with the others of that prompt only.
+    const groups = new Map<string | undefined, SourceMaterial[]>();
+    for (const item of items) groups.set(item.prompt, [...(groups.get(item.prompt) ?? []), item]);
     const results = await mapConcurrent(
-      chunk(items, WRITER_BATCH_SIZE),
+      [...groups.values()].flatMap((group) => chunk(group, WRITER_BATCH_SIZE)),
       WRITER_CONCURRENCY,
       (batch) =>
         this.writeBatch(batch, feedback, taste, [
@@ -138,7 +142,7 @@ export class LlmWriter implements Writer {
         schema: WriterOutput,
         schemaName: "dispatch_items",
         messages: [
-          { role: "system", content: writerSystemPrompt(this.options.voice) },
+          { role: "system", content: writerSystemPrompt(this.options.voice, batch[0]?.prompt) },
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
         ],
         step: "story_writer",
@@ -178,7 +182,10 @@ export class LlmWriter implements Writer {
         schema: RewriteOutput,
         schemaName: "dispatch_rewrite",
         messages: [
-          { role: "system", content: rewriteSystemPrompt(this.options.voice) },
+          {
+            role: "system",
+            content: rewriteSystemPrompt(this.options.voice, request.material.prompt),
+          },
           { role: "user", content: rewriteUserMessage(request, boundary) },
         ],
         step: "story_rewrite",

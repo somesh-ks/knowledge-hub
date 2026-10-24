@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BLOCK_PROMPT_MAX } from "./blockPrompts.js";
 import { type SECTIONS, SectionId } from "./categories.js";
 
 /**
@@ -182,15 +183,47 @@ export function kindProblems(
       ];
 }
 
+/**
+ * The name a block's prompt is kept under (blockPromptKey): a block type a model writes, or
+ * `section:<id>`. The kinds' own rules (which blocks a model writes there) are checked below.
+ */
+export const BlockPromptKey = z
+  .string()
+  .regex(
+    /^(hello|rundown|top_picks|trending|release_news|close|sign_off|section:[a-z0-9][a-z0-9-]*)$/,
+  );
+export const BlockPrompt = z.string().trim().min(1).max(BLOCK_PROMPT_MAX);
+
+/** Blocks a daily or weekly episode lets the owner prompt: code speaks the rest. */
+const BRIEFING_PROMPT_KEY = /^(top_picks|trending|release_news|section:.+)$/;
+
+/** What a kind refuses of the prompts kept for it; empty when they fit the kind. */
+export function promptProblems(kind: StructureKind, keys: readonly string[]): string[] {
+  if (kind === "catch_up") return [];
+  const refused = keys.find((key) => !BRIEFING_PROMPT_KEY.test(key));
+  return refused === undefined
+    ? []
+    : [`A ${kind} episode speaks its ${refused.replace("_", " ")} in code, so it has no prompt.`];
+}
+
 export const StructureFile = z
   .object({
     version: z.literal(1),
     kinds: z.partialRecord(StructureKind, StructureBlocks),
+    /**
+     * The owner's replacement prompts (D177), by kind and block key. Kept apart from the blocks so
+     * a reorder never carries several thousand characters, and so a block removed and put back
+     * keeps its prompt. A prompt whose block is not in the structure is never read.
+     */
+    prompts: z.partialRecord(StructureKind, z.record(BlockPromptKey, BlockPrompt)).optional(),
   })
   .superRefine((file, ctx) => {
     for (const kind of STRUCTURE_KINDS) {
       for (const message of kindProblems(kind, file.kinds[kind] ?? [])) {
         ctx.addIssue({ code: "custom", message, path: ["kinds", kind] });
+      }
+      for (const message of promptProblems(kind, Object.keys(file.prompts?.[kind] ?? {}))) {
+        ctx.addIssue({ code: "custom", message, path: ["prompts", kind] });
       }
     }
   });
@@ -326,4 +359,13 @@ export function withoutSection(file: StructureFile, section: string): StructureF
     kinds[kind] = structureProblems(next).length === 0 ? next : blocks;
   }
   return { ...file, kinds };
+}
+
+/** The owner's prompt for a block in a kind, or null for the built-in one. */
+export function storedBlockPrompt(
+  file: StructureFile | null,
+  kind: StructureKind,
+  key: string,
+): string | null {
+  return file?.prompts?.[kind]?.[key] ?? null;
 }

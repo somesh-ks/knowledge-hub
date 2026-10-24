@@ -48,3 +48,29 @@ it("putting a general topic into a stored kind adds the section its stories are 
     file.kinds.daily?.map((block) => (block.type === "section" ? block.id : block.type)),
   ).toEqual(["hello", "top_picks", "world", "sign_off"]);
 });
+
+it("a block's own prompt survives a reorder of its kind, and putting back the built-in one removes it (D177)", async () => {
+  const prompt = "Write each design story as one plain sentence on what changed for a designer.";
+  expect(
+    await apply({ op: "structure.prompt", kind: "daily", key: "section:design", prompt }),
+  ).toBe(0);
+  const daily = [
+    { type: "hello" },
+    { type: "section", id: "design" },
+    { type: "top_picks" },
+    { type: "sign_off" },
+  ];
+  expect(await apply({ op: "structure.set", kind: "daily", blocks: daily })).toBe(0);
+  const file = await repo.readJson<StructureFile>("config/structure.json");
+  expect(file.prompts?.daily?.["section:design"]).toBe(prompt);
+  // Code speaks a daily hello, so it takes no prompt.
+  expect(
+    await apply({ op: "structure.prompt", kind: "daily", key: "hello", prompt: "Say hi." }),
+  ).not.toBe(0);
+  expect(
+    await apply({ op: "structure.prompt", kind: "daily", key: "section:design", prompt: null }),
+  ).toBe(0);
+  const after = await repo.readJson<StructureFile>("config/structure.json");
+  expect(after.prompts).toBeUndefined();
+  expect(after.kinds.daily).toHaveLength(4);
+});

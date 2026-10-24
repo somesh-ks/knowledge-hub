@@ -10,10 +10,14 @@ import {
 import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";
+import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js";
+import { shapeStories } from "../src/podcast/structure.js";
+import type { PodcastStory } from "../src/podcast/types.js";
 import { sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { buildFixtureDigest } from "./render-factories.js";
+import { REQUEST } from "./podcast-fixtures.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 
 const blocks = (input: StructureBlockInput[]) => StructureBlocks.parse(input);
@@ -137,4 +141,38 @@ describe("a structured Catch up script over its length", () => {
       "Bye.",
     ]);
   });
+});
+
+it("a Catch up block's own prompt reaches the script delimited, once, before its stories, and the rest keep the built-in prompt (D177)", () => {
+  const story = (id: string, section: string): PodcastStory => ({
+    item_id: id,
+    headline: `Headline ${id}`,
+    summary: `Summary ${id}.`,
+    source: "Example",
+    url: `https://example.com/${id}`,
+    section,
+    category: section,
+  });
+  const stories = [story("d1", "design"), story("d2", "design"), story("a1", "ai")];
+  const design = "Tell each design story through what a designer would try first.";
+  const close = "End on one question a designer could take into tomorrow.";
+  const { stories: ordered, shape } = shapeStories(stories, defaultStructure("catch_up"), {
+    "section:design": design,
+    close,
+  });
+  const input = { request: REQUEST, stories: ordered, budget_chars: 4000, shape };
+  const user = scriptUserMessage(input, "BND", []);
+  expect(user.split(design)).toHaveLength(2);
+  expect(user.split(close)).toHaveLength(2);
+  // Delimited as the owner's typed text, before the first design story.
+  expect(user.indexOf(design)).toBeGreaterThan(user.indexOf("BND"));
+  expect(user.indexOf(design)).toBeLessThan(user.indexOf("item_id: d1"));
+  const tellings = [...user.matchAll(/item_id: (\w+)\nTelling: (.+)/g)].map((m) => [m[1], m[2]]);
+  expect(tellings.filter(([, telling]) => telling?.endsWith("as the owner instructs"))).toEqual([
+    ["d1", expect.any(String)],
+    ["d2", expect.any(String)],
+  ]);
+  const system = scriptSystemPrompt(input);
+  expect(system).toContain("the close, as the OWNER INSTRUCTIONS");
+  expect(system).not.toContain("the hello, as the OWNER INSTRUCTIONS");
 });
