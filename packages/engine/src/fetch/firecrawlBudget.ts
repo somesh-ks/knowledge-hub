@@ -137,6 +137,28 @@ export class FirecrawlGuard {
   }
 
   /**
+   * One feed read through Firecrawl because its host refused the runner (fetchAll's relay), from
+   * the scrape budget. A feed relayed earlier in the run (the weekly pass reads the same feeds as
+   * the regular one) is reused at no cost. Returns null when the budget is spent or Firecrawl is
+   * stopped.
+   */
+  async relay<T>(url: string, load: () => Promise<T>): Promise<T | null> {
+    const key = `relay:${url}`;
+    const known = this.pages.get(key);
+    if (known) return (await known) as T;
+    if (!this.takeScrape()) return null;
+    const pending = load();
+    this.pages.set(key, pending);
+    try {
+      return await pending;
+    } catch (error) {
+      // A failed relay may be tried again, but the attempt stays counted.
+      this.pages.delete(key);
+      throw error;
+    }
+  }
+
+  /**
    * One listing page. A page fetched earlier in the run (the weekly pass reads the same pages as
    * the regular one) is reused at no cost. Returns null when the budget is spent or Firecrawl is
    * stopped, so the caller skips the source.
