@@ -1,9 +1,10 @@
 /**
  * The Structure view on the Preferences page (D170, docs/design/podcast-structure.md "The screen"):
- * a chip for each podcast kind, its blocks as rows, Add under them. A row moves by its dots (Move up,
- * Move down) or by the browser's drag and drop (a long press or a mouse pull, as the queue does,
- * D169), and Edit opens the block's sheet: its depth, its stories on fixed stops, a close's length,
- * an owner block's title and brief, and the block's prompt in this kind (D178). Every change saves
+ * a chip for each podcast kind, its blocks as rows, Add under them. A row moves by its grip (pulled
+ * with a finger or a mouse, or the arrow keys) or its dots (Move up, Move down), and Edit opens the
+ * block's sheet: its depth, its stories, how many may come from one source and how new they must
+ * be (the rules code holds it to), a close's length, an owner block's title and brief, and, closed
+ * under Writing instructions, the block's prompt in this kind (D178). Every change saves
  * itself as the topics editor's do (autosave.ts, D115): a kind's blocks go as one structure.set and a
  * prompt as one structure.prompt; a removal leaves at once and waits with Undo (D142).
  *
@@ -19,18 +20,20 @@ import {
   fitLine,
   insertAt,
   isFrame,
+  isStoryBlock,
   KIND_LABEL,
   moved,
   promptKey,
   rowsHtml,
   type SkipLists,
-  STORY_STOPS,
+  STORIES_MAX,
   type StructureData,
   skipAfter,
   storiesOf,
+  takesAge,
+  withRule,
   withStories,
 } from "../lib/structureView";
-import { drawStop } from "../lib/weightStops";
 import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import { fitAboveKeyboard } from "./keyboardFit";
@@ -54,8 +57,11 @@ function normal(block: StructureBlock): StructureBlock {
   return { ...block };
 }
 
-const same = (a: StructureBlock, b: StructureBlock): boolean =>
-  JSON.stringify(a) === JSON.stringify(b);
+/** A block's fields in one order, so a field set and cleared again reads as no change. */
+const canonical = (block: StructureBlock): string =>
+  JSON.stringify(Object.fromEntries(Object.entries(block).sort(([a], [b]) => (a < b ? -1 : 1))));
+
+const same = (a: StructureBlock, b: StructureBlock): boolean => canonical(a) === canonical(b);
 
 interface Removal {
   kind: StructureKind;
@@ -177,7 +183,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   };
 
   /** Draws the kind's rows, its Add list and the line under the card; focus goes to `focus`'s row. */
-  const render = (focus?: { index: number; part: "more" | "edit" }): void => {
+  const render = (focus?: { index: number; part: "more" | "edit" | "grip" }): void => {
     const rows = blocks[kind];
     list.innerHTML = rowsHtml(kind, rows, data, skip);
     list.setAttribute("aria-label", `${KIND_LABEL[kind]} blocks`);
@@ -199,7 +205,11 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     const row = list.querySelector<HTMLElement>(`[data-index="${focus.index}"]`);
     const target =
       row?.querySelector<HTMLElement>(
-        focus.part === "edit" ? ".structure-edit" : ".structure-more",
+        focus.part === "edit"
+          ? ".structure-edit"
+          : focus.part === "grip"
+            ? "[data-grip]"
+            : ".structure-more",
       ) ??
       row?.querySelector<HTMLElement>("button") ??
       addButton;
@@ -211,13 +221,14 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   const bodyCount = (): number => blocks[kind].length - 2;
 
-  const move = (from: number, to: number): void => {
+  /** `part` takes focus after the move; a pointer's drop leaves focus where it was (null). */
+  const move = (from: number, to: number, part: "more" | "grip" | null = "more"): void => {
     const next = moved(blocks[kind], from, to);
     if (JSON.stringify(next) === JSON.stringify(blocks[kind])) return;
     const block = blocks[kind][from] as StructureBlock;
     blocks[kind] = next;
     recordBlocks(kind);
-    render({ index: to, part: "more" });
+    render(part === null ? undefined : { index: to, part });
     say(`${blockName(block, data.sections)}, ${to} of ${bodyCount()}`);
     autosave.changed();
   };
@@ -280,66 +291,133 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       openSheet(index, row.querySelector(".structure-more, .structure-edit"));
   });
 
-  // ------------------------------------------------------------------------------- drag and drop
+  // ------------------------------------------------------------------------------- the grip
 
-  // A row moves by the browser's own drag and drop: a long press lifts it while the list still
-  // scrolls, a mouse pulls it. The frames never move and nothing lands outside them.
-  let dragFrom: number | null = null;
-  let dropAt: number | null = null;
-  let marked: HTMLElement | null = null;
-  let onMenu = false;
-  const clearDrag = (): void => {
-    for (const row of list.querySelectorAll("[data-dragging]"))
-      row.removeAttribute("data-dragging");
-    marked?.removeAttribute("data-drop");
-    marked = null;
-    dragFrom = null;
-    dropAt = null;
+  // A body row moves by its grip: pressed and pulled (a finger or a mouse, by pointer events, so a
+  // phone drags as a desktop does), the row follows and the rows it passes step aside to show where
+  // it lands; Up and Down on the focused grip move it one place. The frames never move.
+  const EDGE_PX = 64;
+  const STEP_PX = 8;
+  interface Drag {
+    pointerId: number;
+    row: HTMLElement;
+    from: number;
+    to: number;
+    startY: number;
+    startScroll: number;
+    y: number;
+    /** Each body row's middle when the drag began, in page coordinates. */
+    middles: { row: HTMLElement; index: number; middle: number }[];
+    height: number;
+    frame: number;
+  }
+  let drag: Drag | null = null;
+
+  const placeDrag = (): void => {
+    if (!drag) return;
+    const shift = drag.y - drag.startY + (window.scrollY - drag.startScroll);
+    drag.row.style.translate = `0 ${shift}px`;
+    const own = drag.middles.find((each) => each.row === drag?.row);
+    const middle = (own?.middle ?? 0) + shift;
+    let to = drag.from;
+    for (const each of drag.middles) {
+      if (each.index < drag.from && middle < each.middle) to = Math.min(to, each.index);
+      if (each.index > drag.from && middle > each.middle) to = Math.max(to, each.index);
+    }
+    drag.to = to;
+    for (const each of drag.middles) {
+      if (each.row === drag.row) continue;
+      const step =
+        drag.from < to && each.index > drag.from && each.index <= to
+          ? -drag.height
+          : to < drag.from && each.index >= to && each.index < drag.from
+            ? drag.height
+            : 0;
+      each.row.style.translate = step === 0 ? "" : `0 ${step}px`;
+    }
   };
+
+  /** Near the top or the bottom of the screen, the page scrolls under the held row. */
+  const scrollEdge = (): void => {
+    if (!drag) return;
+    const down = drag.y > window.innerHeight - EDGE_PX;
+    const up = drag.y < EDGE_PX;
+    if (up || down) {
+      window.scrollBy(0, down ? STEP_PX : -STEP_PX);
+      placeDrag();
+    }
+    drag.frame = requestAnimationFrame(scrollEdge);
+  };
+
+  const endDrag = (commit: boolean): void => {
+    if (!drag) return;
+    const { from, to, row, frame } = drag;
+    cancelAnimationFrame(frame);
+    drag = null;
+    list.removeAttribute("data-dragging");
+    row.removeAttribute("data-dragging");
+    for (const each of list.querySelectorAll<HTMLElement>(".structure-row"))
+      each.style.translate = "";
+    if (commit && to !== from) move(from, to, null);
+  };
+
   list.addEventListener("pointerdown", (event) => {
-    onMenu = Boolean((event.target as Element).closest(".structure-menu, .structure-edit"));
+    const grip = (event.target as Element).closest<HTMLElement>("[data-grip]");
+    const row = grip?.closest<HTMLElement>("[data-index]");
+    if (!grip || !row || !event.isPrimary || event.button !== 0 || drag) return;
+    event.preventDefault();
+    grip.setPointerCapture(event.pointerId);
+    const rows = [...list.querySelectorAll<HTMLElement>(".structure-row:not([data-frame])")];
+    const box = row.getBoundingClientRect();
+    drag = {
+      pointerId: event.pointerId,
+      row,
+      from: Number(row.dataset.index),
+      to: Number(row.dataset.index),
+      startY: event.clientY,
+      startScroll: window.scrollY,
+      y: event.clientY,
+      middles: rows.map((each) => {
+        const rect = each.getBoundingClientRect();
+        return {
+          row: each,
+          index: Number(each.dataset.index),
+          middle: rect.top + rect.height / 2,
+        };
+      }),
+      height: box.height,
+      frame: 0,
+    };
+    list.dataset.dragging = "";
+    row.dataset.dragging = "";
+    drag.frame = requestAnimationFrame(scrollEdge);
   });
-  list.addEventListener("dragstart", (event) => {
-    const row = (event.target as Element).closest?.<HTMLElement>("[data-index]");
-    if (!row || row.hasAttribute("data-frame") || onMenu || !event.dataTransfer) {
+  list.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    drag.y = event.clientY;
+    placeDrag();
+  });
+  list.addEventListener("pointerup", (event) => {
+    if (drag && event.pointerId === drag.pointerId) endDrag(true);
+  });
+  list.addEventListener("pointercancel", (event) => {
+    if (drag && event.pointerId === drag.pointerId) endDrag(false);
+  });
+  list.addEventListener("keydown", (event) => {
+    const grip = (event.target as Element).closest<HTMLElement>("[data-grip]");
+    const row = grip?.closest<HTMLElement>("[data-index]");
+    if (!grip || !row) return;
+    if (event.key === "Escape" && drag) {
       event.preventDefault();
+      endDrag(false);
       return;
     }
-    dragFrom = Number(row.dataset.index);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", String(dragFrom));
-    row.dataset.dragging = "";
-  });
-  list.addEventListener("dragover", (event) => {
-    const row = (event.target as Element).closest?.<HTMLElement>("[data-index]");
-    if (dragFrom === null || !row || !event.dataTransfer) return;
+    const step = { ArrowUp: -1, ArrowDown: 1 }[event.key];
+    if (step === undefined) return;
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
     const index = Number(row.dataset.index);
-    const box = row.getBoundingClientRect();
-    // Over the hello a row joins after it, over the sign-off before it.
-    const after =
-      index === 0
-        ? true
-        : index === blocks[kind].length - 1
-          ? false
-          : event.clientY > box.top + box.height / 2;
-    if (marked !== row) marked?.removeAttribute("data-drop");
-    marked = row;
-    if (index !== dragFrom) row.dataset.drop = after ? "after" : "before";
-    else row.removeAttribute("data-drop");
-    dropAt = index + (after ? 1 : 0);
+    move(index, index + step, "grip");
   });
-  list.addEventListener("drop", (event) => {
-    event.preventDefault();
-    const from = dragFrom;
-    let to = dropAt;
-    clearDrag();
-    if (from === null || to === null) return;
-    if (from < to) to -= 1;
-    move(from, to);
-  });
-  list.addEventListener("dragend", clearDrag);
 
   // ------------------------------------------------------------------------------- the Edit sheet
 
@@ -369,6 +447,9 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     part("depth", block.type === "section" || block.type === "top_picks");
     part("length", block.type === "close");
     part("stories", stories !== undefined);
+    part("per-source", isStoryBlock(block));
+    part("age", takesAge(editing, block));
+    part("rules", stories !== undefined);
     part("prompt", builtin !== null);
     part("spoken", block.type !== "custom" && builtin === null);
     part("own", block.type === "custom");
@@ -376,7 +457,9 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
     const title = one<HTMLInputElement>('input[name="title"]');
     const brief = one<HTMLTextAreaElement>('textarea[name="brief"]');
-    const slider = one<HTMLInputElement>('input[name="stories"]');
+    const storiesSelect = one<HTMLSelectElement>('select[name="stories"]');
+    const perSource = one<HTMLSelectElement>('select[name="per_source"]');
+    const age = one<HTMLSelectElement>('select[name="max_age_hours"]');
     const prompt = one<HTMLTextAreaElement>('textarea[name="prompt"]');
     const count = one<HTMLElement>("[data-count]");
     if (block.type === "custom") {
@@ -391,31 +474,22 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     };
     if (block.type === "section" || block.type === "top_picks") check("depth", block.depth);
     if (block.type === "close") check("length", block.length);
-    // A count kept off the stops (written by hand) shows at the nearest stop and is kept until moved.
-    let storiesMoved = false;
+    // Each a number to read, or Auto for the app's own.
     if (stories !== undefined) {
-      const place =
-        stories === null
-          ? 0
-          : STORY_STOPS.reduce<number>((best, stop, at) => {
-              if (stop === null) return best;
-              const gap = Math.abs(stop - stories);
-              const bestStop = STORY_STOPS[best];
-              return bestStop === null ||
-                bestStop === undefined ||
-                gap < Math.abs(bestStop - stories)
-                ? at
-                : best;
-            }, 0);
-      slider.value = String(place);
-      drawStop(slider);
-      slider.addEventListener("input", () => {
-        storiesMoved = true;
-        drawStop(slider);
-      });
+      const most = STORIES_MAX[block.type] ?? 8;
+      for (let count = 1; count <= most; count += 1)
+        storiesSelect.add(new Option(String(count), String(count)));
+      storiesSelect.value = stories === null ? "" : String(stories);
     }
+    if (isStoryBlock(block)) {
+      perSource.value = block.per_source === undefined ? "" : String(block.per_source);
+      age.value = block.max_age_hours === undefined ? "" : String(block.max_age_hours);
+    }
+    const state = one<HTMLElement>("[data-prompt-state]");
     const counted = (): void => {
       count.textContent = `${prompt.value.length} of ${prompt.maxLength} characters`;
+      state.textContent =
+        builtin !== null && prompt.value.trim() !== builtin.trim() ? "Your own" : "Built-in";
     };
     if (builtin !== null) {
       prompt.maxLength = 6000;
@@ -449,7 +523,13 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
         next = { ...next, depth: value("depth") === "brief" ? "brief" : "deep" };
       if (next.type === "close")
         next = { ...next, length: value("length") === "long" ? "long" : "short" };
-      if (storiesMoved) next = withStories(next, STORY_STOPS[Number(slider.value)] ?? null);
+      const number = (select: HTMLSelectElement): number | null =>
+        select.value === "" ? null : Number(select.value);
+      if (stories !== undefined) next = withStories(next, number(storiesSelect));
+      if (isStoryBlock(next)) {
+        next = withRule(next, "per_source", number(perSource));
+        if (takesAge(editing, next)) next = withRule(next, "max_age_hours", number(age));
+      }
       return next;
     };
     /** The prompt to keep: null for the built-in one (also when cleared or typed back to it). */
@@ -462,6 +542,8 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       const op = { op: "structure.prompt", kind: editing, key, prompt: text };
       const fits = text === null || JSON.stringify({ op }).length <= MAX_BODY_CHARS;
       error("prompt", !fits);
+      // The message is inside the closed section: open it, so it is seen.
+      if (!fits) one<HTMLDetailsElement>("details").open = true;
       return fits;
     };
 

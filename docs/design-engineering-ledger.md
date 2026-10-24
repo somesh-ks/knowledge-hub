@@ -422,6 +422,8 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169).
 - **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D171: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
+- **Structure view (Preferences, D170).** The owner (2026-10-24): "there are no reordering mechanism I see", and settings that code holds rather than prompts ("prompt styles keep changing as models evolve"). Each body row has a visible grip (six dots, 48px) that drags by pointer, so a finger works, unlike the queue's browser drag; Up and Down on the grip move it. Story blocks hold Stories, Most from one source and Newer than as select rows; the prompt sits under a closed "Writing instructions (advanced)".
+
 ### Sound
 - **Engine.**
   - Fourteen procedural recipes from one wooden-bar voice in D major pentatonic.

@@ -12,16 +12,17 @@ import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
 import {
+  AGE_STOPS,
   addOffers,
   fitLine,
   KIND_LABEL,
+  PER_SOURCE_MAX,
   rowsHtml,
-  STORY_STOPS,
-  USUAL,
 } from "../../lib/structureView";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
+import "../../styles/create.css";
 
 // The type mix (config/preferences.json): one for every topic, so one slider per source type here
 // rather than on each topic's page (2026-10-20). Normal is the default and is not in the file.
@@ -44,7 +45,6 @@ const rows = formats.map((format) => ({
 const structure = await loadStructureData(topics, sections, await loadScheduleView());
 const firstKind = "daily";
 const offers = addOffers(firstKind, structure.blocks[firstKind], structure.sections);
-const storyNames = STORY_STOPS.map((stop) => (stop === null ? USUAL : String(stop)));
 ---
 
 <BaseLayout title="Preferences" view="settings" skipLabel="Skip to preferences">
@@ -121,6 +121,7 @@ const storyNames = STORY_STOPS.map((stop) => (stop === null ? USUAL : String(sto
                   ))
                 }
               </fieldset>
+              <p class="sr-only" id="structure-grip-hint">Drag to move, or press the up and down arrow keys.</p>
               <ol
                 class="rows topic-controls structure-list"
                 aria-label={`${KIND_LABEL[firstKind]} blocks`}
@@ -216,44 +217,70 @@ const storyNames = STORY_STOPS.map((stop) => (stop === null ? USUAL : String(sto
                 <label class="segmented-choice-item"><input type="radio" name="length" value="long" /><span>Long</span></label>
               </fieldset>
             </div>
-            <div class="settings-row topic-weight structure-stories" data-part="stories">
-              <div class="settings-text">
+            {/* What code holds a block to, whatever model writes it (the owner, 2026-10-24: "deterministic
+                 parameters ... we've gotta stay robust"): each a settings row whose value is a select,
+                 so the number shows. Auto leaves it to the app. The script fills Stories up to the
+                 block's own most. */}
+            <div class="rows card-group structure-rules" data-part="rules">
+              <div class="settings-row" data-part="stories">
                 <label class="settings-label" for="structure-stories">Stories</label>
-                <output class="settings-hint" for="structure-stories" data-word>{USUAL}</output>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="structure-stories" name="stories" autocomplete="off">
+                    <option value="">Auto</option>
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
               </div>
-              <input
-                class="settings-range"
-                id="structure-stories"
-                name="stories"
-                type="range"
-                min="0"
-                max={STORY_STOPS.length - 1}
-                step="1"
-                value="0"
-                autocomplete="off"
-                aria-valuetext={`Stories, ${USUAL}`}
-                data-stops={STORY_STOPS.map((stop) => stop ?? 0).join(",")}
-                data-names={storyNames.join(",")}
-                data-label="Stories"
-              />
-            </div>
-            <div class="manage-field" data-part="prompt">
-              <label for="structure-prompt">Prompt</label>
-              <textarea
-                class="manage-input structure-prompt"
-                id="structure-prompt"
-                name="prompt"
-                rows="8"
-                spellcheck="false"
-                aria-describedby="structure-prompt-count"></textarea>
-              <div class="structure-prompt-foot">
-                <p class="manage-quiet" id="structure-prompt-count" data-count></p>
-                <button class="btn" type="button" data-reset>Reset to built-in</button>
+              <div class="settings-row" data-part="per-source">
+                <label class="settings-label" for="structure-per-source">Most from one source</label>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="structure-per-source" name="per_source" autocomplete="off">
+                    <option value="">Auto</option>
+                    {Array.from({ length: PER_SOURCE_MAX }, (_, at) => <option value={String(at + 1)}>{String(at + 1)}</option>)}
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
               </div>
-              <p class="manage-error" role="alert" data-error="prompt" hidden>
-                <Icon name="alert" /><span>Too long to save in one go. Shorten it a little.</span>
-              </p>
+              <div class="settings-row" data-part="age">
+                <label class="settings-label" for="structure-age">Newer than</label>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="structure-age" name="max_age_hours" autocomplete="off">
+                    <option value="">Any age</option>
+                    {AGE_STOPS.map((stop) => <option value={String(stop.hours)}>{stop.label}</option>)}
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
+              </div>
             </div>
+            {/* The prompt, kept but out of the way: closed under its own row at the sheet's foot, as
+                 Create's More options is, since prompt styles change as models do (the owner,
+                 2026-10-24). */}
+            <details class="create-more structure-advanced" data-part="prompt">
+              <summary class="create-more-summary">
+                <span class="create-more-text">
+                  <span class="create-more-title">Writing instructions (advanced)</span>
+                  <span class="create-more-values" data-prompt-state></span>
+                </span>
+                <Icon name="chevronDown" class="create-more-chevron" />
+              </summary>
+              <div class="create-more-body manage-field">
+                <label for="structure-prompt">Instructions for the model</label>
+                <textarea
+                  class="manage-input structure-prompt"
+                  id="structure-prompt"
+                  name="prompt"
+                  rows="8"
+                  spellcheck="false"
+                  aria-describedby="structure-prompt-count"></textarea>
+                <div class="structure-prompt-foot">
+                  <p class="manage-quiet" id="structure-prompt-count" data-count></p>
+                  <button class="btn" type="button" data-reset>Reset to built-in</button>
+                </div>
+                <p class="manage-error" role="alert" data-error="prompt" hidden>
+                  <Icon name="alert" /><span>Too long to save in one go. Shorten it a little.</span>
+                </p>
+              </div>
+            </details>
             <p class="manage-quiet" data-part="spoken">Spoken by the app, not written by a model.</p>
             <p class="manage-quiet" data-part="own">What it says is what the model is told.</p>
           </form>

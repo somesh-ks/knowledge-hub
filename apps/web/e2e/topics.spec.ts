@@ -1455,7 +1455,7 @@ test.describe("Blocked sources", () => {
 test.describe("the podcast structure", () => {
   // A reorder went out as the whole list, so a move that the server's own schema refused, or one
   // lost on a reload before the build, would leave the next episode in the old order unseen.
-  test("a block moved by its menu goes as one structure.set and holds after a reload; its prompt goes as one structure.prompt", async ({
+  test("a block moved by its menu goes as one structure.set and holds after a reload; its rules and prompt go as one structure.set and one structure.prompt", async ({
     page,
   }) => {
     await page.clock.install();
@@ -1489,14 +1489,23 @@ test.describe("the podcast structure", () => {
     await list.getByRole("button", { name: "More for Design", exact: true }).click();
     await page.getByRole("menuitem", { name: "Edit" }).click();
     const sheet = page.getByRole("dialog", { name: "Design" });
-    const prompt = sheet.getByRole("textbox", { name: "Prompt" });
+    await sheet.getByRole("combobox", { name: "Most from one source" }).selectOption("1");
+    await sheet.getByText("Writing instructions (advanced)").click();
+    const prompt = sheet.getByRole("textbox", { name: "Instructions for the model" });
     await expect(prompt).toHaveValue(/FIELDS/);
     await prompt.fill("Tell each design story in two plain sentences.");
     await sheet.getByRole("button", { name: "Done" }).click();
     await expect(sheet).toBeHidden();
+    const design = list
+      .locator(".structure-row")
+      .filter({ has: page.locator(".settings-label", { hasText: /^Design$/ }) });
+    await expect(design).toContainText("1 per source");
     await page.clock.runFor(GAP_MS);
-    await expect.poll(() => server.applied.length).toBe(2);
-    expect(server.applied[1]).toEqual({
+    await expect.poll(() => server.applied.length).toBe(3);
+    const set = server.applied[1] as { op: string; blocks: Array<Record<string, unknown>> };
+    expect(set.op).toBe("structure.set");
+    expect(set.blocks.find((block) => block.id === "design")).toMatchObject({ per_source: 1 });
+    expect(server.applied[2]).toEqual({
       op: "structure.prompt",
       kind: "daily",
       key: "section:design",

@@ -42,10 +42,6 @@ export interface StructureData {
   skip: SkipLists;
 }
 
-/** The fixed stops of a block's story count: null is the app's own count. */
-export const STORY_STOPS: readonly (number | null)[] = [null, 1, 2, 3, 5];
-export const USUAL = "Usual";
-
 /** The most blocks a structure holds, and of the owner's own (MAX_STRUCTURE_BLOCKS, MAX_CUSTOM_BLOCKS). */
 export const MAX_BLOCKS = 32;
 export const MAX_OWN_BLOCKS = 6;
@@ -120,22 +116,92 @@ export function withStories(block: StructureBlock, stories: number | null): Stru
   return block;
 }
 
+/** The most stories each block type may hold (core's schema), for the Stories choice. */
+export const STORIES_MAX: Partial<Record<StructureBlock["type"], number>> = {
+  section: 8,
+  rundown: 6,
+  top_picks: 6,
+  trending: 8,
+  release_news: 8,
+};
+
+/** The most stories one outlet may bring to a block (core's PER_SOURCE_MAX). */
+export const PER_SOURCE_MAX = 4;
+
+/** How new a block's stories must be, in hours (core's MAX_AGE_STOPS), with the words for each. */
+export const AGE_STOPS: readonly { hours: number; label: string; summary: string }[] = [
+  { hours: 12, label: "12 hours", summary: "last 12 h" },
+  { hours: 24, label: "1 day", summary: "last day" },
+  { hours: 48, label: "2 days", summary: "last 2 days" },
+  { hours: 72, label: "3 days", summary: "last 3 days" },
+  { hours: 168, label: "1 week", summary: "last week" },
+];
+
+type StoryBlock = Extract<
+  StructureBlock,
+  { type: "section" | "top_picks" | "trending" | "release_news" }
+>;
+
+/** A block that brings stories and so takes the rules code holds it to (per source, age). */
+export function isStoryBlock(block: StructureBlock): block is StoryBlock {
+  return (
+    block.type === "section" ||
+    block.type === "top_picks" ||
+    block.type === "trending" ||
+    block.type === "release_news"
+  );
+}
+
+/**
+ * Whether the block takes an age limit here. Top picks takes its stories from the sections, which
+ * keep their own limits, and Catch up takes its window from its form (the Create sheet's Look back).
+ */
+export function takesAge(kind: StructureKind, block: StructureBlock): boolean {
+  return kind !== "catch_up" && isStoryBlock(block) && block.type !== "top_picks";
+}
+
+/** The same block with a rule set; null leaves the app's own. */
+export function withRule(
+  block: StructureBlock,
+  rule: "per_source" | "max_age_hours",
+  value: number | null,
+): StructureBlock {
+  if (!isStoryBlock(block)) return block;
+  const { [rule]: _, ...rest } = block;
+  return (value === null ? rest : { ...rest, [rule]: value }) as StructureBlock;
+}
+
 const DEPTH_LABEL = { deep: "in depth", brief: "short" } as const;
 
 const storiesText = (count: number): string => (count === 1 ? "1 story" : `${count} stories`);
 
-/** What a row says under the block's name: "3 stories, in depth", "4 stories", "Long". */
+/**
+ * What a row says under the block's name, in parts joined by a centred dot: "4 stories · in depth
+ * · 1 per source · last day". A setting left to the app says nothing, except where nothing else
+ * would ("The usual count").
+ */
 export function blockSummary(kind: StructureKind, block: StructureBlock): string {
   const count = storiesOf(block);
   const counted = typeof count === "number" ? storiesText(count) : null;
   const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+  const rules = isStoryBlock(block)
+    ? [
+        block.per_source === undefined ? null : `${block.per_source} per source`,
+        block.max_age_hours === undefined || !takesAge(kind, block)
+          ? null
+          : (AGE_STOPS.find((stop) => stop.hours === block.max_age_hours)?.summary ?? null),
+      ]
+    : [];
+  const join = (parts: readonly (string | null)[]): string =>
+    capital(parts.filter((part): part is string => part !== null).join(" · "));
   switch (block.type) {
     case "section":
     case "top_picks":
-      return capital([counted, DEPTH_LABEL[block.depth]].filter(Boolean).join(", "));
-    case "rundown":
+      return join([counted, DEPTH_LABEL[block.depth], ...rules]);
     case "trending":
     case "release_news":
+      return join([counted ?? (rules.some(Boolean) ? null : "The usual count"), ...rules]);
+    case "rundown":
       return counted ?? "The usual count";
     case "close":
       return block.length === "long" ? "Long" : "Short";
@@ -283,7 +349,8 @@ const item = (act: string, label: string, disabled = false, extra = ""): string 
   `<button class="hero-menu-item${extra}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${label}</button>`;
 
 /**
- * The kind's rows: the block's name and what it holds, a body row's dots with Move up, Move down,
+ * The kind's rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
+ * name and what it holds, its dots with Move up, Move down,
  * Edit and Remove (the More menu, MenuSheet.astro's markup: a bottom sheet on a phone), and the
  * frame rows at the ends drawn quieter with no menu. A frame a model writes (Catch up's hello and
  * sign-off) keeps one pencil for its prompt. A section whose every topic is left out of the
@@ -313,11 +380,12 @@ export function rowsHtml(
           builtinPrompt(data, kind, block) === null
             ? ""
             : `<button class="icon-btn press structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
-        return `<li class="settings-row structure-row" data-index="${index}" data-frame>${text}${edit}</li>`;
+        return `<li class="settings-row structure-row" data-index="${index}" data-frame><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
       }
       const menu = `structure-menu-${KIND_ID[kind]}-${Number(index)}`;
       return [
-        `<li class="settings-row structure-row" data-index="${index}" draggable="true"${off ? " data-off" : ""}>`,
+        `<li class="settings-row structure-row" data-index="${index}"${off ? " data-off" : ""}>`,
+        `<button class="icon-btn structure-grip" type="button" aria-label="Move ${name}" aria-describedby="structure-grip-hint" data-grip>${icon("grip")}</button>`,
         text,
         `<div class="structure-menu" style="--row-anchor: --${menu}">`,
         `<button class="icon-btn press structure-more" type="button" aria-label="More for ${name}" aria-haspopup="menu" popovertarget="${menu}" data-hero-more>${icon("moreVert")}</button>`,
