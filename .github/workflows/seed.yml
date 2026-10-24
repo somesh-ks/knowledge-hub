@@ -51,7 +51,7 @@ jobs:
           DRY: ${{ inputs.dry_run }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # Passed so the engine's refusal of replace applies once the store is on.
-          DISPATCH_CONFIG_STORE: ${{ vars.DISPATCH_CONFIG_STORE }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
         run: |
           seed_args=(--json)
           [ "$REPLACE" = "true" ] && seed_args+=(--replace)

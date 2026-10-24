@@ -142,8 +142,8 @@ export interface LlmJudgeOptions {
   secrets?: readonly string[];
 }
 
-export const DEFAULT_NEBIUS_JUDGE_BATCH = 5;
-const DEFAULT_NEBIUS_JUDGE_CONCURRENCY = 2;
+export const DEFAULT_LLM_JUDGE_BATCH = 5;
+const DEFAULT_LLM_JUDGE_CONCURRENCY = 2;
 
 function chunk<T>(items: readonly T[], size: number): T[][] {
   const out: T[][] = [];
@@ -170,10 +170,10 @@ export class LlmJudge implements Judge {
   }
 
   async judge(items: Item[]): Promise<JudgmentEntry[]> {
-    const batches = chunk(items, this.options.batchSize ?? DEFAULT_NEBIUS_JUDGE_BATCH);
+    const batches = chunk(items, this.options.batchSize ?? DEFAULT_LLM_JUDGE_BATCH);
     const results = await mapConcurrent(
       batches,
-      this.options.concurrency ?? DEFAULT_NEBIUS_JUDGE_CONCURRENCY,
+      this.options.concurrency ?? DEFAULT_LLM_JUDGE_CONCURRENCY,
       (batch) => this.judgeBatch(batch),
     );
     const byId = new Map(results.flat().map((entry) => [entry.item_id, entry]));

@@ -25,7 +25,7 @@ if (!flags.has("--serve-only")) {
   const build = spawnSync(process.execPath, [astroBin, "build"], {
     cwd: appRoot,
     stdio: "inherit",
-    env: { ...process.env, DISPATCH_FIXTURES: "1", DISPATCH_STATIC_ONLY: "1" },
+    env: { ...process.env, SINGULARITY_FIXTURES: "1", SINGULARITY_STATIC_ONLY: "1" },
   });
   if (build.status !== 0) process.exit(build.status ?? 1);
 }

@@ -28,7 +28,7 @@ import { linkCardProblems } from "../src/lib/linkCard";
 const HERE = dirname(fileURLToPath(import.meta.url));
 // A static-only build (local Windows runs, e2e) writes to dist; the Vercel adapter build to .vercel.
 const defaultOutput =
-  process.env.DISPATCH_STATIC_ONLY === "1"
+  (process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1"
     ? join(HERE, "..", "dist")
     : join(HERE, "..", ".vercel", "output", "static");
 const root = resolve(process.argv[2] ?? defaultOutput);

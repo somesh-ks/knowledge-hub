@@ -26,9 +26,11 @@ interface Props {
    * podcast; `ids` are the topics each one stands for, which is what the schedule's skip list holds.
    */
   topics?: readonly { id: string; name: string; ids: readonly string[] }[];
+  /** Every topic id the build knew, chip or not: a topic saved since then gets a chip (savedView.ts). */
+  builtTopics?: readonly string[];
 }
 
-const { id, values, topics = [] } = Astro.props;
+const { id, values, topics = [], builtTopics = [] } = Astro.props;
 const label = id === "daily" ? "Daily" : "Weekly";
 
 const hours = Array.from({ length: 24 }, (_, value) => value);
@@ -170,7 +172,7 @@ const inScope = (ids: readonly string[]): boolean =>
     <h2 class="section-head" id={`${id}-topics-head`}>Topics</h2>
     {
       topics.length > 0 ? (
-        <fieldset class="filter-chips podcast-topics card-group" aria-labelledby={`${id}-topics-head`} data-scope-chips>
+        <fieldset class="filter-chips podcast-topics card-group" aria-labelledby={`${id}-topics-head`} data-scope-chips data-built-topics={builtTopics.join(" ")}>
           {topics.map((topic) => (
             <label class="filter-chip">
               <input
