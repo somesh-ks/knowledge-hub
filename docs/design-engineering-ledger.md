@@ -360,6 +360,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 ### Reading pages and the Library
 - **Hero.**
   - One filled action, which goes tonal while playing and shows the time left (D77, D88).
+  - Share sits beside Play as a tonal pill at Play's height, its own width, with a 44px hit area (`.hero-share`, hero.css; owner, 2026-10-24, D153). Not in the More menu, which keeps Stop sharing.
   - One hero layout for any title length. The hero text fills the cover's height; a gap under it came from a `1fr` middle row with `align-self: end` actions, fixed with an 8rem cover (2026-10-12). On a phone the stacked cover is `clamp(8rem, 36vw, 10rem)`, never smaller than the wide layout's (2026-10-23).
   - Sections separated by space alone. Hairlines, where they exist, run inside the column (2026-10-08).
   - "Contents" sits beside the episode, sticky at the vertical centre (2026-10-08, 2026-10-12). "N min listen" went; Highlights replaced the script on the page (2026-10-08).

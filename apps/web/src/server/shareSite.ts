@@ -47,7 +47,11 @@ function base(bucket: string, perMinute: number): ShareDeps {
   };
 }
 
-/** The item's narration lookup, as GET /api/narrate answers it; no store operation. */
+/**
+ * The item's narration lookup, as GET /api/narrate answers it; no store operation. Null only for an
+ * item that is not there (404); any other refusal (a store or setup fault) throws, so a passing fault
+ * never reads as a deleted item and stops its links.
+ */
 async function lookupFor(env: ServerEnv, itemId: string): Promise<NarrateLookupResponse | null> {
   const kind = isEpisodeId(itemId) ? "episode" : "briefing";
   if (!(SHAREABLE_KINDS as readonly string[]).includes(kind)) return null;
@@ -57,7 +61,9 @@ async function lookupFor(env: ServerEnv, itemId: string): Promise<NarrateLookupR
     { env: withSecondVoice(env), digests: contentDigests(), episodes: contentEpisodes(), log },
   );
   const body = lookup.body as NarrateLookupResponse;
-  return body.status === 200 ? body : null;
+  if (body.status === 200) return body;
+  if (lookup.status === 404) return null;
+  throw new Error(`the narration lookup answered ${lookup.status}`);
 }
 
 /** POST and DELETE /api/share. */

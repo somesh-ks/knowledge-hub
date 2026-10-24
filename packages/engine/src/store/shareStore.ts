@@ -170,11 +170,13 @@ export async function revokeShareLinks(
 }
 
 /**
- * Stops one link whose item changed or went away after a play of it was granted, and hands that
- * play back: its count, and its bytes to the month it was charged to.
+ * Hands back a granted play of one link: its count, and its bytes to the month it was charged to.
+ * With $4 true it also stops the link, whose item changed or went away since the grant.
  */
 const REVOKE_GRANTED_SQL = `with stopped as (
-  update share_links set revoked_at = to_timestamp($2::float8 / 1000), plays = greatest(plays - 1, 0)
+  update share_links
+  set revoked_at = case when $4 then to_timestamp($2::float8 / 1000) else revoked_at end,
+    plays = greatest(plays - 1, 0)
   where id = $1 and revoked_at is null
   returning bytes
 )
@@ -182,10 +184,18 @@ update share_budget set bytes = greatest(share_budget.bytes - stopped.bytes, 0)
 from stopped where share_budget.month = $3
 returning share_budget.month`;
 
-/** Stops link `id` after its play was granted, and refunds that play. Throws when the database does. */
-export async function revokeGrantedLink(sql: SqlClient, id: string, now: number): Promise<void> {
+/**
+ * Refunds a granted play of link `id`, and stops the link unless `stop` is false (the play failed
+ * for a reason of the server's, not the item's). Throws when the database does.
+ */
+export async function revokeGrantedLink(
+  sql: SqlClient,
+  id: string,
+  now: number,
+  stop = true,
+): Promise<void> {
   await withTable(sql, SHARE_SCHEMA_SQL, () =>
-    sql.query(REVOKE_GRANTED_SQL, [id, now, budgetMonth(now)]),
+    sql.query(REVOKE_GRANTED_SQL, [id, now, budgetMonth(now), stop]),
   );
 }
 

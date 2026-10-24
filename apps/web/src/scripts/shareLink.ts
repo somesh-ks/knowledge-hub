@@ -173,7 +173,9 @@ export async function shareItem(item: {
   path: string;
   kind: "briefing" | "episode";
 }): Promise<ShareOutcome | { refused: string }> {
-  const ready = prepared.get(item.id)?.ready;
+  // An answer older than PREPARED_MS is asked again: the link may have stopped, or the audio landed.
+  const held = prepared.get(item.id);
+  const ready = held && Date.now() - held.at < PREPARED_MS ? held.ready : undefined;
   const answer = ready !== undefined ? ready : await prepareShare(item.id);
   if (answer === null) return shareLink(item.title, item.path);
   if ("refused" in answer) return answer;

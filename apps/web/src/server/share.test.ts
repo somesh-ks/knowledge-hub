@@ -177,6 +177,17 @@ describe("a shared link and its item", () => {
       }),
     ]);
 
+    // A passing fault in the lookup is not a deleted item: the play is handed back and the link
+    // keeps working (a 503 once read as "gone" and stopped the link for good).
+    const before = (await sql.query("select bytes from share_budget"))[0]?.bytes;
+    deps.lookup = async () => {
+      throw new Error("the narration lookup answered 503");
+    };
+    expect((await play(second)).status).toBe(503);
+    expect((await sql.query("select bytes from share_budget"))[0]?.bytes).toBe(before);
+    deps.lookup = async () => lookupOf(files);
+    expect((await play(second)).status).toBe(200);
+
     // Deleted: the link stops, and the play it was granted is handed back to the month.
     const spent = (await sql.query("select bytes from share_budget"))[0]?.bytes;
     files = null;

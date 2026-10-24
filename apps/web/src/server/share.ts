@@ -282,7 +282,13 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
     return stopped === UNAVAILABLE ? unavailable : { status: 200, body: { status: 200, stopped } };
   }
 
-  const found = await deps.lookup(item);
+  let found: NarrateLookupResponse | null;
+  try {
+    found = await deps.lookup(item);
+  } catch (error) {
+    deps.log?.(`share ${item}: the lookup failed: ${describeError(error, [])}`);
+    return unavailable;
+  }
   const candidates = found ? shareCandidates(found, deps.publicBase) : null;
   if (candidates === null) return notFound;
   const source = sourceOf(candidates);
@@ -373,6 +379,8 @@ export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Prom
       found = await deps.lookup(grant.link.item_id);
     } catch (error) {
       deps.log?.(`play ${grant.link.item_id}: the lookup failed: ${describeError(error, [])}`);
+      // No audio was handed out, so the play and its bytes go back; the link keeps working.
+      await ask(deps, (sql) => revokeGrantedLink(sql, id, now, false));
       return unavailable;
     }
     if (!found || !isCurrent(grant.link, found, deps.publicBase)) {
