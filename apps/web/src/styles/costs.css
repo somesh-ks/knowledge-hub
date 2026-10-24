@@ -333,7 +333,14 @@
   white-space: nowrap;
 }
 
+/* The period stays put while the rest scrolls under it (design audit, 2026-10-24: scrolled to its
+   end, a phone read "$0.04" with its day off screen). Opaque in the card's tone, so what passes
+   under it is hidden; the edge fade starts past it (--scroll-fade-inset, costsPage.ts). */
 .costs-table :is(th, td):first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--color-surface-container);
   text-align: start;
 }
 

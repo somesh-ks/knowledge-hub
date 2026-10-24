@@ -507,13 +507,23 @@ function renderTable(now: Drawn): void {
 /**
  * A table wider than its card scrolls sideways (a phone): then it is a tab stop, so a keyboard can
  * scroll it (WCAG 2.1.1; axe, 2026-10-24). A table that fits adds no dead stop. Run after each render
- * and on every resize of its box, which the table view's first showing is.
+ * and on every resize of its box, which the table view's first showing is. While it scrolls, its
+ * edge fade begins past the pinned period column (--scroll-fade-inset, primitives.css), so the dates
+ * stay whole.
  */
 function syncTableScroll(): void {
   const scroller = pick<HTMLElement>("[data-costs-table-scroll]");
   if (!scroller) return;
-  if (scroller.scrollWidth > scroller.clientWidth) scroller.tabIndex = 0;
+  const overflows = scroller.scrollWidth > scroller.clientWidth;
+  if (overflows) scroller.tabIndex = 0;
   else scroller.removeAttribute("tabindex");
+  const pinned = scroller.querySelector("table")?.rows[0]?.cells[0];
+  if (overflows && pinned)
+    scroller.style.setProperty(
+      "--scroll-fade-inset",
+      `${Math.round(pinned.getBoundingClientRect().width)}px`,
+    );
+  else scroller.style.removeProperty("--scroll-fade-inset");
 }
 
 /** What the numbers rest on, in a sentence or two. */
