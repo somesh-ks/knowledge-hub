@@ -1,3 +1,5 @@
+import { analyticsPath } from "./listenAnalytics";
+
 /**
  * Simple Analytics (D154): cookieless page views and a few named events, on the production site
  * alone. No cookie, no storage, no identifier: the script counts visits, referrers (a shared link's
@@ -32,8 +34,8 @@ type SaEvent = ((name: string, metadata?: AnalyticsMetadata) => void) & { q?: un
 
 /**
  * The global the script calls for the path of every page view and event, named by the script tag's
- * `data-path-overwriter` (Simple Analytics' "Overwrite path"). The listen page reports `/s`, so a
- * share token in its address never reaches the dashboard (D153).
+ * `data-path-overwriter` (Simple Analytics' "Overwrite path"). A shared page reports `/s`, so a
+ * share token in its address never reaches the dashboard (D153, lib/listenAnalytics.ts).
  */
 const PATH_OVERWRITER = "dispatchAnalyticsPath";
 
@@ -55,11 +57,12 @@ export function sharedUrl(address: string, base: string): string {
 
 /**
  * The briefing or episode a shared address names: its kind and its id (`/d/<id>`, `/e/<id>`), so a
- * share is counted per item. Never anything about a person.
+ * share is counted per item. Never anything about a person, and never a shared page's token: any
+ * other address names no item.
  */
 export function sharedItem(url: string): { kind: "briefing" | "episode"; item: string } {
   const [route = "", item = ""] = new URL(url).pathname.split("/").filter(Boolean);
-  return { kind: route === "e" ? "episode" : "briefing", item };
+  return { kind: route === "e" ? "episode" : "briefing", item: route === "d" || route === "e" ? item : "" };
 }
 
 /**
@@ -96,13 +99,12 @@ let installed = false;
  * snippet does, so an event in the first second is not lost; the page metadata goes first because
  * the script reads it once, as it loads.
  */
-export function installAnalytics(options: { path?: string } = {}): void {
+export function installAnalytics(): void {
   if (installed || !counted()) return;
   installed = true;
   const target = window as unknown as AnalyticsWindow;
-  const { path } = options;
-  // A constant: the script keeps the real path when the function throws or answers nothing.
-  if (path) target[PATH_OVERWRITER] = () => path;
+  // Asked on every page view, as the client router moves from page to page.
+  target[PATH_OVERWRITER] = () => analyticsPath(window.location.pathname);
   // An installed app is a reader who came back: the one retention signal that needs no identifier.
   target.sa_metadata = { installed: matchMedia("(display-mode: standalone)").matches };
   if (!target.sa_event) {
@@ -115,6 +117,6 @@ export function installAnalytics(options: { path?: string } = {}): void {
   const script = document.createElement("script");
   script.async = true;
   script.src = `${ANALYTICS_SCRIPT_ORIGIN}/latest.js`;
-  if (path) script.setAttribute("data-path-overwriter", PATH_OVERWRITER);
+  script.setAttribute("data-path-overwriter", PATH_OVERWRITER);
   document.head.append(script);
 }

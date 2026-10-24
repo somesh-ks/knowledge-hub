@@ -3,8 +3,6 @@ import Icon from "./Icon.astro";
 import MenuSheet from "./MenuSheet.astro";
 
 interface Props {
-  /** Where Share points. A briefing's dated address, or the episode's own. */
-  sharePath: string;
   /** Set on an episode page: Regenerate and Delete then act on this episode. */
   episodeId?: string;
   /** Set on a briefing page: Regenerate replaces this digest and Delete removes it. */
@@ -13,16 +11,15 @@ interface Props {
   deletable?: boolean;
 }
 
-const { sharePath, episodeId, briefingId, deletable = true } = Astro.props;
-// Share makes the item's public listen link (D153); Stop sharing shows once this device made one.
+const { episodeId, briefingId, deletable = true } = Astro.props;
+// Share sits beside Play (PlayCta.astro); Stop sharing shows here once this device made a link.
 const shareId = episodeId ?? briefingId;
-const shareKind = episodeId ? "episode" : "briefing";
 ---
 
-{/* One More button beside the title and the small menu it opens: Share, Regenerate and Delete, on a
-     briefing and on an episode alike. The menu is a native popover, so light dismiss and Escape are
-     the browser's; scripts/heroMenu.ts adds the arrow keys and focus. Share shares the dated
-     address, so a link sent from today's page still opens this briefing next week. On an episode
+{/* One More button beside the title and the small menu it opens: Regenerate and Delete, on a
+     briefing and on an episode alike, and Stop sharing once this device shared it (Share itself
+     sits beside Play, PlayCta.astro). The menu is a native popover, so light dismiss and Escape are
+     the browser's; scripts/heroMenu.ts adds the arrow keys and focus. On an episode
      Regenerate opens the rewrite panel (scripts/episodeActionsEntry.ts); on a briefing it opens the
      Generate sheet, which sends this digest's id so the new one replaces it. Delete opens the
      confirm on both. The items wait, with a reason, while a run for this episode is going. */}
@@ -45,16 +42,6 @@ const shareKind = episodeId ? "episode" : "briefing";
     <Icon name="check" class="more-done" />
   </button>
   <MenuSheet id="hero-menu" title="More actions">
-    <button
-      class="hero-menu-item"
-      type="button"
-      role="menuitem"
-      data-share={sharePath}
-      data-share-item={shareId}
-      data-share-kind={shareKind}
-    >
-      <Icon name="shareArrow" />Share
-    </button>
     {
       shareId && (
         <template data-share-stop-template>

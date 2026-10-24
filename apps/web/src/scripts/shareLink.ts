@@ -30,9 +30,13 @@ async function send(title: string, url: string, kind: string, item: string): Pro
  * not. Returns what happened so the caller can say so ("copied" is the one that needs a word). The
  * link carries `ref=share`, so the visit it brings is counted as a share's (D154).
  */
-export async function shareLink(title: string, address: string): Promise<ShareOutcome> {
+export async function shareLink(
+  title: string,
+  address: string,
+  about?: { kind: "briefing" | "episode"; item: string },
+): Promise<ShareOutcome> {
   const url = sharedUrl(address, location.href);
-  const { kind, item } = sharedItem(url);
+  const { kind, item } = about ?? sharedItem(url);
   return send(title, url, kind, item);
 }
 

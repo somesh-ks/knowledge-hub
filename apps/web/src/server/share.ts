@@ -76,10 +76,12 @@ export interface ShareDeps {
   burst: () => Promise<number>;
   now: () => number;
   /**
-   * The item's audio files as the narration lookup names them now, from the same digests and
-   * episodes the listen page reads; null for no such item. Asks no store anything.
+   * The item's narration lookup as GET /api/narrate answers it now, from the same digests and
+   * episodes the shared page reads; null for no such item. Asks no store anything.
    */
-  candidates: (itemId: string) => Promise<ShareCandidate[] | null>;
+  lookup: (itemId: string) => Promise<NarrateLookupResponse | null>;
+  /** The Blob store's public address; null where the deployment has none, so nothing is shared. */
+  publicBase: string | null;
   log?: (message: string) => void;
 }
 
@@ -129,14 +131,44 @@ export function sourceOf(candidates: readonly ShareCandidate[]): string {
  * An item the lookup cannot name files for right now (no store address) is not judged.
  */
 async function stillCurrent(link: ShareLink, deps: ShareDeps): Promise<boolean> {
-  let candidates: ShareCandidate[] | null;
+  let found: NarrateLookupResponse | null;
   try {
-    candidates = await deps.candidates(link.item_id);
+    found = await deps.lookup(link.item_id);
   } catch {
     return true;
   }
+  return isCurrent(link, found, deps.publicBase);
+}
+
+function isCurrent(
+  link: ShareLink,
+  found: NarrateLookupResponse | null,
+  publicBase: string | null,
+): boolean {
+  const candidates = found ? shareCandidates(found, publicBase) : null;
   if (candidates === null) return false;
   return candidates.length === 0 || sourceOf(candidates) === link.source;
+}
+
+/**
+ * The lookup a shared page's player reads (narrationApi.ts), with the link's stored files as the
+ * audio, each confirmed: the player then never asks /api/narrate, which would make audio. The files
+ * are in playing order, the whole file alone when the link was made from one.
+ */
+export function sharedLookup(found: NarrateLookupResponse, files: readonly SharedSegment[]): Body {
+  if (found.status !== 200) return { status: 410, error: "gone" };
+  const confirmed = (file: SharedSegment | undefined) =>
+    file ? { url: file.url, duration_ms: file.duration_ms, confirmed: true } : null;
+  const whole = found.audio !== null && files.length === 1;
+  return {
+    status: 200,
+    audio: whole ? confirmed(files[0]) : null,
+    timeline: whole ? found.timeline : null,
+    segments: whole
+      ? found.segments
+      : found.segments.map((segment, index) => ({ ...segment, audio: confirmed(files[index]) })),
+    ms_per_character: found.ms_per_character,
+  };
 }
 
 /** One file an item plays, where the lookup says it would be. */
@@ -250,7 +282,8 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
     return stopped === UNAVAILABLE ? unavailable : { status: 200, body: { status: 200, stopped } };
   }
 
-  const candidates = await deps.candidates(item);
+  const found = await deps.lookup(item);
+  const candidates = found ? shareCandidates(found, deps.publicBase) : null;
   if (candidates === null) return notFound;
   const source = sourceOf(candidates);
 
@@ -316,7 +349,7 @@ function parseToken(bodyText: string): unknown {
 /**
  * POST /api/share-play: one play start on the listen page. The link must work, be under its cap
  * and the month under its budget; then its plays go up by one, the month's bytes by the item's
- * size, and the answer carries the files to play in order.
+ * size, and the answer is the item's narration lookup with the link's files (sharedLookup).
  */
 export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Promise<ShareResult> {
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
@@ -335,11 +368,18 @@ export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Prom
   if (grant.granted) {
     // Checked after the grant, so a granted play stays one round trip; a link whose item was
     // deleted or regenerated since is stopped and its play handed back.
-    if (!(await stillCurrent(grant.link, deps))) {
+    let found: NarrateLookupResponse | null;
+    try {
+      found = await deps.lookup(grant.link.item_id);
+    } catch (error) {
+      deps.log?.(`play ${grant.link.item_id}: the lookup failed: ${describeError(error, [])}`);
+      return unavailable;
+    }
+    if (!found || !isCurrent(grant.link, found, deps.publicBase)) {
       const revoked = await ask(deps, (sql) => revokeGrantedLink(sql, id, now));
       return revoked === UNAVAILABLE ? unavailable : gone;
     }
-    return { status: 200, body: { status: 200, segments: grant.link.segments } };
+    return { status: 200, body: sharedLookup(found, grant.link.segments) };
   }
   switch (grant.reason) {
     case "not_found":

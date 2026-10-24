@@ -195,22 +195,24 @@ function watchSections({ keepHeld = false } = {}): void {
 }
 
 async function share(button: HTMLElement): Promise<void> {
-  const { share: path = "", shareItem: id, shareKind } = button.dataset;
+  const { share: path = "", shareItem: id, shareKind, shareOf } = button.dataset;
+  const kind = shareKind === "episode" ? "episode" : "briefing";
+  // A shared page sends its own link on, counted by the item it plays (data-share-of), never the token.
   const outcome = id
-    ? await shareItem({
-        id,
-        title: document.title,
-        path,
-        kind: shareKind === "episode" ? "episode" : "briefing",
-      })
-    : await shareLink(document.title, path);
+    ? await shareItem({ id, title: document.title, path, kind })
+    : await shareLink(document.title, path, shareOf ? { kind, item: shareOf } : undefined);
   if (typeof outcome === "object") {
     sendToast({ message: outcome.refused });
     return;
   }
   if (outcome !== "copied") return;
-  // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
   const host = button.closest("[data-share-host]");
+  // Share beside Play stays on screen: the copy is said in a toast.
+  if (!host) {
+    sendToast({ message: "Link copied", kind: "success" });
+    return;
+  }
+  // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
   const status = host?.querySelector("[data-share-status]");
   const mark = host?.querySelector<HTMLElement>("[data-hero-more]") ?? button;
   const name = mark.getAttribute("aria-label") ?? "";

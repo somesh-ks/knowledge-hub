@@ -4,21 +4,15 @@ import type { NarrateLookupResponse } from "../types/contracts";
 import { createVercelBlobStore } from "./blobStore";
 import { readBlobCredentials, readPublicBlobBase, type ServerEnv, withSecondVoice } from "./config";
 import { guardedDatabase } from "./database";
-import { bundledDigests } from "./digestSource";
-import { bundledEpisodes } from "./episodeSource";
+import { contentDigests, contentEpisodes } from "./contentSources";
 import { handleNarrationLookup, isEpisodeId } from "./narrate";
 import { burstCap } from "./rateLimit";
-import {
-  createNotStoredMemo,
-  type MakeDeps,
-  type ShareCandidate,
-  type ShareDeps,
-  shareCandidates,
-} from "./share";
+import { createNotStoredMemo, type MakeDeps, type ShareDeps } from "./share";
 
 /**
  * The share routes' and the listen page's real dependencies: Neon through the guarded call, the
- * shared per-minute caps (D150, one bucket per route), the bundled digests and episodes, and Blob.
+ * shared per-minute caps (D150, one bucket per route), the digests and episodes /api/narrate reads
+ * (the content repository, D173), and Blob.
  */
 
 /** Make and stop, all items together: the owner shares a few a day. */
@@ -47,21 +41,23 @@ function base(bucket: string, perMinute: number): ShareDeps {
     database,
     burst: burstCap(bucket, perMinute),
     now: Date.now,
-    candidates: (itemId) => candidatesFor(env, itemId),
+    lookup: (itemId) => lookupFor(env, itemId),
+    publicBase: readPublicBlobBase(env),
     log,
   };
 }
 
-/** The item's files, as the narration lookup names them; no store operation. */
-async function candidatesFor(env: ServerEnv, itemId: string): Promise<ShareCandidate[] | null> {
+/** The item's narration lookup, as GET /api/narrate answers it; no store operation. */
+async function lookupFor(env: ServerEnv, itemId: string): Promise<NarrateLookupResponse | null> {
   const kind = isEpisodeId(itemId) ? "episode" : "briefing";
   if (!(SHAREABLE_KINDS as readonly string[]).includes(kind)) return null;
   // No live episodes: one still being written is never wholly stored.
   const lookup = await handleNarrationLookup(
     { digest: itemId, params: ["digest"] },
-    { env: withSecondVoice(env), digests: bundledDigests, episodes: bundledEpisodes, log },
+    { env: withSecondVoice(env), digests: contentDigests(), episodes: contentEpisodes(), log },
   );
-  return shareCandidates(lookup.body as NarrateLookupResponse, readPublicBlobBase(env));
+  const body = lookup.body as NarrateLookupResponse;
+  return body.status === 200 ? body : null;
 }
 
 /** POST and DELETE /api/share. */
