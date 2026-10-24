@@ -54,12 +54,7 @@ import {
   PRE_SYNTHESIS_BOUND_MS,
   SYNTHESIS_DEADLINE_MS,
 } from "./functionLimits.mjs";
-import {
-  isSameOrigin,
-  MAX_BODY_CHARS,
-  MAX_PASSPHRASE_CHARS,
-  WRONG_PASSPHRASE_DELAY_MS,
-} from "./generate";
+import { isSameOrigin, MAX_BODY_CHARS } from "./generate";
 import type { FetchLike } from "./github";
 import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
@@ -88,9 +83,9 @@ import { describeError } from "./redact";
  * /api/narrate: narration made when a listener presses Play, not ahead of time.
  *
  * GET lists a digest's segments (the intro, each story, an outro) with the address each one's audio
- * would have. It needs no passphrase, never narrates and never touches the store. POST checks the
- * passphrase and the limits and has Speechify read either one segment or the whole digest, stores
- * the result in Blob, and returns it.
+ * would have. It never narrates and never touches the store. POST checks the request and the limits
+ * and has Speechify read either one segment or the whole digest, stores the result in Blob, and
+ * returns it.
  *
  * A podcast episode (an id like ep-20261007-1930) goes through the same two calls, with one segment
  * per turn, keyed t<idx>. Each speaker has a voice: "a" reads in the configured voice and "b" in
@@ -234,7 +229,6 @@ export interface NarrateDeps {
   fetch: FetchLike;
   now: () => number;
   delay: (milliseconds: number) => Promise<void>;
-  verifyPassphrase: (passphrase: string, storedHash: string) => Promise<boolean>;
   /** The shared per-minute burst cap (D150): 0 to go ahead, else the seconds to wait. */
   burst?: () => Promise<number>;
   openBlob: (credentials: BlobCredentials) => NarrateBlobStore;
@@ -332,14 +326,13 @@ export function parseDigestId(value: unknown): string | null {
 
 export interface ParsedNarrateRequest {
   digest: string;
-  passphrase: string;
   /** Present when the request is for one segment. */
   segment?: string;
 }
 
 /**
- * Pulls the digest id, the passphrase and the optional segment key out of a JSON body, or null when
- * it is not that shape.
+ * Pulls the digest id and the optional segment key out of a JSON body, or null when it is not that
+ * shape. A `passphrase` field that a page built before D160 still sends is ignored.
  */
 export function parseNarrateRequest(bodyText: string): ParsedNarrateRequest | null {
   if (bodyText.length === 0 || bodyText.length > MAX_BODY_CHARS) return null;
@@ -350,20 +343,14 @@ export function parseNarrateRequest(bodyText: string): ParsedNarrateRequest | nu
     return null;
   }
   if (typeof parsed !== "object" || parsed === null) return null;
-  const { digest, passphrase, segment } = parsed as {
-    digest?: unknown;
-    passphrase?: unknown;
-    segment?: unknown;
-  };
-  if (typeof passphrase !== "string") return null;
-  if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
+  const { digest, segment } = parsed as { digest?: unknown; segment?: unknown };
   const id = parseDigestId(digest);
   if (id === null) return null;
-  if (segment === undefined) return { digest: id, passphrase };
+  if (segment === undefined) return { digest: id };
   // A key that is sent has to be one. Anything else must not fall through to the whole digest, which
   // costs far more than the caller asked for.
   if (typeof segment !== "string" || !SEGMENT_KEY.test(segment)) return null;
-  return { digest: id, passphrase, segment };
+  return { digest: id, segment };
 }
 
 interface Narration {
@@ -687,7 +674,7 @@ const elapsed = (session: Session): number => session.deps.now() - session.start
 /**
  * How long Speechify may take from now. It is counted from the start of the request, not from the
  * start of synthesis, and it always ends NARRATE_OVERHEAD_MS before the function's limit: time
- * already spent on the passphrase and the store comes out of the synthesis, never out of the time
+ * already spent on the checks and the store comes out of the synthesis, never out of the time
  * kept for storing what was paid for.
  */
 function synthesisBudget(session: Session): number {
@@ -1305,12 +1292,6 @@ export async function handleNarrate(
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const request = parseNarrateRequest(input.bodyText);
   if (request === null) return invalid;
-
-  const isValid = await deps.verifyPassphrase(request.passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above, and before
   // the store is opened: a flood past it costs no Blob read.

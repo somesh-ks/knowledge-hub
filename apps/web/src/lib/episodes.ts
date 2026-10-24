@@ -1,8 +1,8 @@
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { CoverSpec } from "@dispatch/core";
 import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@dispatch/cover";
 import type { PlayerDigestData } from "../types/contracts";
+import { type ContentFiles, diskFiles } from "./contentFiles";
+import type { DigestEntry } from "./digests";
 import { type Episode, parseEpisodeFile } from "./episodeFile";
 import { isWebUrl } from "./safeUrl";
 
@@ -33,26 +33,18 @@ export interface EpisodeFiles {
   warnings: string[];
 }
 
-async function listMarkdown(directory: string): Promise<string[]> {
-  try {
-    const entries = await readdir(directory, { recursive: true, withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-      .map((entry) => join(entry.parentPath, entry.name))
-      .sort();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
-  }
-}
-
-export async function readEpisodeFiles(directory: string): Promise<EpisodeFiles> {
+export async function readEpisodeFiles(
+  directory: string,
+  reader: ContentFiles = diskFiles,
+): Promise<EpisodeFiles> {
   const episodes: Episode[] = [];
   const warnings: string[] = [];
   const seen = new Set<string>();
-  for (const file of await listMarkdown(directory)) {
+  for (const file of (await reader.list(directory)).filter((path) => path.endsWith(".md"))) {
     try {
-      const episode = parseEpisodeFile(await readFile(file, "utf8"));
+      const text = await reader.read(file);
+      if (text === null) continue;
+      const episode = parseEpisodeFile(text);
       if (seen.has(episode.id)) {
         warnings.push(`${file}: duplicate episode id ${episode.id}, skipped`);
         continue;
@@ -142,4 +134,19 @@ export function buildEpisodeEntries(episodes: readonly Episode[]): EpisodeEntry[
       a.generated_at < b.generated_at ? 1 : a.generated_at > b.generated_at ? -1 : 0,
     )
     .map(toEntry);
+}
+
+/** Every briefing's summary and topic by item id, newest first, so an episode's story reads as it did there. */
+export function storyLookups(entries: readonly DigestEntry[]): {
+  summaries: Map<string, string>;
+  topics: Map<string, string>;
+} {
+  const summaries = new Map<string, string>();
+  const topics = new Map<string, string>();
+  for (const { digest } of entries)
+    for (const item of digest.items) {
+      if (!topics.has(item.id)) topics.set(item.id, item.category);
+      if (item.summary && !summaries.has(item.id)) summaries.set(item.id, item.summary);
+    }
+  return { summaries, topics };
 }

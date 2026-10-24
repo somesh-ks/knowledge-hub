@@ -39,6 +39,7 @@ Three layers, each catching what the others miss (the owner's ask, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, a PostToolUse hook on Edit, Write and MultiEdit for `apps/web/src/**` and `tokens/**`; silent when green, exit 2 with the failing rules when not.
 - Audit: the `design-audit` agent (`.claude/agents/design-audit.md`) screenshots the touched pages at phone and desktop in light and dark and judges them against the ledger. A UI change runs it before the PR; `/close-session` checks it ran.
 CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser job on any PR touching `apps/web`, `packages` or `tokens`.
+A component changes in the system, never on one page only (the owner, 2026-10-24): in its shared class, component or token, with its record in the same PR, the usage comment over its class, its ledger line and, for a new variant, this spec. The audit flags a shared class restyled in a page stylesheet. Variants: the segmented navigation's glyph tab (an icon alone, centred; Costs' chart and table switch) and its compact form (`.segmented-nav-compact`: a chip's height, a 44px target, `--segmented-nav-bg` for the track); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past it (the Costs table).
 
 ## Code
 - `apps/web/src/styles/tokens.css`

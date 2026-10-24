@@ -1,10 +1,8 @@
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
-import { passphraseCheck } from "../../server/access";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { withSecondVoice } from "../../server/config";
-import { bundledDigests } from "../../server/digestSource";
-import { bundledEpisodes } from "../../server/episodeSource";
+import { contentDigests, contentEpisodes } from "../../server/contentSources";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { recordingFaults, toResponse } from "../../server/http";
 import { readStreamForEpisode } from "../../server/liveStream";
@@ -39,8 +37,8 @@ const get: APIRoute = async ({ url }) =>
       { digest: url.searchParams.get("digest"), params: [...url.searchParams.keys()] },
       {
         env: withSecondVoice(process.env),
-        digests: bundledDigests,
-        episodes: bundledEpisodes,
+        digests: contentDigests(),
+        episodes: contentEpisodes(),
         liveEpisodes: liveEpisodesFor(),
         log,
       },
@@ -61,14 +59,13 @@ const post: APIRoute = async ({ request, url }) => {
       env: withSecondVoice(process.env),
       // The store's files are read by URL with the plain fetch; everything else goes through the SDK.
       openBlob: (credentials) => createVercelBlobStore(credentials, { head, put, del }, fetch),
-      digests: bundledDigests,
-      episodes: bundledEpisodes,
+      digests: contentDigests(),
+      episodes: contentEpisodes(),
       liveEpisodes: liveEpisodesFor(),
       log,
       fetch,
       now: Date.now,
       delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-      verifyPassphrase: passphraseCheck(),
       burst: burstCap("narrate", NARRATIONS_PER_MINUTE),
       startDeadline,
     },

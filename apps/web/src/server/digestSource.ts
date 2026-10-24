@@ -52,9 +52,3 @@ export function bundledDigestIds(): string[] {
     .sort()
     .reverse();
 }
-
-/** The kind a digest's front matter names, or null when the build has no such digest. */
-export async function bundledDigestKind(id: string): Promise<string | null> {
-  const text = await bundledDigests.readDigest(id);
-  return text ? (/^kind:\s*(\S+)/m.exec(text)?.[1] ?? null) : null;
-}

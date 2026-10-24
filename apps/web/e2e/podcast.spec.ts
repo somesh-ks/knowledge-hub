@@ -1,12 +1,11 @@
 import type { Page, Route } from "@playwright/test";
 import { configHash } from "../src/lib/configHash";
 import { GAP_MS } from "../src/scripts/managePageSave";
-import { BUILT_FILES } from "./configServer";
+import { BUILT_FILES, routeConfigStore } from "./configServer";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
 interface Sent {
-  passphrase: string;
   op: Record<string, unknown> | Record<string, unknown>[];
 }
 
@@ -316,6 +315,31 @@ test.describe("with the config store on", () => {
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-ready", "");
     await page.clock.runFor(2000);
     await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", hour: 9 });
+  });
+
+  // The bug (D173): Daily drew its chips at build, so a topic added in Settings since the last deploy
+  // had no chip there and could not be taken out of the podcast.
+  test("a topic added since the build has a chip that takes it out", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page);
+    const topics = JSON.parse(BUILT_FILES["config/topics.json"] ?? "{}");
+    topics.topics.push({ ...topics.topics[0], id: "pottery", name: "Pottery", origin: "custom" });
+    await routeConfigStore(page, () => ({ "config/topics.json": JSON.stringify(topics) }));
+    await context.addCookies([
+      { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+    ]);
+    await open(page, "daily");
+    const pottery = page.locator(".podcast-topics").getByRole("checkbox", { name: "Pottery" });
+    await expect(pottery).toBeChecked();
+    await pottery.locator("xpath=..").click();
+    await page.clock.runFor(2000);
+    await expect
+      .poll(() => opsOf(sent))
+      .toContainEqual({ op: "topic.scope", ids: ["pottery"], daily: false });
   });
 });
 

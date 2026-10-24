@@ -1,6 +1,5 @@
 import type { APIRoute } from "astro";
-import { passphraseCheck } from "../../server/access";
-import { bundledDigestIds, bundledDigestKind } from "../../server/digestSource";
+import { contentDigestIds, contentDigestKind } from "../../server/contentSources";
 import { handleGenerate, MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { burstCap } from "../../server/rateLimit";
@@ -25,10 +24,9 @@ export const POST: APIRoute = ({ request, url }) =>
         fetch,
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-        verifyPassphrase: passphraseCheck(),
         burst: burstCap("generate", STARTS_PER_MINUTE),
-        digestIds: bundledDigestIds,
-        digestKind: bundledDigestKind,
+        digestIds: () => contentDigestIds(),
+        digestKind: (id) => contentDigestKind(id),
         log,
       },
     );

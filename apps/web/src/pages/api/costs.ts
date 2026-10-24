@@ -1,18 +1,19 @@
-import { type CostRecord, dateInZone, TIME_ZONE } from "@dispatch/core";
+import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@dispatch/core";
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore, readFresh } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
-import { bundledCostRecords, bundledPrices } from "../../server/costSource";
+import { contentCostRecords, contentPrices } from "../../server/contentSources";
 import { costBody, narrationRecords, parseCostQuery } from "../../server/costs";
 import { recordingFaults, toResponse } from "../../server/http";
 import { parseState, usageKey } from "../../server/narrationState";
 import { sharedLimit } from "../../server/rateLimit";
 
-// Runs on demand: the report reads the narrate function's usage documents from Blob.
+// Runs on demand: the report reads the engine's ledger from the content repository and the narrate
+// function's usage documents from Blob.
 export const prerender = false;
 
-// The route is open on purpose (the owner's passphrase is off site-wide, D41) and each answer reads
+// The route is open on purpose (the site has no passphrase, D160) and each answer reads
 // Blob, so the site answers at most this many a minute across instances; past it the answer is 429.
 const REPORTS_PER_MINUTE = 30;
 
@@ -24,7 +25,7 @@ async function siteRecords(
   request: Request,
   days: number,
   now: Date,
-  prices: NonNullable<ReturnType<typeof bundledPrices>>,
+  prices: PriceTable,
 ): Promise<CostRecord[] | null> {
   const credentials = readBlobCredentials(process.env, () => request.headers.get(OIDC_HEADER));
   if (!credentials) return null;
@@ -63,7 +64,7 @@ const get: APIRoute = async ({ request, url }) => {
     });
   }
   const query = parseCostQuery(url.searchParams);
-  const prices = bundledPrices();
+  const prices = await contentPrices();
   if (!query || !prices) {
     return toResponse({
       status: query ? 503 : 400,
@@ -71,11 +72,14 @@ const get: APIRoute = async ({ request, url }) => {
     });
   }
   const now = new Date();
-  const site = await siteRecords(request, query.days, now, prices);
+  const [site, engine] = await Promise.all([
+    siteRecords(request, query.days, now, prices),
+    contentCostRecords(),
+  ]);
   return toResponse({
     status: 200,
     body: {
-      ...costBody(query, { engine: bundledCostRecords(), site: site ?? [], prices, now }),
+      ...costBody(query, { engine, site: site ?? [], prices, now }),
       site: site ? "ok" : "unavailable",
     },
   });

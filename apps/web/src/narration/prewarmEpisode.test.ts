@@ -28,7 +28,6 @@ function made(key: string) {
 
 function setup(
   options: {
-    passphrase?: string | null;
     allowed?: boolean;
     answer?: (url: string, body: { segment?: string } | null) => Response;
   } = {},
@@ -44,7 +43,6 @@ function setup(
       },
       isOnline: () => true,
     },
-    passphrase: () => (options.passphrase === undefined ? "open" : options.passphrase),
     allowed: () => options.allowed ?? true,
   };
   return { deps, calls };
@@ -70,12 +68,10 @@ describe("prewarmEpisode", () => {
     expect(calls.map((call) => call.segment)).toEqual([null, "t0"]);
   });
 
-  it("asks nothing without a passphrase, or where the browser or the tab says no", async () => {
-    for (const options of [{ passphrase: null }, { allowed: false }]) {
-      const { deps, calls } = setup(options);
-      await prewarmEpisode(ID, deps);
-      expect(calls).toEqual([]);
-    }
+  it("asks nothing where the browser or the tab says no", async () => {
+    const { deps, calls } = setup({ allowed: false });
+    await prewarmEpisode(ID, deps);
+    expect(calls).toEqual([]);
   });
 
   it("is silent when the network fails", async () => {

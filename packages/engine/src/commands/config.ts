@@ -34,11 +34,13 @@ import {
   seedConfigDocuments,
 } from "../store/configDocs.js";
 import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
+import { loadStructureFile, serializeStructure } from "../structure/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
 
 const USAGE = `Usage: dispatch config <command>
 
-  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries, weights or schedule.
+  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries, weights, schedule
+                                     or podcast structure.
                                      The op is one object or an array of 1 to 8; an array is checked
                                      whole, applied in order and lands all or nothing. Network only
                                      for source.add (feed lookup).
@@ -64,6 +66,7 @@ Ops (see ConfigOp in @dispatch/core):
   {"op":"mix.set","format_mix":{"video":"Less","forum":1.1}}
   {"op":"topic.mix","id":"world","perspective":-1}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
+  {"op":"structure.set","kind":"daily","blocks":[{"type":"hello"},{"type":"top_picks"},{"type":"sign_off"}]}
   {"op":"profile.block","domain":"example.com"}
   {"op":"profile.unblock","domain":"example.com"}`;
 
@@ -98,8 +101,8 @@ function serializeQueries(file: ConfigBundle["queries"]): string {
 
 export async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
-  const [topics, schedule, sourcesUser, registry, queries, candidates, profile] = await Promise.all(
-    [
+  const [topics, schedule, sourcesUser, registry, queries, candidates, profile, structure] =
+    await Promise.all([
       loadTopics(root, preferences),
       loadSchedule(root),
       loadUserSources(root),
@@ -107,8 +110,8 @@ export async function readBundle(root: string): Promise<ConfigBundle> {
       loadQueries(root),
       readSourceCandidates(root),
       createFileProfileStore(root).read(OWNER_ID),
-    ],
-  );
+      loadStructureFile(root),
+    ]);
   return {
     topics,
     preferences,
@@ -118,6 +121,7 @@ export async function readBundle(root: string): Promise<ConfigBundle> {
     queries,
     candidates,
     profile,
+    structure,
   };
 }
 
@@ -131,6 +135,10 @@ export function renderBundle(bundle: ConfigBundle): Record<string, string> {
     [profilePath(bundle.profile.user_id)]: serializeProfile(bundle.profile),
     [QUERIES_PATH]: serializeQueries(bundle.queries),
     [STATE_FILES.sourceCandidates]: stableStringify(bundle.candidates),
+    // Only a structure the owner saved is written: a missing file is the defaults (D170).
+    ...(bundle.structure !== null
+      ? { [CONFIG_FILES.structure]: serializeStructure(bundle.structure) }
+      : {}),
   };
 }
 
@@ -363,7 +371,7 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
     (configStoreUrl(ctx.env) !== null || (await copiedFromStore(ctx.root)))
   ) {
     ctx.log.error(
-      "The config store is on here (DISPATCH_CONFIG_STORE, or a run noted it copied the store), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
+      "The config store is on here (SINGULARITY_CONFIG_STORE, or a run noted it copied the store), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
     );
     return 1;
   }

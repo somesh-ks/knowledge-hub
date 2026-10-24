@@ -13,6 +13,7 @@ import { readBrandColors } from "../lib/brandColors";
 import { BUILD_ID } from "../lib/buildId";
 import { loadConfigHash } from "../lib/configHash";
 import { fabFor } from "../lib/fab";
+import type { LinkCard } from "../lib/linkCard";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
 import bannersInit from "../scripts/bannersInit.js?raw";
@@ -61,6 +62,8 @@ interface Props {
   deviceBanner?: boolean;
   /** The Library page alone, with or without anything in it ("empty" draws .library-none). */
   library?: "empty" | "items";
+  /** The card a chat app draws when this page's link is pasted: briefings and episodes (D153). */
+  card?: LinkCard;
 }
 
 const {
@@ -74,6 +77,7 @@ const {
   skipLabel = "Skip to the briefing",
   deviceBanner = true,
   library,
+  card,
 } = Astro.props;
 // What the page holds, said on the root from the first frame, where the stylesheets once asked with
 // a root :has() that restyled the whole page (D147): data-has-hero, a hero with its own Play (every
@@ -102,7 +106,9 @@ const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 // Vercel is the deployment's; without the switch no page asks. The tag names the config files the
 // page was built from, so a page from another build never takes edits made against this one.
 const configStore =
-  process.env.DISPATCH_CONFIG_STORE === "postgres" ? await loadConfigHash() : null;
+  (process.env.SINGULARITY_CONFIG_STORE ?? process.env.DISPATCH_CONFIG_STORE) === "postgres"
+    ? await loadConfigHash()
+    : null;
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
 // in the app bar: to where the person came from when that was in the app, else to its list.
@@ -148,6 +154,23 @@ const back =
     <meta name="dispatch-build" content={BUILD_ID} />
     {configStore && <meta name="dispatch-config-store" content={configStore} />}
     <title>{pageTitle}</title>
+    {
+      card && (
+        <>
+          <meta property="og:type" content="article" />
+          <meta property="og:site_name" content="Singularity" />
+          <meta property="og:title" content={card.title} />
+          <meta property="og:description" content={card.description} />
+          <meta property="og:url" content={new URL(path, Astro.site).href} />
+          <meta property="og:image" content={new URL(card.image, Astro.site).href} />
+          <meta property="og:image:type" content="image/png" />
+          <meta property="og:image:width" content="1024" />
+          <meta property="og:image:height" content="1024" />
+          <meta property="og:image:alt" content={card.imageAlt} />
+          <meta name="twitter:card" content="summary" />
+        </>
+      )
+    }
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
@@ -181,15 +204,20 @@ const back =
     {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
 
     {/* Both islands live in the layout and persist across navigation, so the audio object inside the
-         player module is never rebuilt and playback never stops while you move between pages. */}
-    <PlayerRoot client:idle transition:persist="player" />
-    <SheetsRoot client:idle transition:persist="sheets" />
+         player module is never rebuilt and playback never stops while you move between pages. They
+         wake when asked (scripts/islandWake.ts), so a first visit loads no React until it needs it. */}
+    <PlayerRoot client:wake transition:persist="player" />
+    <SheetsRoot client:wake transition:persist="sheets" />
     {/* The Create page has the form in the page itself; every other page gets it as the sheet. */}
     {view !== "create" && <CreateSheet />}
 
     <script>
+      import { startPlayerRuntime } from "../player/core/playerRuntime";
       import "../scripts/app";
       import "../dev/agentation";
+
+      // The audio store's wiring answers the page's Play controls at once; the bar's island waits.
+      startPlayerRuntime();
     </script>
   </body>
 </html>

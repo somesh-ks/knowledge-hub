@@ -7,6 +7,8 @@
  * A control takes the saved value as its starting point, so the editors read it as unchanged and
  * never send it again. The page says once, under its title, that what it shows is saved and not live.
  */
+
+import type { SourceFormat } from "@dispatch/core";
 import { topicEmoji } from "@dispatch/core/topicEmoji";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
@@ -16,6 +18,7 @@ import {
   type FieldValues,
   parseSaved,
   type SourceSpot,
+  savedChips,
   savedControl,
   savedFields,
   savedOps,
@@ -35,9 +38,10 @@ import {
   suggestSources,
   type TopicWords,
 } from "../lib/sourceCatalogMatch";
+import { FORMAT_LABEL, fold, searchText } from "../lib/sourceFilter";
 import { fillShellText, parseSuggestedAdd, type SuggestedAdd } from "../lib/topicText";
 import { drawStop, stopFor, weightOf } from "../lib/weightStops";
-import type { ConfigOp, ConfigReadBody } from "../types/contracts";
+import type { ConfigOp, ConfigReadBody, StoreSource } from "../types/contracts";
 import { storeRead } from "./configStoreRead";
 import { ADDED_SOURCE, HELD_EVENT, type Held, type Pending } from "./managePageSave";
 import { element, iconNode, storedSourceRow, topicRow } from "./topicsView";
@@ -175,6 +179,9 @@ export function overlayPodcast(
     if (value !== undefined) setControl(control, value);
   }
   const { removedTopics } = savedTopics(ops);
+  // A topic added or renamed since the build: its chip, ticked or not by the scope loop below.
+  const list = root.querySelector<HTMLElement>("[data-scope-chips]");
+  if (list && overlayChips(list, ops, undefined, true).length > 0) shown = true;
   for (const box of root.querySelectorAll<HTMLInputElement>("input[data-scope]")) {
     const ids = (box.dataset.scopeIds ?? "").split(" ").filter(Boolean);
     // A topic removed since the build has no chip: the editor never sends a scope for it.
@@ -192,6 +199,120 @@ export function overlayPodcast(
   }
   if (shown) markSaved(root);
   return shown;
+}
+
+// ------------------------------------------------------------------------------- topic chip lists
+
+/**
+ * A list of topic chips (a checkbox in a label, the topic's words in its span) with the saved edits
+ * laid over it: a removed topic's chip goes, a renamed one says its new name, and a topic the build
+ * did not have gets a chip like the others. The list names every topic the build knew in
+ * data-built-topics. A chip that goes is disabled too, so the form never sends it.
+ *
+ * A chip names its topics in data-ids (Create) or data-scope-ids (Daily, Weekly). On Daily and
+ * Weekly a chip is a switch, so a chip out of the podcast stays (unticked) and a new topic's chip
+ * starts ticked, as a new topic plays; `podcast` says so. Returns the chips it added.
+ */
+export function overlayChips(
+  list: HTMLElement,
+  ops: readonly ConfigOp[] = readSaved(),
+  scope?: "daily" | "weekly" | "custom",
+  podcast = false,
+): HTMLInputElement[] {
+  const labels = [...list.querySelectorAll<HTMLLabelElement>("label")].filter((label) =>
+    label.querySelector("input"),
+  );
+  const chipOf = (label: HTMLLabelElement) => {
+    const input = label.querySelector("input") as HTMLInputElement;
+    const ids = (input.dataset.ids ?? input.dataset.scopeIds ?? input.value)
+      .split(" ")
+      .filter(Boolean);
+    return {
+      value: podcast ? ids.join(" ") : input.value,
+      ids,
+      label: label.querySelector("span")?.textContent ?? "",
+    };
+  };
+  const built = new Set((list.dataset.builtTopics ?? "").split(" ").filter(Boolean));
+  const changes = savedChips(labels.map(chipOf), built, ops, podcast ? undefined : scope);
+  for (const label of labels) {
+    const { value } = chipOf(label);
+    const input = label.querySelector("input") as HTMLInputElement;
+    if (!podcast && changes.hide.has(value)) {
+      input.checked = false;
+      input.disabled = true;
+      label.hidden = true;
+    }
+    const name = changes.rename.get(value);
+    const words = label.querySelector("span");
+    if (name && words) words.textContent = name;
+  }
+  const model = labels.at(-1);
+  const added: HTMLInputElement[] = [];
+  for (const chip of changes.add) {
+    if (!model) break;
+    const label = model.cloneNode(true) as HTMLLabelElement;
+    const input = label.querySelector("input") as HTMLInputElement;
+    if (podcast) input.dataset.scopeIds = chip.ids.join(" ");
+    else {
+      input.value = chip.value;
+      input.dataset.ids = chip.ids.join(" ");
+    }
+    input.checked = input.defaultChecked = podcast;
+    input.disabled = false;
+    delete input.dataset.gone;
+    label.hidden = false;
+    const words = label.querySelector("span");
+    if (words) words.textContent = chip.label;
+    model.parentElement?.append(label);
+    added.push(input);
+  }
+  return added;
+}
+
+/**
+ * The Create panel: its starting format, length and voices, and its topic chips, as saved in
+ * Settings (schedule.set custom, D69) rather than as built. A control the reader has already
+ * changed keeps their choice. True when anything changed.
+ */
+export function overlayCreate(
+  form: HTMLFormElement,
+  ops: readonly ConfigOp[] = readSaved(),
+): boolean {
+  const radios = (name: string) => [
+    ...form.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${name}"]`),
+  ];
+  const builtRadio = (name: string) => radios(name).find((radio) => radio.defaultChecked)?.value;
+  const selects = [...form.querySelectorAll<HTMLSelectElement>("select[name]")];
+  // The voice list can have been filled already, so the built voice is read from data-saved.
+  const builtSelect = (select: HTMLSelectElement) => select.dataset.saved ?? "";
+  const baked: FieldValues = {};
+  for (const name of ["format", "length"]) {
+    const value = builtRadio(name);
+    if (value !== undefined) baked[`custom.${name}`] = value;
+  }
+  for (const select of selects)
+    if (select.name === "voice" || select.name === "voice_b")
+      baked[`custom.${select.name}`] = builtSelect(select);
+  const saved = savedFields(baked, ops);
+  let changed = false;
+  for (const [key, value] of Object.entries(saved)) {
+    const name = key.slice("custom.".length);
+    const select = selects.find((each) => each.name === name);
+    if (select) {
+      if (select.value !== baked[key]) continue;
+      setControl(select, value);
+      changed = true;
+      continue;
+    }
+    const group = radios(name);
+    if (group.find((radio) => radio.checked)?.value !== baked[key]) continue;
+    for (const radio of group) setControl(radio, value);
+    changed = true;
+  }
+  const chips = form.querySelector<HTMLElement>("[data-built-topics]");
+  if (chips) overlayChips(chips, ops, "custom");
+  return changed;
 }
 
 // -------------------------------------------------------------------------------------- topic pages
@@ -275,7 +396,9 @@ export function overlayTopics(
     shown ||= Boolean(row);
   }
   for (const [id, topic] of saved.topics) shown = renameTopic(root, id, topic) || shown;
-  for (const [id, edit] of saved.sources) shown = editSource(root, id, edit) || shown;
+  const stored = new Map((store?.sources ?? []).map((source) => [source.id, source]));
+  for (const [id, edit] of saved.sources) shown = editSource(root, id, edit, stored) || shown;
+  topicChoices(root, saved.topics, saved.removedTopics);
   for (const button of root.querySelectorAll<HTMLButtonElement>("button[data-suggested-add]")) {
     const offer = parseSuggestedAdd(button.dataset.suggestedAdd);
     if (offer && saved.feeds.has(offer.feed_url) && !button.disabled) {
@@ -410,21 +533,24 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
     row.textContent = topic.name;
     shown = true;
   }
+  // A saved emoji, or none (reset to the default), as the build would draw it.
+  const emoji = topic.emoji ?? topicEmoji({ id, name: topic.name });
   const mark = root.querySelector(`a.row-action[href="/settings/topics/${id}"] .topic-emoji`);
-  if (mark && topic.emoji && mark.textContent !== topic.emoji) {
-    mark.textContent = topic.emoji;
+  if (mark && mark.textContent !== emoji) {
+    mark.textContent = emoji;
     shown = true;
   }
   const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
   if (!byId(root, "[data-topic]", id) || !trigger) return shown;
   // A saved emoji shows on the list's row and on the topic's page, and its next edit keeps it.
   const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
-  if (topic.emoji && pick && pick.textContent !== topic.emoji) {
-    pick.textContent = topic.emoji;
+  if (pick && pick.textContent !== emoji) {
+    pick.textContent = emoji;
     const base = JSON.parse(trigger.dataset.topicBase ?? "{}");
+    const { emoji: _, ...rest } = base.topic ?? {};
     trigger.dataset.topicBase = JSON.stringify({
       ...base,
-      topic: { ...base.topic, emoji: topic.emoji },
+      topic: topic.emoji ? { ...rest, emoji: topic.emoji } : rest,
     });
     shown = true;
   }
@@ -433,6 +559,7 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
     return shown;
   const { name, description, keywords } = topic;
   trigger.dataset.editTopic = JSON.stringify({ ...facts, name, description, keywords });
+  if (facts.name && facts.name !== name) renameLabels(facts.name, name);
   trigger.setAttribute("aria-label", `Edit topic ${name}`);
   const title = document.getElementById("page-title");
   if (title) title.textContent = name;
@@ -448,12 +575,55 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   return true;
 }
 
+/** How a topic's page names it, outside its title: the tab, menus, dialogs and Add source. */
+const NAMED = [
+  "{}",
+  "Skip to {}",
+  "Change emoji for {}",
+  "More actions for {}",
+  "Edit topic {}",
+  "Delete topic {}",
+  "Keep topic {}",
+  "Add source to {}",
+  "{} sources",
+  "Delete {}?",
+];
+const LABELS = ["aria-label", "data-label", "data-label-undo", "data-name", "title"];
+
+/**
+ * Every place a topic's page says its old name, by those patterns only, so a source or a sentence
+ * that merely contains the name is left as it is.
+ */
+function renameLabels(was: string, name: string): void {
+  const swap = (text: string): string | null => {
+    for (const pattern of NAMED)
+      if (text === pattern.replace("{}", was)) return pattern.replace("{}", name);
+    return null;
+  };
+  if (document.title.startsWith(`${was}, `))
+    document.title = `${name}${document.title.slice(was.length)}`;
+  for (const node of document.body.querySelectorAll<HTMLElement>("*")) {
+    if (node.closest("li.source-row, template")) continue;
+    for (const attribute of LABELS) {
+      const value = node.getAttribute(attribute);
+      const next = value === null ? null : swap(value);
+      if (next !== null) node.setAttribute(attribute, next);
+    }
+    if (node.childElementCount === 0 && node.textContent) {
+      const next = swap(node.textContent.trim());
+      if (next !== null) node.textContent = next;
+    }
+  }
+}
+
 /**
  * A topic's page with the config store on (D149): each source the store files here and the build
  * listed nowhere or elsewhere gets its row, first in the list as a just-added one does; one the
  * build listed here and the store files elsewhere goes, as it will at the next build.
  */
 function drawStored(root: HTMLElement, store: ConfigReadBody | null): boolean {
+  const library = root.querySelector<HTMLElement>("ul[data-library]");
+  if (store && library) return drawLibrary(root, library, store.sources);
   const page = root.dataset.page;
   const list = root.querySelector<HTMLElement>("ul[data-sources]:not([data-added])");
   if (!store || page === undefined || !list) return false;
@@ -479,11 +649,64 @@ function drawStored(root: HTMLElement, store: ConfigReadBody | null): boolean {
   return shown;
 }
 
-/** A source's new name, and the topic it moves to after the build. */
+/** The name of a page the index lists (a group, a topic, or Other), as its row says it. */
+function pageName(root: HTMLElement, page: string): string {
+  const row = [...root.querySelectorAll<HTMLElement>("a.row-action[data-page]")].find(
+    (each) => each.dataset.page === page,
+  );
+  return row?.querySelector(".settings-label")?.textContent?.trim() ?? "";
+}
+
+/**
+ * The index's search list with the config store on (D149): a source the store holds and the build
+ * does not gets its row, in its place by name, so the search finds a source added on another device.
+ * A row the store files elsewhere says the topic it is on now.
+ */
+function drawLibrary(
+  root: HTMLElement,
+  library: HTMLElement,
+  sources: readonly StoreSource[],
+): boolean {
+  let shown = false;
+  for (const source of sources) {
+    const topic = { id: source.page, name: pageName(root, source.page) };
+    const row = byId(root, "li.source-row", source.id);
+    if (row) {
+      shown = sourceKind(row, undefined, topic.name || "Other") || shown;
+      continue;
+    }
+    const drawn = storedSourceRow(source, topic);
+    drawn.querySelector(".source-text")?.append(element("span", "source-meta source-kind"));
+    sourceKind(drawn, source.format, topic.name || "Other");
+    const after = [...library.querySelectorAll<HTMLElement>("li.source-row")].find(
+      (each) => (each.dataset.name ?? "").localeCompare(drawn.dataset.name ?? "", "en") > 0,
+    );
+    library.insertBefore(drawn, after ?? null);
+    shown = true;
+  }
+  return shown;
+}
+
+/** The index row's line under a source: its format and the topic it is on. True when it changed. */
+function sourceKind(row: HTMLElement, format?: SourceFormat, topic?: string): boolean {
+  const kind = row.querySelector(".source-kind");
+  if (!kind) return false;
+  const [builtFormat = "", builtTopic = ""] = (kind.textContent ?? "").split(" · ");
+  const text = `${format ? FORMAT_LABEL[format] : builtFormat} · ${topic ?? builtTopic}`;
+  if (kind.textContent === text) return false;
+  kind.textContent = text;
+  return true;
+}
+
+/**
+ * A source's saved edits on its row: a new name, format or lean, and the topic it moves to. A move
+ * the config store already holds (`stored`) is where the source is now, not one still to come.
+ */
 function editSource(
   root: HTMLElement,
   id: string,
-  edit: { name?: string; topic_ids?: string[] },
+  edit: { name?: string; topic_ids?: string[]; format?: SourceFormat; lean?: number | null },
+  stored: ReadonlyMap<string, StoreSource> = new Map(),
 ): boolean {
   const row = byId(root, "li.source-row", id);
   const button = row?.querySelector<HTMLElement>("[data-edit-source]");
@@ -492,14 +715,29 @@ function editSource(
     name?: string;
     topic_id?: string;
     topic_name?: string;
+    format?: SourceFormat;
+    lean?: string;
   };
   let shown = false;
   if (edit.name !== undefined && edit.name !== facts.name) {
     facts.name = edit.name;
     row.dataset.name = edit.name.toLowerCase();
+    // The search finds it by its new name too.
+    row.dataset.text = `${row.dataset.text ?? ""} ${fold(edit.name)}`;
     const name = row.querySelector(".source-name");
     if (name) name.textContent = edit.name;
     button.setAttribute("aria-label", `Edit ${edit.name}`);
+    shown = true;
+  }
+  if (edit.format !== undefined && edit.format !== facts.format) {
+    facts.format = edit.format;
+    row.dataset.format = edit.format;
+    sourceKind(row, edit.format);
+    shown = true;
+  }
+  const lean = edit.lean === null ? "" : edit.lean === undefined ? undefined : String(edit.lean);
+  if (lean !== undefined && lean !== facts.lean) {
+    facts.lean = lean;
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;
@@ -516,6 +754,13 @@ function editSource(
     const chosen = [...(options ?? [])].find((option) => option.value === topicId);
     facts.topic_id = topicId;
     facts.topic_name = chosen?.text ?? (topicId || "Other");
+    // Moved already: the store files it there, so it is on that topic now, with nothing to wait for.
+    if (stored.has(id)) {
+      button.dataset.editSource = JSON.stringify(facts);
+      row.querySelector(".source-note")?.remove();
+      sourceKind(row, undefined, facts.topic_name);
+      return true;
+    }
     let note = row.querySelector<HTMLElement>(".source-note");
     if (!note) {
       note = element("span", "source-note");
@@ -537,6 +782,38 @@ function showAdded(button: HTMLButtonElement, offer: Pick<SuggestedAdd, "name">)
     .closest("li")
     ?.querySelector(".source-meta")
     ?.replaceChildren(element("span", "source-note", ADDED_SOURCE));
+}
+
+/**
+ * The Add and Edit source panels' topic lists, in the panel template and in a panel already open:
+ * a topic saved since the build is offered, a renamed one says its new name, a removed one goes.
+ */
+function topicChoices(
+  root: HTMLElement,
+  topics: ReadonlyMap<string, Upsert>,
+  removed: ReadonlySet<string>,
+): void {
+  // The topics the build has (data-taken): a built-in one is offered through its group.
+  const taken = new Set((root.dataset.taken ?? "").split(" "));
+  const template = document.querySelector<HTMLTemplateElement>("#topics-panel-template");
+  const selects = [
+    ...(template?.content.querySelectorAll<HTMLSelectElement>(
+      "select[data-source-topic], select[data-edit-topic]",
+    ) ?? []),
+    ...document.querySelectorAll<HTMLSelectElement>(
+      "select[data-source-topic], select[data-edit-topic]",
+    ),
+  ];
+  for (const select of selects) {
+    for (const option of [...select.options]) {
+      if (removed.has(option.value)) option.remove();
+      const name = topics.get(option.value)?.name;
+      if (name && option.text !== name) option.text = name;
+    }
+    for (const [id, topic] of topics)
+      if (!taken.has(id) && ![...select.options].some((option) => option.value === id))
+        select.append(new Option(topic.name, id));
+  }
 }
 
 /**

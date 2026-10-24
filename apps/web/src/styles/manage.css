@@ -376,83 +376,6 @@ html[data-manage-toast-open] {
   );
 }
 
-/* ------------------------------------------------------------------ the passphrase dialog */
-
-.manage-dialog {
-  width: min(calc(100% - var(--space-8)), var(--layout-dialog));
-  padding: var(--space-6);
-  border: 0;
-  border-radius: var(--radius-xl);
-  background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-popover);
-  color: var(--color-on-surface);
-  animation: manage-dialog-in var(--duration-enter) var(--ease-out);
-}
-
-.manage-dialog::backdrop {
-  background: var(--color-scrim);
-}
-
-@keyframes manage-dialog-in {
-  from {
-    opacity: 0;
-    transform: scale(var(--scale-enter));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .manage-dialog {
-    animation-name: manage-fade-in;
-  }
-
-  @keyframes manage-fade-in {
-    from {
-      opacity: 0;
-    }
-  }
-}
-
-.manage-dialog-form {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.manage-dialog-form > h2 {
-  font-family: var(--text-heading-family);
-  font-size: var(--text-heading-size);
-  font-weight: var(--text-heading-weight);
-  line-height: var(--text-heading-leading);
-}
-
-/* A native checkbox with its label: the whole line is the target. */
-.manage-check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: var(--size-touch);
-  font-size: var(--font-size-label);
-  cursor: pointer;
-}
-
-.manage-check > input {
-  width: var(--size-icon);
-  height: var(--size-icon);
-  flex: none;
-  margin: 0;
-  accent-color: var(--color-accent);
-}
-
-.manage-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-.manage-dialog-actions .btn-primary {
-  width: auto;
-  padding-inline: var(--space-6);
-}
-
 @media (hover: hover) and (pointer: fine) {
   .manage-input:hover {
     border-color: var(--color-on-surface);
@@ -464,10 +387,6 @@ html[data-manage-toast-open] {
 }
 
 @media (forced-colors: active) {
-  .manage-dialog {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
-
   .manage-pin[aria-pressed="true"] {
     color: Highlight;
   }

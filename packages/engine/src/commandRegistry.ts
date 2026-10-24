@@ -53,11 +53,14 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
     help: `Usage:
   dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
                                                       source.add, source.set, source.remove, weights.set,
-                                                      mix.set, topic.mix, schedule.set
+                                                      mix.set, topic.mix, schedule.set, topic.scope,
+                                                      structure.set, profile.block, profile.unblock,
+                                                      profile.vote
   dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
 
 Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json,
-config/schedule.json and state/source-candidates.json, and nothing else; the write guard enforces it.`,
+config/schedule.json, config/structure.json, config/profiles/owner.json and
+state/source-candidates.json, and nothing else; the write guard enforces it.`,
     load: async () => (await import("./commands/config.js")).run,
   },
   {
@@ -120,6 +123,16 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     summary: "The staged pipeline: gate, fetch, judge, write, validate, commit",
     help: RUN_USAGE,
     load: async () => (await import("./commands/run.js")).run,
+  },
+  {
+    name: "content",
+    summary: "Mirror the digests, episodes and run state into the content store (Blob)",
+    help: `Usage: dispatch content sync
+
+Uploads every file under Digests/ and Podcasts/ and the run state the site reads to Vercel Blob
+under content/<path>, deletes what is gone and rewrites content/manifest.json and the episode
+index. Only changed files are sent. Uses BLOB_READ_WRITE_TOKEN (D173).`,
+    load: async () => (await import("./commands/content.js")).run,
   },
   {
     name: "podcast",

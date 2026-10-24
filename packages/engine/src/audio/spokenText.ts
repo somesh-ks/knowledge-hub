@@ -1,6 +1,6 @@
 import type { Digest, DigestItem } from "@dispatch/core";
 import { digestSections } from "@dispatch/core";
-import { openingLine, sectionBridge, signOff, storyConnective } from "./hostFrame.js";
+import { openingLine, rundownLine, sectionBridge, signOff, storyConnective } from "./hostFrame.js";
 
 /**
  * Speechify accepts 20,000 characters per stream request. The plan fails closed at 19,000 instead
@@ -119,6 +119,11 @@ export function buildSpokenText(digest: Digest): SpokenText {
     .filter((group) => group.items.length > 0);
 
   let text = openingLine(digest, groups[0]?.entry);
+  const rundown = rundownLine(
+    digest,
+    groups.flatMap((group) => group.items),
+  );
+  if (rundown) text += ` ${toSpeech(rundown)}`;
   let previousBridge: string | null = null;
   let previousConnective: string | null = null;
 

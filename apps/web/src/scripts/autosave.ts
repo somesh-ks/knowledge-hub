@@ -143,7 +143,6 @@ export function mountAutosave(
   const context: SaveContext = {
     changes,
     show,
-    dialog: root.querySelector("dialog"),
     settled,
     here,
   };
@@ -185,11 +184,6 @@ export function mountAutosave(
     else if (act === "undo") options.undo?.();
     else if (act === "dismiss") open(false);
   });
-  context.dialog?.addEventListener("click", (event) => {
-    const act = (event.target as Element).closest<HTMLButtonElement>("button")?.dataset.act;
-    if (act === "close") context.dialog?.close();
-  });
-
   // Leaving or hiding the page sends what is waiting; a request on its way finishes with keepalive.
   const off = new AbortController();
   const leave = (): void => {

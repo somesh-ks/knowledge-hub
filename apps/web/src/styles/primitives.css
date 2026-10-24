@@ -287,6 +287,77 @@
   }
 }
 
+/* ------------------------------------------------------------------ scroll fade */
+
+/*
+ * A sideways scroller's hidden edge fades while more lies past it, by its own scroll, as the section
+ * tabs above and the Library's shelf fade theirs (2026-10-24: the shared form, first used by the
+ * Costs table, whose last column was cut with nothing saying there was more). The properties are
+ * registered at 0px, so a scroller with nothing to scroll (an inactive timeline) or a browser
+ * without scroll timelines shows no fade at all. The element keeps its own overflow.
+ * Markup: <div class="costs-table-scroll scroll-fade-inline"> on an element with overflow-x: auto.
+ */
+@property --scroll-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --scroll-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.scroll-fade-inline {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black var(--scroll-fade-start),
+    black calc(100% - var(--scroll-fade-end)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black var(--scroll-fade-start),
+    black calc(100% - var(--scroll-fade-end)),
+    transparent 100%
+  );
+  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
+  animation-name: scroll-fade-inline;
+  animation-timing-function: var(--ease-linear);
+  animation-timeline: scroll(self inline);
+}
+
+/* A fading scroller a keyboard must reach (one that scrolls, given a tabindex) draws its ring on its
+   parent: the mask clips the scroller's own outline with the fade (2026-10-24). */
+.scroll-fade-inline:focus-visible {
+  outline: none; /* the ring is the parent's: :has(> .scroll-fade-inline:focus-visible), below */
+  box-shadow: none;
+}
+
+:has(> .scroll-fade-inline:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+@keyframes scroll-fade-inline {
+  0% {
+    --scroll-fade-start: 0px;
+    --scroll-fade-end: var(--space-8);
+  }
+  10%,
+  90% {
+    --scroll-fade-start: var(--space-8);
+    --scroll-fade-end: var(--space-8);
+  }
+  100% {
+    --scroll-fade-start: var(--space-8);
+    --scroll-fade-end: 0px;
+  }
+}
+
 /* ------------------------------------------------------------------ segmented choice */
 
 /*
@@ -451,6 +522,11 @@
  * Markup: <div class="segmented-nav" role="tablist" aria-label="Show"> of
  *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
  *     aria-controls="a-panel">Sources</button>
+ * A glyph tab holds <Icon /> alone and an aria-label, and its glyph is centred (Costs' chart and
+ * table switch).
+ * Compact (.segmented-nav-compact, below): a chip's height on 44px columns, to sit in a row of
+ * chips. On a raised surface the track takes that surface's step up, as a chip's does: set
+ * --segmented-nav-bg (on a card, the overlay tone).
  */
 .segmented-nav {
   --seg-n: 1;
@@ -462,7 +538,7 @@
   flex: 1 1 100%;
   min-width: 0;
   border-radius: var(--radius-round);
-  background: var(--color-surface-container);
+  background: var(--segmented-nav-bg, var(--color-surface-container));
 }
 
 @media (min-width: 40rem) {
@@ -539,6 +615,16 @@
   transition: color var(--duration-hover) var(--ease-hover);
 }
 
+/* A tab that holds a glyph centres it (and its words, if any, beside it): a glyph is a block
+   (.icon), which the tab's text-align does not centre, so Costs' chart and table glyphs sat at their
+   tabs' start, off the pill that marks them (owner, 2026-10-24). */
+.segmented-nav-tab:has(> .icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
 .segmented-nav-tab[aria-selected="true"] {
   color: var(--color-on-accent-container);
 }
@@ -550,6 +636,28 @@
   inset: var(--segmented-padding);
   border-radius: var(--radius-round);
   pointer-events: none;
+}
+
+/* Compact: each segment a chip's height on a 44px column, so it sits level with the chips beside it
+   (Costs' chart and table switch, D169, until 2026-10-24 drawn in costs.css). Its face is 36px, so
+   a layer above and below takes the target to 44px, as a chip's select does (the design audit,
+   2026-10-24: the tabs answered a touch across 36px). */
+.segmented-nav-compact {
+  flex: none;
+  grid-auto-columns: var(--size-touch);
+  min-inline-size: 0;
+}
+
+.segmented-nav-compact > .segmented-nav-tab {
+  min-height: var(--chip-height);
+  padding-inline: 0;
+}
+
+.segmented-nav-compact > .segmented-nav-tab::before {
+  content: "";
+  position: absolute;
+  inset-block: calc((var(--chip-height) - var(--size-touch)) / 2);
+  inset-inline: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1287,12 +1395,14 @@
   background: var(--color-surface-overlay);
 }
 
+/* Its hover layer is the card's chip layer: half the state layer in light, where the full one took a
+   white chip past the card's own tone and it melted in (owner, 2026-10-24). */
 @media (hover: hover) and (pointer: fine) {
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
     background: color-mix(
       in oklch,
       var(--color-surface-overlay),
-      var(--color-on-surface) var(--state-hover)
+      var(--color-on-surface) var(--card-chip-hover)
     );
   }
 }

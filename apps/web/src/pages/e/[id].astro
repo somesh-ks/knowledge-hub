@@ -2,23 +2,19 @@
 import type { GetStaticPaths } from "astro";
 import EpisodeView from "../../components/EpisodeView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { type EpisodeEntry, episodeLength } from "../../lib/episodes";
+import { type EpisodeEntry, episodeLength, storyLookups } from "../../lib/episodes";
+import { episodeCard } from "../../lib/linkCard";
 import { getSite } from "../../lib/site";
+import { CONTENT_CDN_CACHE, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
+
+// Rendered on request from the content repository (D173), so a new episode shows without a build.
+// The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
+export const prerender = false;
 
 export const getStaticPaths = (async () => {
-  const { episodes, entries } = await getSite();
-  // Every briefing's summary by item id, newest first, so an episode's story reads as it did there.
-  const summaries = new Map<string, string>();
-  const topics = new Map<string, string>();
-  for (const { digest } of entries)
-    for (const item of digest.items) {
-      if (!topics.has(item.id)) topics.set(item.id, item.category);
-      if (item.summary && !summaries.has(item.id)) summaries.set(item.id, item.summary);
-    }
-  return episodes.map((entry) => ({
-    params: { id: entry.id },
-    props: { entry, summaries, topics },
-  }));
+  const site = await getSite();
+  const lookups = storyLookups(site.entries);
+  return site.episodes.map((entry) => ({ params: { id: entry.id }, props: { entry, ...lookups } }));
 }) satisfies GetStaticPaths;
 
 interface Props {
@@ -27,13 +23,27 @@ interface Props {
   topics: ReadonlyMap<string, string>;
 }
 
-const { entry, summaries, topics } = Astro.props;
+let props = Astro.props as Props;
+if (!Astro.isPrerendered) {
+  const unavailable = await readFromContentRepo("e");
+  if (unavailable) return unavailable;
+  const site = await getSite();
+  const entry = site.episodes.find((episode) => episode.id === Astro.params.id);
+  if (!entry) {
+    return notFoundPage(Astro.url);
+  }
+  props = { entry, ...storyLookups(site.entries) };
+  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+}
+
+const { entry, summaries, topics } = props;
 ---
 
 <BaseLayout
   title={entry.episode.title}
   view="library"
   digestId={entry.id}
+  card={episodeCard(entry)}
   audio={{ noun: "episode", length: episodeLength(entry.episode) }}
   skipLabel="Skip to the episode"
 >

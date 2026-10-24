@@ -12,6 +12,7 @@ import {
   rateVital,
   ScheduleFile,
   SourcesUserFile,
+  StructureFile,
   TopicsFile,
   VITAL_DEVICES,
   VITAL_METRICS,
@@ -90,6 +91,7 @@ function message(error: unknown): string {
 const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/topics.json", (json) => TopicsFile.parse(json)],
   ["config/schedule.json", (json) => ScheduleFile.parse(json)],
+  ["config/structure.json", (json) => StructureFile.parse(json)],
   ["config/prices.json", (json) => PriceTable.parse(json)],
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
@@ -552,7 +554,7 @@ const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``;
 
 /**
- * `client_faults` (D158), warnings only: the endpoint is open (D41), so anyone can forge a report,
+ * `client_faults` (D158), warnings only: the endpoint is open (D160), so anyone can forge a report,
  * extensions inject scripts the CSP blocks, and a deploy or an upstream blip (Speechify, Anthropic)
  * raises a burst of server errors. Judged over the last 24 hours across builds (content commits
  * redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,

@@ -26,8 +26,8 @@ const GITHUB_SECRETS = [
 const GITHUB_VARIABLES = [
   "SPEECHIFY_VOICE_ID",
   "SPEECHIFY_MONTHLY_CHARS",
-  "DISPATCH_GIT_NAME",
-  "DISPATCH_GIT_EMAIL",
+  "SINGULARITY_GIT_NAME",
+  "SINGULARITY_GIT_EMAIL",
 ];
 
 /**
@@ -39,7 +39,6 @@ const GITHUB_VARIABLES = [
 const VERCEL_ENV = [
   "GITHUB_DISPATCH_TOKEN",
   "GITHUB_REPOSITORY",
-  "GENERATE_PASSPHRASE_HASH",
   "SPEECHIFY_API_KEY",
   "SPEECHIFY_VOICE_ID",
   "SPEECHIFY_MONTHLY_CHARS",
@@ -77,6 +76,12 @@ function parseDotenv(text: string): Record<string, string> {
       value = value.slice(1, -1);
     }
     out[key] = value;
+  }
+  if (!out.SINGULARITY_GIT_NAME && out.DISPATCH_GIT_NAME) {
+    out.SINGULARITY_GIT_NAME = out.DISPATCH_GIT_NAME;
+  }
+  if (!out.SINGULARITY_GIT_EMAIL && out.DISPATCH_GIT_EMAIL) {
+    out.SINGULARITY_GIT_EMAIL = out.DISPATCH_GIT_EMAIL;
   }
   return out;
 }

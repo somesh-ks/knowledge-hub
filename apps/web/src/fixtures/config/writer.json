@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "provider": "nebius",
-  "model": null
+  "provider": "anthropic",
+  "model": "claude-sonnet-5-5"
 }

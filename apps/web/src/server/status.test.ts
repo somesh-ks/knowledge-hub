@@ -18,7 +18,6 @@ const TOKEN = "github_pat_secret_value_123456";
 const env = {
   GITHUB_DISPATCH_TOKEN: TOKEN,
   GITHUB_REPOSITORY: REPO,
-  GENERATE_PASSPHRASE_HASH: "scrypt$1$1$1$c2FsdA==$aGFzaA==",
 };
 const config = readServerConfig(env);
 if (!config) throw new Error("test config");

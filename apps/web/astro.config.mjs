@@ -1,17 +1,20 @@
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
 import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
-import { withModulePreloads } from "./src/lib/bundleBudget.ts";
+import { importGraph, withModulePreloads } from "./src/lib/bundleBudget.ts";
+import { BUILT_CONFIG_PATHS } from "./src/lib/configHash.ts";
 import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
 // The data layer reads Digests/ at build time. Page code is bundled into chunks whose import.meta.url
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
-process.env.DISPATCH_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
+process.env.SINGULARITY_REPO_ROOT ??=
+  process.env.DISPATCH_REPO_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
+process.env.DISPATCH_REPO_ROOT ??= process.env.SINGULARITY_REPO_ROOT;
 
 // The inline scripts must run before first paint, so they cannot be external files: the theme in the
 // head, the device banners and the Library's saved view. Their hashes go into the
@@ -48,17 +51,38 @@ function keepCoverFontsReachable() {
  * beside the CSS instead of one round trip at a time after idle. A hand-edited build made the bar
  * pressable 1.3 to 2.5 s sooner on a throttled phone with the largest paint unchanged
  * (docs/engineering/first-load-js.md). Links, not inline scripts: the policy hashes every inline script.
+ * A `client:wake` island gets none: its modules load when the page wakes it (scripts/islandWake.ts).
+ * The pages rendered on request (D173) are not in the build's HTML: the scripts' imports go into
+ * MODULE_GRAPH_FILE, which the function carries, and middleware.ts adds their links from it. It is
+ * written at `astro:build:generated`, before the adapter's `astro:build:done` packs the function.
  */
+const MODULE_GRAPH_FILE = "./.cache/module-graph.json";
+
 function preloadPageModules() {
+  const reader = (dir) => {
+    const root = fileURLToPath(dir);
+    return (url) => {
+      const file = join(root, url);
+      return existsSync(file) ? readFileSync(file, "utf8") : null;
+    };
+  };
   return {
     name: "dispatch-module-preload",
     hooks: {
+      "astro:build:generated": ({ dir }) => {
+        const assets = join(fileURLToPath(dir), "_astro");
+        const urls = existsSync(assets)
+          ? readdirSync(assets)
+              .filter((name) => name.endsWith(".js"))
+              .map((name) => `/_astro/${name}`)
+          : [];
+        const target = fileURLToPath(new URL(MODULE_GRAPH_FILE, import.meta.url));
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, JSON.stringify(importGraph(urls, reader(dir))));
+      },
       "astro:build:done": ({ dir }) => {
         const root = fileURLToPath(dir);
-        const read = (url) => {
-          const file = join(root, url);
-          return existsSync(file) ? readFileSync(file, "utf8") : null;
-        };
+        const read = reader(dir);
         for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
           if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
           const file = join(entry.parentPath, entry.name);
@@ -71,29 +95,67 @@ function preloadPageModules() {
   };
 }
 
+/** `client:wake`: an island that hydrates when the page wakes it (src/lib/wakeDirective.ts). */
+function wakeDirective() {
+  return {
+    name: "dispatch-wake-directive",
+    hooks: {
+      "astro:config:setup": ({ addClientDirective }) => {
+        addClientDirective({
+          name: "wake",
+          entrypoint: fileURLToPath(new URL("./src/lib/wakeDirective.ts", import.meta.url)),
+        });
+      },
+    },
+  };
+}
+
 // Tests build without the adapter: the Vercel adapter bundles functions with symlinks, which Windows
 // refuses without Developer Mode, and the e2e suite only needs the static output. The API routes
-// become static stubs there; their logic is covered by unit tests.
-const staticOnly = process.env.DISPATCH_STATIC_ONLY === "1";
+// become static stubs there; their logic is covered by unit tests. A page rendered on request from
+// the content repository is prerendered from the checkout there, as it was before D173.
+const staticOnly =
+  (process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1";
 
 function stubApiRoutesForStaticBuild() {
   return {
     name: "dispatch-static-only",
     hooks: {
       "astro:route:setup": ({ route }) => {
-        if (route.component.replaceAll("\\", "/").includes("/pages/api/")) route.prerender = true;
+        // With no adapter every route is prerendered: the API stubs, the pages rendered on request
+        // from the content repository (D173), and the redirects that point at them.
+        route.prerender = true;
       },
     },
   };
 }
 
+// A page rendered on request (D173) draws the same layout as a built one, which reads these from the
+// checkout: the brand colours from the tokens, the settings digest from the config files, and the
+// core package that marks the repository root. Nothing imports them, so the function would not carry
+// them, and a missing config file reads as empty: a digest no settings answer matches, with no error.
+const FILES_PAGES_READ = [
+  "./src/styles/tokens.css",
+  "../../packages/core/package.json",
+  // Written during the build, before the adapter packs the function (preloadPageModules).
+  MODULE_GRAPH_FILE,
+  // config/structure.json exists only once the owner edits a structure (D170); the adapter refuses
+  // an include that is not there.
+  ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`).filter((path) =>
+    existsSync(fileURLToPath(new URL(path, import.meta.url))),
+  ),
+];
+
 export default defineConfig({
   site: "https://news.someshks.work",
   // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
-  adapter: staticOnly ? undefined : vercel({ maxDuration: FUNCTION_MAX_DURATION_S }),
+  adapter: staticOnly
+    ? undefined
+    : vercel({ maxDuration: FUNCTION_MAX_DURATION_S, includeFiles: FILES_PAGES_READ }),
   integrations: [
     react(),
+    wakeDirective(),
     preloadPageModules(),
     ...(staticOnly ? [stubApiRoutesForStaticBuild()] : []),
   ],

@@ -7,16 +7,20 @@ import {
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
+  gzipBytes,
   overBudget,
   unallowedInlineScripts,
   unhintedModules,
+  wakeModules,
 } from "../src/lib/bundleBudget";
+import { linkCardProblems } from "../src/lib/linkCard";
 
 /**
  * Fails the build when a page loads more than the first-load budget of gzipped JavaScript, when any
  * script blocks rendering, when the fonts exceed 80 KB, or when an inline script is not allowed by the
  * page's Content-Security-Policy, or when a module the page loads at start has no modulepreload link
- * (the build's `dispatch-module-preload` step adds them). Run after a build.
+ * (the build's `dispatch-module-preload` step adds them), or when a briefing or episode page has no
+ * link card or names a cover the build does not hold (D153). Run after a build.
  *
  * Usage: npx tsx apps/web/scripts/checkBundle.ts [build output directory]
  */
@@ -24,7 +28,7 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 // A static-only build (local Windows runs, e2e) writes to dist; the Vercel adapter build to .vercel.
 const defaultOutput =
-  process.env.DISPATCH_STATIC_ONLY === "1"
+  (process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1"
     ? join(HERE, "..", "dist")
     : join(HERE, "..", ".vercel", "output", "static");
 const root = resolve(process.argv[2] ?? defaultOutput);
@@ -53,8 +57,11 @@ for (const page of pagesIn(root)) {
   const html = readFileSync(page, "utf8");
   const report = firstLoadReport(entryScripts(html), read);
   largest = Math.max(largest, report.totalGzip);
+  const woken = [...new Set(wakeModules(html, read).flat())];
+  const wakeBytes = woken.reduce((sum, url) => sum + gzipBytes(read(url) ?? ""), 0);
+  const onWake = woken.length > 0 ? `, ${kilobytes(wakeBytes)} more on wake` : "";
   console.log(
-    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files`,
+    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files${onWake}`,
   );
   failures.push(...overBudget([{ name, totalGzip: report.totalGzip }]));
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);
@@ -63,6 +70,11 @@ for (const page of pagesIn(root)) {
     failures.push(
       `${name}: ${unhinted.length} module(s) load at start with no modulepreload link, first ${unhinted[0]}`,
     );
+  }
+  if (/^\/(d|e)\//.test(name)) {
+    for (const problem of linkCardProblems(html, (path) => existsSync(join(root, path)))) {
+      failures.push(`${name}: link card: ${problem}`);
+    }
   }
   for (const hash of unallowedInlineScripts(html)) {
     failures.push(`${name}: inline script ${hash} is not allowed by the Content-Security-Policy`);

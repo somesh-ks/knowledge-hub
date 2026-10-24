@@ -24,6 +24,7 @@ import {
   type ScriptWriter,
 } from "../podcast/types.js";
 import { type BlobClient, createVercelBlobClient } from "../publish/blob.js";
+import { publishEpisodeIndex } from "../publish/episodeIndex.js";
 import { loadScheduleZone } from "../schedule/store.js";
 
 export const PODCAST_USAGE =
@@ -70,6 +71,28 @@ function scriptWriter(ctx: CommandContext, meter: RequestMeter): ScriptWriter {
     log,
     secrets: secretsFromEnv(env),
   });
+}
+
+/**
+ * After a pushed add, replace or removal, rewrite the episode index (D173) so the site lists the
+ * change without waiting for a build. Best effort: the commit is the record, and the next episode
+ * rewrites the whole index anyway. A local --no-push commit is never indexed: the site could not
+ * open what the repository does not have.
+ */
+async function refreshEpisodeIndex(
+  ctx: CommandContext,
+  client: BlobClient | null,
+  outcome: CommitOutcome,
+): Promise<void> {
+  if (!client || outcome.status !== "pushed") return;
+  try {
+    const { index, skipped } = await publishEpisodeIndex(client, ctx.root, ctx.now());
+    ctx.log.info(`Episode index: ${index.episodes.length} episodes.`);
+    if (skipped.length > 0)
+      ctx.log.warn(`Episode index left out unreadable files: ${skipped.join(", ")}`);
+  } catch (error) {
+    ctx.log.warn(`Episode index not updated: ${describeError(error, secretsFromEnv(ctx.env))}`);
+  }
 }
 
 function commitFailure(outcome: CommitOutcome): string | null {
@@ -176,6 +199,11 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           );
           return 1;
         }
+        await refreshEpisodeIndex(
+          ctx,
+          deps.blob ?? blobClientFrom(ctx.env.BLOB_READ_WRITE_TOKEN),
+          outcome,
+        );
         emit(ctx, [`Removed ${relPath}.`, command.id], {
           outcome: outcome.status,
           action: "delete",
@@ -285,6 +313,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         return 1;
       }
       await live.stream?.done();
+      await refreshEpisodeIndex(ctx, blobClient, outcome);
       const emptyNote =
         result.empty_topics.length > 0
           ? ` No stories in ${result.empty_topics.join(", ")} in the window.`

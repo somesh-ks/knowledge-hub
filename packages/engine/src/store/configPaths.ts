@@ -11,6 +11,7 @@ export const CONFIG_DOCUMENT_PATHS = [
   "config/queries.json",
   "config/preferences.json",
   "config/schedule.json",
+  "config/structure.json",
   "config/writer.json",
   "config/profiles/owner.json",
   // Suggested sources: topic.remove drops a removed topic's, so they live beside the topics.
@@ -42,11 +43,11 @@ export interface DocumentWrite {
 /** The URL to use when the store is switched on, or null: the URL alone never turns it on. */
 export function configStoreUrl(env: {
   DATABASE_URL?: string | undefined;
+  SINGULARITY_CONFIG_STORE?: string | undefined;
   DISPATCH_CONFIG_STORE?: string | undefined;
 }): string | null {
-  return env.DATABASE_URL !== undefined &&
-    env.DATABASE_URL !== "" &&
-    env.DISPATCH_CONFIG_STORE === "postgres"
+  const store = env.SINGULARITY_CONFIG_STORE ?? env.DISPATCH_CONFIG_STORE;
+  return env.DATABASE_URL !== undefined && env.DATABASE_URL !== "" && store === "postgres"
     ? env.DATABASE_URL
     : null;
 }

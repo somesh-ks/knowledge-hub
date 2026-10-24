@@ -20,7 +20,10 @@ function makeRepo(): string {
 }
 
 describe("findRepoRoot", () => {
-  it("prefers DISPATCH_REPO_ROOT", () => {
+  it("prefers SINGULARITY_REPO_ROOT", () => {
+    expect(findRepoRoot("/anywhere", { SINGULARITY_REPO_ROOT: "/some/root" })).toBe(
+      resolve("/some/root"),
+    );
     expect(findRepoRoot("/anywhere", { DISPATCH_REPO_ROOT: "/some/root" })).toBe(
       resolve("/some/root"),
     );

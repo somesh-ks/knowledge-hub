@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { OPEN_PASSPHRASE } from "../src/lib/access";
 import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
 
 const ID = "ep-20261007-1930";
@@ -120,7 +119,6 @@ test.describe("regenerate and delete an episode", () => {
 
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      passphrase: OPEN_PASSPHRASE,
       action: "regenerate",
       id: ID,
       feedback: "Shorter intro, more on design",
@@ -226,7 +224,7 @@ test.describe("regenerate and delete an episode", () => {
     await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
-    expect(bodies[0]).toEqual({ passphrase: OPEN_PASSPHRASE, action: "delete", id: ID });
+    expect(bodies[0]).toEqual({ action: "delete", id: ID });
     await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
     // No progress to watch, and the card is gone while the site still has it.
     await expect(indicator(page)).toBeHidden();

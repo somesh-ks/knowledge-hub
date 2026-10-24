@@ -11,10 +11,18 @@ import seedSources from "../../../../../config/sources.json?raw";
 import builtSourcesUser from "../../../../../config/sources.user.json?raw";
 import builtTopics from "../../../../../config/topics.json?raw";
 import type { BuiltConfigFiles } from "../../lib/configHash";
-import { passphraseCheck } from "../../server/access";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
 import { burstCap } from "../../server/rateLimit";
+
+// The podcast structure (D170) is absent until the owner first edits one, so it is globbed: a
+// missing file is an empty match, not a failed build.
+const structureFile = import.meta.glob<string>("../../../../../config/structure.json", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+const builtStructure = Object.values(structureFile)[0];
 
 // The site is static; this route alone runs on demand, as a Vercel Function.
 export const prerender = false;
@@ -35,7 +43,6 @@ export const POST: APIRoute = ({ request, url }) =>
         fetch,
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-        verifyPassphrase: passphraseCheck(),
         burst: burstCap("config", EDITS_PER_MINUTE),
         log,
         baseFiles: { "config/sources.json": seedSources },
@@ -54,6 +61,7 @@ const builtFiles: BuiltConfigFiles = {
   "config/schedule.json": builtSchedule,
   "config/preferences.json": builtPreferences,
   "config/profiles/owner.json": builtOwner,
+  "config/structure.json": builtStructure,
 };
 
 /**

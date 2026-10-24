@@ -28,9 +28,10 @@ async function addDigest(base: string, id: string): Promise<void> {
 }
 
 describe("usesFixtures", () => {
-  it("is on only for DISPATCH_FIXTURES=1", () => {
+  it("is on only for SINGULARITY_FIXTURES=1", () => {
+    expect(usesFixtures({ SINGULARITY_FIXTURES: "1" })).toBe(true);
     expect(usesFixtures({ DISPATCH_FIXTURES: "1" })).toBe(true);
-    expect(usesFixtures({ DISPATCH_FIXTURES: "true" })).toBe(false);
+    expect(usesFixtures({ SINGULARITY_FIXTURES: "true" })).toBe(false);
     expect(usesFixtures({})).toBe(false);
   });
 });
@@ -65,7 +66,7 @@ describe("loadSite", () => {
     expect(site.fixtures).toBe(false);
   });
 
-  it("never reads fixtures unless DISPATCH_FIXTURES=1", async () => {
+  it("never reads fixtures unless SINGULARITY_FIXTURES=1", async () => {
     await addDigest("apps/web/src/fixtures/digests", "2026-10-07");
     const site = await loadSite({ root, env: {}, warn: () => {} });
     expect(site.entries).toEqual([]);
@@ -74,7 +75,7 @@ describe("loadSite", () => {
   it("reads the fixtures, and only the fixtures, when asked", async () => {
     await addDigest("apps/web/src/fixtures/digests", "2026-10-07");
     await addDigest("Digests", "2026-10-05");
-    const site = await loadSite({ root, env: { DISPATCH_FIXTURES: "1" }, warn: () => {} });
+    const site = await loadSite({ root, env: { SINGULARITY_FIXTURES: "1" }, warn: () => {} });
     expect(site.entries.map((entry) => entry.id)).toEqual(["2026-10-07"]);
     expect(site.fixtures).toBe(true);
   });

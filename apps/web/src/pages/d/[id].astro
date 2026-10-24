@@ -4,7 +4,13 @@ import DigestView from "../../components/DigestView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { DigestEntry } from "../../lib/digests";
 import { listenLength } from "../../lib/digestView";
+import { briefingCard } from "../../lib/linkCard";
 import { getSite } from "../../lib/site";
+import { CONTENT_CDN_CACHE, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
+
+// Rendered on request from the content repository (D173), so a new briefing shows without a build.
+// The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
+export const prerender = false;
 
 export const getStaticPaths = (async () => {
   const { entries } = await getSite();
@@ -20,7 +26,21 @@ interface Props {
   isLatest: boolean;
 }
 
-const { entry, earlier, isLatest } = Astro.props;
+let props = Astro.props as Props;
+if (!Astro.isPrerendered) {
+  const unavailable = await readFromContentRepo("d");
+  if (unavailable) return unavailable;
+  const site = await getSite();
+  const index = site.entries.findIndex((entry) => entry.id === Astro.params.id);
+  const entry = site.entries[index];
+  if (!entry) {
+    return notFoundPage(Astro.url);
+  }
+  props = { entry, earlier: site.entries.slice(index + 1, index + 4), isLatest: index === 0 };
+  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+}
+
+const { entry, earlier, isLatest } = props;
 ---
 
 <BaseLayout
@@ -29,6 +49,7 @@ const { entry, earlier, isLatest } = Astro.props;
   nav={isLatest ? "today" : "library"}
   layout="aside"
   digestId={entry.id}
+  card={briefingCard(entry)}
   audio={{
     noun: "briefing",
     length: listenLength(entry),

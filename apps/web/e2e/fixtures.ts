@@ -27,6 +27,12 @@ export const test = base.extend<Options & { problems: Problems }>({
       // The page's own reports (client errors and CSP violations) go to /api/report, which the
       // static site does not have; the API takes them with 204.
       await page.route("**/api/report", (route) => route.fulfill({ status: 204 }));
+      // The Costs page draws from /api/costs: a frozen report, split by the breakdown it asks for.
+      await page.route("**/api/costs**", (route) =>
+        route.fulfill({
+          json: costsReport(new URL(route.request().url()).searchParams.get("by") ?? "provider"),
+        }),
+      );
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>
@@ -107,7 +113,40 @@ export const SITE_PAGES = [
   "/settings/topics",
   "/settings/topics/audio_interfaces",
   "/settings/topics/other",
+  // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
+  "/analytics",
 ];
+
+/**
+ * A frozen /api/costs report: two days, two providers on the first, split by the breakdown asked
+ * for (`by`), so a split by use loses the providers as the real one does.
+ */
+export function costsReport(by: string) {
+  const day = (date: string, usd: number, split: Record<string, number>) => ({
+    bucket: date,
+    total: { usd, runs: 1, shared_usd: 0 },
+    groups: Object.fromEntries(
+      Object.entries(split).map(([key, value]) => [key, { usd: value, runs: 1, shared_usd: 0 }]),
+    ),
+  });
+  const byProvider = by === "provider";
+  return {
+    time_zone: "Europe/Stockholm",
+    prices_as_of: "2026-10-01",
+    unconfirmed: ["speechify/*"],
+    site: "ok",
+    report: {
+      buckets: [
+        day("2026-10-18", 0.6, byProvider ? { anthropic: 0.4, speechify: 0.2 } : { daily: 0.6 }),
+        day("2026-10-20", 0.3, byProvider ? { speechify: 0.3 } : { narration_on_play: 0.3 }),
+      ],
+      total: { usd: 0.9, runs: 2, shared_usd: 0 },
+      per_run_usd: 0.45,
+      per_user_usd: 0.9,
+      users: 1,
+    },
+  };
+}
 
 /**
  * Seeds storage before the first page of the test loads, and only then: a page saves its own state
@@ -134,11 +173,45 @@ export const AUDIO_DIGEST = "/d/2026-10-07";
 export const SILENT_DIGEST = "/d/2026-10-05";
 
 /**
- * Resolves once the player and sheets islands have hydrated. Until then a tap on a play chip
- * reaches nobody, so a test that plays something waits for this first.
+ * Wakes the player and sheets islands, as the page's first input would once the browser is idle
+ * (scripts/islandWake.ts), without the input's own side effects (the focus ring, a press).
+ */
+export async function wakeIslands(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const scope = window as { dispatchAwake?: boolean };
+    if (scope.dispatchAwake) return;
+    scope.dispatchAwake = true;
+    dispatchEvent(new Event("dispatch:wake"));
+  });
+}
+
+/**
+ * Resolves once the player and sheets islands have woken and hydrated. They wait for a first input
+ * or a start, so a test that reads the bar, a sheet or a toast wakes them first.
  */
 export async function hydrated(page: Page): Promise<void> {
+  await wakeIslands(page);
   await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+  await coversSettled(page);
+}
+
+/**
+ * The woken player draws the page's covers and decodes the large one at idle. A test that goes
+ * offline next would cut those loads short and fail on their console errors, so it waits for them.
+ */
+async function coversSettled(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const images = [...document.querySelectorAll<HTMLImageElement>("astro-island img")];
+    // A lazy image off screen is never fetched, so it is not waited for.
+    if (!images.every((image) => image.complete || image.loading === "lazy")) return false;
+    const data = document.getElementById("dispatch-digest-data")?.textContent;
+    const large = data
+      ? (JSON.parse(data) as { cover?: { src1024?: string } }).cover?.src1024
+      : null;
+    return (
+      !large || performance.getEntriesByType("resource").some((entry) => entry.name.endsWith(large))
+    );
+  });
 }
 
 /**

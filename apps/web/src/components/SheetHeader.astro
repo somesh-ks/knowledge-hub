@@ -15,7 +15,7 @@ const { title, titleId, close, titleData = {} } = Astro.props;
 ---
 
 {/* A sheet's one header row (2026-10-20): the title at the start, Close at the end, in every sheet at
-     every width, as SheetFrame.tsx and the passphrase dialog lay out. pullDismiss.ts and
+     every width, as SheetFrame.tsx lays out. pullDismiss.ts and
      keyboardFit.ts find the row by .create-sheet-head. */}
 <div class="create-sheet-head">
   <h2 class="sheet-title" id={titleId} {...titleData}>{title}</h2>

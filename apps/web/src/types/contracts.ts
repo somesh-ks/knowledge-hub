@@ -90,7 +90,6 @@ export interface PlayerDigestData {
 
 /** POST /api/generate request body. */
 export interface GenerateRequest {
-  passphrase: string;
   /** Regenerate: what to improve, up to 500 characters, passed to the writer. */
   feedback?: string;
   /** Regenerate: the topic ids for this run only; absent keeps the briefing's own. */
@@ -106,7 +105,6 @@ export interface GenerateRequest {
 export type GenerateResponse =
   | { status: 202; run_id: number; started_at: string }
   | { status: 400; error: "invalid_request" }
-  | { status: 401; error: "wrong_passphrase" }
   | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
   | { status: 503; error: "unavailable" };
 
@@ -154,8 +152,6 @@ export interface StatusResponse {
 export interface NarrateRequest {
   /** The digest to narrate, by id: "2026-10-07", "2026-10-07-2" or "2026-10-11-weekly". */
   digest: string;
-  /** The same passphrase the Generate sheet asks for. */
-  passphrase: string;
   /**
    * Narrate only this segment: a `key` from the lookup's `segments`. Leave it out to narrate the
    * whole digest as one file.
@@ -212,7 +208,6 @@ export interface NarrationSegment {
 export type NarrateError =
   // No digest id, a malformed id, segment key or body, or a request from another origin.
   | { status: 400; error: "invalid_request" }
-  | { status: 401; error: "wrong_passphrase" }
   // This deployment has no such digest, or the digest has no segment with that key (the page's list
   // is out of date: ask GET again).
   | { status: 404; error: "digest_not_found" | "segment_not_found" }
@@ -241,8 +236,8 @@ export type NarrateError =
 export type NarrateErrorCode = NarrateError["error"];
 
 /**
- * GET /api/narrate?digest=<id>: the segments of a digest and where their audio would be. It needs no
- * passphrase, never narrates, and never asks the audio store anything, so it cannot say which
+ * GET /api/narrate?digest=<id>: the segments of a digest and where their audio would be. It never
+ * narrates, and never asks the audio store anything, so it cannot say which
  * segments exist: see `NarrationSegment.audio`. `digest` is the only query parameter it accepts;
  * any other is a 400. It answers 200 for every digest this deployment has, and that answer may be
  * cached for a minute.
@@ -291,7 +286,7 @@ export type NarrateSegmentResponse =
 /**
  * POST /api/config: one edit to the topics or the sources, or several that belong together (a new
  * topic and the sources chosen for it) in one request. The site is static and the settings live
- * in the repository, so the function checks the passphrase and dispatches the config workflow,
+ * in the repository, so the function checks the edit and dispatches the config workflow,
  * which commits the change. The change shows on the site after the next build.
  */
 export type ConfigOp =
@@ -390,14 +385,19 @@ export type ConfigOp =
       weekly?: boolean;
       custom?: boolean;
     }
-  /** The profile ops (block, unblock, vote) are core's own definitions: one place for their shape. */
-  | Extract<CoreConfigOp, { op: "profile.block" | "profile.unblock" | "profile.vote" }>;
+  /**
+   * The profile ops (block, unblock, vote) and structure.set (one podcast kind's whole list of
+   * blocks, D170) are core's own definitions: one place for their shape.
+   */
+  | Extract<
+      CoreConfigOp,
+      { op: "profile.block" | "profile.unblock" | "profile.vote" | "structure.set" }
+    >;
 
 /** One vote on a story, as profile.vote carries it (VoteInput in core). */
 export type ProfileVote = Extract<CoreConfigOp, { op: "profile.vote" }>["votes"][number];
 
 export interface ConfigRequest {
-  passphrase: string;
   /** One edit, or up to 8 that are applied together, in order. */
   op: ConfigOp | ConfigOp[];
 }
@@ -415,8 +415,20 @@ export type ConfigResponse =
        */
       time_changed?: boolean;
     }
-  | { status: 400; error: "invalid_request" }
-  | { status: 401; error: "wrong_passphrase" }
+  | {
+      status: 400;
+      error: "invalid_request";
+      /**
+       * With the config store on (D149): the sentence the edit was refused with ("Already a source:
+       * x.", "There is no topic y."), as the function applies the edit itself. Shown in the toast.
+       */
+      reason?: string;
+      /**
+       * With `reason`: which op of the request's `op` list was refused (0 for a lone op), so the
+       * page can drop that change and send the rest. Absent when no single op was to blame.
+       */
+      op_index?: number;
+    }
   | { status: 429; error: "cooldown"; retry_after_s: number }
   /** Config store only (D149): another edit changed the same settings first; reload and redo. */
   | { status: 409; error: "conflict" }
@@ -456,15 +468,13 @@ export interface PodcastRequest {
 
 /** POST /api/podcast request body. */
 export interface PodcastCreateRequest {
-  passphrase: string;
   request: PodcastRequest;
 }
 
 /** POST /api/podcast with an action: delete an episode, or write it again with feedback. */
 export type PodcastActionRequest =
-  | { passphrase: string; action: "delete"; id: string }
+  | { action: "delete"; id: string }
   | {
-      passphrase: string;
       action: "regenerate";
       id: string;
       feedback?: string;
@@ -475,7 +485,6 @@ export type PodcastActionRequest =
 export type PodcastCreateResponse =
   | { status: 202; run_id: number; started_at: string }
   | { status: 400; error: "invalid_request" }
-  | { status: 401; error: "wrong_passphrase" }
   | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
   | { status: 503; error: "unavailable" };
 

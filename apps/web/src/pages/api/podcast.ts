@@ -1,6 +1,5 @@
 import type { APIRoute } from "astro";
-import { passphraseCheck } from "../../server/access";
-import { bundledEpisodeIds } from "../../server/episodeSource";
+import { contentEpisodeIds } from "../../server/contentSources";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { handlePodcast } from "../../server/podcast";
@@ -25,9 +24,8 @@ export const POST: APIRoute = ({ request, url }) =>
         fetch,
         now: Date.now,
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-        verifyPassphrase: passphraseCheck(),
         burst: burstCap("podcast", REQUESTS_PER_MINUTE),
-        episodeIds: bundledEpisodeIds,
+        episodeIds: () => contentEpisodeIds(),
         log,
       },
     );

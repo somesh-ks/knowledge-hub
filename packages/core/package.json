@@ -6,7 +6,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./hosts": "./src/hosts.ts",
-    "./passphrase": "./src/passphrase.ts",
     "./time": "./src/time.ts",
     "./topicEmoji": "./src/topicEmoji.ts",
     "./vitals": "./src/vitals.ts"

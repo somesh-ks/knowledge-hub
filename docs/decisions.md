@@ -52,7 +52,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
 | D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
-| D41 | The passphrase step is switched off, with its code kept | active |
+| D41 | Passphrase off, code kept | superseded by D160 |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
@@ -137,7 +137,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card; pull down to close the source panel | active; amends D73, D123, D124 |
-| D126 | The player has a play queue (Library menu adds, drag and keyboard reorder, autoplay of the next item), a peek strip "Up next" that pulls up into a queue sheet, a collapse chevron on a phone, and Space that plays and pauses on briefing and episode pages; after an item ends only Up next shows | active; amends D102, D111 |
+| D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
@@ -164,12 +164,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
 | D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
+| D153 | Engagement and sharing | active |
 | D154 | Simple Analytics and a Privacy page | active |
 | D155 | Software Engineering topic | active; amends D69 |
 | D156 | Field Vitals in Neon | amends D147 |
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
+| D160 | No passphrase | active |
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | Captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
@@ -179,8 +181,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Data off the deploy path | proposed |
+| D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
+| D176 | Structure phase 1 | amends D170 |
+| D177 | Phone Costs switch | amends D169 |
+| D178 | No island at first load | active; amends D112 |
 
 ---
 
@@ -196,7 +201,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 - Date: 2026-10-05
 - Status: Confirmed
-- Decision: The repository root is `C:\Users\soke\Desktop\Agents\2. Hobbies\1. Projects\2. News outlet`.
+- Decision: The repository root is the owner's existing project folder on the laptop, five levels under the home directory.
 - Reason: It already holds the planning files. The base path is 66 characters, and deep `node_modules` paths can approach the 260-character Windows limit, so enabling long paths is optional hardening that needs the owner's approval.
 - Rejected: A shorter path elsewhere on disk.
 
@@ -567,7 +572,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-09
 - Decision: the provider (Nebius, the only one) and the model of the writer live in `config/writer.json`, written by the `writer.set` config op from Settings, Model. A missing or unreadable file means "Automatic". The engine tries, in order and without repeats, the Settings model, `DISPATCH_MODEL`, then `DISPATCH_FALLBACK_MODEL`; a Settings model that fails for any reason falls through. The live list comes from `GET /api/models`, a site function that asks Nebius with a server-side key and is cached for an hour.
 - Why: the owner asked to pick the model, and the provider, from the app. D24 already said model ids change and must come from the live list; this puts that list where the choice is made.
-- Cost: `NEBIUS_API_KEY` must also be on Vercel, a second place to rotate it. Until it is, the page offers the saved model and a typed id. One failed call on the Settings model moves the rest of that run to the environment's model.
+- Cost: the provider key must also be on Vercel, a second place to rotate it. Until it is, the page offers the saved model and a typed id. One failed call on the Settings model moves the rest of that run to the environment's model.
 - Owner: run `npm run secrets:push` once.
 - Rejected: writing the `DISPATCH_MODEL` repository variable from the site (needs the token's Variables permission and gives no fallback); a list saved by the engine at each run (stale by up to two days, and a new file for the run's write guard to allow); a native select of sixty ids (no filter).
 - Supersedes: the "set the two variables" step of D24 for choosing a model. The variables remain the fallback.
@@ -685,7 +690,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 - Date: 2026-10-11
 - Decision: With Nebius as the provider, the Model list opens with a "Top models" group of six curated writers, best first (`NEBIUS_TOP` in `lib/modelId.ts`): GLM-5.3, Kimi K3, Kimi K2.6, DeepSeek V4 Pro 0813, DeepSeek V4.1 Flash and Qwen3.5 397B. Each is a Token Factory routing key checked on 2026-10-11, ordered by EQ-Bench's longform writing score that day. When the live list (`GET /api/models`) loads, only curated ids it serves show, so a retired one drops out, and the ranked shortlist (`modelRank.ts`) stands in if none is left; "All models" follows. Without the live list all six show, and the typed id field stays for anything else. A pick saves through `writer.set` like any other.
-- Why: the owner asked to pick top models from Nebius. Without `NEBIUS_API_KEY` on Vercel the page offered only Automatic and a typed id, so no model could be picked by name.
+- Why: the owner asked to pick top models from Nebius. Without a provider key on Vercel the page offered only Automatic and a typed id, so no model could be picked by name.
 - Cost: a named list goes stale, as Qwen3-32B did when it left the serverless tier on 2026-08-31; refresh it when Nebius's catalogue or the writing leaderboard moves. Kimi K3 costs about four times the others per token.
 - Rejected: Llama (no longer a public endpoint on Nebius); gpt-oss-120b (the lowest writing score of the candidates, 35.8).
 
@@ -1518,7 +1523,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 ## D130: no Kimi, a benchmark-ranked five, a weekly check
 
 - Date: 2026-10-21 (the owner: Kimi models are never offered)
-- Decision: `EXCLUDED_MODELS` (`apps/web/src/lib/modelRank.ts`) removes the Kimi models. The Nebius top five (`NEBIUS_TOP`, `lib/modelId.ts`) follow EQ-Bench longform on 2026-10-21: GLM-5.3, GLM-5.2, DeepSeek V4 Pro 0813, DeepSeek V4.1 Flash, GLM-5.1. A scheduled check every Monday 08:52 Europe/Stockholm, in a fresh cloud session, re-ranks for the podcast use case (faithfulness first, then long-form spoken prose, instruction following and long context, then price), runs the repo's eval bakeoff when `NEBIUS_API_KEY` is there, and opens a PR labelled `review` when the list changes.
+- Decision: `EXCLUDED_MODELS` (`apps/web/src/lib/modelRank.ts`) removes the Kimi models. The Nebius top five (`NEBIUS_TOP`, `lib/modelId.ts`) follow EQ-Bench longform on 2026-10-21: GLM-5.3, GLM-5.2, DeepSeek V4 Pro 0813, DeepSeek V4.1 Flash, GLM-5.1. A scheduled check every Monday 08:52 Europe/Stockholm, in a fresh cloud session, re-ranks for the podcast use case (faithfulness first, then long-form spoken prose, instruction following and long context, then price), runs the repo's eval bakeoff when the provider key is there, and opens a PR labelled `review` when the list changes.
 - Why: the list was a snapshot of a market that moves weekly; a person reading it should not have to remember to refresh it.
 - Revisit if: the check's sessions cannot browse or open PRs. It was created without connectors; the owner recreates it from claude.ai with GitHub and Firecrawl connected.
 - Check: the model tests cover the exclusion and the five.
@@ -1688,6 +1693,22 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: a full-screen sheet leaves no page showing to tap away to, so the only visible way out was a gesture with no affordance.
 - Amends: D144.
 
+## D153: engagement is counted by D154's Simple Analytics, and an episode is shared as a public listen link
+
+- Date: 2026-10-22 (the owner: a "User engagement" item under Settings, Analytics, "open to a lightweight analytics tool", and growth loops "starting with sharing episodes with anyone")
+- Status: approved by the owner on 2026-10-22 ("I like all your recommendations, just skip passphrase for now"); aligned with D154 on 2026-10-24 (the owner: "align the D153 engagement plan with it, so the two do not overlap"); built stage by stage, link previews first. The plan and the stages with test points: [engagement-and-share-plan.md](engineering/engagement-and-share-plan.md).
+- Decision:
+  - Simple Analytics (D154) is the one counter. The listen page sends D154's `listen_*` and `share` with `surface`, `generation` and `item` metadata, and one new event, `react`; the token never reaches it. No first-party event table, beacon route or device-only view.
+  - User engagement under Settings, Analytics opens the Simple Analytics dashboard (the owner, 2026-10-24: "keep stage 1 as a link to the Simple Analytics dashboard; decide on in-app numbers later"). Numbers inside the app need public stats (the Stats API answers without a key) or a plan with API access.
+  - No passphrase: the stage that would have locked actions is dropped (D160). The owner will gate actions with OAuth later and hide them from logged-out users.
+  - Link previews come first, on the pages Share sends today, because Share can only send a page's address until the listen page exists (owner: "link preview is very good idea").
+  - One expiring, revocable link per item whose audio is fully stored, made by anyone until OAuth, then by the owner alone. `/s/<token>` (an HMAC-checked token, rendered on the server, CDN-cached five minutes) shows the cover, Play, the stories with their sources, the transcript, Send it to someone and a reaction; it plays stored audio only and never narrates; it has no app shell, service worker or search indexing, and an Open Graph card. Neon keeps only the links and their play counts: shared plays stop at 4 GB of Blob transfer a month and 100 a link.
+- Why: D154 already counts the loops on production; a second counter would split the numbers and cost a route, a table and Neon compute. What a vendor cannot do, refuse a play past the Blob budget, stays first-party. Today's Share sends the app's own address, which opens the whole app.
+- Cost: counts are a floor (ad blockers, offline listens, D154); no numbers inside the app until the owner picks how to read them; until OAuth, a listener who leaves the listen page for the app can do what anyone can (D160); public links publish narrated summaries of others' reporting beyond D9's one reader; Blob's Hobby lockout is the ceiling the budget guards.
+- Rejected: first-party events in Neon beside Simple Analytics (this decision's first draft: two counts of one thing); a device-only engagement view (one browser's listening); Plausible Business, Umami Pro or Vercel Pro (a monthly fee for one reader); PostHog (storage by default, the heaviest script); per-recipient links (they track people one by one); a waitlist now (consent, a privacy notice and a plan above Hobby first); the full player on the listen page (its narration fallback spends).
+- Amends: D154's Context (its events stay; this adds the listen page's and `item` metadata).
+- Revisit if: ad blockers hide most listens, Simple Analytics' API or plans change, shared plays pass half the monthly budget, or the owner opens sign-ups.
+
 ## D154: cookieless visit counts with Simple Analytics, a few named events, and a Privacy page
 
 - Date: 2026-10-22
@@ -1695,7 +1716,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner wants to see which loops (share, habit, taste, create) turn visitors into listeners and sharers. Simple Analytics counts in aggregate without cookies, storage or IP, so the site needs no consent banner and keeps its privacy. Sentry was considered and is an error monitor; the site's own `/api/report` covers errors.
 - Cost: about 7.5 KB of third-party script per session, outside the first-load budget (it loads async from another host); two hosts in the policy; counts are a floor (ad blockers) and unique visits run high (`no-referrer` makes a reload look new).
 - Rejected: the `noscript` pixel (mostly robots, by Simple Analytics' advice); automated events (need `'unsafe-inline'`); a per-device id for retention (identifies a reader; installs and `installed` page views stand in); PostHog or Sentry replay (record individuals).
-- Context: D153 (proposed the same day on another branch) counts events first-party in Neon instead and makes share links a public listen page. The two overlap on events; if D153 is approved, its events replace these and Simple Analytics keeps only visits and referrers, or goes.
+- Context: D153 (proposed the same day on another branch) first counted events first-party in Neon. Approved, then aligned with this decision on 2026-10-24: these events stay, and D153 adds the listen page's, with `surface`, `generation` and `item` metadata and a `react` event.
 - Revisit if: retention per reader becomes the question (that needs accounts or an identifier, and a new privacy page), or ad blockers hide most visits (Simple Analytics' custom-domain proxy).
 
 ## D155: Software Engineering is the owner's fourth topic, with its own section and an engineering-depth judge category
@@ -1744,6 +1765,15 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: D157 kept `site_behind` a warning because the next push may clear it, and warnings reach the owner on Mondays; a deploy that stays missing a day will not clear. A smoke run Vercel starts belongs to `vercel[bot]`, so its failure email reached no one.
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
+
+## D160: the passphrase is removed completely
+
+- Date: 2026-10-22 (the owner: "remove passphrase completely", after approving D153's stage 0, which would have turned it back on; that stage was dropped before it merged)
+- Decision: there is no passphrase anywhere. The four routes that spend or edit (`/api/generate`, `/api/podcast`, `/api/config`, and `/api/narrate` POST) check the origin, the body and their caps, and never answer 401. Request bodies carry no `passphrase`; one that a page built before this still sends is ignored. The prompts are gone: the narration sheet ("Make the audio"), the Create dialog, the Regenerate, Delete and settings-save fields, and the device memory `dispatch:narrate-passphrase`, which nothing reads or writes now. `GENERATE_PASSPHRASE_HASH`, `npm run passphrase`, `@dispatch/core/passphrase` and the scrypt verifier are deleted. A failed run's Try again always resends its request, so the path that reopened the form after a refused passphrase is gone too.
+- Cost: anyone who opens the site, a shared link included, can start a briefing, an episode, narration, a regeneration or a delete, and edit topics, sources and the schedule, bounded only by the daily caps, the monthly narration budget and the per-minute caps (D150). This is D41's risk with no switch left to turn back.
+- Rejected: keeping the code behind a switch (D41); asking once per device (D153's stage 0).
+- Supersedes: D41. Amends: D153 (stage 0 dropped).
+- Revisit if: someone other than the owner spends or edits. The answer then is accounts or a per-device token, not a shared passphrase.
 
 ## D161: a story's publisher sits above its headline
 
@@ -1829,13 +1859,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
 - Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
 
-## D173: episodes and settings leave the deploy path, proposed
+## D173: content is data read through one repository; builds ship code only
 
-- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; "how does a professional music app like spotify or youtube handle this?"; "make sure our app is professional industry grade")
-- Status: proposed. [The design](design/data-off-the-deploy-path.md) keeps the page shell and the digests built and makes what changes between builds data: settings through the store (D149, D172, done) and episodes as Blob files with a small index the Library lays over itself, a monthly git copy for the record, and the device keeping the last index (D172's pattern). Episode deploys go from two to none; a run still deploys. Three questions for the owner close it.
-- Why: Dispatch treats data as code, so a save or an episode is a build and a deploy; the big apps ship code a few times a week and move data at run time. For one user, static pages stay the fastest shape, so only the data moves.
-- Rejected: rendering the Library at request time (a function call a visit, Neon's cold start, the static page lost); moving digests too (a run deploys anyway); keeping every episode in git (one deploy an episode stays).
-- Revisit if: the owner answers the questions, which turns this into a build decision.
+- Date: 2026-10-24 (the owner: "does moving to neon database stop deployments on every settings change and podcast generation?"; then "I want the app to access everything from the database as content repository always, the builds only happen for app improvements and feature builds. the same with settings, sources, etc."; "keep it smooth, the app is light so far - no need for too much of optimization. but keep the deployments lower, content is fetched from database, this needs to be scaled for the future when we have many more users.")
+- Decision: briefings, episodes and the run state live in Vercel Blob (the content store), mirrored from git by `dispatch content sync`; settings and sources stay in Neon (D149). Every content read goes through one repository module; pages that show content render on request through it with a short shared cache. Git is the backup; once the pages read the store, data commits stop deploying. [The plan](design/data-off-the-deploy-path.md) orders it in five steps.
+- Why: every data commit was a build and a deploy: minutes before new content shows, and since D146 a "New version available" on every open screen. Blob is served from the CDN with no cold start; Neon's free tier sleeps, so it does not hold what every page reads. Rendering on request keeps the Astro components and the content in the HTML, where client-side shells would rewrite every page as a script. The repository seam lets content move to Postgres, one row per user, when there are many users, without touching a page.
+- Rejected: Neon for content today (cold starts on page loads; it is the many-users store); ISR with on-demand refresh (more moving parts than one user needs, and it cannot cache a personal page); client-side shells that fetch content (a rewrite of every page, and a loading flash); a monthly git copy of episodes (git stays the per-commit backup instead).
+- Revisit if: a second user's content arrives (the repository moves to Postgres), or the step 2 proof shows cold starts the shared cache does not hide.
 
 ## D175: `main` is protected by a ruleset, with the Actions app as the only bypass
 
@@ -1845,3 +1875,29 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Cost: each merge first updates its branch and waits for CI again (about 4 minutes, 15 with the browser suites); with several PRs open they merge one at a time. Rulesets on a private repository need GitHub Pro.
 - Rejected: requiring the `review` check (Dependabot's PRs merge without the label, and the review runs only when the label is added); required approvals (one owner cannot approve their own PR); signed commits (the engine's are unsigned); a person as a bypass actor (then the rule is a habit again).
 - Revisit if: a workflow starts pushing with a token that is not the Actions app's (it would need its own bypass), or merges queue up behind the strict check for longer than they save.
+
+## D176: the podcast structure, phase 1: the defaults are today's, counts are optional
+
+- Date: 2026-10-24 (the owner: "kick off multiple agents to get them all implemented")
+- Decision: `config/structure.json` (D170) is read by curate, the digest and the Catch up planner. A kind the file leaves out runs the code path it ran before, so nothing changes until the owner saves a kind. Daily and weekly start with no rundown and no close, since their narration never had either; Catch up starts with both. A block's count is optional, and absent means the engine's own allowance (three Top picks, five for a section with its own allowance), so the defaults copy no constant into the file. A structure holds 32 blocks, not twelve: each custom and general topic brings a section. A stored kind leaves out a section it does not list; a topic made later is added to every stored kind (`topic.upsert`), and `topic.scope` putting a topic in adds its block, while `skip_topics` still takes one out. A digest whose built-in sections read out of their fixed order keeps a `section_titles` snapshot, so the page and the narration read the owner's order. In Catch up a section the form picks still airs when the structure does not name it, after the named ones; Top picks, Trending and release news air only with their block.
+- Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
+- Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
+- Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+## D177: on a phone the Costs chart or table switch sits beside the figure
+
+- Date: 2026-10-24
+- Decision: from 40rem the switch stays at the end of the filter row (D169); below it, it sits at the end of the answer's first line, level with "Estimated spend", and the chips keep their row. It follows the answer in the reading order, just before the panels it switches.
+- Why: at 390px the two pill chips and the switch do not fit one row, so the switch wrapped to a row of its own, 72px of nothing above the figure (screenshot, 2026-10-24). The owner chose the figure's line over the empty row.
+- Rejected: the empty row it had; narrower chips (the pills are D167's one shape).
+- Amends: D169's Costs bullet, on a phone only.
+- Revisit if: the chips and the switch fit one row on a phone.
+
+## D178: no island loads with the page; the islands wake when needed
+
+- Date: 2026-10-24 (the owner asked for every accepted idea to be built, cut 1 of [first-load-js.md](engineering/first-load-js.md) among them, parked since 2026-10-14)
+- Decision: the player and sheets islands are `client:wake` (`lib/wakeDirective.ts`): they hydrate on `dispatch:wake`, which `scripts/islandWake.ts` sends when something starts playing (the bar shows), a sheet's control is pressed (the press is kept and opens the sheet), a toast is sent, a Generate run is remembered from before a reload, or the browser is idle after the first pointer, key or wheel input. The player runtime (the store, the reader's Play controls, Media Session, sounds) starts from the layout's script at load, without React. On wake, `islandWake.ts` imports the renderer and both islands itself, so Vite preloads each graph at once, on the pages rendered on request (D173) too; `checkBundle` counts them apart ("more on wake"), not as first load.
+- Why: React and the two islands were 73 KB of every page's 110, and nothing on screen needs them until a track starts: the bar is hidden before then, and the Play controls are answered by the runtime.
+- Cost: a Play that is the first input of a cold visit shows the bar about 0.6 s after the press on a throttled phone (65 ms before), most of it React compiling and hydrating; the audio starts at once as before. A sheet's control pressed before the wake opens its sheet after that round trip. The browser tests wake the islands before they wait for hydration (`hydrated` in `e2e/fixtures.ts`, `PlayerPage.open`).
+- Rejected: the islands as Astro markup and a vanilla toaster (the doc's first sketch; the directive keeps the islands, `transition:persist` and SSR as they were); hydrating at idle without an input (the bytes and the 100 ms hydration task come back on every visit).
+- Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
+- Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.

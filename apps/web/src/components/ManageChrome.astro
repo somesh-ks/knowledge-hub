@@ -1,13 +1,11 @@
 ---
-import { PASSPHRASE_REQUIRED } from "../lib/access";
 import Icon from "./Icon.astro";
 ---
 
 {/* What the settings pages share besides their rows: the live regions the script writes to (one
-     polite, one for errors), the toast that comes up
-     when saving needs the owner (scripts/autosave.ts; it looks and sits like every toast, and leaves speaking to the
-     regions), and the dialog that asks for the passphrase once. All of it is inert until the page's
-     script mounts. */}
+     polite, one for errors) and the toast that comes up when saving needs the owner
+     (scripts/autosave.ts; it looks and sits like every toast, and leaves speaking to the regions).
+     All of it is inert until the page's script mounts. */}
 <p class="sr-only" role="status" data-live></p>
 <p class="sr-only" role="alert" data-alert></p>
 
@@ -21,30 +19,3 @@ import Icon from "./Icon.astro";
     <Icon name="close" />
   </button>
 </div>
-
-{PASSPHRASE_REQUIRED && (
-<dialog class="manage-dialog" aria-labelledby="manage-dialog-title">
-  <form method="dialog" class="manage-dialog-form">
-    <h2 id="manage-dialog-title">Save changes</h2>
-    <div class="manage-field">
-      <label for="manage-passphrase">Passphrase</label>
-      <input
-        class="manage-input"
-        id="manage-passphrase"
-        type="password"
-        required
-        autocomplete="current-password"
-        data-passphrase
-      />
-    </div>
-    <label class="manage-check">
-      <input type="checkbox" data-remember />
-      <span>Remember on this device</span>
-    </label>
-    <div class="manage-dialog-actions">
-      <button class="btn" type="button" data-act="close">Cancel</button>
-      <button class="btn-primary" type="submit" value="ok">Continue</button>
-    </div>
-  </form>
-</dialog>
-)}

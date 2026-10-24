@@ -14,6 +14,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
 | [engineering/delivery-failures.md](engineering/delivery-failures.md) | Why PRs, CI and deploys failed, and the rules that stop each one | Before pushing, and when a check is red |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
+| [engineering/engagement-and-share-plan.md](engineering/engagement-and-share-plan.md) | Share links and the listen page on top of Simple Analytics (D154), in stages (D153) | Before building engagement or sharing |
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
 | [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |
@@ -21,6 +22,6 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources | When asked for references |
 | [history/](history/README.md) | One note per session: why something was done | Only for the why behind a change |
 | [prototype/](prototype/) | Generated prototype pages and the sound lab (built by `scripts/`) | Rarely |
-| [design/data-off-the-deploy-path.md](design/data-off-the-deploy-path.md) | Episodes and settings as data read at run time, no deploy per save or episode (D173, proposed) | Before building the episode index or moving episodes to Blob |
+| [design/data-off-the-deploy-path.md](design/data-off-the-deploy-path.md) | Content in Blob rendered on demand, builds for code only (D173) | Before touching the content store, a page that shows content, or `ignoreCommand` |
 
 The first build's plan, vision and UI spec (`plan/build-plan.md`, `plan/vision.md`, `design/design-spec.md`) were retired on 2026-10-19; later decisions had overridden most of them. Read them with `git show 91bc533:docs/<path>`.

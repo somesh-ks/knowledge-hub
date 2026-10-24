@@ -8,6 +8,7 @@ import {
 } from "@dispatch/core";
 import type { Selection } from "../curate/selectionFile.js";
 import { buildDigest, type CoverPicker, type DigestIdAllocator } from "../render/buildDigest.js";
+import type { SectionPlan } from "../score/sectionPlan.js";
 import type { SelectedItem } from "../score/types.js";
 import { writtenText } from "../write/text.js";
 import { StageFailure } from "./errors.js";
@@ -23,6 +24,8 @@ export interface DigestFromSelectionInput {
   verified: boolean;
   /** config/topics.json, to place a custom topic's stories. Built-in categories need none. */
   topics?: TopicsFile | null | undefined;
+  /** The kind's structure (D170), so the digest reads its sections in the owner's order. */
+  plan?: SectionPlan;
 }
 
 /**
@@ -56,5 +59,6 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
     sourceNames: input.sourceNames,
     ...(input.linkSources ? { linkSources: input.linkSources } : {}),
     ...(input.topics ? { sectionTitles: topicSectionTitles(input.topics) } : {}),
+    ...(input.plan ? { plan: input.plan } : {}),
   });
 }

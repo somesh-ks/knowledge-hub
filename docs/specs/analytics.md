@@ -8,21 +8,21 @@ Cookieless counts of visits and a few named events on news.someshks.work, throug
 - A browser that sends Do Not Track or Global Privacy Control never loads it.
 - The script follows the client router's `pushState` moves as page views. Every page view carries `installed` (the app opened from the Home Screen).
 - `track()` queues an event until the script arrives, does nothing off production or with the script blocked, and never throws into the action that called it.
-- The page policy (`apps/web/astro.config.mjs`) allows the script host in `script-src` and the queue host in `connect-src` and `img-src`; the header policy in `apps/web/vercel.json` repeats the last two (`apps/web/src/lib/analytics.test.ts` fails if it drops them). No inline script and no `'unsafe-inline'`: automated events and the `noscript` pixel are not used (the pixel mostly counts robots, by Simple Analytics' own advice).
+- The page policy (`apps/web/astro.config.mjs`) allows the script host in `script-src` and the queue host in `connect-src` and `img-src`; the header policy in `apps/web/vercel.json` repeats the last two (`apps/web/src/lib/analytics.test.ts` fails if it drops them). No inline script and no `'unsafe-inline'`: automated events and the `noscript` pixel are not used (the pixel mostly counts robots, Simple Analytics says).
 
 ## Events
 
 | Event | When | Metadata |
 | :--- | :--- | :--- |
-| `share` | the share sheet completed, or the link was copied | `kind` briefing or episode, `outcome` shared or copied |
-| `listen_start`, `listen_half`, `listen_complete` | an item starts, passes half its length while playing, ends; each once per item per session (`apps/web/src/player/core/listenEvents.ts`) | `kind` regular, weekly or on-demand |
+| `share` | the share sheet completed, or the link was copied | `kind` briefing or episode, `item` its id, `outcome` shared or copied |
+| `listen_start`, `listen_half`, `listen_complete` | an item starts, passes half its length while playing, ends; each once per item per session (`apps/web/src/player/core/listenEvents.ts`) | `kind` regular, weekly or on-demand, `item` its id |
 | `story_open` | a story's source link is followed | `topic` |
 | `vote` | a story is voted up or down (a press that clears a vote is not counted) | `value`, `topic` |
 | `download` | a Library item is saved for offline listening | `kind` |
 | `install` | the browser reports the app installed (`appinstalled`, Chromium only) | none |
 | `create_episode` | Catch up got an answer | `outcome` started, limited (429) or failed |
 
-A shared link carries `?ref=share`, which Simple Analytics reports as the referrer `share`: messaging apps send no referrer of their own, so the tag is the attribution.
+A shared link carries `?ref=share`, which Simple Analytics reports as the referrer `share`: messaging apps send no referrer of their own, so the tag is the attribution. Pasted, a briefing or episode link draws a card (D153, `apps/web/src/lib/linkCard.ts`); `robots.txt` lets previewers fetch `/d/`, `/e/` and `/covers/`, `noindex` keeps them out of search, and `checkBundle` fails a page without a card.
 
 ## The loops and their numbers
 
@@ -40,11 +40,10 @@ What would change a decision:
 
 ## Opportunities not built
 
-1. Link previews: no page has Open Graph or Twitter tags, so a shared briefing pastes as a bare address in Messages, WhatsApp or Slack. Each briefing and episode already has a 1024 px cover. The cheapest lift to visits per share.
-2. A first visit from `ref=share` that says in one line what Singularity is, next to Play.
-3. Share at a moment: a link to a story or a time in the episode, from the player.
-4. A podcast feed, which brings readers back through their own podcast app (its plays are not counted here: the audio comes from Blob).
-5. A share prompt when "Episode ready" shows.
+1. A first visit from `ref=share` that says in one line what Singularity is, next to Play.
+2. Share at a moment: a link to a story or a time in the episode, from the player.
+3. A podcast feed, which brings readers back through their own podcast app (its plays are not counted here: the audio comes from Blob).
+4. A share prompt when "Episode ready" shows.
 
 ## Field Web Vitals
 

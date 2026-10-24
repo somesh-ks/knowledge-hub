@@ -85,10 +85,10 @@
       "hint": "Jev is off: the Nebius fallback judge answers and digests are unverified. Get a key at console.typesafe.ai."
     },
     {
-      "id": "key.NEBIUS_API_KEY",
+      "id": "key.ANTHROPIC_API_KEY",
       "status": "warn",
       "summary": "not set",
-      "hint": "The API curator cannot run (agent mode still works). Create a key in the Nebius Token Factory console."
+      "hint": "The API curator cannot run (agent mode still works). Create a key in the Anthropic console."
     },
     {
       "id": "key.EXA_API_KEY",
@@ -120,16 +120,16 @@
       "summary": "not set (optional)"
     },
     {
-      "id": "model.DISPATCH_MODEL",
+      "id": "model.SINGULARITY_MODEL",
       "status": "warn",
       "summary": "not set",
-      "hint": "The writer cannot run. Run `dispatch models` to pick one, then set DISPATCH_MODEL in .env."
+      "hint": "The writer cannot run. Run `dispatch models` to pick one, then set SINGULARITY_MODEL in .env."
     },
     {
-      "id": "model.DISPATCH_FALLBACK_MODEL",
+      "id": "model.SINGULARITY_FALLBACK_MODEL",
       "status": "warn",
       "summary": "not set",
-      "hint": "There is no failover if the primary id is retired. Run `dispatch models` to pick one, then set DISPATCH_FALLBACK_MODEL in .env."
+      "hint": "There is no failover if the primary id is retired. Run `dispatch models` to pick one, then set SINGULARITY_FALLBACK_MODEL in .env."
     }
   ]
 }

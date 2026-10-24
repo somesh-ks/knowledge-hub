@@ -89,8 +89,23 @@ export function findRenderBlockingScripts(html: string): string[] {
   return problems;
 }
 
-/** Every JavaScript file a page asks for at load: script tags, preloads, and the islands' modules. */
-export function entryScripts(html: string): string[] {
+/** The opening tag of an island that hydrates only when the page wakes it (lib/wakeDirective.ts). */
+const WAKE_ISLAND = /<astro-island\b[^>]*\bclient="wake"[^>]*>/g;
+
+function islandModules(tag: string): string[] {
+  const urls: string[] = [];
+  for (const match of tag.matchAll(/\b(?:component-url|renderer-url)=["']([^"']+)["']/g)) {
+    if (match[1]) urls.push(match[1]);
+  }
+  return urls;
+}
+
+/**
+ * Every JavaScript file a page asks for at load: script tags, preloads, and the islands' modules.
+ * A `client:wake` island's modules are not among them: nothing fetches them until the page wakes it.
+ */
+export function entryScripts(page: string): string[] {
+  const html = page.replace(WAKE_ISLAND, "");
   const urls = new Set<string>();
   for (const tag of parseScripts(html)) if (tag.src) urls.add(tag.src);
   for (const match of html.matchAll(
@@ -184,6 +199,24 @@ export function unhintedModules(html: string, read: (url: string) => string | nu
   return graph.filter((url) => !named.has(url));
 }
 
+/**
+ * Every built script's static imports, by URL. A page rendered on request is not in the build's
+ * HTML, so its server adds the hints from this (middleware.ts) instead of reading the scripts.
+ */
+export function importGraph(urls: readonly string[], read: (url: string) => string | null) {
+  const graph: Record<string, string[]> = {};
+  for (const url of urls) {
+    const source = read(url);
+    if (source !== null) graph[url] = staticImports(source).map((spec) => resolveUrl(url, spec));
+  }
+  return graph;
+}
+
+/** A `read` for `withModulePreloads` that knows only the imports `importGraph` recorded. */
+export function readFromGraph(graph: Record<string, string[]>): (url: string) => string | null {
+  return (url) => graph[url]?.map((dependency) => `import"${dependency}";`).join("") ?? null;
+}
+
 /** The page with a modulepreload link for each module `unhintedModules` finds, at the end of its head. */
 export function withModulePreloads(html: string, read: (url: string) => string | null): string {
   const urls = unhintedModules(html, read);
@@ -191,6 +224,17 @@ export function withModulePreloads(html: string, read: (url: string) => string |
   if (urls.length === 0 || headEnd === -1) return html;
   const links = urls.map((url) => `<link rel="modulepreload" href="${url}">`).join("");
   return `${html.slice(0, headEnd)}${links}${html.slice(headEnd)}`;
+}
+
+/**
+ * The modules each `client:wake` island loads when it wakes, beyond what the page loaded at start,
+ * in the order of its tags. They are not first load, so the budget does not count them.
+ */
+export function wakeModules(html: string, read: (url: string) => string | null): string[][] {
+  const eager = new Set(moduleGraph(entryScripts(html), read));
+  return [...html.matchAll(WAKE_ISLAND)].map((match) =>
+    moduleGraph(islandModules(match[0]), read).filter((url) => !eager.has(url)),
+  );
 }
 
 /** One line per page whose first load is past the budget; empty when every page is inside it. */

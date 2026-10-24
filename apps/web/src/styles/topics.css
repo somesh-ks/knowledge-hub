@@ -1624,7 +1624,16 @@
   display: grid;
   place-items: center;
   min-height: var(--size-touch);
+  /* Only the emoji near the view are shaped and drawn (owner, 2026-10-24: the list was late). A
+     fresh page shapes each emoji once, about half a millisecond apiece, and drawing all 1,900 at
+     once held the picker for 1.3 s on a desktop and 6 s on a slow phone. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--size-touch);
   border-radius: var(--radius-sm);
+  /* Optical centre (owner, 2026-10-24): the line sits on the UI font's baseline, so the emoji font's
+     ink rode 0.05em high (1px at 20px, measured on Segoe UI Emoji across the grid). The pad is a
+     font metric, the same for every emoji; centred, the ink lands within a device pixel. */
+  padding-block-start: calc(var(--font-size-title) * 0.1);
   font-size: var(--font-size-title);
   line-height: 1;
 }

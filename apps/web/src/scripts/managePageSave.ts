@@ -4,15 +4,12 @@
  * (the server takes up to eight), and a change made while it is on its way goes in the next one.
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 import { sendToast } from "./toastEvent";
-
-const KEY = "dispatch:narrate-passphrase";
 
 export const SAVING = "Saving";
 /** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
@@ -27,9 +24,6 @@ export const ADDED_SOURCE = "Added. Read from the next update.";
 const REASONS: Record<number, string> = {
   0: "Couldn't reach the site.",
   400: "The server turned that change down.",
-  401: PASSPHRASE_REQUIRED
-    ? "That passphrase is not right."
-    : "The server's passphrase setting does not match this site's.",
   429: "There were too many edits in a row.",
   409: "Another device changed this first. Reload to see it.",
   503: "The server ran into a problem.",
@@ -46,8 +40,19 @@ export function failureText(status: number, body?: unknown): string {
   if (status >= 500 && body !== undefined && !isSiteAnswer(body)) {
     return "The server crashed before it could answer. Not saved yet.";
   }
-  const reason = REASONS[status];
+  const reason = refusalReason(body) ?? REASONS[status];
   return withErrorRef(reason ? `${reason} Not saved yet.` : "Saving failed on the server.", body);
+}
+
+/**
+ * Why the server refused the edit, when it says (the config store's answer, D149): the engine's own
+ * sentence, "Already a source: x." or "There is no topic y.", which beats "turned that change down".
+ */
+function refusalReason(body: unknown): string | null {
+  if (typeof body !== "object" || body === null || !("reason" in body)) return null;
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (reason.length === 0) return null;
+  return /[.!?]$/.test(reason) ? reason : `${reason}.`;
 }
 
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
@@ -82,8 +87,6 @@ export type SaveState = "undo" | "saving" | "saved" | "done" | "error";
 export interface SaveContext {
   changes: Map<string, Pending>;
   show(message: string, state: SaveState): void;
-  /** The passphrase dialog, on a site that asks for one (lib/access.ts). */
-  dialog: HTMLDialogElement | null;
   /** After a request went through: read the controls again against their new starting point. */
   settled?(): void;
   /**
@@ -158,6 +161,8 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
 export interface Batch {
   ops: ConfigOp[];
   sent: [string, Pending][];
+  /** For each op, the keys of the pending changes that produced it (a refusal names an op's index). */
+  owners: string[][];
 }
 
 /**
@@ -166,14 +171,15 @@ export interface Batch {
  */
 export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pending>): Batch[] {
   const batches: Batch[] = [];
-  let current: Batch = { ops: [], sent: [] };
+  let current: Batch = { ops: [], sent: [], owners: [] };
   for (const step of steps) {
     const ops = step.ops ?? [step.op];
     if (current.ops.length > 0 && current.ops.length + ops.length > MAX_OPS) {
       batches.push(current);
-      current = { ops: [], sent: [] };
+      current = { ops: [], sent: [], owners: [] };
     }
     current.ops.push(...ops);
+    current.owners.push(...ops.map(() => step.keys));
     for (const key of step.keys) {
       const pending = changes.get(key);
       if (pending) current.sent.push([key, pending]);
@@ -213,7 +219,7 @@ function rehome(gone: Element): void {
  * A change made while the request was on its way is a newer entry under the same key, so it stays
  * pending and goes next.
  */
-export function settle(batch: Batch, changes: Map<string, Pending>): void {
+export function settle(batch: Pick<Batch, "ops" | "sent">, changes: Map<string, Pending>): void {
   for (const [key, pending] of batch.sent) {
     const { el, now } = pending;
     pending.done?.();
@@ -437,25 +443,12 @@ export function dropUnclaimed(): void {
 }
 globalThis.document?.addEventListener("astro:after-swap", dropUnclaimed);
 
-let passphrase: string | null = null;
 /** When the last request went through, by this page's clock; 0 before the first. */
 let lastSent = 0;
 /** True while a flush runs. A second call returns at once: the running one sends what is waiting. */
 let busy = false;
 /** Another page's changes that came while a run was busy: sent once it is done. */
 const queued = new Set<SaveContext>();
-
-/** Where the passphrase is kept between visits. Passing null forgets it. */
-function memory(value?: string | null): string | null {
-  try {
-    if (value === undefined) return localStorage.getItem(KEY);
-    if (value === null) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, value);
-  } catch {
-    // Storage is refused: the passphrase still carries this visit.
-  }
-  return null;
-}
 
 interface Answer {
   status: number;
@@ -467,12 +460,12 @@ interface Answer {
 }
 
 /** One request. `keepalive` lets it finish when the page is closed right after a change. */
-async function post(ops: ConfigOp[], given: string): Promise<Answer> {
+async function post(ops: ConfigOp[]): Promise<Answer> {
   try {
     const response = await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passphrase: given, op: ops.length === 1 ? ops[0] : ops }),
+      body: JSON.stringify({ op: ops.length === 1 ? ops[0] : ops }),
       keepalive: true,
     });
     const body = (await response.json().catch(() => ({}))) as Partial<ConfigResponse>;
@@ -488,6 +481,18 @@ async function post(ops: ConfigOp[], given: string): Promise<Answer> {
   }
 }
 
+/**
+ * The changes the engine refused for good, when its 400 names an op of the request just sent and
+ * that op's changes are known; null for any other failure (all of the batch stays failed, as before).
+ */
+function refusedKeys(answer: Answer, batch: Batch): string[] | null {
+  const body = answer.body as { op_index?: unknown } | undefined;
+  const index = body?.op_index;
+  if (answer.status !== 400 || typeof index !== "number") return null;
+  const keys = batch.owners[index];
+  return keys && keys.length > 0 ? keys : null;
+}
+
 /** How many times a run waits out the server's ten seconds between edits before it gives up. */
 const MAX_WAITS = 6;
 
@@ -495,13 +500,9 @@ const MAX_WAITS = 6;
  * Sends what is pending until nothing is, then says how it went. The server allows an edit every
  * ten seconds: a request inside that gap is held until it ends (gapLeft), without Saving, and a 429
  * all the same waits as long as it asks; either way the changes made during the wait ride along.
- * Asks for the passphrase once where one is required.
  */
-export async function flush(
-  context: SaveContext,
-  given = PASSPHRASE_REQUIRED ? (passphrase ?? memory()) : OPEN_PASSPHRASE,
-): Promise<void> {
-  const { changes, dialog } = context;
+export async function flush(context: SaveContext): Promise<void> {
+  const { changes } = context;
   if (changes.size === 0) return;
   if (busy) {
     queued.add(context);
@@ -518,27 +519,6 @@ export async function flush(
       // The page is gone; what was waiting is still sent.
     }
   };
-  if (!given) {
-    if (!dialog) return;
-    const field = dialog.querySelector<HTMLInputElement>("[data-passphrase]") as HTMLInputElement;
-    const remember = dialog.querySelector<HTMLInputElement>("[data-remember]") as HTMLInputElement;
-    dialog.returnValue = "";
-    dialog.addEventListener(
-      "close",
-      () => {
-        const value = dialog.returnValue === "ok" ? field.value : "";
-        field.value = "";
-        if (!value) return;
-        if (remember.checked) memory(value);
-        void flush(context, value);
-      },
-      { once: true },
-    );
-    dialog.showModal();
-    return;
-  }
-
-  passphrase = given;
   busy = true;
   let failure = "";
   let timeRefused = false;
@@ -552,38 +532,57 @@ export async function flush(
    * "Adding" and then "Added" itself, so the toast saying it too would be the same news twice.
    */
   let rowSays = true;
+  /**
+   * Changes the engine refused for good in this run (a refusal that named its op): they stay for
+   * Retry but are not sent again here, so one change that can never be accepted does not hold back
+   * the edits made after it.
+   */
+  const refused = new Set<string>();
+  const going = (): Map<string, Pending> =>
+    new Map([...changes].filter(([key]) => !refused.has(key)));
   // Everything waiting goes now, a refused change included: it is on its way again.
   for (const pending of changes.values()) pending.failed = false;
   try {
-    while (changes.size > 0) {
+    while (going().size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
       // its way yet, and whatever changes meanwhile goes in the one request sent after it.
       const hold = gapLeft(lastSent, Date.now());
       if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
       // An edit not final yet (a new topic's emoji, D142) holds the request, quietly, as the gap does.
-      const unready = [...changes.values()].filter((pending) => pending.ready);
+      const waiting = going();
+      const unready = [...waiting.values()].filter((pending) => pending.ready);
       if (unready.length > 0) {
         await Promise.all(unready.map((pending) => pending.ready));
         for (const pending of unready) delete pending.ready;
         continue;
       }
-      const [batch] = pack(buildQueue(changes), changes);
+      const [batch] = pack(buildQueue(waiting), waiting);
       if (!batch || JSON.stringify(batch.ops) === last) break;
       sent = true;
       rowSays &&= batch.sent.every(([, pending]) => pending.el.matches(".source-note"));
       if (!rowSays) show(SAVING, "saving");
-      const answer = await post(batch.ops, given);
+      const answer = await post(batch.ops);
       if (answer.status === 429 && waits < MAX_WAITS) {
         waits += 1;
         await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
         continue;
       }
       if (answer.status !== 202) {
-        if (answer.status === 401) {
-          memory(null);
-          passphrase = null;
-        }
         failure = failureText(answer.status, answer.body);
+        // A refusal that names its op drops that change alone; the rest goes in the next request.
+        const keys = refusedKeys(answer, batch);
+        if (keys) {
+          const sent = new Map(batch.sent);
+          for (const key of keys) {
+            // Only the edit that was sent: the same control changed again meanwhile is a new edit.
+            const pending = sent.get(key);
+            if (!pending || changes.get(key) !== pending) continue;
+            refused.add(key);
+            pending.failed = true;
+            pending.fail?.();
+          }
+          continue;
+        }
         // A row that said Adding says so no more: the change stays for Retry, and the row for itself.
         for (const [, pending] of batch.sent) {
           pending.failed = true;
@@ -614,7 +613,7 @@ export async function flush(
     endLeft(context, failure);
     const next = [...queued].filter((other) => other !== context);
     queued.clear();
-    for (const other of next) void flush(other, given);
+    for (const other of next) void flush(other);
   }
   if ((!sent || rowSays) && !failure) return;
   if (failure) {

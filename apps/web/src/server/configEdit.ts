@@ -5,6 +5,8 @@ import {
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
+  StructureBlocks,
+  StructureKind,
   scheduleZone,
 } from "@dispatch/core";
 
@@ -13,12 +15,7 @@ import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
-import {
-  type GenerateDeps,
-  isSameOrigin,
-  MAX_PASSPHRASE_CHARS,
-  WRONG_PASSPHRASE_DELAY_MS,
-} from "./generate";
+import { type GenerateDeps, isSameOrigin } from "./generate";
 import {
   CONFIG_WORKFLOW_FILE,
   createGitHubClient,
@@ -31,7 +28,7 @@ import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
- * POST /api/config: check the passphrase, check the cooldown against GitHub, dispatch config.yml with
+ * POST /api/config: check the edit, check the cooldown against GitHub, dispatch config.yml with
  * the edit as its one input. Built like handleGenerate, and for the same reason: everything with a
  * side effect is a parameter, so the whole flow is tested with fakes and no network.
  *
@@ -328,9 +325,21 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     case "source.add": {
       const url = webUrl(value.url);
       if (url === null) return null;
-      if (value.topic_ids === undefined) return { op: "source.add", url };
-      const ids = topicIds(value.topic_ids);
-      return ids === null ? null : { op: "source.add", url, topic_ids: ids };
+      const ids = value.topic_ids === undefined ? undefined : topicIds(value.topic_ids);
+      // The page names the new source's id, so an edit sent before the next run can find it.
+      const source = value.id === undefined ? undefined : id(value.id);
+      const format =
+        value.format === undefined
+          ? undefined
+          : (SOURCE_FORMATS.find((entry) => entry === value.format) ?? null);
+      if (ids === null || source === null || format === null) return null;
+      return {
+        op: "source.add",
+        url,
+        ...(ids === undefined ? {} : { topic_ids: ids }),
+        ...(source === undefined ? {} : { id: source }),
+        ...(format === undefined ? {} : { format }),
+      };
     }
     case "source.set": {
       const source = id(value.id);
@@ -419,6 +428,14 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const parsed = CoreConfigOp.safeParse(value);
       return parsed.success && parsed.data.op === value.op ? (value as ConfigOp) : null;
     }
+    case "structure.set": {
+      // The blocks are core's (StructureBlocks, D170), the schema the engine applies the op with.
+      // Its parse keeps only the fields a block names, so an unknown key never reaches the store.
+      const kind = StructureKind.safeParse(value.kind);
+      const blocks = StructureBlocks.safeParse(value.blocks);
+      if (!kind.success || !blocks.success) return null;
+      return { op: "structure.set", kind: kind.data, blocks: blocks.data };
+    }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.
       const parsed = CoreConfigOp.safeParse(value);
@@ -447,12 +464,11 @@ export function scheduledTime(
 }
 
 /**
- * Pulls the passphrase and the edit out of a JSON body, or null when the body is not valid. `op` is
- * one edit, or a list of 1 to 8 that are applied together; one bad entry refuses the whole list.
+ * Pulls the edit out of a JSON body, or null when the body is not valid. `op` is one edit, or a
+ * list of 1 to 8 that are applied together; one bad entry refuses the whole list. A `passphrase`
+ * field that a page built before D160 still sends is ignored.
  */
-export function parseConfigRequest(
-  bodyText: string,
-): { passphrase: string; op: ConfigOp | ConfigOp[] } | null {
+export function parseConfigRequest(bodyText: string): { op: ConfigOp | ConfigOp[] } | null {
   if (bodyText.length === 0 || bodyText.length > MAX_CONFIG_BODY_CHARS) return null;
   let parsed: unknown;
   try {
@@ -461,16 +477,13 @@ export function parseConfigRequest(
     return null;
   }
   if (!isRecord(parsed)) return null;
-  const passphrase = parsed.passphrase;
-  if (typeof passphrase !== "string") return null;
-  if (passphrase.length === 0 || passphrase.length > MAX_PASSPHRASE_CHARS) return null;
   if (Array.isArray(parsed.op)) {
     if (parsed.op.length === 0 || parsed.op.length > MAX_OPS) return null;
     const ops = parsed.op.map(parseConfigOp);
-    return ops.every((op): op is ConfigOp => op !== null) ? { passphrase, op: ops } : null;
+    return ops.every((op): op is ConfigOp => op !== null) ? { op: ops } : null;
   }
   const op = parseConfigOp(parsed.op);
-  return op === null ? null : { passphrase, op };
+  return op === null ? null : { op };
 }
 
 // ------------------------------------------------------------------------------------------ cooldown
@@ -533,12 +546,6 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const request = parseConfigRequest(input.bodyText);
   if (request === null) return invalid;
-
-  const isValid = await deps.verifyPassphrase(request.passphrase, config.passphraseHash);
-  if (!isValid) {
-    await deps.delay(WRONG_PASSPHRASE_DELAY_MS);
-    return { status: 401, body: { status: 401, error: "wrong_passphrase" } };
-  }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

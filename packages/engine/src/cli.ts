@@ -112,7 +112,6 @@ const EXTRA_SECRET_NAMES = [
   "GITHUB_DISPATCH_TOKEN",
   "GITHUB_TOKEN",
   "GH_TOKEN",
-  "GENERATE_PASSPHRASE_HASH",
 ] as const;
 
 function allSecrets(env: Env, source: Record<string, string | undefined>): string[] {
@@ -123,7 +122,7 @@ function allSecrets(env: Env, source: Record<string, string | undefined>): strin
 }
 
 function quietDebug(log: Logger, source: Record<string, string | undefined>): Logger {
-  if (source.DISPATCH_DEBUG === "1") return log;
+  if (source.SINGULARITY_DEBUG === "1" || source.DISPATCH_DEBUG === "1") return log;
   return { ...log, debug: () => {} };
 }
 

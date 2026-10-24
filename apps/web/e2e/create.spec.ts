@@ -1,5 +1,7 @@
+import { DEFAULT_SCHEDULE } from "@dispatch/core";
 import type { Page, Route } from "@playwright/test";
-import { OPEN_PASSPHRASE } from "../src/lib/access";
+import { configHash } from "../src/lib/configHash";
+import { BUILT_FILES, routeConfigStore } from "./configServer";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
@@ -204,9 +206,8 @@ test.describe("the Create page", () => {
     expect(order).toBe(true);
   });
 
-  test("with the passphrase step off, Create sends straight away and mentions none", async ({
-    page,
-  }) => {
+  // Bug it prevents: a press that opened a passphrase dialog, or sent one, after D160 removed it.
+  test("Create sends straight away and asks for nothing", async ({ page }) => {
     // The clock is held, so the page never gets as far as asking after the run.
     await page.clock.install();
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 5, started_at: "x" });
@@ -215,14 +216,12 @@ test.describe("the Create page", () => {
     await expect(page.getByText(/passphrase/i).filter({ visible: true })).toHaveCount(0);
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
-    expect(mock.bodies[0]?.passphrase).toBe(OPEN_PASSPHRASE);
+    expect(mock.bodies[0]).not.toHaveProperty("passphrase");
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
-  test("sends the choices and the passphrase, then follows the run to the end", async ({
-    page,
-  }) => {
+  test("sends the choices, then follows the run to the end", async ({ page }) => {
     await page.clock.install();
     const mock = await mockPodcast(page, 202, {
       status: 202,
@@ -257,10 +256,9 @@ test.describe("the Create page", () => {
     await page.getByLabel("Title").fill("  My week in AI  ");
     await page.locator("[data-submit]").click();
 
-    // The request is exactly what was chosen, and the passphrase rides beside it.
+    // The request is exactly what was chosen.
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]).toEqual({
-      passphrase: OPEN_PASSPHRASE,
       request: {
         audience: "custom",
         topic_ids: ["ai", "tech", "software", "world"],
@@ -860,5 +858,34 @@ test.describe("axe, the Create page and episodes", () => {
   test("an episode page has none", async ({ page }) => {
     await page.goto(EPISODE);
     await expectNoViolationsInEitherScheme(page);
+  });
+});
+
+test.describe("the Create page with the config store on", () => {
+  // The bug (D173): the panel was drawn from the settings as built, so a topic added in Settings had
+  // no chip and a voice or length chosen there was not what Generate sent, until the next deploy.
+  test("starts from the settings as stored, and sends them", async ({ page, context, baseURL }) => {
+    const topics = JSON.parse(BUILT_FILES["config/topics.json"] ?? "{}");
+    const model = topics.topics[0];
+    topics.topics.push({ ...model, id: "pottery", name: "Pottery", origin: "custom" });
+    const custom = { ...DEFAULT_SCHEDULE.custom, length_minutes: 10, voice_id: "voice-stored" };
+    await routeConfigStore(page, () => ({
+      "config/topics.json": JSON.stringify(topics),
+      "config/schedule.json": JSON.stringify({ ...DEFAULT_SCHEDULE, custom }),
+    }));
+    await context.addCookies([
+      { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+    ]);
+    const mock = await mockPodcast(page, 202, { status: 202, run_id: 9, started_at: "x" });
+    await openCreate(page);
+    await chip(page, "Pottery").click();
+    await expect(submit(page)).toHaveText("Generate • 10 mins");
+    await submit(page).click();
+    await expect.poll(() => mock.bodies.length).toBe(1);
+    expect(mock.bodies[0]?.request).toMatchObject({
+      length_minutes: 10,
+      voice_id: "voice-stored",
+      topic_ids: expect.arrayContaining(["pottery"]),
+    });
   });
 });

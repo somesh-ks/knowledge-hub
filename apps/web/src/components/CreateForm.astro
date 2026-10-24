@@ -1,5 +1,4 @@
 ---
-import { OPEN_PASSPHRASE, PASSPHRASE_REQUIRED } from "../lib/access";
 import {
   DEFAULTS,
   FORMATS,
@@ -62,12 +61,6 @@ const moreSummary = moreOptionsSummary(
 // script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
 const COPY = {
   topics: "Pick at least one topic.",
-  ...(PASSPHRASE_REQUIRED
-    ? {
-        passphrase: "Enter the passphrase to continue.",
-        "401": "That passphrase does not match. Check it and try again.",
-      }
-    : {}),
   "400": "The server turned that request down. Reload the page and try again.",
   cooldown: "You can make another episode in",
   daily_cap: "That's today's limit. Try again in",
@@ -78,19 +71,13 @@ const COPY = {
   // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).
   crashed:
     "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
-  // A 401 when the site sends its own passphrase: the deployment's settings disagree.
-  refused: "The server's passphrase setting does not match this site's, so nothing was started.",
   network: "Couldn't reach the site. Check your connection, then try again.",
 } as const;
 ---
 
 {/* The one Create form. /create renders it in the page; the layout renders it into a template that
      the sheet clones on first open. A page never renders both, so its ids stay unique. */}
-<div
-  class="create-view"
-  data-create
-  data-open-passphrase={PASSPHRASE_REQUIRED ? undefined : OPEN_PASSPHRASE}
->
+<div class="create-view" data-create>
   <form data-create-form novalidate>
     {/* Every episode is written for the owner (the General audience is retired, 2026-10-14): the
          request still says so, from this field. */}
@@ -116,7 +103,7 @@ const COPY = {
          those defaults are. */}
     <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
-      <fieldset class="filter-chips" aria-labelledby="create-topics-label">
+      <fieldset class="filter-chips" aria-labelledby="create-topics-label" data-built-topics={allTopics.map((topic) => topic.id).join(" ")}>
         {
           topics.map((topic) => (
             <label class="filter-chip">
@@ -278,49 +265,6 @@ const COPY = {
       </p>
     </div>
   </form>
-
-  {PASSPHRASE_REQUIRED && (
-  <dialog class="sheet" data-dialog aria-labelledby="create-dialog-title">
-    <div class="sheet-panel">
-      <form class="sheet-form" data-dialog-form novalidate>
-        <div class="sheet-head">
-          <h2 class="sheet-title" id="create-dialog-title">Enter the passphrase</h2>
-          <button class="icon-btn press" type="button" data-cancel aria-label="Close">
-            <Icon name="close" class="icon-lg" />
-          </button>
-        </div>
-        <p class="sheet-lede">Writing an episode spends from a daily allowance, so it asks for the passphrase.</p>
-        <div class="sheet-field">
-          <label class="sheet-field-label" for="create-passphrase">Passphrase</label>
-          <input
-            class="sheet-input"
-            id="create-passphrase"
-            name="passphrase"
-            type="password"
-            autocomplete="off"
-            autocapitalize="none"
-            spellcheck="false"
-            enterkeyhint="go"
-            autofocus
-          />
-          <p class="sheet-field-error" role="alert" data-error="dialog" hidden>
-            <Icon name="alert" /><span></span>
-          </p>
-        </div>
-        <label class="sheet-check">
-          <input type="checkbox" name="remember" />
-          <span>Remember on this device</span>
-        </label>
-        <div class="sheet-actions">
-          <button class="btn-primary" type="submit" data-dialog-submit>
-            <span class="spinner" aria-hidden="true"></span>
-            Create episode
-          </button>
-        </div>
-      </form>
-    </div>
-  </dialog>
-  )}
 
   <div hidden data-copy>
     {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}

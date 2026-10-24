@@ -50,27 +50,20 @@ function scriptedFetch(...responses: Array<Response | Error>): {
 const online = () => true;
 
 describe("startGenerate", () => {
-  it("posts the passphrase as GenerateRequest and returns the run on 202", async () => {
+  it("posts a GenerateRequest and returns the run on 202", async () => {
     const { fetch, calls } = scriptedFetch(
       json(202, { run_id: 4242, started_at: "2026-10-07T07:13:00Z" }),
     );
-    const result = await startGenerate("  correct horse ", { fetch, isOnline: online });
+    const result = await startGenerate({ fetch, isOnline: online });
     expect(result).toEqual({ kind: "started", runId: 4242, startedAt: "2026-10-07T07:13:00Z" });
     expect(calls[0]?.url).toBe("/api/generate");
     expect(calls[0]?.init?.method).toBe("POST");
-    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ passphrase: "correct horse" });
-  });
-
-  it("refuses an empty passphrase without a request", async () => {
-    const { fetch, calls } = scriptedFetch();
-    const result = await startGenerate("   ", { fetch, isOnline: online });
-    expect(result).toMatchObject({ kind: "rejected", reason: "empty", message: MESSAGES.empty });
-    expect(calls).toHaveLength(0);
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({});
   });
 
   it("says so when offline, without a request", async () => {
     const { fetch, calls } = scriptedFetch();
-    const result = await startGenerate("x", { fetch, isOnline: () => false });
+    const result = await startGenerate({ fetch, isOnline: () => false });
     expect(result).toMatchObject({
       reason: "offline",
       message: "You are offline. Reconnect, then try again.",
@@ -78,19 +71,11 @@ describe("startGenerate", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("explains a wrong passphrase on 401", async () => {
-    const { fetch } = scriptedFetch(json(401, { error: "wrong_passphrase" }));
-    expect(await startGenerate("nope", { fetch, isOnline: online })).toMatchObject({
-      reason: "wrongPassphrase",
-      message: MESSAGES.wrongPassphrase,
-    });
-  });
-
   it("gives the time remaining on a cooldown", async () => {
     const { fetch } = scriptedFetch(
       json(429, { error: "cooldown", retry_after_s: 5 * 3600 + 12 * 60 }),
     );
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "cooldown",
       message: "Generate is on cooldown. Try again in 5 hours 12 minutes.",
       retryAfterSeconds: 18_720,
@@ -99,7 +84,7 @@ describe("startGenerate", () => {
 
   it("explains the daily cap and falls back to the Retry-After header", async () => {
     const { fetch } = scriptedFetch(json(429, { error: "daily_cap" }, { "retry-after": "7200" }));
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "dailyCap",
       message: "Generate has reached its limit for today. Try again in 2 hours.",
     });
@@ -107,25 +92,25 @@ describe("startGenerate", () => {
 
   it("explains an unavailable service on 503 and any unexpected status", async () => {
     const { fetch } = scriptedFetch(json(503, { error: "unavailable" }), json(500, {}));
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "unavailable",
       message: MESSAGES.unavailable,
     });
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "unavailable",
     });
   });
 
   it("explains a rejected request on 400", async () => {
     const { fetch } = scriptedFetch(json(400, { error: "invalid_request" }));
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "invalid",
     });
   });
 
   it("treats a network failure as a retryable error", async () => {
     const { fetch } = scriptedFetch(new TypeError("Failed to fetch"));
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "network",
       message: MESSAGES.network,
     });
@@ -133,7 +118,7 @@ describe("startGenerate", () => {
 
   it("does not trust a 202 without a run id", async () => {
     const { fetch } = scriptedFetch(json(202, { started_at: "now" }));
-    expect(await startGenerate("x", { fetch, isOnline: online })).toMatchObject({
+    expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "unavailable",
     });
   });
@@ -285,7 +270,7 @@ describe("the Generate store", () => {
 
   it("starts a run, announces it, remembers the run id and plays the start cue", async () => {
     const { store, storage, cues, announcements } = setup(accepted());
-    await store.submit("secret");
+    await store.submit();
     expect(store.getState()).toMatchObject({ phase: "running", runId: 7, fieldError: null });
     expect(cues).toEqual(["started"]);
     expect(announcements).toEqual(["Generating. Waiting for a slot."]);
@@ -293,11 +278,11 @@ describe("the Generate store", () => {
   });
 
   it("shows the server's reason inline and plays the error cue when the start is rejected", async () => {
-    const { store, cues } = setup(json(401, { error: "wrong_passphrase" }));
-    await store.submit("nope");
+    const { store, cues } = setup(json(503, { error: "unavailable" }));
+    await store.submit();
     expect(store.getState()).toMatchObject({
       phase: "idle",
-      fieldError: MESSAGES.wrongPassphrase,
+      fieldError: MESSAGES.unavailable,
     });
     expect(cues).toEqual(["failed"]);
   });
@@ -309,7 +294,7 @@ describe("the Generate store", () => {
       at("reading"),
       at("judging"),
     );
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(calls).toHaveLength(2);
     expect(store.getState().step).toBeNull();
@@ -325,7 +310,7 @@ describe("the Generate store", () => {
       accepted(),
       done("published", { digest_id: "2026-10-07", run_url: "https://example.test/run/7" }),
     );
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(store.getState()).toMatchObject({
       phase: "published",
@@ -341,7 +326,7 @@ describe("the Generate store", () => {
 
   it("finishes as nothing to publish, quietly: no cue", async () => {
     const { store, cues, announcements } = setup(accepted(), done("nothing"));
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(store.getState().phase).toBe("nothing");
     expect(cues).toEqual(["started"]);
@@ -350,7 +335,7 @@ describe("the Generate store", () => {
 
   it("finishes as gated without a cue", async () => {
     const { store, cues } = setup(accepted(), done("gated"));
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(store.getState().phase).toBe("gated");
     expect(cues).toEqual(["started"]);
@@ -362,7 +347,7 @@ describe("the Generate store", () => {
       at("writing"),
       done("failed", { run_url: "https://example.test/run/7" }, "writing"),
     );
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(store.getState()).toMatchObject({
@@ -376,7 +361,7 @@ describe("the Generate store", () => {
 
   it("backs off when the status endpoint hiccups, and recovers", async () => {
     const { store, calls } = setup(accepted(), json(503, {}), json(503, {}), at("reading"));
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(calls).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS * 1.5 - 1);
@@ -391,7 +376,7 @@ describe("the Generate store", () => {
   it("gives up with a visible state after repeated failures, and checks again on request", async () => {
     const failures = Array.from({ length: MAX_CONSECUTIVE_FAILURES }, () => json(503, {}));
     const { store, calls } = setup(accepted(), ...failures, at("judging"));
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(MAX_POLL_MS * MAX_CONSECUTIVE_FAILURES);
     expect(store.getState().lostContact).toBe(true);
     const requests = calls.length;
@@ -404,7 +389,7 @@ describe("the Generate store", () => {
 
   it("forgets a run the server does not know", async () => {
     const { store, storage } = setup(accepted(), json(404, {}));
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(store.getState().phase).toBe("idle");
     expect(storage.getItem(RUN_STORAGE_KEY)).toBeNull();
@@ -412,7 +397,7 @@ describe("the Generate store", () => {
 
   it("slows to a background check when the sheet closes, and speeds up again on reopen", async () => {
     const { store, calls } = setup(accepted(), at("reading"), at("judging"), at("writing"));
-    await store.submit("secret");
+    await store.submit();
     store.setSheetOpen(false);
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS * 2);
     expect(calls).toHaveLength(1);
@@ -430,7 +415,7 @@ describe("the Generate store", () => {
       accepted(),
       done("published", { digest_id: "2026-10-07" }),
     );
-    await store.submit("secret");
+    await store.submit();
     store.setSheetOpen(false);
     await vi.advanceTimersByTimeAsync(BACKGROUND_POLL_MS);
     expect(finished).toEqual([{ phase: "published", digestId: "2026-10-07", runUrl: null }]);
@@ -445,7 +430,7 @@ describe("the Generate store", () => {
 
   it("clears a finished run when the sheet that showed it closes", async () => {
     const { store, finished } = setup(accepted(), done("nothing"));
-    await store.submit("secret");
+    await store.submit();
     await vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     expect(store.getState().phase).toBe("nothing");
     store.setSheetOpen(false);
@@ -477,14 +462,14 @@ describe("the Generate store", () => {
 
   it("ignores a second submit while a run is active", async () => {
     const { store, calls } = setup(accepted());
-    await store.submit("secret");
-    await store.submit("secret");
+    await store.submit();
+    await store.submit();
     expect(calls.filter((call) => call.url === "/api/generate")).toHaveLength(1);
   });
 
   it("ignores an answer that arrives after a reset", async () => {
     const { store } = setup(accepted(), at("reading"));
-    await store.submit("secret");
+    await store.submit();
     const pending = vi.advanceTimersByTimeAsync(FOREGROUND_POLL_MS);
     store.reset();
     await pending;
@@ -494,7 +479,7 @@ describe("the Generate store", () => {
 
   it("stops every timer on dispose", async () => {
     const { store } = setup(accepted());
-    await store.submit("secret");
+    await store.submit();
     store.dispose();
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -505,7 +490,7 @@ describe("the Generate store", () => {
     storage.throwOnWrite = true;
     const store = createGenerateStore({ fetch: scripted.fetch, isOnline: online, storage });
     store.setSheetOpen(true);
-    await store.submit("secret");
+    await store.submit();
     expect(store.getState().phase).toBe("running");
     store.dispose();
   });

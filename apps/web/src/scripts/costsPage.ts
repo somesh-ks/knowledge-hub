@@ -62,7 +62,7 @@ const NAMES: Record<string, string> = {
 const SPLIT_HEAD: Record<string, string> = {
   provider: "By provider",
   kind: "By use",
-  scope: "Shared or personal",
+  scope: "Shared or own",
   user: "By person",
 };
 const PER: Record<Period, string> = { day: "day", week: "week", month: "month" };
@@ -212,7 +212,10 @@ function geometry(width: number, count: number): { band: number; barW: number } 
 
 function draw(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
-  if (!plot || !drawn) return;
+  // A plot with no box (hidden by a failed fetch, load; or its panel out of view in table view,
+  // costs.css) still gets its resize here: drawing into zero height wrote a negative rect
+  // (2026-10-24). Its resize when it shows again draws it.
+  if (!plot || !drawn || plot.clientHeight === 0) return;
   const { buckets, period, data } = drawn;
   plot.querySelector("svg")?.remove();
   const width = Math.max(plot.clientWidth, 240);
@@ -498,6 +501,19 @@ function renderTable(now: Drawn): void {
   const tbody = document.createElement("tbody");
   tbody.append(...rows);
   table.replaceChildren(thead, tbody);
+  syncTableScroll();
+}
+
+/**
+ * A table wider than its card scrolls sideways (a phone): then it is a tab stop, so a keyboard can
+ * scroll it (WCAG 2.1.1; axe, 2026-10-24). A table that fits adds no dead stop. Run after each render
+ * and on every resize of its box, which the table view's first showing is.
+ */
+function syncTableScroll(): void {
+  const scroller = pick<HTMLElement>("[data-costs-table-scroll]");
+  if (!scroller) return;
+  if (scroller.scrollWidth > scroller.clientWidth) scroller.tabIndex = 0;
+  else scroller.removeAttribute("tabindex");
 }
 
 /** What the numbers rest on, in a sentence or two. */
@@ -523,6 +539,13 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   const empty = data.report.total.usd === 0;
   drawn = { buckets, period, by, data };
   active = -1;
+  // A failed fetch hid the chart, the breakdown's head and the view switch (load); a good answer
+  // shows them again before the chart measures its box. The breakdown and the table decide their
+  // own below.
+  for (const part of document.querySelectorAll<HTMLElement>(
+    "[data-costs-plot], [data-costs-rank-head], [data-costs-view]",
+  ))
+    part.hidden = false;
   renderAnswer(data, period);
   draw();
   clearColumn();
@@ -558,6 +581,10 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
 
 // ---- loading -------------------------------------------------------------------------------
 
+/** What a failed fetch hides: the chart, the breakdown, the table and the switch between them. */
+const FAILED_PARTS =
+  "[data-costs-plot], [data-costs-rank-head], [data-costs-rank], [data-costs-table], [data-costs-view]";
+
 let asked = 0;
 
 async function load(): Promise<void> {
@@ -580,6 +607,10 @@ async function load(): Promise<void> {
     if (total) total.textContent = "Unavailable";
     const detail = pick("[data-costs-detail]");
     if (detail) detail.textContent = "The costs could not be loaded right now.";
+    // Nothing to draw, so the chart, the breakdown and the table step out: no blank plot, no stray
+    // hairline, no empty table on offer, and no frame of the last range left under the failure
+    // (audit, 2026-10-24). The next good answer shows them again (render).
+    for (const part of document.querySelectorAll<HTMLElement>(FAILED_PARTS)) part.hidden = true;
   } finally {
     if (ask === asked) body?.removeAttribute("data-loading");
   }
@@ -589,12 +620,18 @@ for (const select of document.querySelectorAll("#costs-range, #costs-by")) {
   select.addEventListener("change", () => void load());
 }
 wireChart();
+// The table's box changes when its view first shows and when the window resizes.
+const tableScroll = pick<HTMLElement>("[data-costs-table-scroll]");
+if (tableScroll) new ResizeObserver(() => syncTableScroll()).observe(tableScroll);
 // Chart or table: the switch at the end of the filter row sets the card's view (costs.css).
 const viewSwitch = pick<HTMLElement>("[data-costs-view]");
 const costsCard = pick<HTMLElement>("[data-costs]");
 if (viewSwitch && costsCard) {
   mountSegmentedNav(viewSwitch, (value) => {
     costsCard.dataset.view = value;
+    // At once, not at the table's next resize: on a cold page that came a second late, after a
+    // keyboard's Tab into the panel.
+    syncTableScroll();
   });
 }
 void load();

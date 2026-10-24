@@ -123,7 +123,7 @@ Ask, then what was built, then the decision. Values are as built.
   - `surface-container` for the page's own controls.
   - `accent-container` for chosen or current.
   - `accent-container-high` for actions that are not places, such as the phone's floating New episode (D86); in dark it is blue-910, a lifted step like light's, never a fill (2026-10-23). In the rail New episode takes `surface-container` with accent ink, so beside the current row it is not a second selection (owner, 2026-10-22).
-  - State layers: hover 8%, press 12% of the control's ink.
+  - State layers: hover 8%, press 12% of the control's ink. A chip on a card hovers at half that in light (`--card-chip-hover`): the full layer took a white chip to L 94 on the card's L 95 and it melted in (owner, 2026-10-24).
   - Pills for buttons, chips, select chips, select values, segmented controls and the search field, in a card as on the page, and for every select in a form (D169: the Create sheet, the Add panel, the multi-select; text fields keep 8px) (D167, 2026-10-23: "that shouldn't be possible in a design system"). For one day (2026-10-22) chips and select values in a card took the card's concentric radius; the owner reversed it on the phone. 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
@@ -324,6 +324,8 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Under 40rem every list that opens from a field is a bottom sheet (D167): a select's drawn list through `::picker(select)` in CSS alone, the searchable picker (`picker.ts` sets `data-sheet`), the multi-select (fixed in place, its card lifted over the navigation bar). The scrim is a spread of the sheet's shadow where the list has no usable backdrop. A select and an input have no tap highlight (`foundations.css`).
 - **Press, hover and focus.**
   - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
+  - The compact segmented navigation (`.segmented-nav-compact`) sits in a row of chips: a chip's height on 44px columns, a layer above and below its 36px face for a 44px target, and its track's tone from `--segmented-nav-bg` (the overlay on a card). It was drawn in `costs.css` until the design audit found its tabs answering across 36px (2026-10-24).
+  - A segmented tab that holds a glyph centres it (`.segmented-nav-tab:has(> .icon)`): Costs' chart and table glyphs sat at their tabs' start, off the pill, because a block glyph ignores text-align (owner: "the graph, table switcher is broken", 2026-10-24).
   - A segmented control's chosen item takes a full outline or container, never only a bottom border: the Gallery and List switch "shows only a bottom border" (2026-10-09).
   - Two targets in one card look different under a mouse: "there is a distinction between clicking on the thumbnail... versus clicking on the text... That distinction is necessary" (2026-10-12, D101).
   - Remove buttons in lists show on hover or focus with a mouse and always on touch (2026-10-08).
@@ -347,7 +349,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
   - The Generate bar's line shows only while the bar is really stuck (D87).
   - The section strip is opaque, so text never shows through under it (D88).
-  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22).
+  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first); the section tabs and the Library shelf still carry their own copies of it. A scroller a keyboard must reach is a tab stop only while it overflows, and its ring is drawn on its parent, since the mask clips its own (the Costs table, axe `scrollable-region-focusable`, 2026-10-24).
   - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
   - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
 - **Speech and status.**
@@ -402,20 +404,23 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).
   - The add-topic form uses `novalidate` with inline messages; an emoji-only name no longer becomes the id "topic" (2026-10-08).
   - Model headings sit on the left in regular weight (D113, #125). The emoji picker's section labels are h3s and were bold by the browser's default; they are regular (audit, 2026-10-22, `topics.css .emoji-label`).
+  - The emoji picker's list was late (owner, 2026-10-24): drawing all 1,878 emoji in one task held a cold open for 1.3 s on a desktop. Each cell now renders only near the view (`content-visibility`), the list fills in batches of 120 after the first category, and hovering, pressing or focusing the button preloads it (`emojiPicker.ts`, `topics.css .emoji-cell`).
+  - Each emoji sits in its cell's optical centre: a pad of a tenth of the font size moves the emoji font's ink off the UI font's baseline, the same for every glyph (owner, 2026-10-24; exempt in `designSystem.spec.ts`).
+  - An emoji cell takes the standard hover state layer under a fine pointer (`.hover-fill`, D72); the chosen emoji's fill and the focus ring win over it (owner, 2026-10-24).
   - The Listen in list on a phone opened under the sticky search block (one under the header), hiding Catch up; the card that holds the open list is lifted to the header's level (audit, 2026-10-22, `topics.css`).
   - Unticked chips in a `.card-group` take the overlay tone, not the raised one: in dark the raised tone equals the card's, so Daily and Weekly's topic chips read as bare text (audit, 2026-10-22, `primitives.css`).
   - The Podcast voice subtitle is only "Daily, Weekly and Catch up episodes are read in these voices." (owner, 2026-10-21); the "Weekly keeps the voice it had before" note is gone (2026-10-22).
   - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
-- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides and the chips its radius less that padding (2026-10-23).
+- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides (2026-10-23). A failed fetch hides the chart, breakdown, table and their switch until the next good answer (2026-10-24).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
   - The action is called Catch up, the kind its episodes are filed under, on the floating button, the side column, the sheet's title and the Library's empty state; Latest's glyph is a bolt, not a flame (D168, 2026-10-23).
 - **Toast.** Swipes away sideways under a finger, springs back from a short drag, never undoes (D168, `Toaster.tsx`).
 - **Queue (Up next).** No handle, no cross: a row moves by the browser's drag and drop (long press or mouse pull), swipes left to leave, and its dots open the header's menu with Move up, Move down, Remove (D169). The Stories and Up next switch keeps the segmented look on a phone, in a sticky bar.
 - **App bar on a page with a sticky block.** Pinned (`data-pins-bar`): it no longer slides away and back under a topic's search and chips (D169).
 - **Section tabs.** 16px each side, the indicator under the words (D169: "placed too close to each other").
-- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169).
+- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169); on a phone, where it found no room beside the chips and sat alone on a row, at the end of the answer's first line (D177, 2026-10-24). The table, wider than a phone's card, fades its hidden edge (`.scroll-fade-inline`). The breakdown's third option reads "Shared or own", so the two chips hold one row from 390px (owner, 2026-10-24); from 40rem the answer's column keeps its words and the chips wrap in theirs, so the head never changes height with a choice.
 - **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D171: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
 ### Sound

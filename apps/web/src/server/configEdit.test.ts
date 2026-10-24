@@ -1,8 +1,6 @@
 import { CATEGORIES } from "@dispatch/core";
-import { verifyPassphrase } from "@dispatch/core/passphrase";
 import type { SqlClient } from "@dispatch/engine/config-store";
-import { beforeAll, describe, expect, it, vi } from "vitest";
-import { cheapPassphraseHash } from "../testing/cheapPassphraseHash";
+import { describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { ConfigOp } from "../types/contracts";
 import {
@@ -16,21 +14,13 @@ import {
   parseConfigRequest,
 } from "./configEdit";
 import { type ConfigReadBody, handleConfigRead } from "./configStore";
-import { WRONG_PASSPHRASE_DELAY_MS } from "./generate";
 
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const TOKEN = "github_pat_secret_value_123456";
 const ORIGIN = "https://news.someshks.work";
-const PASSPHRASE = "correct horse battery staple";
 const RUNS = "GET /actions/workflows/config.yml/runs";
 const DISPATCH = "POST /actions/workflows/config.yml/dispatches";
 const secondsAgo = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
-
-let passphraseHash = "";
-
-beforeAll(() => {
-  passphraseHash = cheapPassphraseHash(PASSPHRASE);
-});
 
 function setup(overrides: Partial<ConfigDeps> = {}) {
   const github = createFakeGitHub();
@@ -40,14 +30,12 @@ function setup(overrides: Partial<ConfigDeps> = {}) {
     env: {
       GITHUB_DISPATCH_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
-      GENERATE_PASSPHRASE_HASH: passphraseHash,
     },
     fetch: github.fetch,
     now: () => NOW,
     delay: async (milliseconds) => {
       delays.push(milliseconds);
     },
-    verifyPassphrase,
     log: (message) => logs.push(message),
     ...overrides,
   };
@@ -65,7 +53,7 @@ const topic = {
 };
 const upsert: ConfigOp = { op: "topic.upsert", topic };
 
-const body = (op: unknown, passphrase: unknown = PASSPHRASE) => JSON.stringify({ passphrase, op });
+const body = (op: unknown) => JSON.stringify({ op });
 const input = (bodyText: string, origin: string | null = ORIGIN) => ({
   bodyText,
   origin,
@@ -79,6 +67,9 @@ describe("parseConfigOp", () => {
       { op: "topic.remove", id: "motion-craft" },
       { op: "source.add", url: "https://example.com/feed.xml" },
       { op: "source.add", url: "https://example.com/", topic_ids: ["motion-craft"] },
+      // The page names the id, so an edit before the next run finds the source ("There is no
+      // source x" when the parser dropped it), and the format the person chose.
+      { op: "source.add", url: "https://example.com/", id: "example-com", format: "video" },
       { op: "source.set", id: "openai-blog", enabled: false },
       { op: "source.set", id: "openai-blog", pinned: true },
       { op: "source.remove", id: "openai-blog" },
@@ -418,8 +409,11 @@ describe("parseConfigOp: schedule.set", () => {
 });
 
 describe("parseConfigRequest", () => {
-  it("reads a passphrase and an edit from a JSON body", () => {
-    expect(parseConfigRequest(body(upsert))).toEqual({ passphrase: PASSPHRASE, op: upsert });
+  it("reads an edit from a JSON body, and ignores a passphrase an older page still sends", () => {
+    expect(parseConfigRequest(body(upsert))).toEqual({ op: upsert });
+    expect(parseConfigRequest(JSON.stringify({ passphrase: "left over", op: upsert }))).toEqual({
+      op: upsert,
+    });
   });
 
   it("reads a list of edits that belong together, in order", () => {
@@ -428,10 +422,7 @@ describe("parseConfigRequest", () => {
       url: "https://a.example/feed",
       topic_ids: ["motion-craft"],
     };
-    expect(parseConfigRequest(body([upsert, add]))).toEqual({
-      passphrase: PASSPHRASE,
-      op: [upsert, add],
-    });
+    expect(parseConfigRequest(body([upsert, add]))).toEqual({ op: [upsert, add] });
   });
 
   it("refuses a list that is empty, longer than eight, or holds one bad edit", () => {
@@ -446,17 +437,13 @@ describe("parseConfigRequest", () => {
   });
 
   it("rejects anything else", () => {
-    const padded = `{"passphrase":"x","op":{"op":"topic.remove","id":"ab"},"pad":"${"y".repeat(MAX_CONFIG_BODY_CHARS)}"}`;
+    const padded = `{"op":{"op":"topic.remove","id":"ab"},"pad":"${"y".repeat(MAX_CONFIG_BODY_CHARS)}"}`;
     for (const bad of [
       "",
       "not json",
       "[]",
       "null",
-      JSON.stringify({ op: upsert }),
-      JSON.stringify({ passphrase: "", op: upsert }),
-      JSON.stringify({ passphrase: 7, op: upsert }),
-      JSON.stringify({ passphrase: "x".repeat(257), op: upsert }),
-      JSON.stringify({ passphrase: "x" }),
+      JSON.stringify({}),
       body({ op: "nope" }),
       padded,
     ]) {
@@ -488,34 +475,22 @@ describe("handleConfig", () => {
 
   it("answers 400 for a body that is not the expected shape", async () => {
     const { deps, github } = setup();
-    for (const bad of ["", "not json", "{}", body({ op: "nope" }), body(upsert, "")]) {
+    for (const bad of ["", "not json", "{}", body({ op: "nope" })]) {
       expect((await handleConfig(input(bad), deps)).status).toBe(400);
     }
     expect(github.requests).toHaveLength(0);
   });
 
-  it("answers 400 for another origin before checking the passphrase", async () => {
-    const verify = vi.fn(async () => true);
-    const { deps } = setup({ verifyPassphrase: verify });
+  it("answers 400 for another origin", async () => {
+    const { deps } = setup();
     const result = await handleConfig(input(body(upsert), "https://evil.example"), deps);
     expect(result.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
   });
 
-  it("answers 400 for an invalid edit before checking the passphrase", async () => {
-    const verify = vi.fn(async () => true);
-    const { deps } = setup({ verifyPassphrase: verify });
+  it("answers 400 for an invalid edit", async () => {
+    const { deps } = setup();
     const result = await handleConfig(input(body({ op: "source.add", url: "ftp://x.test" })), deps);
     expect(result.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
-  });
-
-  it("answers 401 with a constant extra delay for a wrong passphrase", async () => {
-    const { deps, delays, github } = setup();
-    const result = await handleConfig(input(body(upsert, "not the passphrase")), deps);
-    expect(result).toEqual({ status: 401, body: { status: 401, error: "wrong_passphrase" } });
-    expect(delays).toEqual([WRONG_PASSPHRASE_DELAY_MS]);
-    expect(github.requests).toHaveLength(0);
   });
 
   it("dispatches config.yml on main with the edit as one JSON input and returns 202", async () => {
@@ -592,15 +567,13 @@ describe("handleConfig", () => {
     expect(JSON.parse(sent ?? "null")).toEqual([{ ...update, name: "OpenAI" }, pin]);
   });
 
-  it("answers 400 for a source.update that changes nothing, before the passphrase", async () => {
-    const verify = vi.fn(async () => true);
-    const { deps, github } = setup({ verifyPassphrase: verify });
+  it("answers 400 for a source.update that changes nothing", async () => {
+    const { deps, github } = setup();
     const result = await handleConfig(
       input(body({ op: "source.update", id: "openai-blog" })),
       deps,
     );
     expect(result.status).toBe(400);
-    expect(verify).not.toHaveBeenCalled();
     expect(github.requests).toHaveLength(0);
   });
 
@@ -609,7 +582,6 @@ describe("handleConfig", () => {
     github.on(RUNS, { json: { workflow_runs: [] } });
     github.on(DISPATCH, { json: { workflow_run_id: 1 } });
     const hostile = JSON.stringify({
-      passphrase: PASSPHRASE,
       ref: "evil",
       inputs: { mode: "weekly" },
       op: { op: "source.remove", id: "openai-blog", extra: "x" },
@@ -780,23 +752,15 @@ describe("handleConfig", () => {
     expect(logs).toEqual(["config failed: GitHubError: GitHub answered 404"]);
   });
 
-  it("never puts the token, the hash or the passphrase in any response or log", async () => {
+  it("never puts the token in any response or log", async () => {
     const throwing = async () => {
-      throw new Error(`network down while using ${TOKEN} and ${passphraseHash}`);
+      throw new Error(`network down while using ${TOKEN}`);
     };
     const { deps, logs } = setup({ fetch: throwing });
     const result = await handleConfig(input(body(upsert)), deps);
     const everything = JSON.stringify(result) + logs.join("\n");
     expect(everything).not.toContain(TOKEN);
-    expect(everything).not.toContain(passphraseHash);
-    expect(everything).not.toContain(PASSPHRASE);
     expect(logs[0]).toContain("[redacted]");
-  });
-
-  it("never echoes a wrong passphrase", async () => {
-    const { deps } = setup();
-    const result = await handleConfig(input(body(upsert, "my private guess")), deps);
-    expect(JSON.stringify(result)).not.toContain("my private guess");
   });
 });
 
@@ -856,7 +820,6 @@ describe("handleConfig with the config store on (D149)", () => {
     env: {
       GITHUB_DISPATCH_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
-      GENERATE_PASSPHRASE_HASH: passphraseHash,
       DATABASE_URL: "postgres://fake",
       DISPATCH_CONFIG_STORE: "postgres",
     },
@@ -886,6 +849,31 @@ describe("handleConfig with the config store on (D149)", () => {
     const read = await handleConfigRead({ ...deps, storeUrl: "postgres://fake", builtFiles });
     expect((read.body as ConfigReadBody).ops).toEqual([block]);
     expect(JSON.stringify(read.body)).not.toContain("private");
+  });
+
+  // The bug: an edit the function refused (a source added to a topic that is not there, a page that
+  // is a source already) answered a bare 400, and the page said only that the server turned it down.
+  it("tells the page why an edit was refused", async () => {
+    const store = fakeStore([
+      { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+    ]);
+    const { deps } = setup(storeDeps(store));
+    const add: ConfigOp = {
+      op: "source.add",
+      url: "https://blog.example.com/",
+      topic_ids: ["no_such_topic"],
+    };
+    // The refusal names the op, so the page can drop that change and send the others (2026-10-24).
+    const result = await handleConfig(
+      input(body([{ op: "schedule.set", hour: 7 } satisfies ConfigOp, add])),
+      deps,
+    );
+    expect(result.body).toEqual({
+      status: 400,
+      error: "invalid_request",
+      reason: "There is no topic no_such_topic.",
+      op_index: 1,
+    });
   });
 
   // The bug (D149, review round 2): an edit from another device landing between this edit's read
