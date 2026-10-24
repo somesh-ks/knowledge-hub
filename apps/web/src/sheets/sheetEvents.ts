@@ -2,7 +2,7 @@
  * Other parts of the app ask for a sheet by event, so they never import the sheets root. A toast's
  * "Details" action, for one, reopens the Generate sheet without pulling its code into the page.
  */
-export const OPEN_SHEET_EVENT = "dispatch:open-sheet";
+export const OPEN_SHEET_EVENT = "singularity:open-sheet";
 
 export type SheetName = "generate";
 

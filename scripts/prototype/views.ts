@@ -328,7 +328,7 @@ export function settingsMarkup(state: {
         <div class="hint-card">
           ${icon("share")}
           <div>
-            <p><strong>Add Dispatch to your Home Screen</strong>In Safari, tap Share, then Add to Home Screen. It opens full screen and keeps playing in the background.</p>
+            <p><strong>Add Singularity to your Home Screen</strong>In Safari, tap Share, then Add to Home Screen. It opens full screen and keeps playing in the background.</p>
           </div>
           <button class="btn press" type="button" id="hideInstall">Hide this</button>
         </div>

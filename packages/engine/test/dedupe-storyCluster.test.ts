@@ -1,4 +1,4 @@
-import type { Item, SeenFile, Source } from "@dispatch/core";
+import type { Item, SeenFile, Source } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { dedupe } from "../src/dedupe/dedupe.js";
 import {

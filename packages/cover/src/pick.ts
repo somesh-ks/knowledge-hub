@@ -1,4 +1,4 @@
-import type { Category } from "@dispatch/core";
+import type { Category } from "@singularity/core";
 import { DARK_PALETTE_IDS, groundDistance, PALETTE_IDS } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
 import { TEMPLATES } from "./templates/index.js";

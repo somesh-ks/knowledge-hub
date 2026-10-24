@@ -1,7 +1,7 @@
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Item, type JudgmentEntry, loadEnv } from "@dispatch/core";
+import { type Item, type JudgmentEntry, loadEnv } from "@singularity/core";
 import type { CommandContext } from "../src/context.js";
 import type { CurateDeps } from "../src/curate/pipeline.js";
 import type { ExtractedText } from "../src/extract/extractText.js";
@@ -157,7 +157,7 @@ export interface TestRoot {
 
 /** A temporary repository root with the real config files copied in. */
 export async function makeRoot(): Promise<TestRoot> {
-  const root = await mkdtemp(join(tmpdir(), "dispatch-curate-"));
+  const root = await mkdtemp(join(tmpdir(), "singularity-curate-"));
   await mkdir(join(root, "config"), { recursive: true });
   await cp(join(FIXTURE_CONFIG, "voice.md"), join(root, "config", "voice.md"));
   await cp(join(FIXTURE_CONFIG, "preferences.json"), join(root, "config", "preferences.json"));

@@ -1,8 +1,8 @@
-# Dispatch: runbook
+# Singularity: runbook
 
 Operations for the owner. Short, imperative, in the order you need it.
 
-Status: updated 2026-10-06 against the built code. Correct a step here when it turns out wrong. `npm run dispatch -- <command>` runs the engine CLI; `--help` on any command lists its flags.
+Status: updated 2026-10-06 against the built code. Correct a step here when it turns out wrong. `npm run singularity -- <command>` runs the engine CLI; `--help` on any command lists its flags.
 
 Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
 
@@ -33,6 +33,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | Name | Where to get it |
 | --- | --- |
 | `ANTHROPIC_API_KEY` | Anthropic console. Create a key used only for this project; it serves Claude Sonnet and Haiku |
+| `ANTHROPIC_ADMIN_KEY` | Anthropic console, Settings, Admin keys (optional: the Costs page reads Anthropic's bill with it, D183; Vercel only) |
 | `TYPESAFE_API_KEY` | console.typesafe.ai |
 | `EXA_API_KEY` | Exa dashboard |
 | `FIRECRAWL_API_KEY` | Firecrawl dashboard |
@@ -53,7 +54,7 @@ Models are not chosen in `.env` or Settings. `config/models.json` lists, per ste
 3. Compare candidates before trusting one. This calls Jev and the routed models with your keys and costs a few cents:
 
 ```bash
-npm run dispatch -- eval --yes --only bakeoff --models <id>,<id>
+npm run singularity -- eval --yes --only bakeoff --models <id>,<id>
 ```
 
 ### 1.4 Create the Vercel project
@@ -63,7 +64,7 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
 2. Set Root Directory to `apps/web`. Leave "Include source files outside of the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
 3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
-4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `dispatch-bot`, and Hobby blocks those deploys.
+4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `singularity-bot`, and Hobby blocks those deploys.
 
 ### 1.5 Create the Blob store
 
@@ -110,7 +111,7 @@ For the Vercel side, open the project's Settings, Environment Variables in the d
 
 ### 1.10 Check the setup
 
-Run `npm run dispatch -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
+Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
 
 ### 1.11 Push `main` and deploy
 
@@ -134,7 +135,7 @@ Add `-f dry_run=true` to run every stage with nothing written or pushed. It stil
 Do this on the current iOS, once a digest with audio is live. Note the iOS version for any failure.
 
 1. Open the site in Safari. Tap Share, then Add to Home Screen. Open the app from the home screen: it runs full screen.
-2. Open the latest briefing and tap play. Lock the phone. The lock screen shows one track, "Dispatch", with the cover. Check play, pause, the 15 second skips, previous and next item, and that the scrubber moves.
+2. Open the latest briefing and tap play. Lock the phone. The lock screen shows one track, "Singularity", with the cover. Check play, pause, the 15 second skips, previous and next item, and that the scrubber moves.
 3. On the lock screen, drag the scrubber, then unlock and tap another item's play button. Seeking must work; if only seeking fails, it is the Blob Range risk (`git show 91bc533:docs/plan/build-plan.md` Section 14).
 4. Flip the silent switch. Narration keeps playing; interface sounds go quiet. Flip it back and open Settings: the switch and volume control the sounds.
 5. Change the speed, rotate the phone, and trigger a notification or call during playback. After a call the player offers to resume and does not start by itself.
@@ -156,7 +157,7 @@ Nothing to do on most days.
 
 Monthly:
 
-1. Run `npm run dispatch -- status` and read the failing sources. Fix or drop any that fail five runs in a row.
+1. Run `npm run singularity -- status` and read the failing sources. Fix or drop any that fail five runs in a row.
 2. Check balances: Anthropic and Gemini balances, Exa, Speechify characters (`state/usage.json`), the TypeSafe console, Vercel Blob usage.
 3. Check the token expiry dates in section 6.
 
@@ -167,7 +168,7 @@ Monthly:
 | Workflow | Starts when | Does |
 | --- | --- | --- |
 | `run.yml` | Dispatched by `/api/cron/run` in the schedule's hour, its own hourly schedule as a late fallback, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
-| `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `dispatch publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
+| `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `singularity publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 | `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
 
@@ -216,7 +217,7 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 
 | Step | Usual cause | Fix |
 | --- | --- | --- |
-| Fetch | The network is down or every source failed. One failing source is logged, not fatal | Rerun. Check `dispatch status` for sources failing repeatedly |
+| Fetch | The network is down or every source failed. One failing source is logged, not fatal | Rerun. Check `singularity status` for sources failing repeatedly |
 | Judge | Both judges were unavailable, so most of the pool went unjudged. A Jev failure alone falls back to the Haiku or Flash-Lite judge | Section 8.4 |
 | Write | a model not found, key rejected, the token budget aborted the run, or extraction or the writer was down | Section 8.3 |
 | Validate | A digest-level validation error, named in the log. Too few surviving items is not a failure: the outcome is `nothing` | Read the log, then rerun |
@@ -264,7 +265,7 @@ When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("The se
 
 Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at the engine's 128 kbps default, so audio uploaded more than 120 days ago is deleted.
 
-- Pruning runs on every audio run: `audio.yml` calls `dispatch publish --prune 120`.
+- Pruning runs on every audio run: `audio.yml` calls `singularity publish --prune 120`.
 - To prune now, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
 - A pruned digest keeps its text, its timeline and its `audio` field. Its player reports that the audio is not available.
 - Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `audio.yml`.
@@ -275,7 +276,7 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 
 ### 8.1 A digest did not arrive
 
-1. Run `npm run dispatch -- status`. A regular digest is due every second day, so a quiet day can be correct (`gated`).
+1. Run `npm run singularity -- status`. A regular digest is due every second day, so a quiet day can be correct (`gated`).
 2. Check the last runs: `gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 5`.
 3. No run at 07:13: GitHub can delay or drop scheduled runs. The next daily trigger widens the window, so nothing is lost. Start an on-demand run to get it now.
 4. Run exists but the outcome is `nothing`: fewer than three items cleared the bar. Normal on a quiet day.
@@ -284,7 +285,7 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 
 ### 8.2 Audio is missing
 
-1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`. `dispatch publish` retries every digest whose `audio` is null.
+1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`. `singularity publish` retries every digest whose `audio` is null.
 2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
 3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `audio.yml`.
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
@@ -292,20 +293,20 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 
 ### 8.3 A model id changed or was retired
 
-Models are resolved at run start from the providers' lists. Symptoms: the run log warns "A model failed; falling back" with `model_not_found`, or `dispatch models` shows a family on its fallback id. Run `npm run dispatch -- models`, then set `pin` or `fallback_id` for that family in `config/models.json`.
+Models are resolved at run start from the providers' lists. Symptoms: the run log warns "A model failed; falling back" with `model_not_found`, or `singularity models` shows a family on its fallback id. Run `npm run singularity -- models`, then set `pin` or `fallback_id` for that family in `config/models.json`.
 
 ### 8.4 Jev is unavailable
 
 1. A 429 or 529 means rate limit or an outage. The engine retries with backoff, then the routed fallback judge answers the items Jev could not. The run log warns when it does.
 2. A 401 means the key was revoked or expired. Rotate `TYPESAFE_API_KEY` (section 6).
 3. With `TYPESAFE_API_KEY` unset, the routed fallback judge answers alone, the grounding check is skipped and the digest is `verified: false`.
-4. If Jev stays down for days, check the TypeSafe console for status, balance and version retirements. The fallback judge is less calibrated, so scores shift. Revalidate thresholds with `dispatch eval --yes --only judges,grounding` before trusting them again.
+4. If Jev stays down for days, check the TypeSafe console for status, balance and version retirements. The fallback judge is less calibrated, so scores shift. Revalidate thresholds with `singularity eval --yes --only judges,grounding` before trusting them again.
 
 ### 8.5 The site did not update
 
 1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
 2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
-3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `dispatch health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short.
+3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short.
 4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
 5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
 
@@ -324,16 +325,16 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 ### 9.1 Add a source
 
 1. Add a row to `config/sources.md` under the right category.
-2. Run `npm run dispatch -- sources import`. It rebuilds `config/sources.json` from the list, keeping what discovery already found. The new source's id is its name in lowercase with hyphens.
-3. Run `npm run dispatch -- sources discover --only <id>`. It finds and verifies the feed. A site with no feed becomes a Firecrawl scrape source.
-4. Run `npm run dispatch -- sources check --only <id>` and confirm the source answers.
+2. Run `npm run singularity -- sources import`. It rebuilds `config/sources.json` from the list, keeping what discovery already found. The new source's id is its name in lowercase with hyphens.
+3. Run `npm run singularity -- sources discover --only <id>`. It finds and verifies the feed. A site with no feed becomes a Firecrawl scrape source.
+4. Run `npm run singularity -- sources check --only <id>` and confirm the source answers.
 5. Commit both files as `feat(sources): add <name>` and push. Bot runs cannot change `config/`, so this is always a manual commit.
 
 ### 9.2 Teach with `/learn`
 
 1. In the repository, run `/learn` with one sentence, for example "more shaders, less VC funding". From any other folder, ask `sk-dispatch` to learn.
 2. Read the diff. The change is bounded: at most 0.05 per weight and 0.15 in total per call.
-3. Accept it. The skill applies it through `dispatch learn --apply`, commits as `chore(prefs): ...` and pushes.
+3. Accept it. The skill applies it through `singularity learn --apply`, commits as `chore(prefs): ...` and pushes.
 4. The next run uses the new weights. Cached judgments are re-scored with no new calls.
 
 Do not edit `config/preferences.json` by hand. To undo, revert the `chore(prefs)` commit.
@@ -363,7 +364,7 @@ Off by default. With it on, a settings edit is saved to Neon Postgres and shows 
 
 1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `SINGULARITY_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
 2. GitHub secret `DATABASE_URL`: the Neon connection string (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string). Settings → Secrets and variables → Actions → New repository secret, or `npm run secrets:push -- --only github` from `.env`.
-3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run dispatch -- config seed --dry-run` and `npm run dispatch -- config seed`.
+3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run singularity -- config seed --dry-run` and `npm run singularity -- config seed`.
 4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `SINGULARITY_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
 5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
 6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `SINGULARITY_CONFIG_STORE` = `postgres`.
@@ -373,7 +374,7 @@ Off by default. With it on, a settings edit is saved to Neon Postgres and shows 
 
 ### 11.2 Switch off
 
-1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env`, `npm run dispatch -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run dispatch -- config commit --message "snapshot from the store"` commits and pushes them.
+1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env`, `npm run singularity -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run singularity -- config commit --message "snapshot from the store"` commits and pushes them.
 2. Vercel: delete `SINGULARITY_CONFIG_STORE`, then redeploy. The pages stop asking, `GET /api/config` answers 405 and an edit goes through `config.yml` again.
 3. GitHub: delete the `SINGULARITY_CONFIG_STORE` variable. Runs read the committed files again. The secret and the table can stay; nothing reads them while the switch is off.
 4. Remove `SINGULARITY_CONFIG_STORE` from `.env`.

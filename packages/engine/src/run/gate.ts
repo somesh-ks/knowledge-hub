@@ -1,4 +1,4 @@
-import { type DigestKind, type LastRunFile, scheduleZone } from "@dispatch/core";
+import { type DigestKind, type LastRunFile, scheduleZone } from "@singularity/core";
 import { allocateDigestId } from "../gate/allocateDigestId.js";
 import { decideRun, type RunDecision } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";

@@ -9,7 +9,9 @@ const EPISODE = "/e/ep-20261007-1930";
  */
 async function mockNarration(page: Page): Promise<void> {
   const turns = await page.evaluate(() => {
-    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    const data = JSON.parse(
+      document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+    );
     return (data.turns as { key: string; item_id?: string | null }[]).map((turn) => ({
       key: turn.key,
       item_id: turn.item_id ?? null,

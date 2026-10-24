@@ -3,7 +3,7 @@ import {
   PODCAST_MAX_CHARS,
   type PodcastFormat,
   type PodcastRequest,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { CUSTOM_BLOCK_CHARS, type ScriptShape } from "./structure.js";
 
 type PodcastLength = PodcastRequest["length_minutes"];

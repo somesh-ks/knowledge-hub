@@ -1,4 +1,4 @@
-import type { ClientFault } from "@dispatch/engine/faults-store";
+import type { ClientFault } from "@singularity/engine/faults-store";
 import { waitUntil } from "@vercel/functions";
 import type { APIRoute } from "astro";
 import { BUILD_ID } from "../lib/buildId";
@@ -150,9 +150,11 @@ export function toResponse(result: ApiResult<unknown>): Response {
 
 /** The settings whose values a crash message must never print. */
 const SECRET_SETTINGS = [
+  "GITHUB_SINGULARITY_TOKEN",
   "GITHUB_DISPATCH_TOKEN",
   "SPEECHIFY_API_KEY",
   "ANTHROPIC_API_KEY",
+  "ANTHROPIC_ADMIN_KEY",
   "BLOB_READ_WRITE_TOKEN",
   "VERCEL_OIDC_TOKEN",
   "CRON_SECRET",

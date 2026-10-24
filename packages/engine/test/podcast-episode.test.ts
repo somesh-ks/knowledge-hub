@@ -6,7 +6,7 @@ import {
   episodeRelPath,
   parseEpisodeFile,
   serializeEpisodeFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   allocateEpisodeId,

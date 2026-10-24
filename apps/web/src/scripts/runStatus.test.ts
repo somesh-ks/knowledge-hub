@@ -55,7 +55,7 @@ function stubPage(id: number, episode: string) {
     return new Response(JSON.stringify(body), { status: 200 });
   });
   store.set(
-    "dispatch:run",
+    "singularity:run",
     JSON.stringify({ id, phase: "updating", t0: Date.now(), stages: 4, stage: 3 }),
   );
   return page;
@@ -102,7 +102,7 @@ describe("waiting for the redeployed site", () => {
     await vi.advanceTimersByTimeAsync(SITE_POLL_MS);
     await settle();
     expect(page.requests).toHaveLength(2);
-    expect(JSON.parse(page.store.get("dispatch:run") ?? "{}").phase).toBe("done");
+    expect(JSON.parse(page.store.get("singularity:run") ?? "{}").phase).toBe("done");
     await vi.dynamicImportSettled();
     expect(prewarmEpisode).toHaveBeenCalledExactlyOnceWith("ep-20261011-1930");
     // Nothing more is asked once it has been seen.
@@ -144,11 +144,11 @@ describe("a finished line that has gone stale", () => {
     t0: Date.now() - ageMs,
   });
   const stored = (page: ReturnType<typeof stubPage>) =>
-    JSON.parse(page.store.get("dispatch:run") ?? "null");
+    JSON.parse(page.store.get("singularity:run") ?? "null");
 
   it("goes with the episode it was about, once that episode is removed", () => {
     const page = stubPage(77, "ep-1");
-    page.store.set("dispatch:run", JSON.stringify(done("ep-1", 5_000)));
+    page.store.set("singularity:run", JSON.stringify(done("ep-1", 5_000)));
     forgetRunAbout("ep-2");
     expect(stored(page)?.episode).toBe("ep-1");
     forgetRunAbout("ep-1");
@@ -158,7 +158,7 @@ describe("a finished line that has gone stale", () => {
   it("stays while the run is still going, since the episode's actions are off until it ends", () => {
     const page = stubPage(77, "ep-1");
     page.store.set(
-      "dispatch:run",
+      "singularity:run",
       JSON.stringify({
         id: 77,
         phase: "running",
@@ -173,10 +173,10 @@ describe("a finished line that has gone stale", () => {
 
   it("is not shown by a page that opens ten minutes after a rewrite finished", () => {
     const page = stubPage(77, "ep-1");
-    page.store.set("dispatch:run", JSON.stringify(done("ep-1", 5 * 60_000)));
+    page.store.set("singularity:run", JSON.stringify(done("ep-1", 5 * 60_000)));
     resumeRun();
     expect(stored(page)?.phase).toBe("done");
-    page.store.set("dispatch:run", JSON.stringify(done("ep-1", 11 * 60_000)));
+    page.store.set("singularity:run", JSON.stringify(done("ep-1", 11 * 60_000)));
     resumeRun();
     expect(stored(page)).toBeNull();
   });
@@ -184,7 +184,7 @@ describe("a finished line that has gone stale", () => {
   it("keeps a finished new episode's line however old: it still offers the episode", () => {
     const page = stubPage(77, "ep-1");
     page.store.set(
-      "dispatch:run",
+      "singularity:run",
       JSON.stringify({ id: 77, phase: "done", href: "/e/ep-1", t0: Date.now() - 60 * 60_000 }),
     );
     resumeRun();

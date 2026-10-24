@@ -1,4 +1,4 @@
-import type { Source } from "@dispatch/core";
+import type { Source } from "@singularity/core";
 import { channelFeedUrl } from "../fetch/youtube.js";
 import { slugify } from "../normalize/slugify.js";
 import { type DiscoverDeps, discoverFeed, resolveYoutubeChannel } from "./discover.js";

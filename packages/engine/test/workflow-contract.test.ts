@@ -7,10 +7,10 @@ import { runCli } from "../src/cli.js";
 import { REPO_ROOT } from "./score-factories.js";
 
 // No test runs a scheduled workflow, so a renamed command or flag would first fail in production.
-// This reads every `dispatch -- <args>` call in .github/workflows and runs its literal arguments
+// This reads every `singularity -- <args>` call in .github/workflows and runs its literal arguments
 // through the CLI in an empty folder with no keys: any exit is fine except 2, the usage error that a
 // missing command or an unknown flag produces. Shell variables get a plausible value each.
-const RUNS_FILE = join(tmpdir(), `dispatch-contract-runs-${process.pid}.json`);
+const RUNS_FILE = join(tmpdir(), `singularity-contract-runs-${process.pid}.json`);
 writeFileSync(RUNS_FILE, "[]");
 const PLACEHOLDERS: Record<string, string[]> = {
   '"${args[@]}"': [
@@ -33,7 +33,7 @@ const PLACEHOLDERS: Record<string, string[]> = {
   '"$runs"': [RUNS_FILE],
   // health.yml's probe output (empty on a day without the probe); a failed probe wrote none,
   // which must not be a usage error.
-  '"$PERF"': [join(tmpdir(), `dispatch-contract-perf-${process.pid}-missing.json`)],
+  '"$PERF"': [join(tmpdir(), `singularity-contract-perf-${process.pid}-missing.json`)],
   '"$FEEDBACK"': ["Shorter summaries"],
   '"$TOPICS"': ["ai,design"],
   '"$OP"': ['{"op":"weights.set","weights":{"design_engineering_craft":0.9}}'],
@@ -61,14 +61,14 @@ const calls = readdirSync(dir)
   .flatMap((name) =>
     readFileSync(join(dir, name), "utf8")
       .split("\n")
-      .map((line) => /dispatch -- ([^|]+)/.exec(line)?.[1]?.trim())
+      .map((line) => /singularity -- ([^|]+)/.exec(line)?.[1]?.trim())
       .filter((args): args is string => args !== undefined)
       .map((args) => [`${name}: ${args}`, args] as const),
   );
 
 let root: string;
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-contract-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-contract-"));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });

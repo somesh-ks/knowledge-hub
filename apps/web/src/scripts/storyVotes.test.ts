@@ -79,7 +79,7 @@ function sitefetch(network: { down: boolean }): typeof fetch {
       },
       {
         env: {
-          GITHUB_DISPATCH_TOKEN: "t",
+          GITHUB_SINGULARITY_TOKEN: "t",
           GITHUB_REPOSITORY: "o/r",
         },
         fetch: githubFetch,
@@ -129,7 +129,7 @@ beforeEach(async () => {
     visibilityState: "visible",
     querySelectorAll: () => [],
   });
-  document.addEventListener("dispatch:toast", (event) =>
+  document.addEventListener("singularity:toast", (event) =>
     toasts.push((event as CustomEvent<Toast>).detail),
   );
   vi.stubGlobal("document", document);
@@ -220,7 +220,7 @@ describe("Stop hearing from", () => {
     ]);
     // A refusal is not retried on its own and nothing is left queued: pressing again is the retry.
     expect(applied).toEqual([]);
-    expect(localStorage.getItem("dispatch:story-blocks")).toBeNull();
+    expect(localStorage.getItem("singularity:story-blocks")).toBeNull();
   });
 });
 

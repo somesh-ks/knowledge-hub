@@ -6,7 +6,7 @@ import {
   hostNamesFor,
   type PodcastRequest,
   parseEpisodeFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makePodcastCommand } from "../src/commands/podcast.js";
 import { buildEpisode, writeEpisodeFile } from "../src/podcast/episode.js";

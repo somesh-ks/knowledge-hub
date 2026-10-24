@@ -1,4 +1,4 @@
-import { type Category, type Item, SECTIONS, VOICE_LIMITS } from "@dispatch/core";
+import { type Category, type Item, SECTIONS, VOICE_LIMITS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { scoreItem } from "../src/score/scoreItem.js";
 import {

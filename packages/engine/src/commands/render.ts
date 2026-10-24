@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
-import { categoryIsOff, homeSectionFor, topicSectionTitles, zonedDate } from "@dispatch/core";
+import { categoryIsOff, homeSectionFor, topicSectionTitles, zonedDate } from "@singularity/core";
 import { type CommandRun, secretsFromEnv } from "../context.js";
 import {
   linkSourceIds,
@@ -28,7 +28,7 @@ import { loadVoice } from "../voice/voice.js";
 import { writtenText } from "../write/text.js";
 
 export const RENDER_USAGE =
-  "Usage: dispatch render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]";
+  "Usage: singularity render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]";
 
 export interface RenderDeps {
   /** The cover package's picker. Defaults to a deterministic stand-in. */
@@ -36,11 +36,11 @@ export interface RenderDeps {
 }
 
 /**
- * `dispatch render`: turn a run's `selection.json` into `Digests/YYYY/MM/<id>.md`. It rebuilds
+ * `singularity render`: turn a run's `selection.json` into `Digests/YYYY/MM/<id>.md`. It rebuilds
  * the items from the pool, assigns sections and Top picks, computes read and listen times,
- * validates the result with the same checks as `dispatch validate`, and writes the file without
- * ever overwriting. The digest takes the id `dispatch fetch` allocated for the run when it is
- * still free, otherwise the next free suffix. The audio script is built later by `dispatch audio`
+ * validates the result with the same checks as `singularity validate`, and writes the file without
+ * ever overwriting. The digest takes the id `singularity fetch` allocated for the run when it is
+ * still free, otherwise the next free suffix. The audio script is built later by `singularity audio`
  * from the digest fields. Exit codes: 0 rendered or nothing to render, 1 failure, 2 usage error.
  */
 export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
@@ -86,7 +86,9 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
 
       const rawSelection = await readJsonIfExists(selectionPath, "selection.json");
       if (rawSelection === null) {
-        log.error(`selection.json not found at ${selectionPath}. Run \`dispatch curate\` first.`);
+        log.error(
+          `selection.json not found at ${selectionPath}. Run \`singularity curate\` first.`,
+        );
         return 1;
       }
       const parsed = Selection.safeParse(rawSelection);

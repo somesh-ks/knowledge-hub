@@ -1,4 +1,4 @@
-import type { Source } from "@dispatch/core";
+import type { Source } from "@singularity/core";
 import type { RawItem } from "../normalize/buildItem.js";
 import { type FeedEntry, type ParsedFeed, parseFeed } from "./feedParser.js";
 import type { FetchDeps } from "./types.js";

@@ -15,6 +15,8 @@ export const COST_KINDS = [
   "on_demand",
   "narration_on_play",
   "config",
+  /** What a provider billed beyond the ledger: evals, local scripts (apps/web anthropicBilling.ts). */
+  "outside_app",
 ] as const;
 export const CostKind = z.enum(COST_KINDS);
 export type CostKind = z.infer<typeof CostKind>;
@@ -200,7 +202,8 @@ function add(acc: Acc, record: CostRecord): void {
   acc.r.records += 1;
   if (record.scope === "shared") acc.r.shared_usd += record.usd;
   if (record.unpriced) acc.r.unpriced = true;
-  acc.runs.add(record.run_id);
+  // Billed spend outside the app is no run, so it does not lower the cost a run.
+  if (record.kind !== "outside_app") acc.runs.add(record.run_id);
   acc.r.runs = acc.runs.size;
 }
 

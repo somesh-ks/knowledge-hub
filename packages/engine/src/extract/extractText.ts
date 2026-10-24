@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import type { Logger } from "../context.js";
 import { type FetchHtmlOptions, fetchHtml } from "./fetchHtml.js";
 import { articleText, plainTextOf } from "./htmlToText.js";

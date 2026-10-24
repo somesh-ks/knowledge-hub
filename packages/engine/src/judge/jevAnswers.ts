@@ -1,4 +1,4 @@
-import { type CategoryOrNone, type Item, JudgmentEntry } from "@dispatch/core";
+import { type CategoryOrNone, type Item, JudgmentEntry } from "@singularity/core";
 import { z } from "zod";
 import { clamp01, round4 } from "../score/numbers.js";
 import { CATEGORY_OPTIONS, CRAFT_MAX_LEVEL, type FlagName, LAUNCH_MAX_LEVEL } from "./questions.js";

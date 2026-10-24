@@ -52,7 +52,7 @@ export async function serveNarration(
     const html = path
       ? new DOMParser().parseFromString(await (await fetch(path)).text(), "text/html")
       : document;
-    const data = JSON.parse(html.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    const data = JSON.parse(html.getElementById("singularity-digest-data")?.textContent ?? "{}");
     return (data.items as { id: string }[]).map((item) => item.id);
   }, from);
   const keys = ["intro", ...ids];
@@ -376,7 +376,7 @@ export class PlayerPage {
       const scope = window as { dispatchAwake?: boolean };
       if (scope.dispatchAwake) return;
       scope.dispatchAwake = true;
-      dispatchEvent(new Event("dispatch:wake"));
+      dispatchEvent(new Event("singularity:wake"));
     });
     await this.page.waitForFunction(() => document.querySelector("astro-island[ssr]") === null);
     await expect(this.root).toHaveAttribute("data-mini", "hidden");
@@ -525,7 +525,9 @@ export class PlayerPage {
   /** The stories in narration order, from the page's own digest data, with their place in seconds. */
   stories(): Promise<Array<{ id: string; start: number; end: number }>> {
     return this.page.evaluate(() => {
-      const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+      const data = JSON.parse(
+        document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+      );
       return (data.items as Array<{ id: string; start_ms: number; end_ms: number }>).map(
         (item) => ({ id: item.id, start: item.start_ms / 1000, end: item.end_ms / 1000 }),
       );

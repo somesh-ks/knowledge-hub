@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { AudioTimeline, audioTimelineRelPath, parseDigestFile } from "@dispatch/core";
+import { AudioTimeline, audioTimelineRelPath, parseDigestFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { bundledDigestIds, bundledDigests } from "./digestSource";
 

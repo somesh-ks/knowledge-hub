@@ -1,6 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { DigestId, zonedDate } from "@dispatch/core";
+import { DigestId, zonedDate } from "@singularity/core";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection } from "../curate/selectionFile.js";
@@ -37,20 +37,20 @@ export async function markAdoptedCommitted(
 
 /**
  * Build a one-pass plan from an agent-mode run directory: the session fetched, wrote
- * `agent-selection.json` and ran `dispatch curate --mode agent`, which left a validated
+ * `agent-selection.json` and ran `singularity curate --mode agent`, which left a validated
  * `selection.json`. No gate ran, so the run is not tied to the cadence; the selection's own kind
  * decides which record the commit updates.
  */
 async function adopt(deps: RunDeps, options: RunOptions, id: string): Promise<ResolvedPlan> {
   if (!DigestId.safeParse(id).success) {
     throw new StageFailure(
-      `Run directory "${id}" is not a digest id. Use the id \`dispatch fetch\` printed.`,
+      `Run directory "${id}" is not a digest id. Use the id \`singularity fetch\` printed.`,
     );
   }
   const raw = await readJsonIfExists(passFile(deps.root, id, "selection.json"), "selection.json");
   if (raw === null) {
     throw new StageFailure(
-      `No selection.json in .cache/run/${id}. Run \`dispatch curate --mode agent\` first.`,
+      `No selection.json in .cache/run/${id}. Run \`singularity curate --mode agent\` first.`,
     );
   }
   const selection = Selection.safeParse(raw);
@@ -131,6 +131,6 @@ export async function resolveCommitPlan(deps: RunDeps, options: RunOptions): Pro
   if (agentRun !== null) return adopt(deps, options, agentRun);
   if (plan !== null) return { plan, adopted: false };
   throw new StageFailure(
-    "No plan found. Run `dispatch run --stage gate` first, or for agent mode run `dispatch curate --mode agent` and then commit.",
+    "No plan found. Run `singularity run --stage gate` first, or for agent mode run `singularity curate --mode agent` and then commit.",
   );
 }

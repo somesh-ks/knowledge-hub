@@ -139,7 +139,7 @@ export function startServer({ root, port }) {
     const deploy = /(?:^|;\s*)test-build=([\w-]+)/.exec(request.headers.cookie ?? "")?.[1];
     if (file && deploy && /\.(html|json)$/.test(file) && request.method === "GET") {
       const body = readFileSync(file, "utf8")
-        .replace(/(<meta name="dispatch-build" content=")[^"]*"/, `$1${deploy}"`)
+        .replace(/(<meta name="singularity-build" content=")[^"]*"/, `$1${deploy}"`)
         .replace(/^\{"build":"[^"]*"\}/, `{"build":"${deploy}"}`);
       response.writeHead(200, {
         "Content-Type": TYPES[extname(file)] ?? "application/octet-stream",
@@ -149,13 +149,13 @@ export function startServer({ root, port }) {
       return;
     }
     // The config store switched on (D149), for one browser context only: its `test-config-store`
-    // cookie gives every page the tag a build with DISPATCH_CONFIG_STORE=postgres writes, naming the
+    // cookie gives every page the tag a build with SINGULARITY_CONFIG_STORE=postgres writes, naming the
     // config files the cookie names, so the pages ask /api/config, which the test answers.
     const store = /(?:^|;\s*)test-config-store=([\w-]+)/.exec(request.headers.cookie ?? "")?.[1];
     if (file && store && file.endsWith(".html") && request.method === "GET") {
       const body = readFileSync(file, "utf8").replace(
-        /(<meta name="dispatch-build" content="[^"]*" ?\/?>)/,
-        `$1<meta name="dispatch-config-store" content="${store}">`,
+        /(<meta name="singularity-build" content="[^"]*" ?\/?>)/,
+        `$1<meta name="singularity-config-store" content="${store}">`,
       );
       response.writeHead(200, { "Content-Type": TYPES[".html"], ...headersFor(pathname) });
       response.end(body);

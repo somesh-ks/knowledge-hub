@@ -4,7 +4,7 @@ import { readServerConfig } from "./config";
 import { createGitHubClient, GitHubError } from "./github";
 
 const parsedConfig = readServerConfig({
-  GITHUB_DISPATCH_TOKEN: "github_pat_secret_value_123456",
+  GITHUB_SINGULARITY_TOKEN: "github_pat_secret_value_123456",
   GITHUB_REPOSITORY: REPO,
 });
 if (!parsedConfig) throw new Error("test config");
@@ -23,7 +23,7 @@ describe("createGitHubClient", () => {
     const [request] = github.requests;
     expect(request?.headers.authorization).toBe("Bearer github_pat_secret_value_123456");
     expect(request?.headers["x-github-api-version"]).toBe("2022-11-28");
-    expect(request?.headers["user-agent"]).toBe("dispatch-site");
+    expect(request?.headers["user-agent"]).toBe("singularity-site");
   });
 
   it("lists only workflow_dispatch runs of run.yml on main", async () => {

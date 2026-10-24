@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import type { Item } from "@dispatch/core";
-import { loadModelRouting } from "@dispatch/core";
+import type { Item } from "@singularity/core";
+import { loadModelRouting } from "@singularity/core";
 import {
   type Alexandria,
   createAlexandria,

@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { STATE_FILES } from "@dispatch/core";
+import { STATE_FILES } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   addUsage,

@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { LastRunFile } from "@dispatch/core";
+import type { LastRunFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { UsageError } from "../src/run/errors.js";
 import { gateStage, parseSince } from "../src/run/gate.js";
@@ -15,7 +15,7 @@ const SUN = new Date("2026-10-11T05:13:00Z");
 
 let root: string;
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-gate-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-gate-"));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });

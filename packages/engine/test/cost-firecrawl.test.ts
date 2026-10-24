@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { LastRunFile } from "@dispatch/core";
+import { LastRunFile } from "@singularity/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { extractFullText, FEED_TEXT_ENOUGH_CHARS } from "../src/extract/extractText.js";
 import { createFirecrawlScrape } from "../src/extract/firecrawlScrape.js";

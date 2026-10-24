@@ -7,7 +7,7 @@ import {
   type SeenFile,
   type SourceHealthFile,
   type SourceStatsFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { git } from "./git-testRepo.js";
 import {
@@ -138,7 +138,7 @@ describe("published run", () => {
 
       // The commit: chore(digest), authored by the bot, pushed, nothing left over.
       expect(git(repo.root, "log", "-1", "--format=%s")).toBe("chore(digest): 2026-10-07");
-      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("dispatch-bot");
+      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("singularity-bot");
       expect(git(repo.remote, "rev-parse", "main")).toBe(head(repo.root));
       expect(changedInHead(repo.root)).toEqual([
         DIGEST_PATH,

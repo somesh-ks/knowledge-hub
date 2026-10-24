@@ -328,7 +328,7 @@ export interface Held {
 }
 
 /** Told on the document when a left page's run ends (savedView.ts, settingsSaved.ts, autosave.ts). */
-export const HELD_EVENT = "dispatch:held";
+export const HELD_EVENT = "singularity:held";
 
 /** Lost changes no page has taken yet: they wait for the page open now, until it is left. */
 let unclaimed: { held: Held[]; entries: [string, Pending][] } | null = null;
@@ -621,7 +621,7 @@ export async function flush(context: SaveContext): Promise<void> {
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save
     // that went through makes none: it happens on its own after every change, and the change itself
     // already made its tick.
-    globalThis.document?.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "failure" }));
+    globalThis.document?.dispatchEvent(new CustomEvent("singularity:sound", { detail: "failure" }));
   } else if (timeRefused) show(TIME_REFUSED, "done");
   else show(SAVED, "saved");
 }

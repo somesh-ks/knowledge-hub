@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type CostKind, STATE_FILES, UsageFile } from "@dispatch/core";
+import { type CostKind, STATE_FILES, UsageFile } from "@singularity/core";
 import { recordPaidCalls } from "../cost/ledger.js";
 import { loadScheduleZone } from "../schedule/store.js";
 import { writeJsonAtomic } from "./atomicFile.js";

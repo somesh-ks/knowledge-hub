@@ -37,13 +37,14 @@ const GITHUB_VARIABLES = [
  * /api/cron/run, which refuses every call without it (D61).
  */
 const VERCEL_ENV = [
-  "GITHUB_DISPATCH_TOKEN",
+  "GITHUB_SINGULARITY_TOKEN",
   "GITHUB_REPOSITORY",
   "SPEECHIFY_API_KEY",
   "SPEECHIFY_VOICE_ID",
   "SPEECHIFY_MONTHLY_CHARS",
   "BLOB_READ_WRITE_TOKEN",
   "ANTHROPIC_API_KEY",
+  "ANTHROPIC_ADMIN_KEY",
   "TYPESAFE_API_KEY",
   // The topic emoji backup (Gemini Flash-Lite) runs on a site request.
   "GEMINI_API_KEY",
@@ -82,6 +83,9 @@ function parseDotenv(text: string): Record<string, string> {
   }
   if (!out.SINGULARITY_GIT_EMAIL && out.DISPATCH_GIT_EMAIL) {
     out.SINGULARITY_GIT_EMAIL = out.DISPATCH_GIT_EMAIL;
+  }
+  if (!out.GITHUB_SINGULARITY_TOKEN && out.GITHUB_DISPATCH_TOKEN) {
+    out.GITHUB_SINGULARITY_TOKEN = out.GITHUB_DISPATCH_TOKEN;
   }
   return out;
 }

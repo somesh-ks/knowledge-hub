@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import { EpisodeId, readEpisodeScript } from "@dispatch/core";
+import { EpisodeId, readEpisodeScript } from "@singularity/core";
 import { DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
 
 /**
  * Where a narrated segment lives, shared by the site's /api/narrate (which narrates a segment on
  * Play and tells the page each segment's address) and the engine's `publish` (which narrates a new
  * episode ahead of time). Both must name a segment the same way, or a stored file is never found.
- * Not part of `@dispatch/engine/audio`, whose imports stay free of every `node:` module.
+ * Not part of `@singularity/engine/audio`, whose imports stay free of every `node:` module.
  *
  * A segment is stored at
  *

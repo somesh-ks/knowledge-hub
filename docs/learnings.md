@@ -63,12 +63,14 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
 - 2026-10-12: episode length: a writer told a length in characters delivers a third to two thirds; in words, per story and in total, 83 to 90%. A script cannot be longer than its stories carry, so hold it to that, not to the request (D43). Asking for 90% of the reachable length gave 79 to 87% and wrote almost every episode twice: ask for 95% and accept a reply within a few percent of the floor.
 - 2026-10-11: a missing morning briefing was GitHub, not the gate: the 07:13 Stockholm entry ran between 13:11 and 14:02 on each of 7 to 10 October, part of a platform-wide delay since 2026-08-26 with no fix. Before debugging a missed run, list `run.yml`'s schedule runs (an entry that starts no runner shows as "skipped") and read the Gate log of the one that executed. The trigger moved to Vercel Cron (D61).
-- 2026-10-11: `dispatch sources import` keeps an existing source's `enabled` and `options`, so a seed change to either reaches only new sources; write it into `config/sources.json` after the import (`--fresh` would lose discovered feeds and counters). The import also writes JSON that Biome reformats: run `biome format` on it before linting.
+- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change to either reaches only new sources; write it into `config/sources.json` after the import (`--fresh` would lose discovered feeds and counters). The import also writes JSON that Biome reformats: run `biome format` on it before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
 - 2026-10-08: Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for the repo, its workflows and its runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
-- 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `dispatch doctor --online` after any credential change.
+- 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `singularity doctor --online` after any credential change.
 
 ## Site and service worker
+
+- 2026-10-24: a chart panel hidden by CSS (`display: none`, the Costs table view) still gets its ResizeObserver callback, at zero height, and drew a rect of -40. Guard a draw on the box (`clientHeight === 0`), not on `hidden`.
 
 - 2026-10-24: an audit asked for `s-maxage` and one hourly cron: `no-cache` pages and `/api/site-icon` are already edge hits, and Hobby fails `0 * * * *`, so keep the 24 (D61).
 - 2026-10-24: with the store on, a refused add said only "The server turned that change down": the function refuses edits itself now (duplicate source, missing topic, dead page) and said why only in its log. The 400 carries the engine's sentence as `reason` for the toast.
@@ -100,7 +102,9 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 ## Agents and worktrees
 
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
-- 2026-10-22: two sessions took D157 at once. Workers add no decision; the lead numbers them.
+- 2026-10-22: two sessions took D157 at once, and D159 and D176 collided later the same way. Workers add no decision; the lead numbers them and checks `main`'s Index again right before merging.
+- 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
+- 2026-10-24: a layout test's invented $97.70 in a screenshot read to the owner as real spend. Use plainly fake figures, or say "fixture", in shots shown to the owner.
 
 - 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask; review every PR locally when the bot is silent.
 - 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.

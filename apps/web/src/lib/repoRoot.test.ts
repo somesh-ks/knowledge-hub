@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 function makeRepo(): string {
-  const root = mkdtempSync(join(tmpdir(), "dispatch-root-"));
+  const root = mkdtempSync(join(tmpdir(), "singularity-root-"));
   temporary.push(root);
   mkdirSync(join(root, "packages", "core"), { recursive: true });
   writeFileSync(join(root, "packages", "core", "package.json"), "{}");
@@ -36,7 +36,7 @@ describe("findRepoRoot", () => {
   });
 
   it("fails clearly outside a repository", () => {
-    const outside = mkdtempSync(join(tmpdir(), "dispatch-outside-"));
+    const outside = mkdtempSync(join(tmpdir(), "singularity-outside-"));
     temporary.push(outside);
     expect(() => findRepoRoot(outside, {})).toThrow(/repository root/);
   });

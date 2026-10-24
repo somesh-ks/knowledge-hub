@@ -5,7 +5,7 @@ import {
   weekday,
   zonedDate,
   zonedHour,
-} from "@dispatch/core";
+} from "@singularity/core";
 
 export const RUN_MODES = ["scheduled", "on-demand", "weekly"] as const;
 export type RunMode = (typeof RUN_MODES)[number];

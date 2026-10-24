@@ -7,7 +7,7 @@ import {
   type EpisodeIndexEntry,
   episodeRelPath,
   parseEpisodeFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { BlobClient } from "./blob.js";
 import { listEpisodeIds } from "./publishEpisodes.js";
 

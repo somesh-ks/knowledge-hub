@@ -5,7 +5,7 @@ import {
   type Item,
   type TopicsFile,
   topicSectionTitles,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { Selection } from "../curate/selectionFile.js";
 import { buildDigest, type CoverPicker, type DigestIdAllocator } from "../render/buildDigest.js";
 import type { SectionPlan } from "../score/sectionPlan.js";

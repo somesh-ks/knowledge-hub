@@ -6,7 +6,7 @@ import { startServer } from "./staticServer.mjs";
 
 /**
  * Builds the site for tests, then serves it. The build uses the invented fixture digests and skips
- * the Vercel adapter (DISPATCH_STATIC_ONLY), which bundles functions with symlinks that Windows
+ * the Vercel adapter (SINGULARITY_STATIC_ONLY), which bundles functions with symlinks that Windows
  * refuses without Developer Mode. The output is the same static site either way.
  *
  * Usage: node e2e/run.mjs [--build-only] [--serve-only]

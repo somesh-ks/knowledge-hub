@@ -7,7 +7,7 @@ import {
   isBuiltinCategory,
   TECH_SECTION,
   type TopicsFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { assignSections, capFor, TECH_ALLOWANCE } from "../score/selectItems.js";
 import { type Linter, VOICE_FIELDS } from "../voice/lint.js";
 import { writtenText } from "../write/text.js";

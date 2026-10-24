@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { type SourceStatsFile, stockholmDate, VOICE_LIMITS } from "@dispatch/core";
+import { type SourceStatsFile, stockholmDate, VOICE_LIMITS } from "@singularity/core";
 import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
@@ -215,7 +215,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
     const attempted = gathered.results.length - skipped.length;
     if (attempted > 0 && failed.length === attempted) {
       throw new StageFailure(
-        `${pass.id}: all ${attempted} sources that could run failed. Check the network and run \`dispatch sources check\`.`,
+        `${pass.id}: all ${attempted} sources that could run failed. Check the network and run \`singularity sources check\`.`,
       );
     }
 

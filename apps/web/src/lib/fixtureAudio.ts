@@ -2,7 +2,7 @@
  * A short synthesized audio file for the fixture digest, so the e2e tests and the visual review can
  * press play without a real narration. It is 8-bit mono PCM in a WAV container: a quiet tone with a
  * brief click at each item boundary, so a listener can hear the seek land. Served only when
- * DISPATCH_FIXTURES=1.
+ * SINGULARITY_FIXTURES=1.
  */
 export interface FixtureAudioOptions {
   seconds: number;

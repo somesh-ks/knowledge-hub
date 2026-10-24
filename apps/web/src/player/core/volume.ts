@@ -6,7 +6,7 @@ import { clamp } from "./mathUtils";
 import { getPlayerAudio } from "./playerRuntime";
 import { safeLocalStorage } from "./resume";
 
-export const VOLUME_STORAGE_KEY = "dispatch:volume";
+export const VOLUME_STORAGE_KEY = "singularity:volume";
 
 /** What a stored value means: a number from 0 to 1, or full volume when it is anything else. */
 export function parseVolume(raw: string | null): number {

@@ -1,4 +1,4 @@
-import type { Item, Source, SourceType } from "@dispatch/core";
+import type { Item, Source, SourceType } from "@singularity/core";
 import { type HttpClient, HttpError } from "../http.js";
 import { FETCHERS } from "./fetchers.js";
 import { scrapeRaw } from "./firecrawl.js";

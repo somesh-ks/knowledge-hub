@@ -2,7 +2,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { deriveSourceFormat, SOURCE_FORMATS, type Source, type SourceFormat } from "@dispatch/core";
+import {
+  deriveSourceFormat,
+  SOURCE_FORMATS,
+  type Source,
+  type SourceFormat,
+} from "@singularity/core";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { parseFeed } from "../fetch/feedParser.js";
 import { createHttpClient } from "../http.js";
@@ -16,7 +21,7 @@ import {
   saveUserSources,
 } from "../sources/registry.js";
 
-const USAGE = `Usage: dispatch classify-formats [--out <dir>] [--apply <formats.json>]
+const USAGE = `Usage: singularity classify-formats [--out <dir>] [--apply <formats.json>]
 
   (no flag)         Ask Jev for the format of every source and write format-review.md and
                     formats.json to --out (default: the system temp folder). Changes no config.
@@ -73,7 +78,7 @@ async function applyFormats(file: string, root: string): Promise<number> {
   return 0;
 }
 
-/** `dispatch classify-formats`: backfills `format` for every source, with a review table first. */
+/** `singularity classify-formats`: backfills `format` for every source, with a review table first. */
 export const run: CommandRun = async (argv, ctx) => {
   try {
     const { values } = parseArgs({
@@ -133,7 +138,7 @@ export const run: CommandRun = async (argv, ctx) => {
       };
     });
 
-    const out = resolve(values.out ?? join(tmpdir(), "dispatch-format-review"));
+    const out = resolve(values.out ?? join(tmpdir(), "singularity-format-review"));
     await mkdir(out, { recursive: true });
     const counts: Record<string, number> = {};
     for (const row of rows) counts[row.chosen] = (counts[row.chosen] ?? 0) + 1;

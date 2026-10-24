@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   blobSecretsOf,
+  missingSettings,
   narrateSecretsOf,
   readBlobCredentials,
   readNarrateConfig,
@@ -11,7 +12,7 @@ import {
 } from "./config";
 
 const GOOD = {
-  GITHUB_DISPATCH_TOKEN: "github_pat_example",
+  GITHUB_SINGULARITY_TOKEN: "github_pat_example",
   GITHUB_REPOSITORY: "somesh-ks/knowledge-hub",
 };
 
@@ -38,9 +39,17 @@ describe("readServerConfig", () => {
     }
   });
 
+  // Bug it prevents: on 2026-10-24 the token's name changed in Vercel before the code did (D179),
+  // and every action route answered "unavailable".
+  it("reads the token under its old name too, so a rename in either order keeps the site up", () => {
+    const { GITHUB_SINGULARITY_TOKEN: token, ...rest } = GOOD;
+    expect(readServerConfig({ ...rest, GITHUB_DISPATCH_TOKEN: token })?.token).toBe(token);
+    expect(missingSettings({ ...rest, GITHUB_DISPATCH_TOKEN: token })).toEqual([]);
+  });
+
   it("trims stray whitespace from pasted values", () => {
     expect(
-      readServerConfig({ ...GOOD, GITHUB_DISPATCH_TOKEN: " github_pat_example\n" })?.token,
+      readServerConfig({ ...GOOD, GITHUB_SINGULARITY_TOKEN: " github_pat_example\n" })?.token,
     ).toBe("github_pat_example");
   });
 });
@@ -48,7 +57,7 @@ describe("readServerConfig", () => {
 describe("secretsOf", () => {
   it("lists the token for the log redactor", () => {
     const config = readServerConfig(GOOD);
-    expect(secretsOf(config)).toEqual([GOOD.GITHUB_DISPATCH_TOKEN]);
+    expect(secretsOf(config)).toEqual([GOOD.GITHUB_SINGULARITY_TOKEN]);
     expect(secretsOf(null)).toEqual([]);
   });
 });

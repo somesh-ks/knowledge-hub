@@ -8,7 +8,7 @@ import type {
   RunRecord,
   SeenFile,
   SourcesFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SourceResult } from "../src/fetch/types.js";
 import { listDigestIds } from "../src/state/digestIds.js";
@@ -227,7 +227,7 @@ describe("source health", () => {
 describe("listDigestIds", () => {
   let root: string;
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "dispatch-digests-"));
+    root = await mkdtemp(join(tmpdir(), "singularity-digests-"));
   });
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });

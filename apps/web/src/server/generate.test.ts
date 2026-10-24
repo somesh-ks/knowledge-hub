@@ -19,7 +19,7 @@ function setup(overrides: Partial<GenerateDeps> = {}) {
   const logs: string[] = [];
   const deps: GenerateDeps = {
     env: {
-      GITHUB_DISPATCH_TOKEN: TOKEN,
+      GITHUB_SINGULARITY_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
     },
     fetch: github.fetch,

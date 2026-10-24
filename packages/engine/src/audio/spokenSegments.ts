@@ -1,4 +1,4 @@
-import type { Digest } from "@dispatch/core";
+import type { Digest } from "@singularity/core";
 import { buildSpokenText, itemBlock, type SpokenText } from "./spokenText.js";
 
 /**

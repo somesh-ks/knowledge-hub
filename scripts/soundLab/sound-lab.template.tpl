@@ -9,8 +9,8 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="{{THEME_LIGHT}}">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="{{THEME_DARK}}">
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Audition every Dispatch interface sound, adjust volume and hear how sounds duck under narration.">
-<title>Sound lab, Dispatch</title>
+<meta name="description" content="Audition every Singularity interface sound, adjust volume and hear how sounds duck under narration.">
+<title>Sound lab, Singularity</title>
 <style>{{FONTS}}</style>
 <style>{{TOKENS}}</style>
 <style>{{FOUNDATIONS}}</style>
@@ -22,7 +22,7 @@
 
 <header class="site-header">
   <div class="site-header-inner page lab-page">
-    <a class="wordmark" href="ui-prototype.html" aria-label="Dispatch, open the UI prototype">{{MARK}}<span>Dispatch</span></a>
+    <a class="wordmark" href="ui-prototype.html" aria-label="Singularity, open the UI prototype">{{MARK}}<span>Singularity</span></a>
     <nav class="site-actions" aria-label="Site">
       <a class="btn press" href="ui-prototype.html">UI prototype</a>
     </nav>

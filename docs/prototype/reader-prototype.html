@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="A briefing of what's new in design engineering, to read or listen to.">
-<title>Dispatch</title>
+<title>Singularity</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400..700&family=Schibsted+Grotesk:wght@400..900&display=swap" rel="stylesheet">
@@ -340,7 +340,7 @@ dialog.sheet[open]::backdrop { opacity: 1; }
 
 <div class="wrap">
   <header class="bar">
-    <span class="wordmark">Dispatch</span>
+    <span class="wordmark">Singularity</span>
     <div class="bar-actions">
       <button class="icon-btn" id="openGenerate" type="button">
         <svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg><span class="label">Generate new</span>
@@ -658,11 +658,11 @@ $('generateForm').addEventListener('submit', e => {
 const root = document.documentElement;
 const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
 function paintTheme() { $('themeIcon').setAttribute('href', isDark() ? '#i-sun' : '#i-moon'); }
-try { const saved = localStorage.getItem('dispatch-theme'); if (saved) root.dataset.theme = saved; } catch (_) {}
+try { const saved = localStorage.getItem('singularity-theme'); if (saved) root.dataset.theme = saved; } catch (_) {}
 $('themeToggle').addEventListener('click', () => {
   const next = isDark() ? 'light' : 'dark';
   root.dataset.theme = next;
-  try { localStorage.setItem('dispatch-theme', next); } catch (_) {}
+  try { localStorage.setItem('singularity-theme', next); } catch (_) {}
   paintTheme();
 });
 paintTheme();

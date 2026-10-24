@@ -1,4 +1,4 @@
-import { fallbackEmoji, TOPIC_EMOJIS } from "@dispatch/core/topicEmoji";
+import { fallbackEmoji, TOPIC_EMOJIS } from "@singularity/core/topicEmoji";
 
 /** One emoji of the picker's data (public/emoji.json, scripts/buildEmoji.ts): the emoji, its name and its extra keywords. */
 export type EmojiItem = readonly [emoji: string, name: string, keywords: string];

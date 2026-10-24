@@ -38,6 +38,8 @@ jobs:
         run: |
           git fetch --depth=1 origin main
           git show origin/main:packages/engine/src/write/prompt.ts > packages/engine/src/write/prompt.main.ts
+          # main's prompt may import the packages by their name before D179; this branch only has the new one.
+          sed -i 's#@dispatch/#@singularity/#g' packages/engine/src/write/prompt.main.ts
           git show origin/main:config/voice.md > "$RUNNER_TEMP/voice.main.md"
           latest=$(ls -d loop/results/replay-*/ | sort -V | tail -1)
           for kind in daily weekly; do

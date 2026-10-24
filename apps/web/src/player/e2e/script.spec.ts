@@ -7,7 +7,9 @@ const READOUT = "/e/ep-20261006-0900";
 /** Stands in the narration of the open episode page: every turn of its script, a short recording. */
 async function mockNarration(page: Page): Promise<string[]> {
   const keys = await page.evaluate(() => {
-    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    const data = JSON.parse(
+      document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+    );
     return (data.turns as { key: string }[]).map((turn) => turn.key);
   });
   expect(keys.length).toBeGreaterThan(0);

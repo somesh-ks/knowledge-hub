@@ -1,4 +1,4 @@
-import type { Source, SourceHealthFile, SourcesFile } from "@dispatch/core";
+import type { Source, SourceHealthFile, SourcesFile } from "@singularity/core";
 import type { SourceResult } from "../fetch/types.js";
 
 /** A source failing this many runs in a row is flagged (build plan risk table). */

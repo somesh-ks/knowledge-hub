@@ -11,4 +11,4 @@ const { data } = Astro.props;
 
 {/* The player reads this on astro:page-load. A data block, not executable script, so the
      Content-Security-Policy does not need to allow it. */}
-<script is:inline type="application/json" id="dispatch-digest-data" set:html={serializeJsonForScript(data)}></script>
+<script is:inline type="application/json" id="singularity-digest-data" set:html={serializeJsonForScript(data)}></script>

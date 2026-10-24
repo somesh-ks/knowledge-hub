@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { COVER_TEMPLATES, Digest, parseDigestFile, serializeDigestFile } from "@dispatch/core";
+import { COVER_TEMPLATES, Digest, parseDigestFile, serializeDigestFile } from "@singularity/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../src/render/coverPicker.js";
@@ -19,7 +19,7 @@ import {
 
 const tempDirs: string[] = [];
 async function tempRoot(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "dispatch-render-"));
+  const dir = await mkdtemp(join(tmpdir(), "singularity-render-"));
   tempDirs.push(dir);
   return dir;
 }

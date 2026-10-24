@@ -1,4 +1,4 @@
-import { AudioTimeline, type Digest, parseDigestFile } from "@dispatch/core";
+import { AudioTimeline, type Digest, parseDigestFile } from "@singularity/core";
 import { type ContentFiles, diskFiles } from "./contentFiles";
 
 export interface DigestSource {

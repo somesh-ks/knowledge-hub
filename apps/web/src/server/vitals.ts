@@ -5,8 +5,8 @@ import {
   VITAL_METRICS,
   type VitalMetric,
   vitalPage,
-} from "@dispatch/core/vitals";
-import { recordVitals, type VitalsReport } from "@dispatch/engine/vitals-store";
+} from "@singularity/core/vitals";
+import { recordVitals, type VitalsReport } from "@singularity/engine/vitals-store";
 import { type DatabaseDeps, guardedDatabase } from "./database";
 
 /**

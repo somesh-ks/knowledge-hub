@@ -1,6 +1,6 @@
 name: health
 
-# Once a day, `dispatch health` checks the last runs, narration, the digests and state, the cost
+# Once a day, `singularity health` checks the last runs, narration, the digests and state, the cost
 # ledger and the live site (docs/engineering/hardening.md). A fault opens one issue labelled
 # `health`, or updates it; a green run closes it. When a fault first appears (no open issue yet) it
 # heals once: a failed or missed briefing starts one scheduled run, missing narration starts one
@@ -118,7 +118,7 @@ jobs:
           # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
           since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
           gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
-          npm run --silent dispatch -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          npm run --silent singularity -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are mostly warnings, which open no issue (D147, D156), so they go on
@@ -135,7 +135,7 @@ jobs:
           report="$RUNNER_TEMP/health.json"
           # A check that crashed is a fault of its own, reported like the others.
           jq -e '.findings' "$report" >/dev/null 2>&1 ||
-            echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"dispatch health did not finish; see the run log."}]}' > "$report"
+            echo '{"ok":false,"findings":[{"severity":"fault","aspect":"reliability","code":"health_crashed","message":"singularity health did not finish; see the run log."}]}' > "$report"
           # run.yml runs queued or running.
           run_busy() { gh run list --workflow run.yml --limit 5 --json status --jq '[.[] | select(.status != "completed")] | length'; }
           label=health
@@ -149,7 +149,7 @@ jobs:
             # a briefing or weekly pass due today (a run_failed or run_overdue makes one due) would
             # take the dry run past it and pay for models.
             refuse=""
-            due=$(npm run --silent dispatch -- run --stage gate --mode scheduled --dry-run --json | jq -r '.due') || due=""
+            due=$(npm run --silent singularity -- run --stage gate --mode scheduled --dry-run --json | jq -r '.due') || due=""
             if [ "$due" = "true" ]; then
               refuse="run.yml's gate says a briefing or the weekly pass is due today, so its dry run would pay for model calls"
             elif [ "$due" != "false" ]; then
