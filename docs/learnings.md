@@ -73,6 +73,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-24: an audit asked for `s-maxage` and one hourly cron: `no-cache` pages and `/api/site-icon` are already edge hits, and Hobby fails `0 * * * *`, so keep the 24 (D61).
 - 2026-10-24: with the store on, a refused add said only "The server turned that change down": the function refuses edits itself now (duplicate source, missing topic, dead page) and said why only in its log. The 400 carries the engine's sentence as `reason` for the toast.
 - 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in a versioned cache).
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
@@ -97,7 +98,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-10-14: from the agent's Git Bash, `powershell -Command "..."` loses `$_`, `$env:` and `$LASTEXITCODE` to bash, and an argument or variable that starts with `/` is rewritten to a Windows path. Put PowerShell with variables in a `.ps1` file and run it with `-File`; pass several paths as one string to split, since `-File` does not pass an array.
 - 2026-10-14: `pkill -f serve.mjs` inside a Bash call killed that call's own shell, whose command line matched. Kill by PID from a filtered `ps`.
-- 2026-10-12: a committed unit test failed because a truncated `tail` of the vitest output looked like a pass. Read the "Test Files" and "Tests" lines for `failed` before committing.
 - 2026-10-12: heredoc and `node -e` edits lose backslashes and backticks in the agent shell, and some worktrees refuse compound commands: write scripts with the Write tool, all-or-nothing.
 - 2026-10-11: the sandbox proxy refuses news hosts (403 to CONNECT), so `curl` cannot check a feed. Fetch it with Firecrawl's scrape (`rawHtml`, a week's `maxAge`), in a subagent so the bodies stay out of the session; Firecrawl allowed about ten requests a minute.
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
