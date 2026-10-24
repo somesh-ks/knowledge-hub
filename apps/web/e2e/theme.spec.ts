@@ -34,7 +34,8 @@ test.describe("theme", () => {
       await page.emulateMedia({ colorScheme: system });
       if (stored) {
         await page.addInitScript(
-          (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
+          (value) =>
+            localStorage.setItem("singularity:preferences", JSON.stringify({ theme: value })),
           stored,
         );
       }
@@ -59,7 +60,7 @@ test.describe("theme", () => {
   test("survives a client-side navigation", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await page.addInitScript(() =>
-      localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: "dark" })),
+      localStorage.setItem("singularity:preferences", JSON.stringify({ theme: "dark" })),
     );
     await page.goto("/");
     await page.getByRole("link", { name: "See all" }).click();

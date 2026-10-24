@@ -1,6 +1,6 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { COVER_MODES } from "@dispatch/cover";
+import { COVER_MODES } from "@singularity/cover";
 import {
   COVER_SIZES,
   type CoverSource,
@@ -63,7 +63,7 @@ export async function storeCovers(deps: StoreCoversDeps): Promise<string[]> {
   ].filter((source) => !done.has(source.id));
   if (sources.length === 0) return [];
 
-  const cache = { cacheDir: join(tmpdir(), "dispatch-store-covers"), fingerprint: "store" };
+  const cache = { cacheDir: join(tmpdir(), "singularity-store-covers"), fingerprint: "store" };
   for (const source of sources) {
     for (const file of coverFiles(source)) {
       const body = file.png

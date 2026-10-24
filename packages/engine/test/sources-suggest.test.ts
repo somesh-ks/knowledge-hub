@@ -1,4 +1,4 @@
-import type { Item, SourceCandidatesFile, Topic, TopicJudgmentEntry } from "@dispatch/core";
+import type { Item, SourceCandidatesFile, Topic, TopicJudgmentEntry } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
 import { makeSourcesCommand } from "../src/commands/sources.js";
@@ -352,7 +352,7 @@ describe("the Exa search", () => {
   });
 });
 
-describe("dispatch sources suggest", () => {
+describe("singularity sources suggest", () => {
   let repo: ConfigRepo;
   let out: string[];
 

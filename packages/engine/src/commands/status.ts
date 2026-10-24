@@ -2,9 +2,9 @@ import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectStatus, formatStatus } from "../ops/statusReport.js";
 
-const USAGE = "Usage: dispatch status [--json]";
+const USAGE = "Usage: singularity status [--json]";
 
-/** `dispatch status`: last runs, next due date, audio, failing sources and budget, from the repo files. */
+/** `singularity status`: last runs, next due date, audio, failing sources and budget, from the repo files. */
 export const run: CommandRun = async (argv, ctx) => {
   try {
     parseArgs({ args: argv, allowPositionals: false, strict: true, options: {} });

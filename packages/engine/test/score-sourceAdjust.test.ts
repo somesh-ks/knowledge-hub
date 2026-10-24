@@ -1,4 +1,4 @@
-import { MIN_JUDGED, type SourceStatsFile } from "@dispatch/core";
+import { MIN_JUDGED, type SourceStatsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import {
   SOURCE_ADJUSTMENT_MAX,

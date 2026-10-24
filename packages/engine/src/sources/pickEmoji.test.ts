@@ -1,4 +1,4 @@
-import { fallbackEmoji } from "@dispatch/core";
+import { fallbackEmoji } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import type { JevClientLike } from "../judge/jev.js";
 import { createEmojiBackup, EmojiPicker } from "./pickEmoji.js";

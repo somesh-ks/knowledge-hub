@@ -11,7 +11,7 @@ import type { FunctionComponent } from "react";
  */
 if (import.meta.env.DEV) {
   const host = document.createElement("div");
-  host.id = "dispatch-agentation";
+  host.id = "singularity-agentation";
   document.body.append(host);
   // A client-side navigation replaces the body; the toolbar moves to the new one, still mounted.
   document.addEventListener("astro:after-swap", () => document.body.append(host));

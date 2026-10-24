@@ -8,7 +8,7 @@ import {
   storedStructure,
   structureSectionOrder,
   TOP_PICKS_SECTION,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { loadStructureFile } from "../structure/store.js";
 
 /** Top picks a briefing carries when its structure leaves the count to the engine. */

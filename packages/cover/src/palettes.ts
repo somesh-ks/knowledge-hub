@@ -7,7 +7,7 @@ interface TokenColor {
 }
 
 interface TokenPalette {
-  $extensions: { dispatch: { name: string; tone: Tone } };
+  $extensions: { singularity: { name: string; tone: Tone } };
   ground: TokenColor;
   accent: TokenColor;
   text: TokenColor;
@@ -30,7 +30,7 @@ function isTokenColor(value: unknown): value is TokenColor {
 
 function readPalette(id: string, raw: unknown): TokenPalette {
   const palette = raw as Partial<TokenPalette> | undefined;
-  const meta = palette?.$extensions?.dispatch;
+  const meta = palette?.$extensions?.singularity;
   if (!palette || !meta || !ROLES.every((role) => isTokenColor(palette[role]))) {
     throw new Error(`tokens/covers.json: palette "${id}" is missing a role or its metadata`);
   }
@@ -67,8 +67,8 @@ const PALETTES: readonly Palette[] = Object.entries(tokens.cover)
     const accent = oklchToHex(oklch.accent);
     return {
       id,
-      name: palette.$extensions.dispatch.name,
-      tone: palette.$extensions.dispatch.tone,
+      name: palette.$extensions.singularity.name,
+      tone: palette.$extensions.singularity.tone,
       ground,
       field: mixHex(ground, accent, FIELD_MIX),
       shade: mixHex(ground, accent, SHADE_MIX),

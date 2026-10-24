@@ -1,6 +1,6 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONFIG_FILES, Preferences, stockholmDate } from "@dispatch/core";
+import { CONFIG_FILES, Preferences, stockholmDate } from "@singularity/core";
 import { z } from "zod";
 import type { CommandContext, CommandRun } from "../context.js";
 import { type BotIdentity, type CommitOutcome, commitAndPush } from "../git/commit.js";
@@ -83,8 +83,8 @@ async function writeStored(
 }
 
 const USAGE = `Usage:
-  dispatch learn --schema                 Print the JSON Schema of a preferences patch
-  dispatch learn --apply <patch.json>     Apply a patch within the bounds (one stop per weight, three weights)
+  singularity learn --schema                 Print the JSON Schema of a preferences patch
+  singularity learn --apply <patch.json>     Apply a patch within the bounds (one stop per weight, three weights)
     [--dry-run]                           Show the diff without writing
     [--commit] [--no-push]                Commit config/preferences.json as chore(prefs): <summary>
                                           and push (--no-push keeps it local). Refuses on a dirty
@@ -188,7 +188,7 @@ function describeCommit(outcome: CommitOutcome): { ok: boolean; line: string } {
   }
 }
 
-/** `dispatch learn`; the store is injected so tests drive it without a database. */
+/** `singularity learn`; the store is injected so tests drive it without a database. */
 export function makeLearn(deps: { connectConfigStore?: Connect } = {}): CommandRun {
   return (argv, ctx) => learn(argv, ctx, deps.connectConfigStore ?? connectConfigStore);
 }

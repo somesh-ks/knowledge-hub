@@ -1,4 +1,4 @@
-import type { Item, JudgmentEntry, JudgmentsFile } from "@dispatch/core";
+import type { Item, JudgmentEntry, JudgmentsFile } from "@singularity/core";
 import type { Judge } from "./types.js";
 
 /** Judgments are pruned after 30 days, per the state-file contract. */

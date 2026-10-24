@@ -1,4 +1,4 @@
-import type { Source, SourcesFile } from "@dispatch/core";
+import type { Source, SourcesFile } from "@singularity/core";
 import { createLimiter } from "../fetch/limiter.js";
 import { channelFeedUrl } from "../fetch/youtube.js";
 import { type DiscoverDeps, discoverFeed, resolveYoutubeChannel } from "./discover.js";

@@ -19,7 +19,7 @@ import { linkCardProblems } from "../src/lib/linkCard";
  * Fails the build when a page loads more than the first-load budget of gzipped JavaScript, when any
  * script blocks rendering, when the fonts exceed 80 KB, or when an inline script is not allowed by the
  * page's Content-Security-Policy, or when a module the page loads at start has no modulepreload link
- * (the build's `dispatch-module-preload` step adds them), or when a briefing or episode page has no
+ * (the build's `singularity-module-preload` step adds them), or when a briefing or episode page has no
  * link card or names a cover the build does not hold (D153). Run after a build.
  *
  * Usage: npx tsx apps/web/scripts/checkBundle.ts [build output directory]

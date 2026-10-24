@@ -50,7 +50,7 @@ test.describe("the briefing header", () => {
     await page.context().route("**/api/narrate?digest=*", async (route) => {
       const ids: string[] = await page.evaluate(() => {
         const data = JSON.parse(
-          document.getElementById("dispatch-digest-data")?.textContent ?? "{}",
+          document.getElementById("singularity-digest-data")?.textContent ?? "{}",
         );
         return (data.items as { id: string }[]).map((item) => item.id);
       });
@@ -103,7 +103,9 @@ test.describe("the briefing header", () => {
     await page.goto(SILENT_DIGEST);
     await hydrated(page);
     const ids = await page.evaluate(() => {
-      const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+      const data = JSON.parse(
+        document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+      );
       return (data.items as { id: string }[]).map((item) => item.id);
     });
     // The server knows where each story's file would be. Here every one already exists.
@@ -367,7 +369,7 @@ test.describe("sections and stories", () => {
   test("Today's briefing chip says what the Library's card says: time left, or Played", async ({
     page,
   }) => {
-    await seedStorage(page, { local: { "dispatch:resume:2026-10-07": "20" } });
+    await seedStorage(page, { local: { "singularity:resume:2026-10-07": "20" } });
     await page.goto("/");
     await hydrated(page);
     const chip = page.locator(".hero [data-play-digest]");
@@ -376,8 +378,8 @@ test.describe("sections and stories", () => {
     // away from the page, which saves its own position as it is left.
     await page.goto("/library");
     await page.evaluate(() => {
-      localStorage.removeItem("dispatch:resume:2026-10-07");
-      localStorage.setItem("dispatch:played:2026-10-07", "1");
+      localStorage.removeItem("singularity:resume:2026-10-07");
+      localStorage.setItem("singularity:played:2026-10-07", "1");
     });
     await page.goto("/");
     await hydrated(page);
@@ -427,7 +429,7 @@ test.describe("sections and stories", () => {
     await expect(page.locator("main")).toHaveAttribute("data-digest-id", "2026-10-07");
     await expect(page.locator("html")).toHaveAttribute("data-digest-id", "2026-10-07");
     const data = (await page.evaluate(() =>
-      JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "null"),
+      JSON.parse(document.getElementById("singularity-digest-data")?.textContent ?? "null"),
     )) as PlayerDigestData;
     expect(data.id).toBe("2026-10-07");
     expect(data.title).toBe("Wednesday 7 October");

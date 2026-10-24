@@ -4,7 +4,7 @@ import {
   type Topic,
   type TopicJudgmentEntry,
   type TopicJudgmentsFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";

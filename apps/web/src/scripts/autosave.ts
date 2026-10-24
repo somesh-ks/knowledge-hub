@@ -207,7 +207,7 @@ export function mountAutosave(
   // A page left in the server's gap whose run then failed: this page takes its changes, says so in
   // its toast with Retry, and sends them with Retry or its next change (adopt).
   document.addEventListener(
-    "dispatch:held",
+    "singularity:held",
     () => void import("./managePageSave").then((module) => module.adopt(context)),
     { signal: off.signal },
   );

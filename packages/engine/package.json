@@ -1,5 +1,5 @@
 {
-  "name": "@dispatch/engine",
+  "name": "@singularity/engine",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,11 +19,11 @@
     "./faults-store": "./src/store/faultsStore.ts"
   },
   "bin": {
-    "dispatch": "./src/cli.ts"
+    "singularity": "./src/cli.ts"
   },
   "dependencies": {
-    "@dispatch/core": "*",
-    "@dispatch/cover": "*",
+    "@singularity/core": "*",
+    "@singularity/cover": "*",
     "@mozilla/readability": "^0.6.0",
     "@neondatabase/serverless": "1.2.0",
     "@typesafe-ai/sdk": "^0.7.0",

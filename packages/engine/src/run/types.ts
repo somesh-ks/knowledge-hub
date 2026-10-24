@@ -1,4 +1,4 @@
-import type { Category, CoverSpec, DigestKind, Outcome, SourceType } from "@dispatch/core";
+import type { Category, CoverSpec, DigestKind, Outcome, SourceType } from "@singularity/core";
 import type { Logger } from "../context.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";

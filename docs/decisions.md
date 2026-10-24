@@ -41,7 +41,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D27 | Owner and Dependabot pull requests merge automatically | active |
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
-| D30 | The reader is called Singularity; identifiers keep `dispatch` | active |
+| D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
 | D31 | The visual language follows Google Podcasts and YouTube Music | active; the outlined play chip is tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
@@ -184,7 +184,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
+| D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
+| D179 | Every name says Singularity; saved state moves once | active |
 
 ---
 
@@ -1882,6 +1884,15 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+## D177: on a phone the Costs chart or table switch sits beside the figure
+
+- Date: 2026-10-24
+- Decision: from 40rem the switch stays at the end of the filter row (D169); below it, it sits at the end of the answer's first line, level with "Estimated spend", and the chips keep their row. It follows the answer in the reading order, just before the panels it switches.
+- Why: at 390px the two pill chips and the switch do not fit one row, so the switch wrapped to a row of its own, 72px of nothing above the figure (screenshot, 2026-10-24). The owner chose the figure's line over the empty row.
+- Rejected: the empty row it had; narrower chips (the pills are D167's one shape).
+- Amends: D169's Costs bullet, on a phone only.
+- Revisit if: the chips and the switch fit one row on a phone.
+
 ## D178: no island loads with the page; the islands wake when needed
 
 - Date: 2026-10-24 (the owner asked for every accepted idea to be built, cut 1 of [first-load-js.md](engineering/first-load-js.md) among them, parked since 2026-10-14)
@@ -1892,3 +1903,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
 - Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
 
+## D179: Every name says Singularity; saved state moves once
+
+- Date: 2026-10-24 (the owner: "I'd like to move everything that's named dispatch to singularity", then chose the full rename with migration)
+- Decision: this replaces D30. The packages are `@singularity/*`, the CLI is `npm run singularity`, and the agents, reports, User-Agent, element ids, page events, storage keys (`singularity:*`), service worker caches, token extensions, workflow groups, `SINGULARITY_*` variables and docs say Singularity. Saved state moves once: a head script (`storageRename.js`) renames every `dispatch:*` key before anything reads it, and downloaded episodes are copied from `dispatch-audio-v1` by the page and moved by the new worker. Old variable names are still read: `adoptOldNames` in the engine and `secrets:push`, `vars.SINGULARITY_X || vars.DISPATCH_X` in workflows, and the config store switch on the site. The site's token is `GITHUB_SINGULARITY_TOKEN` (the owner renamed it first; `GITHUB_DISPATCH_TOKEN` is still read). `workflow_dispatch` and the verb stay. Past decisions and `docs/history/` keep the old name.
+- Why: D30 kept the old names to protect saved preferences, positions and downloads; a one-time move protects them as well, and reading both variable names means no run fails before the owner renames a setting.
+- Rejected: keeping D30 (the owner wants one name); a rename without the move (wipes what a phone saved).
+- Revisit when: the owner has renamed the GitHub and Vercel variables and every device has opened the site once; then the old-name readers, `storageRename.js` and the audio move can go.

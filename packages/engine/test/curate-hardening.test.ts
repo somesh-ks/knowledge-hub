@@ -1,6 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { parseDigestFile } from "@dispatch/core";
+import { parseDigestFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeCurateCommand } from "../src/commands/curate.js";
 import { makeRenderCommand } from "../src/commands/render.js";
@@ -51,7 +51,7 @@ function factory(judge: TableJudge): ApiRuntimeFactory {
   });
 }
 
-describe("dispatch curate: outcomes", () => {
+describe("singularity curate: outcomes", () => {
   it("treats an empty pool as a quiet day: exit 0, outcome nothing, a selection is written", async () => {
     await writeRunFile(tr.root, RUN, "pool.json", []);
     const { ctx } = makeContext(tr.root, { env: ENV });
@@ -105,7 +105,7 @@ describe("dispatch curate: outcomes", () => {
   });
 });
 
-describe("dispatch curate: agent mode keeps selection.json engine-written", () => {
+describe("singularity curate: agent mode keeps selection.json engine-written", () => {
   const agent = makeCurateCommand();
   const agentItems = (pool: ReturnType<typeof makePool>) =>
     pool.items.slice(0, 4).map((item, i) => ({
@@ -211,7 +211,7 @@ describe("the example a session copies", () => {
   });
 });
 
-describe("dispatch render: nothing an agent wrote counts as verified", () => {
+describe("singularity render: nothing an agent wrote counts as verified", () => {
   it("forces verified false for an agent selection even if the file says otherwise", async () => {
     const fixture = makeFixture(5);
     await writeRunFile(tr.root, RUN, "pool.json", fixture.items);

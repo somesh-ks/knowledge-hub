@@ -1,4 +1,4 @@
-import { HOST_NAME_POOLS, hostNamesFor } from "@dispatch/core/hosts";
+import { HOST_NAME_POOLS, hostNamesFor } from "@singularity/core/hosts";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
@@ -37,7 +37,7 @@ function setup(overrides: Partial<PodcastDeps> = {}) {
   const logs: string[] = [];
   const deps: PodcastDeps = {
     env: {
-      GITHUB_DISPATCH_TOKEN: TOKEN,
+      GITHUB_SINGULARITY_TOKEN: TOKEN,
       GITHUB_REPOSITORY: REPO,
     },
     fetch: github.fetch,

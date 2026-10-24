@@ -9,7 +9,7 @@ import {
   stockholmDate,
   VOICE_LIMITS,
   withGeneralTopics,
-} from "@dispatch/core";
+} from "@singularity/core";
 import {
   linkSourceIds,
   loadJudgments,

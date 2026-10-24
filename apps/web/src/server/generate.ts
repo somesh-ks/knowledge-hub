@@ -8,7 +8,7 @@ import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
- * POST /api/generate: check the request, check the rate limits against GitHub, dispatch run.yml.
+ * POST /api/generate: check the request, check the rate limits against GitHub, singularity run.yml.
  * Everything with a side effect is a parameter (fetch, clock, delay, the logger), so the whole flow
  * is tested with fakes and no network. There is no passphrase (D160).
  */
@@ -188,7 +188,7 @@ export async function handleGenerate(
           },
     );
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
-      // GitHub started the run but did not name it. The newest dispatch run created since the
+      // GitHub started the run but did not name it. The newest singularity run created since the
       // request is the one.
       await deps.delay(RUN_LOOKUP_DELAY_MS);
       const after = await github.listDispatchRuns();

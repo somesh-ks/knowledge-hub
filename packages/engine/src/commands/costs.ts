@@ -1,15 +1,15 @@
 import { parseArgs } from "node:util";
-import { buildReport, GROUPS, type GroupBy, PERIODS, type Period } from "@dispatch/core";
+import { buildReport, GROUPS, type GroupBy, PERIODS, type Period } from "@singularity/core";
 import type { CommandRun } from "../context.js";
 import { loadAllCosts } from "../cost/ledger.js";
 import { formatCostReport } from "../cost/report.js";
 import { loadScheduleZone } from "../schedule/store.js";
 
 const USAGE =
-  "Usage: dispatch costs [--period day|week|month] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--by provider|kind|timezone|user|product|scope] [--tz <zone>] [--json]";
+  "Usage: singularity costs [--period day|week|month] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--by provider|kind|timezone|user|product|scope] [--tz <zone>] [--json]";
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** `dispatch costs`: the cost ledger totalled by period, grouped, with per-run and per-user averages. */
+/** `singularity costs`: the cost ledger totalled by period, grouped, with per-run and per-user averages. */
 export const run: CommandRun = async (argv, ctx) => {
   let values: ReturnType<typeof parse>;
   try {

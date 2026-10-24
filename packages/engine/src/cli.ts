@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { type Env, loadEnv, repoRoot } from "@dispatch/core";
+import { type Env, loadEnv, repoRoot } from "@singularity/core";
 import { COMMANDS, type CommandSpec } from "./commandRegistry.js";
 import {
   type CommandContext,
@@ -48,7 +48,7 @@ class UsageProblem extends Error {}
 
 /**
  * Global flags may sit anywhere on the line, because the workflows put `--json` after the
- * command (`dispatch run --stage gate --json`). They are removed before the command sees its
+ * command (`singularity run --stage gate --json`). They are removed before the command sees its
  * own arguments, so commands never need to know about them.
  */
 export function splitArgs(argv: readonly string[]): ParsedArgs {
@@ -82,9 +82,9 @@ export function splitArgs(argv: readonly string[]): ParsedArgs {
 export function topLevelHelp(commands: readonly CommandSpec[] = COMMANDS): string {
   const width = Math.max(...commands.map((command) => command.name.length));
   const lines = commands.map((command) => `  ${command.name.padEnd(width)}  ${command.summary}`);
-  return `Dispatch: a private design-engineering news briefing.
+  return `Singularity: a private design-engineering news briefing.
 
-Usage: dispatch <command> [args] [--json] [--root <path>]
+Usage: singularity <command> [args] [--json] [--root <path>]
 
 Commands:
 ${lines.join("\n")}
@@ -92,7 +92,7 @@ ${lines.join("\n")}
 Global flags:
   --json         machine-readable JSON on stdout (logs always go to stderr)
   --root <path>  repository root (default: the git top level of the current directory)
-  --help, -h     this list, or the help of a command: dispatch <command> --help
+  --help, -h     this list, or the help of a command: singularity <command> --help
 
 Exit codes: 0 success, 1 failure, 2 usage error.`;
 }
@@ -109,6 +109,7 @@ function loadProcessEnvFile(root: string): void {
 /** Secrets the typed env does not list but that must never reach a log. */
 const EXTRA_SECRET_NAMES = [
   "VERCEL_TOKEN",
+  "GITHUB_SINGULARITY_TOKEN",
   "GITHUB_DISPATCH_TOKEN",
   "GITHUB_TOKEN",
   "GH_TOKEN",
@@ -143,7 +144,7 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   try {
     parsed = splitArgs(argv);
   } catch (error) {
-    err(`dispatch: ${error instanceof Error ? error.message : "invalid arguments"}\n`);
+    err(`singularity: ${error instanceof Error ? error.message : "invalid arguments"}\n`);
     return 2;
   }
 
@@ -157,7 +158,9 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   }
   const spec = commands.find((command) => command.name === parsed.command);
   if (spec === undefined) {
-    err(`dispatch: unknown command "${parsed.command}". Run "dispatch --help" for the list.\n`);
+    err(
+      `singularity: unknown command "${parsed.command}". Run "singularity --help" for the list.\n`,
+    );
     return 2;
   }
   if (parsed.help) {
@@ -171,12 +174,12 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     root = parsed.root === undefined ? repoRoot(cwd) : resolve(cwd, parsed.root);
   } catch {
     err(
-      "dispatch: not inside a git repository. Run it from the repository or pass --root <path>.\n",
+      "singularity: not inside a git repository. Run it from the repository or pass --root <path>.\n",
     );
     return 1;
   }
   if (!existsSync(root)) {
-    err(`dispatch: --root ${parsed.root ?? root} does not exist\n`);
+    err(`singularity: --root ${parsed.root ?? root} does not exist\n`);
     return 2;
   }
 
@@ -193,7 +196,7 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
             .map((issue) => `${issue.path.map(String).join(".")}: ${issue.message}`)
             .join("; ")
         : "invalid value";
-    err(`dispatch: invalid environment (${issues})\n`);
+    err(`singularity: invalid environment (${issues})\n`);
     return 1;
   }
   const secrets = allSecrets(env, source);
@@ -233,7 +236,7 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     // With the store off, a note left by an earlier run that cannot be removed would let this run's
     // commit carry config files: stop rather than trust it.
     if (storeUrl === null && !noted && !parsed.rest.includes("--dry-run")) {
-      err("dispatch: .cache/config-store.json cannot be removed; remove it, then run again.\n");
+      err("singularity: .cache/config-store.json cannot be removed; remove it, then run again.\n");
       return 1;
     }
     if (storeUrl !== null && noted) {
@@ -251,14 +254,14 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   try {
     run = await spec.load();
   } catch (error) {
-    err(`dispatch: could not load ${spec.name}: ${redact(firstLine(String(error)), secrets)}\n`);
+    err(`singularity: could not load ${spec.name}: ${redact(firstLine(String(error)), secrets)}\n`);
     return 1;
   }
   try {
     return await run(parsed.rest, ctx);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    err(`dispatch: ${spec.name} failed: ${redact(firstLine(message), secrets)}\n`);
+    err(`singularity: ${spec.name} failed: ${redact(firstLine(message), secrets)}\n`);
     return 1;
   }
 }
@@ -273,7 +276,7 @@ function flush(stream: NodeJS.WriteStream): Promise<void> {
 async function main(): Promise<void> {
   process.on("unhandledRejection", (reason) => {
     process.stderr.write(
-      `dispatch: unexpected error: ${firstLine(reason instanceof Error ? reason.message : String(reason))}\n`,
+      `singularity: unexpected error: ${firstLine(reason instanceof Error ? reason.message : String(reason))}\n`,
     );
     process.exitCode = 1;
   });

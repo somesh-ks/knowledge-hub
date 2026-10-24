@@ -1,4 +1,4 @@
-import { daysBetween, longDate, stockholmDate } from "@dispatch/core";
+import { daysBetween, longDate, stockholmDate } from "@singularity/core";
 
 /**
  * The long date as a title on screen: "Wednesday 7 October" with a non-breaking space between the

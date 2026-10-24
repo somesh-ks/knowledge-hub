@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { parseArgs } from "node:util";
-import { CONFIG_FILES, type DigestKind, Preferences, zonedDate } from "@dispatch/core";
+import { CONFIG_FILES, type DigestKind, Preferences, zonedDate } from "@singularity/core";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll } from "../fetch/fetchAll.js";
@@ -17,7 +17,7 @@ import { listDigestIds } from "../state/digestIds.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
 import { readLastRun, readSeen, readSourceHealth, writeSourceHealth } from "../state/store.js";
 
-const USAGE = `Usage: dispatch fetch [--since <iso>] [--weekly] [--out <path>] [--id <digest-id>] [--update-health]
+const USAGE = `Usage: singularity fetch [--since <iso>] [--weekly] [--out <path>] [--id <digest-id>] [--update-health]
 
 Gathers candidates since the last successful fetch, normalizes, dedupes and prefilters them, and
 writes the pool to .cache/run/<id>/pool.json. Uses the network; sources with missing API keys skip.`;
@@ -31,7 +31,7 @@ async function loadPreferences(root: string): Promise<Preferences> {
   return Preferences.parse(JSON.parse(text) as unknown);
 }
 
-/** `dispatch fetch`: sources in, one ranked pool out. */
+/** `singularity fetch`: sources in, one ranked pool out. */
 export const run: CommandRun = async (argv: string[], ctx: CommandContext): Promise<number> => {
   let values: {
     since?: string | undefined;

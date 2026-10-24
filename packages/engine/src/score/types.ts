@@ -1,4 +1,4 @@
-import type { CategoryOrNone, Item, JudgmentEntry } from "@dispatch/core";
+import type { CategoryOrNone, Item, JudgmentEntry } from "@singularity/core";
 
 /** Every term of a score, so a surprising ranking can be explained from the persisted run. */
 export interface ScoreBreakdown {

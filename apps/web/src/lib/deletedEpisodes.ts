@@ -4,7 +4,7 @@
  * Library no longer has the card, after an hour, or, if the card is still there after ten minutes,
  * because the delete evidently failed.
  */
-export const DELETED_KEY = "dispatch:deleted-episodes";
+export const DELETED_KEY = "singularity:deleted-episodes";
 export const DELETED_MAX_AGE_MS = 60 * 60 * 1000;
 export const DELETED_FAILED_AFTER_MS = 10 * 60 * 1000;
 

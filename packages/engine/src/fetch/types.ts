@@ -1,4 +1,4 @@
-import type { Item, Source } from "@dispatch/core";
+import type { Item, Source } from "@singularity/core";
 import type { FetchWindow } from "../gate/fetchWindow.js";
 import type { HttpClient } from "../http.js";
 import type { FirecrawlGuard } from "./firecrawlBudget.js";

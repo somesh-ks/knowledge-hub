@@ -10,7 +10,7 @@ import {
   scheduleZone,
   stockholmDate,
   zonedDate,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { BUDGET_RATIO, loadUsage } from "../audio/budget.js";
 import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
@@ -114,7 +114,7 @@ async function latestDigest(root: string): Promise<StatusReport["latest_digest"]
         best = { digest, path: target.relPath };
       }
     } catch {
-      // An unreadable digest is `dispatch validate`'s to report.
+      // An unreadable digest is `singularity validate`'s to report.
     }
   }
   if (best === null) return null;
@@ -129,7 +129,7 @@ async function latestDigest(root: string): Promise<StatusReport["latest_digest"]
   };
 }
 
-/** Everything `dispatch status` prints, from the repository files alone. */
+/** Everything `singularity status` prints, from the repository files alone. */
 export async function collectStatus(
   root: string,
   now: Date,
@@ -226,7 +226,7 @@ function runLine(label: string, run: RunSummary | null): string {
 /** The text form of the report. */
 export function formatStatus(report: StatusReport): string {
   const lines = [
-    `Dispatch status, ${report.today} (${report.timezone})`,
+    `Singularity status, ${report.today} (${report.timezone})`,
     "",
     "Last runs",
     runLine("regular", report.last_run.regular),

@@ -1,5 +1,5 @@
 /**
- * Sound lab: audition every Dispatch UI sound with the real engine.
+ * Sound lab: audition every Singularity UI sound with the real engine.
  * The waveforms are drawn from the same offline renderer the tests measure, so the numbers on
  * each card are the numbers CI checks.
  */
@@ -40,7 +40,7 @@ const LABELS: Record<SoundName, string> = {
 };
 
 const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
-const STORAGE_KEY = "dispatch-sound-lab";
+const STORAGE_KEY = "singularity-sound-lab";
 
 interface LabState {
   volume: number;

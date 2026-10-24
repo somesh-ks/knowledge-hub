@@ -1,4 +1,4 @@
-import { daysBetween, type JudgmentsFile, type SeenFile, stockholmDate } from "@dispatch/core";
+import { daysBetween, type JudgmentsFile, type SeenFile, stockholmDate } from "@singularity/core";
 
 export const SEEN_RETENTION_DAYS = 90;
 export const JUDGMENT_RETENTION_DAYS = 30;

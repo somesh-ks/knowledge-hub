@@ -6,7 +6,7 @@ import { parseVitals, type VitalsWriter } from "./vitals";
 /**
  * POST /api/report: a page's uncaught error, unhandled rejection or Content-Security-Policy
  * violation, written to the function log as one line so it shows in Vercel's logs and can be
- * searched, and kept for a week in the store (server/faults.ts, D158), where `dispatch health`
+ * searched, and kept for a week in the store (server/faults.ts, D158), where `singularity health`
  * reads it: Hobby keeps the log an hour. Nothing personal is kept: no address, no user agent, and
  * every URL is cut to its path (the store keeps less: a route template and an origin), so a token
  * in a query string never reaches either. Each instance takes REPORTS_PER_MINUTE; the

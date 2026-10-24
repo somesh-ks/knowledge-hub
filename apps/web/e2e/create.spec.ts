@@ -1,5 +1,5 @@
-import { DEFAULT_SCHEDULE } from "@dispatch/core";
 import type { Page, Route } from "@playwright/test";
+import { DEFAULT_SCHEDULE } from "@singularity/core";
 import { configHash } from "../src/lib/configHash";
 import { BUILT_FILES, routeConfigStore } from "./configServer";
 import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
@@ -431,7 +431,7 @@ test.describe("the Create page", () => {
     await expect(again).toBeHidden();
     // It survives a reload: the stored run still holds the request.
     const stored = await page.evaluate(() =>
-      JSON.parse(sessionStorage.getItem("dispatch:run") ?? "{}"),
+      JSON.parse(sessionStorage.getItem("singularity:run") ?? "{}"),
     );
     expect(stored).toMatchObject({ id: 22, retry: { body: { request: mock.bodies[0]?.request } } });
   });
@@ -500,13 +500,13 @@ test.describe("the Create page", () => {
     await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
     await expect(page.locator("[data-run-card]")).toBeHidden();
     await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
-    expect(await page.evaluate(() => sessionStorage.getItem("dispatch:run"))).toBeNull();
+    expect(await page.evaluate(() => sessionStorage.getItem("singularity:run"))).toBeNull();
   });
 
   test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {
     await seedStorage(page, {
       session: {
-        "dispatch:run": JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href: EPISODE }),
+        "singularity:run": JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href: EPISODE }),
       },
     });
     await page.goto("/library");
@@ -811,14 +811,20 @@ test.describe("an episode page", () => {
     await expect(rows.nth(0).locator(".episode-highlight-text")).toHaveText(
       /^An essay on spending visual emphasis in one place/,
     );
-    await expect(link).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
+    await expect(link).toHaveAttribute(
+      "href",
+      "https://example.com/singularity-fixture/f0a17c2d6b83",
+    );
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
     // The publisher as attribution, as in a briefing, and never the name of the service that
     // found it. It is the same destination, so only the headline is in the tab order.
     const host = rows.nth(0).locator(".source-link");
     await expect(host.locator(":scope > span").first()).toHaveText("Margin Notes");
-    await expect(host).toHaveAttribute("href", "https://example.com/dispatch-fixture/f0a17c2d6b83");
+    await expect(host).toHaveAttribute(
+      "href",
+      "https://example.com/singularity-fixture/f0a17c2d6b83",
+    );
     await expect(host).toHaveAttribute("tabindex", "-1");
     await expect(page.locator("body")).not.toContainText("Exa discovery");
   });
@@ -827,7 +833,7 @@ test.describe("an episode page", () => {
     page,
   }) => {
     await page.goto(EPISODE);
-    const data = await page.locator("#dispatch-digest-data").evaluate((node) => {
+    const data = await page.locator("#singularity-digest-data").evaluate((node) => {
       return JSON.parse(node.textContent ?? "null");
     });
     expect(data).toMatchObject({

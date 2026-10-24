@@ -104,7 +104,7 @@ on:
 # trigger that is not the chosen hour gets a group of its own: it does nothing, and it must not take
 # the single pending place from a real run.
 concurrency:
-  group: ${{ (github.event_name == 'schedule' && github.event.schedule != (vars.RUN_CRON || '13 7 * * *') && github.event.schedule != vars.RUN_CRON_WEEKLY) && format('dispatch-skipped-{0}', github.run_id) || 'dispatch' }}
+  group: ${{ (github.event_name == 'schedule' && github.event.schedule != (vars.RUN_CRON || '13 7 * * *') && github.event.schedule != vars.RUN_CRON_WEEKLY) && format('singularity-skipped-{0}', github.run_id) || 'singularity' }}
   cancel-in-progress: false
 
 # Every step that calls a model can reach Claude and Gemini (config/models.json): a secret is only
@@ -149,7 +149,7 @@ jobs:
           DELETE_ID: ${{ inputs.delete }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
-        run: npm run --silent dispatch -- run --delete "$DELETE_ID" --json
+        run: npm run --silent singularity -- run --delete "$DELETE_ID" --json
 
       - name: Gate
         id: gate
@@ -172,7 +172,7 @@ jobs:
           [ -n "$SINCE" ] && args+=(--since "$SINCE")
           [ -n "$REPLACE" ] && args+=(--replace "$REPLACE")
           [ "$DRY" = "true" ] && args+=(--dry-run)
-          npm run --silent dispatch -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
+          npm run --silent singularity -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
           echo "due=$(jq -r '.due' "$RUNNER_TEMP/gate.json")" >> "$GITHUB_OUTPUT"
 
       - name: Fetch
@@ -180,13 +180,13 @@ jobs:
         env:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-        run: npm run --silent dispatch -- run --stage fetch --json
+        run: npm run --silent singularity -- run --stage fetch --json
 
       - name: Judge
         if: steps.gate.outputs.due == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: npm run --silent dispatch -- run --stage judge --json
+        run: npm run --silent singularity -- run --stage judge --json
 
       - name: Write
         if: steps.gate.outputs.due == 'true'
@@ -198,7 +198,7 @@ jobs:
           # Typed text from the site: passed as data in the environment, never spliced into the script.
           FEEDBACK: ${{ inputs.feedback }}
           TOPICS: ${{ inputs.topics }}
-        run: npm run --silent dispatch -- run --stage write --feedback "$FEEDBACK" --topics "$TOPICS" --json
+        run: npm run --silent singularity -- run --stage write --feedback "$FEEDBACK" --topics "$TOPICS" --json
 
       - name: Validate
         if: steps.gate.outputs.due == 'true'
@@ -207,7 +207,7 @@ jobs:
           # A briefing that validation cut short is refilled once, and the refill reads its
           # stories' pages the way the write stage does.
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-        run: npm run --silent dispatch -- run --stage validate --json
+        run: npm run --silent singularity -- run --stage validate --json
 
       # Every story each pass considered (pool, judgments, selection), kept 30 days, so loop/replay.ts
       # can rebuild a briefing exactly, and why each written story did or did not air (written.json,
@@ -240,7 +240,7 @@ jobs:
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
         run: |
-          npm run --silent dispatch -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
+          npm run --silent singularity -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
           echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
           echo "deploy=$(jq -r '.deploy' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
 
@@ -262,7 +262,7 @@ jobs:
           [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
-          npm run --silent dispatch -- run --record-failed "${args[@]}"
+          npm run --silent singularity -- run --record-failed "${args[@]}"
 
   # Vercel deploys the text digest from the Commit push. This job adds narration afterwards; its
   # own push triggers a second Vercel deploy that carries the audio.

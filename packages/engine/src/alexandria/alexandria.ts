@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import { z } from "zod";
 import { FEED_TEXT_ENOUGH_CHARS } from "../extract/extractText.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";

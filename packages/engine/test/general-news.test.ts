@@ -9,7 +9,7 @@ import {
   isBuiltinCategory,
   SourceStat,
   type Topic,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   GENERAL_QUESTIONS_HASH,
@@ -458,7 +458,7 @@ describe("GeneralJudge", () => {
 describe("judgeGeneral", () => {
   let dir: string;
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "dispatch-general-"));
+    dir = await mkdtemp(join(tmpdir(), "singularity-general-"));
   });
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true, maxRetries: 3 });

@@ -6,7 +6,7 @@ import {
   type JudgmentsFile,
   type LastRunFile,
   type SeenFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { run as renderCommand } from "../src/commands/render.js";
 import { run as validateCommand } from "../src/commands/validate.js";
@@ -503,7 +503,7 @@ describe("grounding and validation", () => {
     expect(JSON.parse(validated.stdout)).toMatchObject({ ok: true, errors: 0 });
   });
 
-  it("writes a pool in the format dispatch fetch writes", LONG, async () => {
+  it("writes a pool in the format singularity fetch writes", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     await runStage(world, { stage: "gate" });
     await runStage(world, { stage: "fetch" });

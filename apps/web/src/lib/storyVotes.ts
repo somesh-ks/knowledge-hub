@@ -7,9 +7,9 @@
  * in one `profile.vote` op: when the page is hidden or left, or SEND_AFTER_MS after the first vote
  * not yet sent. Only a story's final state is sent.
  */
-import type { ConfigOp } from "@dispatch/core";
+import type { ConfigOp } from "@singularity/core";
 
-export const VOTES_KEY = "dispatch:story-votes";
+export const VOTES_KEY = "singularity:story-votes";
 /** How long the first unsent vote may wait before the batch goes. */
 export const SEND_AFTER_MS = 10 * 60 * 1000;
 /** The most votes one op carries. */
@@ -27,7 +27,7 @@ export const MAX_OPS = 8;
  */
 export const GAP_MS = 10_000 + 250;
 /** Outlets stopped and not yet accepted by the server, kept so a page left or reloaded still sends them. */
-export const BLOCKS_KEY = "dispatch:story-blocks";
+export const BLOCKS_KEY = "singularity:story-blocks";
 /** The longest headline an op carries. */
 export const HEADLINE_MAX = 200;
 /** Sent votes remembered so a story shows its mark again; the oldest beyond this are forgotten. */

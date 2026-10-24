@@ -13,7 +13,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - Top picks are always included (D39). Every topic's best story airs first. Patch releases never air.
 - Release news: library, framework and changelog stories (a release note, or a story judged a developer tool launch) take at most 6% of the selected stories (about a tenth of what airs), are never Top picks, and are filed in the Launches section, which reads last in briefings, weeklies and custom episodes.
 - A blocked outlet is cut on every fetch path; matching reads the item's own URL (D108). Votes nudge ranking, the Firecrawl listing order and the writer.
-- Regenerate replaces a digest over its own window (`dispatch run --replace`); `--delete` removes a digest and its timeline (D104). Regenerate may choose topics again (D109).
+- Regenerate replaces a digest over its own window (`singularity run --replace`); `--delete` removes a digest and its timeline (D104). Regenerate may choose topics again (D109).
 - `episode-eval.yml` scores main's writer against the branch's on frozen replays and prints the judge's reasons (`loop/inspect.ts`).
 
 ### Sizing and spares
@@ -21,7 +21,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - A sized pass sends the judge 2.4 candidates per story it writes (192 for a 15-minute weekly, 68 for a 5-minute daily), writes 85% spares up to 80 and cuts to the narration limit after trimming spares.
 - 2026-10-24: writing kept 12 of 25, grounding 6 of 12 (write JSON: `lost`, `lost_reasons`). A pass left short (or under the floor) refills once, best effort, from `reserve.json` (what a doubled selection adds): `refill_written`, `refill_kept`.
 - General topics: Science takes a clearly on-topic story from one outlet (D120); the other general topics need two. General feeds are judged by Jev each run for the feeds' scores and never reach a briefing as such (D66); a general section gets two stories outside the briefing's cap; the weekly ceiling is 600 judged items.
-- Weights (D124): five stops (`WEIGHT_STOPS`); weight 0 (Off) never publishes, in selection, render, validate and curate, which read resolved weights; `dispatch learn` moves one stop.
+- Weights (D124): five stops (`WEIGHT_STOPS`); weight 0 (Off) never publishes, in selection, render, validate and curate, which read resolved weights; `singularity learn` moves one stop.
 - Mix and lean (D124): `format_mix` (Off, Less 0.85, Normal 1, More 1.1, Most 1.2 by source format; Normal omitted). One mix for every topic (`preferences.format_mix`), applied to each story's score (`applyFormatMix`); Off keeps the story out. A general topic's `perspective` (-2 to 2) scales a story by up to 15% by its outlets' mean `lean` (unrated is Centre) and removes none. At most two stories per outlet, by the story's host, outside sections of their own (`OUTLET_CAP`, `over_outlet`). `classify-formats` and `classify-lean` ask Jev for review. `curate` (agent mode) ignores the mix, as it ignores custom topics.
 
 ### Sources and scores
@@ -37,7 +37,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - Firecrawl: 100 requests in any 7 days (cost ledger), 50 a run (D166); listings up to 55%. A cached scrape is billed (`maxAge` saves time only).
 - A finalist still thin after the feed text, the free page read and the Firecrawl scrape (under 600 characters) gets Alexandria facts (`alexandria/alexandria.ts`, `config/alexandria.json`): free discovery, then one text-only capability. Facts only enrich read text (a story with none is still dropped). Caps: 30 credits a run, 10 a story, 20 s a story; off without `FIRECRAWL_API_KEY`; a failure leaves the story as it was. Credits are in the cost ledger (firecrawl, alexandria).
 - Caps, cooldowns and the narration budget are the only limits (no passphrase, D160).
-- The site's GitHub token reaches the repository for Create, Generate and config saves. `config.yml` runs share the `dispatch` concurrency group.
+- The site's GitHub token reaches the repository for Create, Generate and config saves. `config.yml` runs share the `singularity` group.
 - Vercel Cron calls `/api/cron/run` every hour (D61); it dispatches `run.yml` in the schedule's hour when the date gate says something is due, and needs `CRON_SECRET` (503 without it, 401 for an unsigned call). `RUN_CRON` (`13 7 * * *`) only picks GitHub's fallback entry, which GitHub has started hours late since 2026-08-26. A cron-started briefing counts toward Generate's limits (one per 6 hours, three per 24, `apps/web/src/server/limits.ts`).
 - `MAX_TEXT_CHARS` is 10,000 per story.
 - A script attempt stops after 8 minutes (D80).

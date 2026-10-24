@@ -221,7 +221,7 @@ async function share(button: HTMLElement): Promise<void> {
   mark.setAttribute("data-copied", "");
   mark.setAttribute("aria-label", "Link copied");
   if (status) status.textContent = "Link copied";
-  document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "success" }));
+  document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
   setTimeout(() => {
     mark.removeAttribute("data-copied");
     mark.setAttribute("aria-label", name);
@@ -256,7 +256,7 @@ document.addEventListener(
     const heading = tab && document.getElementById(`c-${tab.dataset.section}`);
     if (!heading) return;
     const down = heading.getBoundingClientRect().top > stickyTop();
-    document.dispatchEvent(new CustomEvent("dispatch:jump", { detail: { down } }));
+    document.dispatchEvent(new CustomEvent("singularity:jump", { detail: { down } }));
   },
   { capture: true },
 );

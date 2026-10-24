@@ -1,4 +1,4 @@
-import { DEFAULT_SCHEDULE } from "@dispatch/core";
+import { DEFAULT_SCHEDULE } from "@singularity/core";
 import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO } from "../testing/fakeGitHub";
 import {
@@ -12,7 +12,7 @@ import {
 const TOKEN = "github_pat_secret_value_123456";
 const SECRET = "cron-secret-of-enough-length";
 const env = {
-  GITHUB_DISPATCH_TOKEN: TOKEN,
+  GITHUB_SINGULARITY_TOKEN: TOKEN,
   GITHUB_REPOSITORY: REPO,
   CRON_SECRET: SECRET,
 };
@@ -184,7 +184,7 @@ describe("GET /api/cron/run", () => {
     const stored = JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 });
     const call = (at: string, up: boolean) =>
       handleCron(BEARER, {
-        env: { ...env, DATABASE_URL: "postgres://fake", DISPATCH_CONFIG_STORE: "postgres" },
+        env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
         fetch: github.fetch,
         now: () => new Date(at),
         connectConfigStore: async () => ({
@@ -207,7 +207,7 @@ describe("GET /api/cron/run", () => {
     try {
       const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
       const result = handleCron(BEARER, {
-        env: { ...env, DATABASE_URL: "postgres://fake", DISPATCH_CONFIG_STORE: "postgres" },
+        env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
         fetch: github.fetch,
         now: () => new Date("2026-10-10T05:30:00Z"),
         connectConfigStore: async () => ({ query: () => new Promise(() => {}) }),

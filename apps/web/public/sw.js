@@ -1,5 +1,5 @@
 /*
- * Dispatch service worker. Hand-written and small on purpose: it keeps the reading experience
+ * Singularity service worker. Hand-written and small on purpose: it keeps the reading experience
  * available offline and nothing else.
  *
  *   - Precaches the shell (the home page and /offline) with their stylesheet, fonts and scripts.
@@ -24,12 +24,14 @@
  *     (healed below). A network failure alone never deletes a saved page.
  *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
  */
-const VERSION = "v14";
-const SHELL_CACHE = `dispatch-shell-${VERSION}`;
-const PAGES_CACHE = `dispatch-pages-${VERSION}`;
-const MEDIA_CACHE = `dispatch-media-${VERSION}`;
+const VERSION = "v15";
+const SHELL_CACHE = `singularity-shell-${VERSION}`;
+const PAGES_CACHE = `singularity-pages-${VERSION}`;
+const MEDIA_CACHE = `singularity-media-${VERSION}`;
 /** Episodes saved for offline listening. Not versioned: a new worker keeps what the person downloaded. */
-const AUDIO_CACHE = "dispatch-audio-v1";
+const AUDIO_CACHE = "singularity-audio-v1";
+/** Where downloads were kept before the rename (D179); activation moves them to AUDIO_CACHE. */
+const OLD_AUDIO_CACHE = "dispatch-audio-v1";
 const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE, AUDIO_CACHE];
 
 const OFFLINE_URL = "/offline";
@@ -41,7 +43,7 @@ const FRESH_MS = 10 * 60 * 1000;
 /** A saved page younger than this is not checked against the network again. */
 const RECHECK_MS = 15 * 1000;
 /** When a page was saved, in milliseconds, on the saved copy. */
-const STORED_AT = "x-dispatch-stored-at";
+const STORED_AT = "x-singularity-stored-at";
 const LATEST_PATH = "/latest.json";
 const MAX_PAGES = 60;
 const MAX_MEDIA = 80;
@@ -178,6 +180,26 @@ self.addEventListener("message", (event) => {
 /* ------------------------------------------------------------------ activate */
 
 /**
+ * Moves downloads saved under the old cache name (D179). A page of this build may have copied them
+ * already (scripts/libraryDownloads.ts), and may have removed one since: then the old copy only goes.
+ */
+async function moveOldDownloads() {
+  if (!(await caches.has(OLD_AUDIO_CACHE))) return;
+  const audio = await caches.open(AUDIO_CACHE);
+  if (!(await audio.match("/__downloads.json"))) {
+    const old = await caches.open(OLD_AUDIO_CACHE);
+    // The list goes last: once it is here the copy is whole.
+    const keys = await old.keys();
+    const isList = (key) => new URL(key.url).pathname === "/__downloads.json";
+    for (const key of [...keys.filter((key) => !isList(key)), ...keys.filter(isList)]) {
+      const saved = await old.match(key);
+      if (saved) await audio.put(key, saved);
+    }
+  }
+  await caches.delete(OLD_AUDIO_CACHE);
+}
+
+/**
  * Copies every file a downloaded page needs into the downloads cache, from whichever cache holds it,
  * before activation drops the old ones. Downloads made before their files were kept there are saved.
  */
@@ -209,11 +231,13 @@ async function keepDownloadAssets() {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      await moveOldDownloads().catch(() => {});
+      await refreshDownloaded();
       await keepDownloadAssets().catch(() => {});
       const names = await caches.keys();
       await Promise.all(
         names
-          .filter((name) => name.startsWith("dispatch-") && !CURRENT_CACHES.includes(name))
+          .filter((name) => /^(singularity|dispatch)-/.test(name) && !CURRENT_CACHES.includes(name))
           .map((name) => caches.delete(name)),
       );
       // The browser starts a page request while the worker boots; the strategies below use that answer.

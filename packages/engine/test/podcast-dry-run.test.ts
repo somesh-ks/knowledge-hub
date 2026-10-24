@@ -36,7 +36,7 @@ const FIELDS = [
   "problems",
 ];
 
-describe("dispatch podcast --dry-run", () => {
+describe("singularity podcast --dry-run", () => {
   let pair: RepoPair;
   let root: string;
   let outside: string;
@@ -44,7 +44,7 @@ describe("dispatch podcast --dry-run", () => {
   beforeEach(async () => {
     pair = await createRepoPair({ seedDigest: false });
     root = pair.a;
-    outside = await mkdtemp(join(tmpdir(), "dispatch-dry-"));
+    outside = await mkdtemp(join(tmpdir(), "singularity-dry-"));
     for (const days of [1, 2]) {
       const when = dayAgo(days);
       await writeDigest(

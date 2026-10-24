@@ -7,7 +7,7 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-export const RESUME_KEY_PREFIX = "dispatch:resume:";
+export const RESUME_KEY_PREFIX = "singularity:resume:";
 /** Seconds from the end inside which a saved position counts as "finished". */
 const FINISHED_TAIL_SECONDS = 3;
 /** Positions under this are not worth restoring: the listener barely started. */
@@ -17,12 +17,12 @@ const MIN_RESTORE_SECONDS = 2;
  * Set once an item has been heard to the end, and cleared when a new position is saved. Every card
  * reads it (cardProgress.ts) to say "Played".
  */
-export const PLAYED_KEY_PREFIX = "dispatch:played:";
+export const PLAYED_KEY_PREFIX = "singularity:played:";
 
 /** Tells the page that what the device remembers of a recording changed (the cards read it). */
 function announce(digestId: string): void {
   if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
-  window.dispatchEvent(new CustomEvent("dispatch:resume", { detail: digestId }));
+  window.dispatchEvent(new CustomEvent("singularity:resume", { detail: digestId }));
 }
 
 export function resumeKey(digestId: string): string {
@@ -92,7 +92,7 @@ export function saveResumePosition(
  * The stories heard, by item id, beside the position: an item id outlives a rewrite of the
  * recording, where an index would mark another story. Space-separated (ids hold no spaces).
  */
-export const HEARD_KEY_PREFIX = "dispatch:heard:";
+export const HEARD_KEY_PREFIX = "singularity:heard:";
 
 /**
  * What the device remembers of a recording: where it was left, whether it was heard to the end,

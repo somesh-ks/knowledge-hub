@@ -21,7 +21,7 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
       configurable: true,
     });
     Object.assign(window, { copied, queued: [] as string[] });
-    document.addEventListener("dispatch:queue-add", (event) =>
+    document.addEventListener("singularity:queue-add", (event) =>
       (window as unknown as { queued: string[] }).queued.push((event as CustomEvent).detail.id),
     );
   });

@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadEnv, type SourcesFile, type SourcesUserFile } from "@dispatch/core";
+import { loadEnv, type SourcesFile, type SourcesUserFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../src/commands/sources.js";
 import { createLogger } from "../src/context.js";
@@ -49,7 +49,7 @@ const USER: SourcesUserFile = {
 };
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-srcuser-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-srcuser-"));
   await mkdir(join(root, "config"), { recursive: true });
   await writeFile(join(root, "config/sources.md"), SOURCES_MD);
   vi.spyOn(process.stdout, "write").mockImplementation((() => true) as typeof process.stdout.write);

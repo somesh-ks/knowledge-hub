@@ -5,7 +5,7 @@ import {
   parseDigestFile,
   podcastVoices,
   ScheduleFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import {
   buildSpokenText,
   createSpeechifyClient,
@@ -23,8 +23,8 @@ import {
   type SynthesisRequest,
   segmentSpokenText,
   usageMonth,
-} from "@dispatch/engine/audio";
-import { SEGMENT_CACHE_SECONDS, turnKey } from "@dispatch/engine/segments";
+} from "@singularity/engine/audio";
+import { SEGMENT_CACHE_SECONDS, turnKey } from "@singularity/engine/segments";
 import { EPISODE_ID, parseEpisodeFile } from "../lib/episodeFile";
 import type { StreamDoc } from "../lib/liveStream";
 import type { SegmentMarks } from "../lib/segmentMarks";

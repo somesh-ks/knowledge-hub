@@ -199,6 +199,24 @@ export function unhintedModules(html: string, read: (url: string) => string | nu
   return graph.filter((url) => !named.has(url));
 }
 
+/**
+ * Every built script's static imports, by URL. A page rendered on request is not in the build's
+ * HTML, so its server adds the hints from this (middleware.ts) instead of reading the scripts.
+ */
+export function importGraph(urls: readonly string[], read: (url: string) => string | null) {
+  const graph: Record<string, string[]> = {};
+  for (const url of urls) {
+    const source = read(url);
+    if (source !== null) graph[url] = staticImports(source).map((spec) => resolveUrl(url, spec));
+  }
+  return graph;
+}
+
+/** A `read` for `withModulePreloads` that knows only the imports `importGraph` recorded. */
+export function readFromGraph(graph: Record<string, string[]>): (url: string) => string | null {
+  return (url) => graph[url]?.map((dependency) => `import"${dependency}";`).join("") ?? null;
+}
+
 /** The page with a modulepreload link for each module `unhintedModules` finds, at the end of its head. */
 export function withModulePreloads(html: string, read: (url: string) => string | null): string {
   const urls = unhintedModules(html, read);

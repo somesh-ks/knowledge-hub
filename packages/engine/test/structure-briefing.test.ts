@@ -6,7 +6,7 @@ import {
   type StructureBlockInput,
   StructureBlocks,
   serializeDigestFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";

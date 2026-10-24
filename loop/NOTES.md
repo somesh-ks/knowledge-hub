@@ -22,7 +22,7 @@ domain to the owner's blocked list so later briefings and episodes leave it out.
 `StoryControls.astro` → `scripts/storyVotesEntry.ts` (lazy import) → `scripts/storyVotes.ts`
 `block()` → 5 s Undo → `send()` → `POST /api/config {op: profile.block, domain}` →
 `server/configEdit.ts` `handleConfig` → GitHub `workflow_dispatch` of `config.yml` →
-`dispatch config apply` → `config/profiles/owner.json`. Nothing on this path contacts the outlet:
+`singularity config apply` → `config/profiles/owner.json`. Nothing on this path contacts the outlet:
 the domain is a string the server checks for shape (`lib/blockedOutlets.ts` `blockedDomainOf`).
 
 ### Where the message comes from
@@ -144,7 +144,7 @@ Proof (vitest, 2026-10-15):
 
 They are the narrated briefings, not Singularity podcast episodes. `run.yml` (hourly cron) gates,
 fetches, judges, writes and commits `Digests/YYYY/MM/<date>[-weekly].md`, then `audio.yml` runs
-`dispatch publish`, which reads each item's `spoken` text through `buildSpokenText`
+`singularity publish`, which reads each item's `spoken` text through `buildSpokenText`
 (`engine/src/audio/spokenText.ts`) and sends it to Speechify. Settings: `config/schedule.json`
 (daily 5 min, skip business/sports/culture; weekly 15 min, skip business/sports). On-demand podcast
 episodes (`podcast.yml`, `Podcasts/`) are a separate path (`engine/src/podcast/`).

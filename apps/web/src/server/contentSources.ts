@@ -4,8 +4,8 @@ import {
   type CostRecord,
   digestRelPath,
   PriceTable,
-} from "@dispatch/core";
-import { configStoreUrl } from "@dispatch/engine/config-paths";
+} from "@singularity/core";
+import { configStoreUrl } from "@singularity/engine/config-paths";
 import { type ContentRepoDeps, loadStoreFiles } from "./contentRepo";
 import { bundledCostRecords, bundledPrices } from "./costSource";
 import { bundledDigestIds, bundledDigests } from "./digestSource";

@@ -144,10 +144,10 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: apps/web
       - name: Player suite
-        run: npm run e2e:player -w @dispatch/web
+        run: npm run e2e:player -w @singularity/web
       - name: Site suite
         if: ${{ !cancelled() }}
-        run: npm run e2e -w @dispatch/web
+        run: npm run e2e -w @singularity/web
       - name: Keep the traces of a failure
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

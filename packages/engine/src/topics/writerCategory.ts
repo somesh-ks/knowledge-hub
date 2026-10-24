@@ -1,4 +1,4 @@
-import { type Category, isBuiltinCategory } from "@dispatch/core";
+import { type Category, isBuiltinCategory } from "@singularity/core";
 
 /**
  * The category label the writer prompt receives. The prompt only knows the built-in categories,

@@ -6,7 +6,7 @@ import {
   parseDigestFile,
   stockholmDate,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
@@ -42,7 +42,7 @@ import { collectStatus } from "./statusReport.js";
 export type { FieldReading, HealthAspect, HealthFetch, StoreReading, WatchedHead, WorkflowRun };
 
 /**
- * `dispatch health`: the faults that fail silently today, from the repository files and the live
+ * `singularity health`: the faults that fail silently today, from the repository files and the live
  * site. A fault exits non-zero; a warning is listed and does not. The `code` of each finding is a
  * contract: `health.yml` retries a run on `run_failed` or `run_overdue` and narration on
  * `audio_missing`, once, when the fault first appears; `run_died` only alerts and `run_cancelled` is a warning.
@@ -534,7 +534,7 @@ function message(error: unknown): string {
 
 /** The text form: faults first, then warnings, then what passed. */
 export function formatHealth(report: HealthReport): string {
-  const lines = [`Dispatch health, ${report.now}: ${report.ok ? "ok" : "FAULTS"}`];
+  const lines = [`Singularity health, ${report.now}: ${report.ok ? "ok" : "FAULTS"}`];
   for (const severity of ["fault", "warning"] as const) {
     for (const each of report.findings.filter((finding) => finding.severity === severity)) {
       lines.push(

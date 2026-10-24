@@ -49,12 +49,12 @@ What would change a decision:
 
 ## Field Web Vitals
 
-Real visits' LCP, INP and CLS (D156), first-party like the fault reports, so a page that turns slow on real phones reaches `dispatch health`. They take the opt-outs above (`counted()`: the production host, no Do Not Track, no Global Privacy Control).
+Real visits' LCP, INP and CLS (D156), first-party like the fault reports, so a page that turns slow on real phones reaches `singularity health`. They take the opt-outs above (`counted()`: the production host, no Do Not Track, no Global Privacy Control).
 
 - Where `counted()` allows, `apps/web/src/scripts/app.ts` loads `apps/web/src/scripts/vitals.ts` at idle or at the first visibility change. It reads the browser's PerformanceObserver (buffered) and sends one beacon to `/api/report` (kind `vitals`) when the page is first hidden, or at `pagehide` (a tab opened in the background, once it has been shown): the landing page's LCP (none painted after a hide), CLS and INP over the page's life to then (moves inside the app included), the route template (`vitalPage`: `/d/[id]`, `/e/[id]`, `/settings/topics/[id]`, a named page, else `other`), `device` (`mobile` for a coarse pointer) and `connection` (the effective type, Chromium only). Nothing else; a metric the browser does not measure is left out.
 - The server applies the template and the bounds again, takes 30 a minute per instance apart from the faults' 30, and keeps one row per metric in Neon's `web_vitals` for 7 days (each insert and health's daily read delete what is older), 600 rows an hour at most. A store that is down or slow drops the sample; the beacon always gets 204.
 - Faults (D158, not behind `counted()`) are also kept 7 days in Neon's `client_faults`: kind, route template, the message's start, CSP directive, blocked and source origins, build. A 5xx is kind `server`, or `platform` from Vercel.
-- `dispatch health` reads each metric's 7-day p75 per device class daily: `field_vitals` warns past Google's "needs improvement" line and faults past "poor"; `field_unmeasured` warns when phones gave a metric under 20 samples, `DATABASE_URL` is unset or the vitals read alone fails; a store that does not connect is the fault `store_degraded`.
+- `singularity health` reads each metric's 7-day p75 per device class daily: `field_vitals` warns past Google's "needs improvement" line and faults past "poor"; `field_unmeasured` warns when phones gave a metric under 20 samples, `DATABASE_URL` is unset or the vitals read alone fails; a store that does not connect is the fault `store_degraded`.
 
 Scenario: a reader opens a briefing in the installed app, taps Play and switches app. One report goes then; presses after returning are not sent.
 

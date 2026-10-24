@@ -1,4 +1,4 @@
-import type { DigestKind, LastRunFile, RunRecord } from "@dispatch/core";
+import type { DigestKind, LastRunFile, RunRecord } from "@singularity/core";
 
 export interface RecordRunInput {
   kind: DigestKind;

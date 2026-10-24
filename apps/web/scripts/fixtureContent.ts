@@ -1,4 +1,4 @@
-import type { Category, DigestItem, Section } from "@dispatch/core";
+import type { Category, DigestItem, Section } from "@singularity/core";
 
 /**
  * Invented content for the fixture digests. Every name, project and study here is made up and every
@@ -348,7 +348,7 @@ export function toDigestItems(seeds: readonly Seed[], publishedAt: string): Dige
     category: seed.category,
     source_type: seed.sourceType,
     headline: seed.headline,
-    url: `https://example.com/dispatch-fixture/${seed.id}`,
+    url: `https://example.com/singularity-fixture/${seed.id}`,
     source: seed.source,
     ...(seed.author ? { author: seed.author } : {}),
     summary: seed.summary,

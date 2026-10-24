@@ -1,4 +1,5 @@
 import {
+  costsReport,
   expect,
   expectNoViolationsInEitherScheme,
   hydrated,
@@ -25,13 +26,45 @@ test("axe, home with each theme chosen against the system", async ({ page }) => 
     await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
     await page.goto("/");
     await page.evaluate(
-      (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
+      (value) => localStorage.setItem("singularity:preferences", JSON.stringify({ theme: value })),
       theme,
     );
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     expect(await violations(page), `${theme} chosen`).toEqual([]);
   }
+});
+
+// The Costs page had no scan (it is not one of the routes above), and on a phone its table, wider
+// than the card, scrolled sideways out of a keyboard's reach (axe scrollable-region-focusable,
+// 2026-10-24). Five providers make it wider than a phone's card.
+test("axe, the Costs page in chart and table view, its table scrolling sideways", async ({
+  page,
+}) => {
+  const split = { anthropic: 2.26, speechify: 0.11, exa: 0.12, firecrawl: 0.04, gemini: 0.02 };
+  const groups = Object.fromEntries(
+    Object.entries(split).map(([key, usd]) => [key, { usd, runs: 1, shared_usd: 0 }]),
+  );
+  const base = costsReport("provider");
+  await page.clock.setFixedTime(new Date("2026-10-22T10:00:00Z"));
+  await page.route("**/api/costs**", (route) =>
+    route.fulfill({
+      json: {
+        ...base,
+        report: {
+          ...base.report,
+          buckets: [{ bucket: "2026-10-20", total: { usd: 2.55, runs: 1, shared_usd: 0 }, groups }],
+          total: { usd: 2.55, runs: 1, shared_usd: 0 },
+        },
+      },
+    }),
+  );
+  await page.goto("/analytics");
+  await expect(page.locator(".costs-mark")).toHaveCount(1);
+  await expectNoViolationsInEitherScheme(page);
+  await page.locator("#costs-view-table").click();
+  await expect(page.locator("[data-costs-table]")).toBeVisible();
+  await expectNoViolationsInEitherScheme(page);
 });
 
 test.describe("axe, banners and live states", () => {

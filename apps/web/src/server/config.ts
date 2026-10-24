@@ -1,13 +1,15 @@
-import { DEFAULT_SECOND_VOICE } from "@dispatch/engine/segments";
+import { DEFAULT_SECOND_VOICE } from "@singularity/engine/segments";
 
 /**
  * The environment the API routes need. All are Vercel environment variables. Generate and status use
  * the GitHub token and repository; narrate uses everything from the Speechify key down.
  */
 export interface ServerEnv {
-  /** Neon Postgres (D149); the config store is used only with DISPATCH_CONFIG_STORE=postgres too. */
+  /** Neon Postgres (D149); the config store is used only with SINGULARITY_CONFIG_STORE=postgres too. */
   DATABASE_URL?: string;
-  DISPATCH_CONFIG_STORE?: string;
+  SINGULARITY_CONFIG_STORE?: string;
+  GITHUB_SINGULARITY_TOKEN?: string;
+  /** The token's name before D179, still read until the owner removes it from Vercel. */
   GITHUB_DISPATCH_TOKEN?: string;
   GITHUB_REPOSITORY?: string;
   SPEECHIFY_API_KEY?: string;
@@ -36,9 +38,14 @@ export interface ServerConfig {
 
 const REPOSITORY = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/;
 
+/** The site's GitHub token, under its name or the one before D179. */
+function tokenOf(env: ServerEnv): string | undefined {
+  return env.GITHUB_SINGULARITY_TOKEN?.trim() || env.GITHUB_DISPATCH_TOKEN?.trim() || undefined;
+}
+
 /** Returns null when anything is missing or malformed, so a half-configured site answers "unavailable". */
 export function readServerConfig(env: ServerEnv): ServerConfig | null {
-  const token = env.GITHUB_DISPATCH_TOKEN?.trim();
+  const token = tokenOf(env);
   const match = REPOSITORY.exec(env.GITHUB_REPOSITORY?.trim() ?? "");
   if (!token || !match?.[1] || !match[2]) return null;
   return {
@@ -55,7 +62,7 @@ export function readServerConfig(env: ServerEnv): ServerConfig | null {
  */
 export function missingSettings(env: ServerEnv): string[] {
   return [
-    ...(env.GITHUB_DISPATCH_TOKEN?.trim() ? [] : ["GITHUB_DISPATCH_TOKEN"]),
+    ...(tokenOf(env) ? [] : ["GITHUB_SINGULARITY_TOKEN"]),
     ...(REPOSITORY.exec(env.GITHUB_REPOSITORY?.trim() ?? "") ? [] : ["GITHUB_REPOSITORY"]),
   ];
 }

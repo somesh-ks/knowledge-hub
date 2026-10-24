@@ -14,7 +14,7 @@
  *
  * Nothing sounds for hover, focus, scroll, typing or scrubbing. `data-sound="none"` opts a control out.
  */
-import type { SoundName } from "@dispatch/sound";
+import type { SoundName } from "@singularity/sound";
 import type { Cue } from "./soundMap";
 
 export type SoundKind = "navigate" | "select" | "open" | "close" | "tap" | "none";

@@ -4,7 +4,7 @@ import { describeError } from "../llm/errors.js";
 import { type BlobClient, createVercelBlobClient } from "../publish/blob.js";
 import { syncContent } from "../publish/contentSync.js";
 
-export const CONTENT_USAGE = "Usage: dispatch content sync";
+export const CONTENT_USAGE = "Usage: singularity content sync";
 
 export interface ContentDeps {
   blob?: BlobClient;
@@ -18,7 +18,7 @@ async function fetchText(url: string): Promise<string | null> {
   return await res.text();
 }
 
-/** `dispatch content sync`: mirror the content files of the checkout into the content store (D173). */
+/** `singularity content sync`: mirror the content files of the checkout into the content store (D173). */
 export function makeContentCommand(deps: ContentDeps = {}): CommandRun {
   return async (argv, ctx: CommandContext) => {
     if (argv.length !== 1 || argv[0] !== "sync") {

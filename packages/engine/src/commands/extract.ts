@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { loadPool } from "../curate/inputs.js";
 import { resolveRunLocation } from "../curate/runDir.js";
@@ -8,7 +8,7 @@ import { createFirecrawlScrape } from "../extract/firecrawlScrape.js";
 import { truncateAtParagraph } from "../extract/truncate.js";
 
 const USAGE =
-  "Usage: dispatch extract --ids <a,b,c> [--pool <path>] [--run <id>] [--max-chars <n>]";
+  "Usage: singularity extract --ids <a,b,c> [--pool <path>] [--run <id>] [--max-chars <n>]";
 
 /** Total characters printed across all items, so one call cannot flood a session's context. */
 export const DEFAULT_TOTAL_CHARS = 60_000;
@@ -66,7 +66,7 @@ export async function extractIds(
 }
 
 /**
- * `dispatch extract --ids a,b,c`: full text for chosen pool items, for a Claude Code session that
+ * `singularity extract --ids a,b,c`: full text for chosen pool items, for a Claude Code session that
  * curates by hand. Prints one JSON object from item id to text on stdout; everything else goes to
  * stderr. Uses the network (page fetches, and Firecrawl when FIRECRAWL_API_KEY is set).
  */

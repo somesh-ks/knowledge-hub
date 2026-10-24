@@ -6,7 +6,7 @@ import {
   StructureFile,
   type StructureKind,
   storedStructure,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { blockedDomainsIn } from "../lib/blockedProfile";
 import { configHash } from "../lib/configHash";
 import { buildManage, type ManageData, type ManageSource, type ManageTopic } from "../lib/manage";

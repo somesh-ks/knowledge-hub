@@ -7,7 +7,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ### Structure
 - Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), Analytics (Costs; User engagement opens Simple Analytics, D153), About (D129).
 - Link rows end in their value, in the quiet ink; rows are 64px.
-- Each group of rows is a card: `.card-group` (primitives.css) on the `.rows` list, no shadow or line; what it holds is concentric with it (`component.card`). Heads share the rows' edge. The install offer is one in the accent tone. About: About, Privacy, Change log (`/settings/changelog`, newest first) and, on a phone, Last updated, which from 64rem sits at the foot of the side column (`AppNav`).
+- Each group of rows is a card: `.card-group` (primitives.css) on the `.rows` list, no shadow or line; what it holds is concentric with it (`component.card`). Heads share the rows' edge. The install offer is one in the accent tone. About: About, Privacy, Change log (`/settings/changelog`, newest first) and, on a phone, Last updated, at the side column's foot from 64rem (`AppNav`).
 - No breadcrumbs: a title stands alone and a phone's app bar arrow leads up (D129). `/settings/custom` goes to `/create`; `custom` in `config/schedule.json` is what the Create panel starts from.
 - Form fields have a 3:1 outline. Every select opens one drawn list set in `primitives.css` through `appearance: base-select`. Time zone and voices use searchable pickers (D101). Theme is a select that draws no value until the stored one is set.
 
@@ -36,7 +36,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Changes save themselves (`autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. The toast is only for a failure (reason, Retry), an Undo or the time refused. A removal leaves at once; its request waits 5 s with Undo (D142). A 400 naming its op (`op_index`) drops only that change.
 - Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with the rest in one request, also when the page is left: waiting edits are kept in storage, marked pending, for up to 90 s (D91).
 - Scenario: WHEN the held request fails THEN the open page shows "Not saved yet" with the reason and Retry, and the index says "Your last change was not saved." (D98). Elsewhere a toast names the page with Open (D99).
-- For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`dispatch:saved-edits`, D79, D115).
+- For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`singularity:saved-edits`, D79, D115).
 - With the config store on (D149) a settings page lays what the store holds over its built copy; slow or down, what this device last read (D172), else the build.
 
 ### Blocked outlets and votes

@@ -1,5 +1,5 @@
-import type { Digest, Section } from "@dispatch/core";
-import { SECTIONS, VOICE_LIMITS } from "@dispatch/core";
+import type { Digest, Section } from "@singularity/core";
+import { SECTIONS, VOICE_LIMITS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {

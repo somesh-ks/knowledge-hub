@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadEnv, type SourceHealthFile, type SourcesFile } from "@dispatch/core";
+import { loadEnv, type SourceHealthFile, type SourcesFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../src/commands/fetch.js";
 import { type CommandContext, createLogger } from "../src/context.js";
@@ -82,7 +82,7 @@ function routeFetch(extra: Record<string, () => Response> = {}): void {
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-fetch-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-fetch-"));
   await mkdir(join(root, "config"), { recursive: true });
   const preferences = await readFile(
     new URL("./fixtures/config/preferences.json", import.meta.url),
@@ -107,7 +107,7 @@ afterEach(async () => {
 const readPool = async (rel: string): Promise<PoolFile> =>
   PoolFile.parse(JSON.parse(await readFile(join(root, rel), "utf8")));
 
-describe("dispatch fetch", () => {
+describe("singularity fetch", () => {
   it("writes a validated pool to .cache/run/<id>/pool.json and prints counts only", async () => {
     const code = await run(["--since", "2026-10-01T00:00:00Z"], context());
     expect(code).toBe(0);
@@ -243,13 +243,13 @@ describe("dispatch fetch", () => {
     const messages: string[] = [];
     const log = createLogger({ json: false, secrets: [], write: (line) => messages.push(line) });
     expect(await run([], context({ log }))).toBe(1);
-    expect(messages.join("\n")).toContain("dispatch sources import");
+    expect(messages.join("\n")).toContain("singularity sources import");
   });
 
   it("prints usage for --help without touching the network", async () => {
     const calls = vi.mocked(fetch).mock.calls.length;
     expect(await run(["--help"], context())).toBe(0);
-    expect(stdout.join("")).toContain("Usage: dispatch fetch");
+    expect(stdout.join("")).toContain("Usage: singularity fetch");
     expect(vi.mocked(fetch).mock.calls.length).toBe(calls);
   });
 });

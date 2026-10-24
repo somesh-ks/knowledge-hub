@@ -3,7 +3,7 @@ name: audio
 # Generates missing narration, uploads it to Vercel Blob and commits the timeline metadata.
 # The site is deployed by the Vercel GitHub integration, which builds on every push to main. Vercel
 # Hobby only deploys commits authored by the team owner, so this commit uses the owner's identity
-# from the DISPATCH_GIT_NAME and DISPATCH_GIT_EMAIL variables.
+# from the SINGULARITY_GIT_NAME and SINGULARITY_GIT_EMAIL variables.
 
 on:
   workflow_call:
@@ -78,4 +78,4 @@ jobs:
             BLOB_STORE_ID=$(pulled BLOB_STORE_ID) || { echo "::error::BLOB_STORE_ID missing from the pulled env"; exit 1; }
             export VERCEL_OIDC_TOKEN BLOB_STORE_ID
           fi
-          npm run --silent dispatch -- publish --prune 120
+          npm run --silent singularity -- publish --prune 120
