@@ -140,7 +140,7 @@ function failedReport(
  *
  * Outcomes: "published" when any pass published, else "nothing", else "gated" (no pass was
  * planned). A failure anywhere before the files are written leaves state untouched. A dry run
- * writes nothing and commits nothing; digests are only previewed under .cache.
+ * commits only its spend to the cost ledger; digests are only previewed under .cache.
  */
 export async function commitStage(deps: RunDeps, options: RunOptions): Promise<CommitReport> {
   const { root } = deps;
@@ -298,6 +298,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       await writeFile(path, serializeDigestFile(digest), "utf8");
       previews.set(digest.id, `.cache/run/${digest.id}/digest-preview.md`);
     }
+    if (spend && deps.spend) await commitDryRunCosts(deps, options, plan, nowIso, today);
     return {
       outcome,
       digests: reports.map((report) => ({ ...report, preview: previews.get(report.id) ?? null })),
@@ -433,4 +434,39 @@ async function commitGated(
     commit = { status: "nothing_to_commit", message, detail };
   }
   return { ...base, deploy: lacking.length > 0, dry_run: false, commit };
+}
+
+/**
+ * A dry run makes the paid calls a real run makes (45 Claude calls, about $1, on 2026-10-24) and
+ * recorded none, so the Costs page missed them. Its spend goes to the ledger in a commit of the
+ * ledger alone, under the publish allowlist, which holds the ledger and no digest the dry run
+ * could have written; any other change in the tree refuses the commit, and a refusal only warns.
+ */
+async function commitDryRunCosts(
+  deps: RunDeps,
+  options: RunOptions,
+  plan: Plan,
+  nowIso: string,
+  today: string,
+): Promise<void> {
+  if (!deps.spend) return;
+  try {
+    await recordSpend(deps.root, deps.spend, plan, nowIso);
+    const committed = await commitAndPush({
+      root: deps.root,
+      message: `chore(costs): dry run ${today}`,
+      command: "publish",
+      push: !options.noPush,
+      git: deps.git,
+    });
+    if (committed.status === "refused" || committed.status === "push_failed") {
+      deps.log.warn("The dry run's costs were not committed", {
+        detail: committed.status === "refused" ? committed.offending.join(", ") : committed.reason,
+      });
+    }
+  } catch (error) {
+    deps.log.warn("The dry run's costs were not committed", {
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
