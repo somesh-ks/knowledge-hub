@@ -10,8 +10,8 @@
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
-import type { SourceFormat } from "@dispatch/core";
-import { topicEmoji } from "@dispatch/core/topicEmoji";
+import type { SourceFormat } from "@singularity/core";
+import { topicEmoji } from "@singularity/core/topicEmoji";
 import { pickEmoji } from "../lib/pickEmoji";
 import { readableUrl } from "../lib/readableUrl";
 import { sourcesSummary } from "../lib/settingsSummary";

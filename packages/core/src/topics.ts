@@ -425,7 +425,7 @@ export function seedTopicsFile(weights: Readonly<Record<Category, number>>): Top
 
 /**
  * The topics a run works from. Built-in weights come from config/preferences.json, where
- * `dispatch learn` and the weight sliders write them, so the two files can never disagree about
+ * `singularity learn` and the weight sliders write them, so the two files can never disagree about
  * the taste the score is computed from. Built-in topics missing from the file are restored. A
  * missing file reads as the seed.
  */

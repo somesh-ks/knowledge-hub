@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { CONFIG_FILES, STRUCTURE_KINDS, StructureFile } from "@dispatch/core";
+import { CONFIG_FILES, STRUCTURE_KINDS, StructureFile } from "@singularity/core";
 
 export class StructureError extends Error {
   constructor(problems: string[]) {

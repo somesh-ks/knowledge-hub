@@ -1,4 +1,4 @@
-import type { PodcastRequest } from "@dispatch/core";
+import type { PodcastRequest } from "@singularity/core";
 import type { Logger } from "../context.js";
 import type { BlobClient } from "../publish/blob.js";
 import { episodeTitle } from "./episode.js";

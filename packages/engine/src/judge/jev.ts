@@ -1,4 +1,4 @@
-import type { Item, JudgmentEntry } from "@dispatch/core";
+import type { Item, JudgmentEntry } from "@singularity/core";
 import type { EntryType, Questions } from "@typesafe-ai/sdk";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";

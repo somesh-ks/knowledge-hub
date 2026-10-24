@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadEnv, type SourcesFile } from "@dispatch/core";
+import { loadEnv, type SourcesFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../src/commands/sources.js";
 import { type CommandContext, createLogger } from "../src/context.js";
@@ -50,7 +50,7 @@ function stubFetch(routes: Record<string, () => Response>): void {
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-srccmd-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-srccmd-"));
   await mkdir(join(root, "config"), { recursive: true });
   await writeFile(join(root, "config/sources.md"), SOURCES_MD);
   stdout = [];
@@ -67,7 +67,7 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-describe("dispatch sources import", () => {
+describe("singularity sources import", () => {
   it("writes config/sources.json and config/queries.json from the markdown, offline", async () => {
     const network = vi.fn();
     vi.stubGlobal("fetch", network);
@@ -138,7 +138,7 @@ describe("dispatch sources import", () => {
   });
 });
 
-describe("dispatch sources discover", () => {
+describe("singularity sources discover", () => {
   it("fills in feeds from the network and writes the registry", async () => {
     await run(["import"], context());
     stubFetch({
@@ -172,7 +172,7 @@ describe("dispatch sources discover", () => {
   });
 });
 
-describe("dispatch sources check", () => {
+describe("singularity sources check", () => {
   beforeEach(async () => {
     await writeFile(
       join(root, "config/sources.json"),
@@ -208,10 +208,10 @@ describe("dispatch sources check", () => {
   });
 });
 
-describe("dispatch sources usage", () => {
+describe("singularity sources usage", () => {
   it("shows usage and exits 2 without a subcommand, exits 2 for an unknown one", async () => {
     expect(await run([], context())).toBe(2);
-    expect(stdout.join("")).toContain("Usage: dispatch sources");
+    expect(stdout.join("")).toContain("Usage: singularity sources");
     expect(await run(["frobnicate"], context())).toBe(2);
     expect(errors.join("\n")).toContain('unknown subcommand "frobnicate"');
   });
@@ -223,6 +223,6 @@ describe("dispatch sources usage", () => {
 
   it("exits 1 when the registry is needed but missing", async () => {
     expect(await run(["discover"], context())).toBe(1);
-    expect(errors.join("\n")).toContain("dispatch sources import");
+    expect(errors.join("\n")).toContain("singularity sources import");
   });
 });

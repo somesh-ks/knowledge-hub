@@ -8,8 +8,8 @@
  * never send it again. The page says once, under its title, that what it shows is saved and not live.
  */
 
-import type { SourceFormat } from "@dispatch/core";
-import { topicEmoji } from "@dispatch/core/topicEmoji";
+import type { SourceFormat } from "@singularity/core";
+import { topicEmoji } from "@singularity/core/topicEmoji";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
 import { SAVED_KEY } from "../lib/savedKey";

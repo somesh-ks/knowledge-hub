@@ -58,7 +58,7 @@ describe("analytics", () => {
   it("loads nothing off production or for a reader who asked not to be tracked", async () => {
     for (const [hostname, privacy] of [
       ["localhost", {}],
-      ["dispatch-git-branch.vercel.app", {}],
+      ["singularity-git-branch.vercel.app", {}],
       [ANALYTICS_HOST, { doNotTrack: "1" }],
       [ANALYTICS_HOST, { gpc: true }],
     ] as const) {

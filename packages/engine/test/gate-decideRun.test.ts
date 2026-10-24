@@ -1,4 +1,4 @@
-import type { LastRunFile, RunRecord } from "@dispatch/core";
+import type { LastRunFile, RunRecord } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { decideRun } from "../src/gate/decideRun.js";
 

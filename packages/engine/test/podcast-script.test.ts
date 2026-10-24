@@ -1,4 +1,4 @@
-import type { PodcastFormat } from "@dispatch/core";
+import type { PodcastFormat } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { numbersIn } from "../src/podcast/check.js";
 import { planPodcast, STORY_CAPACITY_CHARS } from "../src/podcast/plan.js";

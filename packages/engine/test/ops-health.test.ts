@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { digestRelPath, serializeDigestFile, VITAL_THRESHOLDS } from "@dispatch/core";
+import { digestRelPath, serializeDigestFile, VITAL_THRESHOLDS } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
 import {
@@ -29,7 +29,7 @@ async function put(rel: string, text: string): Promise<void> {
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-health-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-health-"));
   // A briefing last published eleven days ago, a weekly that failed, two fallbacks.
   await put(
     "state/last-run.json",
@@ -103,8 +103,8 @@ afterEach(async () => {
 const codes = (findings: ReadonlyArray<{ code: string; severity: string }>, severity: string) =>
   findings.filter((each) => each.severity === severity).map((each) => each.code);
 
-describe("dispatch health", () => {
-  // Each of these was an ordinary line in `dispatch status` that nobody read.
+describe("singularity health", () => {
+  // Each of these was an ordinary line in `singularity status` that nobody read.
   it("faults a failed run, a missed run, missing narration, a broken digest, a short episode, a thin briefing, a stub story and a runaway spend", async () => {
     const report = await collectHealth({
       root,
@@ -218,7 +218,7 @@ describe("dispatch health", () => {
       fetch: fake,
     });
     expect(codes(report.findings, "fault")).not.toContain("site_stale");
-    // `dispatch status` had the same order and named the regenerated one as the latest.
+    // `singularity status` had the same order and named the regenerated one as the latest.
     expect((await collectStatus(root, NOW, 500_000)).latest_digest?.id).toBe("2026-10-20");
     // A site count that does not read is said, and never stops the check.
     expect(codes(report.findings, "warning")).toContain("site_usage_unread");

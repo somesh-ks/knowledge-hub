@@ -245,7 +245,7 @@ export async function writeConfigDocumentsAt(
   }
 }
 
-/** The single document `dispatch learn` writes, on the version it read. */
+/** The single document `singularity learn` writes, on the version it read. */
 export async function writeConfigDocument(
   sql: SqlClient,
   path: ConfigDocumentPath,

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Category, IdString } from "@dispatch/core";
+import { Category, IdString } from "@singularity/core";
 import { z } from "zod";
 
 export const ExaQuery = z.object({

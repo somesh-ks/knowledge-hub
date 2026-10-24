@@ -1,4 +1,4 @@
-import type { Source, SourcesFile } from "@dispatch/core";
+import type { Source, SourcesFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { applySourceResults, overlayHealth, toHealthFile } from "../src/state/sourceHealth.js";
 

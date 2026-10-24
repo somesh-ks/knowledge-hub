@@ -169,7 +169,7 @@
       ],
       "expected_output": "Says DISPATCH_MODEL is not set and where to pick one, offers agent or remote mode, and does not switch silently or start a run.",
       "expectations": [
-        "The reply says model.DISPATCH_MODEL is not set and mentions dispatch models for choosing one",
+        "The reply says model.DISPATCH_MODEL is not set and mentions singularity models for choosing one",
         "The reply offers agent mode or remote mode as the nearest options",
         "The agent does not start a local run and does not switch mode without asking",
         "No command that spends money is executed"

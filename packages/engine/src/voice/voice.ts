@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { CONFIG_FILES } from "@dispatch/core";
+import { CONFIG_FILES } from "@singularity/core";
 
 export interface VoiceExample {
   weak: string;

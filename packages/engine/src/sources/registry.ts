@@ -9,7 +9,7 @@ import {
   SourcesFile as SourcesSchema,
   type SourcesUserFile,
   SourcesUserFile as SourcesUserSchema,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 
 export class SourcesError extends Error {
@@ -221,7 +221,7 @@ export async function loadSourcesRaw(root: string): Promise<SourcesFile> {
     text = await readFile(join(root, CONFIG_FILES.sources), "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new Error(`${CONFIG_FILES.sources} not found. Run "dispatch sources import" first.`);
+      throw new Error(`${CONFIG_FILES.sources} not found. Run "singularity sources import" first.`);
     }
     throw error;
   }

@@ -9,8 +9,8 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="{{THEME_LIGHT}}">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="{{THEME_DARK}}">
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="High-fidelity prototype of the Dispatch reader and player. Sample content is invented.">
-<title>Wednesday 7 October, Dispatch</title>
+<meta name="description" content="High-fidelity prototype of the Singularity reader and player. Sample content is invented.">
+<title>Wednesday 7 October, Singularity</title>
 <style>{{FONTS}}</style>
 <style>{{TOKENS}}</style>
 <style>{{FOUNDATIONS}}</style>
@@ -21,7 +21,7 @@
 
 <header class="site-header">
   <div class="site-header-inner page">
-    <a class="wordmark" id="wordmarkSlot" href="#/" aria-label="Dispatch, today's briefing"></a>
+    <a class="wordmark" id="wordmarkSlot" href="#/" aria-label="Singularity, today's briefing"></a>
     <nav class="site-actions" aria-label="Site">
       <a class="btn press nav-archive" href="#/archive">Archive</a>
       <button class="btn press" id="openGenerate" type="button"><span id="generateIcon" aria-hidden="true"></span>Generate</button>

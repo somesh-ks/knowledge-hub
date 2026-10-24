@@ -1,4 +1,4 @@
-import type { DigestItem } from "@dispatch/core";
+import type { DigestItem } from "@singularity/core";
 
 /**
  * A story as the host says it, for the transcript of a briefing in the open player: the spoken

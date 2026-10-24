@@ -9,7 +9,7 @@ import {
   publishSection,
   type ScheduleFile,
   type Topic,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { readJsonIfExists } from "../curate/inputs.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { neutralEntry } from "../judge/topicOnly.js";

@@ -1,4 +1,4 @@
-import { VOICE_LIMITS } from "@dispatch/core";
+import { VOICE_LIMITS } from "@singularity/core";
 import { boundaryLine, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { type Taste, tasteNote } from "../profile/tasteNote.js";
 import type { VoiceConfig } from "../voice/voice.js";

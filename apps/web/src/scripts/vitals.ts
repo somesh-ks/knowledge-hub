@@ -1,4 +1,4 @@
-import { cumulativeLayoutShift, type LayoutShift, vitalPage } from "@dispatch/core/vitals";
+import { cumulativeLayoutShift, type LayoutShift, vitalPage } from "@singularity/core/vitals";
 
 /**
  * Field Web Vitals (D156): this page load's LCP, INP and CLS, read from the browser's own

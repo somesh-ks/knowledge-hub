@@ -1,9 +1,9 @@
 // Gives a git worktree the main checkout's installed packages without an install, and takes them off
 // again without touching the main checkout.
 //
-// Why not one junction for the whole node_modules: it would make @dispatch/* resolve to the main
+// Why not one junction for the whole node_modules: it would make @singularity/* resolve to the main
 // checkout's packages, so a worktree's checks would test the wrong code. Here node_modules is a real
-// folder of junctions, one per installed package, except @dispatch/*, which point at the worktree's
+// folder of junctions, one per installed package, except @singularity/*, which point at the worktree's
 // own packages. Removing a worktree whose node_modules is a junction deletes the main checkout's
 // packages (Windows follows the link), so run `--remove` before `git worktree remove`.
 //

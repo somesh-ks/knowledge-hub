@@ -20,7 +20,7 @@ function sync(): void {
 function syncRoot(root: HTMLElement): void {
   let busy = false;
   try {
-    const run = JSON.parse(sessionStorage.getItem("dispatch:run") ?? "null");
+    const run = JSON.parse(sessionStorage.getItem("singularity:run") ?? "null");
     // A briefing's root has no episode: its runs are followed by the Generate sheet.
     busy =
       root.dataset.episode !== undefined &&
@@ -53,7 +53,7 @@ export function installEpisodeActions(): void {
       .then((actions) => actions.openEpisodeAction(trigger))
       .catch(() => {});
   });
-  document.addEventListener("dispatch:run", sync);
+  document.addEventListener("singularity:run", sync);
   document.addEventListener("astro:page-load", sync);
   window.addEventListener("online", sync);
   window.addEventListener("offline", sync);

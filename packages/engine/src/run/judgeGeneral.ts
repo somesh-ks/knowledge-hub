@@ -1,4 +1,4 @@
-import type { Topic, TopicsFile } from "@dispatch/core";
+import type { Topic, TopicsFile } from "@singularity/core";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";

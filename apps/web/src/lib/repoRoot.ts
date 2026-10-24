@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 /**
- * The Dispatch repository root. `SINGULARITY_REPO_ROOT` wins (astro.config.mjs sets it); otherwise walk
+ * The Singularity repository root. `SINGULARITY_REPO_ROOT` wins (astro.config.mjs sets it); otherwise walk
  * up from `startDir` until the core package appears. No git call, so it works in a Vercel build.
  */
 export function findRepoRoot(

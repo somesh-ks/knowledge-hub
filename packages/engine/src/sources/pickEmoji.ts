@@ -1,4 +1,4 @@
-import { fallbackEmoji, ModelRouting, placeEmoji, TOPIC_EMOJIS } from "@dispatch/core";
+import { fallbackEmoji, ModelRouting, placeEmoji, TOPIC_EMOJIS } from "@singularity/core";
 import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import modelsConfig from "../../../../config/models.json" with { type: "json" };

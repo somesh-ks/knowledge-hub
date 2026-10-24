@@ -1,14 +1,14 @@
 # CLI contracts used by /learn
 
-`D` is `npm run --silent dispatch --` from the repository root. Global exit codes: 0 success, 1 failure, 2 usage error. Logs go to stderr with a level prefix (`info:`, `warn:`, `error:`); the diff goes to stdout. Checked against the CLI help and sources on 2026-10-06; if a flag or message differs, trust `D learn --help` and report the mismatch.
+`D` is `npm run --silent singularity --` from the repository root. Global exit codes: 0 success, 1 failure, 2 usage error. Logs go to stderr with a level prefix (`info:`, `warn:`, `error:`); the diff goes to stdout. Checked against the CLI help and sources on 2026-10-06; if a flag or message differs, trust `D learn --help` and report the mismatch.
 
-## Dispatch commands
+## Singularity commands
 
 | Command | Exit codes | Output |
 | :--- | :--- | :--- |
 | `D learn --schema` | 0 | JSON Schema of the patch, about 90 lines. All eight fields are listed as required, so always write all of them. `weight_deltas` keys are the ten categories; each delta is a number from -1 to 1. Lists hold at most 10 entries; keywords and authors at most 60 characters, disliked patterns at most 80; `input` is 1 to 500 characters. |
 | `D learn --apply <patch.json> --dry-run` | 0 | Writes nothing. stdout: one `+ <change>` line per change. stderr: `warn: Clamped: ...` lines when the CLI had to clamp. When nothing would change: `info: No changes: the patch matched the current preferences.` and no diff. |
-| `D learn --apply <patch.json>` | 0, 1 | Writes `config/preferences.json` only (2-space JSON, trailing newline) and appends one `feedback_history` entry. Prints the same diff, then `info: Updated config/preferences.json. Review the diff, then commit as "chore(prefs): ...".` Exit 1 and `dispatch: learn failed: <first line>` when the patch is unreadable or breaks the schema; the first line of a schema error is often just `[`. |
+| `D learn --apply <patch.json>` | 0, 1 | Writes `config/preferences.json` only (2-space JSON, trailing newline) and appends one `feedback_history` entry. Prints the same diff, then `info: Updated config/preferences.json. Review the diff, then commit as "chore(prefs): ...".` Exit 1 and `singularity: learn failed: <first line>` when the patch is unreadable or breaks the schema; the first line of a schema error is often just `[`. |
 | `D learn --apply <patch.json> --commit [--no-push]` | 0, 1, 2 | After writing, commits `config/preferences.json` only as `chore(prefs): <summary>` with the input and every change in the body, then pushes unless `--no-push`. Success: `info: Committed and pushed <sha7>.` or `info: Committed <sha7> (not pushed).` |
 
 `--commit` refusals (exit 1, nothing written, the diff has already been printed):
@@ -40,4 +40,4 @@ Each delta is clamped to 0.05; when the absolute total passes 0.15 every delta i
 | 1 | Nothing left to change; no file written. |
 | 2 | Usage error: unknown category, missing value, input over 500 characters, an entry both added and removed. |
 
-Notes: `capped` (asked more than 0.05), `headroom` (the weight is near 0 or 1), `skipped` (no-op or contradiction), `deferred` (per-call budget or list size). The default path is `dispatch-learn-<UTC timestamp>.json` in the OS temp directory.
+Notes: `capped` (asked more than 0.05), `headroom` (the weight is near 0 or 1), `skipped` (no-op or contradiction), `deferred` (per-call budget or list size). The default path is `singularity-learn-<UTC timestamp>.json` in the OS temp directory.

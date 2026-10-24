@@ -1,4 +1,4 @@
-import type { PodcastFormat, PodcastRequest } from "@dispatch/core";
+import type { PodcastFormat, PodcastRequest } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import {
   deepDiveCount,

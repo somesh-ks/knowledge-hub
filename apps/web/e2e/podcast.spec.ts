@@ -474,7 +474,7 @@ test.describe("saving on its own", () => {
 });
 
 test.describe("saved, before the build", () => {
-  const KEY = "dispatch:saved-edits";
+  const KEY = "singularity:saved-edits";
   const note = (page: Page) => page.locator("[data-saved-note]");
 
   test("a page opened again before the build shows what was saved, quietly, and sends nothing", async ({

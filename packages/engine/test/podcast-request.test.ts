@@ -1,4 +1,4 @@
-import { PodcastCommand, PodcastRequest, StoredPodcastRequest } from "@dispatch/core";
+import { PodcastCommand, PodcastRequest, StoredPodcastRequest } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { aimedChars, planPodcast, structureFor } from "../src/podcast/plan.js";
 import { REQUEST } from "./podcast-fixtures.js";

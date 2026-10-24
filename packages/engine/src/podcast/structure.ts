@@ -3,7 +3,7 @@ import {
   type StructureBlock,
   TOP_PICKS_SECTION,
   TRENDING_BLOCK_SECTION,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { RELEASE_CATEGORY } from "../score/releaseNotes.js";
 import type { PodcastStory } from "./types.js";
 

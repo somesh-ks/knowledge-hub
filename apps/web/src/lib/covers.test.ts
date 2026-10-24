@@ -9,7 +9,7 @@ import { coverCacheKey, coverPng, coverWebp, rendererFingerprint } from "./cover
 let directory = "";
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), "dispatch-covers-"));
+  directory = await mkdtemp(join(tmpdir(), "singularity-covers-"));
 });
 
 afterEach(async () => {

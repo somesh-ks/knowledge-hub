@@ -1,4 +1,4 @@
-import type { StructureFile } from "@dispatch/core";
+import type { StructureFile } from "@singularity/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
 import { type ConfigRepo, configRepo } from "./topics-helpers.js";

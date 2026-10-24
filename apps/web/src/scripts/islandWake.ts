@@ -11,7 +11,7 @@ import { TOAST_EVENT } from "./toastEvent";
  * after the first input, so the bar and the sheets are ready before most presses reach them.
  */
 
-const WAKE_EVENT = "dispatch:wake";
+const WAKE_EVENT = "singularity:wake";
 
 interface WakeScope {
   dispatchAwake?: boolean;

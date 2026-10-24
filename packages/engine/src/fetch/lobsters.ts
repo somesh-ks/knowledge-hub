@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import { z } from "zod";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import type { SourceFetcher } from "./types.js";

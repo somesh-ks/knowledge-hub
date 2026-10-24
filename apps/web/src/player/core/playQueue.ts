@@ -7,12 +7,12 @@ import type { StorageLike } from "./resume";
  * the listener asked for it, unlike the previous briefing, which Up next only offers.
  *
  * The Library's card menu talks to it through two document events:
- *   dispatch:queue-add      detail { id }    append, unless queued already or playing now
- *   dispatch:queue-changed  detail { ids }   sent after every change, from here
+ *   singularity:queue-add      detail { id }    append, unless queued already or playing now
+ *   singularity:queue-changed  detail { ids }   sent after every change, from here
  */
-export const QUEUE_KEY = "dispatch:queue";
-export const QUEUE_ADD_EVENT = "dispatch:queue-add";
-export const QUEUE_CHANGED_EVENT = "dispatch:queue-changed";
+export const QUEUE_KEY = "singularity:queue";
+export const QUEUE_ADD_EVENT = "singularity:queue-add";
+export const QUEUE_CHANGED_EVENT = "singularity:queue-changed";
 
 /** A briefing or episode id: letters, digits and dashes, as the pages' addresses use them. */
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/i;

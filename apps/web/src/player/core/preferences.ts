@@ -6,7 +6,7 @@ import { type StorageLike, safeLocalStorage } from "./resume";
  * One JSON object under one key. The layout's inline theme script reads the same key before first
  * paint, so a change to its shape needs a matching change there.
  */
-export const PREFERENCES_KEY = "dispatch:preferences";
+export const PREFERENCES_KEY = "singularity:preferences";
 
 export const THEME_PREFERENCES = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
@@ -69,7 +69,7 @@ export interface PreferencesStore {
 
 export interface PreferencesStoreOptions {
   storage: StorageLike | null;
-  /** `defaultSoundsEnabled` from @dispatch/sound: on, unless the system asks for reduced motion. */
+  /** `defaultSoundsEnabled` from @singularity/sound: on, unless the system asks for reduced motion. */
   defaultSounds: () => boolean;
 }
 
@@ -112,7 +112,7 @@ export function rememberRate(preferences: Pick<PreferencesStore, "set">, rate: n
   if (isPlaybackRate(rate)) preferences.set({ rate });
 }
 
-/** Matches defaultSoundsEnabled() in @dispatch/sound; used before that module has loaded. */
+/** Matches defaultSoundsEnabled() in @singularity/sound; used before that module has loaded. */
 export function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&

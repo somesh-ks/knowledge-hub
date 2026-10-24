@@ -1,4 +1,4 @@
-import { activeFitTopics, type JudgmentEntry } from "@dispatch/core";
+import { activeFitTopics, type JudgmentEntry } from "@singularity/core";
 import { loadJudgments, loadPool } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { judgeWithCache, lookupJudgments, mergeJudgments } from "../judge/cache.js";

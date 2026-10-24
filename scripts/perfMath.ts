@@ -1,11 +1,11 @@
 /**
  * The arithmetic of the lab probe (scripts/perfProbe.ts, D147), kept apart from the browser so it
  * can be tested: CLS by web.dev's session windows, TBT from long tasks, and the median of a page's
- * cold loads. CLS is the field collector's own (@dispatch/core/vitals, D156), so lab and field
+ * cold loads. CLS is the field collector's own (@singularity/core/vitals, D156), so lab and field
  * read it alike.
  */
 
-export { cumulativeLayoutShift, type LayoutShift } from "@dispatch/core/vitals";
+export { cumulativeLayoutShift, type LayoutShift } from "@singularity/core/vitals";
 
 export interface LongTask {
   startTime: number;

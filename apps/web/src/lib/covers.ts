@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Digest } from "@dispatch/core";
-import { type CoverMode, coverColors, renderCoverPng } from "@dispatch/cover";
+import type { Digest } from "@singularity/core";
+import { type CoverMode, coverColors, renderCoverPng } from "@singularity/cover";
 import sharp from "sharp";
 
 /**

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestId, digestRelPath, parseDigestFile, requireKey } from "@dispatch/core";
+import { DigestId, digestRelPath, parseDigestFile, requireKey } from "@singularity/core";
 import { checkBudget, describeRefusal, loadUsage, parseMonthlyChars } from "../audio/budget.js";
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import { createSpeechifyClient } from "../audio/speechify.js";
@@ -45,7 +45,7 @@ export const defaultAudioDeps: AudioCommandDeps = {
   },
 };
 
-const USAGE = "usage: dispatch audio --digest <id> [--dry-run] [--force]";
+const USAGE = "usage: singularity audio --digest <id> [--dry-run] [--force]";
 
 function describeOutcome(outcome: DigestAudioOutcome): string {
   switch (outcome.status) {
@@ -64,7 +64,7 @@ function describeOutcome(outcome: DigestAudioOutcome): string {
   }
 }
 
-/** `dispatch audio --digest <id>`: narration, timeline and upload for one digest, without a commit. */
+/** `singularity audio --digest <id>`: narration, timeline and upload for one digest, without a commit. */
 export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): CommandRun {
   const deps: AudioCommandDeps = { ...defaultAudioDeps, ...overrides };
 

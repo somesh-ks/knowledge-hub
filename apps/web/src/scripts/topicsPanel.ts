@@ -8,7 +8,7 @@
  * modal dialog gives the scrim, the focus trap and Escape; browser Back closes it the way it closes
  * the Create panel. Loaded the first time it is opened.
  */
-import type { SourceFormat } from "@dispatch/core";
+import type { SourceFormat } from "@singularity/core";
 import type { HeldSource } from "../lib/sourceCatalogMatch";
 import {
   parseSuggestedAdd,
@@ -650,11 +650,11 @@ export function openPanel(
     if (!entry) return;
     entry = false;
     event.preventDefault();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     if (panel.open) panel.close();
   };
   history.pushState({ ...history.state, topicsPanel: true }, "");
-  addEventListener("dispatch:back", onBack);
+  addEventListener("singularity:back", onBack);
   panel.addEventListener(
     "close",
     () => {

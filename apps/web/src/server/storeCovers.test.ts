@@ -1,4 +1,4 @@
-import { COVER_MODES } from "@dispatch/cover";
+import { COVER_MODES } from "@singularity/cover";
 import { expect, it } from "vitest";
 import { themedCoverSrc } from "../lib/covers";
 import { loadSite } from "../lib/site";
@@ -14,7 +14,7 @@ import { COVERS_INDEX_KEY, storeCovers } from "./storeCovers";
 const BASE = "https://teststore1.public.blob.vercel-storage.com";
 
 it("stores every cover address the pages use, once per id", async () => {
-  const full = await loadSite({ env: { DISPATCH_FIXTURES: "1" }, warn: () => {} });
+  const full = await loadSite({ env: { SINGULARITY_FIXTURES: "1" }, warn: () => {} });
   const site = { ...full, entries: full.entries.slice(0, 1), episodes: full.episodes.slice(0, 1) };
   const store = new Map<string, Uint8Array>();
   const deps = {

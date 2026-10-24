@@ -4,7 +4,7 @@ import {
   type JudgmentsFile,
   type Preferences,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { Logger } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { judgeWithCache } from "../judge/cache.js";

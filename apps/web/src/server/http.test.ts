@@ -1,4 +1,4 @@
-import type { ClientFault } from "@dispatch/engine/faults-store";
+import type { ClientFault } from "@singularity/engine/faults-store";
 import type { APIRoute } from "astro";
 import { describe, expect, it, vi } from "vitest";
 import { type ApiResult, answerWithRef, recordingFaults, toResponse } from "./http";

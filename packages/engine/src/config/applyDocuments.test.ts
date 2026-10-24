@@ -1,4 +1,4 @@
-import { CATEGORIES } from "@dispatch/core";
+import { CATEGORIES } from "@singularity/core";
 import { describe, expect, it, vi } from "vitest";
 import { type HttpClient, HttpError } from "../http.js";
 import { applyOpsToDocuments } from "./applyDocuments.js";

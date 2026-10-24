@@ -1,4 +1,4 @@
-import type { Category, CoverSpec, Digest, DigestKind, Item } from "@dispatch/core";
+import type { Category, CoverSpec, Digest, DigestKind, Item } from "@singularity/core";
 import { type BuildDigestInput, buildDigest } from "../src/render/buildDigest.js";
 import { createIdAllocator } from "../src/render/digestId.js";
 import { assignSections } from "../src/score/selectItems.js";

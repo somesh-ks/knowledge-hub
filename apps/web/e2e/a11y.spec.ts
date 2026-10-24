@@ -26,7 +26,7 @@ test("axe, home with each theme chosen against the system", async ({ page }) => 
     await page.emulateMedia({ colorScheme: theme === "light" ? "dark" : "light" });
     await page.goto("/");
     await page.evaluate(
-      (value) => localStorage.setItem("dispatch:preferences", JSON.stringify({ theme: value })),
+      (value) => localStorage.setItem("singularity:preferences", JSON.stringify({ theme: value })),
       theme,
     );
     await page.reload();

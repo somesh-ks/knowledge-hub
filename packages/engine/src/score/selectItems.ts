@@ -12,7 +12,7 @@ import {
   snapWeight,
   TECH_SECTION,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import {
   isPatchRelease,
   isReleaseNote,

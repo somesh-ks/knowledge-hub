@@ -10,7 +10,7 @@ import {
   type SourceFormat,
   sourceFormat,
   type Topic,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { TopicFits } from "../judge/topicJudge.js";
 import { clamp01, round4 } from "./numbers.js";
 import { craftFactor, launchFactor, penaltyFactor, scoreItem } from "./scoreItem.js";

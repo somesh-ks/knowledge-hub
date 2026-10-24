@@ -32,7 +32,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. The spoken word lights without lag. The highlight pauses while the host speaks words the page does not show (D107). "Back to now" is drawn over the whole list.
 
 ### Queue and Up next (D126)
-- A play queue of ids (`dispatch:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`dispatch:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by drag handle or arrow keys and can be removed.
+- A play queue of ids (`singularity:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`singularity:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by drag handle or arrow keys and can be removed.
 - Up next is the second view of the player's list, on a phone and on a wide screen: the queue, or the previous briefing when the queue is empty. There is no peek strip and no pull-up queue sheet.
 - Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. The previous briefing is offered and never started by itself.
 
@@ -41,7 +41,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - Scenario: WHEN Play is pressed in a failure and the page is scrolled past the line THEN the reason scrolls into view (D98, D99).
 - Scenario: WHEN a refusal lands while the next file loads THEN it fails at that story's start; a press plays nothing of the story before it.
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads.
-- A recording's position, whether it was heard to the end and which stories were heard (`dispatch:resume:<id>`, `dispatch:played:<id>`, `dispatch:heard:<id>`) are read by one reader and shown the same on the hero chip, the floating Play, the Library's cards, the Earlier shelves and the story chips, for stored audio and for narration on Play (against the page's estimate) (D97).
+- A recording's position, whether it was heard to the end and which stories were heard (`singularity:resume:<id>`, `singularity:played:<id>`, `singularity:heard:<id>`) are read by one reader and shown the same on the hero chip, the floating Play, the Library's cards, the Earlier shelves and the story chips, for stored audio and for narration on Play (against the page's estimate) (D97).
 - A recording heard to its end says Played; a played chip reads Play again under the pointer (D78, D106).
 - Each story has like, dislike and "Stop hearing from" controls (see settings.md).
 

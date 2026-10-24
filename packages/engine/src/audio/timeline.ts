@@ -1,5 +1,5 @@
-import type { Digest } from "@dispatch/core";
-import { AudioTimeline } from "@dispatch/core";
+import type { Digest } from "@singularity/core";
+import { AudioTimeline } from "@singularity/core";
 import type { SpeechMark } from "./speechify.js";
 import type { SpokenText } from "./spokenText.js";
 

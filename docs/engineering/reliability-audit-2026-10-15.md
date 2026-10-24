@@ -11,7 +11,7 @@ Started from the owner's report: on a podcast page, "Stop hearing from reveneau.
 
 ## 2. Known bug analysis
 
-**Path.** `StoryControls.astro` (More menu, `data-block`) → `storyVotesEntry.ts` → `storyVotes.ts` `block()` → after the 5 s Undo, `sendBlock()` → `POST /api/config {op: profile.block}` → `server/configEdit.ts` `handleConfig` → GitHub `config.yml` dispatch → `dispatch config apply` → `config/profiles/owner.json`.
+**Path.** `StoryControls.astro` (More menu, `data-block`) → `storyVotesEntry.ts` → `storyVotes.ts` `block()` → after the 5 s Undo, `sendBlock()` → `POST /api/config {op: profile.block}` → `server/configEdit.ts` `handleConfig` → GitHub `config.yml` dispatch → `singularity config apply` → `config/profiles/owner.json`.
 
 **Reproduction** (dev server with the real handler and a GitHub fake that lists each dispatch as a run, `/d/2026-10-13`, the reveneau.com story):
 
@@ -25,7 +25,7 @@ Started from the owner's report: on a podcast page, "Stop hearing from reveneau.
 
 - One sender for votes and blocks. Everything waiting goes in one request (`nextRequest`: blocks first, then the vote ops that fit 8 ops and the body limit).
 - The next request is held until 10.25 s after the last one went through (`gapLeft`); a 429 waits as long as it asks, up to six times, as the settings do.
-- A stopped outlet is kept on the device (`dispatch:story-blocks`) until the server takes it, so a page closed or reloaded inside the gap sends it on the next visit.
+- A stopped outlet is kept on the device (`singularity:story-blocks`) until the server takes it, so a page closed or reloaded inside the gap sends it on the next visit.
 - A block the server took is written to the saved-edits overlay, so Settings, Blocked outlets lists it before the next build lands.
 - A genuine failure (503, 400, network) still says "Could not stop X yet. Try again.", once, and leaves nothing queued, so pressing again is a real retry.
 - Undo after the five seconds still takes the outlet back while it waits for the gap; once its request is on its way it goes, as before.
@@ -64,7 +64,7 @@ Started from the owner's report: on a podcast page, "Stop hearing from reveneau.
 | 2 | High | A stop left on page hide is lost silently | Stop, switch tabs inside Undo while a vote batch goes | Block and votes sent at once; the block got 429 with no one to see it | Single combined request; outbox kept until a 202 | Spec "a vote and a stop ... page is left"; dev-server run, one request with both ops |
 | 3 | Medium | A vote batch with long headlines and addresses is refused forever and holds every later vote | 15 votes with ~300-character URLs and 200-character headlines: body over 8,192 characters, 400 every 10 minutes | Ops chunked by count only | `pendingOps` caps each op by size | Unit test through `parseConfigRequest`, red without the cap |
 | 4 | Medium | More than 15 unsent votes: the second op always gets 429 | 16 votes then hide the page | Ops sent back to back | Packed into one request, the rest after the gap | Covered by the sender rewrite; reviewed |
-| 5 | Medium | A stop accepted by the server does not show on Settings, Blocked outlets until the next build | Stop from a story, open Blocked outlets | Only the settings sender wrote the saved overlay | Accepted blocks are written to `dispatch:saved-edits` | Spec checks both domains listed; dev-server run lists them |
+| 5 | Medium | A stop accepted by the server does not show on Settings, Blocked outlets until the next build | Stop from a story, open Blocked outlets | Only the settings sender wrote the saved overlay | Accepted blocks are written to `singularity:saved-edits` | Spec checks both domains listed; dev-server run lists them |
 | 6 | Medium | Blocked outlets: a domain blocked again after its unblock was saved stays hidden and the count reads "None" | Unblock, wait for the save, block the same domain | `settle` leaves `data-removing` on the row; `add` cleared only `data-gone` | Clear both (`blockedPage.ts`) | `topics.spec.ts` Blocked outlets extended: red on main at the new line, green |
 | 7 | Low | Storage that reads but refuses writes (quota full) loses every vote and stop | Fill storage, vote | Each load re-read storage and overwrote memory | Memory is trusted once a write fails | Reviewed (no browser test: storage quota is not reproducible in the suite) |
 | 8 | Low | A reversed `Range` (`bytes=5-2`) on `/api/voice-sample` answers 416 | `byteRange("bytes=5-2", 100)` | Treated as unsatisfiable; RFC 9110 says ignore it | Return null (whole file) | Unit assertion added |
@@ -111,8 +111,8 @@ Environment: Linux container, Node 24.22, Chromium headless 1194 standing in for
 - `npm run gate -- --build`: typecheck 16 s, lint 4 s, unit 75 s, site types 27 s, build 6 s, all pass.
 - `npx vitest run`: 251 files, 4,716 tests pass.
 - `npm run build` (Vercel adapter): passes. "Largest first load: 106.1 KB of 109.0 KB. Bundle budget met."
-- `npm run e2e -w @dispatch/web`: 356 passed, 2 failed (the two pre-existing copy specs). After fixing them, those two plus `storyVotes` and `topics` give 41 of 41.
-- `npm run e2e:player -w @dispatch/web`: 70 passed.
+- `npm run e2e -w @singularity/web`: 356 passed, 2 failed (the two pre-existing copy specs). After fixing them, those two plus `storyVotes` and `topics` give 41 of 41.
+- `npm run e2e:player -w @singularity/web`: 70 passed.
 - `storyVotes.spec.ts` against `main`'s sender: 2 failed (the new journeys, 429 in the console), twice. With the fix: 4 passed, three times.
 - `lib/storyVotes.test.ts` without the size cap: "expected null not to be null". With it: pass.
 

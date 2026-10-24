@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, parseDigestFile, type Source, seedTopicsFile } from "@dispatch/core";
+import { type Digest, parseDigestFile, type Source, seedTopicsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { validateDigest } from "../src/validate/validateDigest.js";

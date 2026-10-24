@@ -45,7 +45,7 @@ export function installCreateEntry(): void {
 
   document.addEventListener("astro:page-load", () => {
     try {
-      if (sessionStorage.getItem("dispatch:run"))
+      if (sessionStorage.getItem("singularity:run"))
         void import("./runStatus").then((m) => m.resumeRun());
     } catch {
       // Storage can be blocked; there is then no run to pick up.

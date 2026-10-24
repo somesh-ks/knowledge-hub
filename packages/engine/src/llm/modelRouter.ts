@@ -1,4 +1,4 @@
-import type { ChainEntry, Env, ModelFamily, ModelRouting, ModelStep } from "@dispatch/core";
+import type { ChainEntry, Env, ModelFamily, ModelRouting, ModelStep } from "@singularity/core";
 import type { Logger } from "../context.js";
 import { BudgetExceededError, DeadlineExceededError, errorStatus } from "./errors.js";
 import { createJsonLlm } from "./jsonLlm.js";

@@ -150,7 +150,7 @@ export function digestSections(digest: Pick<Digest, "items" | "section_titles">)
 
 /**
  * Newest first, the one order of briefings: the site's `/latest.json` and archive, `dispatch
- * status` and `dispatch health` all use it. Same-day digests (a second run, a weekly) fall back to
+ * status` and `singularity health` all use it. Same-day digests (a second run, a weekly) fall back to
  * when they were written; a regenerated briefing keeps its date, so it never jumps ahead.
  */
 export function compareNewestFirst(

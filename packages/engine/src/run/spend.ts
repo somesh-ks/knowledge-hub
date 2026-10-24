@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { RunSpend } from "@dispatch/core";
+import type { RunSpend } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";

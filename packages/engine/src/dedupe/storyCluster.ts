@@ -1,4 +1,4 @@
-import { type Item, TRENDING_WINDOW_HOURS } from "@dispatch/core";
+import { type Item, TRENDING_WINDOW_HOURS } from "@singularity/core";
 
 /**
  * Story clustering for the consumer tech beat. Several outlets cover one launch under headlines

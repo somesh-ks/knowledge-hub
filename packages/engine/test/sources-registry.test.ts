@@ -2,7 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { feedsGeneralOnly, type SourcesFile, SourcesFile as SourcesSchema } from "@dispatch/core";
+import {
+  feedsGeneralOnly,
+  type SourcesFile,
+  SourcesFile as SourcesSchema,
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseQueries } from "../src/fetch/queries.js";
 import {
@@ -162,7 +166,7 @@ describe("serializeSources", () => {
 describe("loading and saving", () => {
   let root: string;
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "dispatch-sources-"));
+    root = await mkdtemp(join(tmpdir(), "singularity-sources-"));
   });
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
@@ -182,7 +186,7 @@ describe("loading and saving", () => {
   });
 
   it("points at the import command when the registry is missing", async () => {
-    await expect(loadSources(root)).rejects.toThrow(/dispatch sources import/);
+    await expect(loadSources(root)).rejects.toThrow(/singularity sources import/);
   });
 
   it("refuses to save an invalid registry", async () => {

@@ -8,9 +8,9 @@ import {
   StructureBlocks,
   StructureKind,
   scheduleZone,
-} from "@dispatch/core";
+} from "@singularity/core";
 
-import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
+import { configStoreUrl, type SqlClient } from "@singularity/engine/config-paths";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contracts";
 import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
@@ -28,7 +28,7 @@ import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
 /**
- * POST /api/config: check the edit, check the cooldown against GitHub, dispatch config.yml with
+ * POST /api/config: check the edit, check the cooldown against GitHub, singularity config.yml with
  * the edit as its one input. Built like handleGenerate, and for the same reason: everything with a
  * side effect is a parameter, so the whole flow is tested with fakes and no network.
  *

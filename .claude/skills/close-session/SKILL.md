@@ -1,6 +1,6 @@
 ---
 name: close-session
-description: "Close out a Dispatch working session: rewrite docs/state.md, add a numbered decision with its Index row when direction changed, one learnings line per failure, and a note under docs/history/. Use when the user types /close-session or says wrap up the session, update the docs. Runs in the main thread because it needs this conversation's context. Not for committing or for editing Digests/ or state/."
+description: "Close out a Singularity working session: rewrite docs/state.md, add a numbered decision with its Index row when direction changed, one learnings line per failure, and a note under docs/history/. Use when the user types /close-session or says wrap up the session, update the docs. Runs in the main thread because it needs this conversation's context. Not for committing or for editing Digests/ or state/."
 disable-model-invocation: true
 allowed-tools:
   - Read

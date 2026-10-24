@@ -1,12 +1,12 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { DigestId, type DigestKind } from "@dispatch/core";
+import { DigestId, type DigestKind } from "@singularity/core";
 import type { DigestIdAllocator } from "./buildDigest.js";
 
 const MAX_SUFFIX = 99;
 
 /**
- * The next free digest id, by the same rule `dispatch fetch` uses. A weekly pass takes
+ * The next free digest id, by the same rule `singularity fetch` uses. A weekly pass takes
  * `<date>-weekly`; every other kind takes `<date>`. When that id is taken, both continue with
  * `<date>-2`, `-3` and so on (core ids have no `-weekly-2`). Never reuses an id.
  */
@@ -32,7 +32,7 @@ export async function listTakenIds(root: string, date: string): Promise<Set<stri
 
 /**
  * An allocator over a set of taken ids. It records each id it hands out. `preferred` is the id
- * `dispatch fetch` reserved for the run: it is used when still free, otherwise the next free
+ * `singularity fetch` reserved for the run: it is used when still free, otherwise the next free
  * id on the same date. Without it the id comes from the date and kind the builder passes in.
  */
 export function createIdAllocator(taken: Set<string>, preferred?: string): DigestIdAllocator {
