@@ -4,7 +4,12 @@ import DigestView from "../../components/DigestView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { DigestEntry } from "../../lib/digests";
 import { listenLength } from "../../lib/digestView";
-import { getSite } from "../../lib/site";
+import { getSite, readSiteFrom, type Site } from "../../lib/site";
+import { CONTENT_CDN_CACHE, loadStoreSite } from "../../server/contentRepo";
+
+// Rendered on request from the content repository (D173), so a new briefing shows without a build.
+// The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
+export const prerender = false;
 
 export const getStaticPaths = (async () => {
   const { entries } = await getSite();
@@ -20,7 +25,39 @@ interface Props {
   isLatest: boolean;
 }
 
-const { entry, earlier, isLatest } = Astro.props;
+let props = Astro.props as Props;
+if (!Astro.isPrerendered) {
+  const load = async (): Promise<Site> => {
+    const site = await loadStoreSite({
+      env: process.env,
+      fetch,
+      now: Date.now,
+      log: (message) => console.error(`[d] ${message}`),
+    });
+    if (site === null) throw new Error("the content store has no manifest");
+    return site;
+  };
+  let site: Site;
+  try {
+    site = await load();
+  } catch (error) {
+    console.error(
+      `[d] content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
+    );
+    return new Response("This briefing could not be loaded right now. Try again in a minute.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "60" },
+    });
+  }
+  readSiteFrom(load);
+  const index = site.entries.findIndex((entry) => entry.id === Astro.params.id);
+  const entry = site.entries[index];
+  if (!entry) return Astro.rewrite("/404");
+  props = { entry, earlier: site.entries.slice(index + 1, index + 4), isLatest: index === 0 };
+  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+}
+
+const { entry, earlier, isLatest } = props;
 ---
 
 <BaseLayout

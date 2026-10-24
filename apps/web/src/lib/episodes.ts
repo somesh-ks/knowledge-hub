@@ -1,8 +1,7 @@
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { CoverSpec } from "@dispatch/core";
 import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@dispatch/cover";
 import type { PlayerDigestData } from "../types/contracts";
+import { type ContentFiles, diskFiles } from "./contentFiles";
 import { type Episode, parseEpisodeFile } from "./episodeFile";
 import { isWebUrl } from "./safeUrl";
 
@@ -33,26 +32,18 @@ export interface EpisodeFiles {
   warnings: string[];
 }
 
-async function listMarkdown(directory: string): Promise<string[]> {
-  try {
-    const entries = await readdir(directory, { recursive: true, withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-      .map((entry) => join(entry.parentPath, entry.name))
-      .sort();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
-  }
-}
-
-export async function readEpisodeFiles(directory: string): Promise<EpisodeFiles> {
+export async function readEpisodeFiles(
+  directory: string,
+  reader: ContentFiles = diskFiles,
+): Promise<EpisodeFiles> {
   const episodes: Episode[] = [];
   const warnings: string[] = [];
   const seen = new Set<string>();
-  for (const file of await listMarkdown(directory)) {
+  for (const file of (await reader.list(directory)).filter((path) => path.endsWith(".md"))) {
     try {
-      const episode = parseEpisodeFile(await readFile(file, "utf8"));
+      const text = await reader.read(file);
+      if (text === null) continue;
+      const episode = parseEpisodeFile(text);
       if (seen.has(episode.id)) {
         warnings.push(`${file}: duplicate episode id ${episode.id}, skipped`);
         continue;

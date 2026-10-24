@@ -73,7 +73,8 @@ function preloadPageModules() {
 
 // Tests build without the adapter: the Vercel adapter bundles functions with symlinks, which Windows
 // refuses without Developer Mode, and the e2e suite only needs the static output. The API routes
-// become static stubs there; their logic is covered by unit tests.
+// become static stubs there; their logic is covered by unit tests. A page rendered on request from
+// the content repository is prerendered from the checkout there, as it was before D173.
 const staticOnly = process.env.DISPATCH_STATIC_ONLY === "1";
 
 function stubApiRoutesForStaticBuild() {
@@ -81,7 +82,11 @@ function stubApiRoutesForStaticBuild() {
     name: "dispatch-static-only",
     hooks: {
       "astro:route:setup": ({ route }) => {
-        if (route.component.replaceAll("\\", "/").includes("/pages/api/")) route.prerender = true;
+        const component = route.component.replaceAll("\\", "/");
+        // Pages rendered on request from the content repository (D173) are built from the checkout.
+        if (component.includes("/pages/api/") || component.includes("/pages/d/")) {
+          route.prerender = true;
+        }
       },
     },
   };
