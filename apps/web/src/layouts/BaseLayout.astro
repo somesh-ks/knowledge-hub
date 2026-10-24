@@ -204,15 +204,20 @@ const back =
     {fab === "play" && digestId && audio && <PlayFab digestId={digestId} {...audio} />}
 
     {/* Both islands live in the layout and persist across navigation, so the audio object inside the
-         player module is never rebuilt and playback never stops while you move between pages. */}
-    <PlayerRoot client:idle transition:persist="player" />
-    <SheetsRoot client:idle transition:persist="sheets" />
+         player module is never rebuilt and playback never stops while you move between pages. They
+         wake when asked (scripts/islandWake.ts), so a first visit loads no React until it needs it. */}
+    <PlayerRoot client:wake transition:persist="player" />
+    <SheetsRoot client:wake transition:persist="sheets" />
     {/* The Create page has the form in the page itself; every other page gets it as the sheet. */}
     {view !== "create" && <CreateSheet />}
 
     <script>
+      import { startPlayerRuntime } from "../player/core/playerRuntime";
       import "../scripts/app";
       import "../dev/agentation";
+
+      // The audio store's wiring answers the page's Play controls at once; the bar's island waits.
+      startPlayerRuntime();
     </script>
   </body>
 </html>

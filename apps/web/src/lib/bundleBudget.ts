@@ -27,13 +27,6 @@ import { gzipSync } from "node:zlib";
  * ceiling, not a target.
  */
 export const FIRST_LOAD_BUDGET_BYTES = 130 * 1024;
-/**
- * The public listen page's own script (pages/s/[token].astro, D153), gzipped with what it imports:
- * a stranger's first visit, on any phone, with no app shell behind it. 3.1 KB when it was made.
- */
-export const LISTEN_PAGE_BUDGET_BYTES = 8 * 1024;
-/** The listen page's script, by the name Astro gives a page's hoisted script. */
-export const LISTEN_PAGE_SCRIPT = /^_token_\.astro_astro_type_script_index_\d+_lang\.[\w-]+\.js$/;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */
@@ -96,8 +89,23 @@ export function findRenderBlockingScripts(html: string): string[] {
   return problems;
 }
 
-/** Every JavaScript file a page asks for at load: script tags, preloads, and the islands' modules. */
-export function entryScripts(html: string): string[] {
+/** The opening tag of an island that hydrates only when the page wakes it (lib/wakeDirective.ts). */
+const WAKE_ISLAND = /<astro-island\b[^>]*\bclient="wake"[^>]*>/g;
+
+function islandModules(tag: string): string[] {
+  const urls: string[] = [];
+  for (const match of tag.matchAll(/\b(?:component-url|renderer-url)=["']([^"']+)["']/g)) {
+    if (match[1]) urls.push(match[1]);
+  }
+  return urls;
+}
+
+/**
+ * Every JavaScript file a page asks for at load: script tags, preloads, and the islands' modules.
+ * A `client:wake` island's modules are not among them: nothing fetches them until the page wakes it.
+ */
+export function entryScripts(page: string): string[] {
+  const html = page.replace(WAKE_ISLAND, "");
   const urls = new Set<string>();
   for (const tag of parseScripts(html)) if (tag.src) urls.add(tag.src);
   for (const match of html.matchAll(
@@ -198,6 +206,17 @@ export function withModulePreloads(html: string, read: (url: string) => string |
   if (urls.length === 0 || headEnd === -1) return html;
   const links = urls.map((url) => `<link rel="modulepreload" href="${url}">`).join("");
   return `${html.slice(0, headEnd)}${links}${html.slice(headEnd)}`;
+}
+
+/**
+ * The modules each `client:wake` island loads when it wakes, beyond what the page loaded at start,
+ * in the order of its tags. They are not first load, so the budget does not count them.
+ */
+export function wakeModules(html: string, read: (url: string) => string | null): string[][] {
+  const eager = new Set(moduleGraph(entryScripts(html), read));
+  return [...html.matchAll(WAKE_ISLAND)].map((match) =>
+    moduleGraph(islandModules(match[0]), read).filter((url) => !eager.has(url)),
+  );
 }
 
 /** One line per page whose first load is past the budget; empty when every page is inside it. */

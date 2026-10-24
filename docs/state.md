@@ -60,6 +60,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e
 - [Analytics](specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
 - Link cards (D153 stage 0). closed when: a briefing link pasted in WhatsApp, iMessage and Slack shows its card.
 - `serviceWorker.spec.ts:140` failed 1 of 373 local runs (an icon stylesheet preload as the page went offline), never in CI. closed when: a trace names the cause or 500 runs pass.
+- No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
 - Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes.
 
 ## Known risks
@@ -73,7 +74,6 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e
 ## Next
 
 1. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty store `store_JmrDq8MB5Kwn3ejW`; decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`git show 91bc533:docs/state.md`).
-2. Parked by the owner (2026-10-14): no island eager at first load (cut 1 in [first-load-js.md](engineering/first-load-js.md), about 73 KB). Do not build it until asked.
-3. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the first-load cuts (item 2) within 130 KB (D141).
-4. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
-5. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).
+2. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the other first-load cuts (D141, D178).
+3. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
+4. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).

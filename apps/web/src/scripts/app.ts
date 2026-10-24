@@ -4,6 +4,7 @@ import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
+import { installIslandWake } from "./islandWake";
 import { installNavigation } from "./navigation";
 import { installRootState } from "./rootState";
 import { installThemeColor } from "./themeColor";
@@ -12,7 +13,7 @@ import { installUiSound } from "./uiSound";
 /**
  * Page-level behavior that belongs to the shell, not to the player: navigation rules, device
  * banners, the disabled-control guard, the browser chrome colour, the root's dialog and toast state,
- * the service worker and the analytics script (production only, D154). Loaded once from the layout.
+ * the service worker, the analytics script (production only, D154) and the wake of the islands. Loaded once from the layout.
  * A bundled module script runs once per session, so per-page work listens for astro:page-load.
  */
 installDisabledGuard();
@@ -24,6 +25,7 @@ installDeviceBanners();
 installThemeColor();
 installUiSound();
 installAnalytics();
+installIslandWake();
 // How the last action was started, so motion stays with the pointer: what a key starts happens at
 // once (settings.css, player.css, hero.css). Captured, so it is set before the key or the press acts.
 const inputBy = (by: string) => (): void => {

@@ -201,6 +201,18 @@ describe("module preload hints", () => {
     expect(parseScripts(hinted)).toEqual(parseScripts(html));
     expect(unallowedInlineScripts(hinted)).toEqual([]);
   });
+
+  // A hint for an island that waits to be woken fetches React at load and silently undoes the wait
+  // (cut 1 in docs/engineering/first-load-js.md, D178).
+  it("hints nothing a wake island loads", () => {
+    const waking = page({
+      head: '<script type="module" src="/_astro/page.js"></script>',
+      body: '<astro-island component-url="/_astro/Player.js" renderer-url="/_astro/client.js" client="wake"></astro-island>',
+    });
+    const built = withModulePreloads(waking, read);
+    expect(entryScripts(built).sort()).toEqual(["/_astro/page.js", "/_astro/shared.js"]);
+    expect(built).not.toContain('href="/_astro/react.js"');
+  });
 });
 
 describe("the first-load budget", () => {

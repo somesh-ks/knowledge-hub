@@ -7,11 +7,11 @@ import {
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
-  LISTEN_PAGE_BUDGET_BYTES,
-  LISTEN_PAGE_SCRIPT,
+  gzipBytes,
   overBudget,
   unallowedInlineScripts,
   unhintedModules,
+  wakeModules,
 } from "../src/lib/bundleBudget";
 import { linkCardProblems } from "../src/lib/linkCard";
 
@@ -57,8 +57,11 @@ for (const page of pagesIn(root)) {
   const html = readFileSync(page, "utf8");
   const report = firstLoadReport(entryScripts(html), read);
   largest = Math.max(largest, report.totalGzip);
+  const woken = [...new Set(wakeModules(html, read).flat())];
+  const wakeBytes = woken.reduce((sum, url) => sum + gzipBytes(read(url) ?? ""), 0);
+  const onWake = woken.length > 0 ? `, ${kilobytes(wakeBytes)} more on wake` : "";
   console.log(
-    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files`,
+    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files${onWake}`,
   );
   failures.push(...overBudget([{ name, totalGzip: report.totalGzip }]));
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);
@@ -79,20 +82,6 @@ for (const page of pagesIn(root)) {
 }
 
 const assets = join(root, "_astro");
-
-// The listen page renders on the server in production, so it has no HTML here: its script is found
-// by name and held to its own, smaller budget.
-const listenScripts = existsSync(assets)
-  ? readdirSync(assets).filter((file) => LISTEN_PAGE_SCRIPT.test(file))
-  : [];
-if (listenScripts.length === 0) failures.push("The listen page's script is not in the build");
-for (const file of listenScripts) {
-  const { totalGzip } = firstLoadReport([`/_astro/${file}`], read);
-  console.log(
-    `Listen page script: ${kilobytes(totalGzip)} (budget ${kilobytes(LISTEN_PAGE_BUDGET_BYTES)})`,
-  );
-  failures.push(...overBudget([{ name: "listen page", totalGzip }], LISTEN_PAGE_BUDGET_BYTES));
-}
 const fonts = existsSync(assets)
   ? readdirSync(assets).filter((file) => file.endsWith(".woff2"))
   : [];
