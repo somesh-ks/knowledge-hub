@@ -1,4 +1,4 @@
-import type { SqlClient } from "@dispatch/engine/config-paths";
+import type { SqlClient } from "@singularity/engine/config-paths";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import type { NarrateLookupResponse } from "../types/contracts";

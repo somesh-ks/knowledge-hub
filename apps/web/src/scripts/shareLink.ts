@@ -41,7 +41,7 @@ export async function shareLink(
 }
 
 /** The items this device made a link for, so their menus offer Stop sharing. Device only. */
-const SHARED_KEY = "dispatch:shared-items";
+const SHARED_KEY = "singularity:shared-items";
 
 function sharedItems(): Set<string> {
   try {

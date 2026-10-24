@@ -37,7 +37,7 @@ type SaEvent = ((name: string, metadata?: AnalyticsMetadata) => void) & { q?: un
  * `data-path-overwriter` (Simple Analytics' "Overwrite path"). A shared page reports `/s`, so a
  * share token in its address never reaches the dashboard (D153, lib/listenAnalytics.ts).
  */
-const PATH_OVERWRITER = "dispatchAnalyticsPath";
+const PATH_OVERWRITER = "singularityAnalyticsPath";
 
 interface AnalyticsWindow {
   sa_event?: SaEvent;
