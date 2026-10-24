@@ -159,7 +159,7 @@ if (typeof document !== "undefined") {
 /**
  * Share an item as a public listen link (D153): the share route makes or reuses the item's link,
  * and the sheet sends `/s/<token>?ref=share&g=1`. A link prepared when the menu opened is shared at
- * once, inside the press. Where the site cannot make one (sharing not set up, the store down, a
+ * once, inside the press. Where the site cannot make one (no database, the store down, a
  * deployment without the route) it shares the page's own address, as before. An item whose audio
  * is not all stored yet is refused with the route's line, in `refused`.
  */

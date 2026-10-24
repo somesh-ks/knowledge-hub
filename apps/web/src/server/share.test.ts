@@ -12,13 +12,11 @@ import {
   newLinkId,
   openListenLink,
   type ShareCandidate,
-  signToken,
 } from "./share";
 
 // An in-process Postgres takes over 5 s to start when several store files start theirs at once.
 vi.setConfig({ testTimeout: 30_000 });
 
-const SECRET = "a-test-secret-of-enough-length";
 const ORIGIN = "https://news.someshks.work";
 
 /** The real guarded database with a connect that counts: any query at all would call it. */
@@ -33,7 +31,6 @@ function deps() {
     connect,
     burst,
     deps: {
-      secret: SECRET,
       database: guardedDatabase({ databaseUrl: "postgres://test", connect }),
       burst,
       now: () => Date.parse("2026-10-24T12:00:00Z"),
@@ -43,22 +40,23 @@ function deps() {
 }
 
 describe("share tokens", () => {
-  // The bug it prevents: a made-up or altered token reaching Neon, so a scanner costs a query (and
-  // wakes the database) per guess, and the shared rate counter fills with strangers' guesses.
-  it("refuses a token with a bad HMAC before the cap or the database is asked", async () => {
-    const good = signToken(newLinkId(), SECRET);
-    const [id = "", mac = ""] = good.split(".");
+  // The bug it prevents: a malformed token reaching Neon, so a scanner costs a query (and wakes the
+  // database) per guess, and the shared rate counter fills with strangers' junk.
+  it("refuses a malformed token before the cap or the database is asked", async () => {
+    const good = newLinkId();
     // The last character's low bits are spare: flipping one decodes to the same 16 bytes.
     const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    const spare = B64[B64.indexOf(mac.slice(-1)) ^ 1];
-    const forged = [
-      `${id}.${mac.slice(0, -1)}${spare}`,
-      `${id}.${mac.slice(0, -1)}${mac.endsWith("A") ? "B" : "A"}`,
-      signToken(id, "another-secret-of-enough-length"),
-      `${newLinkId()}.${mac}`,
+    const spare = B64[B64.indexOf(good.slice(-1)) ^ 1];
+    const malformed = [
+      `${good.slice(0, -1)}${spare}`,
+      good.slice(1),
+      `${good}A`,
+      `${good.slice(0, -1)}.`,
+      `${good}.${good}`,
       "not-a-token",
+      "",
     ];
-    for (const token of forged) {
+    for (const token of malformed) {
       const { connect, burst, deps: d } = deps();
       expect(await openListenLink(token, d), token).toEqual({ status: 404, reason: "not_found" });
       const play = await handleSharePlay(
@@ -69,7 +67,7 @@ describe("share tokens", () => {
       expect(connect, token).not.toHaveBeenCalled();
       expect(burst, token).not.toHaveBeenCalled();
     }
-    // The real token does go on to the database (here it fails, which answers 503).
+    // A well-formed token does go on to the database (here it fails, which answers 503).
     const { connect, deps: d } = deps();
     expect((await openListenLink(good, d)).status).toBe(503);
     expect(connect).toHaveBeenCalled();
@@ -107,7 +105,6 @@ describe("a shared link and its item", () => {
     );
     let now = Date.parse("2026-10-24T12:00:00Z");
     const deps: MakeDeps = {
-      secret: SECRET,
       database,
       burst: async () => 0,
       now: () => now,
@@ -133,6 +130,9 @@ describe("a shared link and its item", () => {
 
     const first = (await share()).body.token;
     expect((await play(first)).status).toBe(200);
+    // A well-formed token nobody made: not found, by the play route and the page.
+    expect((await play(newLinkId())).status).toBe(404);
+    expect((await openListenLink(newLinkId(), deps)).status).toBe(404);
 
     // Regenerated: new words, so new files, not yet stored.
     files = [{ pathname: "audio/a-v2.mp3", characters: 950 }];

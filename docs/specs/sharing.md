@@ -10,11 +10,12 @@ A briefing or an episode is shared as a public listen link that plays its stored
 - A new link is made only when every file the narration lookup names for the item is in Blob: one `head` each (a SIMPLE operation; 11 to 16 for a briefing), stopping at the first missing one. Otherwise the answer is 409 and the page says "Play it once to finish its audio, then share.", and for 2 minutes (`NOT_STORED_MEMO_MS`, per function instance) a retried Share for the same files is refused with no Blob operation. A briefing with one whole file shares that file.
 - Briefings and episodes alike (`SHAREABLE_KINDS`). An episode still being written cannot be shared.
 - Stop sharing (`DELETE /api/share`, same body) ends every working link of the item; the CDN's copy of the page lasts up to five minutes. The menus show Stop sharing only for the items this device shared (device storage `dispatch:shared-items`): a link made on the phone has no Stop sharing on the laptop.
-- Scenario: WHEN `SHARE_SECRET` is unset or shorter than 16 characters THEN the routes answer 503 `not_set_up`, the page says it cannot open, and Share sends the page's own address as before.
+- Nothing to set up beyond `DATABASE_URL`, which production has.
 - Scenario: WHEN Neon is down or slow (4 s) THEN the routes answer 503 `unavailable` and Share sends the page's own address.
 
 ### The token
-- A token is a random 128-bit link id, a dot and the first 128 bits of its HMAC-SHA-256 under `SHARE_SECRET`, both base64url. A token whose HMAC is not ours is refused (404) before the rate counter or the database is asked.
+- A token is the link's random 128-bit id in base64url (22 characters), looked up in Neon; there is no secret. A token of another shape, or a non-canonical spelling of one, is refused (404) before the rate counter or the database is asked; a well-formed unknown one is 404 after one indexed read, behind the D150 bucket, and the CDN's five-minute copy absorbs repeat page hits.
+- A listener never signs in or enters anything. A sign-in after the first play arrives with OAuth later and is not built now.
 - The token is never sent to analytics, and the service worker never keeps a `/s/` page.
 
 ### The listen page, `/s/<token>`
@@ -36,4 +37,4 @@ A briefing or an episode is shared as a public listen link that plays its stored
 - `apps/web/src/lib/share.ts` (the owner's numbers), `apps/web/src/server/share.ts`, `apps/web/src/server/shareSite.ts`, `apps/web/src/server/listenView.ts`
 - `apps/web/src/pages/api/share.ts`, `apps/web/src/pages/api/share-play.ts`, `apps/web/src/pages/s/[token].astro`, `apps/web/src/scripts/listenPage.ts`, `apps/web/src/styles/listen.css`
 - `apps/web/src/scripts/shareLink.ts`, `packages/engine/src/store/shareStore.ts`
-- Tests: `shareStore.test.ts` (the play gate), `server/share.test.ts` (HMAC before the database; a regenerated or deleted item stops its link; a retried Share heads nothing), `lib/listenAnalytics.test.ts` (no token in analytics), `e2e/share.spec.ts` (the journey, and a replay from the first file)
+- Tests: `shareStore.test.ts` (the play gate), `server/share.test.ts` (a malformed token never reaches the database, an unknown one is 404; a regenerated or deleted item stops its link; a retried Share heads nothing), `lib/listenAnalytics.test.ts` (no token in analytics), `e2e/share.spec.ts` (the journey, and a replay from the first file)

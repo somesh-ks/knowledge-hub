@@ -11,7 +11,6 @@ import { burstCap } from "./rateLimit";
 import {
   createNotStoredMemo,
   type MakeDeps,
-  readShareSecret,
   type ShareCandidate,
   type ShareDeps,
   shareCandidates,
@@ -45,7 +44,6 @@ const notStored = createNotStoredMemo();
 function base(bucket: string, perMinute: number): ShareDeps {
   const env = process.env as ServerEnv;
   return {
-    secret: readShareSecret(env),
     database,
     burst: burstCap(bucket, perMinute),
     now: Date.now,

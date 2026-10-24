@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { mapConcurrent } from "@dispatch/engine/concurrency";
 import type { SqlClient } from "@dispatch/engine/config-paths";
 import {
@@ -31,50 +31,33 @@ import { describeError } from "./redact";
 /**
  * Share links (D153): `POST /api/share` makes an item's link (or answers the one it has), `DELETE
  * /api/share` stops it, `POST /api/share-play` starts a play on the listen page, and the page itself
- * opens a link with `openListenLink`. The token is a random link id and an HMAC of it under
- * SHARE_SECRET, so a token nobody made is refused before any database call: a scanner costs a
- * function run and nothing more. The links and their counts live in Neon (engine/store/shareStore.ts).
+ * opens a link with `openListenLink`. The token is the link's random 128-bit id, looked up in Neon:
+ * nothing to set up and nothing for a listener to enter (D153, D160). A token of the wrong shape is
+ * refused before the rate counter or the database is asked; a well-formed guess costs one bucket
+ * count and one indexed read, and the CDN's five-minute copy absorbs repeat page hits. The links and
+ * their counts live in Neon (engine/store/shareStore.ts).
  */
 
-/** Bytes of the random link id and of the HMAC kept in the token: 128 bits each. */
+/** Bytes of the random link id: 128 bits. */
 const ID_BYTES = 16;
-const MAC_BYTES = 16;
-/** base64url of 16 bytes is 22 characters, so a token is 45 characters with its dot. */
-const PART = `[A-Za-z0-9_-]{${Math.ceil((ID_BYTES * 4) / 3)}}`;
-const TOKEN = new RegExp(`^(${PART})\\.(${PART})$`);
-/** A secret shorter than this is treated as unset, as CRON_SECRET's is. */
-const MIN_SECRET_CHARS = 16;
+/** base64url of 16 bytes: 22 characters. */
+const TOKEN = new RegExp(`^[A-Za-z0-9_-]{${Math.ceil((ID_BYTES * 4) / 3)}}$`);
 /** Heads at once while checking an item's files: a briefing has 11 to 16. */
 const HEADS_AT_ONCE = 4;
 const DAY_MS = 86_400_000;
 
-/** SHARE_SECRET, or null when it is unset or too short to be one. Never logged. */
-export function readShareSecret(env: { SHARE_SECRET?: string | undefined }): string | null {
-  const value = env.SHARE_SECRET?.trim();
-  return value && value.length >= MIN_SECRET_CHARS ? value : null;
-}
-
-const mac = (id: string, secret: string): Buffer =>
-  createHmac("sha256", secret).update(id).digest().subarray(0, MAC_BYTES);
-
-/** A link id, from the platform's random source (the tests pass their own). */
+/** A link id, from the platform's random source (the tests pass their own). Also its token. */
 export const newLinkId = (): string =>
   Buffer.from(crypto.getRandomValues(new Uint8Array(ID_BYTES))).toString("base64url");
 
-/** The token for link `id`: the id, a dot and the id's HMAC. */
-export const signToken = (id: string, secret: string): string =>
-  `${id}.${mac(id, secret).toString("base64url")}`;
-
-/** The link id a token names, or null when its HMAC is not ours. Asks nothing of the database. */
-export function verifyToken(token: unknown, secret: string): string | null {
-  if (typeof token !== "string") return null;
-  const match = TOKEN.exec(token);
-  if (!match?.[1] || !match[2]) return null;
-  // Compared as text, not decoded bytes: the last of 22 base64url characters carries 4 spare bits,
-  // so a decoded compare took several spellings of one HMAC as the same token.
-  const given = Buffer.from(match[2]);
-  const expected = Buffer.from(mac(match[1], secret).toString("base64url"));
-  return given.length === expected.length && timingSafeEqual(given, expected) ? match[1] : null;
+/**
+ * The link id a token names, or null when it is not one we could have made. Asks nothing of the
+ * database. Only the canonical spelling passes: the last of 22 characters carries 4 spare bits, so
+ * other spellings decode to the same id.
+ */
+export function tokenId(token: unknown): string | null {
+  if (typeof token !== "string" || !TOKEN.test(token)) return null;
+  return Buffer.from(token, "base64url").toString("base64url") === token ? token : null;
 }
 
 /** What `database` answers when Neon is not configured, down or slow. */
@@ -87,8 +70,6 @@ const ask = <T>(
 ): Promise<T | typeof UNAVAILABLE> => deps.database<T | typeof UNAVAILABLE>(work, UNAVAILABLE);
 
 export interface ShareDeps {
-  /** SHARE_SECRET as read by `readShareSecret`: null answers "not set up". */
-  secret: string | null;
   /** Neon, guarded (server/database.ts): its fallback stands for a store that cannot answer. */
   database: DatabaseCall;
   /** The shared per-minute cap of the route (D150): 0 to go ahead, else the seconds to wait. */
@@ -169,10 +150,6 @@ type Body = Record<string, unknown>;
 export type ShareResult = ApiResult<Body>;
 
 const invalid: ShareResult = { status: 400, body: { status: 400, error: "invalid_request" } };
-const notSetUp: ShareResult = {
-  status: 503,
-  body: { status: 503, error: "not_set_up", message: "Sharing is not set up on this site yet." },
-};
 const unavailable: ShareResult = { status: 503, body: { status: 503, error: "unavailable" } };
 const notFound: ShareResult = { status: 404, body: { status: 404, error: "not_found" } };
 const gone: ShareResult = {
@@ -251,10 +228,10 @@ async function storedFiles(
   return { segments, bytes };
 }
 
-function made(link: ShareLink, secret: string): ShareResult {
+function made(link: ShareLink): ShareResult {
   return {
     status: 200,
-    body: { status: 200, token: signToken(link.id, secret), expires_at: link.expires_at },
+    body: { status: 200, token: link.id, expires_at: link.expires_at },
   };
 }
 
@@ -264,8 +241,6 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const item = parseItem(input.bodyText);
   if (item === null) return invalid;
-  const secret = deps.secret;
-  if (secret === null) return notSetUp;
   const wait = await deps.burst();
   if (wait > 0) return cooldownRefusal(wait);
   const now = deps.now();
@@ -284,7 +259,7 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
   const existing = await ask(deps, (sql) => activeShareLink(sql, item, now));
   if (existing === UNAVAILABLE) return unavailable;
   if (existing && (candidates.length === 0 || existing.source === source)) {
-    return made(existing, secret);
+    return made(existing);
   }
   if (existing) {
     log(`share ${item}: the item changed since its link was made; stopping that link`);
@@ -319,7 +294,7 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
       source,
     }),
   );
-  return link === UNAVAILABLE ? unavailable : made(link, secret);
+  return link === UNAVAILABLE ? unavailable : made(link);
 }
 
 export interface PlayRequest {
@@ -345,9 +320,7 @@ function parseToken(bodyText: string): unknown {
  */
 export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Promise<ShareResult> {
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
-  const secret = deps.secret;
-  if (secret === null) return notSetUp;
-  const id = verifyToken(parseToken(input.bodyText), secret);
+  const id = tokenId(parseToken(input.bodyText));
   if (id === null) return notFound;
   const wait = await deps.burst();
   if (wait > 0) return cooldownRefusal(wait);
@@ -397,13 +370,11 @@ export type ListenOpen =
   | { status: 404 | 410 | 429 | 503; reason: string };
 
 /**
- * The link a listen page's token opens. A token with a bad HMAC is answered 404 before the cap or
- * the database is asked; a revoked or expired link is 410.
+ * The link a listen page's token opens. A token of the wrong shape is answered 404 before the cap or
+ * the database is asked, an unknown one 404 after the lookup; a revoked or expired link is 410.
  */
 export async function openListenLink(token: string, deps: ShareDeps): Promise<ListenOpen> {
-  const secret = deps.secret;
-  if (secret === null) return { status: 503, reason: "not_set_up" };
-  const id = verifyToken(token, secret);
+  const id = tokenId(token);
   if (id === null) return { status: 404, reason: "not_found" };
   if ((await deps.burst()) > 0) return { status: 429, reason: "cooldown" };
   const link = await ask(deps, (sql) => readShareLink(sql, id));

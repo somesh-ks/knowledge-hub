@@ -47,7 +47,6 @@ function server() {
       (await db.query<Record<string, unknown>>(text, params ?? [])).rows,
   };
   const deps: MakeDeps = {
-    secret: "an-e2e-secret-of-enough-length",
     database: guardedDatabase({
       databaseUrl: "pglite",
       connect: async () => sql,
