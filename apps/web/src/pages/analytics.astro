@@ -17,7 +17,7 @@ const RANGES = [
 const SPLITS = [
   { value: "provider", label: "By provider" },
   { value: "kind", label: "By use" },
-  { value: "scope", label: "Shared or personal" },
+  { value: "scope", label: "Shared or own" },
   { value: "user", label: "By person" },
 ];
 ---
@@ -57,7 +57,7 @@ const SPLITS = [
                (costs.css). The card's data-view shows one panel and hides the other (costsPage.ts).
                After the answer in the reading order, just before the panels it switches; placed at
                the filter row's end from 40rem and beside the answer on a phone (D177). */}
-          <div class="segmented-nav costs-view" role="tablist" aria-label="Show as" data-costs-view>
+          <div class="segmented-nav segmented-nav-compact costs-view" role="tablist" aria-label="Show as" data-costs-view>
             <button
               class="segmented-nav-tab"
               type="button"

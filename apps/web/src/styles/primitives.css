@@ -523,7 +523,10 @@
  *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
  *     aria-controls="a-panel">Sources</button>
  * A glyph tab holds <Icon /> alone and an aria-label, and its glyph is centred (Costs' chart and
- * table switch, compact in costs.css).
+ * table switch).
+ * Compact (.segmented-nav-compact, below): a chip's height on 44px columns, to sit in a row of
+ * chips. On a raised surface the track takes that surface's step up, as a chip's does: set
+ * --segmented-nav-bg (on a card, the overlay tone).
  */
 .segmented-nav {
   --seg-n: 1;
@@ -535,7 +538,7 @@
   flex: 1 1 100%;
   min-width: 0;
   border-radius: var(--radius-round);
-  background: var(--color-surface-container);
+  background: var(--segmented-nav-bg, var(--color-surface-container));
 }
 
 @media (min-width: 40rem) {
@@ -633,6 +636,28 @@
   inset: var(--segmented-padding);
   border-radius: var(--radius-round);
   pointer-events: none;
+}
+
+/* Compact: each segment a chip's height on a 44px column, so it sits level with the chips beside it
+   (Costs' chart and table switch, D169, until 2026-10-24 drawn in costs.css). Its face is 36px, so
+   a layer above and below takes the target to 44px, as a chip's select does (the design audit,
+   2026-10-24: the tabs answered a touch across 36px). */
+.segmented-nav-compact {
+  flex: none;
+  grid-auto-columns: var(--size-touch);
+  min-inline-size: 0;
+}
+
+.segmented-nav-compact > .segmented-nav-tab {
+  min-height: var(--chip-height);
+  padding-inline: 0;
+}
+
+.segmented-nav-compact > .segmented-nav-tab::before {
+  content: "";
+  position: absolute;
+  inset-block: calc((var(--chip-height) - var(--size-touch)) / 2);
+  inset-inline: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {

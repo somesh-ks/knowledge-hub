@@ -62,7 +62,7 @@ const NAMES: Record<string, string> = {
 const SPLIT_HEAD: Record<string, string> = {
   provider: "By provider",
   kind: "By use",
-  scope: "Shared or personal",
+  scope: "Shared or own",
   user: "By person",
 };
 const PER: Record<Period, string> = { day: "day", week: "week", month: "month" };
