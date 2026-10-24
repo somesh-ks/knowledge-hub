@@ -64,7 +64,7 @@
 /* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
    through the first letters and the chevron. */
 .row-action:focus-visible {
-  outline: none;
+  outline: none; /* the ring is the tile's: .row-action:focus-visible::after, below */
   box-shadow: none;
 }
 
@@ -451,6 +451,8 @@
  * Markup: <div class="segmented-nav" role="tablist" aria-label="Show"> of
  *   <button class="segmented-nav-tab" type="button" role="tab" id="a-tab" aria-selected="true"
  *     aria-controls="a-panel">Sources</button>
+ * A glyph tab holds <Icon /> alone and an aria-label, and its glyph is centred (Costs' chart and
+ * table switch, compact in costs.css).
  */
 .segmented-nav {
   --seg-n: 1;
@@ -537,6 +539,16 @@
   white-space: nowrap;
   cursor: pointer;
   transition: color var(--duration-hover) var(--ease-hover);
+}
+
+/* A tab that holds a glyph centres it (and its words, if any, beside it): a glyph is a block
+   (.icon), which the tab's text-align does not centre, so Costs' chart and table glyphs sat at their
+   tabs' start, off the pill that marks them (owner, 2026-10-24). */
+.segmented-nav-tab:has(> .icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .segmented-nav-tab[aria-selected="true"] {
@@ -877,7 +889,7 @@
   font: inherit;
   /* The label size is under 16px on purpose: a select does not zoom the page on iOS. */
   font-size: inherit;
-  outline: none;
+  outline: none; /* the ring is the chip's: .sort-field:has(> select:focus-visible), above */
   box-shadow: none;
   cursor: pointer;
 }
@@ -1130,7 +1142,7 @@
      edge (was the Library's alone, library.css, until 2026-10-22). */
   :root:not([data-input="keyboard"]) .sort-field:has(> select:open) {
     border-color: transparent;
-    outline: none;
+    outline: none; /* a pointer's open list only: a keyboard's keeps its ring (data-input) */
     background: color-mix(
       in oklch,
       var(--sort-field-bg),
@@ -1273,12 +1285,14 @@
   background: var(--color-surface-overlay);
 }
 
+/* Its hover layer is the card's chip layer: half the state layer in light, where the full one took a
+   white chip past the card's own tone and it melted in (owner, 2026-10-24). */
 @media (hover: hover) and (pointer: fine) {
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
     background: color-mix(
       in oklch,
       var(--color-surface-overlay),
-      var(--color-on-surface) var(--state-hover)
+      var(--color-on-surface) var(--card-chip-hover)
     );
   }
 }

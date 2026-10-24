@@ -79,7 +79,9 @@ describe("applyOpsToDocuments: source.add in the function", () => {
       { op: "source.add", url: "https://blog.example.com/" },
       { op: "source.add", url: "https://other.example.com/", topic_ids: ["no_such_topic"] },
     ]);
-    expect(batch).toMatchObject({ ok: false, retryable: false });
+    // The bug (2026-10-24): a refused op in a batch was not named, so the page could not tell which
+    // of its waiting changes to drop and every later save was refused with it.
+    expect(batch).toMatchObject({ ok: false, retryable: false, op_index: 1 });
   });
 
   // The bugs: discovery's 12 s page fetch outran the function's deadline; then, held to a short fixed

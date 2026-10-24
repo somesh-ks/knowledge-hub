@@ -123,7 +123,7 @@ Ask, then what was built, then the decision. Values are as built.
   - `surface-container` for the page's own controls.
   - `accent-container` for chosen or current.
   - `accent-container-high` for actions that are not places, such as the phone's floating New episode (D86); in dark it is blue-910, a lifted step like light's, never a fill (2026-10-23). In the rail New episode takes `surface-container` with accent ink, so beside the current row it is not a second selection (owner, 2026-10-22).
-  - State layers: hover 8%, press 12% of the control's ink.
+  - State layers: hover 8%, press 12% of the control's ink. A chip on a card hovers at half that in light (`--card-chip-hover`): the full layer took a white chip to L 94 on the card's L 95 and it melted in (owner, 2026-10-24).
   - Pills for buttons, chips, select chips, select values, segmented controls and the search field, in a card as on the page, and for every select in a form (D169: the Create sheet, the Add panel, the multi-select; text fields keep 8px) (D167, 2026-10-23: "that shouldn't be possible in a design system"). For one day (2026-10-22) chips and select values in a card took the card's concentric radius; the owner reversed it on the phone. 12px rows, outlines only on text fields (3:1, D54).
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
@@ -324,6 +324,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Under 40rem every list that opens from a field is a bottom sheet (D167): a select's drawn list through `::picker(select)` in CSS alone, the searchable picker (`picker.ts` sets `data-sheet`), the multi-select (fixed in place, its card lifted over the navigation bar). The scrim is a spread of the sheet's shadow where the list has no usable backdrop. A select and an input have no tap highlight (`foundations.css`).
 - **Press, hover and focus.**
   - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
+  - A segmented tab that holds a glyph centres it (`.segmented-nav-tab:has(> .icon)`): Costs' chart and table glyphs sat at their tabs' start, off the pill, because a block glyph ignores text-align (owner: "the graph, table switcher is broken", 2026-10-24).
   - A segmented control's chosen item takes a full outline or container, never only a bottom border: the Gallery and List switch "shows only a bottom border" (2026-10-09).
   - Two targets in one card look different under a mouse: "there is a distinction between clicking on the thumbnail... versus clicking on the text... That distinction is necessary" (2026-10-12, D101).
   - Remove buttons in lists show on hover or focus with a mouse and always on touch (2026-10-08).
@@ -408,7 +409,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Blocked sources counts and asks in sources: "1 source", "Block a source" (audit, 2026-10-22). The route stays `/settings/blocked-outlets`.
   - Sources and Preferences are a segmented switch on a topic page (`?view=preferences`); one global type mix on `/settings/preferences`; no breadcrumbs; Theme is a select; Weekly has no switch (D129, 2026-10-21).
   - Review caught a topics tab strip that zoomed Chrome out (a grid column without `minmax(0, 1fr)`) and cramped panel rows, which led to the 8pt spacing system.
-- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides and the chips its radius less that padding (2026-10-23).
+- **Costs.** One card: the range and breakdown as small dropdown chips at its top, then one figure with one quiet line (the KPI blocks beside the total read as three competing numbers), a single-hue column chart and the breakdown. The owner wanted the filters inside the chart, over the dataviz rule of a filter row outside it (2026-10-22). At every width the card has its padding on all four sides (2026-10-23). A failed fetch hides the chart, breakdown, table and their switch until the next good answer (2026-10-24).
 - **New episode form.** Title, Topics, Length, Look back; Format, Voice and Tone under More options; the button reads "Generate • N mins" (D114).
   - The action is called Catch up, the kind its episodes are filed under, on the floating button, the side column, the sheet's title and the Library's empty state; Latest's glyph is a bolt, not a flame (D168, 2026-10-23).
 - **Toast.** Swipes away sideways under a finger, springs back from a short drag, never undoes (D168, `Toaster.tsx`).

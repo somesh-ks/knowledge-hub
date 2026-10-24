@@ -11,12 +11,14 @@ import {
   unallowedInlineScripts,
   unhintedModules,
 } from "../src/lib/bundleBudget";
+import { linkCardProblems } from "../src/lib/linkCard";
 
 /**
  * Fails the build when a page loads more than the first-load budget of gzipped JavaScript, when any
  * script blocks rendering, when the fonts exceed 80 KB, or when an inline script is not allowed by the
  * page's Content-Security-Policy, or when a module the page loads at start has no modulepreload link
- * (the build's `dispatch-module-preload` step adds them). Run after a build.
+ * (the build's `dispatch-module-preload` step adds them), or when a briefing or episode page has no
+ * link card or names a cover the build does not hold (D153). Run after a build.
  *
  * Usage: npx tsx apps/web/scripts/checkBundle.ts [build output directory]
  */
@@ -63,6 +65,11 @@ for (const page of pagesIn(root)) {
     failures.push(
       `${name}: ${unhinted.length} module(s) load at start with no modulepreload link, first ${unhinted[0]}`,
     );
+  }
+  if (/^\/(d|e)\//.test(name)) {
+    for (const problem of linkCardProblems(html, (path) => existsSync(join(root, path)))) {
+      failures.push(`${name}: link card: ${problem}`);
+    }
   }
   for (const hash of unallowedInlineScripts(html)) {
     failures.push(`${name}: inline script ${hash} is not allowed by the Content-Security-Policy`);

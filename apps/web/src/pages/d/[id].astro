@@ -4,6 +4,7 @@ import DigestView from "../../components/DigestView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { DigestEntry } from "../../lib/digests";
 import { listenLength } from "../../lib/digestView";
+import { briefingCard } from "../../lib/linkCard";
 import { getSite, readSiteFrom, type Site } from "../../lib/site";
 import { CONTENT_CDN_CACHE, loadStoreSite } from "../../server/contentRepo";
 
@@ -73,6 +74,7 @@ const { entry, earlier, isLatest } = props;
   nav={isLatest ? "today" : "library"}
   layout="aside"
   digestId={entry.id}
+  card={briefingCard(entry)}
   audio={{
     noun: "briefing",
     length: listenLength(entry),

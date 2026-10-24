@@ -212,7 +212,9 @@ function geometry(width: number, count: number): { band: number; barW: number } 
 
 function draw(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
-  if (!plot || !drawn) return;
+  // A hidden plot (a failed fetch, load) has no box, and its resize still calls here: drawing into
+  // zero height wrote a negative rect (2026-10-24). render draws it again once it shows.
+  if (!plot || !drawn || plot.hidden) return;
   const { buckets, period, data } = drawn;
   plot.querySelector("svg")?.remove();
   const width = Math.max(plot.clientWidth, 240);
@@ -523,6 +525,13 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   const empty = data.report.total.usd === 0;
   drawn = { buckets, period, by, data };
   active = -1;
+  // A failed fetch hid the chart, the breakdown's head and the view switch (load); a good answer
+  // shows them again before the chart measures its box. The breakdown and the table decide their
+  // own below.
+  for (const part of document.querySelectorAll<HTMLElement>(
+    "[data-costs-plot], [data-costs-rank-head], [data-costs-view]",
+  ))
+    part.hidden = false;
   renderAnswer(data, period);
   draw();
   clearColumn();
@@ -558,6 +567,10 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
 
 // ---- loading -------------------------------------------------------------------------------
 
+/** What a failed fetch hides: the chart, the breakdown, the table and the switch between them. */
+const FAILED_PARTS =
+  "[data-costs-plot], [data-costs-rank-head], [data-costs-rank], [data-costs-table], [data-costs-view]";
+
 let asked = 0;
 
 async function load(): Promise<void> {
@@ -580,6 +593,10 @@ async function load(): Promise<void> {
     if (total) total.textContent = "Unavailable";
     const detail = pick("[data-costs-detail]");
     if (detail) detail.textContent = "The costs could not be loaded right now.";
+    // Nothing to draw, so the chart, the breakdown and the table step out: no blank plot, no stray
+    // hairline, no empty table on offer, and no frame of the last range left under the failure
+    // (audit, 2026-10-24). The next good answer shows them again (render).
+    for (const part of document.querySelectorAll<HTMLElement>(FAILED_PARTS)) part.hidden = true;
   } finally {
     if (ask === asked) body?.removeAttribute("data-loading");
   }
