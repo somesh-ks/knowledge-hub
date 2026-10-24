@@ -151,8 +151,10 @@ export async function readFromContentRepo(label: string): Promise<Response | nul
  * function, so it is fetched from the site's own edge.
  */
 export async function notFoundPage(pageUrl: URL): Promise<Response> {
+  // The edge answers /404 with the page and status 404, so the status is not a failure here.
   const notFound = await fetch(new URL("/404", pageUrl)).catch(() => null);
-  return new Response(notFound?.ok ? await notFound.text() : "Not found", {
+  const page = notFound?.ok || notFound?.status === 404 ? await notFound.text() : "Not found";
+  return new Response(page, {
     status: 404,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
