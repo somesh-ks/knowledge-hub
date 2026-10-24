@@ -219,7 +219,7 @@ function rehome(gone: Element): void {
  * A change made while the request was on its way is a newer entry under the same key, so it stays
  * pending and goes next.
  */
-export function settle(batch: Batch, changes: Map<string, Pending>): void {
+export function settle(batch: Pick<Batch, "ops" | "sent">, changes: Map<string, Pending>): void {
   for (const [key, pending] of batch.sent) {
     const { el, now } = pending;
     pending.done?.();
