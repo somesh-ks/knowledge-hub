@@ -6,7 +6,7 @@
  * from what is stored, not from the build.
  *
  * Loaded only when the build says the store is on (storeOn, lib/savedKey.ts). The device keeps the
- * last answer it read (D166): a store that is slow (Neon waking), down or unreachable (offline)
+ * last answer it read (D172): a store that is slow (Neon waking), down or unreachable (offline)
  * answers from that copy after a short grace, so the page shows what this device last knew rather
  * than the build, which is a run old by design. A store that answers in time, or answers later, is
  * what the next read and the copy hold. With no copy, an outage costs freshness, never the page.

@@ -26,7 +26,7 @@ function fakeStorage(initial: Record<string, string> = {}): Storage {
 }
 
 describe("loadStore", () => {
-  // The bug (D166): with the store on, a settings page that could not get the store's answer in time
+  // The bug (D172): with the store on, a settings page that could not get the store's answer in time
   // (Neon waking, the phone offline) showed the build's copy, a run old, as if it were current.
   it("answers from the device's last copy when the store is slow, and keeps the store's newer answer", async () => {
     vi.useFakeTimers();

@@ -662,7 +662,7 @@ test.describe("a topic's page", () => {
       await expect(kiln).toBeHidden();
 
       // Another device adds Glaze Monthly; this one reads it once, then loses the store (Neon
-      // asleep, or offline). The page shows what it last read (D166), not the build, which never
+      // asleep, or offline). The page shows what it last read (D172), not the build, which never
       // had Glaze Monthly, and the local edits still lie over it.
       user.added.push({
         ...user.added[0],

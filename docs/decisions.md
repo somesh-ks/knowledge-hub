@@ -170,7 +170,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
-| D166 | Store reads keep a device copy | amends D149 |
+| D172 | Store reads keep a device copy | amends D149 |
 
 ---
 
@@ -1734,7 +1734,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
 
-## D166: a settings page keeps the store's last answer on the device
+## D172: a settings page keeps the store's last answer on the device
 
 - Date: 2026-10-24 (the owner: "make sure our app is professional industry grade", after asking how Spotify's settings feel instant)
 - Decision: `configStoreRead.ts` keeps the last answer `GET /api/config` gave in `localStorage` (`dispatch:store-read`, one build's edits). A page asks the store as before; when the store has not answered within 300 ms the page lays the device's copy over itself and the read goes on, so a late answer serves the next read and replaces the copy. A failed read leaves the copy standing. A copy from another build is ignored, as a read from another build is.
