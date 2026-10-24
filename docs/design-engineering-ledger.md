@@ -324,6 +324,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Under 40rem every list that opens from a field is a bottom sheet (D167): a select's drawn list through `::picker(select)` in CSS alone, the searchable picker (`picker.ts` sets `data-sheet`), the multi-select (fixed in place, its card lifted over the navigation bar). The scrim is a spread of the sheet's shadow where the list has no usable backdrop. A select and an input have no tap highlight (`foundations.css`).
 - **Press, hover and focus.**
   - Words never shrink on press; label controls show a press on their fill (2026-10-10, `styles.test.ts`).
+  - The compact segmented navigation (`.segmented-nav-compact`) sits in a row of chips: a chip's height on 44px columns, a layer above and below its 36px face for a 44px target, and its track's tone from `--segmented-nav-bg` (the overlay on a card). It was drawn in `costs.css` until the design audit found its tabs answering across 36px (2026-10-24).
   - A segmented tab that holds a glyph centres it (`.segmented-nav-tab:has(> .icon)`): Costs' chart and table glyphs sat at their tabs' start, off the pill, because a block glyph ignores text-align (owner: "the graph, table switcher is broken", 2026-10-24).
   - A segmented control's chosen item takes a full outline or container, never only a bottom border: the Gallery and List switch "shows only a bottom border" (2026-10-09).
   - Two targets in one card look different under a mouse: "there is a distinction between clicking on the thumbnail... versus clicking on the text... That distinction is necessary" (2026-10-12, D101).
@@ -348,7 +349,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
   - The Generate bar's line shows only while the bar is really stuck (D87).
   - The section strip is opaque, so text never shows through under it (D88).
-  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22).
+  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first); the section tabs and the Library shelf still carry their own copies of it. A scroller a keyboard must reach is a tab stop only while it overflows, and its ring is drawn on its parent, since the mask clips its own (the Costs table, axe `scrollable-region-focusable`, 2026-10-24).
   - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
   - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
 - **Speech and status.**
@@ -419,7 +420,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Queue (Up next).** No handle, no cross: a row moves by the browser's drag and drop (long press or mouse pull), swipes left to leave, and its dots open the header's menu with Move up, Move down, Remove (D169). The Stories and Up next switch keeps the segmented look on a phone, in a sticky bar.
 - **App bar on a page with a sticky block.** Pinned (`data-pins-bar`): it no longer slides away and back under a topic's search and chips (D169).
 - **Section tabs.** 16px each side, the indicator under the words (D169: "placed too close to each other").
-- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169).
+- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169); on a phone, where it found no room beside the chips and sat alone on a row, at the end of the answer's first line (D177, 2026-10-24). The table, wider than a phone's card, fades its hidden edge (`.scroll-fade-inline`). The breakdown's third option reads "Shared or own", so the two chips hold one row from 390px (owner, 2026-10-24); from 40rem the answer's column keeps its words and the chips wrap in theirs, so the head never changes height with a choice.
 - **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D171: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
 ### Sound

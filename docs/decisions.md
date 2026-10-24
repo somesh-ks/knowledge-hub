@@ -184,6 +184,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
+| D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
 
 ---
@@ -1882,6 +1883,15 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+## D177: on a phone the Costs chart or table switch sits beside the figure
+
+- Date: 2026-10-24
+- Decision: from 40rem the switch stays at the end of the filter row (D169); below it, it sits at the end of the answer's first line, level with "Estimated spend", and the chips keep their row. It follows the answer in the reading order, just before the panels it switches.
+- Why: at 390px the two pill chips and the switch do not fit one row, so the switch wrapped to a row of its own, 72px of nothing above the figure (screenshot, 2026-10-24). The owner chose the figure's line over the empty row.
+- Rejected: the empty row it had; narrower chips (the pills are D167's one shape).
+- Amends: D169's Costs bullet, on a phone only.
+- Revisit if: the chips and the switch fit one row on a phone.
+
 ## D178: no island loads with the page; the islands wake when needed
 
 - Date: 2026-10-24 (the owner asked for every accepted idea to be built, cut 1 of [first-load-js.md](engineering/first-load-js.md) among them, parked since 2026-10-14)
@@ -1891,4 +1901,3 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: the islands as Astro markup and a vanilla toaster (the doc's first sketch; the directive keeps the islands, `transition:persist` and SSR as they were); hydrating at idle without an input (the bytes and the 100 ms hydration task come back on every visit).
 - Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
 - Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
-
