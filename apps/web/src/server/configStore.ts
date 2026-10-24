@@ -14,7 +14,7 @@ import { builtHash, type ConfigFiles, storeChanges } from "./configView";
 export type { ConfigReadBody };
 
 import type { ApiResult } from "./http";
-import { describeError } from "./redact";
+import { describeError, redact } from "./redact";
 
 /**
  * The config store's side of /api/config (D149), and the cron's read of the stored schedule. Only
@@ -27,7 +27,18 @@ import { describeError } from "./redact";
 type ConfigResult = ApiResult<ConfigResponse>;
 
 const unavailable: ConfigResult = { status: 503, body: { status: 503, error: "unavailable" } };
-const invalid: ConfigResult = { status: 400, body: { status: 400, error: "invalid_request" } };
+/** The most of the refusal's sentence the page is told; a schema's list of issues can run long. */
+const MAX_REASON_CHARS = 300;
+
+/**
+ * A refusal, with why. With the store off the workflow refused the edit, out of the page's sight;
+ * here the function refuses it, so the page can say what was wrong ("Already a source: x.") instead
+ * of only that the server said no. The sentence is the engine's own, scrubbed as its log line is.
+ */
+function refused(message: string, secrets: ReadonlyArray<string | undefined>): ConfigResult {
+  const reason = redact(message, secrets).trim().slice(0, MAX_REASON_CHARS);
+  return { status: 400, body: { status: 400, error: "invalid_request", reason } };
+}
 
 async function open(deps: { connectConfigStore?: ConfigDeps["connectConfigStore"] }, url: string) {
   return deps.connectConfigStore ? deps.connectConfigStore(url) : connectNeon(url);
@@ -81,7 +92,7 @@ export async function saveToStore(
           `config ${result.retryable ? "not applied" : "refused"}: ${describeError(result.message, secrets)}`,
         );
         // A lookup that failed on our side, or ran out of time, can be sent again: the page keeps it pending.
-        return result.retryable ? unavailable : invalid;
+        return result.retryable ? unavailable : refused(result.message, secrets);
       }
       ({ written, at: writtenAt } = await writeConfigDocumentsAt(sql, result.writes));
     }
