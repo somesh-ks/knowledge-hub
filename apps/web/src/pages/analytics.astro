@@ -47,6 +47,35 @@ const SPLITS = [
               </select>
               <Icon name="chevronDown" />
             </label>
+            {/* Chart or table (owner, 2026-10-23): the segmented navigation as two glyph tabs, compact
+                 (costs.css). The card's data-view shows one panel and hides the other (costsPage.ts). */}
+            <div class="segmented-nav costs-view" role="tablist" aria-label="Show as" data-costs-view>
+              <button
+                class="segmented-nav-tab"
+                type="button"
+                role="tab"
+                id="costs-view-chart"
+                aria-selected="true"
+                aria-controls="costs-chart"
+                aria-label="Chart"
+                data-value="chart"
+              >
+                <Icon name="chartBar" />
+              </button>
+              <button
+                class="segmented-nav-tab"
+                type="button"
+                role="tab"
+                id="costs-view-table"
+                aria-selected="false"
+                aria-controls="costs-grid"
+                aria-label="Table"
+                tabindex="-1"
+                data-value="table"
+              >
+                <Icon name="table" />
+              </button>
+            </div>
           </div>
           <div class="costs-answer costs-data" aria-live="polite">
             <h2 class="costs-label" id="costs-total-label" data-costs-label>Total spend</h2>
@@ -55,19 +84,20 @@ const SPLITS = [
           </div>
         </div>
 
-        <div class="costs-plot costs-data" data-costs-plot tabindex="0" role="group" aria-label="Spend over time">
-          <div class="costs-tip" data-costs-tip hidden></div>
-          <p class="costs-empty" data-costs-empty hidden></p>
+        <div class="costs-chart" id="costs-chart" role="tabpanel" aria-labelledby="costs-view-chart">
+          <div class="costs-plot costs-data" data-costs-plot tabindex="0" role="group" aria-label="Spend over time">
+            <div class="costs-tip" data-costs-tip hidden></div>
+            <p class="costs-empty" data-costs-empty hidden></p>
+          </div>
+
+          <h3 class="sr-only" data-costs-rank-head>By provider</h3>
+          <ol class="costs-rank costs-data" data-costs-rank></ol>
         </div>
 
-        <h3 class="sr-only" data-costs-rank-head>By provider</h3>
-        <ol class="costs-rank costs-data" data-costs-rank></ol>
+        <div class="costs-table" id="costs-grid" role="tabpanel" aria-labelledby="costs-view-table" data-costs-table>
+          <div class="costs-table-scroll"><table data-costs-grid></table></div>
+        </div>
       </section>
-
-      <details class="costs-table" data-costs-table>
-        <summary>Show as a table</summary>
-        <div class="costs-table-scroll"><table data-costs-grid></table></div>
-      </details>
       <p class="settings-note costs-note" data-costs-note></p>
     </div>
   </main>

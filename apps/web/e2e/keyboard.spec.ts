@@ -36,7 +36,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "a: Skip to the briefing",
       "a: Singularity, latest briefing",
       // Create is first in the side column.
-      "a: New episode",
+      "a: Catch up",
       "a: Latest",
       "a: Library",
       "a: Settings",

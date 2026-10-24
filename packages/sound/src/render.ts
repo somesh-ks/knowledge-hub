@@ -211,6 +211,28 @@ export function renderRecipe(recipe: SoundRecipe, options: RenderOptions = {}): 
     ? null
     : new Biquad({ type: "lowpass", ...MASTER_LOWPASS }, sampleRate);
 
+  const measured = applyMaster(samples, gain, master);
+  return {
+    samples,
+    sampleRate,
+    peak: measured[0] ?? 0,
+    rms: Math.sqrt((measured[1] ?? 0) / Math.max(1, samples.length)),
+    audibleMs: ((measured[2] ?? 0) / sampleRate) * 1000,
+  };
+}
+
+/**
+ * Applies the master gain and low-pass in place and measures the result: [peak, sum of squares,
+ * index of the last audible sample].
+ *
+ * Why the loop is not in renderRecipe, and reports in a typed array rather than an object: on
+ * Node 24 (V8 13.6), when Maglev compiles a hot loop for on-stack replacement before the object
+ * literal after it has run, the objects that function returns can share their number fields, so
+ * an earlier render's peak turns into the next render's (nodejs/node#66457). The volume test
+ * failed that way on 2026-10-14, 10-22 and 10-24. In this file, a function with a hot loop never
+ * returns an object literal.
+ */
+function applyMaster(samples: Float32Array, gain: number, master: Biquad | null): Float64Array {
   let peak = 0;
   let sumSquares = 0;
   let lastAudible = 0;
@@ -223,13 +245,7 @@ export function renderRecipe(recipe: SoundRecipe, options: RenderOptions = {}): 
     if (magnitude >= AUDIBLE_FLOOR) lastAudible = n;
     sumSquares += value * value;
   }
-  return {
-    samples,
-    sampleRate,
-    peak,
-    rms: Math.sqrt(sumSquares / Math.max(1, samples.length)),
-    audibleMs: (lastAudible / sampleRate) * 1000,
-  };
+  return Float64Array.of(peak, sumSquares, lastAudible);
 }
 
 export function peakToDbfs(peak: number): number {
@@ -290,6 +306,25 @@ export function analyzeSpectrum(
   sampleRate: number,
   thresholds: readonly number[] = [4000],
 ): SpectrumSummary {
+  const measured = measureSpectrum(samples, sampleRate, thresholds);
+  return {
+    centroidHz: measured[0] ?? 0,
+    peakHz: measured[1] ?? 0,
+    energyAbove: Object.fromEntries(
+      thresholds.map((threshold, index) => [threshold, measured[2 + index] ?? 0]),
+    ),
+  };
+}
+
+/**
+ * [centroid, strongest bin, then each threshold's share of energy], in a typed array for the
+ * reason on applyMaster.
+ */
+function measureSpectrum(
+  samples: Float32Array,
+  sampleRate: number,
+  thresholds: readonly number[],
+): Float64Array {
   let size = 1024;
   while (size < samples.length) size <<= 1;
   const real = new Float64Array(size);
@@ -318,17 +353,15 @@ export function analyzeSpectrum(
       strongestBin = bin;
     }
   }
-  const energyAbove: Record<number, number> = {};
-  for (const threshold of thresholds) {
+  const measured = new Float64Array(2 + thresholds.length);
+  measured[0] = totalEnergy > 0 ? weighted / totalEnergy : 0;
+  measured[1] = strongestBin * binHz;
+  for (const [index, threshold] of thresholds.entries()) {
     let above = 0;
     for (let bin = Math.ceil(threshold / binHz); bin < half; bin += 1) above += energies[bin] ?? 0;
-    energyAbove[threshold] = totalEnergy > 0 ? above / totalEnergy : 0;
+    measured[2 + index] = totalEnergy > 0 ? above / totalEnergy : 0;
   }
-  return {
-    centroidHz: totalEnergy > 0 ? weighted / totalEnergy : 0,
-    peakHz: strongestBin * binHz,
-    energyAbove,
-  };
+  return measured;
 }
 
 /** Per-layer peaks after the same processing, for tuning the balance between tone and felt. */

@@ -18,7 +18,7 @@ Narration on Play, voices, audio.yml, prewarming, budgets. What it does now. Rea
 ### Voices
 - `GET /api/voices` lists voices (with the voices Default stands for, so it reads "Default (Name)"); each option leads with its accent's flag (Windows shows the two letters).
 - A sample plays through `GET /api/voice-sample`, which serves only samples in the voice list and answers byte ranges (D62).
-- Choosing a voice on `/settings/voice` or New episode plays its sample; the Sample chip plays it again or stops it.
+- Choosing a voice on `/settings/voice` or Catch up plays its sample; the Sample chip plays it again or stops it.
 - A discussion's second voice defaults to `dominic_32`.
 
 ### Budgets

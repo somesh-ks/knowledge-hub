@@ -86,6 +86,9 @@ test.describe("empty states", () => {
       await page.goto("/");
       await page.evaluate(() => navigator.serviceWorker.ready);
       await page.reload();
+      // The idle islands' stylesheets are preloaded after load; cut off mid-preload they throw
+      // "Unable to preload CSS", which is not what this test is about.
+      await page.waitForLoadState("networkidle");
       await context.setOffline(true);
       await page.goto("/d/2026-10-05");
       const root = page.locator("#main .empty");

@@ -244,7 +244,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `ANTHROPIC_API_KEY` | Anthropic console | Story and script writers, Haiku fallbacks |
 | `TYPESAFE_API_KEY` | console.typesafe.ai | Jev judge and grounding check |
 | `EXA_API_KEY` | Exa dashboard | Discovery |
-| `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction |
+| `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction, Alexandria facts, YouTube transcripts (D165) |
 | `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
@@ -367,7 +367,7 @@ Off by default. With it on, a settings edit is saved to Neon Postgres and shows 
 4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `DISPATCH_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
 5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
 6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `DISPATCH_CONFIG_STORE` = `postgres`.
-7. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too (the Neon integration adds it).
+7. Vercel: Project → Settings → Environment Variables → `DISPATCH_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too. On 2026-10-23 it was not: the Neon integration was connected with the `NEON_` prefix (`NEON_DATABASE_URL` and friends), which nothing reads, so the store and the shared rate counter (D150) have never run in production. Either set the integration's prefix to none (Storage → the Neon database → Settings) or add `DATABASE_URL` by hand with the pooled connection string.
 8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
 9. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
 
@@ -379,3 +379,16 @@ Off by default. With it on, a settings edit is saved to Neon Postgres and shows 
 4. Remove `DISPATCH_CONFIG_STORE` from `.env`.
 
 If the database is down while the store is on, nothing breaks: pages show the build's copy, runs use the last commit's files, and an edit answers "unavailable" and stays pending on the page.
+
+## 12. Branch rules on `main` (D175)
+
+`main` is protected by a GitHub ruleset, kept as `.github/rulesets/main.json` so it is reviewed like code and can be re-imported. Rulesets on a private repository need GitHub Pro; the page says so if the plan lacks it.
+
+1. Settings → Rules → Rulesets → New ruleset → Import a ruleset → choose `.github/rulesets/main.json` → Create. Or with the API: `gh api -X POST repos/somesh-ks/knowledge-hub/rulesets --input .github/rulesets/main.json`.
+2. What it holds, and why each rule is there:
+   - No deletion, no force push, linear history: `main`'s record is append-only; PRs land as squash merges (the only merge method the rule allows), which is how they have landed so far.
+   - Every change goes through a pull request with its review threads resolved. No human approval count: one owner cannot approve their own PR, and the code review is the `review` label's workflow (D143).
+   - Required checks `check` and `browser` from `ci.yml`, and the branch must be up to date with `main` when it merges (strict). Two PRs that each passed alone broke `main` on 2026-10-24 (the docs budget); strict checks run CI on the merged state. The cost: before each merge, Update branch, then wait for CI (about 4 minutes, 15 with the browser suites). A `browser` job skipped by the path filter counts as passed.
+   - Bypass: the GitHub Actions app (integration 15368), always. The engine's workflows (`run.yml`, `audio.yml`, `podcast.yml`, `config.yml`, `automerge.yml`) push digests, narration, episodes and config straight to `main` with the workflow token; without this bypass every run would fail at its commit. No person bypasses: to make an exception, edit the ruleset.
+3. Not required, on purpose: the `review` check, because Dependabot's PRs merge without the label (`automerge.yml`); signed commits, because the engine's commits are unsigned.
+4. To change a rule, edit the JSON, import it over the existing ruleset (Settings → Rules → Rulesets → the ruleset → Import), and open a PR with the same change so the file matches.

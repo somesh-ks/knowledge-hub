@@ -600,7 +600,7 @@ test.describe("a topic's page", () => {
 
     // The bug (D149): with the config store on, an edit saved on one device reached no other until
     // a rebuild, and a toggle sent from that stale page put the old value back.
-    test("an edit saved on another device shows here without a rebuild, and a store that is down leaves the built page", async ({
+    test("an edit saved on another device shows here without a rebuild, and a store that is down shows what this device last read", async ({
       page,
       context,
       baseURL,
@@ -660,12 +660,56 @@ test.describe("a topic's page", () => {
       await expect(box).toBeChecked();
       await expect(kiln).toBeHidden();
 
+      // Another device adds Glaze Monthly; this one reads it once, then loses the store (Neon
+      // asleep, or offline). The page shows what it last read (D172), not the build, which never
+      // had Glaze Monthly, and the local edits still lie over it.
+      user.added.push({
+        ...user.added[0],
+        id: "glaze-monthly",
+        name: "Glaze Monthly",
+        url: "https://glaze.example/",
+        feed_url: "https://glaze.example/feed.xml",
+        topic_ids: ["design_engineering_craft"],
+      });
+      stored = { "config/sources.user.json": JSON.stringify(user) };
+      await page.reload();
+      await expect(source(page, "Glaze Monthly")).toBeVisible();
       stored = null;
       await page.reload();
       await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
+      await expect(source(page, "Glaze Monthly")).toBeVisible();
       await expect(box).toBeChecked();
       await expect(kiln).toBeHidden();
     });
+  });
+
+  test("the search block holds still and the app bar stays while the page scrolls down and back up", async ({
+    page,
+  }) => {
+    // The block sticks under the app bar; a bar that slid away and came back moved it by its
+    // height each time (owner, 2026-10-23). The bar is pinned on this page (data-pins-bar).
+    // A short screen, so the fixture page scrolls far enough to hold the block stuck at two
+    // positions clear of its card's end (at the very end the card's edge pushes the block up).
+    await page.setViewportSize({ width: 390, height: 600 });
+    await open(page, "/settings/topics/design");
+    const block = page.locator(".source-filter[data-chips]");
+    // Where the block meets its sticky edge, from its own place and inset: two scroll positions
+    // past it, both well inside the card the block sticks within.
+    const stickAt = await block.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top +
+        window.scrollY -
+        Number.parseFloat(getComputedStyle(el).top),
+    );
+    const far = Math.round(stickAt + 100);
+    const near = Math.round(stickAt + 40);
+    await page.evaluate((y) => window.scrollTo(0, y), far);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(far);
+    const stuck = await block.boundingBox();
+    await page.evaluate((y) => window.scrollTo(0, y), near);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(near);
+    await expect.poll(() => block.boundingBox()).toEqual(stuck);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bar-hidden", "");
   });
 
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {

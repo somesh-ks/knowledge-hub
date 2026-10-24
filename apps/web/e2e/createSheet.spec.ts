@@ -38,7 +38,7 @@ async function mockRun(page: Page, states: unknown[]): Promise<Array<Record<stri
 test.describe("Create as the primary action", () => {
   test("opens the sheet, Escape closes it and focus returns to the button", async ({ page }) => {
     await openSheet(page);
-    await expect(sheet(page).getByRole("heading", { name: "New episode" })).toBeVisible();
+    await expect(sheet(page).getByRole("heading", { name: "Catch up" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet(page)).toBeHidden();
     await expect(trigger(page)).toBeFocused();
