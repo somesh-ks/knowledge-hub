@@ -67,6 +67,9 @@ describe("parseConfigOp", () => {
       { op: "topic.remove", id: "motion-craft" },
       { op: "source.add", url: "https://example.com/feed.xml" },
       { op: "source.add", url: "https://example.com/", topic_ids: ["motion-craft"] },
+      // The page names the id, so an edit before the next run finds the source ("There is no
+      // source x" when the parser dropped it), and the format the person chose.
+      { op: "source.add", url: "https://example.com/", id: "example-com", format: "video" },
       { op: "source.set", id: "openai-blog", enabled: false },
       { op: "source.set", id: "openai-blog", pinned: true },
       { op: "source.remove", id: "openai-blog" },

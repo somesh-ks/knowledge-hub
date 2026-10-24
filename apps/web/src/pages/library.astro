@@ -11,6 +11,16 @@ import { getSite } from "../lib/site";
 // Inline, so a saved List view is on the page before its first frame, not after the page's script.
 // astro.config.mjs hashes this same file into the Content-Security-Policy.
 import libraryViewInit from "../scripts/libraryViewInit.js?raw";
+import { CONTENT_CDN_CACHE, readFromContentRepo } from "../server/contentRepo";
+
+// Rendered on request from the content repository (D173); the static test build prerenders it.
+export const prerender = false;
+
+if (!Astro.isPrerendered) {
+  const unavailable = await readFromContentRepo("library");
+  if (unavailable) return unavailable;
+  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+}
 
 const { entries, episodes } = await getSite();
 const items = libraryItems(entries, episodes);

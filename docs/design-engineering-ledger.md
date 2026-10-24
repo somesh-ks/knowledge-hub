@@ -403,6 +403,9 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Source icons come through `/api/site-icon` with a letter fallback, so the policy keeps `img-src 'self' data:` (`pages/api/site-icon.ts`); widening `img-src` to `https:` was rejected (2026-10-09).
   - The add-topic form uses `novalidate` with inline messages; an emoji-only name no longer becomes the id "topic" (2026-10-08).
   - Model headings sit on the left in regular weight (D113, #125). The emoji picker's section labels are h3s and were bold by the browser's default; they are regular (audit, 2026-10-22, `topics.css .emoji-label`).
+  - The emoji picker's list was late (owner, 2026-10-24): drawing all 1,878 emoji in one task held a cold open for 1.3 s on a desktop. Each cell now renders only near the view (`content-visibility`), the list fills in batches of 120 after the first category, and hovering, pressing or focusing the button preloads it (`emojiPicker.ts`, `topics.css .emoji-cell`).
+  - Each emoji sits in its cell's optical centre: a pad of a tenth of the font size moves the emoji font's ink off the UI font's baseline, the same for every glyph (owner, 2026-10-24; exempt in `designSystem.spec.ts`).
+  - An emoji cell takes the standard hover state layer under a fine pointer (`.hover-fill`, D72); the chosen emoji's fill and the focus ring win over it (owner, 2026-10-24).
   - The Listen in list on a phone opened under the sticky search block (one under the header), hiding Catch up; the card that holds the open list is lifted to the header's level (audit, 2026-10-22, `topics.css`).
   - Unticked chips in a `.card-group` take the overlay tone, not the raised one: in dark the raised tone equals the card's, so Daily and Weekly's topic chips read as bare text (audit, 2026-10-22, `primitives.css`).
   - The Podcast voice subtitle is only "Daily, Weekly and Catch up episodes are read in these voices." (owner, 2026-10-21); the "Weekly keeps the voice it had before" note is gone (2026-10-22).
@@ -416,7 +419,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Queue (Up next).** No handle, no cross: a row moves by the browser's drag and drop (long press or mouse pull), swipes left to leave, and its dots open the header's menu with Move up, Move down, Remove (D169). The Stories and Up next switch keeps the segmented look on a phone, in a sticky bar.
 - **App bar on a page with a sticky block.** Pinned (`data-pins-bar`): it no longer slides away and back under a topic's search and chips (D169).
 - **Section tabs.** 16px each side, the indicator under the words (D169: "placed too close to each other").
-- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169); on a phone, where it found no room beside the chips and sat alone on a row, at the end of the answer's first line (D176, 2026-10-24). The table, wider than a phone's card, fades its hidden edge (`.scroll-fade-inline`).
+- **Costs.** Chart or table by two glyph tabs at the end of the filter row, the segmented navigation made compact (D169); on a phone, where it found no room beside the chips and sat alone on a row, at the end of the answer's first line (D177, 2026-10-24). The table, wider than a phone's card, fades its hidden edge (`.scroll-fade-inline`).
 - **Covers.** Chroma cap 0.16, a deeper, tinted light stock, richer inks (D171: "very dull"); D121's 0.12 cap and pale papers lasted eight days.
 
 ### Sound

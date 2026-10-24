@@ -17,10 +17,18 @@ export const BUILT_CONFIG_PATHS = [
   "config/schedule.json",
   "config/preferences.json",
   "config/profiles/owner.json",
+  // Absent until the owner first edits a structure (D170), and never committed by hand.
+  "config/structure.json",
 ] as const;
 
+/** The files a build may lack, which it carries as undefined. */
+type OptionalBuiltPath = "config/structure.json";
+
 /** The bundled files a deployment's function diffs from, by path: exactly BUILT_CONFIG_PATHS. */
-export type BuiltConfigFiles = Readonly<Record<(typeof BUILT_CONFIG_PATHS)[number], string>>;
+export type BuiltConfigFiles = Readonly<
+  Record<Exclude<(typeof BUILT_CONFIG_PATHS)[number], OptionalBuiltPath>, string> &
+    Record<OptionalBuiltPath, string | undefined>
+>;
 
 /** A short digest of the files, a missing one read as empty. */
 export function configHash(files: Readonly<Record<string, string | undefined>>): string {

@@ -5,17 +5,24 @@ import {
   MAX_CUSTOM_TOPICS,
   type ParsedConfigOp,
   type Preferences,
+  publishSection,
   RESERVED_TOPIC_IDS,
   type ScheduleFile,
   type Source,
   type SourceCandidatesFile,
   type SourcesFile,
   type SourcesUserFile,
+  STRUCTURE_SECTIONS,
+  type StructureFile,
+  type StructureKind,
   type Topic,
   type TopicsFile,
   TopicsFile as TopicsSchema,
   topicIdFromName,
   withGeneralScope,
+  withoutSection,
+  withSection,
+  withSectionBlock,
 } from "@dispatch/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
 import { hostOf, normalizeDomain, type Profile } from "../profile/profile.js";
@@ -43,6 +50,8 @@ export interface ConfigBundle {
   candidates: SourceCandidatesFile;
   /** The owner's profile: today's only user (src/profile/profile.ts). */
   profile: Profile;
+  /** config/structure.json (D170), or null while every kind runs its defaults. */
+  structure: StructureFile | null;
 }
 
 export interface ApplyDeps {
@@ -227,6 +236,8 @@ function upsertTopic(
       checked.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; "),
     );
   }
+  // A topic made after the structure was saved plays in every stored kind (D170, gap 2).
+  if (wasNew && next.structure !== null) next.structure = withSection(next.structure, sectionId);
   return {
     next,
     summary: `${wasNew ? "add" : "update"} topic ${tidy(input.name)}`,
@@ -265,6 +276,7 @@ function removeTopic(
   const stillUsed = next.topics.topics.some((t) => t.section_id === topic.section_id);
   if (!stillUsed && !isBuiltinSection(topic.section_id)) {
     next.topics.sections = next.topics.sections.filter((s) => s.id !== topic.section_id);
+    if (next.structure !== null) next.structure = withoutSection(next.structure, topic.section_id);
   }
   next.queries = withoutTopicQueries(next.queries, op.id);
 
@@ -558,8 +570,53 @@ function setScope(
     weekly: { ...current.weekly, skip_topics: scoped(current.weekly.skip_topics, op.weekly) },
     custom: { ...current.custom, skip_topics: scoped(current.custom.skip_topics, op.custom) },
   };
+  // A topic put into a stored kind gets its section block (D170, gap 2). Taking one out leaves the
+  // block: the skip list leaves the topic out, and putting it back keeps its place.
+  if (next.structure !== null) {
+    const into: StructureKind[] = [];
+    if (op.daily === true) into.push("daily");
+    if (op.weekly === true) into.push("weekly");
+    if (op.custom === true) into.push("catch_up");
+    const kinds = { ...next.structure.kinds };
+    for (const kind of into) {
+      let blocks = kinds[kind];
+      if (blocks === undefined) continue;
+      for (const id of ids) {
+        // The section its stories are filed under: a general topic publishes under its own id.
+        const topic = next.topics.topics.find((entry) => entry.id === id);
+        const section = topic ? publishSection(topic) : undefined;
+        if (section !== undefined) blocks = withSectionBlock(blocks, section);
+      }
+      kinds[kind] = blocks;
+    }
+    next.structure = { ...next.structure, kinds };
+  }
   const first = next.topics.topics.find((topic) => topic.id === ids[0]);
   return { next, summary: `set where ${tidy(first?.name ?? ids[0] ?? "a topic")} plays` };
+}
+
+/** Replace one kind's blocks; every section block must name a section that exists. */
+function setStructure(
+  op: Extract<ParsedConfigOp, { op: "structure.set" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const known = new Set<string>([
+    ...STRUCTURE_SECTIONS,
+    ...bundle.topics.topics.map((topic) => publishSection(topic)),
+    ...GENERAL_TOPICS.map((topic) => topic.id),
+  ]);
+  for (const block of op.blocks) {
+    if (block.type === "section" && !known.has(block.id)) {
+      throw new ConfigOpError(`There is no section ${block.id}.`);
+    }
+  }
+  const next = clone(bundle);
+  next.structure = {
+    version: 1,
+    kinds: { ...(bundle.structure?.kinds ?? {}), [op.kind]: op.blocks },
+  };
+  const name = op.kind === "catch_up" ? "Catch up" : op.kind;
+  return { next, summary: `set the ${name} structure` };
 }
 
 function definedOnly<T extends object>(value: T | undefined): Partial<T> {
@@ -656,6 +713,8 @@ export async function applyConfigOp(
       return setSchedule(op, bundle);
     case "topic.scope":
       return setScope(op, bundle);
+    case "structure.set":
+      return setStructure(op, bundle);
     case "profile.block":
       return blockDomain(op, bundle);
     case "profile.vote":

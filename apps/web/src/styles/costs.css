@@ -32,7 +32,7 @@
 
 /* On a phone the chips lead and the answer sits under them, the chart or table switch at the end of
    the answer's first line: beside the chips it found no room and wrapped to a row of its own, 72px
-   of nothing above the figure (owner, 2026-10-24, D176). From 40rem the answer takes the start of
+   of nothing above the figure (owner, 2026-10-24, D177). From 40rem the answer takes the start of
    one band and the chips and the switch its end, the switch last (D169). */
 .costs-head {
   display: grid;
@@ -277,7 +277,7 @@
 
 /* Two glyph tabs at the end of the filter row switch the card between the chart and the table
    (owner, 2026-10-23; a "Show as a table" disclosure under the card before); on a phone, at the end
-   of the answer's first line (D176, .costs-head above). The segmented navigation, compact: each
+   of the answer's first line (D177, .costs-head above). The segmented navigation, compact: each
    segment a chip's height on a 44px column, so it sits level with the chips. The card's data-view
    shows one panel and hides the other. */
 .costs-head > .costs-view {

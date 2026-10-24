@@ -83,11 +83,9 @@ function stubApiRoutesForStaticBuild() {
     name: "dispatch-static-only",
     hooks: {
       "astro:route:setup": ({ route }) => {
-        const component = route.component.replaceAll("\\", "/");
-        // Pages rendered on request from the content repository (D173) are built from the checkout.
-        if (component.includes("/pages/api/") || component.includes("/pages/d/")) {
-          route.prerender = true;
-        }
+        // With no adapter every route is prerendered: the API stubs, the pages rendered on request
+        // from the content repository (D173), and the redirects that point at them.
+        route.prerender = true;
       },
     },
   };
@@ -100,7 +98,11 @@ function stubApiRoutesForStaticBuild() {
 const FILES_PAGES_READ = [
   "./src/styles/tokens.css",
   "../../packages/core/package.json",
-  ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`),
+  // config/structure.json exists only once the owner edits a structure (D170); the adapter refuses
+  // an include that is not there.
+  ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`).filter((path) =>
+    existsSync(fileURLToPath(new URL(path, import.meta.url))),
+  ),
 ];
 
 export default defineConfig({
