@@ -668,7 +668,7 @@ test.describe("library episodes", () => {
 
     // A move from Today, once its scripts run, is a swap in the same document.
     await page.goto("/");
-    await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+    await hydrated(page);
     await page.evaluate(() => {
       (window as unknown as { kept?: boolean }).kept = true;
     });

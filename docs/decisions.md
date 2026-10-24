@@ -184,6 +184,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
+| D178 | No island at first load | active; amends D112 |
 
 ---
 
@@ -1881,4 +1882,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+## D178: no island loads with the page; the islands wake when needed
+
+- Date: 2026-10-24 (the owner asked for every accepted idea to be built, cut 1 of [first-load-js.md](engineering/first-load-js.md) among them, parked since 2026-10-14)
+- Decision: the player and sheets islands are `client:wake` (`lib/wakeDirective.ts`): they hydrate on `dispatch:wake`, which `scripts/islandWake.ts` sends when something starts playing (the bar shows), a sheet's control is pressed (the press is kept and opens the sheet), a toast is sent, a Generate run is remembered from before a reload, or the browser is idle after the first pointer, key or wheel input. The player runtime (the store, the reader's Play controls, Media Session, sounds) starts from the layout's script at load, without React. On wake, `islandWake.ts` imports the renderer and both islands itself, so Vite preloads each graph at once, on the pages rendered on request (D173) too; `checkBundle` counts them apart ("more on wake"), not as first load.
+- Why: React and the two islands were 73 KB of every page's 110, and nothing on screen needs them until a track starts: the bar is hidden before then, and the Play controls are answered by the runtime.
+- Cost: a Play that is the first input of a cold visit shows the bar about 0.6 s after the press on a throttled phone (65 ms before), most of it React compiling and hydrating; the audio starts at once as before. A sheet's control pressed before the wake opens its sheet after that round trip. The browser tests wake the islands before they wait for hydration (`hydrated` in `e2e/fixtures.ts`, `PlayerPage.open`).
+- Rejected: the islands as Astro markup and a vanilla toaster (the doc's first sketch; the directive keeps the islands, `transition:persist` and SSR as they were); hydrating at idle without an input (the bytes and the 100 ms hydration task come back on every visit).
+- Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
+- Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
 
