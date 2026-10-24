@@ -1,6 +1,6 @@
 # State
 
-Last updated 2026-10-22. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md).
+Last updated 2026-10-23. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md).
 
 ## Working
 
