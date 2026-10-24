@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   episodeHighlights,
   HIGHLIGHT_CHARS,
+  highlightSections,
   publisherOf,
   spokenSummary,
   trimAtSentence,
@@ -193,5 +194,36 @@ describe("highlights from a real script", () => {
     expect(episodeHighlights(episode)[0]?.text).toBe(
       "Tokens compile once and ship to every platform.",
     );
+  });
+});
+
+describe("highlightSections", () => {
+  // The bug it prevents: a story no briefing carried (an episode's own find) dropping off the page
+  // once highlights are grouped by briefing section.
+  it("groups by the briefing's section in playing order and keeps a story no briefing carried", () => {
+    const episode = {
+      sources: ["a", "b", "c"].map((id) => source(id)),
+      turns: [turn(0, "About c.", "c"), turn(1, "About a.", "a"), turn(2, "About b.", "b")],
+    };
+    const sections = new Map([
+      ["c", { slug: "ai", title: "AI products" }],
+      ["a", { slug: "design", title: "Design engineering" }],
+    ]);
+    const grouped = highlightSections(episodeHighlights(episode), sections);
+    expect(grouped.map((group) => [group.title, group.highlights.map((h) => h.itemId)])).toEqual([
+      ["AI products", ["c"]],
+      ["Design engineering", ["a"]],
+      ["Highlights", ["b"]],
+    ]);
+    // One section alone keeps the page's Highlights heading.
+    expect(
+      highlightSections(
+        episodeHighlights(episode),
+        new Map([["a", { slug: "design", title: "Design engineering" }]]),
+      ).length,
+    ).toBe(2);
+    expect(highlightSections(episodeHighlights(episode)).map((group) => group.title)).toEqual([
+      "Highlights",
+    ]);
   });
 });

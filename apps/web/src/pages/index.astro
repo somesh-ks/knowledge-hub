@@ -3,7 +3,7 @@ import Banner from "../components/Banner.astro";
 import DigestView from "../components/DigestView.astro";
 import EmptyState from "../components/EmptyState.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { listenLength } from "../lib/digestView";
+import { hasSectionTabs, listenLength } from "../lib/digestView";
 import { longDate } from "../lib/format";
 import { briefingCard } from "../lib/linkCard";
 import { getSite } from "../lib/site";
@@ -26,7 +26,8 @@ const earlier = site.entries.slice(1, 4);
 <BaseLayout
   title={latest?.player.title}
   view="home"
-  layout={latest ? "aside" : "single"}
+  layout={latest && hasSectionTabs(latest) ? "aside" : "single"}
+  tabs={latest ? hasSectionTabs(latest) : false}
   skipLabel={latest ? undefined : "Skip to the content"}
   digestId={latest?.id}
   card={latest && briefingCard(latest)}

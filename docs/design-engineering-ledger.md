@@ -366,7 +366,7 @@ The craft that makes components hold still and answer clearly. Each was a report
 - **Play chip.**
   - One width; Played shows Play again only under a mouse or focus (D106, #116).
   - Its state machine: idle, current, played, preparing, error, unavailable.
-- **A story.** The publisher above the headline, muted and whole (D161); under the text one row, the Play chip and the controls at its end, never wrapping (owner, 2026-10-22 and 2026-10-23). Every quiet line of facts takes one separator: a centred dot in a 12px box (`--meta-dot`, 2026-10-22).
+- **A story.** The publisher above the headline, muted, whole and underlined with no link glyph (D161; owner, 2026-10-24); no Why line (owner, 2026-10-24); under the text, 16px down, one row, the Play chip and the controls at its end, never wrapping (owner, 2026-10-22 and 2026-10-23). Every quiet line of facts takes one separator: a centred dot in a 12px box (`--meta-dot`, 2026-10-22). Section tabs and the contents column only from two sections, on a briefing and an episode alike, whose highlights take their briefings' sections and whose facts read "Discussion · 5 stories" (owner, 2026-10-24).
 - **Library.**
   - A cover grid with one facts line per card (D78).
   - Search, filter and sort live in the address.

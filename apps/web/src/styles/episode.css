@@ -1,36 +1,16 @@
 /*
- * A podcast episode's page: the header is the briefing's (hero.css), then the highlights: one hairline
- * row per story the episode covers, with what was said about it and the way to the source. The row
+ * A podcast episode's page: the header is the briefing's (hero.css), then the highlights in a
+ * briefing's sections (Chapter.astro, briefing.css): one hairline row per story the episode covers,
+ * with what was said about it and the way to the source. The row
  * keeps three steps (a title, a few plain sentences, a link) with air between them. Imported by
  * components/EpisodeView.astro.
  */
-
-.episode-block {
-  padding-block-end: var(--space-8);
-}
-
-/* A section heading as in a briefing (the heading role, regular weight: D73), with the band of air
-   that sets a section apart. */
-.episode-block .section-head {
-  padding-block-start: var(--space-12);
-}
 
 /* The Regenerate panel's field label (EpisodeActions.astro) starts at the field's edge. */
 .regen-form .regen-label {
   display: block;
   padding-inline: 0;
   margin-block-end: var(--space-2);
-}
-
-/* As in a briefing, the heading belongs to the row under it: the first row gives up half its top
-   padding, so there is twice the room above the heading that there is below it. */
-.episode-highlights > :first-child {
-  padding-block-start: var(--space-2);
-}
-
-/* The hairlines stop at the text column's edges. */
-.episode-highlights > * + *::before {
-  inset-inline: 0;
 }
 
 /* Stories sit an item gap apart, half of it on each side of the hairline, as in a briefing. */
@@ -77,5 +57,6 @@
    the row's padding below instead of adding to the row's height. */
 .episode-highlight-actions {
   justify-self: stretch;
-  margin-block: 0 calc(var(--space-1) * -1);
+  /* 16px under the text with the grid's gap, as a briefing's story (owner, 2026-10-24). */
+  margin-block: var(--space-2) calc(var(--space-1) * -1);
 }

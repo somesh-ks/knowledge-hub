@@ -288,7 +288,7 @@ test.describe("layout", () => {
     const host = story.locator(".source-link > span").first();
     expect(await host.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
     await story.locator(".source-link").scrollIntoViewIfNeeded();
-    await expect(story.locator(".source-link .icon")).toBeInViewport({ ratio: 1 });
+    await expect(host).toBeInViewport({ ratio: 1 });
     const after = await controlsPlace();
     expect(after.height).toBeCloseTo(before.height, 0);
     expect(after.top).toBeCloseTo(before.top, 0);

@@ -1,4 +1,5 @@
 import type { Episode } from "./episodeFile";
+import type { SectionRef } from "./sectionLabel";
 import { sourceHost } from "./sourceLabel";
 
 /**
@@ -120,4 +121,43 @@ export function episodeHighlights(
         source: source.source,
       };
     });
+}
+
+/** The section of a story no briefing carried, and of every story when the episode has one section. */
+export const HIGHLIGHTS_SECTION: SectionRef = { slug: "highlights", title: "Highlights" };
+
+/**
+ * The highlights grouped as a briefing groups its stories: under the section each had in a briefing,
+ * the sections in the order the episode first reaches them. A story no briefing carried goes under
+ * Highlights, after the rest. One section alone is titled Highlights, so a page without tabs keeps
+ * the heading it had.
+ */
+export function highlightSections(
+  highlights: readonly Highlight[],
+  sections: ReadonlyMap<string, SectionRef> = new Map(),
+): (SectionRef & { highlights: Highlight[] })[] {
+  const groups = new Map<string, SectionRef & { highlights: Highlight[] }>();
+  const rest: Highlight[] = [];
+  for (const highlight of highlights) {
+    const section = sections.get(highlight.itemId);
+    if (!section || section.slug === HIGHLIGHTS_SECTION.slug) {
+      rest.push(highlight);
+      continue;
+    }
+    const group = groups.get(section.slug) ?? { ...section, highlights: [] };
+    group.highlights.push(highlight);
+    groups.set(section.slug, group);
+  }
+  const out = [...groups.values()];
+  if (rest.length > 0) out.push({ ...HIGHLIGHTS_SECTION, highlights: rest });
+  if (out.length === 1 && out[0]) return [{ ...HIGHLIGHTS_SECTION, highlights: out[0].highlights }];
+  return out;
+}
+
+/** The sections an episode's page draws, from the briefings' lookups (episodes.ts storyLookups). */
+export function episodeSections(
+  episode: Pick<Episode, "sources" | "turns">,
+  lookups: { summaries?: ReadonlyMap<string, string>; sections?: ReadonlyMap<string, SectionRef> },
+): (SectionRef & { highlights: Highlight[] })[] {
+  return highlightSections(episodeHighlights(episode, lookups.summaries), lookups.sections);
 }
