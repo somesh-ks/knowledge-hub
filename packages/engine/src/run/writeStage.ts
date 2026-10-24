@@ -409,6 +409,7 @@ async function writePass(
         selected: chosen.selected.length,
         written: entries.length,
         items: survivors.length,
+        ...writeLosses(chosen.selected, dropped),
       },
     };
   };
@@ -596,6 +597,34 @@ export async function writeFinalists(args: {
     drop(d.id, "voice", d.violations.map((v) => v.message).join(" ") || "no source material");
   }
   return { materials, methods, writeResult, voice };
+}
+
+/** How many reasons the stage JSON names; the rest are in written.json. */
+const LOSS_REASONS = 5;
+
+/**
+ * What writing cost the selection, by stage, for the stage JSON: the 2026-10-24 replacement
+ * selected 25 and wrote 12, and the reasons were only in the run's artifact, which the cloud
+ * session cannot reach. The reasons most often given come first, each cut to a line.
+ */
+export function writeLosses(
+  selected: readonly SelectedItem[],
+  dropped: WrittenFile["dropped"],
+): { lost?: Record<string, number>; lost_reasons?: Record<string, number> } {
+  const ids = new Set(selected.map((sel) => sel.item.id));
+  const lost: Record<string, number> = {};
+  const reasons = new Map<string, number>();
+  for (const d of dropped) {
+    if (!ids.has(d.id) || (d.stage !== "extract" && d.stage !== "write" && d.stage !== "voice")) {
+      continue;
+    }
+    lost[d.stage] = (lost[d.stage] ?? 0) + 1;
+    const reason = `${d.stage}: ${d.reason.replace(/\s+/g, " ").slice(0, 100)}`;
+    reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
+  }
+  if (Object.keys(lost).length === 0) return {};
+  const top = [...reasons].sort((a, b) => b[1] - a[1]).slice(0, LOSS_REASONS);
+  return { lost, lost_reasons: Object.fromEntries(top) };
 }
 
 /**

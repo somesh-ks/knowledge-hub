@@ -197,6 +197,19 @@ export function createApiRuntime(
         models: () => router.modelsFor("transcription"),
         cachePath: join(ctx.root, "state", "video-text.json"),
         log,
+        firecrawl: env.FIRECRAWL_API_KEY
+          ? {
+              apiKey: env.FIRECRAWL_API_KEY,
+              guard: spend?.guard,
+              onCredits: (credits, estimated) =>
+                spend?.meter.addUnits(
+                  "firecrawl",
+                  "alexandria",
+                  estimated ? "credits_estimated" : "credits",
+                  credits,
+                ),
+            }
+          : undefined,
         onUsage: spend
           ? (usage) => {
               spend.meter.add("gemini");

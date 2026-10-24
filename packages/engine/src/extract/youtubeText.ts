@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { Item } from "@dispatch/core";
 import type { Logger } from "../context.js";
+import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import type { ExtractedText } from "./extractText.js";
 import { MAX_TEXT_CHARS, truncateAtParagraph } from "./truncate.js";
 
@@ -15,8 +16,13 @@ const GEMINI_TIMEOUT_MS = 180_000;
 /** Below this a transcript is a stub (a music video, a refusal) and does not count. */
 const MIN_TRANSCRIPT_CHARS = 200;
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
-/** The only hosts this module talks to, besides Gemini. Caption URLs from the page must match. */
+/** The only hosts this module talks to, besides Gemini and Firecrawl. Caption URLs from the page must match. */
 const CAPTION_HOST = "www.youtube.com";
+const FIRECRAWL_BASE = "https://api.firecrawl.dev";
+/** Firecrawl's YouTube transcript provider: the same InnerTube call as fetchCaptions, from its network. */
+const TRANSCRIPT_PROVIDER = { provider: "youtube-com", capability: "videos/video_transcript" };
+/** What that provider costs per video when its reply does not say (its contract states 5). */
+const TRANSCRIPT_CREDITS = 5;
 
 const PROMPT =
   "Transcribe the speech in this video verbatim as plain text, without timestamps or speaker labels. " +
@@ -112,6 +118,75 @@ export async function fetchCaptions(id: string, fetchImpl: typeof fetch): Promis
   return body ? json3ToText(JSON.parse(body)) : null;
 }
 
+export interface FirecrawlTranscriptDeps {
+  apiKey: string;
+  fetchImpl: typeof fetch;
+  /** The run's Firecrawl guard: one request per video from the scrape budget, and a 429 stops the run's Firecrawl use. */
+  guard?: FirecrawlGuard | undefined;
+  /** Called once per executed request with the credits it cost; `estimated` when the reply did not say. */
+  onCredits?: ((credits: number, estimated: boolean) => void) | undefined;
+}
+
+/**
+ * The video's captions through Firecrawl's YouTube transcript provider. YouTube refuses the player
+ * API to datacenter addresses (GitHub's runners, 2026-10-24: 429, then "Sign in to confirm you're
+ * not a bot"; yt-dlp from the same address fails the same way), so the request YouTube would
+ * refuse is made from Firecrawl's network instead. English when the video has it, else the
+ * provider's default track (manual before auto-generated). Null when the video has no captions,
+ * the budget is spent or Firecrawl is stopped; throws on a failed request.
+ */
+export async function fetchTranscriptViaFirecrawl(
+  id: string,
+  deps: FirecrawlTranscriptDeps,
+): Promise<string | null> {
+  const load = async (): Promise<string | null> => {
+    const response = await deps.fetchImpl(`${FIRECRAWL_BASE}/v2/scrape`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${deps.apiKey}` },
+      body: JSON.stringify({
+        alexandria: [{ ...TRANSCRIPT_PROVIDER, options: { video_id: id, language: "en" } }],
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (response.status === 429) {
+      deps.guard?.noteRateLimited();
+      await response.body?.cancel();
+      throw new Error("Firecrawl rate limited");
+    }
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error(`Firecrawl answered HTTP ${response.status}`);
+    }
+    const reply = (await response.json()) as {
+      data?: {
+        creditsCost?: unknown;
+        alexandria?: Array<{
+          error?: unknown;
+          data?: {
+            has_transcript?: boolean;
+            full_text?: string;
+            segments?: Array<{ text?: string }>;
+          };
+        }>;
+      };
+    };
+    const measured = reply.data?.creditsCost;
+    deps.onCredits?.(
+      typeof measured === "number" ? measured : TRANSCRIPT_CREDITS,
+      typeof measured !== "number",
+    );
+    const result = reply.data?.alexandria?.[0];
+    if (!result || result.error || result.data?.has_transcript === false) return null;
+    const text =
+      result.data?.full_text ??
+      (result.data?.segments ?? []).map((segment) => segment.text ?? "").join(" ");
+    return text.replace(/\s+/g, " ").trim() || null;
+  };
+  if (!deps.guard) return load();
+  if (deps.guard.stopped) return null;
+  return deps.guard.relay(`https://${CAPTION_HOST}/watch?v=${id}`, load);
+}
+
 /** Gemini reads the public video by id; nothing is downloaded here. Cost is bounded by the caps above. */
 export async function transcribeWithGemini(
   id: string,
@@ -178,6 +253,8 @@ function withNewest(cache: Cache, id: string, entry: Cache[string]): Cache {
 export interface VideoTextDeps {
   /** Omit to skip transcription; captions still work. */
   apiKey?: string | undefined;
+  /** Omit to skip the Firecrawl transcript; captions from youtube.com are still tried. */
+  firecrawl?: Omit<FirecrawlTranscriptDeps, "fetchImpl"> | undefined;
   /** Gemini model ids in the order the transcription step tries them (config/models.json). */
   models?: (() => Promise<readonly string[]>) | undefined;
   fetchImpl?: typeof fetch;
@@ -197,8 +274,10 @@ async function readCache(path: string): Promise<Cache> {
 }
 
 /**
- * Spoken text for a YouTube finalist: cached transcript, then subtitles, then a Gemini transcription
- * (capped per run). Returns null on any failure so the caller falls back to title and description.
+ * Spoken text for a YouTube finalist: cached transcript, then subtitles from youtube.com (free, but
+ * refused to a datacenter address), then the same subtitles through Firecrawl (one scrape request
+ * and about five credits a video, from the run's budget), then a Gemini transcription (capped per
+ * run). Returns null on any failure so the caller falls back to title and description.
  */
 export function createVideoText(
   deps: VideoTextDeps,
@@ -224,6 +303,20 @@ export function createVideoText(
         found = { text: captions, method: "captions" };
     } catch (error) {
       deps.log?.debug("Captions failed", { itemId: item.id, reason: String(error).slice(0, 120) });
+    }
+    if (!found && deps.firecrawl) {
+      try {
+        const relayed = await fetchTranscriptViaFirecrawl(id, { ...deps.firecrawl, fetchImpl });
+        if (relayed && relayed.length >= MIN_TRANSCRIPT_CHARS) {
+          found = { text: relayed, method: "captions" };
+          deps.log?.debug("Captions came through Firecrawl", { itemId: item.id });
+        }
+      } catch (error) {
+        deps.log?.warn("Firecrawl transcript failed", {
+          itemId: item.id,
+          reason: String(error).slice(0, 120),
+        });
+      }
     }
     const models = !found && deps.apiKey && deps.models ? await deps.models() : [];
     if (!found && deps.apiKey && models.length > 0) {
