@@ -142,15 +142,13 @@ describe("flush", () => {
   // The bug (2026-10-24): a change the engine refused for good (a duplicate source) was sent again
   // with every later edit, and refused them all with it, until its row was removed.
   it("sends the other changes of a batch the engine refused one op of, and never resends the refused one", async () => {
-    const answers = [
-      {
-        status: 400,
-        error: "invalid_request",
-        reason: "Already a source: Friday Checkout.",
-        op_index: 1,
-      },
-      { status: 202 },
-    ];
+    const refusal = (index: number) => ({
+      status: 400,
+      error: "invalid_request",
+      reason: "Already a source: Friday Checkout.",
+      op_index: index,
+    });
+    const answers = [refusal(1), { status: 202 }, refusal(0), { status: 202 }];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_url: string, init: RequestInit) => {
@@ -180,6 +178,14 @@ describe("flush", () => {
     expect([...changes.keys()]).toEqual(["dup"]);
     expect(changes.get("dup")?.failed).toBe(true);
     expect(states.at(-1)).toBe("error");
+
+    // A later change still saves: the refused one is refused again and dropped from that run.
+    changes.set("c", change({ op: "source.set", id: "c", enabled: true }));
+    const next = flush(context(changes));
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await next;
+    expect(posted.at(-1)).toEqual([{ op: "source.set", id: "c", enabled: true }]);
+    expect([...changes.keys()]).toEqual(["dup"]);
   });
 
   it("holds a change made inside the server's gap, quietly, and sends what gathered in one request", async () => {

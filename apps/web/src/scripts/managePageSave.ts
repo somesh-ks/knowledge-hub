@@ -162,7 +162,7 @@ export interface Batch {
   ops: ConfigOp[];
   sent: [string, Pending][];
   /** For each op, the keys of the pending changes that produced it (a refusal names an op's index). */
-  owners?: string[][];
+  owners: string[][];
 }
 
 /**
@@ -179,7 +179,7 @@ export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pendin
       current = { ops: [], sent: [], owners: [] };
     }
     current.ops.push(...ops);
-    for (const _ of ops) current.owners?.push(step.keys);
+    current.owners.push(...ops.map(() => step.keys));
     for (const key of step.keys) {
       const pending = changes.get(key);
       if (pending) current.sent.push([key, pending]);
@@ -489,7 +489,7 @@ function refusedKeys(answer: Answer, batch: Batch): string[] | null {
   const body = answer.body as { op_index?: unknown } | undefined;
   const index = body?.op_index;
   if (answer.status !== 400 || typeof index !== "number") return null;
-  const keys = batch.owners?.[index];
+  const keys = batch.owners[index];
   return keys && keys.length > 0 ? keys : null;
 }
 
@@ -549,13 +549,13 @@ export async function flush(context: SaveContext): Promise<void> {
       const hold = gapLeft(lastSent, Date.now());
       if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
       // An edit not final yet (a new topic's emoji, D142) holds the request, quietly, as the gap does.
-      const unready = [...going().values()].filter((pending) => pending.ready);
+      const waiting = going();
+      const unready = [...waiting.values()].filter((pending) => pending.ready);
       if (unready.length > 0) {
         await Promise.all(unready.map((pending) => pending.ready));
         for (const pending of unready) delete pending.ready;
         continue;
       }
-      const waiting = going();
       const [batch] = pack(buildQueue(waiting), waiting);
       if (!batch || JSON.stringify(batch.ops) === last) break;
       sent = true;
@@ -572,9 +572,11 @@ export async function flush(context: SaveContext): Promise<void> {
         // A refusal that names its op drops that change alone; the rest goes in the next request.
         const keys = refusedKeys(answer, batch);
         if (keys) {
+          const sent = new Map(batch.sent);
           for (const key of keys) {
-            const pending = changes.get(key);
-            if (!pending) continue;
+            // Only the edit that was sent: the same control changed again meanwhile is a new edit.
+            const pending = sent.get(key);
+            if (!pending || changes.get(key) !== pending) continue;
             refused.add(key);
             pending.failed = true;
             pending.fail?.();

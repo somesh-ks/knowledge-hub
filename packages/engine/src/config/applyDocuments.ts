@@ -159,17 +159,17 @@ async function applyNow(
     };
     const outcomes: OpOutcome[] = [];
     let current = before;
-    let index = 0;
-    for (const op of parsed.data as ParsedConfigOp[]) {
+    for (const [index, op] of (parsed.data as ParsedConfigOp[]).entries()) {
       // Each op answers for its own lookups: a probe that timed out while an earlier add succeeded
       // does not make a later refusal look like ours.
       failed.network = false;
       opIndex = index;
-      index += 1;
       const outcome = await applyConfigOp(op, current, { discover });
       outcomes.push(outcome);
       current = outcome.next;
     }
+    // A refusal from here on is the whole edit's, not one op's.
+    opIndex = undefined;
     const outcome = combineOutcomes(outcomes);
     const was = renderBundle(before);
     const now = renderBundle(outcome.next);
