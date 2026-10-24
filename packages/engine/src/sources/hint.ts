@@ -5,7 +5,7 @@ import {
   type Source,
   TECH_CATEGORY,
   TRENDING_TOPIC_ID,
-} from "@dispatch/core";
+} from "@singularity/core";
 
 /**
  * The category an item is expected to fall in, before any judge has seen it. The source's own

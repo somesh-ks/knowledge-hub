@@ -1,10 +1,10 @@
 import { parseArgs } from "node:util";
-import { requireKey } from "@dispatch/core";
+import { requireKey } from "@singularity/core";
 import { z } from "zod";
 import { DEFAULT_MODEL, SPEECHIFY_BASE_URL } from "../audio/speechify.js";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 
-const USAGE = "Usage: dispatch voices [--locale <prefix>] [--limit <n>] [--json]";
+const USAGE = "Usage: singularity voices [--locale <prefix>] [--limit <n>] [--json]";
 const DEFAULT_LOCALE = "en";
 const DEFAULT_LIMIT = 40;
 const TIMEOUT_MS = 20_000;
@@ -67,7 +67,7 @@ export function listVoices(body: unknown, localePrefix: string): VoiceRow[] {
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
-/** `dispatch voices`: the Speechify voices your key can use, to choose SPEECHIFY_VOICE_ID. */
+/** `singularity voices`: the Speechify voices your key can use, to choose SPEECHIFY_VOICE_ID. */
 export function makeVoicesCommand(fetchImpl: typeof fetch = fetch): CommandRun {
   return async (argv, ctx) => {
     let values: { locale?: string | undefined; limit?: string | undefined };

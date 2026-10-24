@@ -2,7 +2,7 @@ import { VOICE_LIMITS } from "./digest.js";
 import type { StructureBlock, StructureKind } from "./structure.js";
 
 /**
- * The built-in prompt of each block a model writes (D178), which the owner may replace in full per
+ * The built-in prompt of each block a model writes (D180), which the owner may replace in full per
  * kind on the Preferences page. The engine reads these same strings, so what the page shows as
  * the default is exactly what the writer is told. The output format and the handling of source
  * text stay in code: they are how the reply is read, not how a story is told.

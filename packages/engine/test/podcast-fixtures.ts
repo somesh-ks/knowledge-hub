@@ -8,7 +8,7 @@ import {
   type PodcastRequest,
   type Section,
   serializeDigestFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { ScriptInput, ScriptTurn, ScriptWriter, TurnRewrite } from "../src/podcast/types.js";
 
 export const NOW = new Date("2026-10-08T07:13:00Z");
@@ -77,7 +77,7 @@ export async function writeDigest(root: string, digest: Digest): Promise<void> {
 }
 
 export async function tempRoot(): Promise<{ root: string; cleanup: () => Promise<void> }> {
-  const root = await mkdtemp(join(tmpdir(), "dispatch-podcast-"));
+  const root = await mkdtemp(join(tmpdir(), "singularity-podcast-"));
   return {
     root,
     cleanup: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }),

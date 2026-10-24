@@ -7,7 +7,7 @@ import {
   type SourceStatsFile,
   type Topic,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
@@ -430,7 +430,7 @@ async function writePass(
   const topCategoryOf = new Map(scored.map((s) => [s.item.id, s.topCategory]));
   const writerCategoryOf = (sel: { item: Item; category: string }): Category =>
     writerCategory(sel.category, topCategoryOf.get(sel.item.id));
-  // The section each story would air in, for the owner's prompt of that block (D178). Writing can
+  // The section each story would air in, for the owner's prompt of that block (D180). Writing can
   // drop a Top pick and promote the next story, which then keeps the prompt of its own section.
   const sectionOf = new Map(
     assignSections(chosen.selected, sectionPlan).map((sel) => [sel.item.id, sel.section]),
@@ -551,7 +551,7 @@ async function readGeneralCounts(
 
 /**
  * A finalist to write: the item, the built-in category its writer prompt is told, and the owner's
- * prompt for its block when there is one (D178).
+ * prompt for its block when there is one (D180).
  */
 export interface Finalist {
   item: Item;

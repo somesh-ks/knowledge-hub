@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { CONFIG_FILES, DEFAULT_SCHEDULE, ScheduleFile, scheduleZone } from "@dispatch/core";
+import { CONFIG_FILES, DEFAULT_SCHEDULE, ScheduleFile, scheduleZone } from "@singularity/core";
 
 export class ScheduleError extends Error {
   constructor(problems: string[]) {

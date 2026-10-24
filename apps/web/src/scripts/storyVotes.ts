@@ -16,7 +16,7 @@
  * again, as the settings pages do (managePageSave.ts). A stopped outlet is kept on the device until
  * the server takes it, so a page left or closed before then sends it on the next visit.
  */
-import type { ConfigOp } from "@dispatch/core";
+import type { ConfigOp } from "@singularity/core";
 import { track } from "../lib/analytics";
 import { blockedDomainOf } from "../lib/blockedOutlets";
 import { withErrorRef } from "../lib/errorRef";

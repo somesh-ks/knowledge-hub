@@ -1,5 +1,5 @@
-import { AudioTimeline, type Digest, serializeDigestFile } from "@dispatch/core";
-import { buildSpokenText, type SpokenSegment, spokenSegments } from "@dispatch/engine/audio";
+import { AudioTimeline, type Digest, serializeDigestFile } from "@singularity/core";
+import { buildSpokenText, type SpokenSegment, spokenSegments } from "@singularity/engine/audio";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";

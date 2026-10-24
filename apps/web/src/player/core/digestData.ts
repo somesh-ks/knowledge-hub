@@ -1,7 +1,7 @@
 import type { PlayerDigestData } from "../../types/contracts";
 import { isFiniteNumber } from "./mathUtils";
 
-export const DIGEST_DATA_ELEMENT_ID = "dispatch-digest-data";
+export const DIGEST_DATA_ELEMENT_ID = "singularity-digest-data";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

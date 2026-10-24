@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, hydrated, test } from "./fixtures";
 
 /** The briefing with an audio file: the only kind a row can download. */
 const AUDIO_ID = "2026-10-07";
@@ -21,7 +21,7 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
       configurable: true,
     });
     Object.assign(window, { copied, queued: [] as string[] });
-    document.addEventListener("dispatch:queue-add", (event) =>
+    document.addEventListener("singularity:queue-add", (event) =>
       (window as unknown as { queued: string[] }).queued.push((event as CustomEvent).detail.id),
     );
   });
@@ -131,6 +131,8 @@ test.describe("a briefing download", () => {
       await context.route(`**${new URL(audio, "http://x").pathname}`, (route) => route.abort());
     await page.goto(`/d/${AUDIO_ID}`);
     await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
+    // The player wakes from the saved files too, and draws the 1024 cover the check below reads.
+    await hydrated(page);
     // Every cover the page may show for this item (each theme, the player's 1024 included) answers
     // offline: a download once saved only the covers the page does not show.
     const covers = await page.evaluate(async (id) => {

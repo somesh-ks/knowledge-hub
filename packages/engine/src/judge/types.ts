@@ -1,4 +1,4 @@
-import type { Item, JudgmentEntry } from "@dispatch/core";
+import type { Item, JudgmentEntry } from "@singularity/core";
 
 /** Why one item received no judgment. The run continues without it. */
 export interface JudgeFailure {

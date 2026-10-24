@@ -5,18 +5,18 @@ export interface CommandSpec {
   name: string;
   /** One line for the command list. */
   summary: string;
-  /** Printed by `dispatch <command> --help`. */
+  /** Printed by `singularity <command> --help`. */
   help: string;
-  /** Loaded on first use, so `dispatch status` does not pay for the model SDKs. */
+  /** Loaded on first use, so `singularity status` does not pay for the model SDKs. */
   load: () => Promise<CommandRun>;
 }
 
-/** Every command, in the order `dispatch --help` lists them. Each module exports `run`. */
+/** Every command, in the order `singularity --help` lists them. Each module exports `run`. */
 export const COMMANDS: readonly CommandSpec[] = [
   {
     name: "classify-formats",
     summary: "Ask Jev for every source's format and write a review table",
-    help: `Usage: dispatch classify-formats [--out <dir>] [--apply <formats.json>]
+    help: `Usage: singularity classify-formats [--out <dir>] [--apply <formats.json>]
 
 Asks Jev which format (blog, news, forum, video, research, releases, podcast) each source is and
 writes format-review.md and formats.json to --out. A row where Jev contradicts a type that decides
@@ -27,7 +27,7 @@ config/sources.json and config/sources.user.json. Uses TYPESAFE_API_KEY.`,
   {
     name: "classify-lean",
     summary: "Ask Jev for the political lean of every general news source and write a review table",
-    help: `Usage: dispatch classify-lean [--out <dir>] [--apply <lean.json>]
+    help: `Usage: singularity classify-lean [--out <dir>] [--apply <lean.json>]
 
 Asks Jev for the lean (Left, Centre-left, Centre, Centre-right, Right, or unrated) of each source
 that feeds a general news topic, and writes lean-review.md and lean.json to --out. --apply writes a
@@ -37,7 +37,7 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
   {
     name: "sources",
     summary: "Import, discover and check the source registry",
-    help: `Usage: dispatch sources <import|discover|check> [flags]
+    help: `Usage: singularity sources <import|discover|check> [flags]
 
   import [--fresh] [--dry-run]      Build config/sources.json from config/sources.md. Offline.
   discover [--all] [--only a,b] [--dry-run]
@@ -51,12 +51,12 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
     name: "config",
     summary: "Apply one topic, source or weight change from the app, and commit it",
     help: `Usage:
-  dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
+  singularity config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
                                                       source.add, source.set, source.remove, weights.set,
                                                       mix.set, topic.mix, schedule.set, topic.scope,
                                                       structure.set, profile.block, profile.unblock,
                                                       profile.vote
-  dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
+  singularity config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
 
 Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json,
 config/schedule.json, config/structure.json, config/profiles/owner.json and
@@ -66,16 +66,16 @@ state/source-candidates.json, and nothing else; the write guard enforces it.`,
   {
     name: "fetch",
     summary: "Gather candidates since the last run into a pool",
-    help: `Usage: dispatch fetch [--since <iso>] [--weekly] [--out <path>] [--id <digest-id>] [--update-health]
+    help: `Usage: singularity fetch [--since <iso>] [--weekly] [--out <path>] [--id <digest-id>] [--update-health]
 
 Normalizes, dedupes and prefilters candidates into .cache/run/<id>/pool.json. Uses the network;
-sources with a missing API key skip. Agent mode starts here (see \`dispatch run --help\`).`,
+sources with a missing API key skip. Agent mode starts here (see \`singularity run --help\`).`,
     load: async () => (await import("./commands/fetch.js")).run,
   },
   {
     name: "curate",
     summary: "Judge, select, write and ground a pool (api) or validate a selection (agent)",
-    help: `Usage: dispatch curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>]
+    help: `Usage: singularity curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>]
                        [--out <dir>] [--run <id>] [--since <iso>] [--threshold <0-1>]
 
 api mode needs ANTHROPIC_API_KEY or GEMINI_API_KEY (models follow config/models.json) and spends tokens. agent mode writes
@@ -85,34 +85,34 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
   {
     name: "validate",
     summary: "Check any digest file against the schema and voice rules",
-    help: "Usage: dispatch validate <digest-path> [--pool <path>]\n\nExit 1 when the digest has errors. With --pool it also checks every URL came from the pool.",
+    help: "Usage: singularity validate <digest-path> [--pool <path>]\n\nExit 1 when the digest has errors. With --pool it also checks every URL came from the pool.",
     load: async () => (await import("./commands/validate.js")).run,
   },
   {
     name: "render",
     summary: "Turn a run's selection into a digest file",
-    help: "Usage: dispatch render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]\n\nWrites Digests/YYYY/MM/<id>.md without ever overwriting. It does not commit; `dispatch run --stage commit` does.",
+    help: "Usage: singularity render [--run <id>] [--selection <path>] [--pool <path>] [--dry-run]\n\nWrites Digests/YYYY/MM/<id>.md without ever overwriting. It does not commit; `singularity run --stage commit` does.",
     load: async () => (await import("./commands/render.js")).run,
   },
   {
     name: "audio",
     summary: "Narrate one digest and upload it, without committing",
-    help: "Usage: dispatch audio --digest <id> [--dry-run] [--force]\n\nUses SPEECHIFY_API_KEY and BLOB_READ_WRITE_TOKEN and spends Speechify characters.",
+    help: "Usage: singularity audio --digest <id> [--dry-run] [--force]\n\nUses SPEECHIFY_API_KEY and BLOB_READ_WRITE_TOKEN and spends Speechify characters.",
     load: async () => (await import("./commands/audio.js")).run,
   },
   {
     name: "publish",
     summary: "Narrate every digest that lacks audio, upload, prune and commit",
-    help: "Usage: dispatch publish [--digest <id>] [--prune <days>] [--no-push]\n\nWhat audio.yml runs. A failed narration leaves audio null and does not fail the command.",
+    help: "Usage: singularity publish [--digest <id>] [--prune <days>] [--no-push]\n\nWhat audio.yml runs. A failed narration leaves audio null and does not fail the command.",
     load: async () => (await import("./commands/publish.js")).run,
   },
   {
     name: "learn",
     summary: "Apply a bounded preference patch",
     help: `Usage:
-  dispatch learn --schema                          Print the JSON Schema of a preferences patch
-  dispatch learn --apply <patch.json> [--dry-run]  Apply a patch within the bounds (one stop per weight, three weights)
-  dispatch learn --apply <patch.json> --commit [--no-push]
+  singularity learn --schema                          Print the JSON Schema of a preferences patch
+  singularity learn --apply <patch.json> [--dry-run]  Apply a patch within the bounds (one stop per weight, three weights)
+  singularity learn --apply <patch.json> --commit [--no-push]
                                                    Also commit config/preferences.json as
                                                    chore(prefs): <summary> and push. Refuses on a
                                                    dirty tree or when behind the remote.`,
@@ -127,7 +127,7 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
   {
     name: "content",
     summary: "Mirror the digests, episodes and run state into the content store (Blob)",
-    help: `Usage: dispatch content sync
+    help: `Usage: singularity content sync
 
 Uploads every file under Digests/ and Podcasts/ and the run state the site reads to Vercel Blob
 under content/<path>, deletes what is gone and rewrites content/manifest.json and the episode
@@ -137,8 +137,8 @@ index. Only changed files are sent. Uses BLOB_READ_WRITE_TOKEN (D173).`,
   {
     name: "podcast",
     summary: "Write one episode of Singularity from published digests and commit it",
-    help: `Usage: dispatch podcast --request '<json>' [--now <iso>] [--no-push]
-       dispatch podcast --request '<json>' --dry-run [--save <path outside the repository>]
+    help: `Usage: singularity podcast --request '<json>' [--now <iso>] [--no-push]
+       singularity podcast --request '<json>' --dry-run [--save <path outside the repository>]
 
 The request is JSON: { topic_ids: string[1..50], length_minutes: 3|5|10|15,
 format: "readout"|"discussion", window_days: 2|7|30,
@@ -164,7 +164,7 @@ episode Markdown to a path outside the repository. It cannot be combined with --
     name: "costs",
     summary:
       "Total the cost ledger by day, week or month, grouped, with per-run and per-user averages",
-    help: `Usage: dispatch costs [--period day|week|month] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+    help: `Usage: singularity costs [--period day|week|month] [--from YYYY-MM-DD] [--to YYYY-MM-DD]
                       [--by provider|kind|timezone|user|product|scope] [--tz <zone>] [--json]
 
 Reads state/costs-*.json (written by run, publish and podcast) and prices from config/prices.json.
@@ -175,7 +175,7 @@ Settings page from the site's usage store, not here.`,
   {
     name: "status",
     summary: "Last runs, next due date, audio, failing sources and budget (offline)",
-    help: `Usage: dispatch status [--json]
+    help: `Usage: singularity status [--json]
 
 Reads the repository files only. With --json prints { version: 1, now, last_run, last_fetch_at,
 next_regular_due, due_now, latest_digest, audio, sources, budget }.`,
@@ -184,7 +184,7 @@ next_regular_due, due_now, latest_digest, audio, sources, budget }.`,
   {
     name: "health",
     summary: "Faults in runs, narration, data, cost and the live site; exits 1 on a fault",
-    help: `Usage: dispatch health [--offline] [--site <origin>] [--ceiling-usd <n>] [--json]
+    help: `Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--json]
 
 Checks the last run's outcome and the next due date, narration for the last week, that every digest
 and state file parses, a thin or unverified newest briefing, model fallbacks in the last run, the
@@ -198,7 +198,7 @@ passed }. Exits 1 when any finding is a fault.`,
   {
     name: "doctor",
     summary: "Check the setup: Node, git, config, state, key names, and with --online the services",
-    help: `Usage: dispatch doctor [--online] [--json]
+    help: `Usage: singularity doctor [--online] [--json]
 
 Offline checks cover Node 24 or newer, git, the repository, config and state files, which key
 NAMES are set (never values) and config/models.json. --online adds authenticated requests: the
@@ -211,7 +211,7 @@ exit 1 when any check fails.`,
   {
     name: "extract",
     summary: "Full text for chosen pool items (agent mode)",
-    help: `Usage: dispatch extract --ids <a,b,c> [--pool <path>] [--run <id>] [--max-chars <n>]
+    help: `Usage: singularity extract --ids <a,b,c> [--pool <path>] [--run <id>] [--max-chars <n>]
 
 Prints one JSON object on stdout mapping each item id to its extracted text, capped per item and
 in total (default 60000 characters). Ids missing from the pool or without readable text are
@@ -221,7 +221,7 @@ listed on stderr. Uses the network, and Firecrawl when FIRECRAWL_API_KEY is set.
   {
     name: "models",
     summary: "Show the model routing and the model each family resolves to",
-    help: `Usage: dispatch models [--json]
+    help: `Usage: singularity models [--json]
 
 Reads config/models.json and, with keys, lists the providers' models to show the newest id each
 family resolves to (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite only).`,
@@ -230,7 +230,7 @@ family resolves to (Jev, Claude Sonnet and Haiku, Gemini Flash and Flash-Lite on
   {
     name: "voices",
     summary: "List the Speechify voices available to your key",
-    help: `Usage: dispatch voices [--locale <prefix>] [--limit <n>] [--json]
+    help: `Usage: singularity voices [--locale <prefix>] [--limit <n>] [--json]
 
 Lists id, name, gender and locales from GET /v1/voices, to pick SPEECHIFY_VOICE_ID. Defaults to
 locales starting with "en". Output is capped (default 40).`,
@@ -239,7 +239,7 @@ locales starting with "en". Output is capped (default 40).`,
   {
     name: "eval",
     summary: "Golden-set evaluation of judges, grounding and writer models (uses keys and money)",
-    help: `Usage: dispatch eval --yes [--only judges,grounding] [--json]
+    help: `Usage: singularity eval --yes [--only judges,grounding] [--json]
 
 Calls TypeSafe Jev and the routed Claude and Gemini models with your keys and costs a few cents per run. It
 never runs in CI. Without --yes it prints this notice and exits 2.`,

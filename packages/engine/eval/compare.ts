@@ -1,4 +1,4 @@
-import { CategoryOrNone, Item } from "@dispatch/core";
+import { CategoryOrNone, Item } from "@singularity/core";
 import { z } from "zod";
 import { DEFAULT_SCORE_THRESHOLD, eligibility } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";

@@ -1,6 +1,6 @@
 # Hardening, 2026-10-21
 
-What fails silently, what watches it now, and what is left. `npm run dispatch -- health` is the
+What fails silently, what watches it now, and what is left. `npm run singularity -- health` is the
 detector; `health.yml` runs it daily, keeps one issue labelled `health` and heals once.
 [state.md](../state.md) carries the open items; this file is the map.
 
@@ -39,7 +39,7 @@ day of the same fault only comments.
 ## Audit by aspect
 
 **Reliability: scheduled runs and pushes.** Before: a failed or missed run was a line in
-`dispatch status` and the run's email; `smoke.yml` asked three API questions. The push retry missed
+`singularity status` and the run's email; `smoke.yml` asked three API questions. The push retry missed
 GitHub's ref-lock race. Gap left: `config.yml` can be cancelled after a 202 (shared group, see the
 [reliability audit](reliability-audit-2026-10-15.md)); the Vercel Cron call is never verified
 (D61). Added: a `failure()` step in `run.yml` (Record failure) records `failed` for what a
@@ -104,7 +104,7 @@ ungrounded; nothing reported a thin run after the fact. Added: `digest_thin`,
   advisory (`--audit-level=high`). Drop the override once routing-utils pins a patched version.
   Dependabot PRs auto-merge.
 
-**Cost.** Before: the ledger and `dispatch costs`, the Speechify 90% stop, Firecrawl's ceiling.
+**Cost.** Before: the ledger and `singularity costs`, the Speechify 90% stop, Firecrawl's ceiling.
 Added: a daily ceiling fault; health adds the site's own Speechify month count to the allowance.
 Gap: the site's records are per day, so its narration is not in the 24-hour ceiling.
 

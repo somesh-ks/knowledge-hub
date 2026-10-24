@@ -1,12 +1,12 @@
 import { parseArgs } from "node:util";
-import { loadModelRouting } from "@dispatch/core";
+import { loadModelRouting } from "@singularity/core";
 import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { resolveFamilies } from "../llm/modelResolver.js";
 
-const USAGE = "Usage: dispatch models [--json]";
+const USAGE = "Usage: singularity models [--json]";
 
 /**
- * `dispatch models`: the routing in config/models.json and the model each family resolves to now
+ * `singularity models`: the routing in config/models.json and the model each family resolves to now
  * (the newest generally available id the provider lists, or the pinned one). Calls the providers'
  * model lists when their keys are set; never prints a key.
  */

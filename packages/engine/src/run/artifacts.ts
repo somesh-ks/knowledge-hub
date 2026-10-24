@@ -4,7 +4,7 @@ import {
   JudgmentEntry,
   JudgmentsFile,
   TopicJudgmentsFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { mergeJudgments } from "../judge/cache.js";
@@ -55,7 +55,7 @@ export const MaterialsFile = z.object({
       /** The writer is told the nearest built-in category, even for a custom topic. */
       category: Category,
       text: z.string(),
-      /** The owner's prompt for the story's block (D178), so a later rewrite keeps to it. */
+      /** The owner's prompt for the story's block (D180), so a later rewrite keeps to it. */
       prompt: z.string().optional(),
     }),
   ),
@@ -84,7 +84,7 @@ export const ReserveFile = z.object({
       score: z.number().min(0).max(1),
       /** The built-in category the writer prompt is told. */
       writer_category: Category,
-      /** The section it would air in, for its block's prompt (D178); older files have none. */
+      /** The section it would air in, for its block's prompt (D180); older files have none. */
       section: z.string().optional(),
     }),
   ),

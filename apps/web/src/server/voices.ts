@@ -1,5 +1,5 @@
-import { type HostNames, hostNamesFor } from "@dispatch/core/hosts";
-import { DEFAULT_VOICE_ID } from "@dispatch/engine/audio";
+import { type HostNames, hostNamesFor } from "@singularity/core/hosts";
+import { DEFAULT_VOICE_ID } from "@singularity/engine/audio";
 import { readVoiceId, readVoiceIdB, withSecondVoice } from "./config";
 import type { FetchLike } from "./github";
 import type { ApiResult } from "./http";

@@ -41,7 +41,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D27 | Owner and Dependabot pull requests merge automatically | active |
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
-| D30 | The reader is called Singularity; identifiers keep `dispatch` | active |
+| D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
 | D31 | The visual language follows Google Podcasts and YouTube Music | active; the outlined play chip is tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
@@ -184,7 +184,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
-| D178 | Block prompts | amends D170 |
+| D177 | Phone Costs switch | amends D169 |
+| D178 | No island at first load | active; amends D112 |
+| D179 | Every name says Singularity; saved state moves once | active |
+| D180 | Block prompts | amends D170 |
 
 ---
 
@@ -1883,7 +1886,34 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
 
-## D178: each block's prompt is the owner's to replace, per kind
+## D177: on a phone the Costs chart or table switch sits beside the figure
+
+- Date: 2026-10-24
+- Decision: from 40rem the switch stays at the end of the filter row (D169); below it, it sits at the end of the answer's first line, level with "Estimated spend", and the chips keep their row. It follows the answer in the reading order, just before the panels it switches.
+- Why: at 390px the two pill chips and the switch do not fit one row, so the switch wrapped to a row of its own, 72px of nothing above the figure (screenshot, 2026-10-24). The owner chose the figure's line over the empty row.
+- Rejected: the empty row it had; narrower chips (the pills are D167's one shape).
+- Amends: D169's Costs bullet, on a phone only.
+- Revisit if: the chips and the switch fit one row on a phone.
+
+## D178: no island loads with the page; the islands wake when needed
+
+- Date: 2026-10-24 (the owner asked for every accepted idea to be built, cut 1 of [first-load-js.md](engineering/first-load-js.md) among them, parked since 2026-10-14)
+- Decision: the player and sheets islands are `client:wake` (`lib/wakeDirective.ts`): they hydrate on `dispatch:wake`, which `scripts/islandWake.ts` sends when something starts playing (the bar shows), a sheet's control is pressed (the press is kept and opens the sheet), a toast is sent, a Generate run is remembered from before a reload, or the browser is idle after the first pointer, key or wheel input. The player runtime (the store, the reader's Play controls, Media Session, sounds) starts from the layout's script at load, without React. On wake, `islandWake.ts` imports the renderer and both islands itself, so Vite preloads each graph at once, on the pages rendered on request (D173) too; `checkBundle` counts them apart ("more on wake"), not as first load.
+- Why: React and the two islands were 73 KB of every page's 110, and nothing on screen needs them until a track starts: the bar is hidden before then, and the Play controls are answered by the runtime.
+- Cost: a Play that is the first input of a cold visit shows the bar about 0.6 s after the press on a throttled phone (65 ms before), most of it React compiling and hydrating; the audio starts at once as before. A sheet's control pressed before the wake opens its sheet after that round trip. The browser tests wake the islands before they wait for hydration (`hydrated` in `e2e/fixtures.ts`, `PlayerPage.open`).
+- Rejected: the islands as Astro markup and a vanilla toaster (the doc's first sketch; the directive keeps the islands, `transition:persist` and SSR as they were); hydrating at idle without an input (the bytes and the 100 ms hydration task come back on every visit).
+- Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
+- Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
+
+## D179: Every name says Singularity; saved state moves once
+
+- Date: 2026-10-24 (the owner: "I'd like to move everything that's named dispatch to singularity", then chose the full rename with migration)
+- Decision: this replaces D30. The packages are `@singularity/*`, the CLI is `npm run singularity`, and the agents, reports, User-Agent, element ids, page events, storage keys (`singularity:*`), service worker caches, token extensions, workflow groups, `SINGULARITY_*` variables and docs say Singularity. Saved state moves once: a head script (`storageRename.js`) renames every `dispatch:*` key before anything reads it, and downloaded episodes are copied from `dispatch-audio-v1` by the page and moved by the new worker. Old variable names are still read: `adoptOldNames` in the engine and `secrets:push`, `vars.SINGULARITY_X || vars.DISPATCH_X` in workflows, and the config store switch on the site. The site's token is `GITHUB_SINGULARITY_TOKEN` (the owner renamed it first; `GITHUB_DISPATCH_TOKEN` is still read). `workflow_dispatch` and the verb stay. Past decisions and `docs/history/` keep the old name.
+- Why: D30 kept the old names to protect saved preferences, positions and downloads; a one-time move protects them as well, and reading both variable names means no run fails before the owner renames a setting.
+- Rejected: keeping D30 (the owner wants one name); a rename without the move (wipes what a phone saved).
+- Revisit when: the owner has renamed the GitHub and Vercel variables and every device has opened the site once; then the old-name readers, `storageRename.js` and the audio move can go.
+
+## D180: each block's prompt is the owner's to replace, per kind
 
 - Date: 2026-10-24 (the owner: "the block level model instructions must be open for editing"; on the cards, "The full prompt per block" and "Separate per kind")
 - Decision: `config/structure.json` keeps `prompts` by kind and block key (`section:<id>` or the block type), apart from the blocks, set one at a time by `structure.prompt` (null puts back the built-in). The built-in prompts live in `packages/core/src/blockPrompts.ts`, the strings the engine sends, so the page shows exactly what the writer is told. Daily and weekly: a story block's prompt replaces the fields and fact rules for the stories of that section (they are batched apart); the voice from `config/voice.md`, the source handling and the reply's JSON shape stay in code, and the linter, numbers and grounding checks still run. The hello, rundown and sign-off are spoken by code there, so they take no prompt. Catch up: every block but an owner block (whose brief is its prompt) takes one, delimited in the message as the owner's text; a prompt set while the kind is on its defaults runs the defaults as a structure.

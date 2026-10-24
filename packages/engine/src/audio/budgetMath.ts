@@ -1,4 +1,4 @@
-import { stockholmDate, type UsageFile } from "@dispatch/core";
+import { stockholmDate, type UsageFile } from "@singularity/core";
 
 /**
  * The Speechify budget rules with no storage behind them. The engine keeps the count in

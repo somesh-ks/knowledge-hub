@@ -1,4 +1,4 @@
-import type { ConfigOp as CoreConfigOp, DigestKind, SourceFormat } from "@dispatch/core";
+import type { ConfigOp as CoreConfigOp, DigestKind, SourceFormat } from "@singularity/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -53,7 +53,7 @@ export interface PlayerSection {
 }
 
 /**
- * Rendered on every digest page as `<script type="application/json" id="dispatch-digest-data">`.
+ * Rendered on every digest page as `<script type="application/json" id="singularity-digest-data">`.
  * The player reads it on `astro:page-load` and keeps playing the current track until the listener
  * chooses another digest, so audio survives client-side navigation.
  */
@@ -387,7 +387,7 @@ export type ConfigOp =
     }
   /**
    * The profile ops (block, unblock, vote), structure.set (one podcast kind's whole list of
-   * blocks, D170) and structure.prompt (one block's prompt, D178) are core's own definitions: one
+   * blocks, D170) and structure.prompt (one block's prompt, D180) are core's own definitions: one
    * place for their shape.
    */
   | Extract<

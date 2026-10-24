@@ -10,7 +10,7 @@ import {
   type Source,
   type SourceStatsFile,
   type SourceType,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { FETCHERS } from "../fetch/fetchers.js";

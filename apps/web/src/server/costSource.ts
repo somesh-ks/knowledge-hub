@@ -1,4 +1,4 @@
-import { CostFile, type CostRecord, PriceTable } from "@dispatch/core";
+import { CostFile, type CostRecord, PriceTable } from "@singularity/core";
 
 /**
  * The ledger the engine commits, as this build holds it: Vite compiles state/costs-*.json and

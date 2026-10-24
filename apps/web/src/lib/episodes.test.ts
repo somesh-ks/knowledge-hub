@@ -8,7 +8,7 @@ import { buildEpisodeEntries, episodeLength, readEpisodeFiles } from "./episodes
 let root = "";
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-episodes-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-episodes-"));
 });
 
 afterEach(async () => {

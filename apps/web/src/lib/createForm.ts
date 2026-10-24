@@ -1,4 +1,4 @@
-import { GENERAL_TOPICS, topicGroupOf } from "@dispatch/core";
+import { GENERAL_TOPICS, topicGroupOf } from "@singularity/core";
 import type { PodcastRequest } from "../types/contracts";
 
 /**

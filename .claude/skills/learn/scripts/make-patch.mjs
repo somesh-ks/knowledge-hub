@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds a minimal preferences patch for `dispatch learn --apply` from explicit edits, keeps it
+// Builds a minimal preferences patch for `singularity learn --apply` from explicit edits, keeps it
 // inside the learn bounds, and writes it to the OS temp directory (never into the repository).
 // The CLI stays the authority: `learn --apply <patch> --dry-run` shows what will really change.
 //
@@ -136,7 +136,7 @@ if (Object.keys(weightDeltas).length + listEdits === 0) {
 }
 
 const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15);
-const out = resolve(options.out ?? join(tmpdir(), `dispatch-learn-${stamp}.json`));
+const out = resolve(options.out ?? join(tmpdir(), `singularity-learn-${stamp}.json`));
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, `${JSON.stringify(patch, null, 2)}\n`, "utf8");
 const moved = Object.entries(weightDeltas).map(([category, d]) => `${category} ${d > 0 ? "up" : "down"} one stop`);

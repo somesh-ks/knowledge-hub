@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@dispatch/core";
+import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { lookupJudgments, mergeJudgments } from "../src/judge/cache.js";
 import { CombinedJudge } from "../src/judge/combinedJudge.js";

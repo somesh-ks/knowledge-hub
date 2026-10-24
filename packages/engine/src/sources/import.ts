@@ -1,4 +1,4 @@
-import type { Source, SourcesFile } from "@dispatch/core";
+import type { Source, SourcesFile } from "@singularity/core";
 import type { QueriesFile } from "../fetch/queries.js";
 import { slugify } from "../normalize/slugify.js";
 import { type MdRow, parseSourcesMd } from "./parseSourcesMd.js";
@@ -147,7 +147,7 @@ function youtubeSources(): Source[] {
     type: "youtube" as const,
     options: {
       handle: seed.handle,
-      note: "channel id not resolved yet; run dispatch sources discover",
+      note: "channel id not resolved yet; run singularity sources discover",
     },
   }));
 }
@@ -217,7 +217,7 @@ function mergeExisting(draft: Source, existing: Source | undefined): Source {
 
 /**
  * Build the initial registry from config/sources.md plus the code seed (GitHub repos, APIs,
- * YouTube channels). Pure and offline: feeds are filled in later by `dispatch sources discover`.
+ * YouTube channels). Pure and offline: feeds are filled in later by `singularity sources discover`.
  * Passing the current registry preserves discovered feeds, enabled flags and failure counters.
  */
 export function buildRegistry(markdown: string, existing?: SourcesFile): ImportResult {

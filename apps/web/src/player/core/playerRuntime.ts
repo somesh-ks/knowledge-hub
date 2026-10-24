@@ -11,6 +11,7 @@ import { track } from "../../lib/analytics";
 import { narratedOrPage } from "../../narration/narrationRegistry";
 import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
+import { wakeIslands } from "../../scripts/islandWake";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
@@ -111,7 +112,7 @@ export function playBriefingOnArrival(digestId: string): void {
 
 let queue: PlayQueue | null = null;
 
-/** The listener's queue (playQueue.ts). Every change is told to the page as dispatch:queue-changed. */
+/** The listener's queue (playQueue.ts). Every change is told to the page as singularity:queue-changed. */
 export function getPlayQueue(): PlayQueue {
   queue ??= createPlayQueue({
     storage: safeLocalStorage(),
@@ -214,6 +215,12 @@ export function startPlayerRuntime(): () => void {
   const stopTheme = startThemeSync();
 
   syncRootState(playerStore);
+  // The bar shows once something has started, so its island wakes then (islandWake.ts).
+  const wakeOnStart = ({ hasStarted }: { hasStarted: boolean }): void => {
+    if (hasStarted) wakeIslands();
+  };
+  wakeOnStart(playerStore.getState());
+  const offWake = playerStore.subscribe(wakeOnStart);
   // "Playing." waits for the sound: a start that fails at once (offline) says only why.
   let starting: string | null = null;
   const offState = playerStore.subscribe(({ status }) => {
@@ -278,14 +285,14 @@ export function startPlayerRuntime(): () => void {
     if (!entry) return;
     entry = false;
     event.preventDefault();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     if (playerSheet.getSnapshot().open) void playerSheet.collapse();
   };
   // The navigation is already on its way; giving the entry back would turn it around.
   const dropEntry = (): void => {
     if (!entry) return;
     entry = false;
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
   };
   const offEntry = playerSheet.subscribe(() => {
     const open = playerSheet.getSnapshot().open;
@@ -294,7 +301,7 @@ export function startPlayerRuntime(): () => void {
     if (open) {
       history.pushState({ ...history.state, playerOpen: true }, "");
       entry = true;
-      addEventListener("dispatch:back", onBack);
+      addEventListener("singularity:back", onBack);
     } else if (entry) {
       // Closed any other way: give the entry back. The pop this causes reaches onBack, which swallows it.
       history.go(-1);
@@ -333,7 +340,7 @@ export function startPlayerRuntime(): () => void {
   document.addEventListener(QUEUE_ADD_EVENT, onQueueAdd);
   window.addEventListener("online", onOnline);
   window.addEventListener("offline", onOffline);
-  // The island usually hydrates after the first astro:page-load has already fired.
+  // The first astro:page-load may have fired before this listener was in place.
   onPageLoad();
   // A Play pressed while the player was loading is pressed again, now that it has a listener.
   replayEarlyTap();
@@ -351,8 +358,9 @@ export function startPlayerRuntime(): () => void {
     window.removeEventListener("offline", onOffline);
     offEvent();
     offState();
+    offWake();
     offEntry();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     stopTheme();
     stopSound();
     if (activeReader === reader) activeReader = null;

@@ -12,7 +12,7 @@ import {
   StructureFile,
   type StructureKind,
   storedStructure,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { ManageSection, ManageTopic } from "./manage";
 import { findRepoRoot } from "./repoRoot";
 import type { ScheduleView } from "./schedule";

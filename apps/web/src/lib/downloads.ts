@@ -5,7 +5,9 @@
  */
 
 /** The cache the files live in. The service worker names the same one and keeps it across versions. */
-export const AUDIO_CACHE = "dispatch-audio-v1";
+export const AUDIO_CACHE = "singularity-audio-v1";
+/** Where downloads were kept before the rename (D179). The worker deletes it once it has moved them. */
+export const OLD_AUDIO_CACHE = "dispatch-audio-v1";
 /** Where the list is kept inside that cache. Not a page: nothing requests it. */
 export const MANIFEST_KEY = "/__downloads.json";
 /** More than this and the oldest download is removed. */

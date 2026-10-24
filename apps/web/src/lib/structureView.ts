@@ -5,7 +5,7 @@
  * list with it and the editor (scripts/structureEditor.ts) draws it again after an edit from the
  * same text: one markup, one source.
  */
-import type { StructureBlock, StructureKind } from "@dispatch/core";
+import type { StructureBlock, StructureKind } from "@singularity/core";
 import type { ConfigOp } from "../types/contracts";
 import { ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
 

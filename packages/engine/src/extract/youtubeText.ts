@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import type { Logger } from "../context.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import type { ExtractedText } from "./extractText.js";

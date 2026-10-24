@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { loadModelRouting, type PodcastRequest } from "@dispatch/core";
+import { loadModelRouting, type PodcastRequest } from "@singularity/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { recordRunCosts } from "../cost/ledger.js";
 import { emit } from "../curate/output.js";
@@ -28,7 +28,7 @@ import { publishEpisodeIndex } from "../publish/episodeIndex.js";
 import { loadScheduleZone } from "../schedule/store.js";
 
 export const PODCAST_USAGE =
-  'Usage: dispatch podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
+  'Usage: singularity podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
 
 /** True when `path` is the repository root or anything under it. */
 function isInside(root: string, path: string): boolean {
@@ -109,7 +109,7 @@ function commitFailure(outcome: CommitOutcome): string | null {
 }
 
 /**
- * `dispatch podcast`: write one episode of Singularity from published digests and commit it under
+ * `singularity podcast`: write one episode of Singularity from published digests and commit it under
  * Podcasts/ through the write guard. Exit codes: 0 written and committed, 1 failure, 2 usage or
  * invalid request. The last line printed (the whole output in --json mode aside) is the episode id.
  */

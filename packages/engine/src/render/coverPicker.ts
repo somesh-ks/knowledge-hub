@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { COVER_TEMPLATES, hashOf } from "@dispatch/core";
+import { COVER_TEMPLATES, hashOf } from "@singularity/core";
 import type { CoverPicker } from "./buildDigest.js";
 
 const FALLBACK_PALETTE = "dusk";
@@ -31,7 +31,7 @@ export interface FallbackCoverOptions {
 /**
  * Deterministic stand-in for the real cover picker: the digest id and its sections decide the
  * seed, template and palette, and a repeat of the last cover is shifted to the next template.
- * `dispatch run` injects the cover package's picker instead when it is available.
+ * `singularity run` injects the cover package's picker instead when it is available.
  */
 export function createFallbackCoverPicker(options: FallbackCoverOptions): CoverPicker {
   const palettes = options.palettes.length > 0 ? options.palettes : [FALLBACK_PALETTE];

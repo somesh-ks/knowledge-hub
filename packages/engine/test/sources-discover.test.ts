@@ -1,4 +1,4 @@
-import type { SourcesFile } from "@dispatch/core";
+import type { SourcesFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { parseFeed } from "../src/fetch/feedParser.js";
 import { buildSourceFromUrl } from "../src/sources/addSource.js";

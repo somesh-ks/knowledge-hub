@@ -18,7 +18,13 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
-import { type Env, type JudgmentEntry, loadEnv, loadModelRouting, repoRoot } from "@dispatch/core";
+import {
+  type Env,
+  type JudgmentEntry,
+  loadEnv,
+  loadModelRouting,
+  repoRoot,
+} from "@singularity/core";
 import { type Logger, secretsFromEnv } from "../src/context.js";
 import { loadPreferences } from "../src/curate/inputs.js";
 import { JevJudge } from "../src/judge/jev.js";

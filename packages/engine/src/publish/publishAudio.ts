@@ -10,7 +10,7 @@ import {
   podcastVoices,
   STATE_FILES,
   serializeDigestFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { writeJsonAtomic, writeTextAtomic } from "../audio/atomicFile.js";
 import type { BudgetRefusal } from "../audio/budget.js";
 import {

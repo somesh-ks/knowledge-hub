@@ -1,5 +1,5 @@
 ---
-import { MIX_STOPS, SOURCE_FORMATS, STRUCTURE_KINDS } from "@dispatch/core";
+import { MIX_STOPS, SOURCE_FORMATS, STRUCTURE_KINDS } from "@singularity/core";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import MenuSheet from "../../components/MenuSheet.astro";
@@ -179,7 +179,7 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
 
     {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's
          sheet (full screen on a phone, a side panel from 40rem). Each part shows for the blocks that
-         have it; the prompt is the kind's own (the owner chose one per kind, D178). */}
+         have it; the prompt is the kind's own (the owner chose one per kind, D180). */}
     <template id="structure-sheet-template">
       <dialog class="create-sheet regen-sheet topics-panel structure-sheet" aria-labelledby="structure-sheet-title">
         <SheetHeader

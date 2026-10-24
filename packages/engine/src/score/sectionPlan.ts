@@ -12,7 +12,7 @@ import {
   structureSectionOrder,
   TOP_PICKS_SECTION,
   TRENDING_BLOCK_SECTION,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { loadStructureFile } from "../structure/store.js";
 
 /** Top picks a briefing carries when its structure leaves the count to the engine. */
@@ -33,7 +33,7 @@ export interface SectionPlan {
   limit(section: string): number | null;
   /** Stories the narration's rundown names, or null for no rundown. */
   rundown: number | null;
-  /** The owner's prompt for the section's stories (D178), or undefined for the built-in one. */
+  /** The owner's prompt for the section's stories (D180), or undefined for the built-in one. */
   prompt(section: string): string | undefined;
   /** The block's own rules for its stories: most per outlet and how old they may be. */
   rules(section: string): { per_source?: number; max_age_hours?: number };

@@ -7,9 +7,11 @@ import {
   findRenderBlockingScripts,
   firstLoadReport,
   gzipBytes,
+  importGraph,
   inlineScriptHashes,
   overBudget,
   parseScripts,
+  readFromGraph,
   staticImports,
   unallowedInlineScripts,
   unhintedModules,
@@ -200,6 +202,25 @@ describe("module preload hints", () => {
     expect(unhintedModules(hinted, read)).toEqual([]);
     expect(parseScripts(hinted)).toEqual(parseScripts(html));
     expect(unallowedInlineScripts(hinted)).toEqual([]);
+  });
+
+  // A page rendered on request is not in the build's HTML, so it lost every hint on production
+  // (2026-10-24) and nothing failed; its server adds them from the graph the build recorded.
+  it("gives a page from the recorded graph the same hints the build gives it from the files", () => {
+    const graph = importGraph(Object.keys(files), read);
+    expect(withModulePreloads(html, readFromGraph(graph))).toBe(withModulePreloads(html, read));
+  });
+
+  // A hint for an island that waits to be woken fetches React at load and silently undoes the wait
+  // (cut 1 in docs/engineering/first-load-js.md, D178).
+  it("hints nothing a wake island loads", () => {
+    const waking = page({
+      head: '<script type="module" src="/_astro/page.js"></script>',
+      body: '<astro-island component-url="/_astro/Player.js" renderer-url="/_astro/client.js" client="wake"></astro-island>',
+    });
+    const built = withModulePreloads(waking, read);
+    expect(entryScripts(built).sort()).toEqual(["/_astro/page.js", "/_astro/shared.js"]);
+    expect(built).not.toContain('href="/_astro/react.js"');
   });
 });
 

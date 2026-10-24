@@ -14,7 +14,7 @@
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 
-const KEY = "dispatch:run";
+const KEY = "singularity:run";
 const POLL_MS = 4000;
 const MAX_POLLS = 300;
 /**
@@ -214,7 +214,7 @@ function show(run: Stored | null): void {
     else create.removeAttribute("aria-description");
   }
   // The episode page listens, so it can disable its actions while its own episode is being changed.
-  document.dispatchEvent(new Event("dispatch:run"));
+  document.dispatchEvent(new Event("singularity:run"));
 }
 
 /** The bar: at the start of the stage at once, then slowly toward its end, and never back. */

@@ -6,7 +6,7 @@ import {
   seedTopicsFile,
   type Topic,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { clamp01, round4 } from "../src/score/numbers.js";
 import { craftFactor, penaltyFactor, scoreItem } from "../src/score/scoreItem.js";

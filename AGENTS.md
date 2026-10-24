@@ -1,4 +1,4 @@
-# Dispatch
+# Singularity
 
 Private design-engineering news briefing. A GitHub Actions engine writes a digest every second day, commits it under `Digests/`, and Vercel deploys the reader at news.someshks.work. Repo: somesh-ks/knowledge-hub.
 
@@ -14,11 +14,11 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 
 ## Commands
 
-- `npm run dispatch -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
+- `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
 - `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (about 80 s); all must pass. `npm test`, `npm run typecheck` and `npm run lint` run alone.
 - Run commands through PowerShell, not Git Bash: a Git Bash process costs 3 to 8 s here, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
-- `npm run e2e -w @dispatch/web` and `npm run e2e:player -w @dispatch/web` (about 6 minutes each): the browser suites. Run both before every PR that touches the site, `packages` or the tokens (CI runs them for some paths), then push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
+- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 minutes each): the browser suites. Run both before every PR that touches the site, `packages` or the tokens (CI runs them for some paths), then push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
 - `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
 - `npm run dev`: the site with the Agentation toolbar for notes on elements; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`): left running across an install, it serves broken islands.
 
@@ -49,7 +49,7 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 
 ## Keeping the record
 
-Project agents (`dispatch-verify`, `dispatch-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
+Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
 After a large piece of work (several PRs, or one that touches the player, a page or the build): clean up (scratch files, servers, stashes, local branches, leftover remote branches), review the merged diff (the `code-review` skill on the commit range, or the `review` label on a PR) and fix what it finds, then confirm production serves it (Vercel deploys `main`; check the deployment and the live site).
 

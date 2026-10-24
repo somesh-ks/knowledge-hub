@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { parseDigestFile } from "@dispatch/core";
+import { parseDigestFile } from "@singularity/core";
 import type { GitRunner } from "./runGit.js";
 import { gitOutput } from "./runGit.js";
 
@@ -17,7 +17,7 @@ export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],
   learn: ["config/preferences.json"],
   podcast: ["Podcasts/", "state/costs-*.json"],
-  // Exactly the files `dispatch config apply` and `dispatch sources suggest` write, and no others.
+  // Exactly the files `singularity config apply` and `singularity sources suggest` write, and no others.
   config: [
     "config/topics.json",
     "config/sources.user.json",

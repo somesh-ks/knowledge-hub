@@ -7,9 +7,11 @@ import {
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
+  gzipBytes,
   overBudget,
   unallowedInlineScripts,
   unhintedModules,
+  wakeModules,
 } from "../src/lib/bundleBudget";
 import { linkCardProblems } from "../src/lib/linkCard";
 
@@ -17,7 +19,7 @@ import { linkCardProblems } from "../src/lib/linkCard";
  * Fails the build when a page loads more than the first-load budget of gzipped JavaScript, when any
  * script blocks rendering, when the fonts exceed 80 KB, or when an inline script is not allowed by the
  * page's Content-Security-Policy, or when a module the page loads at start has no modulepreload link
- * (the build's `dispatch-module-preload` step adds them), or when a briefing or episode page has no
+ * (the build's `singularity-module-preload` step adds them), or when a briefing or episode page has no
  * link card or names a cover the build does not hold (D153). Run after a build.
  *
  * Usage: npx tsx apps/web/scripts/checkBundle.ts [build output directory]
@@ -55,8 +57,11 @@ for (const page of pagesIn(root)) {
   const html = readFileSync(page, "utf8");
   const report = firstLoadReport(entryScripts(html), read);
   largest = Math.max(largest, report.totalGzip);
+  const woken = [...new Set(wakeModules(html, read).flat())];
+  const wakeBytes = woken.reduce((sum, url) => sum + gzipBytes(read(url) ?? ""), 0);
+  const onWake = woken.length > 0 ? `, ${kilobytes(wakeBytes)} more on wake` : "";
   console.log(
-    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files`,
+    `${name.padEnd(34)} ${kilobytes(report.totalGzip).padStart(9)} gzipped JS in ${report.files.length} files${onWake}`,
   );
   failures.push(...overBudget([{ name, totalGzip: report.totalGzip }]));
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);

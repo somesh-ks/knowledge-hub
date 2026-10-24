@@ -1,4 +1,4 @@
-import type { PodcastRequest } from "@dispatch/core";
+import type { PodcastRequest } from "@singularity/core";
 import type { Taste } from "../profile/tasteNote.js";
 import type { ScriptShape } from "./structure.js";
 

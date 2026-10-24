@@ -119,7 +119,7 @@ for (const width of [360, 390]) {
   test(`the Library gallery keeps each card's facts on one line at ${width}px`, async ({
     page,
   }) => {
-    await page.addInitScript(() => localStorage.setItem("dispatch:played:2026-10-07", "1"));
+    await page.addInitScript(() => localStorage.setItem("singularity:played:2026-10-07", "1"));
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/library");
     await ready(page);
@@ -275,7 +275,7 @@ test.describe("library fixes", () => {
   }) => {
     // A finished run, as one started on another page leaves it: its line has a link to the Library.
     await page.addInitScript(() =>
-      sessionStorage.setItem("dispatch:run", JSON.stringify({ id: 5, phase: "done" })),
+      sessionStorage.setItem("singularity:run", JSON.stringify({ id: 5, phase: "done" })),
     );
     await page.goto("/");
     await hydrated(page);
@@ -308,7 +308,7 @@ test.describe("library fixes", () => {
   });
 
   test("a list row is never clipped, so its hover tile shows whole", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("dispatch:library-view", "list"));
+    await page.addInitScript(() => localStorage.setItem("singularity:library-view", "list"));
     await page.goto("/library");
     await ready(page);
     const visibility = await page
@@ -323,7 +323,7 @@ test.describe("library fixes", () => {
   }, async ({ page }) => {
     await page.addInitScript(() =>
       localStorage.setItem(
-        "dispatch:deleted-episodes",
+        "singularity:deleted-episodes",
         JSON.stringify([{ id: "ep-20261006-0900", at: Date.now() }]),
       ),
     );
@@ -383,8 +383,8 @@ test.describe("library fixes", () => {
 
   test("a finished item says Played, and a half-heard one shows its bar", async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem("dispatch:played:2026-10-07", "1");
-      localStorage.setItem("dispatch:resume:2026-10-05", "60");
+      localStorage.setItem("singularity:played:2026-10-07", "1");
+      localStorage.setItem("singularity:resume:2026-10-05", "60");
     });
     await page.goto("/library");
     await ready(page);
@@ -417,7 +417,7 @@ test.describe("library fixes", () => {
     page,
   }) => {
     await page.addInitScript(() => {
-      localStorage.setItem("dispatch:played:ep-20261007-1930", "1");
+      localStorage.setItem("singularity:played:ep-20261007-1930", "1");
     });
     await page.goto("/library");
     await ready(page);
@@ -425,7 +425,7 @@ test.describe("library fixes", () => {
     await expect(facts).toHaveText("Discussion · Played");
     // Heard again from the start: the mark goes and the length comes back, with the format.
     await page.evaluate(() => {
-      localStorage.removeItem("dispatch:played:ep-20261007-1930");
+      localStorage.removeItem("singularity:played:ep-20261007-1930");
       window.dispatchEvent(new Event("pageshow"));
     });
     await expect(facts).toHaveText("Discussion · 5 min");
@@ -606,7 +606,7 @@ test.describe("library episodes", () => {
   test("in a list a match line adds no room above the title, and a bar stays on its cover", async ({
     page,
   }) => {
-    await seedStorage(page, { local: { "dispatch:resume:ep-20261007-1930": "100" } });
+    await seedStorage(page, { local: { "singularity:resume:ep-20261007-1930": "100" } });
     await page.goto("/library");
     await ready(page);
     await page.getByRole("button", { name: "List view" }).click();
@@ -640,7 +640,7 @@ test.describe("library episodes", () => {
     page,
   }) => {
     await page.addInitScript(() => {
-      localStorage.setItem("dispatch:library-view", "list");
+      localStorage.setItem("singularity:library-view", "list");
       // Each frame that shows a card notes the view it drew the cards in.
       const views: string[] = [];
       (window as unknown as { __views: string[] }).__views = views;
@@ -668,7 +668,7 @@ test.describe("library episodes", () => {
 
     // A move from Today, once its scripts run, is a swap in the same document.
     await page.goto("/");
-    await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
+    await hydrated(page);
     await page.evaluate(() => {
       (window as unknown as { kept?: boolean }).kept = true;
     });

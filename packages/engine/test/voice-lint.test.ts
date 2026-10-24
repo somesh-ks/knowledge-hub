@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { VOICE_LIMITS } from "@dispatch/core";
+import { VOICE_LIMITS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { createLinter, lint } from "../src/voice/lint.js";
 import {

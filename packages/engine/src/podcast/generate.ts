@@ -8,7 +8,7 @@ import {
   type StructureBlock,
   serializeEpisodeFile,
   storedStructure,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { Logger } from "../context.js";
 import { createHttpClient, type HttpClient } from "../http.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
@@ -258,7 +258,7 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     }),
   };
   // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
-  // A block prompt (D178) set on the defaults runs the defaults as a structure, so it is read.
+  // A block prompt (D180) set on the defaults runs the defaults as a structure, so it is read.
   const file = await loadStructureFile(input.root);
   const prompts = file?.prompts?.catch_up ?? {};
   const blocks =

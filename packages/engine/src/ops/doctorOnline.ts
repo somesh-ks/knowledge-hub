@@ -1,4 +1,4 @@
-import type { Env } from "@dispatch/core";
+import type { Env } from "@singularity/core";
 import { noul } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import { redact } from "../context.js";
@@ -116,7 +116,7 @@ async function jevCheck(env: Env, deps: DoctorDeps, secrets: readonly string[]):
   if (env.TYPESAFE_API_KEY === undefined) return skipped("online.jev", "TYPESAFE_API_KEY");
   try {
     await deps.createJev(env).systemOne({
-      state: { text: "Dispatch doctor check" },
+      state: { text: "Singularity doctor check" },
       questions: {
         ready: noul("The `text` is a short test message.", {
           true: "It is a short test message.",

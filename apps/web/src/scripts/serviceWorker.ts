@@ -54,7 +54,7 @@ function toastIsUp(): boolean {
 async function checkBuild(registration: ServiceWorkerRegistration): Promise<boolean> {
   if (!navigator.onLine) return false;
   const pageBuild =
-    document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content || undefined;
+    document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content || undefined;
   const response = await fetch("/build.json", { cache: "no-store" });
   if (!response.ok) return false;
   const siteBuild = ((await response.json()) as { build?: unknown }).build;

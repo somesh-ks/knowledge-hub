@@ -23,7 +23,7 @@ import {
   withoutSection,
   withSection,
   withSectionBlock,
-} from "@dispatch/core";
+} from "@singularity/core";
 import type { ExaQuery, QueriesFile } from "../fetch/queries.js";
 import { hostOf, normalizeDomain, type Profile } from "../profile/profile.js";
 import { mergeOpens, mergeVotes } from "../profile/votes.js";
@@ -37,7 +37,7 @@ export class ConfigOpError extends Error {
   }
 }
 
-/** Everything `dispatch config apply` can change, held in memory so an op either lands whole or not at all. */
+/** Everything `singularity config apply` can change, held in memory so an op either lands whole or not at all. */
 export interface ConfigBundle {
   /** Built-in weights already read from the preferences. */
   topics: TopicsFile;
@@ -135,7 +135,7 @@ function upsertTopic(
 
   if (existing?.origin === "builtin") {
     // A built-in topic keeps its description, section and flags, as fixed questions judge it. Its
-    // weight lives in the preferences, where `dispatch learn` also writes it; its name, which the
+    // weight lives in the preferences, where `singularity learn` also writes it; its name, which the
     // judge never reads, and its keywords are free to edit.
     const renamed = existing.name !== input.name;
     const summary = renamed
@@ -620,7 +620,7 @@ function setStructure(
   return { next, summary: `set the ${name} structure` };
 }
 
-/** Replace one block's prompt in a kind (D178), or drop it so the built-in prompt applies. */
+/** Replace one block's prompt in a kind (D180), or drop it so the built-in prompt applies. */
 function setBlockPrompt(
   op: Extract<ParsedConfigOp, { op: "structure.prompt" }>,
   bundle: ConfigBundle,

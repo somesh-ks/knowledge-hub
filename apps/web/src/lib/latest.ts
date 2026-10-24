@@ -1,4 +1,4 @@
-import type { Outcome } from "@dispatch/core";
+import type { Outcome } from "@singularity/core";
 import type { Site } from "./site";
 
 /** The body of /latest.json: just enough for the Generate sheet to see a new briefing go live. */

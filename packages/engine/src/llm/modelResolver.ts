@@ -1,4 +1,4 @@
-import type { Env, ModelFamily, ModelRouting } from "@dispatch/core";
+import type { Env, ModelFamily, ModelRouting } from "@singularity/core";
 import type { Logger } from "../context.js";
 import { ANTHROPIC_BASE, GEMINI_BASE } from "./providers.js";
 

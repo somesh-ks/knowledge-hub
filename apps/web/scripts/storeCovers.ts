@@ -6,7 +6,7 @@ import { storeCovers } from "../src/server/storeCovers";
 
 /**
  * Draws the covers the content store's briefings and episodes need (D173). content.yml runs it
- * after `dispatch content sync`, on the same checkout, so it sees what the sync just sent.
+ * after `singularity content sync`, on the same checkout, so it sees what the sync just sent.
  *
  * Usage: npx tsx apps/web/scripts/storeCovers.ts (BLOB_READ_WRITE_TOKEN set)
  */

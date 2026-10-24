@@ -5,7 +5,7 @@
     "ultramarine": {
       "$description": "Deep blue ground, signal yellow figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Ultramarine",
           "tone": "dark"
         }
@@ -23,7 +23,7 @@
     "fog-lingonberry": {
       "$description": "Bone white ground, vermilion figure. Keeps its original id.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Bone and Vermilion",
           "tone": "light"
         }
@@ -41,7 +41,7 @@
     "sea-lingonberry": {
       "$description": "Ink black ground, vermilion figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Ink and Vermilion",
           "tone": "dark"
         }
@@ -59,7 +59,7 @@
     "indigo-aqua": {
       "$description": "Indigo ground, aqua figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Indigo and Aqua",
           "tone": "dark"
         }
@@ -77,7 +77,7 @@
     "lichen": {
       "$description": "Acid lime ground, forest figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Lime",
           "tone": "light"
         }
@@ -95,7 +95,7 @@
     "kelp": {
       "$description": "Forest ground, flame orange figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Forest and Flame",
           "tone": "dark"
         }
@@ -113,7 +113,7 @@
     "marigold-fog": {
       "$description": "Ochre ground, ink blue figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Ochre",
           "tone": "light"
         }
@@ -131,7 +131,7 @@
     "saffron-ink": {
       "$description": "Ink black ground, saffron figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Ink and Saffron",
           "tone": "dark"
         }
@@ -149,7 +149,7 @@
     "plum-pearl": {
       "$description": "Pearl pink ground, violet figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Pearl and Violet",
           "tone": "light"
         }
@@ -167,7 +167,7 @@
     "oxblood": {
       "$description": "Vermilion ground, ink figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Vermilion",
           "tone": "light"
         }
@@ -185,7 +185,7 @@
     "glacier": {
       "$description": "Glacier blue ground, navy figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Glacier",
           "tone": "light"
         }
@@ -203,7 +203,7 @@
     "graphite-signal": {
       "$description": "Violet ground, coral figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Violet and Coral",
           "tone": "dark"
         }
@@ -221,7 +221,7 @@
     "bone-ink": {
       "$description": "Bone white ground, ink black figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Bone and Ink",
           "tone": "light"
         }
@@ -239,7 +239,7 @@
     "ink-bone": {
       "$description": "Ink black ground, bone white figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Ink and Bone",
           "tone": "dark"
         }
@@ -257,7 +257,7 @@
     "cobalt-blush": {
       "$description": "Cobalt ground, blush figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Cobalt and Blush",
           "tone": "dark"
         }
@@ -275,7 +275,7 @@
     "petrol-bone": {
       "$description": "Petrol teal ground, bone figure.",
       "$extensions": {
-        "dispatch": {
+        "singularity": {
           "name": "Petrol and Bone",
           "tone": "dark"
         }

@@ -234,7 +234,7 @@ export const StructureFile = z
     version: z.literal(1),
     kinds: z.partialRecord(StructureKind, StructureBlocks),
     /**
-     * The owner's replacement prompts (D178), by kind and block key. Kept apart from the blocks so
+     * The owner's replacement prompts (D180), by kind and block key. Kept apart from the blocks so
      * a reorder never carries several thousand characters, and so a block removed and put back
      * keeps its prompt. A prompt whose block is not in the structure is never read.
      */

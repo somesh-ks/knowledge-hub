@@ -1,4 +1,4 @@
-import { VOICE_LIMITS } from "@dispatch/core";
+import { VOICE_LIMITS } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
@@ -111,7 +111,7 @@ export class LlmWriter implements Writer {
     taste?: Taste,
     airing: readonly string[] = [],
   ): Promise<WriteResult> {
-    // A batch shares one system prompt, so stories under an owner's block prompt (D178) are
+    // A batch shares one system prompt, so stories under an owner's block prompt (D180) are
     // batched with the others of that prompt only.
     const groups = new Map<string | undefined, SourceMaterial[]>();
     for (const item of items) groups.set(item.prompt, [...(groups.get(item.prompt) ?? []), item]);
@@ -140,7 +140,7 @@ export class LlmWriter implements Writer {
     try {
       const { value } = await this.options.llm.completeJson({
         schema: WriterOutput,
-        schemaName: "dispatch_items",
+        schemaName: "singularity_items",
         messages: [
           { role: "system", content: writerSystemPrompt(this.options.voice, batch[0]?.prompt) },
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
@@ -180,7 +180,7 @@ export class LlmWriter implements Writer {
     try {
       const { value } = await this.options.llm.completeJson({
         schema: RewriteOutput,
-        schemaName: "dispatch_rewrite",
+        schemaName: "singularity_rewrite",
         messages: [
           {
             role: "system",

@@ -126,7 +126,7 @@ describe("LlmWriter.write", () => {
     const llm = new FakeLlm(writeAll);
     await new LlmWriter({ llm, voice }).write([material(), material()]);
     expect(llm.calls[0]?.step).toBe("story_writer");
-    expect(llm.calls[0]?.schemaName).toBe("dispatch_items");
+    expect(llm.calls[0]?.schemaName).toBe("singularity_items");
     // 800 per item: a headline, an 80-word summary and a 95-word telling are about 310 tokens as JSON.
     expect(llm.calls[0]?.maxTokens).toBe(800 * 2 + 300);
   });
@@ -579,7 +579,7 @@ describe("enforceVoice", () => {
   });
 });
 
-describe("a section's own prompt (D178)", () => {
+describe("a section's own prompt (D180)", () => {
   it("writes that section's stories under the owner's prompt alone, never batched with the built-in one, and a rewrite keeps to it", async () => {
     const prompt =
       "FIELDS\n- headline: say what changed for a designer.\nRULES\nFacts from the text only.";

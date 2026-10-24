@@ -6,7 +6,7 @@ import {
   StructureFile,
   type StructureKind,
   storedStructure,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { blockedDomainsIn } from "../lib/blockedProfile";
 import { configHash } from "../lib/configHash";
 import { buildManage, type ManageData, type ManageSource, type ManageTopic } from "../lib/manage";
@@ -269,7 +269,7 @@ export function structureViewOf(json: unknown): StructureView {
   };
 }
 
-/** The owner's block prompts (D178) by kind; a missing or malformed file has none. */
+/** The owner's block prompts (D180) by kind; a missing or malformed file has none. */
 export type PromptView = Record<StructureKind, Record<string, string>>;
 
 export function promptViewOf(json: unknown): PromptView {

@@ -202,11 +202,11 @@ export function openEpisodeAction(trigger: HTMLElement): void {
     if (!entry) return;
     entry = false;
     event.preventDefault();
-    removeEventListener("dispatch:back", onBack);
+    removeEventListener("singularity:back", onBack);
     if (dialog.open) dialog.close();
   };
   history.pushState({ ...history.state, episodeAction: kind }, "");
-  addEventListener("dispatch:back", onBack);
+  addEventListener("singularity:back", onBack);
   dialog.addEventListener(
     "close",
     () => {
@@ -221,8 +221,8 @@ export function openEpisodeAction(trigger: HTMLElement): void {
       // A delete went through: the Library takes this entry's place, so no pop follows. Giving the
       // entry back first could land after the Library's own and turn the move around.
       entry = false;
-      document.dispatchEvent(new CustomEvent("dispatch:sound", { detail: "success" }));
-      removeEventListener("dispatch:back", onBack);
+      document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
+      removeEventListener("singularity:back", onBack);
       void navigateTo(libraryAddress(), { history: "replace" });
     },
     { once: true },

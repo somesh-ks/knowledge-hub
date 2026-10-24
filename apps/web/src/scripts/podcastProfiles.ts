@@ -73,7 +73,7 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
   };
   const syncSample = mountSamples(root, ".podcast-voice", voiceOf);
 
-  void import("@dispatch/core/time").then(({ zoneLabel }) => {
+  void import("@singularity/core/time").then(({ zoneLabel }) => {
     const now = new Date();
     for (const select of root.querySelectorAll<HTMLSelectElement>(
       'select[data-picker="time zone"]',

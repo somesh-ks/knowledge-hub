@@ -3,7 +3,7 @@ import {
   type StructureBlock,
   TOP_PICKS_SECTION,
   TRENDING_BLOCK_SECTION,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { RELEASE_CATEGORY } from "../score/releaseNotes.js";
 import { outletOf } from "../score/selectItems.js";
 import type { PodcastStory } from "./types.js";
@@ -21,7 +21,7 @@ export interface ScriptShape {
   /** Stories told as deep dives when the length has room for them, in the order told. */
   deep: readonly string[];
   /**
-   * The owner's prompts (D178) by block key ("hello", "rundown", "close", "sign_off", and a story
+   * The owner's prompts (D180) by block key ("hello", "rundown", "close", "sign_off", and a story
    * block's key, the same as `blockPromptKey` in core). A block left out keeps its built-in prompt.
    */
   prompts?: Readonly<Record<string, string>>;

@@ -4,6 +4,7 @@ import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
+import { installIslandWake } from "./islandWake";
 import { installNavigation } from "./navigation";
 import { installRootState } from "./rootState";
 import { installThemeColor } from "./themeColor";
@@ -12,7 +13,7 @@ import { installUiSound } from "./uiSound";
 /**
  * Page-level behavior that belongs to the shell, not to the player: navigation rules, device
  * banners, the disabled-control guard, the browser chrome colour, the root's dialog and toast state,
- * the service worker and the analytics script (production only, D154). Loaded once from the layout.
+ * the service worker, the analytics script (production only, D154) and the wake of the islands. Loaded once from the layout.
  * A bundled module script runs once per session, so per-page work listens for astro:page-load.
  */
 installDisabledGuard();
@@ -24,6 +25,7 @@ installDeviceBanners();
 installThemeColor();
 installUiSound();
 installAnalytics();
+installIslandWake();
 // How the last action was started, so motion stays with the pointer: what a key starts happens at
 // once (settings.css, player.css, hero.css). Captured, so it is set before the key or the press acts.
 const inputBy = (by: string) => (): void => {
@@ -92,7 +94,7 @@ if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // The build goes with it (D158), read once here: in-app moves swap the head's meta for the new
 // page's while this bundle, the one that raised the fault, keeps running.
 // Kept a few hundred bytes: it is on every page's first load.
-const build = document.querySelector<HTMLMetaElement>('meta[name="dispatch-build"]')?.content;
+const build = document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content;
 let reports = 0;
 const report = (fault: object): void => {
   if (reports++ < 5)
@@ -129,8 +131,8 @@ addEventListener("vite:preloadError", () => {
   // Offline, a failed import is the network's doing and a reload would lose the page.
   if (!navigator.onLine) return;
   try {
-    if (sessionStorage.getItem("dispatch:reloaded")) return;
-    sessionStorage.setItem("dispatch:reloaded", "1");
+    if (sessionStorage.getItem("singularity:reloaded")) return;
+    sessionStorage.setItem("singularity:reloaded", "1");
   } catch {
     return;
   }
@@ -180,7 +182,7 @@ if (counted()) {
   document.addEventListener("visibilitychange", vitals, { once: true });
 }
 try {
-  if (localStorage.getItem("dispatch:deleted-episodes")) void import("./deletedEpisodes");
+  if (localStorage.getItem("singularity:deleted-episodes")) void import("./deletedEpisodes");
 } catch {
   // Storage can be blocked; nothing is then hidden.
 }

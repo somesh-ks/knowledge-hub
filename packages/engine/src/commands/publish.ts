@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestId, digestRelPath, EpisodeId, episodeRelPath } from "@dispatch/core";
+import { DigestId, digestRelPath, EpisodeId, episodeRelPath } from "@singularity/core";
 import { describeRefusal } from "../audio/budget.js";
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import type { CommandContext, CommandRun } from "../context.js";
@@ -22,7 +22,7 @@ import type { AudioCommandDeps } from "./audio.js";
 import { defaultAudioDeps } from "./audio.js";
 
 const USAGE =
-  "usage: dispatch publish [--digest <id> | --episode <ep-id>] [--prune <days>] [--no-push]";
+  "usage: singularity publish [--digest <id> | --episode <ep-id>] [--prune <days>] [--no-push]";
 
 const fileExists = (path: string): Promise<boolean> =>
   access(path).then(
@@ -99,7 +99,7 @@ function commitFailed(outcome: CommitOutcome): boolean {
 }
 
 /**
- * `dispatch publish`: narrate every digest that lacks audio, and every turn of a recent episode
+ * `singularity publish`: narrate every digest that lacks audio, and every turn of a recent episode
  * that has none stored (publishEpisodes.ts), upload it, and commit the timeline files and usage
  * count through the write guard. A failed narration leaves that digest's audio
  * null, is reported, and does not fail the command, so the text digest still ships (plan 7.9). A

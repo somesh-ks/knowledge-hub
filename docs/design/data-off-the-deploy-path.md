@@ -16,7 +16,7 @@ Vercel builds `main` on every push that touches a path in `ignoreCommand` (`apps
 
 ## The content store
 
-`dispatch content sync` (`engine/src/publish/contentSync.ts`) mirrors the repository's content into the store under `content/<repository path>`: every file under `Digests/` and `Podcasts/`, and `state/last-run.json`, `source-stats.json` and `source-candidates.json`. It compares the checkout with `content/manifest.json` (each path and its SHA-256), sends what changed, deletes what is gone and writes the manifest last, so a sync that dies half way is finished by the next. `content.yml` runs it after every `run`, `podcast`, `audio` and `config` workflow (`workflow_run`: a push with the Actions token starts no workflow), and by hand to fill the store. `episodes/index.json` (PR #252) is rewritten when an episode changes.
+`singularity content sync` (`engine/src/publish/contentSync.ts`) mirrors the repository's content into the store under `content/<repository path>`: every file under `Digests/` and `Podcasts/`, and `state/last-run.json`, `source-stats.json` and `source-candidates.json`. It compares the checkout with `content/manifest.json` (each path and its SHA-256), sends what changed, deletes what is gone and writes the manifest last, so a sync that dies half way is finished by the next. `content.yml` runs it after every `run`, `podcast`, `audio` and `config` workflow (`workflow_run`: a push with the Actions token starts no workflow), and by hand to fill the store. `episodes/index.json` (PR #252) is rewritten when an episode changes.
 
 The files keep the repository's format, so the site reads them with the parsers it already has (`readDigestFiles`, `parseEpisodeFile`, `readLastRun`), pointed at the store instead of the disk.
 
@@ -35,7 +35,7 @@ The pages are already built shells with the store laid over them (D149, D166, D1
 
 Each step ships alone and leaves production working.
 
-1. **The engine fills the content store** (`dispatch content sync`, `content.yml`). Nothing reads it yet.
+1. **The engine fills the content store** (`singularity content sync`, `content.yml`). Nothing reads it yet.
 2. **The content repository and one page:** `server/contentRepo.ts` over the store, and `/d/<id>` rendered on request through it, on a preview deploy. It settles the function's cold start and the cache header before the rest moves.
 3. **The other pages and `/api/narrate` read the store.** A page the store cannot answer returns 503 with `Retry-After` (the function carries no content to fall back on); within the ten-minute stale window the edge serves its last copy instead.
 4. **Settings and sources:** check every screen reads the store, not only its built copy.
@@ -43,7 +43,7 @@ Each step ships alone and leaves production working.
 
 ## Health
 
-`dispatch health` and the smoke check (D159) gain rows: each index parses; every id an index names has its file and covers; the newest briefing in the store matches the newest in git. `site_behind` keeps watching code deploys only.
+`singularity health` and the smoke check (D159) gain rows: each index parses; every id an index names has its file and covers; the newest briefing in the store matches the newest in git. `site_behind` keeps watching code deploys only.
 
 ## What it costs
 
@@ -54,8 +54,9 @@ Each step ships alone and leaves production working.
 ## Built so far
 
 - `episodes/index.json` (PR #252).
-- `dispatch content sync` and `content.yml` (step 1).
+- `singularity content sync` and `content.yml` (step 1).
 - `server/contentRepo.ts` and `/d/<id>` on request (step 2, PR #259).
 - Home, Library, `/latest.json` and the search index on request (step 3, PR #264).
 - `/e/<id>` on request, store covers, the API routes on the store (step 3, rest).
 - Step 4, settings: the cost ledger and price table (PR #269); Play's voice from the stored schedule (PR #271); the Create panel (voices, format, length, topics) and the Daily, Weekly and Regenerate topic chips laid over from the store, which now passes on Create's voices. The Sources list and topic pages show stored sources, moves, formats, leans, new topics in the panels and renames; a store answer that comes after a page is drawn offers a reload. Not covered: a renamed topic's generated picture, drawn at build.
+- Step 5, the switch (owner OK 2026-10-24): `ignoreCommand` watches code only, so a run, an episode or a config snapshot no longer deploys. Still built and so refreshed only by a code deploy: the source scores and suggested sources on the Sources pages (`state/source-stats.json`, `state/source-candidates.json`) and a renamed topic's picture.

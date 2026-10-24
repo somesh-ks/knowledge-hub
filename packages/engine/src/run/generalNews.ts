@@ -1,4 +1,4 @@
-import { generalTopics, Item, type Source, type Topic, type TopicsFile } from "@dispatch/core";
+import { generalTopics, Item, type Source, type Topic, type TopicsFile } from "@singularity/core";
 import { z } from "zod";
 import { clusterStories } from "../dedupe/storyCluster.js";
 import { round4 } from "../score/numbers.js";

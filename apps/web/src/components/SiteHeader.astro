@@ -97,7 +97,7 @@ const homeLabel =
     else if (y < 64) setHidden(false);
     last = y;
   }
-  document.addEventListener("dispatch:jump", (event) => {
+  document.addEventListener("singularity:jump", (event) => {
     if (calm.matches) return;
     endJump();
     jumping = true;

@@ -6,7 +6,7 @@ import {
   type StructureBlockInput,
   StructureBlocks,
   serializeDigestFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";
@@ -143,7 +143,7 @@ describe("a structured Catch up script over its length", () => {
   });
 });
 
-it("a Catch up block's own prompt reaches the script delimited, once, before its stories, and the rest keep the built-in prompt (D178)", () => {
+it("a Catch up block's own prompt reaches the script delimited, once, before its stories, and the rest keep the built-in prompt (D180)", () => {
   const story = (id: string, section: string): PodcastStory => ({
     item_id: id,
     headline: `Headline ${id}`,

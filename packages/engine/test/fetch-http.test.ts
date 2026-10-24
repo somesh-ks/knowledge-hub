@@ -120,7 +120,7 @@ describe("http client", () => {
     }) as typeof fetch;
     await createHttpClient({ fetchImpl }).fetchText("https://example.com/x");
     expect(seen?.get("user-agent")).toBe(USER_AGENT);
-    expect(USER_AGENT).toContain("Dispatch");
+    expect(USER_AGENT).toContain("Singularity");
   });
 
   it("rejects a body larger than the cap, declared or streamed", async () => {

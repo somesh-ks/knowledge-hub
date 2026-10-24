@@ -33,7 +33,7 @@ The briefing is filtered by a taste model the owner tunes in one sentence, never
 - One recording per briefing with a start time per story, so any story can be played directly.
 - Audio is narrated on first play, by whoever presses Play, inside the daily cap and the monthly budget (D160).
 - Self-hosted fonts and assets only (strict content security policy). First-load JavaScript stays under 100 KB gzipped per page.
-- Internal identifiers keep the old name `dispatch` (packages, CLI, storage keys); only reader-facing text says Singularity.
+- Names say Singularity everywhere (D179). Saved device state moved to the new names once, so nothing saved was lost.
 
 ## Brand Commitments
 

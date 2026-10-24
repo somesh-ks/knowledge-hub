@@ -1,4 +1,4 @@
-import type { Category, COVER_TEMPLATES, CoverSpec, DigestKind } from "@dispatch/core";
+import type { Category, COVER_TEMPLATES, CoverSpec, DigestKind } from "@singularity/core";
 import type { LockupLayout } from "./lockup.js";
 import type { CoverMode } from "./mode.js";
 import type { Rng } from "./prng.js";

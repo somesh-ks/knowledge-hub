@@ -560,7 +560,7 @@ describe("a held change lost while no settings page is open", () => {
     });
     toasts = [];
     doc.addEventListener(
-      "dispatch:toast",
+      "singularity:toast",
       (event) => void toasts.push((event as CustomEvent).detail),
     );
     vi.stubGlobal("document", doc);

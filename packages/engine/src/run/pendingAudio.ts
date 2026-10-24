@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { daysBetween, parseDigestFile, stockholmDate } from "@dispatch/core";
+import { daysBetween, parseDigestFile, stockholmDate } from "@singularity/core";
 import { listDigestTargets } from "../publish/publishAudio.js";
 
 /** The deploy step retries narration for digests this recent when a run itself published nothing. */
@@ -11,7 +11,7 @@ export const AUDIO_RETENTION_DAYS = 120;
 
 /**
  * Ids of digests dated within `windowDays` of today (Stockholm) whose frontmatter still has
- * `audio: null`, newest first. An unreadable digest is skipped: `dispatch publish` reports it,
+ * `audio: null`, newest first. An unreadable digest is skipped: `singularity publish` reports it,
  * and counting it here would redeploy every day for nothing.
  */
 export async function digestsLackingAudio(
@@ -28,7 +28,7 @@ export async function digestsLackingAudio(
       const digest = parseDigestFile(await readFile(join(root, target.relPath), "utf8"));
       if (digest.audio === null) lacking.push(target.id);
     } catch {
-      // Reported by `dispatch publish`.
+      // Reported by `singularity publish`.
     }
   }
   return lacking;

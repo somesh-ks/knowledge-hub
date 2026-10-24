@@ -1,4 +1,4 @@
-import { loadEnv, ModelRouting } from "@dispatch/core";
+import { loadEnv, ModelRouting } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { pickNewest, resolveFamilies } from "../src/llm/modelResolver.js";

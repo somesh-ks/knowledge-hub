@@ -1,4 +1,4 @@
-import { type Category, isBuiltinCategory } from "@dispatch/core";
+import { type Category, isBuiltinCategory } from "@singularity/core";
 import type { CoverPicker } from "../render/buildDigest.js";
 import type { CoverPickFn } from "./types.js";
 

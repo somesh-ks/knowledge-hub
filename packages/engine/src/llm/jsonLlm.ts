@@ -1,4 +1,4 @@
-import type { Effort } from "@dispatch/core";
+import type { Effort } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { DeadlineExceededError, errorStatus, LlmOutputError, ModelRefusalError } from "./errors.js";

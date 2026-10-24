@@ -5,6 +5,7 @@ import { safeSessionStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForSheet } from "../player/sound/soundMap";
+import { takeEarlySheet } from "../scripts/islandWake";
 import { RUN_STORAGE_KEY } from "./generate/runKey";
 import { isSheetName, OPEN_SHEET_EVENT, type SheetName } from "./sheetEvents";
 import Toaster from "./Toaster";
@@ -55,6 +56,9 @@ export default function SheetsRoot() {
       openSheet(name);
     };
     document.addEventListener("click", onClick);
+    // A press that woke this island (islandWake.ts) opens its sheet now.
+    const early = takeEarlySheet();
+    if (early) openSheet(early);
     return () => document.removeEventListener("click", onClick);
   }, [openSheet]);
 

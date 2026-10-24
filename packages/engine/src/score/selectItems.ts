@@ -13,7 +13,7 @@ import {
   TECH_SECTION,
   TOP_PICKS_SECTION,
   VOICE_LIMITS,
-} from "@dispatch/core";
+} from "@singularity/core";
 import {
   isPatchRelease,
   isReleaseNote,

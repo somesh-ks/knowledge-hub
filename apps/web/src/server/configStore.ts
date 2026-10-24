@@ -4,8 +4,8 @@ import {
   lastConfigWrite,
   readConfigDocuments,
   writeConfigDocumentsAt,
-} from "@dispatch/engine/config-store";
-import { connectNeon } from "@dispatch/engine/neon";
+} from "@singularity/engine/config-store";
+import { connectNeon } from "@singularity/engine/neon";
 import type { ConfigOp, ConfigReadBody, ConfigResponse } from "../types/contracts";
 import { type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import { type ConfigDeps, configCooldownSeconds, scheduledTime, updateRunTime } from "./configEdit";
@@ -18,7 +18,7 @@ import { describeError, redact } from "./redact";
 
 /**
  * The config store's side of /api/config (D149), and the cron's read of the stored schedule. Only
- * the store branch loads this module (by a dynamic import), so with DISPATCH_CONFIG_STORE unset none
+ * the store branch loads this module (by a dynamic import), so with SINGULARITY_CONFIG_STORE unset none
  * of it runs. The Neon driver itself may still load whenever DATABASE_URL is set, for the shared
  * rate-limit counter (D150). It is imported statically here so Vercel's file tracing puts it in the
  * function.

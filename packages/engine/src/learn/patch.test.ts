@@ -1,4 +1,4 @@
-import type { Preferences } from "@dispatch/core";
+import type { Preferences } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { applyPatch, PreferencesPatch } from "./patch.js";
 

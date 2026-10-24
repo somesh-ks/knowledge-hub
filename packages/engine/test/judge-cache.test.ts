@@ -1,4 +1,9 @@
-import { EMPTY_JUDGMENTS, type Item, type JudgmentEntry, type JudgmentsFile } from "@dispatch/core";
+import {
+  EMPTY_JUDGMENTS,
+  type Item,
+  type JudgmentEntry,
+  type JudgmentsFile,
+} from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import {
   judgeWithCache,

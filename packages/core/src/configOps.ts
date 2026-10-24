@@ -73,7 +73,7 @@ export const TopicInput = z.object({
 export type TopicInput = z.input<typeof TopicInput>;
 
 /**
- * One change to the user-editable configuration. `dispatch config apply --op '<json>'` takes
+ * One change to the user-editable configuration. `singularity config apply --op '<json>'` takes
  * exactly one per call, and the config workflow passes it through unchanged.
  *
  * - topic.upsert: create a custom topic, or edit one. For a built-in topic only `weight` and
@@ -104,7 +104,7 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
  * - structure.set: replace one podcast kind's whole list of blocks (D170) in config/structure.json,
  *   as weights.set replaces weights: idempotent, no index arithmetic on the wire.
- * - structure.prompt: replace one block's prompt in one kind (D178), or put back the built-in
+ * - structure.prompt: replace one block's prompt in one kind (D180), or put back the built-in
  *   prompt with null. Daily and weekly take prompts for story blocks only.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
@@ -201,7 +201,7 @@ export const ConfigOp = z.discriminatedUnion("op", [
         ctx.addIssue({ code: "custom", message, path: ["blocks"] });
       }
     }),
-  // One block's prompt (D178), apart from structure.set so a reorder never carries prompts and a
+  // One block's prompt (D180), apart from structure.set so a reorder never carries prompts and a
   // prompt of six thousand characters fits one request. null puts back the built-in prompt.
   z
     .object({
@@ -241,7 +241,7 @@ export const ConfigOpList = z.array(ConfigOp).min(1).max(MAX_CONFIG_OPS);
 
 /**
  * One request's worth of changes: a single op, or an array of 1 to 8. A single op is wrapped, so
- * the parsed value is always an array. `dispatch config apply --op` takes either form: every op
+ * the parsed value is always an array. `singularity config apply --op` takes either form: every op
  * is validated before any is applied, they apply in the order given (so a `topic.upsert` can
  * precede the `source.add` ops hinted to it), and the batch lands as one commit or not at all.
  */

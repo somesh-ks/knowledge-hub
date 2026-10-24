@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { type ParsedConfigOp, parseConfigOps } from "@dispatch/core";
+import { type ParsedConfigOp, parseConfigOps } from "@singularity/core";
 import { combineOutcomes, readBundle, renderBundle } from "../commands/config.js";
 import { createHttpClient, type HttpClient, type RequestOptions } from "../http.js";
 import { AddSourceError } from "../sources/addSource.js";
@@ -27,7 +27,7 @@ export { ConfigOpError } from "./applyOp.js";
 
 /**
  * What the site's /api/config does with an edit once the config store is on (D149): the same
- * `applyConfigOp` that `dispatch config apply` runs, on the stored documents instead of a checkout.
+ * `applyConfigOp` that `singularity config apply` runs, on the stored documents instead of a checkout.
  * The loaders read files, so the documents are laid out in a scratch directory with the read-only
  * files the bundle also needs (the seed sources), applied, rendered and compared.
  */
@@ -142,7 +142,7 @@ async function applyNow(
   if (!parsed.success) {
     return { ok: false, message: parsed.issues.map((issue) => issue.message).join("; ") };
   }
-  const root = await mkdtemp(join(tmpdir(), "dispatch-config-"));
+  const root = await mkdtemp(join(tmpdir(), "singularity-config-"));
   try {
     const files: Record<string, string> = { ...input.baseFiles };
     for (const document of input.documents) files[document.path] = document.content;

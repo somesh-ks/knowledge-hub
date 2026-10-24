@@ -26,7 +26,7 @@ const REUSE_MS = 1000;
 /** How long a page waits for the store before it shows the device's copy instead, when it has one. */
 export const CACHE_GRACE_MS = 300;
 /** Where the device keeps the last answer: one build's edits, checked against the page on read. */
-export const CACHE_KEY = "dispatch:store-read";
+export const CACHE_KEY = "singularity:store-read";
 
 let last: { at: number; read: Promise<ConfigReadBody | null> } | undefined;
 let current: ConfigReadBody | null = null;
@@ -37,7 +37,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 /** Which config files this page was built from, as its config-store tag names them. */
 function builtHere(): string | null {
   return (
-    document.querySelector<HTMLMetaElement>('meta[name="dispatch-config-store"]')?.content ?? null
+    document.querySelector<HTMLMetaElement>('meta[name="singularity-config-store"]')?.content ??
+    null
   );
 }
 

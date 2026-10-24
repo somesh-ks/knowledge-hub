@@ -26,7 +26,7 @@ export default function Toaster() {
   useEffect(() => {
     if (!kind) return;
     document.dispatchEvent(
-      new CustomEvent("dispatch:sound", { detail: kind === "error" ? "failure" : "success" }),
+      new CustomEvent("singularity:sound", { detail: kind === "error" ? "failure" : "success" }),
     );
   }, [id, kind]);
 

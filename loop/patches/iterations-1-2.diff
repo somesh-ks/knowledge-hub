@@ -30,7 +30,7 @@ index f430a25..66a3a13 100644
 --- a/packages/engine/src/run/scheduleSize.ts
 +++ b/packages/engine/src/run/scheduleSize.ts
 @@ -1,3 +1,5 @@
-+import { PODCAST_CHARS_PER_MINUTE } from "@dispatch/core";
++import { PODCAST_CHARS_PER_MINUTE } from "@singularity/core";
 +
  /**
   * How many stories a scheduled briefing keeps for the length the owner chose. A ten minute

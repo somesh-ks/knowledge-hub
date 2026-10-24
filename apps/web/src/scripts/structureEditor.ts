@@ -5,14 +5,14 @@
  * or the arrow keys), and Edit opens the
  * block's sheet: its depth, its stories, how many may come from one source and how new they must
  * be (the rules code holds it to), a close's length, an owner block's title and brief, and, closed
- * under Writing instructions, the block's prompt in this kind (D178). Every change saves
+ * under Writing instructions, the block's prompt in this kind (D180). Every change saves
  * itself as the topics editor's do (autosave.ts, D115): a kind's blocks go as one structure.set and a
  * prompt as one structure.prompt; a removal leaves at once and waits with Undo (D142).
  *
  * Loaded by topicsPage.ts when the view first shows, after the store and this device's saved edits
  * have been read, so the list starts from what is saved, not from the build.
  */
-import type { StructureBlock, StructureKind } from "@dispatch/core";
+import type { StructureBlock, StructureKind } from "@singularity/core";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import {
   addOffers,
@@ -608,11 +608,11 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       if (!entry) return;
       entry = false;
       event.preventDefault();
-      removeEventListener("dispatch:back", onBack);
+      removeEventListener("singularity:back", onBack);
       if (sheet.open) sheet.close();
     };
     history.pushState({ ...history.state, structureSheet: true }, "");
-    addEventListener("dispatch:back", onBack);
+    addEventListener("singularity:back", onBack);
     sheet.addEventListener(
       "close",
       () => {
@@ -620,7 +620,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
         // does; a new block of the owner's own is only added by Add.
         if (!done && !adding) apply();
         unfit();
-        removeEventListener("dispatch:back", onBack);
+        removeEventListener("singularity:back", onBack);
         const row =
           focusAt >= 0 && editing === kind ? list.querySelector(`[data-index="${focusAt}"]`) : null;
         const back =

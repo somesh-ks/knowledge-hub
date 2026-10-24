@@ -7,7 +7,7 @@ export const FETCH_MAX_BYTES = 1_500_000;
 const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
 
-const USER_AGENT = "Mozilla/5.0 (compatible; DispatchBot/1.0; private briefing)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SingularityBot/1.0; private briefing)";
 
 export interface FetchHtmlOptions {
   fetchImpl?: typeof fetch;

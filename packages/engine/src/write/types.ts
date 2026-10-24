@@ -1,4 +1,4 @@
-import type { Category } from "@dispatch/core";
+import type { Category } from "@singularity/core";
 import type { Taste } from "../profile/tasteNote.js";
 import type { VoiceField } from "../voice/lint.js";
 
@@ -10,7 +10,7 @@ export interface SourceMaterial {
   author?: string;
   category: Category;
   text: string;
-  /** The owner's prompt for the block this story airs in (D178); absent for the built-in one. */
+  /** The owner's prompt for the block this story airs in (D180); absent for the built-in one. */
   prompt?: string;
 }
 
