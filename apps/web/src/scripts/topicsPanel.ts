@@ -138,14 +138,14 @@ export function editOf(
 export function guessFormat(address: string): string {
   let host = "";
   try {
-    host = new URL(address).hostname.replace(/^www./, "");
+    host = new URL(address).hostname.replace(/^www\./, "");
   } catch {
     return "blog";
   }
-  if (/(^|.)(youtube.com|youtu.be)$/.test(host)) return "video";
-  if (/(^|.)(github.com|producthunt.com)$/.test(host)) return "releases";
-  if (/(^|.)(arxiv.org|crossref.org)$/.test(host)) return "research";
-  if (/(^|.)(news.ycombinator.com|lobste.rs)$/.test(host)) return "forum";
+  if (/(^|\.)(youtube\.com|youtu\.be)$/.test(host)) return "video";
+  if (/(^|\.)(github\.com|producthunt\.com)$/.test(host)) return "releases";
+  if (/(^|\.)(arxiv\.org|crossref\.org)$/.test(host)) return "research";
+  if (/(^|\.)(news\.ycombinator\.com|lobste\.rs)$/.test(host)) return "forum";
   return "blog";
 }
 
