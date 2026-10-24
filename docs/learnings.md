@@ -39,8 +39,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Unit tests
 
+- 2026-10-24: on Node 24 (V8 13.6), a function whose hot loop gets Maglev OSR code before the object literal it returns has run can return objects sharing their number fields: the sound volume test's first render read the second's peak, ratio exactly 1 (nodejs/node#66457; not seen on Node 22 or with `--no-maglev-osr`). Keep hot loops out of functions that return object literals.
 - 2026-10-14: Vitest, like Chromium, remembers a failed dynamic import for the module's URL, so a retry test of a lazy import passes or fails depending on test order. Retry with a `?retry=` query (pageContentLoader) and test the retry in the browser, not in Vitest.
-- 2026-10-13: the Speechify tests (a real loopback server) fail at random with `fetch failed` when other suites run beside them (2 of 6 full runs), never alone; the cause is not found. Rerun alone before blaming a change. A retry of two fixed the red: `describe.configure` and `vi.setConfig({ retry })` do not exist in Vitest 5, pass `{ retry: 2 }` as the describe's second argument.
 - 2026-10-11: the pipeline tests' fake RSS fetcher returns every item whatever the window, so a test about posts outside the window (the scoring sample's backfill) passed for the wrong reason until the test wrapped the fetcher to honour `window.from`. Check a fake honours what the test is about.
 - 2026-10-08: a limit nobody asked for is a bug waiting for its first user: two episodes a day stopped the owner on the first day. Tests that hard-code a policy number (a cooldown of 30 minutes) break when the policy moves; compute from the constant.
 - 2026-10-08: a test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
