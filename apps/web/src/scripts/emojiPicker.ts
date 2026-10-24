@@ -24,6 +24,14 @@ const loadGroups = (): Promise<EmojiGroup[]> =>
       throw error;
     }));
 
+/** Starts the list's fetch ahead of the tap (topicsEditor.ts calls it on the button's hover, press or focus). */
+export function preloadEmoji(): void {
+  loadGroups().catch(() => {});
+}
+
+/** Cells made per task, so the first rows are drawn while the rest are made (owner, 2026-10-24). */
+const BATCH = 120;
+
 const cell = (emoji: string, name: string, current: string): HTMLButtonElement => {
   const button = element("button", "emoji-cell press press-subtle", emoji) as HTMLButtonElement;
   button.type = "button";
@@ -89,7 +97,25 @@ export function openEmojiPicker(
   };
   const named = (item: EmojiItem): HTMLButtonElement => cell(item[0], item[1], current);
 
+  let later = 0;
+  /** The categories after the first, a batch of cells per task: one task drawing all 1,900 held the picker for seconds. */
+  const fill = (rest: EmojiItem[][], grids: HTMLElement[]): void => {
+    let made = 0;
+    while (made < BATCH && rest.length > 0) {
+      const items = rest[0] as EmojiItem[];
+      const take = items.splice(0, BATCH - made);
+      (grids[0] as HTMLElement).append(...take.map(named));
+      made += take.length;
+      if (items.length === 0) {
+        rest.shift();
+        grids.shift();
+      }
+    }
+    if (rest.length > 0) later = window.setTimeout(() => fill(rest, grids));
+  };
+
   const draw = (): void => {
+    window.clearTimeout(later);
     const query = input.value.trim();
     clear.hidden = input.value === "";
     body.replaceChildren();
@@ -102,8 +128,16 @@ export function openEmojiPicker(
         cell(emoji, names.get(emoji) ?? "", current),
       );
       body.append(section("Suggested", suggested));
-      for (const group of all) body.append(section(group.name, group.emoji.map(named)));
+      const [first, ...others] = all;
+      if (first) body.append(section(first.name, first.emoji.map(named)));
+      const grids = others.map((group) => {
+        const block = section(group.name, []);
+        body.append(block);
+        return block.querySelector(".emoji-grid") as HTMLElement;
+      });
       if (status) body.append(element("p", "emoji-note", status));
+      const rest = others.map((group) => [...group.emoji]);
+      later = window.setTimeout(() => fill(rest, grids));
     }
     rove(cells()[0]);
   };
@@ -205,6 +239,7 @@ export function openEmojiPicker(
     "toggle",
     (event) => {
       if ((event as ToggleEvent).newState !== "closed") return;
+      window.clearTimeout(later);
       stop.abort();
       undoFit();
       opener.focus();
