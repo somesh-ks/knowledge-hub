@@ -196,6 +196,17 @@ const { topics } = Astro.props;
             <Icon name="chevronDown" />
           </div>
         </div>
+        {/* A favorite (high_signal) skips the keyword filter: every post goes to the judge, ranked up. */}
+        <div class="manage-field">
+          <label for="panel-edit-favorite">Favorite</label>
+          <div class="manage-select">
+            <select class="manage-input" id="panel-edit-favorite" name="favorite" data-edit-favorite>
+              <option value="no">No</option>
+              <option value="yes">Yes, always consider its posts</option>
+            </select>
+            <Icon name="chevronDown" />
+          </div>
+        </div>
         <div class="manage-field" data-edit-lean-field hidden>
           <label for="panel-edit-lean">Political lean</label>
           <div class="manage-select">

@@ -26,7 +26,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71). The add topic panel takes Name, Description and Scope, with suggested sources, each with a plus. A topic's page lists up to five catalogue feeds that fit it (D75).
 - A new topic is a list row at once, by name, with `topicEmoji`'s guess until Jev's pick (D142); its one `topic.upsert` waits for Jev (4.5 s at most). Before the build it opens `/settings/topics/new?id=`, filled from the saved edits (`fillShell`). Suggested sources show only on a topic's page.
 - Add source (beside the search from 64rem) lists suggestions for its topic. A suggested add shimmers, then moves into Sources and the next fills its place (10 rendered, 5 shown).
-- A source row shows name, address, stories that reached a briefing and a star rating or "Not scored yet" (D83, D102, D103); a checkbox turns it on and off. A row opens a side panel (full screen on a phone) to rename, move, open or Delete it: a confirm, then the row goes at once and the removal waits 5 s with Undo (D56, D125, D129, D142). A source added from the panel keeps the page's id (`source.add` `id`).
+- A source row shows name, address, stories that reached a briefing and a star rating or "Not scored yet" (D83, D102, D103); a checkbox turns it on and off. A row opens a side panel (full screen on a phone) to rename, move, favorite it (`high_signal`: every post reaches the judge), open or Delete it: a confirm, then the row goes at once and the removal waits 5 s with Undo (D56, D125, D129, D142). A source added from the panel keeps the page's id (`source.add` `id`).
 - `GET /api/source-preview` is behind an SSRF guard.
 
 ### Model

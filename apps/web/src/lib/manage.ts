@@ -93,6 +93,8 @@ export interface ManageSource {
   format: SourceFormat;
   /** A general source's political lean, -2 (Left) to 2 (Right); null when unrated. */
   lean: number | null;
+  /** A favorite: the prefilter sends every post to the judge (high_signal). */
+  high_signal: boolean;
 }
 
 export interface ManageCandidate {
@@ -388,6 +390,7 @@ interface RawSource {
   quality: number | null;
   format: SourceFormat;
   lean: number | null;
+  high_signal: boolean;
 }
 
 /** The strings in a list, trimmed, or null when the value is not a list. */
@@ -425,6 +428,7 @@ function parseSource(value: unknown): RawSource | null {
     quality: isRecord(value.quality) ? asNumber(value.quality.score) : null,
     format: asFormat(value.format) ?? deriveSourceFormat(asType(value.type)),
     lean: leanOf(value.lean) ?? null,
+    high_signal: asBool(value.high_signal, false),
   };
 }
 
@@ -443,6 +447,7 @@ interface Override {
   topic_ids?: string[];
   format?: SourceFormat;
   lean?: number | null;
+  high_signal?: boolean;
 }
 
 function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<string, Override> } {
@@ -464,6 +469,7 @@ function parseOverrides(file: unknown): { added: RawSource[]; overrides: Map<str
         ...(topicIds === null ? {} : { topic_ids: topicIds }),
         ...(format === null ? {} : { format }),
         ...(lean === undefined ? {} : { lean }),
+        ...(typeof entry.high_signal === "boolean" ? { high_signal: entry.high_signal } : {}),
       });
     }
   }
@@ -587,6 +593,7 @@ export function buildSources(input: {
       search: `${name} ${host} ${source.id}`.toLowerCase(),
       format: override.format ?? source.format,
       lean: override.lean === undefined ? source.lean : override.lean,
+      high_signal: override.high_signal ?? source.high_signal,
     });
   }
   return rows.sort(
