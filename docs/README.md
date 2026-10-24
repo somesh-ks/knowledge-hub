@@ -14,6 +14,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
 | [engineering/delivery-failures.md](engineering/delivery-failures.md) | Why PRs, CI and deploys failed, and the rules that stop each one | Before pushing, and when a check is red |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
+| [engineering/engagement-and-share-plan.md](engineering/engagement-and-share-plan.md) | Share links and the listen page on top of Simple Analytics (D154), in stages (D153) | Before building engagement or sharing |
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
 | [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |

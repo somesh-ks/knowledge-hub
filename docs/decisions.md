@@ -137,7 +137,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card; pull down to close the source panel | active; amends D73, D123, D124 |
-| D126 | The player has a play queue (Library menu adds, drag and keyboard reorder, autoplay of the next item), a peek strip "Up next" that pulls up into a queue sheet, a collapse chevron on a phone, and Space that plays and pauses on briefing and episode pages; after an item ends only Up next shows | active; amends D102, D111 |
+| D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
@@ -164,6 +164,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
 | D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
+| D153 | Engagement and sharing | active |
 | D154 | Simple Analytics and a Privacy page | active |
 | D155 | Software Engineering topic | active; amends D69 |
 | D156 | Field Vitals in Neon | amends D147 |
@@ -1688,6 +1689,22 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: a full-screen sheet leaves no page showing to tap away to, so the only visible way out was a gesture with no affordance.
 - Amends: D144.
 
+## D153: engagement is counted by D154's Simple Analytics, and an episode is shared as a public listen link
+
+- Date: 2026-10-22 (the owner: a "User engagement" item under Settings, Analytics, "open to a lightweight analytics tool", and growth loops "starting with sharing episodes with anyone")
+- Status: approved by the owner on 2026-10-22 ("I like all your recommendations, just skip passphrase for now"); aligned with D154 on 2026-10-24 (the owner: "align the D153 engagement plan with it, so the two do not overlap"); built stage by stage, link previews first. The plan and the stages with test points: [engagement-and-share-plan.md](engineering/engagement-and-share-plan.md).
+- Decision:
+  - Simple Analytics (D154) is the one counter. The listen page sends D154's `listen_*` and `share` with `surface`, `generation` and `item` metadata, and one new event, `react`; the token never reaches it. No first-party event table, beacon route or device-only view.
+  - User engagement under Settings, Analytics opens the Simple Analytics dashboard (the owner, 2026-10-24: "keep stage 1 as a link to the Simple Analytics dashboard; decide on in-app numbers later"). Numbers inside the app need public stats (the Stats API answers without a key) or a plan with API access.
+  - No passphrase: the stage that would have locked actions is dropped (D160). The owner will gate actions with OAuth later and hide them from logged-out users.
+  - Link previews come first, on the pages Share sends today, because Share can only send a page's address until the listen page exists (owner: "link preview is very good idea").
+  - One expiring, revocable link per item whose audio is fully stored, made by anyone until OAuth, then by the owner alone. `/s/<token>` (an HMAC-checked token, rendered on the server, CDN-cached five minutes) shows the cover, Play, the stories with their sources, the transcript, Send it to someone and a reaction; it plays stored audio only and never narrates; it has no app shell, service worker or search indexing, and an Open Graph card. Neon keeps only the links and their play counts: shared plays stop at 4 GB of Blob transfer a month and 100 a link.
+- Why: D154 already counts the loops on production; a second counter would split the numbers and cost a route, a table and Neon compute. What a vendor cannot do, refuse a play past the Blob budget, stays first-party. Today's Share sends the app's own address, which opens the whole app.
+- Cost: counts are a floor (ad blockers, offline listens, D154); no numbers inside the app until the owner picks how to read them; until OAuth, a listener who leaves the listen page for the app can do what anyone can (D160); public links publish narrated summaries of others' reporting beyond D9's one reader; Blob's Hobby lockout is the ceiling the budget guards.
+- Rejected: first-party events in Neon beside Simple Analytics (this decision's first draft: two counts of one thing); a device-only engagement view (one browser's listening); Plausible Business, Umami Pro or Vercel Pro (a monthly fee for one reader); PostHog (storage by default, the heaviest script); per-recipient links (they track people one by one); a waitlist now (consent, a privacy notice and a plan above Hobby first); the full player on the listen page (its narration fallback spends).
+- Amends: D154's Context (its events stay; this adds the listen page's and `item` metadata).
+- Revisit if: ad blockers hide most listens, Simple Analytics' API or plans change, shared plays pass half the monthly budget, or the owner opens sign-ups.
+
 ## D154: cookieless visit counts with Simple Analytics, a few named events, and a Privacy page
 
 - Date: 2026-10-22
@@ -1695,7 +1712,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner wants to see which loops (share, habit, taste, create) turn visitors into listeners and sharers. Simple Analytics counts in aggregate without cookies, storage or IP, so the site needs no consent banner and keeps its privacy. Sentry was considered and is an error monitor; the site's own `/api/report` covers errors.
 - Cost: about 7.5 KB of third-party script per session, outside the first-load budget (it loads async from another host); two hosts in the policy; counts are a floor (ad blockers) and unique visits run high (`no-referrer` makes a reload look new).
 - Rejected: the `noscript` pixel (mostly robots, by Simple Analytics' advice); automated events (need `'unsafe-inline'`); a per-device id for retention (identifies a reader; installs and `installed` page views stand in); PostHog or Sentry replay (record individuals).
-- Context: D153 (proposed the same day on another branch) counts events first-party in Neon instead and makes share links a public listen page. The two overlap on events; if D153 is approved, its events replace these and Simple Analytics keeps only visits and referrers, or goes.
+- Context: D153 (proposed the same day on another branch) first counted events first-party in Neon. Approved, then aligned with this decision on 2026-10-24: these events stay, and D153 adds the listen page's, with `surface`, `generation` and `item` metadata and a `react` event.
 - Revisit if: retention per reader becomes the question (that needs accounts or an identifier, and a new privacy page), or ad blockers hide most visits (Simple Analytics' custom-domain proxy).
 
 ## D155: Software Engineering is the owner's fourth topic, with its own section and an engineering-depth judge category
