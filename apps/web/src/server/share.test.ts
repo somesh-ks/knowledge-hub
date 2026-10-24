@@ -1,6 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
-import { guardedDatabase } from "./database";
-import { handleSharePlay, newLinkId, openListenLink, signToken } from "./share";
+import type { SqlClient } from "@dispatch/engine/config-paths";
+import { PGlite } from "@electric-sql/pglite";
+import { afterAll, describe, expect, it, vi } from "vitest";
+import type { BlobEntry } from "./blobStore";
+import { type DatabaseCall, guardedDatabase } from "./database";
+import {
+  createNotStoredMemo,
+  handleShare,
+  handleSharePlay,
+  type MakeDeps,
+  NOT_STORED_MEMO_MS,
+  newLinkId,
+  openListenLink,
+  type ShareCandidate,
+  signToken,
+} from "./share";
+
+// An in-process Postgres takes over 5 s to start when several store files start theirs at once.
+vi.setConfig({ testTimeout: 30_000 });
 
 const SECRET = "a-test-secret-of-enough-length";
 const ORIGIN = "https://news.someshks.work";
@@ -21,6 +37,7 @@ function deps() {
       database: guardedDatabase({ databaseUrl: "postgres://test", connect }),
       burst,
       now: () => Date.parse("2026-10-24T12:00:00Z"),
+      candidates: async () => [],
     },
   };
 }
@@ -56,5 +73,93 @@ describe("share tokens", () => {
     const { connect, deps: d } = deps();
     expect((await openListenLink(good, d)).status).toBe(503);
     expect(connect).toHaveBeenCalled();
+  });
+});
+
+const open: PGlite[] = [];
+afterAll(async () => {
+  await Promise.all(open.map((db) => db.close()));
+});
+
+describe("a shared link and its item", () => {
+  // The bugs it prevents: after a Regenerate (same id) the link kept the old files, so a listener
+  // heard the old audio under the new text, and after a Delete it kept playing the deleted item;
+  // and a Share retried on half-stored audio headed every file in Blob on every press.
+  it("stops when its item is regenerated or deleted, and a retried Share heads nothing", async () => {
+    const db = new PGlite();
+    open.push(db);
+    const sql: SqlClient = {
+      query: async (text, params) =>
+        (await db.query<Record<string, unknown>>(text, params ?? [])).rows,
+    };
+    const database: DatabaseCall = (work) => work(sql);
+    const item = "2026-10-07";
+    let files: ShareCandidate[] | null = [{ pathname: "audio/a-v1.mp3", characters: 900 }];
+    const stored = new Set(["audio/a-v1.mp3"]);
+    const head = vi.fn(
+      async (pathname: string): Promise<BlobEntry | null> =>
+        stored.has(pathname)
+          ? ({
+              url: `https://s.public.blob.vercel-storage.com/${pathname}`,
+              size: 16_000,
+            } as BlobEntry)
+          : null,
+    );
+    let now = Date.parse("2026-10-24T12:00:00Z");
+    const deps: MakeDeps = {
+      secret: SECRET,
+      database,
+      burst: async () => 0,
+      now: () => now,
+      candidates: async () => files,
+      head,
+      notStored: createNotStoredMemo(),
+    };
+    const share = async () =>
+      handleShare(
+        {
+          method: "POST",
+          bodyText: JSON.stringify({ item }),
+          origin: ORIGIN,
+          expectedOrigin: ORIGIN,
+        },
+        deps,
+      );
+    const play = async (token: unknown) =>
+      handleSharePlay(
+        { bodyText: JSON.stringify({ token }), origin: ORIGIN, expectedOrigin: ORIGIN },
+        deps,
+      );
+
+    const first = (await share()).body.token;
+    expect((await play(first)).status).toBe(200);
+
+    // Regenerated: new words, so new files, not yet stored.
+    files = [{ pathname: "audio/a-v2.mp3", characters: 950 }];
+    expect((await play(first)).status).toBe(410);
+    expect((await openListenLink(String(first), deps)).status).toBe(410);
+    expect((await share()).status).toBe(409);
+    const heads = head.mock.calls.length;
+    expect((await share()).status).toBe(409);
+    expect(head.mock.calls.length).toBe(heads);
+
+    // Played once in the app, so stored; once the memo lapses, Share makes a new link.
+    stored.add("audio/a-v2.mp3");
+    now += NOT_STORED_MEMO_MS + 1;
+    const second = (await share()).body.token;
+    expect(second).not.toBe(first);
+    const granted = await play(second);
+    expect(granted.body.segments).toEqual([
+      {
+        url: "https://s.public.blob.vercel-storage.com/audio/a-v2.mp3",
+        duration_ms: expect.any(Number),
+      },
+    ]);
+
+    // Deleted: the link stops, and the play it was granted is handed back to the month.
+    const spent = (await sql.query("select bytes from share_budget"))[0]?.bytes;
+    files = null;
+    expect((await play(second)).status).toBe(410);
+    expect((await sql.query("select bytes from share_budget"))[0]?.bytes).toBe(spent);
   });
 });

@@ -32,7 +32,8 @@ const LIMITS = { playsPerLink: 3, monthlyBytes: 100 };
 const segments = [{ url: "https://s.public.blob.vercel-storage.com/a.mp3", duration_ms: 1000 }];
 
 async function link(sql: SqlClient, id: string, itemId: string, bytes = 10, now = NOW) {
-  return createShareLink(sql, { id, itemId, now, expiresAt: now + 30 * DAY, bytes, segments });
+  const expiresAt = now + 30 * DAY;
+  return createShareLink(sql, { id, itemId, now, expiresAt, bytes, segments, source: "v1" });
 }
 
 describe("the share store's play gate", () => {

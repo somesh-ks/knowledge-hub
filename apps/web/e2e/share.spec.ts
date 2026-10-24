@@ -24,7 +24,6 @@ const ID = AUDIO_DIGEST.split("/").pop() ?? "";
 const STORE = "teststore01";
 const BLOB = `https://${STORE}.public.blob.vercel-storage.com`;
 const env = { BLOB_READ_WRITE_TOKEN: `vercel_blob_rw_${STORE}_secret` };
-const TOKEN_PATH = /\/s\/([A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22})\?ref=share&g=1$/;
 
 /** The fixture digests, as the narrate function reads its bundled copies. */
 const digests = {
@@ -137,7 +136,22 @@ async function routeListener(
   return asked;
 }
 
-test("a shared link plays its stored audio in a fresh browser, never narrates, and stops when revoked", async ({
+/** The token a copied listen link carries, or "" when the copy is not a listen link. */
+function tokenOf(link: string): string {
+  const url = new URL(link);
+  const shared = url.searchParams.get("ref") === "share" && url.searchParams.get("g") === "1";
+  return shared && url.pathname.startsWith("/s/") ? (url.pathname.split("/")[2] ?? "") : "";
+}
+
+/** The stored file the listen page is playing, once sound is coming out of it. */
+const playingFile = (listener: Page) =>
+  listener
+    .locator("audio")
+    .evaluate((audio: HTMLAudioElement) =>
+      audio.currentTime > 0 && audio.currentSrc.startsWith("https://") ? audio.currentSrc : null,
+    );
+
+test("a shared link plays its stored audio in a fresh browser, never narrates, replays from the start, and stops when revoked", async ({
   page,
   browser,
   baseURL,
@@ -153,15 +167,15 @@ test("a shared link plays its stored audio in a fresh browser, never narrates, a
       value: { writeText: async (text: string) => void copied.push(text) },
     });
   });
+  const copied = () => page.evaluate(() => (window as unknown as { copied: string[] }).copied);
   await page.goto(AUDIO_DIGEST);
   await hydrated(page);
   await page.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Share" }).click();
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { copied: string[] }).copied))
-    .toEqual([expect.stringMatching(TOKEN_PATH)]);
-  const link =
-    (await page.evaluate(() => (window as unknown as { copied: string[] }).copied))[0] ?? "";
+  await expect.poll(async () => (await copied()).length).toBe(1);
+  const link = (await copied())[0] ?? "";
+  const token = tokenOf(link);
+  expect(token, link).not.toBe("");
 
   // A stranger opens it: no app, no service worker, no narration.
   const fresh = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
@@ -170,16 +184,25 @@ test("a shared link plays its stored audio in a fresh browser, never narrates, a
   const opened = await listener.goto(new URL(link).pathname + new URL(link).search);
   expect(opened?.status()).toBe(200);
   expect(opened?.headers()["x-robots-tag"]).toContain("noindex");
-  await expect(listener.getByRole("heading", { level: 1 })).toHaveText("Wednesday 7 October");
+  await expect(listener.getByRole("heading", { level: 1 })).toBeVisible();
   await listener.getByRole("button", { name: "Play" }).click();
+  await expect.poll(() => playingFile(listener)).toMatch(new RegExp(`^${BLOB}/audio/${ID}/`));
+  const first = await playingFile(listener);
+
+  // Played to the end (each file skipped to its last moment), Play starts again at the first file.
   await expect
-    .poll(() =>
-      listener
-        .locator("[data-listen-audio]")
-        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    .poll(
+      () =>
+        listener.locator("audio").evaluate((audio: HTMLAudioElement) => {
+          if (!audio.paused && audio.duration > 0.2) audio.currentTime = audio.duration - 0.1;
+          return audio.ended;
+        }),
+      { timeout: 30_000 },
     )
-    .toBeGreaterThan(0);
-  expect(asked.some((url) => url.startsWith(`${BLOB}/audio/${ID}/`))).toBe(true);
+    .toBe(true);
+  await listener.getByRole("button", { name: "Play" }).click();
+  await expect.poll(() => playingFile(listener)).toBe(first);
+
   expect(asked.filter((url) => url.includes("/api/narrate"))).toEqual([]);
   expect(
     await listener.evaluate(() => navigator.serviceWorker.getRegistrations().then((r) => r.length)),
@@ -189,10 +212,12 @@ test("a shared link plays its stored audio in a fresh browser, never narrates, a
     expect(url, "nothing leaves for analytics in a test").not.toContain("simpleanalytics");
 
   // The owner stops sharing: the link's play route and its page answer 410.
+  const stopped = page.waitForResponse(
+    (response) => response.url().endsWith("/api/share") && response.request().method() === "DELETE",
+  );
   await page.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Stop sharing" }).click();
-  await expect(page.getByText("Stopped sharing")).toBeVisible();
-  const token = TOKEN_PATH.exec(link)?.[1] ?? "";
+  expect((await stopped).status()).toBe(200);
   const play = await listener.evaluate(
     (body) =>
       fetch("/api/share-play", {

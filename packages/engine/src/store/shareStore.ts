@@ -19,7 +19,8 @@ export const SHARE_SCHEMA_SQL = [
   revoked_at timestamptz,
   plays integer not null default 0,
   bytes bigint not null,
-  segments jsonb not null
+  segments jsonb not null,
+  source text not null
 )`,
   // One active link per item: a second make races to the same row instead of a second link.
   "create unique index if not exists share_links_active on share_links (item_id) where revoked_at is null",
@@ -45,6 +46,11 @@ export interface ShareLink {
   /** The item's audio in bytes: what one play start is charged against the month's budget. */
   bytes: number;
   segments: SharedSegment[];
+  /**
+   * What the link was made from: a fingerprint of the item's audio files as the narration lookup
+   * named them. A Regenerate changes it, and the link then stops rather than play the old audio.
+   */
+  source: string;
 }
 
 /** The caps a play is checked against; the site keeps the values (apps/web/src/lib/share.ts). */
@@ -61,11 +67,12 @@ export type PlayGrant =
 /** The month a play is charged to, UTC: "2026-10". */
 export const budgetMonth = (now: number): string => new Date(now).toISOString().slice(0, 7);
 
-const COLUMNS = `id, item_id,
-  (extract(epoch from created_at) * 1000)::float8 as created_at,
-  (extract(epoch from expires_at) * 1000)::float8 as expires_at,
-  (extract(epoch from revoked_at) * 1000)::float8 as revoked_at,
-  plays, bytes, segments`;
+const columns = (table: string): string => `${table}.id, ${table}.item_id,
+  (extract(epoch from ${table}.created_at) * 1000)::float8 as created_at,
+  (extract(epoch from ${table}.expires_at) * 1000)::float8 as expires_at,
+  (extract(epoch from ${table}.revoked_at) * 1000)::float8 as revoked_at,
+  ${table}.plays, ${table}.bytes, ${table}.segments, ${table}.source`;
+const COLUMNS = columns("share_links");
 
 function toLink(row: Record<string, unknown>): ShareLink {
   const raw = typeof row.segments === "string" ? JSON.parse(row.segments) : row.segments;
@@ -86,6 +93,7 @@ function toLink(row: Record<string, unknown>): ShareLink {
     plays: Number(row.plays),
     bytes: Number(row.bytes),
     segments,
+    source: String(row.source),
   };
 }
 
@@ -109,8 +117,9 @@ export async function activeShareLink(
 const CLOSE_EXPIRED_SQL = `update share_links set revoked_at = expires_at
 where item_id = $1 and revoked_at is null and expires_at <= to_timestamp($2::float8 / 1000)`;
 
-const INSERT_SQL = `insert into share_links (id, item_id, created_at, expires_at, plays, bytes, segments)
-values ($1, $2, to_timestamp($3::float8 / 1000), to_timestamp($4::float8 / 1000), 0, $5, $6::jsonb)
+const INSERT_SQL = `insert into share_links
+  (id, item_id, created_at, expires_at, plays, bytes, segments, source)
+values ($1, $2, to_timestamp($3::float8 / 1000), to_timestamp($4::float8 / 1000), 0, $5, $6::jsonb, $7)
 on conflict (item_id) where revoked_at is null do nothing
 returning ${COLUMNS}`;
 
@@ -121,6 +130,7 @@ export interface NewShareLink {
   expiresAt: number;
   bytes: number;
   segments: SharedSegment[];
+  source: string;
 }
 
 /**
@@ -137,6 +147,7 @@ export async function createShareLink(sql: SqlClient, link: NewShareLink): Promi
       link.expiresAt,
       link.bytes,
       JSON.stringify(link.segments),
+      link.source,
     ]);
     if (rows[0]) return toLink(rows[0]);
     const winner = await sql.query(ACTIVE_SQL, [link.itemId, link.now]);
@@ -158,6 +169,26 @@ export async function revokeShareLinks(
     .length;
 }
 
+/**
+ * Stops one link whose item changed or went away after a play of it was granted, and hands that
+ * play back: its count, and its bytes to the month it was charged to.
+ */
+const REVOKE_GRANTED_SQL = `with stopped as (
+  update share_links set revoked_at = to_timestamp($2::float8 / 1000), plays = greatest(plays - 1, 0)
+  where id = $1 and revoked_at is null
+  returning bytes
+)
+update share_budget set bytes = greatest(share_budget.bytes - stopped.bytes, 0)
+from stopped where share_budget.month = $3
+returning share_budget.month`;
+
+/** Stops link `id` after its play was granted, and refunds that play. Throws when the database does. */
+export async function revokeGrantedLink(sql: SqlClient, id: string, now: number): Promise<void> {
+  await withTable(sql, SHARE_SCHEMA_SQL, () =>
+    sql.query(REVOKE_GRANTED_SQL, [id, now, budgetMonth(now)]),
+  );
+}
+
 const READ_SQL = `select ${COLUMNS} from share_links where id = $1`;
 
 /** A link by its id, whatever its state, or null. Only reads. Throws when the database does. */
@@ -171,28 +202,35 @@ export const linkWorks = (link: ShareLink, now: number): boolean =>
   link.revoked_at === null && link.expires_at > now;
 
 /**
- * One statement: the play is granted only while the link works, is under its cap and the month has
- * room for the item's bytes; then the link's plays and the month's bytes go up together. The row
- * lock on the link serialises its own plays; two plays of different links at the very edge of the
- * month can pass it together, by one item's bytes at most.
+ * One statement, and one round trip for a granted play. The month's row is charged first, by an
+ * UPDATE whose condition reads the row it locks: a play waiting on another re-reads the spend that
+ * play left, so concurrent plays can never take the month past its budget. Then the link's count
+ * goes up, under the same condition on its own row. A play that loses a race for a link's last play
+ * has charged the month for nothing: the budget errs low, never high.
  */
-const PLAY_SQL = `with used as (
-  select coalesce((select bytes from share_budget where month = $2), 0)::bigint as bytes
-), bumped as (
-  update share_links set plays = plays + 1
-  from used
-  where share_links.id = $1
-    and share_links.revoked_at is null
-    and share_links.expires_at > to_timestamp($3::float8 / 1000)
-    and share_links.plays < $4::int
-    and used.bytes + share_links.bytes <= $5::bigint
-  returning share_links.bytes
-), spent as (
-  insert into share_budget (month, bytes) select $2, bytes from bumped
-  on conflict (month) do update set bytes = share_budget.bytes + excluded.bytes
-  returning bytes
+const PLAY_SQL = `with charged as (
+  update share_budget set bytes = share_budget.bytes + link.bytes
+  from share_links link
+  where share_budget.month = $2
+    and link.id = $1
+    and link.revoked_at is null
+    and link.expires_at > to_timestamp($3::float8 / 1000)
+    and link.plays < $4::int
+    and share_budget.bytes + link.bytes <= $5::bigint
+  returning link.id
 )
-select (select count(*) from bumped)::int as granted, (select bytes from used) as used`;
+update share_links set plays = plays + 1
+where share_links.id = (select id from charged) and share_links.plays < $4::int
+returning ${COLUMNS}`;
+
+/** Why a play was not granted, and whether the month has a row yet to be charged. */
+const EXPLAIN_SQL = `select ${COLUMNS},
+  (select bytes from share_budget where month = $2) as month_bytes
+from share_links where id = $1`;
+
+/** The month's row, so the play's UPDATE has one to lock; the first play of a month makes it. */
+const OPEN_MONTH_SQL = `insert into share_budget (month, bytes) values ($1, 0)
+on conflict (month) do nothing`;
 
 /**
  * Counts one play start of link `id` at `now` against its cap and the month's budget, or says why
@@ -204,20 +242,29 @@ export async function startSharedPlay(
   now: number,
   limits: PlayLimits,
 ): Promise<PlayGrant> {
+  const month = budgetMonth(now);
   return withTable(sql, SHARE_SCHEMA_SQL, async () => {
-    const rows = await sql.query(PLAY_SQL, [
-      id,
-      budgetMonth(now),
-      now,
-      limits.playsPerLink,
-      limits.monthlyBytes,
-    ]);
-    const before = await sql.query(READ_SQL, [id]);
-    if (!before[0]) return { granted: false, reason: "not_found" };
-    const link = toLink(before[0]);
-    if (Number(rows[0]?.granted) > 0) return { granted: true, link };
-    if (!linkWorks(link, now)) return { granted: false, reason: "gone" };
-    if (link.plays >= limits.playsPerLink) return { granted: false, reason: "link_limit" };
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const granted = await sql.query(PLAY_SQL, [
+        id,
+        month,
+        now,
+        limits.playsPerLink,
+        limits.monthlyBytes,
+      ]);
+      if (granted[0]) return { granted: true, link: toLink(granted[0]) };
+      const rows = await sql.query(EXPLAIN_SQL, [id, month]);
+      const row = rows[0];
+      if (!row) return { granted: false, reason: "not_found" };
+      const link = toLink(row);
+      if (!linkWorks(link, now)) return { granted: false, reason: "gone" };
+      if (link.plays >= limits.playsPerLink) return { granted: false, reason: "link_limit" };
+      if (row.month_bytes === null || row.month_bytes === undefined) {
+        await sql.query(OPEN_MONTH_SQL, [month]);
+        continue;
+      }
+      if (Number(row.month_bytes) + link.bytes > limits.monthlyBytes) break;
+    }
     return { granted: false, reason: "month_limit" };
   });
 }

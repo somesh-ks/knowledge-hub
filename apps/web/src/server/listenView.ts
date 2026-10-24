@@ -1,6 +1,7 @@
 import { type Digest, digestSections, longDate, parseDigestFile } from "@dispatch/core";
 import { buildSpokenText, segmentSpokenText } from "@dispatch/engine/audio";
 import { type Episode, parseEpisodeFile } from "../lib/episodeFile";
+import { cardDescription } from "../lib/linkCard";
 import { isWebUrl } from "../lib/safeUrl";
 import type { DigestSource, EpisodeBundle } from "./narrate";
 import { isEpisodeId } from "./narrate";
@@ -11,9 +12,6 @@ import { isEpisodeId } from "./narrate";
  * from the digest or episode as the build holds it, so the page and narration read the same words.
  * Nothing here links into the app.
  */
-
-/** og:description's limit, so a chat app's card never cuts it. */
-export const LISTEN_DESCRIPTION_CHARS = 160;
 
 export interface ListenStory {
   headline: string;
@@ -42,25 +40,15 @@ export interface ListenView {
   transcript: ListenParagraph[];
 }
 
-/** Text cut at a word to `limit` characters, with an ellipsis when cut. */
-export function clip(text: string, limit = LISTEN_DESCRIPTION_CHARS): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  if (flat.length <= limit) return flat;
-  const cut = flat.slice(0, limit - 1);
-  const space = cut.lastIndexOf(" ");
-  return `${(space > limit / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, "")}…`;
-}
-
 const story = (headline: string, source: string, url: string): ListenStory => ({
   headline,
   source,
   url: isWebUrl(url) ? url : null,
 });
 
-function describe(stories: readonly ListenStory[], noun: string): string {
-  const count = `${stories.length} ${stories.length === 1 ? "story" : "stories"}`;
-  return clip(`A ${noun} of ${count}: ${stories.map((each) => each.headline).join("; ")}`);
-}
+/** The link card's line, as the app's own pages write it (lib/linkCard.ts). */
+const describe = (stories: readonly ListenStory[]): string =>
+  cardDescription(stories.map((each) => each.headline));
 
 export function briefingView(digest: Digest): ListenView {
   const stories = digestSections(digest).flatMap((section) =>
@@ -85,7 +73,7 @@ export function briefingView(digest: Digest): ListenView {
     title: longDate(digest.date),
     dateLabel: weekly ? "Weekly briefing" : "Daily briefing",
     weekly,
-    description: describe(stories, weekly ? "weekly briefing" : "briefing"),
+    description: describe(stories),
     stories,
     transcript,
   };
@@ -104,7 +92,7 @@ export function episodeView(episode: Episode): ListenView {
     title: episode.title,
     dateLabel: longDate(episode.date),
     weekly: false,
-    description: describe(stories, "episode"),
+    description: describe(stories),
     stories,
     transcript: episode.turns.map((turn) => ({
       speaker: solo ? null : (names?.[turn.speaker] ?? null),

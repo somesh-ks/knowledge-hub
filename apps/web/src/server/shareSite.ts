@@ -9,6 +9,7 @@ import { bundledEpisodes } from "./episodeSource";
 import { handleNarrationLookup, isEpisodeId } from "./narrate";
 import { burstCap } from "./rateLimit";
 import {
+  createNotStoredMemo,
   type MakeDeps,
   readShareSecret,
   type ShareCandidate,
@@ -38,12 +39,17 @@ const database = guardedDatabase({
   log: (message) => log(`store ${message}`),
 });
 
+/** Per function instance: a Share retried on half-stored audio heads nothing for a while. */
+const notStored = createNotStoredMemo();
+
 function base(bucket: string, perMinute: number): ShareDeps {
+  const env = process.env as ServerEnv;
   return {
-    secret: readShareSecret(process.env),
+    secret: readShareSecret(env),
     database,
     burst: burstCap(bucket, perMinute),
     now: Date.now,
+    candidates: (itemId) => candidatesFor(env, itemId),
     log,
   };
 }
@@ -67,8 +73,8 @@ export function makeDeps(requestOidcToken: () => string | null): MakeDeps {
   const store = credentials ? createVercelBlobStore(credentials, { head, put, del }, fetch) : null;
   return {
     ...base("share", SHARE_MAKES_PER_MINUTE),
-    candidates: (itemId) => candidatesFor(env, itemId),
     head: store ? (pathname) => store.head(pathname) : null,
+    notStored,
   };
 }
 

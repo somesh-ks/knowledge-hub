@@ -1,10 +1,12 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { mapConcurrent } from "@dispatch/engine/concurrency";
 import type { SqlClient } from "@dispatch/engine/config-paths";
 import {
   activeShareLink,
   createShareLink,
   linkWorks,
   readShareLink,
+  revokeGrantedLink,
   revokeShareLinks,
   type SharedSegment,
   type ShareLink,
@@ -22,7 +24,7 @@ import type { DatabaseCall } from "./database";
 import { isSameOrigin } from "./generate";
 import type { ApiResult } from "./http";
 import { parseDigestId } from "./narrate";
-import { estimateDurationMs } from "./narrateSegments";
+import { segmentAudio } from "./narrateSegments";
 import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 
@@ -92,16 +94,68 @@ export interface ShareDeps {
   /** The shared per-minute cap of the route (D150): 0 to go ahead, else the seconds to wait. */
   burst: () => Promise<number>;
   now: () => number;
+  /**
+   * The item's audio files as the narration lookup names them now, from the same digests and
+   * episodes the listen page reads; null for no such item. Asks no store anything.
+   */
+  candidates: (itemId: string) => Promise<ShareCandidate[] | null>;
   log?: (message: string) => void;
 }
 
 export interface MakeDeps extends ShareDeps {
   /** A new link id; random in production. */
   newId?: () => string;
-  /** The item's audio files as the narration lookup names them, or null for no such item. */
-  candidates: (itemId: string) => Promise<ShareCandidate[] | null>;
   /** The Blob store's metadata for one file (a SIMPLE operation), null when nothing is there. */
   head: ((pathname: string) => Promise<BlobEntry | null>) | null;
+  /** Items lately found not fully stored, so a retried Share heads nothing (createNotStoredMemo). */
+  notStored?: NotStoredMemo;
+}
+
+/** How long "not fully stored" is believed: retries in this window cost no Blob operation. */
+export const NOT_STORED_MEMO_MS = 2 * 60_000;
+
+/** Remembers, per function instance, which item at which fingerprint was not fully stored. */
+export interface NotStoredMemo {
+  has: (item: string, source: string, now: number) => boolean;
+  add: (item: string, source: string, now: number) => void;
+}
+
+export function createNotStoredMemo(ttlMs = NOT_STORED_MEMO_MS): NotStoredMemo {
+  const held = new Map<string, { source: string; until: number }>();
+  return {
+    has(item, source, now) {
+      const entry = held.get(item);
+      if (entry && entry.until <= now) held.delete(item);
+      return entry !== undefined && entry.until > now && entry.source === source;
+    },
+    add(item, source, now) {
+      held.set(item, { source, until: now + ttlMs });
+    },
+  };
+}
+
+/**
+ * What a link is made from: a fingerprint of the files the lookup names, and their lengths of text.
+ * A segment's name carries the hash of its words and voice, so a Regenerate changes it.
+ */
+export function sourceOf(candidates: readonly ShareCandidate[]): string {
+  const names = candidates.map((candidate) => `${candidate.pathname}:${candidate.characters}`);
+  return createHash("sha256").update(names.join("\n")).digest("base64url").slice(0, 22);
+}
+
+/**
+ * Whether the item still is what `link` was made from: false when it is gone or was regenerated.
+ * An item the lookup cannot name files for right now (no store address) is not judged.
+ */
+async function stillCurrent(link: ShareLink, deps: ShareDeps): Promise<boolean> {
+  let candidates: ShareCandidate[] | null;
+  try {
+    candidates = await deps.candidates(link.item_id);
+  } catch {
+    return true;
+  }
+  if (candidates === null) return false;
+  return candidates.length === 0 || sourceOf(candidates) === link.source;
 }
 
 /** One file an item plays, where the lookup says it would be. */
@@ -180,27 +234,20 @@ async function storedFiles(
   candidates: readonly ShareCandidate[],
   head: (pathname: string) => Promise<BlobEntry | null>,
 ): Promise<{ segments: SharedSegment[]; bytes: number } | null> {
-  const entries: (BlobEntry | null)[] = new Array(candidates.length).fill(null);
-  let next = 0;
   let missing = false;
-  const worker = async () => {
-    while (next < candidates.length && !missing) {
-      const index = next;
-      next += 1;
-      const candidate = candidates[index];
-      if (!candidate) continue;
-      const entry = await head(candidate.pathname);
-      if (entry === null || !entry.url.startsWith("https://")) missing = true;
-      entries[index] = entry;
-    }
-  };
-  await Promise.all(Array.from({ length: HEADS_AT_ONCE }, worker));
+  // Once one file is missing the rest are not asked for: each head is a Blob operation.
+  const found = await mapConcurrent(candidates, HEADS_AT_ONCE, async (candidate) => {
+    if (missing) return null;
+    const entry = await head(candidate.pathname);
+    const audio = segmentAudio(entry, candidate.characters);
+    if (audio === null) missing = true;
+    return audio === null ? null : { url: audio.url, duration_ms: audio.duration_ms, entry };
+  });
   if (missing) return null;
-  const segments = entries.map((entry, index) => ({
-    url: entry?.url ?? "",
-    duration_ms: estimateDurationMs(entry?.size ?? 0, candidates[index]?.characters ?? 0),
-  }));
-  const bytes = entries.reduce((sum, entry) => sum + (entry?.size ?? 0), 0);
+  const segments = found.flatMap((file) =>
+    file ? [{ url: file.url, duration_ms: file.duration_ms }] : [],
+  );
+  const bytes = found.reduce((sum, file) => sum + (file?.entry?.size ?? 0), 0);
   return { segments, bytes };
 }
 
@@ -228,14 +275,26 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
     return stopped === UNAVAILABLE ? unavailable : { status: 200, body: { status: 200, stopped } };
   }
 
-  // A link that works is answered again: no store operation, one query.
-  const existing = await ask(deps, (sql) => activeShareLink(sql, item, now));
-  if (existing === UNAVAILABLE) return unavailable;
-  if (existing) return made(existing, secret);
-
   const candidates = await deps.candidates(item);
   if (candidates === null) return notFound;
+  const source = sourceOf(candidates);
+
+  // A link made from the item as it is now is answered again: no store operation, one query. One
+  // made before a Regenerate would play the old audio under the new text, so it is stopped.
+  const existing = await ask(deps, (sql) => activeShareLink(sql, item, now));
+  if (existing === UNAVAILABLE) return unavailable;
+  if (existing && (candidates.length === 0 || existing.source === source)) {
+    return made(existing, secret);
+  }
+  if (existing) {
+    log(`share ${item}: the item changed since its link was made; stopping that link`);
+    const stopped = await ask(deps, (sql) => revokeShareLinks(sql, item, now));
+    if (stopped === UNAVAILABLE) return unavailable;
+  }
+
   if (candidates.length === 0 || deps.head === null) return notStored;
+  // A Share retried on an item whose audio is still being made heads nothing for a while.
+  if (deps.notStored?.has(item, source, now)) return notStored;
   let stored: Awaited<ReturnType<typeof storedFiles>>;
   try {
     stored = await storedFiles(candidates, deps.head);
@@ -243,7 +302,10 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
     log(`share ${item}: the store could not be read: ${describeError(error, [])}`);
     return unavailable;
   }
-  if (stored === null) return notStored;
+  if (stored === null) {
+    deps.notStored?.add(item, source, now);
+    return notStored;
+  }
   const files = stored;
   const id = (deps.newId ?? newLinkId)();
   const link = await ask(deps, (sql) =>
@@ -254,6 +316,7 @@ export async function handleShare(input: ShareRequest, deps: MakeDeps): Promise<
       expiresAt: now + SHARE_EXPIRY_DAYS * DAY_MS,
       bytes: files.bytes,
       segments: files.segments,
+      source,
     }),
   );
   return link === UNAVAILABLE ? unavailable : made(link, secret);
@@ -297,6 +360,12 @@ export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Prom
   );
   if (grant === UNAVAILABLE) return unavailable;
   if (grant.granted) {
+    // Checked after the grant, so a granted play stays one round trip; a link whose item was
+    // deleted or regenerated since is stopped and its play handed back.
+    if (!(await stillCurrent(grant.link, deps))) {
+      const revoked = await ask(deps, (sql) => revokeGrantedLink(sql, id, now));
+      return revoked === UNAVAILABLE ? unavailable : gone;
+    }
     return { status: 200, body: { status: 200, segments: grant.link.segments } };
   }
   switch (grant.reason) {
@@ -341,5 +410,7 @@ export async function openListenLink(token: string, deps: ShareDeps): Promise<Li
   if (link === UNAVAILABLE) return { status: 503, reason: "unavailable" };
   if (link === null) return { status: 404, reason: "not_found" };
   if (!linkWorks(link, deps.now())) return { status: 410, reason: "gone" };
+  // The page only reads; the next play stops a link whose item changed.
+  if (!(await stillCurrent(link, deps))) return { status: 410, reason: "gone" };
   return { status: 200, link };
 }

@@ -3,6 +3,7 @@ import appFont from "../../assets/fonts/google-sans-flex-latin-wght-normal.woff2
 import Icon from "../../components/Icon.astro";
 import PlayChip from "../../components/PlayChip.astro";
 import { parseBrandColors } from "../../lib/brandColors";
+import { themedCoverSrc } from "../../lib/covers";
 import { SHARE_DISPLAY_NAME } from "../../lib/share";
 import themeInit from "../../scripts/themeInit.js?raw";
 import { bundledDigests } from "../../server/digestSource";
@@ -122,8 +123,8 @@ const coverAlt = view
                 <img
                   class="cover-image"
                   data-mode={mode}
-                  src={`/covers/${mode}/${view.id}-512.webp`}
-                  srcset={`/covers/${mode}/${view.id}-512.webp 512w, /covers/${mode}/${view.id}-1024.webp 1024w`}
+                  src={themedCoverSrc(view.id, mode, 512)}
+                  srcset={`${themedCoverSrc(view.id, mode, 512)} 512w, ${themedCoverSrc(view.id, mode, 1024)} 1024w`}
                   sizes="(min-width: 40rem) 14rem, 11rem"
                   width="512"
                   height="512"
