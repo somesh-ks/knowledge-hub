@@ -379,7 +379,10 @@ function sharedPress(button: Element, controls: HTMLElement): void {
 export function handle(button: Element): void {
   const controls = button.closest<HTMLElement>("[data-story-controls]");
   if (!controls) return;
-  if (onSharedPage()) return sharedPress(button, controls);
+  if (onSharedPage()) {
+    sharedPress(button, controls);
+    return;
+  }
   if (button instanceof HTMLElement && button.dataset.vote) {
     const value = button.dataset.vote === "down" ? "down" : "up";
     const state = press(load(), refOf(controls), value, Date.now());
@@ -394,7 +397,10 @@ export function handle(button: Element): void {
 
 /** A story's link was followed: the open waits on the device for the next request. */
 export function opened(controls: HTMLElement): void {
-  if (onSharedPage()) return track("story_open", { topic: controls.dataset.topic ?? "" });
+  if (onSharedPage()) {
+    track("story_open", { topic: controls.dataset.topic ?? "" });
+    return;
+  }
   save(recordOpen(load(), refOf(controls), Date.now()));
   track("story_open", { topic: controls.dataset.topic ?? "" });
   schedule();
