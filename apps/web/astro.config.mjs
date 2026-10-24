@@ -7,6 +7,7 @@ import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
 import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
 import { withModulePreloads } from "./src/lib/bundleBudget.ts";
+import { BUILT_CONFIG_PATHS } from "./src/lib/configHash.ts";
 import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
 // The data layer reads Digests/ at build time. Page code is bundled into chunks whose import.meta.url
@@ -92,11 +93,23 @@ function stubApiRoutesForStaticBuild() {
   };
 }
 
+// A page rendered on request (D173) draws the same layout as a built one, which reads these from the
+// checkout: the brand colours from the tokens, the settings digest from the config files, and the
+// core package that marks the repository root. Nothing imports them, so the function would not carry
+// them, and a missing config file reads as empty: a digest no settings answer matches, with no error.
+const FILES_PAGES_READ = [
+  "./src/styles/tokens.css",
+  "../../packages/core/package.json",
+  ...BUILT_CONFIG_PATHS.map((path) => `../../${path}`),
+];
+
 export default defineConfig({
   site: "https://news.someshks.work",
   // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
-  adapter: staticOnly ? undefined : vercel({ maxDuration: FUNCTION_MAX_DURATION_S }),
+  adapter: staticOnly
+    ? undefined
+    : vercel({ maxDuration: FUNCTION_MAX_DURATION_S, includeFiles: FILES_PAGES_READ }),
   integrations: [
     react(),
     preloadPageModules(),

@@ -52,7 +52,14 @@ if (!Astro.isPrerendered) {
   readSiteFrom(load);
   const index = site.entries.findIndex((entry) => entry.id === Astro.params.id);
   const entry = site.entries[index];
-  if (!entry) return Astro.rewrite("/404");
+  // The 404 page is built, not part of this function, so it is fetched from the site's own edge.
+  if (!entry) {
+    const notFound = await fetch(new URL("/404", Astro.url)).catch(() => null);
+    return new Response(notFound?.ok ? await notFound.text() : "Not found", {
+      status: 404,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
   props = { entry, earlier: site.entries.slice(index + 1, index + 4), isLatest: index === 0 };
   Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
 }
