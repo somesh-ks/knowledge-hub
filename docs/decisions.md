@@ -172,6 +172,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D159 | Deploy alerts | amends D157 |
 | D161 | Publisher above the headline | active; amends D31 |
 | D166 | Firecrawl 100 a week | amends D42 |
+| D175 | A ruleset keeps `main` green | amends D143, D148 |
 
 ---
 
@@ -1751,3 +1752,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the YouTube relay (#235) and the article scrapes press on 30 a run. A weekly cap lets one run use more while the week stays at the owner's number; 50 is half the week, so one run can never spend it all.
 - Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
 - Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
+
+## D175: `main` is protected by a ruleset, with the Actions app as the only bypass
+
+- Date: 2026-10-24 (the owner: "Rulesets for main branch to have industry grade checks and quality checks to make sure main branch is always stable")
+- Decision: a GitHub ruleset on the default branch, kept in `.github/rulesets/main.json` (runbook 12): no deletion, no force push, linear history, every change through a pull request with its threads resolved and squash as the only merge method, the `check` and `browser` jobs required and the branch up to date with `main` at merge time. The GitHub Actions app bypasses it always, so the engine's own commits (digests, narration, episodes, config) keep landing; no person does.
+- Why: on 2026-10-24 two PRs that each passed CI alone put `main` over the learnings budget, so `docsCheck` failed on `main` itself; and nothing stopped a direct push or a force push. Strict required checks test the merged state; the ruleset turns D143's "review before every merge" and D148's "CI on pull requests" from habit into a rule the host enforces.
+- Cost: each merge first updates its branch and waits for CI again (about 4 minutes, 15 with the browser suites); with several PRs open they merge one at a time. Rulesets on a private repository need GitHub Pro.
+- Rejected: requiring the `review` check (Dependabot's PRs merge without the label, and the review runs only when the label is added); required approvals (one owner cannot approve their own PR); signed commits (the engine's are unsigned); a person as a bypass actor (then the rule is a habit again).
+- Revisit if: a workflow starts pushing with a token that is not the Actions app's (it would need its own bypass), or merges queue up behind the strict check for longer than they save.
