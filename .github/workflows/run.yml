@@ -204,6 +204,9 @@ jobs:
         if: steps.gate.outputs.due == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          # A briefing that validation cut short is refilled once, and the refill reads its
+          # stories' pages the way the write stage does.
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: npm run --silent dispatch -- run --stage validate --json
 
       # Every story each pass considered (pool, judgments, selection), kept 30 days, so loop/replay.ts

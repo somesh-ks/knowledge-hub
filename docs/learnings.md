@@ -44,6 +44,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-24: a 5-minute daily aired 3.0: 14 written, validation cut 7, nothing refilled. Validation refills once from `reserve.json`. Grounding never saw the title the writer read.
 - 2026-10-22: three review rounds of new `health` checks each found false faults (a waking Neon, an edit during a run, Dependabot merges Hobby never deploys, a regenerate read as late). A fault must be actionable and hold a day; make the rest warnings.
 - 2026-10-20: a group page saved its mix on a fallback home while the engine read the fixed one, and the outlet cap keyed by `source_id` let BBC's five feeds through; one helper (`groupHomeId`) and the story's host fix both. Review found both, no test did.
 - 2026-10-19: adding a YouTube channel in the panel said "The address could not be read". The preview caps a page at 1 MB and a channel page is about 1.3 MB, so the fetch threw, `resolveYoutubeChannel` swallowed it, and even a `/channel/UC...` address (which holds the id) failed. The id now comes from the path, then YouTube's `navigation/resolve_url` (about 1 KB), then the page. Firecrawl is not the YouTube path (its copy of a channel page carried a 401 banner); a social page with no feed (x, instagram, facebook, linkedin, tiktok, threads) is refused instead of becoming a scrape source.
