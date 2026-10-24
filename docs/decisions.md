@@ -180,6 +180,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
 | D173 | Data off the deploy path | proposed |
+| D175 | Ruleset on `main` | amends D143 |
 
 ---
 
@@ -1835,3 +1836,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: Dispatch treats data as code, so a save or an episode is a build and a deploy; the big apps ship code a few times a week and move data at run time. For one user, static pages stay the fastest shape, so only the data moves.
 - Rejected: rendering the Library at request time (a function call a visit, Neon's cold start, the static page lost); moving digests too (a run deploys anyway); keeping every episode in git (one deploy an episode stays).
 - Revisit if: the owner answers the questions, which turns this into a build decision.
+
+## D175: `main` is protected by a ruleset, with the Actions app as the only bypass
+
+- Date: 2026-10-24 (the owner: "Rulesets for main branch to have industry grade checks and quality checks to make sure main branch is always stable")
+- Decision: a GitHub ruleset on the default branch, kept in `.github/rulesets/main.json` (runbook 12): no deletion, no force push, linear history, every change through a pull request with its threads resolved and squash as the only merge method, the `check` and `browser` jobs required and the branch up to date with `main` at merge time. The GitHub Actions app bypasses it always, so the engine's own commits (digests, narration, episodes, config) keep landing; no person does.
+- Why: on 2026-10-24 two PRs that each passed CI alone put `main` over the learnings budget, so `docsCheck` failed on `main` itself; and nothing stopped a direct push or a force push. Strict required checks test the merged state; the ruleset turns D143's "review before every merge" and D148's "CI on pull requests" from habit into a rule the host enforces.
+- Cost: each merge first updates its branch and waits for CI again (about 4 minutes, 15 with the browser suites); with several PRs open they merge one at a time. Rulesets on a private repository need GitHub Pro.
+- Rejected: requiring the `review` check (Dependabot's PRs merge without the label, and the review runs only when the label is added); required approvals (one owner cannot approve their own PR); signed commits (the engine's are unsigned); a person as a bypass actor (then the rule is a habit again).
+- Revisit if: a workflow starts pushing with a token that is not the Actions app's (it would need its own bypass), or merges queue up behind the strict check for longer than they save.
