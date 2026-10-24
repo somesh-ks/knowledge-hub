@@ -1,6 +1,7 @@
 import type { SqlClient } from "@dispatch/engine/config-paths";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import type { NarrateLookupResponse } from "../types/contracts";
 import type { BlobEntry } from "./blobStore";
 import { type DatabaseCall, guardedDatabase } from "./database";
 import {
@@ -18,6 +19,22 @@ import {
 vi.setConfig({ testTimeout: 30_000 });
 
 const ORIGIN = "https://news.someshks.work";
+const BLOB = "https://s.public.blob.vercel-storage.com";
+
+/** The narration lookup naming these files, each where the store would keep it. */
+const lookupOf = (files: ShareCandidate[] | null): NarrateLookupResponse | null =>
+  files && {
+    status: 200,
+    audio: null,
+    timeline: null,
+    segments: files.map((file, index) => ({
+      key: `s${index}`,
+      item_id: null,
+      characters: file.characters,
+      audio: { url: `${BLOB}/${file.pathname}`, duration_ms: 1_000, confirmed: false },
+    })),
+    ms_per_character: 60,
+  };
 
 /** The real guarded database with a connect that counts: any query at all would call it. */
 function deps() {
@@ -34,7 +51,8 @@ function deps() {
       database: guardedDatabase({ databaseUrl: "postgres://test", connect }),
       burst,
       now: () => Date.parse("2026-10-24T12:00:00Z"),
-      candidates: async () => [],
+      lookup: async () => null,
+      publicBase: BLOB,
     },
   };
 }
@@ -98,7 +116,7 @@ describe("a shared link and its item", () => {
       async (pathname: string): Promise<BlobEntry | null> =>
         stored.has(pathname)
           ? ({
-              url: `https://s.public.blob.vercel-storage.com/${pathname}`,
+              url: `${BLOB}/${pathname}`,
               size: 16_000,
             } as BlobEntry)
           : null,
@@ -108,7 +126,8 @@ describe("a shared link and its item", () => {
       database,
       burst: async () => 0,
       now: () => now,
-      candidates: async () => files,
+      lookup: async () => lookupOf(files),
+      publicBase: BLOB,
       head,
       notStored: createNotStoredMemo(),
     };
@@ -149,11 +168,13 @@ describe("a shared link and its item", () => {
     const second = (await share()).body.token;
     expect(second).not.toBe(first);
     const granted = await play(second);
+    // The answer is the lookup the player reads, each file the stored one and confirmed, so the
+    // shared page's player never asks /api/narrate.
     expect(granted.body.segments).toEqual([
-      {
-        url: "https://s.public.blob.vercel-storage.com/audio/a-v2.mp3",
-        duration_ms: expect.any(Number),
-      },
+      expect.objectContaining({
+        key: "s0",
+        audio: { url: `${BLOB}/audio/a-v2.mp3`, duration_ms: expect.any(Number), confirmed: true },
+      }),
     ]);
 
     // Deleted: the link stops, and the play it was granted is handed back to the month.

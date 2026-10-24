@@ -1,4 +1,4 @@
-import { analyticsPath } from "./listenAnalytics";
+import { analyticsPath, isSharedPath } from "./listenAnalytics";
 
 /**
  * Simple Analytics (D154): cookieless page views and a few named events, on the production site
@@ -62,7 +62,10 @@ export function sharedUrl(address: string, base: string): string {
  */
 export function sharedItem(url: string): { kind: "briefing" | "episode"; item: string } {
   const [route = "", item = ""] = new URL(url).pathname.split("/").filter(Boolean);
-  return { kind: route === "e" ? "episode" : "briefing", item: route === "d" || route === "e" ? item : "" };
+  return {
+    kind: route === "e" ? "episode" : "briefing",
+    item: route === "d" || route === "e" ? item : "",
+  };
 }
 
 /**
@@ -103,8 +106,11 @@ export function installAnalytics(): void {
   if (installed || !counted()) return;
   installed = true;
   const target = window as unknown as AnalyticsWindow;
-  // Asked on every page view, as the client router moves from page to page.
-  target[PATH_OVERWRITER] = () => analyticsPath(window.location.pathname);
+  // A session that opens on a shared page reports it as /s, and the pages it moves on to (by the
+  // client router) as their own. Nothing in the app links to a shared page, so no other session
+  // reaches one without a fresh load.
+  const shared = isSharedPath(window.location.pathname ?? "");
+  if (shared) target[PATH_OVERWRITER] = () => analyticsPath(window.location.pathname);
   // An installed app is a reader who came back: the one retention signal that needs no identifier.
   target.sa_metadata = { installed: matchMedia("(display-mode: standalone)").matches };
   if (!target.sa_event) {
@@ -117,6 +123,6 @@ export function installAnalytics(): void {
   const script = document.createElement("script");
   script.async = true;
   script.src = `${ANALYTICS_SCRIPT_ORIGIN}/latest.js`;
-  script.setAttribute("data-path-overwriter", PATH_OVERWRITER);
+  if (shared) script.setAttribute("data-path-overwriter", PATH_OVERWRITER);
   document.head.append(script);
 }

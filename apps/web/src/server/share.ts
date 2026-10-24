@@ -30,7 +30,7 @@ import { describeError } from "./redact";
 
 /**
  * Share links (D153): `POST /api/share` makes an item's link (or answers the one it has), `DELETE
- * /api/share` stops it, `POST /api/share-play` starts a play on the listen page, and the page itself
+ * /api/share` stops it, `POST /api/share-play` starts a play on the shared page, and the page itself
  * opens a link with `openListenLink`. The token is the link's random 128-bit id, looked up in Neon:
  * nothing to set up and nothing for a listener to enter (D153, D160). A token of the wrong shape is
  * refused before the rate counter or the database is asked; a well-formed guess costs one bucket
@@ -347,7 +347,7 @@ function parseToken(bodyText: string): unknown {
 }
 
 /**
- * POST /api/share-play: one play start on the listen page. The link must work, be under its cap
+ * POST /api/share-play: one play start on the shared page. The link must work, be under its cap
  * and the month under its budget; then its plays go up by one, the month's bytes by the item's
  * size, and the answer is the item's narration lookup with the link's files (sharedLookup).
  */
@@ -404,13 +404,13 @@ export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Prom
   return notFound;
 }
 
-/** What the listen page renders for a token. */
+/** What the shared page renders for a token. */
 export type ListenOpen =
   | { status: 200; link: ShareLink }
   | { status: 404 | 410 | 429 | 503; reason: string };
 
 /**
- * The link a listen page's token opens. A token of the wrong shape is answered 404 before the cap or
+ * The link a shared page's token opens. A token of the wrong shape is answered 404 before the cap or
  * the database is asked, an unknown one 404 after the lookup; a revoked or expired link is 410.
  */
 export async function openListenLink(token: string, deps: ShareDeps): Promise<ListenOpen> {

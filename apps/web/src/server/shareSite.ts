@@ -3,21 +3,21 @@ import { SHAREABLE_KINDS } from "../lib/share";
 import type { NarrateLookupResponse } from "../types/contracts";
 import { createVercelBlobStore } from "./blobStore";
 import { readBlobCredentials, readPublicBlobBase, type ServerEnv, withSecondVoice } from "./config";
-import { guardedDatabase } from "./database";
 import { contentDigests, contentEpisodes } from "./contentSources";
+import { guardedDatabase } from "./database";
 import { handleNarrationLookup, isEpisodeId } from "./narrate";
 import { burstCap } from "./rateLimit";
 import { createNotStoredMemo, type MakeDeps, type ShareDeps } from "./share";
 
 /**
- * The share routes' and the listen page's real dependencies: Neon through the guarded call, the
+ * The share routes' and the shared page's real dependencies: Neon through the guarded call, the
  * shared per-minute caps (D150, one bucket per route), the digests and episodes /api/narrate reads
  * (the content repository, D173), and Blob.
  */
 
 /** Make and stop, all items together: the owner shares a few a day. */
 const SHARE_MAKES_PER_MINUTE = 10;
-/** Play starts on every listen page together; a listener presses Play once per listen. */
+/** Play starts on every shared page together; a listener presses Play once per listen. */
 const SHARE_PLAYS_PER_MINUTE = 30;
 /** Listen page renders that miss the CDN's five-minute copy. */
 const LISTEN_PAGES_PER_MINUTE = 60;
@@ -75,5 +75,5 @@ export function makeDeps(requestOidcToken: () => string | null): MakeDeps {
 /** POST /api/share-play. */
 export const playDeps = (): ShareDeps => base("share-play", SHARE_PLAYS_PER_MINUTE);
 
-/** The listen page, /s/<token>. */
+/** The shared page, /s/<token>. */
 export const listenDeps = (): ShareDeps => base("share-page", LISTEN_PAGES_PER_MINUTE);

@@ -21,9 +21,8 @@ Cookieless counts of visits and a few named events on news.someshks.work, throug
 | `download` | a Library item is saved for offline listening | `kind` |
 | `install` | the browser reports the app installed (`appinstalled`, Chromium only) | none |
 | `create_episode` | Catch up got an answer | `outcome` started, limited (429) or failed |
-| `listen_*` | as above, on a listen page ([sharing.md](sharing.md)) | `kind`, `surface` listen, `generation` (`g`, 1 to 9), `item` |
 
-A listen page reports views and events as the path `/s` (`data-path-overwriter`): no token is sent.
+A session that opens on a shared page ([sharing.md](sharing.md)) reports it as the path `/s` (`data-path-overwriter`, `lib/listenAnalytics.ts`): no token is sent.
 
 A shared link carries `?ref=share`, which Simple Analytics reports as the referrer `share` (messaging apps send none). Pasted, a briefing or episode link draws a card (D153, `apps/web/src/lib/linkCard.ts`); `robots.txt` lets previewers fetch `/d/`, `/e/` and `/covers/`, `noindex` keeps them out of search, and `checkBundle` fails a page without a card.
 

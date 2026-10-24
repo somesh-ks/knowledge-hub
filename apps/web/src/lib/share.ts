@@ -24,7 +24,7 @@ export const SHARE_FIRST_GENERATION = 1;
 export const listenPath = (token: string): string => `/s/${token}`;
 
 /**
- * The address a share sends: the listen page with `ref=share` (D154's attribution) and the link's
+ * The address a share sends: the shared page with `ref=share` (D154's attribution) and the link's
  * generation `g`. The token is in the path, never in a query an analytics event would carry.
  */
 export function listenUrl(
@@ -43,7 +43,10 @@ export const NOT_STORED_COPY = "Play it once to finish its audio, then share.";
 
 /** What Share beside Play sends (PlayCta.astro): the item's listen link, or an address as it is. */
 export interface HeroShare {
-  /** The page's own address, shared as is where no listen link can be made. */
+  /**
+   * The page's own address, shared as is where no listen link can be made; empty on a shared page,
+   * which sends on the address it was opened at.
+   */
   path: string;
   /** The briefing or episode whose listen link Share makes (scripts/shareLink.ts). */
   item?: string;
@@ -54,14 +57,14 @@ export interface HeroShare {
 
 /**
  * What Share beside Play sends: on the owner's page the item's listen link, which the share route
- * makes; on a shared page the same shared link, sent on.
+ * makes; on a shared page the link it was opened at, sent on.
  */
 export function sharedTarget(
   id: string,
   kind: "briefing" | "episode",
   shareToken: string | undefined,
 ): HeroShare {
-  if (shareToken) return { path: listenPath(shareToken), kind, of: id };
+  if (shareToken) return { path: "", kind, of: id };
   return { path: `/${kind === "episode" ? "e" : "d"}/${id}`, item: id, kind };
 }
 

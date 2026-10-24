@@ -32,7 +32,7 @@ const hasAudio = entry.audioMode === "ready";
   data-digest-id={entry.id}
   data-digest-date={entry.digest.date}
   data-latest={isLatest ? "true" : "false"}
-  data-share-token={shareToken}
+  data-shared={shareToken ? "" : undefined}
 >
   <DigestHero entry={entry} hero={hero} shareToken={shareToken} />
   {

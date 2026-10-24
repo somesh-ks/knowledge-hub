@@ -7,7 +7,7 @@ import { playDeps } from "../../server/shareSite";
 // The site is static; this route runs on demand, as a Vercel Function.
 export const prerender = false;
 
-/** One play start on the listen page: the link's checks and counts, then its files (D153). */
+/** One play start on the shared page: the link's checks and counts, then its files (D153). */
 const post: APIRoute = async ({ request, url }) =>
   toResponse(
     await handleSharePlay(

@@ -195,7 +195,9 @@ function watchSections({ keepHeld = false } = {}): void {
 }
 
 async function share(button: HTMLElement): Promise<void> {
-  const { share: path = "", shareItem: id, shareKind, shareOf } = button.dataset;
+  const { shareItem: id, shareKind, shareOf } = button.dataset;
+  // Empty on a shared page: it sends on the link it was opened at.
+  const path = button.dataset.share || location.pathname;
   const kind = shareKind === "episode" ? "episode" : "briefing";
   // A shared page sends its own link on, counted by the item it plays (data-share-of), never the token.
   const outcome = id

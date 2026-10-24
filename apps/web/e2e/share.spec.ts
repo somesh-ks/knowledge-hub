@@ -3,19 +3,13 @@ import { PGlite } from "@electric-sql/pglite";
 import type { BrowserContext, Page } from "@playwright/test";
 import { guardedDatabase } from "../src/server/database";
 import { handleNarrationLookup } from "../src/server/narrate";
-import {
-  handleShare,
-  handleSharePlay,
-  type MakeDeps,
-  openListenLink,
-  shareCandidates,
-} from "../src/server/share";
+import { handleShare, handleSharePlay, type MakeDeps, openListenLink } from "../src/server/share";
 import type { NarrateLookupResponse } from "../src/types/contracts";
 import { AUDIO_DIGEST, expect, hydrated, test } from "./fixtures";
 
 /**
  * The share journey (D153) on the site's own handlers: `/api/share`, `/api/share-play` and the
- * listen page's token check run as in production against an in-process Postgres; only Blob is
+ * shared page's token check run as in production against an in-process Postgres; only Blob is
  * faked (every file the lookup names is stored, and each plays the fixture recording). The static
  * build has no server, so `/s/<token>` is answered with the page it drew for the link's item.
  */
@@ -54,12 +48,13 @@ function server() {
     }),
     burst: async () => 0,
     now: Date.now,
-    candidates: async (item) =>
-      shareCandidates(
-        (await handleNarrationLookup({ digest: item, params: ["digest"] }, { env, digests }))
-          .body as NarrateLookupResponse,
-        BLOB,
-      ),
+    lookup: async (item) => {
+      const found = (
+        await handleNarrationLookup({ digest: item, params: ["digest"] }, { env, digests })
+      ).body as NarrateLookupResponse;
+      return found.status === 200 ? found : null;
+    },
+    publicBase: BLOB,
     head: async (pathname) => ({
       pathname,
       url: `${BLOB}/${pathname}`,
@@ -90,7 +85,7 @@ async function routeShare(page: Page, { deps }: Server): Promise<void> {
   });
 }
 
-/** A stranger's browser: the listen page and its play route, and the stored files. */
+/** A stranger's browser: the shared page and its play route, and the stored files. */
 async function routeListener(
   context: BrowserContext,
   { deps }: Server,
@@ -142,15 +137,7 @@ function tokenOf(link: string): string {
   return shared && url.pathname.startsWith("/s/") ? (url.pathname.split("/")[2] ?? "") : "";
 }
 
-/** The stored file the listen page is playing, once sound is coming out of it. */
-const playingFile = (listener: Page) =>
-  listener
-    .locator("audio")
-    .evaluate((audio: HTMLAudioElement) =>
-      audio.currentTime > 0 && audio.currentSrc.startsWith("https://") ? audio.currentSrc : null,
-    );
-
-test("a shared link plays its stored audio in a fresh browser, never narrates, replays from the start, and stops when revoked", async ({
+test("a shared link opens the app's page in a fresh browser, plays its stored audio, never narrates, and stops when revoked", async ({
   page,
   browser,
   baseURL,
@@ -169,44 +156,27 @@ test("a shared link plays its stored audio in a fresh browser, never narrates, r
   const copied = () => page.evaluate(() => (window as unknown as { copied: string[] }).copied);
   await page.goto(AUDIO_DIGEST);
   await hydrated(page);
-  await page.getByRole("button", { name: "More actions" }).click();
-  await page.getByRole("menuitem", { name: "Share" }).click();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
   await expect.poll(async () => (await copied()).length).toBe(1);
   const link = (await copied())[0] ?? "";
   const token = tokenOf(link);
   expect(token, link).not.toBe("");
 
-  // A stranger opens it: no app, no service worker, no narration.
+  // A stranger opens it: the briefing's own page, with no owner actions, and no narration.
   const fresh = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
   const asked = await routeListener(fresh, app, baseURL ?? "");
   const listener = await fresh.newPage();
   const opened = await listener.goto(new URL(link).pathname + new URL(link).search);
   expect(opened?.status()).toBe(200);
   expect(opened?.headers()["x-robots-tag"]).toContain("noindex");
+  await hydrated(listener);
   await expect(listener.getByRole("heading", { level: 1 })).toBeVisible();
-  await listener.getByRole("button", { name: "Play" }).click();
-  await expect.poll(() => playingFile(listener)).toMatch(new RegExp(`^${BLOB}/audio/${ID}/`));
-  const first = await playingFile(listener);
-
-  // Played to the end (each file skipped to its last moment), Play starts again at the first file.
-  await expect
-    .poll(
-      () =>
-        listener.locator("audio").evaluate((audio: HTMLAudioElement) => {
-          if (!audio.paused && audio.duration > 0.2) audio.currentTime = audio.duration - 0.1;
-          return audio.ended;
-        }),
-      { timeout: 30_000 },
-    )
-    .toBe(true);
-  await listener.getByRole("button", { name: "Play" }).click();
-  await expect.poll(() => playingFile(listener)).toBe(first);
+  await expect(listener.getByRole("button", { name: "More actions" })).toHaveCount(0);
+  await listener.getByRole("button", { name: /^Play the briefing/ }).click();
+  // The player fetches the link's stored files, which the play route answered.
+  await expect.poll(() => asked.some((url) => url.startsWith(`${BLOB}/audio/${ID}/`))).toBe(true);
 
   expect(asked.filter((url) => url.includes("/api/narrate"))).toEqual([]);
-  expect(
-    await listener.evaluate(() => navigator.serviceWorker.getRegistrations().then((r) => r.length)),
-  ).toBe(0);
-  expect(await listener.locator('link[rel="manifest"]').count()).toBe(0);
   for (const url of asked)
     expect(url, "nothing leaves for analytics in a test").not.toContain("simpleanalytics");
 

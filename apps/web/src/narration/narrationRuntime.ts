@@ -50,10 +50,15 @@ function getController(): NarrationController {
   return controller;
 }
 
-/** The token of a shared page showing this briefing (DigestView, EpisodeView), else null. */
+/**
+ * The token of a shared page showing this briefing (DigestView and EpisodeView mark it), else null.
+ * Read from the address the page was opened at, /s/<token>.
+ */
 function shareToken(digestId: string): string | null {
-  for (const main of document.querySelectorAll<HTMLElement>("main[data-share-token]")) {
-    if (main.dataset.digestId === digestId) return main.dataset.shareToken || null;
+  const [route, token] = location.pathname.split("/").filter(Boolean);
+  if (route !== "s" || !token) return null;
+  for (const main of document.querySelectorAll<HTMLElement>("main[data-shared]")) {
+    if (main.dataset.digestId === digestId) return token;
   }
   return null;
 }
