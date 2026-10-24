@@ -162,7 +162,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
 | D149 | Owner config in Postgres; a git snapshot | active; off until set |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
-| D151 | CI fails on a high advisory; path-to-regexp overridden | active |
+| D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
 | D154 | Simple Analytics and a Privacy page | active |
 | D155 | Software Engineering topic | active; amends D69 |
@@ -173,6 +173,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | YouTube captions via Firecrawl | amends D138 |
 | D166 | Firecrawl 100 a week | amends D42 |
+| D172 | Store reads keep a device copy | amends D149 |
 | D173 | Episodes and settings off the deploy path | proposed |
 
 ---
@@ -1761,6 +1762,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the YouTube relay (#235) and the article scrapes press on 30 a run. A weekly cap lets one run use more while the week stays at the owner's number; 50 is half the week, so one run can never spend it all.
 - Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
 - Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
+
+## D172: a settings page keeps the store's last answer on the device
+
+- Date: 2026-10-24 (the owner: "make sure our app is professional industry grade", after asking how Spotify's settings feel instant)
+- Decision: `configStoreRead.ts` keeps the last answer `GET /api/config` gave in `localStorage` (`dispatch:store-read`, one build's edits). A page asks the store as before; when the store has not answered within 300 ms the page lays the device's copy over itself and the read goes on, so a late answer serves the next read and replaces the copy. A failed read leaves the copy standing. A copy from another build is ignored, as a read from another build is.
+- Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
+- Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
+- Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
 
 ## D173: episodes and settings leave the deploy path, proposed
 

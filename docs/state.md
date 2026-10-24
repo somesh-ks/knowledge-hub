@@ -15,18 +15,18 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Site e2e: 371 runs on 2026-10-22, about 15 minutes. Player e2e: 71 runs, about 3 minutes.
+Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e: 371 runs on 2026-10-22, about 15 minutes. Player e2e: 71 runs, about 3 minutes.
 
 ## Not working or unverified
 
-- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses until then); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
+- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev on news.someshks.work and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
-- Downloads (D127) on a real phone: the audio fetch against the Blob host's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
+- Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
-- Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` since #183, and `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
+- Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` (#183); `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - `?view=preferences` (D129) may flash Sources on load. closed when: a reload on a phone shows no Sources frame first.
 - Topic emoji from Jev (D133) never asked live. closed when: a topic added on production shows Jev's emoji.
 - D125: pull to close, sticky tabs, keyboard fit. closed when: each works on phone.
@@ -51,7 +51,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 - With a mouse a story chip grows 11px from idle to played (it reserves "Play again"). closed when: the chip keeps one width in a browser assertion.
 - On a 360x740 phone the sticky Generate bar covers More options on `/create` at rest. closed when: axe reports no obscured target there.
 - An aggregator's or redirect's link to a blocked outlet is not caught. closed when: matching resolves the final URL, or the owner accepts it.
-- Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source score thresholds (D55), the vote numbers (15%, 3 votes, 30 days). closed when: each is checked against the golden set or two weeks of real data.
+- Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source scores (D55), the vote numbers (15%, 3 votes, 30 days). closed when: each is checked against the golden set or two weeks of real data.
 - Settings logic gaps (D102): a partial `skip_topics` without `general_scoped` un-skips general topics (the site never sends it); `topic.enabled` is never set false (dead branches); Edit topic sends the build's weight, not a pending edit. closed when: each is fixed or removed with a test.
 - Unverified (D106 to D109): the volume slider's 400 ms linger and hold while dragged (CSS only), the highlight's pause on a live briefing, a vote batch sent on unload (a lost one is not retried), a briefing regenerated with a topic its run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
@@ -75,4 +75,4 @@ Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, about 85 s here. Si
 4. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
 5. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).
 6. Calibrate the Jev thresholds on the golden set (`eval/run.ts --only judges`); apply the source pass-rate nudge in the `curate` path; one generated briefing to see Design and Trending, then tune the Trending threshold.
-7. Tests left by the D99 cuts, only if they cost less than they save: `gate-decideRun` DST cases, `voice-lint`, the `heldSave` and `readerContract` tables, the Library filter table.
+7. Tests left by the D99 cuts, if they cost less than they save: `gate-decideRun` DST cases, `voice-lint`, the `heldSave` and `readerContract` tables, the Library filter table.
