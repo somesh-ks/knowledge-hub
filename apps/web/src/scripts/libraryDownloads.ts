@@ -15,6 +15,7 @@ import {
   MANIFEST_KEY,
   marksAddress,
   NotReadyError,
+  OLD_AUDIO_CACHE,
   parseDownloads,
   segmentUrls,
 } from "../lib/downloads";
@@ -22,10 +23,30 @@ import {
 /** How long the worker gets to save the page's scripts before the download counts as done. */
 const WARM_MS = 15_000;
 
+/**
+ * The downloads cache. Downloads made before the rename (D179) are copied in first, while the old
+ * cache stays for the worker that may still be in charge; the new worker deletes it on activation.
+ */
+async function openDownloads(): Promise<Cache> {
+  const cache = await caches.open(AUDIO_CACHE);
+  if ((await caches.has(OLD_AUDIO_CACHE)) && !(await cache.match(MANIFEST_KEY))) {
+    const old = await caches.open(OLD_AUDIO_CACHE);
+    // The list goes last: once it is here the copy is whole, and nothing copies again.
+    const keys = await old.keys();
+    const isList = (key: Request) => new URL(key.url).pathname === MANIFEST_KEY;
+    for (const key of [...keys.filter((key) => !isList(key)), ...keys.filter(isList)]) {
+      const saved = await old.match(key);
+      if (saved) await cache.put(key, saved);
+    }
+  }
+  return cache;
+}
+
 export async function readDownloads(): Promise<Download[]> {
   try {
-    if (!("caches" in globalThis) || !(await caches.has(AUDIO_CACHE))) return [];
-    const cache = await caches.open(AUDIO_CACHE);
+    if (!("caches" in globalThis)) return [];
+    if (!(await caches.has(AUDIO_CACHE)) && !(await caches.has(OLD_AUDIO_CACHE))) return [];
+    const cache = await openDownloads();
     const saved = await cache.match(MANIFEST_KEY);
     return saved ? parseDownloads(await saved.text()) : [];
   } catch {
@@ -181,7 +202,7 @@ function askToPersist(): void {
 /** Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. */
 export async function download(request: DownloadRequest): Promise<void> {
   askToPersist();
-  const cache = await caches.open(AUDIO_CACHE);
+  const cache = await openDownloads();
   if (request.kind === "episode") {
     await downloadEpisode(cache, request);
     await warmPage(request.page);
@@ -225,7 +246,7 @@ export async function download(request: DownloadRequest): Promise<void> {
 }
 
 export async function removeDownload(id: string): Promise<void> {
-  const cache = await caches.open(AUDIO_CACHE);
+  const cache = await openDownloads();
   const list = await readDownloads();
   for (const old of list.filter((item) => item.id === id)) {
     for (const address of addressesOf(old)) await cache.delete(address);

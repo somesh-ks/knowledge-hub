@@ -1,7 +1,7 @@
 /**
  * Field Web Vitals (D156): LCP, INP and CLS from real visits. The page measures them
  * (apps/web/src/scripts/vitals.ts), `/api/report` stores them in Neon for seven days
- * (packages/engine/src/store/vitalsStore.ts), and `dispatch health` judges each metric's 7-day p75
+ * (packages/engine/src/store/vitalsStore.ts), and `singularity health` judges each metric's 7-day p75
  * against Google's thresholds. No dependencies: the page's lazy chunk imports this too, and the lab
  * probe (scripts/perfMath.ts) shares its CLS.
  */

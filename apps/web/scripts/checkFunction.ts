@@ -27,7 +27,7 @@ if (!existsSync(source)) {
 const { handler } = JSON.parse(readFileSync(join(source, ".vc-config.json"), "utf8")) as {
   handler: string;
 };
-const copy = mkdtempSync(join(tmpdir(), "dispatch-function-"));
+const copy = mkdtempSync(join(tmpdir(), "singularity-function-"));
 try {
   cpSync(source, copy, { recursive: true, dereference: true });
   // A GET to a POST-only route reads no settings, so it answers 405 whatever the environment.

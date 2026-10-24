@@ -1,18 +1,18 @@
 ---
 name: learn
-description: "Turn one sentence of taste feedback into a minimal, bounded patch for config/preferences.json, show the diff, then apply it through the Dispatch CLI, commit as chore(prefs) and push after one confirmation. Use when the user types /learn or says more shaders, less VC funding, show fewer funding stories, follow this author, stop showing X, tune my briefing. Moves a weight one stop (three weights per call) and says when it clamps. Not for generating a digest (use /digest), editing sources or voice, or working outside a clone (use sk-dispatch)."
+description: "Turn one sentence of taste feedback into a minimal, bounded patch for config/preferences.json, show the diff, then apply it through the Singularity CLI, commit as chore(prefs) and push after one confirmation. Use when the user types /learn or says more shaders, less VC funding, show fewer funding stories, follow this author, stop showing X, tune my briefing. Moves a weight one stop (three weights per call) and says when it clamps. Not for generating a digest (use /digest), editing sources or voice, or working outside a clone (use sk-dispatch)."
 argument-hint: "\"<sentence>\""
 disable-model-invocation: true
 allowed-tools:
   - Read
-  - Bash(npm run --silent dispatch:*)
+  - Bash(npm run --silent singularity:*)
   - Bash(node .claude/skills/learn/scripts/make-patch.mjs:*)
   - Bash(git status:*)
 ---
 
 # Learn
 
-Turns one sentence into a minimal preference patch, previews the diff, and applies it only after a yes. `D` means `npm run --silent dispatch --` and `P` means `node .claude/skills/learn/scripts/make-patch.mjs`, both from the repository root.
+Turns one sentence into a minimal preference patch, previews the diff, and applies it only after a yes. `D` means `npm run --silent singularity --` and `P` means `node .claude/skills/learn/scripts/make-patch.mjs`, both from the repository root.
 
 ## Rules
 

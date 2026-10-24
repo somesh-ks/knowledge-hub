@@ -1,4 +1,4 @@
-import { EMPTY_JUDGMENTS } from "@dispatch/core";
+import { EMPTY_JUDGMENTS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { type CurateInput, curatePool } from "../src/curate/pipeline.js";
 import { Selection, WrittenFile } from "../src/curate/selectionFile.js";

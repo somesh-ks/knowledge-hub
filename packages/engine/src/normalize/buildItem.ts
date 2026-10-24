@@ -1,4 +1,4 @@
-import { type Category, Item, itemId, type Source } from "@dispatch/core";
+import { type Category, Item, itemId, type Source } from "@singularity/core";
 import type { FetchWindow } from "../gate/fetchWindow.js";
 import { canonicalizeUrl } from "./canonicalizeUrl.js";
 import { collapseWhitespace, htmlToText } from "./htmlToText.js";

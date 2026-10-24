@@ -1,4 +1,4 @@
-import type { Item } from "@dispatch/core";
+import type { Item } from "@singularity/core";
 import { noul } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import type { Logger } from "../context.js";

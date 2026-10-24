@@ -1,10 +1,10 @@
-import { VITAL_METRICS, type VitalDevice, type VitalMetric } from "@dispatch/core/vitals";
+import { VITAL_METRICS, type VitalDevice, type VitalMetric } from "@singularity/core/vitals";
 import type { SqlClient } from "./configPaths.js";
 import { missingTable, withTable } from "./pgErrors.js";
 
 /**
  * Field Web Vitals in Neon (D156), in the database the config store and the rate-limit counter use
- * (D149, D150): `/api/report` adds a page's samples, `dispatch health` reads each metric's 7-day
+ * (D149, D150): `/api/report` adds a page's samples, `singularity health` reads each metric's 7-day
  * p75. One row per metric a page measured, holding only its route template, the value, the device
  * class and the connection type. The table stays bounded: every insert deletes what fell out of the
  * window, as does health each day (`pruneVitals`), and an hour takes at most VITALS_ROWS_PER_HOUR

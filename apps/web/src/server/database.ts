@@ -1,4 +1,8 @@
-import { connectConfigStore, databaseSecrets, type SqlClient } from "@dispatch/engine/config-paths";
+import {
+  connectConfigStore,
+  databaseSecrets,
+  type SqlClient,
+} from "@singularity/engine/config-paths";
 import { describeError } from "./redact";
 
 /** How long a query may take (Neon waking from idle included) before the caller's fallback stands. */

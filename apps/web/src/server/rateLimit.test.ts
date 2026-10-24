@@ -1,4 +1,4 @@
-import type { SqlClient } from "@dispatch/engine/config-paths";
+import type { SqlClient } from "@singularity/engine/config-paths";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DATABASE_TIMEOUT_MS } from "./database";
 import { createSharedLimiter } from "./rateLimit";

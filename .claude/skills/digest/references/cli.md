@@ -1,8 +1,8 @@
 # CLI contracts used by /digest
 
-`D` is `npm run --silent dispatch --` from the repository root. `--json` prints one JSON document on stdout; logs always go to stderr. Global exit codes: 0 success, 1 failure, 2 usage error. Checked against the CLI help and sources on 2026-10-06; if a flag or shape differs, trust `D <command> --help` and report the mismatch.
+`D` is `npm run --silent singularity --` from the repository root. `--json` prints one JSON document on stdout; logs always go to stderr. Global exit codes: 0 success, 1 failure, 2 usage error. Checked against the CLI help and sources on 2026-10-06; if a flag or shape differs, trust `D <command> --help` and report the mismatch.
 
-## Dispatch commands
+## Singularity commands
 
 | Command | Exit codes | Output and fields used |
 | :--- | :--- | :--- |

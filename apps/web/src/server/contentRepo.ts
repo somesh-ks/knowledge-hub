@@ -5,7 +5,7 @@ import { readPublicBlobBase, type ServerEnv } from "./config";
 
 /**
  * The content repository (D173): the one place a page rendered on request gets its content. Today
- * it reads the content store in Blob, which `dispatch content sync` fills from git
+ * it reads the content store in Blob, which `singularity content sync` fills from git
  * (content/<repository path>, listed by content/manifest.json). With many users it reads Postgres
  * instead, one row per user, and no page changes.
  *

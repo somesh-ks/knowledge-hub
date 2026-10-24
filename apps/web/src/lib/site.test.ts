@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { serializeDigestFile } from "@dispatch/core";
+import { serializeDigestFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeDigest } from "../testing/digestFactory";
 import { FIXTURE_AUDIO_PATH, loadSite, rewriteFixtureAudioUrl, usesFixtures } from "./site";
@@ -9,7 +9,7 @@ import { FIXTURE_AUDIO_PATH, loadSite, rewriteFixtureAudioUrl, usesFixtures } fr
 let root = "";
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-site-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-site-"));
 });
 
 afterEach(async () => {
@@ -38,7 +38,7 @@ describe("usesFixtures", () => {
 
 describe("rewriteFixtureAudioUrl", () => {
   it("points the fixture host at the same-origin file", () => {
-    expect(rewriteFixtureAudioUrl("https://fixtures.dispatch.invalid/audio.wav")).toBe(
+    expect(rewriteFixtureAudioUrl("https://fixtures.singularity.invalid/audio.wav")).toBe(
       FIXTURE_AUDIO_PATH,
     );
   });

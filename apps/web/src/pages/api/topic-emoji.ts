@@ -1,5 +1,5 @@
-import { fallbackEmoji, placeEmoji } from "@dispatch/core";
-import { createEmojiPicker } from "@dispatch/engine/source-preview";
+import { fallbackEmoji, placeEmoji } from "@singularity/core";
+import { createEmojiPicker } from "@singularity/engine/source-preview";
 import type { APIRoute } from "astro";
 import { recordingFaults, toResponse } from "../../server/http";
 import { sharedLimit } from "../../server/rateLimit";

@@ -6,7 +6,7 @@ import {
   type DigestKind,
   digestRelPath,
   parseDigestFile,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { commitAndPush } from "../git/commit.js";
 import { readSeen, writeSeen } from "../state/store.js";
 import { StageFailure } from "./errors.js";
@@ -63,7 +63,7 @@ export async function removeDigestFiles(root: string, id: DigestId): Promise<str
   return paths;
 }
 
-/** `dispatch run --delete <id>`: removes the digest and its timeline in one guarded commit. */
+/** `singularity run --delete <id>`: removes the digest and its timeline in one guarded commit. */
 export async function deleteDigest(
   deps: RunDeps,
   id: DigestId,

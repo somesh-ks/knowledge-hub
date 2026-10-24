@@ -1,4 +1,4 @@
-import { VOICE_LIMITS } from "@dispatch/core";
+import { VOICE_LIMITS } from "@singularity/core";
 import { countSentences, countWords, longSentences } from "./sentences.js";
 import type { VoiceConfig } from "./voice.js";
 

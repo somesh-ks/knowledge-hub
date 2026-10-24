@@ -77,6 +77,9 @@ class FakeCaches {
   async delete(name: string) {
     return this.stores.delete(name);
   }
+  async has(name: string) {
+    return this.stores.has(name);
+  }
   stored(): string[] {
     return [...this.stores.values()].flatMap((store) => [...store.entries.keys()]);
   }
@@ -213,7 +216,7 @@ describe("service worker: caching strategies", () => {
   it("answers from the network when a cache read throws, and rebuilds its caches", async () => {
     const worker = load();
     await worker.dispatchFetch(request("/_astro/app.abc.css"));
-    const name = `dispatch-shell-${CURRENT_VERSION}`;
+    const name = `singularity-shell-${CURRENT_VERSION}`;
     const broken = await worker.caches.open(name);
     worker.caches.match = async () => {
       throw new Error("corrupt entry");
@@ -235,7 +238,7 @@ describe("service worker: caching strategies", () => {
       return new Response("{}");
     });
     await worker.dispatchFetch(request("/latest.json?t=1"));
-    const name = `dispatch-pages-${CURRENT_VERSION}`;
+    const name = `singularity-pages-${CURRENT_VERSION}`;
     const broken = await worker.caches.open(name);
     const match = worker.caches.match.bind(worker.caches);
     worker.caches.match = async (key: string | FakeRequest) => {
@@ -260,11 +263,11 @@ describe("service worker: caching strategies", () => {
       return new Response("body");
     });
     await worker.dispatchFetch(request("/d/2026-10-07"));
-    const pages = await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`);
+    const pages = await worker.caches.open(`singularity-pages-${CURRENT_VERSION}`);
     blip = true;
     const answer = await worker.dispatchFetch(request("/_astro/uncached.abc.js"));
     expect(answer.response?.status).toBe(200);
-    expect(await worker.caches.open(`dispatch-pages-${CURRENT_VERSION}`)).toBe(pages);
+    expect(await worker.caches.open(`singularity-pages-${CURRENT_VERSION}`)).toBe(pages);
     expect(await pages.match("/d/2026-10-07")).toBeDefined();
   });
 
@@ -552,16 +555,16 @@ describe("service worker: install and update", () => {
 
   it("removes caches from older versions and keeps current ones", async () => {
     const worker = load();
-    await worker.caches.open("dispatch-shell-v0");
-    await worker.caches.open("dispatch-pages-v0");
+    await worker.caches.open("singularity-shell-v0");
+    await worker.caches.open("singularity-pages-v0");
     await worker.caches.open("someone-elses-cache");
     await worker.lifecycle("install");
     await worker.lifecycle("activate");
     const names = await worker.caches.keys();
-    expect(names).not.toContain("dispatch-shell-v0");
-    expect(names).not.toContain("dispatch-pages-v0");
+    expect(names).not.toContain("singularity-shell-v0");
+    expect(names).not.toContain("singularity-pages-v0");
     expect(names).toContain("someone-elses-cache");
-    expect(names).toContain(`dispatch-shell-${CURRENT_VERSION}`);
+    expect(names).toContain(`singularity-shell-${CURRENT_VERSION}`);
     expect(worker.claim).toHaveBeenCalled();
   });
 });
@@ -571,7 +574,7 @@ describe("service worker: audio the person downloaded", () => {
   const body = "0123456789";
   async function withDownload() {
     const worker = load(() => new Response("network audio"));
-    const cache = await worker.caches.open("dispatch-audio-v1");
+    const cache = await worker.caches.open("singularity-audio-v1");
     await cache.put(AUDIO, new Response(body, { headers: { "content-type": "audio/mpeg" } }));
     // The page tells the worker its downloads changed; the worker reads them before answering.
     const done: Promise<unknown>[] = [];
@@ -626,9 +629,24 @@ describe("service worker: audio the person downloaded", () => {
 
   it("keeps the downloads when a new version of the worker takes over", async () => {
     const worker = await withDownload();
-    await (await worker.caches.open("dispatch-shell-v1")).put("/x", new Response("old"));
+    await (await worker.caches.open("singularity-shell-v1")).put("/x", new Response("old"));
     await worker.lifecycle("activate");
     expect(worker.caches.stored()).toContain(AUDIO);
     expect(worker.caches.stored()).not.toContain(`${ORIGIN}/x`);
+  });
+
+  // Bug it prevents: the rename (D179) moved the downloads to a new cache name, and the episodes a
+  // phone had downloaded would have stopped playing offline.
+  it("moves episodes downloaded under the old cache name and still plays them offline", async () => {
+    const worker = load(() => {
+      throw new TypeError("offline");
+    });
+    const old = await worker.caches.open("dispatch-audio-v1");
+    await old.put(AUDIO, new Response(body, { headers: { "content-type": "audio/mpeg" } }));
+    await old.put("/__downloads.json", new Response("[]"));
+    await worker.lifecycle("activate");
+    expect(await worker.caches.keys()).not.toContain("dispatch-audio-v1");
+    const { response } = await worker.dispatchFetch(ask());
+    expect(await response?.text()).toBe(body);
   });
 });

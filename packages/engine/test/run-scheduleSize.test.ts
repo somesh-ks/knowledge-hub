@@ -1,4 +1,4 @@
-import { DEFAULT_SCHEDULE, VOICE_LIMITS } from "@dispatch/core";
+import { DEFAULT_SCHEDULE, VOICE_LIMITS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { MAX_SPOKEN_CHARS } from "../src/audio/spokenText.js";
 import { DEFAULT_CAP } from "../src/prefilter/prefilter.js";

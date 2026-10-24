@@ -16,7 +16,7 @@ import {
 
 const TOKEN = "github_pat_secret_value_123456";
 const env = {
-  GITHUB_DISPATCH_TOKEN: TOKEN,
+  GITHUB_SINGULARITY_TOKEN: TOKEN,
   GITHUB_REPOSITORY: REPO,
 };
 const config = readServerConfig(env);
@@ -79,7 +79,7 @@ describe("isOurRun", () => {
     repositoryFullName: REPO,
   };
 
-  it("accepts a dispatch run of run.yml in this repository", () => {
+  it("accepts a singularity run of run.yml in this repository", () => {
     expect(isOurRun(ours, config)).toBe(true);
     expect(isOurRun({ ...ours, path: ".github/workflows/run.yml@refs/heads/main" }, config)).toBe(
       true,
@@ -87,7 +87,7 @@ describe("isOurRun", () => {
     expect(isOurRun({ ...ours, repositoryFullName: REPO.toUpperCase() }, config)).toBe(true);
   });
 
-  it("accepts a dispatch run of podcast.yml, and says which runs are episodes", () => {
+  it("accepts a singularity run of podcast.yml, and says which runs are episodes", () => {
     const episode = { ...ours, path: ".github/workflows/podcast.yml@refs/heads/main" };
     expect(isOurRun(episode, config)).toBe(true);
     expect(isPodcastRun(episode)).toBe(true);

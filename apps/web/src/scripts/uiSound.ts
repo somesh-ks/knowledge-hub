@@ -1,7 +1,7 @@
 /**
  * Interface sounds for clicks and choices, one listener for the whole app. The decision (which cue
  * for which control) lives in a lazy module, fetched at idle or at the first gesture, so nothing here
- * costs first load beyond these few lines. A `dispatch:sound` event with detail "success" or "failure"
+ * costs first load beyond these few lines. A `singularity:sound` event with detail "success" or "failure"
  * asks for the cue of an outcome the screen already states in words (saved, copied, refused).
  */
 import { warmWhenIdle } from "./idle";
@@ -29,6 +29,6 @@ export function installUiSound(): void {
   warmWhenIdle(load);
   for (const type of ["pointerdown", "keydown", "focusin"])
     addEventListener(type, () => void load(), { once: true, passive: true });
-  for (const type of ["click", "change", "dispatch:sound"])
+  for (const type of ["click", "change", "singularity:sound"])
     document.addEventListener(type, route, true);
 }

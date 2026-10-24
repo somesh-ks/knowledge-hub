@@ -2,14 +2,14 @@ import {
   DEFAULT_OUTPUT_FORMAT,
   durationFromMp3Bytes,
   type SpokenSegment,
-} from "@dispatch/engine/audio";
-import { segmentHash, segmentPath } from "@dispatch/engine/segments";
+} from "@singularity/engine/audio";
+import { segmentHash, segmentPath } from "@singularity/engine/segments";
 import type { NarrationSegment } from "../types/contracts";
 import type { BlobEntry } from "./blobStore";
 import { MS_PER_CHARACTER } from "./config";
 
 /**
- * Where a narrated segment lives: see @dispatch/engine/segments, which the engine's `publish` shares
+ * Where a narrated segment lives: see @singularity/engine/segments, which the engine's `publish` shares
  * so that a turn it narrates ahead of time is found here under the same name.
  */
 export {
@@ -20,7 +20,7 @@ export {
   segmentMarksPath,
   segmentPath,
   segmentPrefix,
-} from "@dispatch/engine/segments";
+} from "@singularity/engine/segments";
 
 function isHttps(value: string): boolean {
   try {

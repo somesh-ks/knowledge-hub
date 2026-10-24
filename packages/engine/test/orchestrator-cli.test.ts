@@ -21,7 +21,7 @@ interface Run {
 
 let dir: string;
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "dispatch-cli-"));
+  dir = await mkdtemp(join(tmpdir(), "singularity-cli-"));
 });
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
@@ -184,7 +184,7 @@ describe("runCli: help", () => {
         env: {},
       });
       expect(code).toBe(0);
-      expect(out.join("")).toContain(`dispatch ${spec.name}`);
+      expect(out.join("")).toContain(`singularity ${spec.name}`);
     }
   });
 });
@@ -243,7 +243,7 @@ describe("runCli: failures never leak or dump a stack", () => {
       { ANTHROPIC_API_KEY: SECRET },
     );
     expect(result.code).toBe(1);
-    expect(result.err).toBe("dispatch: stub failed: request failed with key [redacted]\n");
+    expect(result.err).toBe("singularity: stub failed: request failed with key [redacted]\n");
     expect(result.err).not.toContain(SECRET);
     expect(result.err).not.toContain("at somewhere");
     expect(result.out).toBe("");

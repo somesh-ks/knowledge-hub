@@ -1,4 +1,4 @@
-import { combineScoreParts, type ScoreLabel, type SourceType, scoreLabel } from "@dispatch/core";
+import { combineScoreParts, type ScoreLabel, type SourceType, scoreLabel } from "@singularity/core";
 import { parseHTML } from "linkedom";
 import { looksLikeFeed, type ParsedFeed, parseFeed } from "../fetch/feedParser.js";
 import {
@@ -15,7 +15,7 @@ import { AddSourceError, buildSourceFromUrl, hostLabel } from "./addSource.js";
  * A look at a web address before it is followed: what outlet it is, whether it has a feed, how
  * lively it is, and a score for a source that has no history yet. The score is on the same 0 to 5
  * scale, with the same three parts of 0 to 1 and the same labels, as the score of a source with a
- * record (sourceScore in @dispatch/core), measured from what one look can see:
+ * record (sourceScore in @singularity/core), measured from what one look can see:
  * - Health, from the feed: a valid feed earns 0.4 and the newest post up to 0.6 (within 7 days
  *   full, 30 days 0.7 of it, 90 days 0.3, older or undated nothing). A page with no feed earns
  *   PAGE_ONLY_HEALTH: it can be read, but there is no feed to follow.

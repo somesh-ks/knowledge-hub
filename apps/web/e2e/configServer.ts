@@ -54,7 +54,7 @@ export async function routeConfigServer(page: Page): Promise<ConfigServer> {
       },
       {
         env: {
-          GITHUB_DISPATCH_TOKEN: "t",
+          GITHUB_SINGULARITY_TOKEN: "t",
           GITHUB_REPOSITORY: "o/r",
         },
         fetch: github,

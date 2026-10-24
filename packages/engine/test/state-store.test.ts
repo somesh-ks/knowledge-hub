@@ -1,7 +1,12 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JudgmentEntry, type JudgmentsFile, type LastRunFile, type SeenFile } from "@dispatch/core";
+import {
+  JudgmentEntry,
+  type JudgmentsFile,
+  type LastRunFile,
+  type SeenFile,
+} from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { writeFileAtomic } from "../src/state/atomicWrite.js";
 import { stableStringify } from "../src/state/stableJson.js";
@@ -21,7 +26,7 @@ import { CATEGORY_PROBS } from "./fetch-helpers.js";
 
 let root: string;
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-state-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-state-"));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });

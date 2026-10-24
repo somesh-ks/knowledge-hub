@@ -1,4 +1,4 @@
-import { configStoreUrl } from "@dispatch/engine/config-paths";
+import { configStoreUrl } from "@singularity/engine/config-paths";
 import type { APIRoute } from "astro";
 // The seed sources an edit is applied against besides the stored documents (D149), and the public
 // files the pages were built from, which a read compares the stored ones with: imported as text so

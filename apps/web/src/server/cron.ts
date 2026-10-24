@@ -9,9 +9,9 @@ import {
   weekday,
   zonedDate,
   zonedHour,
-} from "@dispatch/core";
-import { configStoreUrl, type SqlClient } from "@dispatch/engine/config-paths";
-import { decideRun } from "@dispatch/engine/gate";
+} from "@singularity/core";
+import { configStoreUrl, type SqlClient } from "@singularity/engine/config-paths";
+import { decideRun } from "@singularity/engine/gate";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";

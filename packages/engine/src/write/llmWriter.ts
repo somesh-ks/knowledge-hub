@@ -1,4 +1,4 @@
-import { VOICE_LIMITS } from "@dispatch/core";
+import { VOICE_LIMITS } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
@@ -136,7 +136,7 @@ export class LlmWriter implements Writer {
     try {
       const { value } = await this.options.llm.completeJson({
         schema: WriterOutput,
-        schemaName: "dispatch_items",
+        schemaName: "singularity_items",
         messages: [
           { role: "system", content: writerSystemPrompt(this.options.voice) },
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
@@ -176,7 +176,7 @@ export class LlmWriter implements Writer {
     try {
       const { value } = await this.options.llm.completeJson({
         schema: RewriteOutput,
-        schemaName: "dispatch_rewrite",
+        schemaName: "singularity_rewrite",
         messages: [
           { role: "system", content: rewriteSystemPrompt(this.options.voice) },
           { role: "user", content: rewriteUserMessage(request, boundary) },

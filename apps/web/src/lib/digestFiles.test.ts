@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { serializeDigestFile } from "@dispatch/core";
+import { serializeDigestFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeDigest, makeTimeline } from "../testing/digestFactory";
 import { readDigestFiles } from "./digestFiles";
@@ -9,7 +9,7 @@ import { readDigestFiles } from "./digestFiles";
 let root = "";
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "dispatch-digests-"));
+  root = await mkdtemp(join(tmpdir(), "singularity-digests-"));
 });
 
 afterEach(async () => {

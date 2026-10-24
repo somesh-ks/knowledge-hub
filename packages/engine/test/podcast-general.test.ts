@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type PodcastRequest, parseEpisodeFile, type Source } from "@dispatch/core";
+import { type PodcastRequest, parseEpisodeFile, type Source } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HttpClient } from "../src/http.js";
 import { pickStories, selectGeneralStories, topStoryCount } from "../src/podcast/general.js";

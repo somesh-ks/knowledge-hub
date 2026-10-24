@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, parseDigestFile } from "@dispatch/core";
+import { type Digest, parseDigestFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {
@@ -183,7 +183,7 @@ describe("segmentSpokenText", () => {
   it("makes a closing line the outro", () => {
     const spoken = spokenOf(
       [
-        { text: "Dispatch, Wednesday 7 October." },
+        { text: "Singularity, Wednesday 7 October." },
         { text: "Top stories.", section: "top" },
         { text: "First story.", item: "aaaaaaaaaaaa" },
         { text: "Second story.", item: "bbbbbbbbbbbb" },
@@ -193,7 +193,7 @@ describe("segmentSpokenText", () => {
     );
     const segments = segmentSpokenText(spoken);
     expect(segments).toEqual([
-      { key: INTRO_KEY, itemId: null, text: "Dispatch, Wednesday 7 October." },
+      { key: INTRO_KEY, itemId: null, text: "Singularity, Wednesday 7 October." },
       { key: "aaaaaaaaaaaa", itemId: "aaaaaaaaaaaa", text: "Top stories.\n\nFirst story." },
       { key: "bbbbbbbbbbbb", itemId: "bbbbbbbbbbbb", text: "Second story." },
       { key: OUTRO_KEY, itemId: null, text: "That is all for today." },
@@ -236,9 +236,9 @@ describe("segmentSpokenText", () => {
   it("has no intro when the text opens with a story, and is one intro when there are no stories", () => {
     const direct = spokenOf([{ text: "Only story.", item: "aaaaaaaaaaaa" }], "\n\n");
     expect(segmentSpokenText(direct).map((segment) => segment.key)).toEqual(["aaaaaaaaaaaa"]);
-    const empty = spokenOf([{ text: "Dispatch. Zero items." }], "\n\n");
+    const empty = spokenOf([{ text: "Singularity. Zero items." }], "\n\n");
     expect(segmentSpokenText(empty)).toEqual([
-      { key: INTRO_KEY, itemId: null, text: "Dispatch. Zero items." },
+      { key: INTRO_KEY, itemId: null, text: "Singularity. Zero items." },
     ]);
   });
 });

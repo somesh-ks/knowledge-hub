@@ -1,4 +1,4 @@
-import type { PodcastRequest } from "@dispatch/core";
+import type { PodcastRequest } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { checkTurns } from "../src/podcast/check.js";
 import {

@@ -1,4 +1,4 @@
-import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@dispatch/core";
+import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_JEV_MODEL, type JevClientLike } from "../src/judge/jev.js";
 import { LLM_QUESTIONS_HASH, QUESTIONS_HASH } from "../src/judge/questions.js";

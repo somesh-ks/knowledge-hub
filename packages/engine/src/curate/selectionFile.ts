@@ -1,10 +1,10 @@
-import { CategoryId, DigestKind, VOICE_LIMITS } from "@dispatch/core";
+import { CategoryId, DigestKind, VOICE_LIMITS } from "@singularity/core";
 import { z } from "zod";
 
 const isoDateTime = z.string().datetime({ offset: true });
 
 /**
- * One chosen item with its final text. The section is not stored: `dispatch render` derives it
+ * One chosen item with its final text. The section is not stored: `singularity render` derives it
  * from the category, the source type and the scores, so a hand-edited file cannot disagree with
  * the engine's rules.
  */
@@ -25,7 +25,7 @@ export const SelectionItem = z.object({
 });
 export type SelectionItem = z.infer<typeof SelectionItem>;
 
-/** `.cache/run/<id>/selection.json`: what `dispatch render` consumes. */
+/** `.cache/run/<id>/selection.json`: what `singularity render` consumes. */
 export const Selection = z.object({
   version: z.literal(1),
   kind: DigestKind,
@@ -34,7 +34,7 @@ export const Selection = z.object({
   outcome: z.enum(["selected", "nothing"]),
   /**
    * True only when every item passed the grounding check. Always false in agent mode, and
-   * `dispatch render` enforces that. Written by the engine; a session writes agent-selection.json.
+   * `singularity render` enforces that. Written by the engine; a session writes agent-selection.json.
    */
   verified: z.boolean(),
   window: z.object({ from: isoDateTime, to: isoDateTime }),

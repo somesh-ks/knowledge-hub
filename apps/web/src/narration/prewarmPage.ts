@@ -2,7 +2,7 @@
  * When a page may ask for its first segments in the background. Plain checks, so the narration
  * runtime can decide before it asks anything.
  */
-const KEY_PREFIX = "dispatch:prewarm:";
+const KEY_PREFIX = "singularity:prewarm:";
 
 interface Connection {
   saveData?: boolean;

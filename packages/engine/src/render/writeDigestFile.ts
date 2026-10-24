@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { type Digest, digestRelPath, serializeDigestFile } from "@dispatch/core";
+import { type Digest, digestRelPath, serializeDigestFile } from "@singularity/core";
 
 export interface WrittenDigestFile {
   path: string;

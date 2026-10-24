@@ -6,9 +6,9 @@
  * lost. A detail is a toast's content, or `{ dismiss: message }` to take that one away.
  */
 
-export const TOAST_EVENT = "dispatch:toast";
+export const TOAST_EVENT = "singularity:toast";
 /** Told once the store listens (sheets/toastStore.ts). */
-export const TOAST_READY = "dispatch:toast-ready";
+export const TOAST_READY = "singularity:toast-ready";
 
 export interface SendOptions {
   /** Toasts waiting under one key are one toast: a later send replaces the waiting one. */

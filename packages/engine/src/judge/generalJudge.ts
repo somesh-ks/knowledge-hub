@@ -1,4 +1,4 @@
-import { hashOf, type Item, type Topic, type TopicJudgmentEntry } from "@dispatch/core";
+import { hashOf, type Item, type Topic, type TopicJudgmentEntry } from "@singularity/core";
 import type { Questions } from "@typesafe-ai/sdk";
 import { z } from "zod";
 import type { Logger } from "../context.js";

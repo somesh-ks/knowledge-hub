@@ -9,7 +9,7 @@ import {
   itemId,
   JudgmentEntry,
   Preferences,
-} from "@dispatch/core";
+} from "@singularity/core";
 
 const here = dirname(fileURLToPath(import.meta.url));
 

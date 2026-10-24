@@ -16,27 +16,28 @@ process.env.SINGULARITY_REPO_ROOT ??=
   process.env.DISPATCH_REPO_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
 process.env.DISPATCH_REPO_ROOT ??= process.env.SINGULARITY_REPO_ROOT;
 
-// The inline scripts must run before first paint, so they cannot be external files: the theme in the
-// head, the device banners and the Library's saved view. Their hashes go into the
+// The inline scripts must run before first paint, so they cannot be external files: the saved-key
+// move and the theme in the head, the device banners and the Library's saved view. Their hashes go into the
 // Content-Security-Policy instead of allowing inline scripts in general.
 const inlineScriptHash = (path) => {
   const code = readFileSync(new URL(path, import.meta.url), "utf8").trim();
   return `sha256-${createHash("sha256").update(code).digest("base64")}`;
 };
 const inlineScriptHashes = [
+  inlineScriptHash("./src/scripts/storageRename.js"),
   inlineScriptHash("./src/scripts/themeInit.js"),
   inlineScriptHash("./src/scripts/bannersInit.js"),
   inlineScriptHash("./src/scripts/libraryViewInit.js"),
 ];
 
 /**
- * @dispatch/cover finds its font files relative to its own source file (import.meta.url). Bundling
+ * @singularity/cover finds its font files relative to its own source file (import.meta.url). Bundling
  * moves that code into a build chunk, which would point the renderer at a folder with no fonts and
  * leave every cover without its date. This pins the URL to the real source file before bundling.
  */
 function keepCoverFontsReachable() {
   return {
-    name: "dispatch-cover-fonts",
+    name: "singularity-cover-fonts",
     enforce: "pre",
     transform(code, id) {
       const file = id.split("?")[0].replaceAll("\\", "/");
@@ -67,7 +68,7 @@ function preloadPageModules() {
     };
   };
   return {
-    name: "dispatch-module-preload",
+    name: "singularity-module-preload",
     hooks: {
       "astro:build:generated": ({ dir }) => {
         const assets = join(fileURLToPath(dir), "_astro");
@@ -98,7 +99,7 @@ function preloadPageModules() {
 /** `client:wake`: an island that hydrates when the page wakes it (src/lib/wakeDirective.ts). */
 function wakeDirective() {
   return {
-    name: "dispatch-wake-directive",
+    name: "singularity-wake-directive",
     hooks: {
       "astro:config:setup": ({ addClientDirective }) => {
         addClientDirective({
@@ -119,7 +120,7 @@ const staticOnly =
 
 function stubApiRoutesForStaticBuild() {
   return {
-    name: "dispatch-static-only",
+    name: "singularity-static-only",
     hooks: {
       "astro:route:setup": ({ route }) => {
         // With no adapter every route is prerendered: the API stubs, the pages rendered on request

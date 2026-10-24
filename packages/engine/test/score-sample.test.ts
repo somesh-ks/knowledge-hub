@@ -1,4 +1,4 @@
-import type { Item, SourceStatsFile } from "@dispatch/core";
+import type { Item, SourceStatsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import type { SourceFetcher } from "../src/fetch/types.js";
 import type { HttpClient } from "../src/http.js";

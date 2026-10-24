@@ -14,7 +14,9 @@ test.beforeEach(async ({ page }) => {
 /** Narration on Play for the briefing without audio, every file already made. */
 async function narrateSilent(page: Page): Promise<void> {
   const ids = await page.evaluate(() => {
-    const data = JSON.parse(document.getElementById("dispatch-digest-data")?.textContent ?? "{}");
+    const data = JSON.parse(
+      document.getElementById("singularity-digest-data")?.textContent ?? "{}",
+    );
     return (data.items as { id: string }[]).map((item) => item.id);
   });
   const segment = (key: string, confirmed: boolean) => ({
@@ -85,7 +87,7 @@ test("the stories heard keep their Played marks after another recording and a re
 });
 
 test("a briefing without audio says where it was left, as its cards do", async ({ page }) => {
-  await seedStorage(page, { local: { "dispatch:resume:2026-10-05": "60" } });
+  await seedStorage(page, { local: { "singularity:resume:2026-10-05": "60" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
@@ -117,8 +119,8 @@ test("a briefing without audio keeps the stories heard when its page opens", asy
   // Seeded away from the page: a page saves its own position when it goes.
   await page.goto("/library");
   await page.evaluate((id) => {
-    localStorage.setItem("dispatch:resume:2026-10-05", "20");
-    localStorage.setItem("dispatch:heard:2026-10-05", id ?? "");
+    localStorage.setItem("singularity:resume:2026-10-05", "20");
+    localStorage.setItem("singularity:heard:2026-10-05", id ?? "");
   }, first);
 
   // Opened, and reloaded: the player loads the page's digest, which has no timeline, and that must
@@ -127,14 +129,14 @@ test("a briefing without audio keeps the stories heard when its page opens", asy
     await open();
     await hydrated(page);
     await expect(page.locator("[data-item-id]").first()).toHaveAttribute("data-state", "played");
-    expect(await page.evaluate(() => localStorage.getItem("dispatch:heard:2026-10-05"))).toBe(
+    expect(await page.evaluate(() => localStorage.getItem("singularity:heard:2026-10-05"))).toBe(
       first,
     );
   }
 });
 
 test("a briefing without audio heard to the end says Played everywhere", async ({ page }) => {
-  await seedStorage(page, { local: { "dispatch:played:2026-10-05": "1" } });
+  await seedStorage(page, { local: { "singularity:played:2026-10-05": "1" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
@@ -160,7 +162,7 @@ test("a briefing without audio heard to the end says Played everywhere", async (
 });
 
 test("the floating Play on Today follows the chip", async ({ page }) => {
-  await seedStorage(page, { local: { "dispatch:resume:2026-10-07": "20" } });
+  await seedStorage(page, { local: { "singularity:resume:2026-10-07": "20" } });
   await page.goto("/");
   await hydrated(page);
   await page.mouse.wheel(0, 1200);
@@ -169,4 +171,22 @@ test("the floating Play on Today follows the chip", async ({ page }) => {
   await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
   await expect(fab.locator("[data-chip-label]")).toHaveText("Resume · 1 min left");
   await expect(fab).toHaveAttribute("aria-label", "Resume the briefing, 1 min left");
+});
+
+// Bug it prevents: the rename (D179) gave every saved key a new name, and a phone that saved under
+// the old one would have lost its theme and every Played mark.
+test("a phone that saved before the rename keeps its theme and what it played", async ({
+  page,
+}) => {
+  await seedStorage(page, {
+    local: {
+      "dispatch:preferences": JSON.stringify({ theme: "dark" }),
+      "dispatch:played:2026-10-07": "1",
+    },
+  });
+  await page.goto("/library");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
 });

@@ -1,4 +1,4 @@
-import type { Item, Preferences, Source, SourceType } from "@dispatch/core";
+import type { Item, Preferences, Source, SourceType } from "@singularity/core";
 import {
   categoryHint,
   isDesignHinted,

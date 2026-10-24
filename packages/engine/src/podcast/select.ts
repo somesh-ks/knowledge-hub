@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { type Digest, parseDigestFile, stockholmDate } from "@dispatch/core";
+import { type Digest, parseDigestFile, stockholmDate } from "@singularity/core";
 import type { Logger } from "../context.js";
 import { createFileProfileStore, isBlockedUrl, OWNER_ID } from "../profile/profile.js";
 import { voteMultiplier, votePreferences } from "../profile/votes.js";

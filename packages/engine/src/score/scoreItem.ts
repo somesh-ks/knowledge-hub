@@ -5,7 +5,7 @@ import {
   type JudgmentEntry,
   type Preferences,
   TECH_CATEGORY,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { clamp01, round4 } from "./numbers.js";
 import type { ScoreBreakdown, ScoredItem } from "./types.js";
 

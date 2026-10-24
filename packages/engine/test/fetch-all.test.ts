@@ -1,4 +1,4 @@
-import type { Item, Source } from "@dispatch/core";
+import type { Item, Source } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TYPE_LIMITS, fetchAll, selectSources } from "../src/fetch/fetchAll.js";
 import { FETCHERS } from "../src/fetch/fetchers.js";

@@ -3,7 +3,7 @@ import { rmSync } from "node:fs";
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { serializeDigestFile } from "@dispatch/core";
+import { serializeDigestFile } from "@singularity/core";
 import type { GitResult, GitRunner } from "../src/git/runGit.js";
 import { createGitRunner } from "../src/git/runGit.js";
 import { digestFor } from "./audio-fixtures.js";
@@ -80,7 +80,7 @@ export async function templatePair(key: string, build: () => Promise<string>): P
 
 /** Copy a pair's directory and point both clones at the copied remote. */
 async function copyPair(template: string): Promise<RepoPair> {
-  const base = await mkdtemp(join(tmpdir(), "dispatch-git-"));
+  const base = await mkdtemp(join(tmpdir(), "singularity-git-"));
   await cp(template, base, { recursive: true });
   const remote = join(base, "remote.git");
   const a = join(base, "a");
@@ -100,7 +100,7 @@ export function createRepoPair(options: { seedDigest?: boolean } = {}): Promise<
 }
 
 async function buildRepoPair(seedDigest: boolean): Promise<RepoPair> {
-  const base = await mkdtemp(join(tmpdir(), "dispatch-git-tpl-"));
+  const base = await mkdtemp(join(tmpdir(), "singularity-git-tpl-"));
   const remote = join(base, "remote.git");
   const a = join(base, "a");
   const b = join(base, "b");

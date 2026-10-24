@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { type Preferences, Preferences as PreferencesSchema } from "@dispatch/core";
+import { type Preferences, Preferences as PreferencesSchema } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { authorMatches, containsPhrase, keywordRegExp } from "../src/prefilter/phrase.js";
 import { prefilter } from "../src/prefilter/prefilter.js";

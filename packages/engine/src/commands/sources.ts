@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { CONFIG_FILES, requireKey, type Source } from "@dispatch/core";
+import { CONFIG_FILES, requireKey, type Source } from "@singularity/core";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { loadPreferences } from "../curate/inputs.js";
 import { createLimiter } from "../fetch/limiter.js";
@@ -25,7 +25,7 @@ import { loadTopics } from "../topics/store.js";
 
 const SOURCES_MD = "config/sources.md";
 
-const USAGE = `Usage: dispatch sources <command>
+const USAGE = `Usage: singularity sources <command>
 
   import [--fresh] [--dry-run]       Build config/sources.json from config/sources.md and the code seed.
                                      Offline. Keeps discovered feeds and counters unless --fresh.
@@ -311,7 +311,7 @@ async function runSources(
   }
 }
 
-/** `dispatch sources import|discover|check|suggest`. */
+/** `singularity sources import|discover|check|suggest`. */
 export function makeSourcesCommand(
   makeSuggestDeps: SuggestDepsFactory = realSuggestDeps,
 ): CommandRun {

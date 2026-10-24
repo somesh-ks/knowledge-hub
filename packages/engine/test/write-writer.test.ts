@@ -126,7 +126,7 @@ describe("LlmWriter.write", () => {
     const llm = new FakeLlm(writeAll);
     await new LlmWriter({ llm, voice }).write([material(), material()]);
     expect(llm.calls[0]?.step).toBe("story_writer");
-    expect(llm.calls[0]?.schemaName).toBe("dispatch_items");
+    expect(llm.calls[0]?.schemaName).toBe("singularity_items");
     // 800 per item: a headline, an 80-word summary and a 95-word telling are about 310 tokens as JSON.
     expect(llm.calls[0]?.maxTokens).toBe(800 * 2 + 300);
   });

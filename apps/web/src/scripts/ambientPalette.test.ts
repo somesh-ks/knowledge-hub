@@ -11,7 +11,7 @@ type Mode = "light" | "dark";
 
 interface TokenNode {
   $value?: string;
-  $extensions?: { dispatch?: { mode?: { dark?: string } } };
+  $extensions?: { singularity?: { mode?: { dark?: string } } };
   [key: string]: unknown;
 }
 
@@ -20,7 +20,7 @@ function colorOf(path: string, mode: Mode): string {
   const node = path
     .split(".")
     .reduce<unknown>((at, key) => (at as Record<string, unknown>)[key], tokens) as TokenNode;
-  const raw = (mode === "dark" && node.$extensions?.dispatch?.mode?.dark) || node.$value || "";
+  const raw = (mode === "dark" && node.$extensions?.singularity?.mode?.dark) || node.$value || "";
   const alias = /^\{(.+)\}$/.exec(raw);
   return alias?.[1] ? colorOf(alias[1], mode) : toHex(oklchStringToRgb(raw));
 }

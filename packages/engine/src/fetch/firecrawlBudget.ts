@@ -1,4 +1,4 @@
-import type { Source } from "@dispatch/core";
+import type { Source } from "@singularity/core";
 
 /**
  * Firecrawl requests all runs together may make in any 7 days, listing pages and article scrapes

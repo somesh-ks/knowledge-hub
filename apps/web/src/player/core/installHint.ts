@@ -1,7 +1,7 @@
 import type { StorageLike } from "./resume";
 
-export const INSTALL_VISITS_KEY = "dispatch:install-hint-visits";
-export const INSTALL_DISMISSED_KEY = "dispatch:install-hint-dismissed";
+export const INSTALL_VISITS_KEY = "singularity:install-hint-visits";
+export const INSTALL_DISMISSED_KEY = "singularity:install-hint-dismissed";
 /** Visits before the hint appears: a hint on first paint is spam. */
 export const INSTALL_HINT_MIN_VISITS = 2;
 

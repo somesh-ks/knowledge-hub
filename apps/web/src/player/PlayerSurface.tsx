@@ -19,7 +19,7 @@ import SourceLink from "./SourceLink";
 import Icon from "./ui/Icon";
 import PlayerCover, { PlayerCoverGlow } from "./ui/PlayerCover";
 
-const TITLE_ID = "dispatch-player-title";
+const TITLE_ID = "singularity-player-title";
 
 /** Which part of the surface a pointer went down on. Null is a control with a job of its own. */
 function zoneOf(target: EventTarget): GestureZone | null {

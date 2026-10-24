@@ -8,7 +8,7 @@ import {
   SECTION_TITLES,
   VOICE_LIMITS,
   zonedDate,
-} from "@dispatch/core";
+} from "@singularity/core";
 import { departsFromBuiltinOrder, type SectionPlan } from "../score/sectionPlan.js";
 import { assignSections } from "../score/selectItems.js";
 import type { SelectedItem } from "../score/types.js";
@@ -41,7 +41,7 @@ export interface BuildDigestInput {
   allocateId: DigestIdAllocator;
   /** True only when every item passed the grounding check. Defaults to false. */
   verified?: boolean;
-  /** Audio is added later by `dispatch audio`. */
+  /** Audio is added later by `singularity audio`. */
   audio: null;
   /** Display names by source id; the id itself is shown when a name is unknown. */
   sourceNames?: Readonly<Record<string, string>>;

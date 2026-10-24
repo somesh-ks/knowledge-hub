@@ -1,4 +1,4 @@
-import type { SourceType } from "@dispatch/core";
+import type { SourceType } from "@singularity/core";
 import { fetchArxiv } from "./arxiv.js";
 import { fetchCrossref } from "./crossref.js";
 import { fetchExa } from "./exa.js";

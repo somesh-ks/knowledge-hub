@@ -1,4 +1,4 @@
-import type { ConfigOp as CoreConfigOp, DigestKind, SourceFormat } from "@dispatch/core";
+import type { ConfigOp as CoreConfigOp, DigestKind, SourceFormat } from "@singularity/core";
 
 /**
  * Contracts shared by the reader pages, the player island and the Generate sheet. Both the page
@@ -53,7 +53,7 @@ export interface PlayerSection {
 }
 
 /**
- * Rendered on every digest page as `<script type="application/json" id="dispatch-digest-data">`.
+ * Rendered on every digest page as `<script type="application/json" id="singularity-digest-data">`.
  * The player reads it on `astro:page-load` and keeps playing the current track until the listener
  * chooses another digest, so audio survives client-side navigation.
  */
