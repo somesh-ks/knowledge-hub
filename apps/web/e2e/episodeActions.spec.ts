@@ -54,16 +54,15 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
 }
 
 test.describe("regenerate and delete an episode", () => {
-  test("one More button holds the far end of the title row and opens a menu of three items", async ({
+  test("one More button holds the far end of the title row and opens a menu of two items", async ({
     page,
   }) => {
     await open(page);
     const button = more(page);
     await expect(button).toHaveAttribute("aria-haspopup", "menu");
     await expect(menu(page)).toBeHidden();
-    // No standalone Share: it lives in the menu. The button is a 44px target at the header's far
-    // end, level with the title.
-    await expect(page.getByRole("button", { name: "Share this episode" })).toHaveCount(0);
+    // Share sits beside Play (D153, owner 2026-10-24), not in the menu. The button is a 44px target
+    // at the header's far end, level with the title.
     const a = await button.boundingBox();
     const title = await page.locator(".hero h1").boundingBox();
     const row = await page.locator(".hero").boundingBox();
@@ -73,7 +72,7 @@ test.describe("regenerate and delete an episode", () => {
     await button.click();
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole("menuitem");
-    await expect(items).toHaveText(["Share", "Regenerate", "Delete"]);
+    await expect(items).toHaveText(["Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
     // The menu hangs under the button, not at the edge of the page.
     const m = await menu(page).boundingBox();

@@ -42,6 +42,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "a: Settings",
       "button: More actions",
       "button: Play the briefing, 1 min",
+      "button: Share",
       // A story is its headline link, then its play chip, then its like, dislike and options; the
       // publisher beside the chip is only attribution, out of the tab order and hidden from screen
       // readers.
