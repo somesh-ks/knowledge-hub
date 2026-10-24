@@ -249,7 +249,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `ANTHROPIC_API_KEY` | Anthropic console | Story and script writers, Haiku fallbacks |
 | `TYPESAFE_API_KEY` | console.typesafe.ai | Jev judge and grounding check |
 | `EXA_API_KEY` | Exa dashboard | Discovery |
-| `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction |
+| `FIRECRAWL_API_KEY` | Firecrawl dashboard | Extraction, Alexandria facts, YouTube transcripts (D165) |
 | `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
