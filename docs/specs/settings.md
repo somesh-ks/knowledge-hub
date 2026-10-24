@@ -5,7 +5,7 @@ Schedule, sources, preferences, voices, model, autosave and the edit gap, blocke
 ## Requirements
 
 ### Structure
-- Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), Analytics (Costs, User engagement: Simple Analytics' dashboard, D153), About (D129).
+- Settings is two levels (D51): an index and one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), Analytics (Costs; User engagement opens Simple Analytics, D153), About (D129).
 - Link rows end in their value, in the quiet ink; rows are 64px.
 - Each group of rows is a card: `.card-group` (primitives.css) on the `.rows` list, no shadow or line; what it holds is concentric with it (`component.card`). Heads share the rows' edge. The install offer is one in the accent tone. About: About, Privacy, Change log (`/settings/changelog`, newest first) and, on a phone, Last updated, which from 64rem sits at the foot of the side column (`AppNav`).
 - No breadcrumbs: a title stands alone and a phone's app bar arrow leads up (D129). `/settings/custom` goes to `/create`; `custom` in `config/schedule.json` is what the Create panel starts from.
