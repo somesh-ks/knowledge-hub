@@ -1,8 +1,16 @@
+import { truncateAtParagraph } from "../extract/truncate.js";
 import type { Linter, Violation, ViolationRule, VoiceField } from "../voice/lint.js";
 import type { SourceMaterial, Writer } from "./types.js";
 
 /** Rules whose `match` is a passage of the field, quoted back to the model as data. */
 const FOCUS_RULES: ReadonlySet<ViolationRule> = new Set(["banned_pattern", "sentence_too_long"]);
+
+/**
+ * A voice rewrite fixes wording: the facts are already in the current text, so the source is there
+ * to keep it honest, and its opening carries the facts a headline or summary states. About 25 of
+ * these ran a briefing (2026-10-24), each resending up to 10k characters (D181).
+ */
+const REWRITE_SOURCE_CHARS = 4_000;
 
 export interface RewriteOnceArgs {
   writer: Writer;
@@ -38,7 +46,10 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
     ),
   ];
   const rewritten = await args.writer.rewrite({
-    material: args.material,
+    material: {
+      ...args.material,
+      text: truncateAtParagraph(args.material.text, REWRITE_SOURCE_CHARS).text,
+    },
     field: args.field,
     current: args.text,
     problems: args.violations.map((v) => v.message),
