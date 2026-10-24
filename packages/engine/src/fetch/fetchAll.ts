@@ -1,5 +1,7 @@
 import type { Item, Source, SourceType } from "@dispatch/core";
+import { type HttpClient, HttpError } from "../http.js";
 import { FETCHERS } from "./fetchers.js";
+import { scrapeRaw } from "./firecrawl.js";
 import { createLimiter, type Limiter } from "./limiter.js";
 import {
   type FetchDeps,
@@ -69,6 +71,37 @@ function describeError(error: unknown): string {
   return message.replace(/\s+/g, " ").slice(0, ERROR_MAX);
 }
 
+/**
+ * YouTube answers its channel feeds with HTTP 404 to GitHub's runners (every run from about
+ * 2026-10-14) while serving them to other hosts. A source it refused is fetched once more after
+ * the first pass, its YouTube requests served through Firecrawl (`relay` below).
+ */
+const RELAYED_HOST = /^(www\.|m\.)?youtube\.com$/;
+
+function onYoutube(url: string): boolean {
+  try {
+    return RELAYED_HOST.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** True when YouTube refused the runner: a 403, 404 or 429 from a youtube.com address. */
+function refusedByYoutube(error: unknown): boolean {
+  return (
+    error instanceof HttpError &&
+    [403, 404, 429].includes(error.status ?? 0) &&
+    onYoutube(error.url)
+  );
+}
+
+interface Outcome {
+  items: Item[];
+  result: SourceResult;
+  /** YouTube refused the runner; the second pass reads the source through Firecrawl. */
+  refused?: boolean;
+}
+
 /** Rejects when the signal aborts, so a fetcher that ignores its signal still cannot hang the run. */
 function abortRace(signal: AbortSignal, ms: number): Promise<never> {
   return new Promise<never>((_, reject) => {
@@ -76,6 +109,57 @@ function abortRace(signal: AbortSignal, ms: number): Promise<never> {
       once: true,
     });
   });
+}
+
+/**
+ * One source's fetch under its deadline (and the caller's signal). A skip is ok with a note; any
+ * other error is a failure, marked `refused` when YouTube refused the runner.
+ */
+async function runSource(
+  source: Source,
+  fetcher: SourceFetcher | undefined,
+  window: FetchWindow,
+  deps: FetchDeps,
+  timeoutMs: number,
+  onError?: (error: unknown) => void,
+): Promise<Outcome> {
+  const signal = AbortSignal.timeout(timeoutMs);
+  const started = performance.now();
+  const elapsed = (): number => Math.round(performance.now() - started);
+  try {
+    if (!fetcher) throw new Error(`no fetcher for source type ${source.type}`);
+    const sourceDeps: FetchDeps = {
+      ...deps,
+      signal: deps.signal ? AbortSignal.any([deps.signal, signal]) : signal,
+    };
+    const items = await Promise.race([
+      fetcher(source, window, sourceDeps),
+      abortRace(signal, timeoutMs),
+    ]);
+    return {
+      items,
+      result: { source_id: source.id, ok: true, count: items.length, ms: elapsed() },
+    };
+  } catch (error) {
+    onError?.(error);
+    if (error instanceof SourceSkipped) {
+      return {
+        items: [],
+        result: { source_id: source.id, ok: true, count: 0, ms: elapsed(), note: error.message },
+      };
+    }
+    return {
+      items: [],
+      result: {
+        source_id: source.id,
+        ok: false,
+        count: 0,
+        ms: elapsed(),
+        error: describeError(error),
+      },
+      refused: refusedByYoutube(error),
+    };
+  }
 }
 
 /**
@@ -108,7 +192,7 @@ export async function fetchAll(
     return limiter;
   };
 
-  const outcomes = await Promise.all(
+  const outcomes: Outcome[] = await Promise.all(
     selected.map((source) => {
       const skipNote = options.skip?.get(source.id);
       if (skipNote !== undefined) {
@@ -120,57 +204,71 @@ export async function fetchAll(
       }
       // The type limiter is entered first so a queue of slow-rate sources holds no global slot.
       return limiterFor(source.type).run(() =>
-        global.run(async (): Promise<{ items: Item[]; result: SourceResult }> => {
-          const timeoutMs = limits[source.type]?.timeoutMs ?? defaultTimeout;
-          const signal = AbortSignal.timeout(timeoutMs);
-          const started = performance.now();
-          const elapsed = (): number => Math.round(performance.now() - started);
-          try {
-            const fetcher = fetchers[source.type];
-            if (!fetcher) throw new Error(`no fetcher for source type ${source.type}`);
-            const sourceDeps: FetchDeps = {
-              ...deps,
-              signal: deps.signal ? AbortSignal.any([deps.signal, signal]) : signal,
-            };
-            const items = await Promise.race([
-              fetcher(source, window, sourceDeps),
-              abortRace(signal, timeoutMs),
-            ]);
-            return {
-              items,
-              result: { source_id: source.id, ok: true, count: items.length, ms: elapsed() },
-            };
-          } catch (error) {
-            if (error instanceof SourceSkipped) {
-              return {
-                items: [],
-                result: {
-                  source_id: source.id,
-                  ok: true,
-                  count: 0,
-                  ms: elapsed(),
-                  note: error.message,
-                },
-              };
-            }
-            return {
-              items: [],
-              result: {
-                source_id: source.id,
-                ok: false,
-                count: 0,
-                ms: elapsed(),
-                error: describeError(error),
-              },
-            };
-          }
-        }),
+        global.run(() =>
+          runSource(
+            source,
+            fetchers[source.type],
+            window,
+            deps,
+            limits[source.type]?.timeoutMs ?? defaultTimeout,
+          ),
+        ),
       );
     }),
   );
 
+  /**
+   * A source YouTube refused, fetched again by its own fetcher with its YouTube requests served
+   * through Firecrawl. It runs after the first pass, so it never holds a general slot while it
+   * waits, under Firecrawl's limiter and deadline. Each feed is one request from the run's scrape
+   * budget, never retried, and reused by a later pass (`FirecrawlGuard.relay`); a 429 counts toward
+   * the run's stop. With no key or no budget left the refusal stands.
+   */
+  const relay = async (source: Source, first: Outcome): Promise<Outcome> => {
+    const config = deps.firecrawl;
+    if (!config?.apiKey) return first;
+    const service = { apiKey: config.apiKey, baseUrl: config.baseUrl };
+    const http: HttpClient = {
+      fetchText: async (url, options) => {
+        if (!onYoutube(url)) return deps.http.fetchText(url, options);
+        const load = () => scrapeRaw(url, service, deps.http, options?.signal);
+        const text = config.guard ? await config.guard.relay(url, load) : await load();
+        if (text === null) throw new SourceSkipped("Firecrawl budget spent");
+        return { url, status: 200, contentType: "application/xml", text };
+      },
+      getJson: (url, options) => deps.http.getJson(url, options),
+      postJson: (url, body, options) => deps.http.postJson(url, body, options),
+    };
+    const again = await runSource(
+      source,
+      fetchers[source.type],
+      window,
+      { ...deps, http },
+      limits.firecrawl?.timeoutMs ?? defaultTimeout,
+      (error) => {
+        if (error instanceof HttpError && error.status === 429) config.guard?.noteRateLimited();
+      },
+    );
+    if (again.result.ok && again.result.note === undefined) {
+      const ms = first.result.ms + again.result.ms;
+      return { items: again.items, result: { ...again.result, ms, via: "firecrawl" } };
+    }
+    const why = again.result.error ?? again.result.note ?? "no result";
+    const error = `${first.result.error}; through Firecrawl: ${why}`.slice(0, ERROR_MAX);
+    return { items: [], result: { ...first.result, error } };
+  };
+
+  const final = await Promise.all(
+    outcomes.map((outcome, index) => {
+      const source = selected[index];
+      return outcome.refused && source
+        ? limiterFor("firecrawl").run(() => relay(source, outcome))
+        : outcome;
+    }),
+  );
+
   return {
-    items: outcomes.flatMap((outcome) => outcome.items),
-    results: outcomes.map((outcome) => outcome.result),
+    items: final.flatMap((outcome) => outcome.items),
+    results: final.map((outcome) => outcome.result),
   };
 }

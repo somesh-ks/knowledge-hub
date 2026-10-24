@@ -15,6 +15,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.9.1",
+    date: "2026-10-23",
+    description:
+      "Costs is one card with its range and breakdown at the top, and Settings lists share one left edge with roomier cards. A story's publisher sits above its headline and its summary is one shade lighter, so the headline leads. The cover is larger on a phone, the player's side buttons share one outline style, New episode in the side rail no longer looks selected, and with reduced motion on, things fade in place instead of vanishing.",
+  },
+  {
     version: "0.9",
     date: "2026-10-22",
     description:

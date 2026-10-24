@@ -560,6 +560,13 @@
   rotate: 180deg;
 }
 
+/* Reduced motion: the chevron turns at once. */
+@media (prefers-reduced-motion: reduce) {
+  .settings-row .value-select > .icon {
+    transition: none;
+  }
+}
+
 @supports (appearance: base-select) {
   /* The list opens under the value and grows toward the start of the row, so it never runs past the
      edge the value sits against. */

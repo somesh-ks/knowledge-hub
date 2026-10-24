@@ -1,0 +1,74 @@
+{
+  "digest": "2026-10-24",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 178554,
+  "text_chars": 3145,
+  "items": [
+    {
+      "id": "9be29a91e12d",
+      "section": "top",
+      "start_ms": 6770,
+      "end_ms": 31303
+    },
+    {
+      "id": "bded411cfb87",
+      "section": "top",
+      "start_ms": 31303,
+      "end_ms": 58914
+    },
+    {
+      "id": "54fa4208511a",
+      "section": "tech",
+      "start_ms": 58914,
+      "end_ms": 82130
+    },
+    {
+      "id": "548ffd038c9b",
+      "section": "tech",
+      "start_ms": 82130,
+      "end_ms": 103677
+    },
+    {
+      "id": "4ebdb696244c",
+      "section": "world",
+      "start_ms": 103677,
+      "end_ms": 125220
+    },
+    {
+      "id": "46f4dc360a15",
+      "section": "business",
+      "start_ms": 125220,
+      "end_ms": 149967
+    },
+    {
+      "id": "008f2a457f2f",
+      "section": "science",
+      "start_ms": 149967,
+      "end_ms": 178554
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 6770
+    },
+    {
+      "slug": "tech",
+      "start_ms": 57378
+    },
+    {
+      "slug": "world",
+      "start_ms": 102653
+    },
+    {
+      "slug": "business",
+      "start_ms": 123855
+    },
+    {
+      "slug": "science",
+      "start_ms": 149071
+    }
+  ]
+}

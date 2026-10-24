@@ -170,6 +170,17 @@
     scale: 1;
     transition-property: opacity, display;
   }
+
+  /* The chevron turns at once: the turn is movement, the fade is not. */
+  .picker > .icon {
+    transition: none;
+  }
+
+  @starting-style {
+    .picker-pop:popover-open {
+      scale: 1;
+    }
+  }
 }
 
 /* The search is a pill with its glyph inside, as the Library's is, on the list's own surface. */

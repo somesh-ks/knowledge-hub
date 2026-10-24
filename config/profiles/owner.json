@@ -4,5 +4,15 @@
     "tuts.kandz.me"
   ],
   "votes": [],
-  "opens": []
+  "opens": [
+    {
+      "story_id": "c79f3f7585e3",
+      "url": "https://the-decoder.com/ai-agents-have-bad-taste-in-long-term-decisions-and-a-new-benchmark-proves-it",
+      "headline": "Even the best AI model picks the better path only 60 percent",
+      "domain": "the-decoder.com",
+      "topic": "frontier_model_releases",
+      "source_id": "the-decoder",
+      "at": "2026-10-21T10:55:30.222Z"
+    }
+  ]
 }

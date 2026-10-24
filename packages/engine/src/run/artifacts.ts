@@ -1,4 +1,10 @@
-import { Category, JudgmentEntry, JudgmentsFile, TopicJudgmentsFile } from "@dispatch/core";
+import {
+  Category,
+  CategoryId,
+  JudgmentEntry,
+  JudgmentsFile,
+  TopicJudgmentsFile,
+} from "@dispatch/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { mergeJudgments } from "../judge/cache.js";
@@ -53,6 +59,33 @@ export const MaterialsFile = z.object({
   ),
 });
 export type MaterialsFile = z.infer<typeof MaterialsFile>;
+
+/**
+ * `reserve.json`: the stories a length-sized pass would select next, best first, none of them
+ * written. Validation writes replacements from it, once, when grounding cuts the briefing short.
+ */
+export const ReserveFile = z.object({
+  version: z.literal(1),
+  /** What the owner asked to improve, for the writer prompt of the replacements. */
+  feedback: z.string().optional(),
+  /** The vote headlines the write stage told the writer, so replacements share its moment. */
+  taste: z
+    .object({ liked: z.array(z.string()), disliked: z.array(z.string()) })
+    .default({ liked: [], disliked: [] }),
+  /** Set once validation has written replacements, so a re-run of validate refills no more. */
+  refilled: z.boolean().optional(),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      /** A built-in category or a custom topic's id, as the selection stores it. */
+      category: CategoryId,
+      score: z.number().min(0).max(1),
+      /** The built-in category the writer prompt is told. */
+      writer_category: Category,
+    }),
+  ),
+});
+export type ReserveFile = z.infer<typeof ReserveFile>;
 
 /** Read a JSON artifact and validate it, or fail with the file's name. */
 export async function readArtifact<T>(

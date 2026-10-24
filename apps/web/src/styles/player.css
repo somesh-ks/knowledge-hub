@@ -3124,8 +3124,7 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
   /* The speed panel fades without growing; the segmented thumb jumps to its segment. */
   .speed-panel {
     --panel-scale: 1;
-    /* The exit token drops to nothing here; a fade keeps its time, so the panel fades out too. The
-       open rule has its own duration and keeps it. */
+    /* The exit fade takes the hover time here; the open rule has its own duration and keeps it. */
     transition-duration: var(--duration-hover);
   }
 

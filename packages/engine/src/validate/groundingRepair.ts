@@ -79,6 +79,7 @@ export async function groundAndRepair(args: {
           summary: item.summary,
           ...(item.why ? { why: item.why } : {}),
           sourceText: material.text,
+          heading: `${material.title} (${material.source})`,
         });
 
       let item = original;

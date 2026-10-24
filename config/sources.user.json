@@ -101,6 +101,11 @@
     },
     "the-neuron": {
       "enabled": true
+    },
+    "toools-newsletter": {
+      "topic_ids": [
+        "design"
+      ]
     }
   }
 }
