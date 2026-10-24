@@ -7,7 +7,7 @@ What counts behaviour is D154's: Simple Analytics on the production host, its ni
 ## 1. Bottom line
 
 - **Counting:** Simple Analytics (D154) is the one counter. The listen page sends D154's events with three more metadata keys and one new event; there is no first-party event table, beacon route or second dashboard.
-- **User engagement:** the row under Settings, Analytics opens the Simple Analytics dashboard. Numbers inside the app wait for the owner's choice of how to read them (section 3).
+- **User engagement:** the row under Settings, Analytics opens the Simple Analytics dashboard (the owner's call, 2026-10-24). Numbers inside the app are decided later (section 3).
 - **Share:** a link per item opens a public listen page (`/s/<token>`) with the cover, Play, the stories with their sources, the transcript and one call to action. It plays stored audio only, so a stranger never starts narration. Neon keeps the links and their play counts, which enforce the caps and the Blob budget.
 - **First:** link previews (stage 0), which D154 also names its cheapest lift: Share can only send a page's address today, so the card a chat app shows is the first thing a recipient sees. There is no passphrase (D160); the owner will gate actions with OAuth later and hide them from logged-out users.
 - **Order:** 0 link previews, 1 the User engagement row, 2 share links and the listen page, 3 the call to action, 4 only on evidence.
@@ -40,7 +40,7 @@ Numbers inside the app (listens a week, listen-through by kind, visits per share
 | Make the site's stats public in Simple Analytics | Free (the Free plan needs its badge, or the API answers 423) | Anyone can see the aggregate counts and top pages; nothing about a reader |
 | A plan with API access and a key in Vercel | A monthly fee (unverified) | Stats stay private |
 
-Until then the in-app page is not built. A device-only view from local storage was considered and dropped: it shows one browser's listening, which the dashboard already counts across all.
+The owner chose on 2026-10-24 to keep the dashboard link and decide on in-app numbers later, so the in-app page is not built. A device-only view from local storage was considered and dropped: it shows one browser's listening, which the dashboard already counts across all.
 
 ## 4. Events
 
@@ -108,7 +108,7 @@ One PR per stage, labelled `review` (D143); site PRs run both browser suites fir
 
 ## 7. Decisions for the owner
 
-1. Numbers inside the app: public Simple Analytics stats (free) or a plan with API access; until then the row opens the dashboard.
+1. Decided 2026-10-24: the row opens the dashboard. Open for later: numbers inside the app from public Simple Analytics stats (free) or a plan with API access.
 2. No passphrase (D160): actions stay open until OAuth, which will hide them from logged-out users.
 3. What can be shared (episodes only, or briefings too), the 30-day expiry and the 4 GB monthly budget.
 4. Send it on and a reaction now; the note and the waitlist later.
