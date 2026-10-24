@@ -620,7 +620,7 @@ function setStructure(
   return { next, summary: `set the ${name} structure` };
 }
 
-/** Replace one block's prompt in a kind (D180), or drop it so the built-in prompt applies. */
+/** Replace one block's prompt in a kind (D182), or drop it so the built-in prompt applies. */
 function setBlockPrompt(
   op: Extract<ParsedConfigOp, { op: "structure.prompt" }>,
   bundle: ConfigBundle,

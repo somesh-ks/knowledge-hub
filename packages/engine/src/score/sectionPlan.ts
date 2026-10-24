@@ -33,7 +33,7 @@ export interface SectionPlan {
   limit(section: string): number | null;
   /** Stories the narration's rundown names, or null for no rundown. */
   rundown: number | null;
-  /** The owner's prompt for the section's stories (D180), or undefined for the built-in one. */
+  /** The owner's prompt for the section's stories (D182), or undefined for the built-in one. */
   prompt(section: string): string | undefined;
   /** The block's own rules for its stories: most per outlet and how old they may be. */
   rules(section: string): { per_source?: number; max_age_hours?: number };

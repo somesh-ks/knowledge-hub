@@ -111,7 +111,7 @@ export class LlmWriter implements Writer {
     taste?: Taste,
     airing: readonly string[] = [],
   ): Promise<WriteResult> {
-    // A batch shares one system prompt, so stories under an owner's block prompt (D180) are
+    // A batch shares one system prompt, so stories under an owner's block prompt (D182) are
     // batched with the others of that prompt only.
     const groups = new Map<string | undefined, SourceMaterial[]>();
     for (const item of items) groups.set(item.prompt, [...(groups.get(item.prompt) ?? []), item]);

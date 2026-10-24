@@ -25,7 +25,7 @@ export function voiceBrief(voice: VoiceConfig): string {
 }
 
 /**
- * `rules` is the block's prompt (D180): the built-in fields and fact rules, or the owner's
+ * `rules` is the block's prompt (D182): the built-in fields and fact rules, or the owner's
  * replacement for the stories of one section. The voice, the source handling and the reply's
  * shape stay as they are, and the checks after writing still apply.
  */

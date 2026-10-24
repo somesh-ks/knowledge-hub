@@ -207,6 +207,50 @@ describe("a run that died before the commit stage", () => {
     const week = [new Date(WED.getTime() - day), new Date(WED.getTime() + day)] as const;
     expect(await firecrawlUsedSince(repo.root, ...week, "the next run")).toBe(3);
   });
+
+  // A dry run made the paid calls of a real one and recorded none: 45 Claude calls on 2026-10-24
+  // never reached the Costs page.
+  it(
+    "puts what a dry run spent in the cost ledger, in a commit of the ledger alone",
+    LONG,
+    async () => {
+      await seed(repo.root, {
+        "config/prices.json": json({
+          version: 1,
+          as_of: "2026-10-21",
+          prices: [
+            {
+              provider: "firecrawl",
+              product: "*",
+              units: { credits: { usd: 0.001, per: 1 } },
+              as_of: "2026-10-21",
+              confirmed: false,
+            },
+          ],
+        }),
+      });
+      const world = makeWorld(repo.root, { now: WED });
+      world.deps = { ...world.deps, spend: new SpendTracker() };
+      expect((await runStage(world, { stage: "gate", dryRun: true })).code).toBe(0);
+      const run = (await readPlan(repo.root))?.created_at as string;
+      const stage = new SpendTracker();
+      await stage.begin(repo.root, run);
+      for (let i = 0; i < 3; i++) stage.guard.takeScrape();
+      await stage.save(repo.root);
+      for (const name of ["fetch", "judge", "write", "validate", "commit"] as const) {
+        expect((await runStage(world, { stage: name })).code).toBe(0);
+      }
+      expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
+        "chore(costs): dry run 2026-10-07",
+      );
+      expect(git(repo.remote, "show", "--name-only", "--format=", "main").trim()).toBe(
+        "state/costs-2026-10.json",
+      );
+      const day = 24 * 60 * 60 * 1000;
+      const week = [new Date(WED.getTime() - day), new Date(WED.getTime() + day)] as const;
+      expect(await firecrawlUsedSince(repo.root, ...week, "the next run")).toBe(3);
+    },
+  );
 });
 
 describe("grounding and validation", () => {

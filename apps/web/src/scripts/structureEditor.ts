@@ -5,7 +5,7 @@
  * or the arrow keys), and Edit opens the
  * block's sheet: its depth, its stories, how many may come from one source and how new they must
  * be (the rules code holds it to), a close's length, an owner block's title and brief, and, closed
- * under Writing instructions, the block's prompt in this kind (D180). Every change saves
+ * under Writing instructions, the block's prompt in this kind (D182). Every change saves
  * itself as the topics editor's do (autosave.ts, D115): a kind's blocks go as one structure.set and a
  * prompt as one structure.prompt; a removal leaves at once and waits with Undo (D142).
  *

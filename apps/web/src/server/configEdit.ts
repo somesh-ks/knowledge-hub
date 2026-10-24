@@ -437,7 +437,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       return { op: "structure.set", kind: kind.data, blocks: blocks.data };
     }
     case "structure.prompt": {
-      // Core's schema (D180) bounds the key, the length and which kinds take which prompts.
+      // Core's schema (D182) bounds the key, the length and which kinds take which prompts.
       const parsed = CoreConfigOp.safeParse(value);
       if (!parsed.success || parsed.data.op !== "structure.prompt") return null;
       const { kind, key, prompt } = parsed.data;

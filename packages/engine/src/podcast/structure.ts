@@ -21,7 +21,7 @@ export interface ScriptShape {
   /** Stories told as deep dives when the length has room for them, in the order told. */
   deep: readonly string[];
   /**
-   * The owner's prompts (D180) by block key ("hello", "rundown", "close", "sign_off", and a story
+   * The owner's prompts (D182) by block key ("hello", "rundown", "close", "sign_off", and a story
    * block's key, the same as `blockPromptKey` in core). A block left out keeps its built-in prompt.
    */
   prompts?: Readonly<Record<string, string>>;
