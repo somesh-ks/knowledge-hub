@@ -1,7 +1,6 @@
 import type { APIRoute } from "astro";
 import { withSecondVoice } from "../../server/config";
-import { bundledDigests } from "../../server/digestSource";
-import { bundledEpisodes } from "../../server/episodeSource";
+import { contentDigests, contentEpisodes } from "../../server/contentSources";
 import { recordingFaults, toResponse } from "../../server/http";
 import { handleNarrationMarks } from "../../server/narrateMarks";
 
@@ -21,8 +20,8 @@ const get: APIRoute = async ({ url }) =>
       },
       {
         env: withSecondVoice(process.env),
-        digests: bundledDigests,
-        episodes: bundledEpisodes,
+        digests: contentDigests(),
+        episodes: contentEpisodes(),
         log,
         fetch,
       },
