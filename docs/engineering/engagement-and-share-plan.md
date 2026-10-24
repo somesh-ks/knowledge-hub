@@ -6,7 +6,7 @@ What counts behaviour is D154's: Simple Analytics on the production host, its ni
 
 ## 1. Bottom line
 
-- **Counting:** Simple Analytics (D154) is the one counter. The listen page sends D154's events with two more metadata keys and one new event; there is no first-party event table, beacon route or second dashboard.
+- **Counting:** Simple Analytics (D154) is the one counter. The listen page sends D154's events with three more metadata keys and one new event; there is no first-party event table, beacon route or second dashboard.
 - **User engagement:** the row under Settings, Analytics opens the Simple Analytics dashboard. Numbers inside the app wait for the owner's choice of how to read them (section 3).
 - **Share:** a link per item opens a public listen page (`/s/<token>`) with the cover, Play, the stories with their sources, the transcript and one call to action. It plays stored audio only, so a stranger never starts narration. Neon keeps the links and their play counts, which enforce the caps and the Blob budget.
 - **First:** link previews (stage 0), which D154 also names its cheapest lift: Share can only send a page's address today, so the card a chat app shows is the first thing a recipient sees. There is no passphrase (D160); the owner will gate actions with OAuth later and hide them from logged-out users.
