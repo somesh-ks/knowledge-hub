@@ -328,9 +328,9 @@ const item = (act: string, label: string, disabled = false, extra = ""): string 
 /**
  * The kind's rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
  * name and what it holds, its dots with Move up, Move down,
- * Edit and Remove (the More menu, MenuSheet.astro's markup: a bottom sheet on a phone), and the
- * frame rows at the ends drawn quieter with no menu. A frame a model writes (Catch up's hello and
- * sign-off) keeps one pencil for its prompt. A section whose every topic is left out of the
+ * Edit and Remove (the More menu, MenuSheet.astro's markup: a bottom sheet on a phone). The hello
+ * and sign-off the app speaks are left out; a frame a model writes (Catch up's) is drawn quieter
+ * with one pencil for its prompt. A section whose every topic is left out of the
  * briefing stays, quiet, and says so.
  */
 export function rowsHtml(
@@ -353,10 +353,10 @@ export function rowsHtml(
       );
       const text = `<div class="settings-text"><span class="settings-label">${name}</span><span class="settings-hint">${summary}</span></div>`;
       if (isFrame(block)) {
-        const edit =
-          builtinPrompt(data, kind, block) === null
-            ? ""
-            : `<button class="icon-btn press structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
+        // A frame the app speaks has nothing to change, so it is not listed (owner, 2026-10-24:
+        // "remove hello and closing"); one a model writes (Catch up's) stays for its prompt.
+        if (builtinPrompt(data, kind, block) === null) return "";
+        const edit = `<button class="icon-btn press structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
         return `<li class="settings-row structure-row" data-index="${index}" data-frame><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
       }
       const menu = `structure-menu-${KIND_ID[kind]}-${Number(index)}`;

@@ -1752,8 +1752,7 @@
    room show only once Reorder is pressed, and then the dots, the pencils and Add step aside, so the
    list does one thing at a time. structureEditor.ts sets data-reordering on the pane. */
 .pref-view-structure:not([data-reordering]) :is(.structure-grip, .structure-grip-room),
-.pref-view-structure[data-reordering]
-  :is(.structure-menu, .structure-edit, .structure-add > .btn-secondary) {
+.pref-view-structure[data-reordering] :is(.structure-menu, .structure-edit, .structure-add) {
   display: none;
 }
 
@@ -1771,6 +1770,20 @@
   cursor: grab;
   /* The finger's pull is the row's move, never the page's scroll. */
   touch-action: none;
+}
+
+/* Below 64rem the grip takes the row's end, where the dots were and the thumb is (owner, 2026-10-24:
+   "move this to the right side for mobile"), ending as the dots do; the names keep the card's edge,
+   so a frame row needs no room. From 64rem it stays at the start. */
+@media (width < 64rem) {
+  .structure-grip {
+    order: 1;
+    margin-inline: var(--space-2) calc(var(--space-2) * -1);
+  }
+
+  .pref-view-structure .structure-grip-room {
+    display: none;
+  }
 }
 
 .structure-grip .icon {

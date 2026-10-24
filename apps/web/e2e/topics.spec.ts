@@ -1468,13 +1468,11 @@ test.describe("the podcast structure", () => {
     const list = page.getByRole("list", { name: "Daily blocks" });
     const names = () => list.locator(".structure-row .settings-label").allTextContents();
     const before = await names();
-    expect(before.slice(0, 3)).toEqual(["Hello", "Top picks", "Design"]);
+    expect(before.slice(0, 2)).toEqual(["Top picks", "Design"]);
     await list.getByRole("button", { name: "More for Design", exact: true }).click();
     await page.getByRole("menuitem", { name: "Move down" }).click();
-    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length - 2));
-    await expect
-      .poll(names)
-      .toEqual([before[0], before[1], before[3], before[2], ...before.slice(4)]);
+    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length));
+    await expect.poll(names).toEqual([before[0], before[2], before[1], ...before.slice(3)]);
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => server.applied.length).toBe(1);
     expect(server.applied[0]).toMatchObject({ op: "structure.set", kind: "daily" });
