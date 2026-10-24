@@ -12,6 +12,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
 | [design/podcast-structure.md](design/podcast-structure.md) | The modular script structure for every episode kind, with the owner's answers (D170, accepted, not built) | Before building the Preferences structure view |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
+| [engineering/delivery-failures.md](engineering/delivery-failures.md) | Why PRs, CI and deploys failed, and the rules that stop each one | Before pushing, and when a check is red |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |

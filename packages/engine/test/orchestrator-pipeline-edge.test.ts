@@ -10,11 +10,14 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { run as renderCommand } from "../src/commands/render.js";
 import { run as validateCommand } from "../src/commands/validate.js";
+import { firecrawlUsedSince } from "../src/cost/ledger.js";
 import { Selection, WrittenFile } from "../src/curate/selectionFile.js";
 import { PoolFile, writePool } from "../src/fetch/pool.js";
 import type { Judge } from "../src/judge/types.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
 import { collectHealth } from "../src/ops/health.js";
+import { readPlan } from "../src/run/plan.js";
+import { SpendTracker } from "../src/run/spend.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
 import {
@@ -170,6 +173,40 @@ describe("a run that died before the commit stage", () => {
       expect(faults.map((each) => each.code)).not.toContain("run_died");
     },
   );
+
+  // The ledger recorded a run only at its commit, so Firecrawl's weekly budget never counted
+  // what a failed run spent (2026-10-24 review).
+  it("puts what the failed run spent in the cost ledger", LONG, async () => {
+    // Firecrawl's price, so the ledger can price the record.
+    await seed(repo.root, {
+      "config/prices.json": json({
+        version: 1,
+        as_of: "2026-10-21",
+        prices: [
+          {
+            provider: "firecrawl",
+            product: "*",
+            units: { credits: { usd: 0.001, per: 1 } },
+            as_of: "2026-10-21",
+            confirmed: false,
+          },
+        ],
+      }),
+    });
+    const world = makeWorld(repo.root, { now: WED });
+    world.deps = { ...world.deps, spend: new SpendTracker() };
+    expect((await runStage(world, { stage: "gate" })).code).toBe(0);
+    const run = (await readPlan(repo.root))?.created_at as string;
+    // A stage that died after three scrapes, saved as each stage saves its spend.
+    const stage = new SpendTracker();
+    await stage.begin(repo.root, run);
+    for (let i = 0; i < 3; i++) stage.guard.takeScrape();
+    await stage.save(repo.root);
+    expect((await runStage(world, { recordFailed: true })).code).toBe(0);
+    const day = 24 * 60 * 60 * 1000;
+    const week = [new Date(WED.getTime() - day), new Date(WED.getTime() + day)] as const;
+    expect(await firecrawlUsedSince(repo.root, ...week, "the next run")).toBe(3);
+  });
 });
 
 describe("grounding and validation", () => {
