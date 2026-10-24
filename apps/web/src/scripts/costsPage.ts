@@ -212,9 +212,10 @@ function geometry(width: number, count: number): { band: number; barW: number } 
 
 function draw(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
-  // A hidden plot (a failed fetch, load) has no box, and its resize still calls here: drawing into
-  // zero height wrote a negative rect (2026-10-24). render draws it again once it shows.
-  if (!plot || !drawn || plot.hidden) return;
+  // A plot with no box (hidden by a failed fetch, load; or its panel out of view in table view,
+  // costs.css) still gets its resize here: drawing into zero height wrote a negative rect
+  // (2026-10-24). Its resize when it shows again draws it.
+  if (!plot || !drawn || plot.clientHeight === 0) return;
   const { buckets, period, data } = drawn;
   plot.querySelector("svg")?.remove();
   const width = Math.max(plot.clientWidth, 240);
@@ -500,6 +501,19 @@ function renderTable(now: Drawn): void {
   const tbody = document.createElement("tbody");
   tbody.append(...rows);
   table.replaceChildren(thead, tbody);
+  syncTableScroll();
+}
+
+/**
+ * A table wider than its card scrolls sideways (a phone): then it is a tab stop, so a keyboard can
+ * scroll it (WCAG 2.1.1; axe, 2026-10-24). A table that fits adds no dead stop. Run after each render
+ * and on every resize of its box, which the table view's first showing is.
+ */
+function syncTableScroll(): void {
+  const scroller = pick<HTMLElement>("[data-costs-table-scroll]");
+  if (!scroller) return;
+  if (scroller.scrollWidth > scroller.clientWidth) scroller.tabIndex = 0;
+  else scroller.removeAttribute("tabindex");
 }
 
 /** What the numbers rest on, in a sentence or two. */
@@ -606,12 +620,18 @@ for (const select of document.querySelectorAll("#costs-range, #costs-by")) {
   select.addEventListener("change", () => void load());
 }
 wireChart();
+// The table's box changes when its view first shows and when the window resizes.
+const tableScroll = pick<HTMLElement>("[data-costs-table-scroll]");
+if (tableScroll) new ResizeObserver(() => syncTableScroll()).observe(tableScroll);
 // Chart or table: the switch at the end of the filter row sets the card's view (costs.css).
 const viewSwitch = pick<HTMLElement>("[data-costs-view]");
 const costsCard = pick<HTMLElement>("[data-costs]");
 if (viewSwitch && costsCard) {
   mountSegmentedNav(viewSwitch, (value) => {
     costsCard.dataset.view = value;
+    // At once, not at the table's next resize: on a cold page that came a second late, after a
+    // keyboard's Tab into the panel.
+    syncTableScroll();
   });
 }
 void load();

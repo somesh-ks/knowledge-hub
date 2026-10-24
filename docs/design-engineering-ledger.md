@@ -348,7 +348,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - One row height per kind: 72px for sources (D89), 88px for suggestions from 40rem (D91).
   - The Generate bar's line shows only while the bar is really stuck (D87).
   - The section strip is opaque, so text never shows through under it (D88).
-  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first); the section tabs and the Library shelf still carry their own copies of it.
+  - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first); the section tabs and the Library shelf still carry their own copies of it. A scroller a keyboard must reach is a tab stop only while it overflows, and its ring is drawn on its parent, since the mask clips its own (the Costs table, axe `scrollable-region-focusable`, 2026-10-24).
   - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
   - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
 - **Speech and status.**

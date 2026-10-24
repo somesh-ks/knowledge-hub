@@ -97,7 +97,10 @@ const SPLITS = [
         </div>
 
         <div class="costs-table" id="costs-grid" role="tabpanel" aria-labelledby="costs-view-table" data-costs-table>
-          <div class="costs-table-scroll scroll-fade-inline"><table data-costs-grid></table></div>
+          {/* A tab stop only while it scrolls sideways, so a keyboard can scroll it (costsPage.ts). */}
+          <div class="costs-table-scroll scroll-fade-inline" role="region" aria-label="Spend table" data-costs-table-scroll>
+            <table data-costs-grid></table>
+          </div>
         </div>
       </section>
       <p class="settings-note costs-note" data-costs-note></p>

@@ -330,6 +330,18 @@
   animation-timeline: scroll(self inline);
 }
 
+/* A fading scroller a keyboard must reach (one that scrolls, given a tabindex) draws its ring on its
+   parent: the mask clips the scroller's own outline with the fade (2026-10-24). */
+.scroll-fade-inline:focus-visible {
+  outline: none; /* the ring is the parent's: :has(> .scroll-fade-inline:focus-visible), below */
+  box-shadow: none;
+}
+
+:has(> .scroll-fade-inline:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
 @keyframes scroll-fade-inline {
   0% {
     --scroll-fade-start: 0px;

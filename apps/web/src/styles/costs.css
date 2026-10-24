@@ -302,8 +302,11 @@
   display: none;
 }
 
+/* Its corners are a card's content's, so the ring it draws for its focused scroller (primitives.css,
+   .scroll-fade-inline) is round as the card's content is. */
 .costs-table {
   margin-block-start: var(--space-4);
+  border-radius: var(--card-content-radius);
 }
 
 /* Wider than the card on a phone: it scrolls sideways, and its hidden edge fades while more columns
