@@ -46,6 +46,8 @@ const EXEMPT = [
   ".row-action .icon",
   // The same nudge inside a select on the index (Theme), so its value ends where the link rows' do.
   ".settings-view .value-select > select.manage-input",
+  // An optical pad sized by the font's metrics, so the emoji's ink sits in its cell's centre.
+  ".emoji-cell",
 ];
 
 const PAGES = [

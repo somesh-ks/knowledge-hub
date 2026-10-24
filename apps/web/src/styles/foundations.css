@@ -406,6 +406,8 @@
     transform: scale(var(--scale-press-subtle));
   }
 
+  /* .hover-fill: the standard hover state layer (D72) for a control with no fill of its own, such
+     as an emoji picker cell (owner, 2026-10-24). Layered, so a control's own chosen fill wins. */
   @media (hover: hover) and (pointer: fine) {
     .hover-fill:hover {
       background-color: color-mix(

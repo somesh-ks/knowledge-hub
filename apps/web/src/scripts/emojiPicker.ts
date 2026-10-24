@@ -33,7 +33,7 @@ export function preloadEmoji(): void {
 const BATCH = 120;
 
 const cell = (emoji: string, name: string, current: string): HTMLButtonElement => {
-  const button = element("button", "emoji-cell press press-subtle", emoji) as HTMLButtonElement;
+  const button = element("button", "emoji-cell press press-subtle hover-fill", emoji) as HTMLButtonElement;
   button.type = "button";
   button.tabIndex = -1;
   button.dataset.emoji = emoji;
