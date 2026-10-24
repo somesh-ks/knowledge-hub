@@ -15,7 +15,7 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 runs (2026-10-23), about 10 minutes. Player e2e: 71 runs, about 3 minutes.
+Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 minutes. Player e2e: 71 runs, 3 minutes.
 
 ## Not working or unverified
 
