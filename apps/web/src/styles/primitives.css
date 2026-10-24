@@ -151,7 +151,9 @@
 
 .tabs {
   display: flex;
-  padding-inline: calc(var(--page-gutter-start) - var(--space-2))
+  /* The first label sits on the gutter; at the end the strip keeps 8px past the last tab, so a tab
+     scrolled into view (briefingPage.ts revealTab) lands inside the screen, not on its edge. */
+  padding-inline: calc(var(--page-gutter-start) - var(--space-4))
     calc(var(--page-gutter-end) - var(--space-2));
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -206,7 +208,9 @@
   align-items: center;
   flex: none;
   height: var(--tabs-height);
-  padding-inline: var(--space-2);
+  /* 16px each side, so two labels sit 32px apart: at 8px they read as one run of words (owner,
+     2026-10-23, "placed too close to each other"). The strip's padding takes it back at the gutter. */
+  padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -233,7 +237,7 @@
 .tab::after {
   content: "";
   position: absolute;
-  inset-inline: var(--space-2);
+  inset-inline: var(--space-4);
   inset-block-end: 0;
   height: var(--tabs-indicator-height);
   border-start-start-radius: var(--tabs-indicator-radius);

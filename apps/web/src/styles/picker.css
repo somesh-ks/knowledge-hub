@@ -72,7 +72,7 @@
   min-block-size: var(--field-height);
   padding-inline: var(--field-padding)
     calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
-  border-radius: var(--row-radius);
+  border-radius: var(--button-radius);
   background: var(--color-surface-container);
 }
 

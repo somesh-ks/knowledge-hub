@@ -27,7 +27,8 @@
   padding-inline: var(--field-padding)
     calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
   border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
+  /* A pill, as every select is (D160), in a form as in a row. */
+  border-radius: var(--button-radius);
   background: none;
   color: var(--color-on-surface);
   font-size: var(--font-size-body);

@@ -316,6 +316,13 @@
   flex-wrap: nowrap;
 }
 
+/* The stop's name sits at the end of the row's first line, across from the name, not under it
+   (owner, 2026-10-23: "the status text must be on the right side in a flex space-between style"). */
+.topic-weight > .settings-text {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+}
+
 .topic-weight > .settings-range {
   flex: 1 1 auto;
 }
@@ -858,7 +865,6 @@
     [aria-invalid]:not([aria-invalid="false"])
   ) {
   border-color: transparent;
-  border-radius: var(--field-radius);
   background: var(--color-surface-container);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }

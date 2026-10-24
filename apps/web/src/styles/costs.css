@@ -261,27 +261,33 @@
   background: var(--color-accent);
 }
 
-/* ------------------------------------------------------------------ under the card */
+/* ------------------------------------------------------------------ chart or table */
+
+/* Two glyph tabs at the end of the filter row switch the card between the chart and the table
+   (owner, 2026-10-23; a "Show as a table" disclosure under the card before). The segmented
+   navigation, compact: each segment a chip's height on a 44px column, so it sits level with the
+   chips. The card's data-view shows one panel and hides the other. */
+.costs-filters > .costs-view {
+  flex: none;
+  grid-auto-columns: var(--size-touch);
+  min-inline-size: 0;
+  margin-inline-start: auto;
+  /* On the card's tone the track steps up as the chips do, or it vanishes into the card. */
+  background: var(--color-surface-overlay);
+}
+
+.costs-view > .segmented-nav-tab {
+  min-height: var(--chip-height);
+  padding-inline: 0;
+}
+
+.costs[data-view="table"] .costs-chart,
+.costs:not([data-view="table"]) .costs-table {
+  display: none;
+}
 
 .costs-table {
   margin-block-start: var(--space-4);
-}
-
-.costs-table > summary {
-  display: flex;
-  align-items: center;
-  inline-size: fit-content;
-  min-block-size: var(--size-touch);
-  color: var(--color-accent);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-}
-
-.costs-table > summary:focus-visible {
-  border-radius: var(--radius-xs);
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
 }
 
 .costs-table-scroll {
