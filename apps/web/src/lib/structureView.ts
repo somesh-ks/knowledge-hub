@@ -128,21 +128,12 @@ export const STORIES_MAX: Partial<Record<StructureBlock["type"], number>> = {
 /** The most stories one outlet may bring to a block (core's PER_SOURCE_MAX). */
 export const PER_SOURCE_MAX = 4;
 
-/** How new a block's stories must be, in hours (core's MAX_AGE_STOPS), with the words for each. */
-export const AGE_STOPS: readonly { hours: number; label: string; summary: string }[] = [
-  { hours: 12, label: "12 hours", summary: "last 12 h" },
-  { hours: 24, label: "1 day", summary: "last day" },
-  { hours: 48, label: "2 days", summary: "last 2 days" },
-  { hours: 72, label: "3 days", summary: "last 3 days" },
-  { hours: 168, label: "1 week", summary: "last week" },
-];
-
 type StoryBlock = Extract<
   StructureBlock,
   { type: "section" | "top_picks" | "trending" | "release_news" }
 >;
 
-/** A block that brings stories and so takes the rules code holds it to (per source, age). */
+/** A block that brings stories and so takes the rule code holds it to (per source). */
 export function isStoryBlock(block: StructureBlock): block is StoryBlock {
   return (
     block.type === "section" ||
@@ -152,18 +143,10 @@ export function isStoryBlock(block: StructureBlock): block is StoryBlock {
   );
 }
 
-/**
- * Whether the block takes an age limit here. Top picks takes its stories from the sections, which
- * keep their own limits, and Catch up takes its window from its form (the Create sheet's Look back).
- */
-export function takesAge(kind: StructureKind, block: StructureBlock): boolean {
-  return kind !== "catch_up" && isStoryBlock(block) && block.type !== "top_picks";
-}
-
 /** The same block with a rule set; null leaves the app's own. */
 export function withRule(
   block: StructureBlock,
-  rule: "per_source" | "max_age_hours",
+  rule: "per_source",
   value: number | null,
 ): StructureBlock {
   if (!isStoryBlock(block)) return block;
@@ -177,21 +160,15 @@ const storiesText = (count: number): string => (count === 1 ? "1 story" : `${cou
 
 /**
  * What a row says under the block's name, in parts joined by a centred dot: "4 stories · in depth
- * · 1 per source · last day". A setting left to the app says nothing, except where nothing else
+ * · 1 per source". A setting left to the app says nothing, except where nothing else
  * would ("The usual count").
  */
 export function blockSummary(kind: StructureKind, block: StructureBlock): string {
   const count = storiesOf(block);
   const counted = typeof count === "number" ? storiesText(count) : null;
   const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
-  const rules = isStoryBlock(block)
-    ? [
-        block.per_source === undefined ? null : `${block.per_source} per source`,
-        block.max_age_hours === undefined || !takesAge(kind, block)
-          ? null
-          : (AGE_STOPS.find((stop) => stop.hours === block.max_age_hours)?.summary ?? null),
-      ]
-    : [];
+  const rules =
+    isStoryBlock(block) && block.per_source !== undefined ? [`${block.per_source} per source`] : [];
   const join = (parts: readonly (string | null)[]): string =>
     capital(parts.filter((part): part is string => part !== null).join(" · "));
   switch (block.type) {

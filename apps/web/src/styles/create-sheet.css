@@ -130,6 +130,13 @@
     inset-block-end var(--duration-enter) var(--ease-out);
 }
 
+/* As a button (Add, Reorder) it drops the browser's own margin and type, as the link does. */
+button.create-fab {
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .create-fab:hover {
     background: color-mix(

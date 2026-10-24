@@ -43,20 +43,12 @@ export type BlockDepth = z.infer<typeof Depth>;
 /**
  * Settings a story block holds that code enforces exactly, whatever model writes (the owner,
  * 2026-10-24: "deterministic parameters ... we've gotta stay robust"). `per_source` is the most
- * stories one outlet may bring to the block; `max_age_hours` leaves out stories older than that.
- * Absent means the engine's own (two per outlet across the briefing, any age within the window).
+ * stories one outlet may bring to the block; absent means the engine's own (two per outlet across
+ * the briefing). How far back a podcast looks is the kind's, not a block's (owner, 2026-10-24).
  */
 export const PER_SOURCE_MAX = 4;
-export const MAX_AGE_STOPS = [12, 24, 48, 72, 168] as const;
 const StoryRules = {
   per_source: z.number().int().min(1).max(PER_SOURCE_MAX).optional(),
-  max_age_hours: z
-    .number()
-    .int()
-    .refine((hours) => (MAX_AGE_STOPS as readonly number[]).includes(hours), {
-      message: `max_age_hours is one of ${MAX_AGE_STOPS.join(", ")}`,
-    })
-    .optional(),
 };
 
 /**
@@ -397,7 +389,7 @@ export function storedBlockPrompt(
 export function blockStoryRules(
   blocks: readonly StructureBlock[],
   section: string,
-): { per_source?: number; max_age_hours?: number } {
+): { per_source?: number } {
   for (const block of blocks) {
     const named =
       (block.type === "section" && block.id === section) ||
@@ -411,10 +403,7 @@ export function blockStoryRules(
       block.type === "trending" ||
       block.type === "release_news"
     ) {
-      return {
-        ...(block.per_source === undefined ? {} : { per_source: block.per_source }),
-        ...(block.max_age_hours === undefined ? {} : { max_age_hours: block.max_age_hours }),
-      };
+      return block.per_source === undefined ? {} : { per_source: block.per_source };
     }
   }
   return {};

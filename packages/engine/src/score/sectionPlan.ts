@@ -36,7 +36,7 @@ export interface SectionPlan {
   /** The owner's prompt for the section's stories (D182), or undefined for the built-in one. */
   prompt(section: string): string | undefined;
   /** The block's own rules for its stories: most per outlet and how old they may be. */
-  rules(section: string): { per_source?: number; max_age_hours?: number };
+  rules(section: string): { per_source?: number };
 }
 
 /** Stories a briefing's rundown names when its block leaves the count to the engine. */

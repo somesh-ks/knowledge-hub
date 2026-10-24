@@ -60,8 +60,6 @@ export type DropReason =
   | "over_cap"
   /** A third story or later from one outlet (OUTLET_CAP), or past its block's own count. */
   | "over_outlet"
-  /** Older than its block lets a story be (`max_age_hours`). */
-  | "too_old"
   /** A Tech releases candidate beyond that section's own allowance. */
   | "over_tech_cap"
   /** A candidate beyond the allowance of a custom section, or beyond the digest's hard maximum. */
@@ -114,8 +112,6 @@ export interface SelectInput {
   onlyTopics?: readonly string[];
   /** The briefing's structure: section order, Top picks and allowances. Absent is the default. */
   plan?: SectionPlan;
-  /** The run's clock, for a block's age limit; absent leaves every story's age alone. */
-  now?: Date;
 }
 
 export interface SelectResult {
@@ -442,21 +438,13 @@ export function selectItems(input: SelectInput): SelectResult {
   // is the story's host, so one publisher's several feeds count once; a story bound for its own
   // section (a general topic's) is outside the cap, since those sections draw on a few outlets.
   // A block that sets its own count per outlet (D170, the owner's "deterministic parameters")
-  // counts within that block instead, and one with an age limit leaves out older stories.
+  // counts within that block instead.
   const perOutlet = new Map<string, number>();
   const blockOf = (candidate: Candidate): string =>
     isReleaseStory(candidate) ? RELEASE_SECTION : candidate.home;
   const withinCap = ranked.filter((candidate) => {
     const block = blockOf(candidate);
     const rules = plan.rules(block);
-    const hours = rules.max_age_hours;
-    if (hours !== undefined && input.now !== undefined) {
-      const at = Date.parse(candidate.item.published_at ?? candidate.item.fetched_at);
-      if (input.now.getTime() - at > hours * 3_600_000) {
-        dropped.push({ id: candidate.item.id, reason: "too_old", score: candidate.score });
-        return false;
-      }
-    }
     if (hasOwnSection(candidate) && rules.per_source === undefined) return true;
     const outlet = outletOf(candidate.item);
     const key = rules.per_source === undefined ? outlet : `${block}\u0000${outlet}`;

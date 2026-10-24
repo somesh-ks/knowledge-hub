@@ -177,8 +177,7 @@ it("a Catch up block's own prompt reaches the script delimited, once, before its
   expect(system).not.toContain("the hello, as the OWNER INSTRUCTIONS");
 });
 
-it("a block's own count per source and age limit decide what it carries, whatever the model wrote (D170)", () => {
-  const now = new Date("2026-10-24T06:00:00Z");
+it("a block's own count per source decides what it carries, whatever the model wrote (D170)", () => {
   const story = (url: string, score: number, published_at: string): ScoredItem => {
     const item = makeItem({ url, canonical_url: url, published_at });
     const entry = makeEntry(item, { category: "design_engineering_craft" });
@@ -187,28 +186,25 @@ it("a block's own count per source and age limit decide what it carries, whateve
   };
   const first = story("https://same.example/a", 0.9, "2026-10-24T02:00:00Z");
   const second = story("https://same.example/b", 0.85, "2026-10-24T03:00:00Z");
-  const old = story("https://other.example/c", 0.8, "2026-10-21T06:00:00Z");
-  const fresh = story("https://third.example/d", 0.75, "2026-10-23T12:00:00Z");
+  const other = story("https://other.example/c", 0.8, "2026-10-23T12:00:00Z");
   const plan = sectionPlanFor(
     blocks([
       { type: "hello" },
-      { type: "section", id: "ui-craft", per_source: 1, max_age_hours: 24 },
+      { type: "section", id: "ui-craft", per_source: 1 },
       { type: "sign_off" },
     ]),
   );
   const result = selectItems({
-    scored: [first, second, old, fresh],
+    scored: [first, second, other],
     kind: "regular",
     floor: 1,
     cap: 12,
     plan,
-    now,
   });
   expect(result.selected.map((selected) => selected.item.id)).toEqual([
     first.item.id,
-    fresh.item.id,
+    other.item.id,
   ]);
   const reasons = new Map(result.dropped.map((d) => [d.id, d.reason]));
   expect(reasons.get(second.item.id)).toBe("over_outlet");
-  expect(reasons.get(old.item.id)).toBe("too_old");
 });

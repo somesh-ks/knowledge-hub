@@ -11,14 +11,7 @@ import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
-import {
-  AGE_STOPS,
-  addOffers,
-  fitLine,
-  KIND_LABEL,
-  PER_SOURCE_MAX,
-  rowsHtml,
-} from "../../lib/structureView";
+import { addOffers, fitLine, KIND_LABEL, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
@@ -131,9 +124,13 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
                     ))
                   }
                 </div>
-                {/* The grips show only after this is pressed, so a stray drag down the page never
-                    moves a block (owner, 2026-10-24: "I'm worried about accidental reorders"). */}
-                <button class="btn structure-reorder" type="button" data-reorder data-needs-js>Reorder</button>
+                {/* The grips show only after Reorder is pressed, so a stray drag down the page never
+                    moves a block (owner, 2026-10-24: "I'm worried about accidental reorders"). Here
+                    from 64rem; below it the floating button at the page's foot is Reorder (owner,
+                    same day: "a fab button on mobile, a normal secondary button on desktop"). */}
+                <button class="btn-secondary structure-reorder" type="button" data-reorder data-needs-js>
+                  <span data-reorder-label>Reorder</span>
+                </button>
               </div>
               <p class="sr-only" id="structure-grip-hint">Drag to move, or press the up and down arrow keys.</p>
               <div role="tabpanel" id="structure-panel" aria-labelledby={`structure-kind-${firstKind}`} data-structure-panel>
@@ -175,6 +172,19 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
         </div>
       </fieldset>
       <ManageChrome />
+      {/* The page's floating button below 64rem (lib/fab.ts): Reorder, Done while reordering, so
+           Done stays in reach down a long list. The shape, place and fold are .create-fab's. */}
+      <button
+        class="create-fab structure-reorder-fab pref-view-structure"
+        type="button"
+        aria-label="Reorder"
+        data-reorder
+        data-needs-js
+      >
+        <span class="structure-reorder-icon" data-reorder-icon="grip"><Icon name="grip" class="icon-lg" /></span>
+        <span class="structure-reorder-icon" data-reorder-icon="check"><Icon name="check" class="icon-lg" /></span>
+        <span class="create-fab-label" aria-hidden="true" data-reorder-label>Reorder</span>
+      </button>
     </div>
 
     {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's
@@ -253,16 +263,6 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
                   <select class="manage-input" id="structure-per-source" name="per_source" autocomplete="off">
                     <option value="">Auto</option>
                     {Array.from({ length: PER_SOURCE_MAX }, (_, at) => <option value={String(at + 1)}>{String(at + 1)}</option>)}
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
-              </div>
-              <div class="settings-row" data-part="age">
-                <label class="settings-label" for="structure-age">Newer than</label>
-                <span class="manage-select value-select">
-                  <select class="manage-input" id="structure-age" name="max_age_hours" autocomplete="off">
-                    <option value="">Any age</option>
-                    {AGE_STOPS.map((stop) => <option value={String(stop.hours)}>{stop.label}</option>)}
                   </select>
                   <Icon name="chevronDown" />
                 </span>

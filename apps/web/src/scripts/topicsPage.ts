@@ -69,9 +69,10 @@ function mount(root: HTMLElement): void {
       .catch(() => {});
   };
   if (pane) warmWhenIdle(() => import("./structureEditor"));
-  /** An event the Structure view's own editor answers, not the topics editor. */
+  /** An event the Structure view's own editor answers, not the topics editor (its Reorder too). */
   const structural = (event: Event): boolean =>
-    pane?.contains(event.target as Node | null) ?? false;
+    (pane?.contains(event.target as Node | null) ?? false) ||
+    (event.target instanceof Element && event.target.closest("[data-reorder]") !== null);
 
   // Sources or Preferences on a topic's page (2026-10-20), and Source types or Structure on the
   // Preferences page, read from the address and kept in it, so a reload or Back finds the same view
@@ -83,7 +84,12 @@ function mount(root: HTMLElement): void {
     );
     const asked = new URLSearchParams(location.search).get(tabs.dataset.param ?? "view") ?? "";
     const view = values.includes(asked) ? asked : (values[0] ?? "");
-    root.dataset.view = view;
+    // The floating Reorder is the Structure view's alone, so the room kept for it (data-fab) is too.
+    const show = (chosen: string): void => {
+      root.dataset.view = chosen;
+      if (pane) document.documentElement.toggleAttribute("data-fab", chosen === "structure");
+    };
+    show(view);
     if (view === "structure") loadStructure();
     // The tabs show the view at once; their keys and presses (segmentedNav.ts) follow in a moment,
     // outside the first load's budget.
@@ -92,7 +98,7 @@ function mount(root: HTMLElement): void {
     void import("./segmentedNav").then((module) => {
       module.selectTab(tabs, view);
       module.mountSegmentedNav(tabs, (chosen) => {
-        root.dataset.view = chosen;
+        show(chosen);
         if (chosen === "structure") loadStructure();
       });
     });

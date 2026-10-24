@@ -3,8 +3,8 @@
  * a tab for each podcast kind, its blocks as rows, Add and Reorder under them. A row moves by its
  * dots (Move up, Move down) or, once Reorder is pressed, by its grip (pulled with a finger or a mouse,
  * or the arrow keys), and Edit opens the
- * block's sheet: its depth, its stories, how many may come from one source and how new they must
- * be (the rules code holds it to), a close's length, an owner block's title and brief, and, closed
+ * block's sheet: its depth, its stories, how many may come from one source (a rule code holds it
+ * to), a close's length, an owner block's title and brief, and, closed
  * under Writing instructions, the block's prompt in this kind (D182). Every change saves
  * itself as the topics editor's do (autosave.ts, D115): a kind's blocks go as one structure.set and a
  * prompt as one structure.prompt; a removal leaves at once and waits with Undo (D142).
@@ -31,7 +31,6 @@ import {
   type StructureData,
   skipAfter,
   storiesOf,
-  takesAge,
   withRule,
   withStories,
 } from "../lib/structureView";
@@ -265,14 +264,21 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   // Reorder shows the grips and hides the dots and Add; Done puts them back. Outside it a row has
   // no handle, so nothing a finger does by chance moves a block (owner, 2026-10-24).
-  const reorder = pane.querySelector<HTMLButtonElement>("[data-reorder]");
-  reorder?.addEventListener("click", () => {
-    const on = pane.dataset.reordering === undefined;
-    if (on) pane.dataset.reordering = "";
-    else delete pane.dataset.reordering;
-    reorder.textContent = on ? "Done" : "Reorder";
-    say(on ? "Reorder on. Drag a block by its handle, or use the arrow keys." : "Reorder off.");
-  });
+  // Two buttons, one shown at a time: the floating one below 64rem and the one by the tabs above.
+  const reorders = root.querySelectorAll<HTMLButtonElement>("[data-reorder]");
+  for (const reorder of reorders)
+    reorder.addEventListener("click", () => {
+      const on = pane.dataset.reordering === undefined;
+      if (on) pane.dataset.reordering = "";
+      else delete pane.dataset.reordering;
+      root.toggleAttribute("data-reordering", on);
+      for (const each of reorders) {
+        if (each.hasAttribute("aria-label")) each.ariaLabel = on ? "Done" : "Reorder";
+        const label = each.querySelector("[data-reorder-label]");
+        if (label) label.textContent = on ? "Done" : "Reorder";
+      }
+      say(on ? "Reorder on. Drag a block by its handle, or use the arrow keys." : "Reorder off.");
+    });
 
   pane.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>("button");
@@ -459,7 +465,6 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     part("length", block.type === "close");
     part("stories", stories !== undefined);
     part("per-source", isStoryBlock(block));
-    part("age", takesAge(editing, block));
     part("rules", stories !== undefined);
     part("prompt", builtin !== null);
     part("spoken", block.type !== "custom" && builtin === null);
@@ -470,7 +475,6 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     const brief = one<HTMLTextAreaElement>('textarea[name="brief"]');
     const storiesSelect = one<HTMLSelectElement>('select[name="stories"]');
     const perSource = one<HTMLSelectElement>('select[name="per_source"]');
-    const age = one<HTMLSelectElement>('select[name="max_age_hours"]');
     const prompt = one<HTMLTextAreaElement>('textarea[name="prompt"]');
     const count = one<HTMLElement>("[data-count]");
     if (block.type === "custom") {
@@ -492,10 +496,8 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
         storiesSelect.add(new Option(String(count), String(count)));
       storiesSelect.value = stories === null ? "" : String(stories);
     }
-    if (isStoryBlock(block)) {
+    if (isStoryBlock(block))
       perSource.value = block.per_source === undefined ? "" : String(block.per_source);
-      age.value = block.max_age_hours === undefined ? "" : String(block.max_age_hours);
-    }
     const state = one<HTMLElement>("[data-prompt-state]");
     const counted = (): void => {
       count.textContent = `${prompt.value.length} of ${prompt.maxLength} characters`;
@@ -537,10 +539,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       const number = (select: HTMLSelectElement): number | null =>
         select.value === "" ? null : Number(select.value);
       if (stories !== undefined) next = withStories(next, number(storiesSelect));
-      if (isStoryBlock(next)) {
-        next = withRule(next, "per_source", number(perSource));
-        if (takesAge(editing, next)) next = withRule(next, "max_age_hours", number(age));
-      }
+      if (isStoryBlock(next)) next = withRule(next, "per_source", number(perSource));
       return next;
     };
     /** The prompt to keep: null for the built-in one (also when cleared or typed back to it). */

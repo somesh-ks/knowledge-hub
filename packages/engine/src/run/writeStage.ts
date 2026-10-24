@@ -315,7 +315,6 @@ async function writePass(
     // Regenerate with chosen topics: a candidate stays only when its category is one of them.
     ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
     plan: sectionPlan,
-    now: deps.now(),
   };
   const chosen = selectItems({
     ...selectArgs,

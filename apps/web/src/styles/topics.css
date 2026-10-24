@@ -1701,9 +1701,27 @@
   padding-inline: 0;
 }
 
+/* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
+   floating button is Reorder instead (owner, 2026-10-24), so one shows at a time. */
 .structure-reorder {
   flex: none;
-  margin-inline-end: calc(var(--space-4) * -1);
+  width: auto;
+}
+
+@media (width < 64rem) {
+  .structure-reorder {
+    display: none;
+  }
+}
+
+/* The floating Reorder shows the grip, and Done (while reordering) the check. */
+.preferences-page:not([data-reordering]) [data-reorder-icon="check"],
+.preferences-page[data-reordering] [data-reorder-icon="grip"] {
+  display: none;
+}
+
+.structure-reorder-icon {
+  display: contents;
 }
 
 .structure-list {
