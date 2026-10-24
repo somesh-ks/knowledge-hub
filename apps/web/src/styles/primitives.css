@@ -64,7 +64,7 @@
 /* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
    through the first letters and the chevron. */
 .row-action:focus-visible {
-  outline: none;
+  outline: none; /* the ring is the tile's: .row-action:focus-visible::after, below */
   box-shadow: none;
 }
 
@@ -889,7 +889,7 @@
   font: inherit;
   /* The label size is under 16px on purpose: a select does not zoom the page on iOS. */
   font-size: inherit;
-  outline: none;
+  outline: none; /* the ring is the chip's: .sort-field:has(> select:focus-visible), above */
   box-shadow: none;
   cursor: pointer;
 }
@@ -1142,7 +1142,7 @@
      edge (was the Library's alone, library.css, until 2026-10-22). */
   :root:not([data-input="keyboard"]) .sort-field:has(> select:open) {
     border-color: transparent;
-    outline: none;
+    outline: none; /* a pointer's open list only: a keyboard's keeps its ring (data-input) */
     background: color-mix(
       in oklch,
       var(--sort-field-bg),
