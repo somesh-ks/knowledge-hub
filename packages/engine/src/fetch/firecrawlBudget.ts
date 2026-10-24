@@ -1,11 +1,17 @@
 import type { Source } from "@dispatch/core";
 
 /**
- * The most Firecrawl requests one run may make, listing pages and article scrapes together. The
- * free plan is rate limited and metered by request, so the run holds itself to a fixed number
- * however many sources are configured.
+ * Firecrawl requests all runs together may make in any 7 days, listing pages and article scrapes
+ * (the owner, 2026-10-24). Read from the cost ledger at each stage (`run/spend.ts`).
  */
-export const FIRECRAWL_RUN_CEILING = 30;
+export const FIRECRAWL_WEEKLY_BUDGET = 100;
+
+/**
+ * The most Firecrawl requests one run may make, listing pages and article scrapes together: half
+ * the week, so one run can never spend it all. Metered by request, so the run holds itself to a
+ * fixed number however many sources are configured.
+ */
+export const FIRECRAWL_RUN_CEILING = 50;
 
 /** Share of the ceiling that listing pages (sources of type firecrawl) may use; scraping gets the rest. */
 export const FIRECRAWL_LISTING_SHARE = 0.55;
@@ -77,12 +83,33 @@ export interface FirecrawlLimits {
  */
 export class FirecrawlGuard {
   private state: FirecrawlState;
-  private readonly limits: FirecrawlLimits;
+  private limits: FirecrawlLimits;
+  private readonly base: FirecrawlLimits;
   private readonly pages = new Map<string, Promise<unknown>>();
 
   constructor(initial: FirecrawlState = EMPTY_FIRECRAWL_STATE, limits: FirecrawlLimits = {}) {
     this.state = { ...initial, skipped: [...initial.skipped] };
     this.limits = limits;
+    this.base = limits;
+  }
+
+  /**
+   * Hold this run to `room` requests at most (what the weekly budget has left), the listing share
+   * scaled with it. Never above the guard's own limits; a later call replaces an earlier one.
+   */
+  limitTo(room: number): void {
+    const ceiling = Math.max(
+      0,
+      Math.min(Math.floor(room), this.base.ceiling ?? FIRECRAWL_RUN_CEILING),
+    );
+    this.limits = {
+      ...this.base,
+      ceiling,
+      listing: Math.min(
+        this.base.listing ?? FIRECRAWL_LISTING_CEILING,
+        Math.floor(ceiling * FIRECRAWL_LISTING_SHARE),
+      ),
+    };
   }
 
   /** Replace the counts, as when a later stage picks up what an earlier one spent. */

@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LastRunFile } from "@dispatch/core";
@@ -141,5 +141,45 @@ describe("the spend record", () => {
     const other = new SpendTracker();
     await other.begin(root, "2026-10-10T06:00:00.000Z");
     expect(other.totals().requests.jev).toBeUndefined();
+  });
+
+  // The owner set Firecrawl to 100 requests a week (2026-10-24); a run only knew its own 30.
+  it("gives a run what the 7 days before it left of the weekly budget", async () => {
+    const root = await mkdtemp(join(tmpdir(), "spend-"));
+    dirs.push(root);
+    const run = "2026-10-24T05:37:00.000Z";
+    const spent = (run_id: string, credits: number) => ({
+      id: `${run_id}|daily|fetch|firecrawl|scrape|owner`,
+      at: run_id,
+      run_id,
+      kind: "daily",
+      timezone: "Europe/Stockholm",
+      user: "owner",
+      scope: "shared",
+      stage: "fetch",
+      provider: "firecrawl",
+      product: "scrape",
+      units: { credits },
+      usd: 0,
+    });
+    await mkdir(join(root, "state"));
+    const records = [
+      spent("2026-10-16T05:37:00.000Z", 50), // eight days back: outside the week
+      spent("2026-10-20T05:37:00.000Z", 45),
+      spent("2026-10-22T05:37:00.000Z", 30),
+      spent(run, 20), // this run's own record never counts against it
+    ];
+    await writeFile(
+      join(root, "state/costs-2026-10.json"),
+      JSON.stringify({ version: 1, records }),
+    );
+    const tracker = new SpendTracker();
+    await tracker.begin(root, run);
+    expect(tracker.guard.scrapeRoom).toBe(100 - 45 - 30);
+    expect(tracker.guard.listingRoom).toBe(Math.floor(25 * 0.55));
+    // A quiet week leaves the run its own ceiling, half the week.
+    const quiet = new SpendTracker();
+    await quiet.begin(root, "2026-11-20T05:37:00.000Z");
+    expect(quiet.guard.scrapeRoom).toBe(50);
   });
 });

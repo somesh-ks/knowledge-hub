@@ -1,13 +1,19 @@
 import { join } from "node:path";
 import type { RunSpend } from "@dispatch/core";
 import { z } from "zod";
+import { firecrawlUsedSince } from "../cost/ledger.js";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
-import { EMPTY_FIRECRAWL_STATE, FirecrawlGuard } from "../fetch/firecrawlBudget.js";
+import {
+  EMPTY_FIRECRAWL_STATE,
+  FIRECRAWL_WEEKLY_BUDGET,
+  FirecrawlGuard,
+} from "../fetch/firecrawlBudget.js";
 import { RequestMeter } from "../llm/requestMeter.js";
 import { runCacheDir } from "./plan.js";
 
 const count = z.number().int().nonnegative();
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** `.cache/run/spend.json`: what the stages of one run have spent so far, keyed by the run's plan. */
 const SpendFile = z.object({
@@ -60,6 +66,15 @@ export class SpendTracker {
       this.base = { ...parsed.data.requests };
       this.baseUnits = { ...parsed.data.units };
       this.guard.restore(parsed.data.firecrawl);
+    }
+    // The weekly budget: what other runs spent in the 7 days before this one (the ledger records a
+    // run at its commit, so the run in progress is never counted twice). A ledger that does not
+    // read leaves the run its own ceiling.
+    const started = Date.parse(run);
+    if (Number.isFinite(started)) {
+      const since = new Date(started - WEEK_MS);
+      const used = await firecrawlUsedSince(root, since, run).catch(() => 0);
+      this.guard.limitTo(FIRECRAWL_WEEKLY_BUDGET - used);
     }
   }
 

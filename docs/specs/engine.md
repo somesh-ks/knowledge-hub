@@ -34,7 +34,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - D69: each general topic has five or more outlets: 30 desk feeds on, plus France 24 and six top-stories feeds (off) under World. Trending is off and its seven outlets feed World. The Guardian answers Firecrawl's US address with its US-edition feeds.
 
 ### Cost limits
-- Per-run Firecrawl ceiling of 30 (D42); the listings use up to 16 requests. Firecrawl bills a cached scrape, so `maxAge` saves time, not credits.
+- Firecrawl: 100 requests in any 7 days (cost ledger), at most 50 a run (owner, 2026-10-24; was 30, D42); listings take up to 55%. Firecrawl bills a cached scrape, so `maxAge` saves time, not credits.
 - A finalist still thin after the feed text, the free page read and the Firecrawl scrape (under 600 characters) gets Alexandria facts (`alexandria/alexandria.ts`, `config/alexandria.json`): free discovery, then one text-only capability. Facts only enrich read text (a story with none is still dropped). Caps: 30 credits a run, 10 a story, 20 s a story; off without `FIRECRAWL_API_KEY`; a failure leaves the story as it was. Credits are in the cost ledger (firecrawl, alexandria).
 - Caps, cooldowns and the narration budget stay enforced; the passphrase step is off (D41).
 - The site's GitHub token reaches the repository for Create, Generate and config saves. `config.yml` runs share the `dispatch` concurrency group.

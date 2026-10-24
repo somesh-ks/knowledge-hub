@@ -127,6 +127,24 @@ export async function loadAllCosts(root: string): Promise<CostRecord[]> {
   return mergeRecords(...lists);
 }
 
+/** Firecrawl requests (listing and scrape) the ledger records since `since`, other runs only. */
+export async function firecrawlUsedSince(
+  root: string,
+  since: Date,
+  excludeRun: string,
+): Promise<number> {
+  const from = since.toISOString();
+  return (await loadAllCosts(root))
+    .filter(
+      (record) =>
+        record.provider === "firecrawl" &&
+        record.product === "scrape" &&
+        record.run_id !== excludeRun &&
+        record.at >= from,
+    )
+    .reduce((sum, record) => sum + (record.units.credits ?? record.units.requests ?? 0), 0);
+}
+
 export interface RunSpendInput {
   /** Request counts by service, as the run's SpendTracker totals them. */
   requests: Readonly<Record<string, number>>;
