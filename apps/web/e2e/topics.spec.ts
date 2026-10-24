@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page, Route } from "@playwright/test";
 import { configHash } from "../src/lib/configHash";
 import { GAP_MS } from "../src/scripts/managePageSave";
-import { BUILT_FILES, routeConfigStore } from "./configServer";
+import { BUILT_FILES, routeConfigServer, routeConfigStore } from "./configServer";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
@@ -1387,5 +1387,59 @@ test.describe("Blocked sources", () => {
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect(page.getByText("No blocked sources")).toBeHidden();
+  });
+});
+
+test.describe("the podcast structure", () => {
+  // A reorder went out as the whole list, so a move that the server's own schema refused, or one
+  // lost on a reload before the build, would leave the next episode in the old order unseen.
+  test("a block moved by its menu goes as one structure.set and holds after a reload; its prompt goes as one structure.prompt", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const server = await routeConfigServer(page);
+    await open(page, "/settings/preferences?view=structure");
+    await expect(page.getByRole("tab", { name: "Structure" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    const list = page.getByRole("list", { name: "Daily blocks" });
+    const names = () => list.locator(".structure-row .settings-label").allTextContents();
+    const before = await names();
+    expect(before.slice(0, 3)).toEqual(["Hello", "Top picks", "Design"]);
+    await list.getByRole("button", { name: "More for Design", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Move down" }).click();
+    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length - 2));
+    await expect
+      .poll(names)
+      .toEqual([before[0], before[1], before[3], before[2], ...before.slice(4)]);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => server.applied.length).toBe(1);
+    expect(server.applied[0]).toMatchObject({ op: "structure.set", kind: "daily" });
+    const moved = await names();
+
+    await page.reload();
+    await expect(page.locator("[data-structure]")).toHaveAttribute("data-mounted", "");
+    await expect.poll(names).toEqual(moved);
+    // The server takes one edit every ten seconds, and a reloaded page has forgotten when it sent.
+    await page.clock.runFor(GAP_MS);
+
+    await list.getByRole("button", { name: "More for Design", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+    const sheet = page.getByRole("dialog", { name: "Design" });
+    const prompt = sheet.getByRole("textbox", { name: "Prompt" });
+    await expect(prompt).toHaveValue(/FIELDS/);
+    await prompt.fill("Tell each design story in two plain sentences.");
+    await sheet.getByRole("button", { name: "Done" }).click();
+    await expect(sheet).toBeHidden();
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => server.applied.length).toBe(2);
+    expect(server.applied[1]).toEqual({
+      op: "structure.prompt",
+      kind: "daily",
+      key: "section:design",
+      prompt: "Tell each design story in two plain sentences.",
+    });
+    expect(server.statuses).toEqual([202, 202]);
   });
 });

@@ -1,11 +1,24 @@
 ---
-import { MIX_STOPS, SOURCE_FORMATS } from "@dispatch/core";
+import { MIX_STOPS, SOURCE_FORMATS, STRUCTURE_KINDS } from "@dispatch/core";
+import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
+import MenuSheet from "../../components/MenuSheet.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
+import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
+import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
+import { loadStructureData } from "../../lib/structurePage";
+import {
+  addOffers,
+  fitLine,
+  KIND_LABEL,
+  rowsHtml,
+  STORY_STOPS,
+  USUAL,
+} from "../../lib/structureView";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
@@ -13,7 +26,7 @@ import "../../styles/topics.css";
 // The type mix (config/preferences.json): one for every topic, so one slider per source type here
 // rather than on each topic's page (2026-10-20). Normal is the default and is not in the file.
 // Listed alphabetically by label (2026-10-24), not in SOURCE_FORMATS order.
-const { typeMix } = await loadManage();
+const { typeMix, topics, sections } = await loadManage();
 const stops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
 const formats = [...SOURCE_FORMATS].sort((a, b) =>
   FORMAT_LABEL[a].localeCompare(FORMAT_LABEL[b], undefined, { sensitivity: "base" }),
@@ -25,12 +38,21 @@ const rows = formats.map((format) => ({
   weight: MIX_STOPS.find((s) => s.name === typeMix[format])?.factor ?? 1,
   custom: { stops, op: { op: "mix.set", format_mix: {} }, field: `format_mix.${format}` },
 }));
+
+// The podcast structure (D170): each kind's blocks, drawn here for Daily and again by the editor
+// (structureEditor.ts) from the same markup once the store and this device's edits are read.
+const structure = await loadStructureData(topics, sections, await loadScheduleView());
+const firstKind = "daily";
+const offers = addOffers(firstKind, structure.blocks[firstKind], structure.sections);
+const storyNames = STORY_STOPS.map((stop) => (stop === null ? USUAL : String(stop)));
 ---
 
 <BaseLayout title="Preferences" view="settings" skipLabel="Skip to preferences">
   <main id="main" tabindex="-1">
-    {/* The sliders that count for every topic alike. The topics editor (topicsPage.ts) records a
-         change and autosave.ts sends every slider moved in one mix.set a moment later. */}
+    {/* The sliders that count for every topic alike, and the podcasts' structure, in one card behind
+         the segmented switch a topic's page has (?view=structure, kept on reload). The topics editor
+         (topicsPage.ts) records a slider and autosave.ts sends every slider moved in one mix.set a
+         moment later; the structure has its own editor (structureEditor.ts), saving the same way. */}
     <div class="manage topics preferences-page" data-topics>
       <SettingsHead title="Preferences" />
       <noscript>
@@ -39,15 +61,208 @@ const rows = formats.map((format) => ({
 
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Preferences</legend>
-        <section class="topic topic-weights" aria-labelledby="types-head">
-          <h2 class="section-head" id="types-head">Source types</h2>
-          <div class="rows topic-controls card-group">
-            {rows.map((row) => <WeightRow {...row} />)}
+        <div class="topic">
+          <div class="topic-panel">
+            <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
+              <button
+                class="segmented-nav-tab"
+                type="button"
+                role="tab"
+                id="pref-tab-types"
+                aria-selected="true"
+                aria-controls="pref-pane-types"
+                data-value="types"
+              >
+                Source types
+              </button>
+              <button
+                class="segmented-nav-tab"
+                type="button"
+                role="tab"
+                id="pref-tab-structure"
+                aria-selected="false"
+                aria-controls="pref-pane-structure"
+                tabindex="-1"
+                data-value="structure"
+              >
+                Structure
+              </button>
+            </div>
+
+            <section
+              class="topic-view-pane topic-weights pref-view-types"
+              role="tabpanel"
+              id="pref-pane-types"
+              aria-labelledby="pref-tab-types"
+            >
+              <h2 class="section-head sr-only" id="types-head">Source types</h2>
+              <div class="rows topic-controls">
+                {rows.map((row) => <WeightRow {...row} />)}
+              </div>
+            </section>
+
+            {/* A chip for each kind, one chosen; its blocks in order; Add under them. The rows are
+                 lib/structureView.ts's markup, drawn again by the editor after each change. */}
+            <section
+              class="topic-view-pane pref-view-structure"
+              role="tabpanel"
+              id="pref-pane-structure"
+              aria-labelledby="pref-tab-structure"
+              data-structure={JSON.stringify(structure)}
+            >
+              <fieldset class="filter-chips filter-chips-scroll structure-kinds" aria-label="Podcast">
+                {
+                  STRUCTURE_KINDS.map((kind) => (
+                    <label class="filter-chip">
+                      <input type="radio" name="structure-kind" value={kind} checked={kind === firstKind} />
+                      <Icon name="check" class="filter-chip-check" />
+                      <span>{KIND_LABEL[kind]}</span>
+                    </label>
+                  ))
+                }
+              </fieldset>
+              <ol
+                class="rows topic-controls structure-list"
+                aria-label={`${KIND_LABEL[firstKind]} blocks`}
+                data-structure-list
+                set:html={rowsHtml(firstKind, structure.blocks[firstKind], structure, structure.skip)}
+              ></ol>
+              <div class="structure-add" style="--row-anchor: --structure-add">
+                <button
+                  class="btn-secondary"
+                  type="button"
+                  aria-haspopup="menu"
+                  popovertarget="structure-add-menu"
+                  data-hero-more
+                  data-needs-js
+                  disabled={offers.length === 0}
+                >
+                  <Icon name="plus" />
+                  <span>Add</span>
+                </button>
+                <MenuSheet id="structure-add-menu" title="Add a block" class="structure-menu-list">
+                  {
+                    offers.map((offer) => (
+                      <button class="hero-menu-item" type="button" role="menuitem" data-add={offer.key}>
+                        {offer.name}
+                      </button>
+                    ))
+                  }
+                </MenuSheet>
+              </div>
+            </section>
           </div>
-        </section>
+          <p class="manage-quiet structure-fit pref-view-structure" data-structure-fit>
+            {fitLine(firstKind, structure.blocks[firstKind], structure.sections, structure.skip)}
+          </p>
+        </div>
       </fieldset>
       <ManageChrome />
     </div>
+
+    {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's
+         sheet (full screen on a phone, a side panel from 40rem). Each part shows for the blocks that
+         have it; the prompt is the kind's own (the owner chose one per kind, D177). */}
+    <template id="structure-sheet-template">
+      <dialog class="create-sheet regen-sheet topics-panel structure-sheet" aria-labelledby="structure-sheet-title">
+        <SheetHeader
+          title="Edit block"
+          titleId="structure-sheet-title"
+          close="data-panel-close"
+          titleData={{ "data-sheet-title": "" }}
+        />
+        <div class="create-sheet-body">
+          <form class="manage-form structure-form" novalidate>
+            <div class="manage-field" data-part="title">
+              <label for="structure-title">Title</label>
+              <input
+                class="manage-input"
+                id="structure-title"
+                name="title"
+                type="text"
+                maxlength="60"
+                autocomplete="off"
+                enterkeyhint="next"
+                aria-describedby="structure-title-error"
+              />
+              <p class="manage-error" id="structure-title-error" role="alert" data-error="title" hidden>
+                <Icon name="alert" /><span>Give it a title.</span>
+              </p>
+            </div>
+            <div class="manage-field" data-part="brief">
+              <label for="structure-brief">What it says</label>
+              <textarea
+                class="manage-input"
+                id="structure-brief"
+                name="brief"
+                maxlength="280"
+                rows="3"
+                aria-describedby="structure-brief-error"></textarea>
+              <p class="manage-error" id="structure-brief-error" role="alert" data-error="brief" hidden>
+                <Icon name="alert" /><span>Say what it should cover.</span>
+              </p>
+            </div>
+            <div class="manage-field" data-part="depth">
+              <span class="structure-field-label" id="structure-depth-label">Depth</span>
+              <fieldset class="segmented-choice" role="radiogroup" aria-labelledby="structure-depth-label">
+                <label class="segmented-choice-item"><input type="radio" name="depth" value="deep" /><span>In depth</span></label>
+                <label class="segmented-choice-item"><input type="radio" name="depth" value="brief" /><span>Short</span></label>
+              </fieldset>
+            </div>
+            <div class="manage-field" data-part="length">
+              <span class="structure-field-label" id="structure-length-label">Length</span>
+              <fieldset class="segmented-choice" role="radiogroup" aria-labelledby="structure-length-label">
+                <label class="segmented-choice-item"><input type="radio" name="length" value="short" /><span>Short</span></label>
+                <label class="segmented-choice-item"><input type="radio" name="length" value="long" /><span>Long</span></label>
+              </fieldset>
+            </div>
+            <div class="settings-row topic-weight structure-stories" data-part="stories">
+              <div class="settings-text">
+                <label class="settings-label" for="structure-stories">Stories</label>
+                <output class="settings-hint" for="structure-stories" data-word>{USUAL}</output>
+              </div>
+              <input
+                class="settings-range"
+                id="structure-stories"
+                name="stories"
+                type="range"
+                min="0"
+                max={STORY_STOPS.length - 1}
+                step="1"
+                value="0"
+                autocomplete="off"
+                aria-valuetext={`Stories, ${USUAL}`}
+                data-stops={STORY_STOPS.map((stop) => stop ?? 0).join(",")}
+                data-names={storyNames.join(",")}
+                data-label="Stories"
+              />
+            </div>
+            <div class="manage-field" data-part="prompt">
+              <label for="structure-prompt">Prompt</label>
+              <textarea
+                class="manage-input structure-prompt"
+                id="structure-prompt"
+                name="prompt"
+                rows="8"
+                spellcheck="false"
+                aria-describedby="structure-prompt-count"></textarea>
+              <div class="structure-prompt-foot">
+                <p class="manage-quiet" id="structure-prompt-count" data-count></p>
+                <button class="btn" type="button" data-reset>Reset to built-in</button>
+              </div>
+              <p class="manage-error" role="alert" data-error="prompt" hidden>
+                <Icon name="alert" /><span>Too long to save in one go. Shorten it a little.</span>
+              </p>
+            </div>
+            <p class="manage-quiet" data-part="spoken">Spoken by the app, not written by a model.</p>
+            <p class="manage-quiet" data-part="own">What it says is what the model is told.</p>
+          </form>
+        </div>
+        <div class="source-sheet-foot">
+          <button class="btn-primary" type="button" data-sheet-done>Done</button>
+        </div>
+      </dialog>
+    </template>
   </main>
 </BaseLayout>
 

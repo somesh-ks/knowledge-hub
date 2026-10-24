@@ -57,6 +57,15 @@ function refusalReason(body: unknown): string | null {
 
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
 export const MAX_OPS = 8;
+/**
+ * The longest body one request may be (MAX_CONFIG_BODY_CHARS in server/configEdit.ts): a block's
+ * prompt (D177) runs to thousands of characters, so it and a structure.set can outgrow one request.
+ */
+export const MAX_BODY_CHARS = 8192;
+
+/** The length of the body a request with these edits sends (post). */
+const bodyLength = (ops: readonly ConfigOp[]): number =>
+  JSON.stringify({ op: ops.length === 1 ? ops[0] : ops }).length;
 
 /** One pending change: the edit, the control (or added row) behind it, and what the control now holds. */
 export interface Pending {
@@ -166,15 +175,19 @@ export interface Batch {
 }
 
 /**
- * The steps packed into as few requests as the server allows, in their order. A step never splits:
- * an edit and the sources chosen with it go together.
+ * The steps packed into as few requests as the server allows (eight edits, and a body it takes), in
+ * their order. A step never splits: an edit and the sources chosen with it go together.
  */
 export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pending>): Batch[] {
   const batches: Batch[] = [];
   let current: Batch = { ops: [], sent: [], owners: [] };
   for (const step of steps) {
     const ops = step.ops ?? [step.op];
-    if (current.ops.length > 0 && current.ops.length + ops.length > MAX_OPS) {
+    if (
+      current.ops.length > 0 &&
+      (current.ops.length + ops.length > MAX_OPS ||
+        bodyLength([...current.ops, ...ops]) > MAX_BODY_CHARS)
+    ) {
       batches.push(current);
       current = { ops: [], sent: [], owners: [] };
     }

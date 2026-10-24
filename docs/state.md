@@ -4,9 +4,9 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Working
 
-- Engine end to end on live services (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
+- Engine end to end live (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
 - Reader: Latest, Library (row menu, downloads), Catch up, Settings, in a tonal Material 3 look: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
+- Player: transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; briefings are pre-narrated by `audio.yml` after each run; episodes through `podcast.yml`: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61): Vercel Cron's 07:00 call dispatches `run.yml`.
@@ -15,7 +15,7 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests on 2026-10-19, 85 s here. Site e2e: 372 runs (2026-10-23), about 10 minutes. Player e2e: 71 runs, about 3 minutes.
+Unit (`npm test`, CI): 282 files, 4,781 tests on 2026-10-24, 85 s here. Site e2e: 372 runs (2026-10-23), about 10 minutes. Player e2e: 71 runs, about 3 minutes.
 
 ## Not working or unverified
 

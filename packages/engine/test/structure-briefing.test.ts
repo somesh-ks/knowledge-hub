@@ -16,8 +16,8 @@ import type { PodcastStory } from "../src/podcast/types.js";
 import { sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
-import { buildFixtureDigest } from "./render-factories.js";
 import { REQUEST } from "./podcast-fixtures.js";
+import { buildFixtureDigest } from "./render-factories.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 
 const blocks = (input: StructureBlockInput[]) => StructureBlocks.parse(input);

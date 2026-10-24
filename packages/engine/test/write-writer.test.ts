@@ -581,7 +581,8 @@ describe("enforceVoice", () => {
 
 describe("a section's own prompt (D177)", () => {
   it("writes that section's stories under the owner's prompt alone, never batched with the built-in one, and a rewrite keeps to it", async () => {
-    const prompt = "FIELDS\n- headline: say what changed for a designer.\nRULES\nFacts from the text only.";
+    const prompt =
+      "FIELDS\n- headline: say what changed for a designer.\nRULES\nFacts from the text only.";
     const owned = material({ prompt });
     const plain = material();
     const llm = new FakeLlm(writeAll);
