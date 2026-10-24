@@ -501,7 +501,12 @@
   max-inline-size: 100%;
   justify-content: flex-end;
   padding-inline: var(--space-4)
-    calc(var(--space-2) + var(--value-select-pull, 0px) + var(--size-icon) + var(--field-chevron-gap));
+    calc(
+      var(--space-2) +
+      var(--value-select-pull, 0px) +
+      var(--size-icon) +
+      var(--field-chevron-gap)
+    );
   border-color: transparent;
   border-radius: var(--button-radius);
   color: var(--color-on-surface);
@@ -526,7 +531,11 @@
    the stored value is set, which comes later and so still wins. */
 .settings-view .value-select > select.manage-input {
   padding-inline-end: calc(
-    var(--space-2) + var(--value-select-pull, 0px) + var(--size-icon) * 0.72 + var(--field-chevron-gap)
+    var(--space-2) +
+    var(--value-select-pull, 0px) +
+    var(--size-icon) *
+    0.72 +
+    var(--field-chevron-gap)
   );
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
