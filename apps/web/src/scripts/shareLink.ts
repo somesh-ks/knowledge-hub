@@ -1,4 +1,4 @@
-import { sharedUrl, track } from "../lib/analytics";
+import { sharedItem, sharedUrl, track } from "../lib/analytics";
 
 /**
  * Share a link: the system share sheet where there is one, a copy to the clipboard where there is
@@ -10,11 +10,11 @@ export async function shareLink(
   address: string,
 ): Promise<"shared" | "copied" | "none"> {
   const url = sharedUrl(address, location.href);
-  const kind = new URL(url).pathname.startsWith("/e/") ? "episode" : "briefing";
+  const { kind, item } = sharedItem(url);
   if (navigator.share) {
     try {
       await navigator.share({ title, url });
-      track("share", { kind, outcome: "shared" });
+      track("share", { kind, item, outcome: "shared" });
       return "shared";
     } catch (error) {
       // The reader closed the share sheet: nothing more to do. Any other failure falls back to a copy.
@@ -23,7 +23,7 @@ export async function shareLink(
   }
   try {
     await navigator.clipboard.writeText(url);
-    track("share", { kind, outcome: "copied" });
+    track("share", { kind, item, outcome: "copied" });
     return "copied";
   } catch {
     // The clipboard is not available here (an insecure origin, a denied permission).
