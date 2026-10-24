@@ -221,7 +221,7 @@ function scheduleOps(
       Object.assign(weekly, { [key]: stored.weekly[key] });
   if (Object.keys(weekly).length > 0) set.weekly = weekly;
   const custom: NonNullable<ScheduleSet["custom"]> = {};
-  for (const key of ["format", "length_minutes"] as const)
+  for (const key of ["format", "length_minutes", "voice_id", "voice_id_b"] as const)
     if (built.custom[key] !== stored.custom[key])
       Object.assign(custom, { [key]: stored.custom[key] });
   if (Object.keys(custom).length > 0) set.custom = custom;

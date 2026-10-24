@@ -25,7 +25,7 @@ export interface CombinedResult {
 }
 
 export interface CombinedJudgeOptions extends JevJudgeOptions {
-  /** Answers the main questions for an item Jev could not, as the Nebius judge does for JevJudge. */
+  /** Answers the main questions for an item Jev could not, as the LLM fallback judge does for JevJudge. */
   fallback?: Judge | null;
 }
 

@@ -11,7 +11,7 @@ export const FIXTURE_AUDIO_HOST = "fixtures.dispatch.invalid";
 export const FIXTURE_AUDIO_PATH = "/fixtures/audio.wav";
 
 export function usesFixtures(env: Record<string, string | undefined> = process.env): boolean {
-  return env.DISPATCH_FIXTURES === "1";
+  return env.SINGULARITY_FIXTURES === "1" || env.DISPATCH_FIXTURES === "1";
 }
 
 export function rewriteFixtureAudioUrl(url: string): string {

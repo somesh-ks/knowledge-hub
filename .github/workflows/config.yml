@@ -71,8 +71,8 @@ jobs:
         shell: bash
         # Vercel Hobby deploys only commits authored by the team owner, so commit as the owner.
         env:
-          DISPATCH_GIT_NAME: ${{ vars.DISPATCH_GIT_NAME }}
-          DISPATCH_GIT_EMAIL: ${{ vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
         run: |
           message="$(jq -r '.commit_message' "$RUNNER_TEMP/apply.json")"
           npm run --silent dispatch -- config commit --message "$message" --json

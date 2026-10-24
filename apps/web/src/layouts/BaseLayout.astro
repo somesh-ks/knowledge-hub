@@ -106,7 +106,9 @@ const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 // Vercel is the deployment's; without the switch no page asks. The tag names the config files the
 // page was built from, so a page from another build never takes edits made against this one.
 const configStore =
-  process.env.DISPATCH_CONFIG_STORE === "postgres" ? await loadConfigHash() : null;
+  (process.env.SINGULARITY_CONFIG_STORE ?? process.env.DISPATCH_CONFIG_STORE) === "postgres"
+    ? await loadConfigHash()
+    : null;
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
 // in the app bar: to where the person came from when that was in the app, else to its list.

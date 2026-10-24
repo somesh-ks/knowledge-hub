@@ -103,7 +103,7 @@ const COPY = {
          those defaults are. */}
     <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
       <h2 class="section-head" id="create-topics-label">Topics</h2>
-      <fieldset class="filter-chips" aria-labelledby="create-topics-label">
+      <fieldset class="filter-chips" aria-labelledby="create-topics-label" data-built-topics={allTopics.map((topic) => topic.id).join(" ")}>
         {
           topics.map((topic) => (
             <label class="filter-chip">

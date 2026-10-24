@@ -325,13 +325,13 @@ describe("stage failures", () => {
   });
 
   it("redacts a secret from the failure a stage reports", async () => {
-    const secret = "nb-secret-0123456789abcdef";
+    const secret = "test-secret-sample-string";
     const world = makeWorld(root, { now: WED });
     world.deps = {
       ...world.deps,
       secrets: [secret],
       runtime: async () => {
-        throw new Error(`NEBIUS rejected ${secret}`);
+        throw new Error(`Provider rejected ${secret}`);
       },
     };
     await runPipeline(world.deps, options({ stage: "gate" }));

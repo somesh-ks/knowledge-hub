@@ -8,7 +8,7 @@ import type { CommandContext, CommandRun } from "../src/context.js";
 import { captureStdout } from "./curate-helpers.js";
 import { REPO_ROOT } from "./score-factories.js";
 
-const SECRET = "nb-secret-0123456789abcdef";
+const SECRET = "test-secret-sample-string";
 const NOW = new Date("2026-10-07T05:13:00Z");
 
 interface Run {
@@ -301,12 +301,15 @@ describe("runCli: streams", () => {
     expect(JSON.parse(result.err)).toEqual({ level: "info", message: "working", step: 1 });
   });
 
-  it("hides debug lines unless DISPATCH_DEBUG=1", async () => {
+  it("hides debug lines unless SINGULARITY_DEBUG=1", async () => {
     const run: CommandRun = async (_args, ctx) => {
       ctx.log.debug("details");
       return 0;
     };
     expect((await cli(["stub", "--root", dir], run)).err).toBe("");
+    expect((await cli(["stub", "--root", dir], run, { SINGULARITY_DEBUG: "1" })).err).toContain(
+      "debug: details",
+    );
     expect((await cli(["stub", "--root", dir], run, { DISPATCH_DEBUG: "1" })).err).toContain(
       "debug: details",
     );

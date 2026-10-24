@@ -22,14 +22,14 @@ export const DEFAULT_BOT: BotIdentity = {
 
 /**
  * The identity unattended commits use. Vercel Hobby only deploys commits authored by the team
- * owner, so the workflows set DISPATCH_GIT_NAME and DISPATCH_GIT_EMAIL to the owner's GitHub
+ * owner, so the workflows set SINGULARITY_GIT_NAME and SINGULARITY_GIT_EMAIL to the owner's GitHub
  * identity. Both must be set; otherwise the bot identity applies.
  */
 export function identityFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): BotIdentity | undefined {
-  const name = env.DISPATCH_GIT_NAME?.trim();
-  const email = env.DISPATCH_GIT_EMAIL?.trim();
+  const name = (env.SINGULARITY_GIT_NAME ?? env.DISPATCH_GIT_NAME)?.trim();
+  const email = (env.SINGULARITY_GIT_EMAIL ?? env.DISPATCH_GIT_EMAIL)?.trim();
   return name && email ? { name, email } : undefined;
 }
 
