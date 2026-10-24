@@ -170,6 +170,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D157 | Health: store, drift, warnings | amends D146 |
 | D158 | Client faults | amends D157 |
 | D159 | Deploy alerts | amends D157 |
+| D166 | Store reads keep a device copy | amends D149 |
 
 ---
 
@@ -1732,3 +1733,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: D157 kept `site_behind` a warning because the next push may clear it, and warnings reach the owner on Mondays; a deploy that stays missing a day will not clear. A smoke run Vercel starts belongs to `vercel[bot]`, so its failure email reached no one.
 - Rejected: failing `smoke.yml` on Vercel's failed production deploy events. How Vercel reports a build the `ignoreCommand` skipped, or one a newer push superseded, is undocumented, so it would raise false issues; running the commit's own `ignoreCommand` to tell them apart misreads the very case where `vercel.json` is what broke. Counting from the newest commit (review: a daily digest kept a days-old outage a warning).
 - Revisit if: Vercel documents its deployment states for skipped and superseded builds, or a deploy fails for a day without a fault.
+
+## D166: a settings page keeps the store's last answer on the device
+
+- Date: 2026-10-24 (the owner: "make sure our app is professional industry grade", after asking how Spotify's settings feel instant)
+- Decision: `configStoreRead.ts` keeps the last answer `GET /api/config` gave in `localStorage` (`dispatch:store-read`, one build's edits). A page asks the store as before; when the store has not answered within 300 ms the page lays the device's copy over itself and the read goes on, so a late answer serves the next read and replaces the copy. A failed read leaves the copy standing. A copy from another build is ignored, as a read from another build is.
+- Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
+- Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
+- Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
