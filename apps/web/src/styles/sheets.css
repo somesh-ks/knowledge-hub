@@ -243,9 +243,11 @@ fieldset.sheet-field {
   transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
-/* A multi-line field has the same room above and below as at its sides. */
+/* A multi-line field has the same room above and below as at its sides, and the one-line field's
+   corner arc where a pill would clip its lines. */
 textarea.sheet-input {
   padding-block: var(--field-padding);
+  border-radius: var(--field-radius-multiline);
 }
 
 @media (hover: hover) and (pointer: fine) {

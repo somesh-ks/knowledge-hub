@@ -5,7 +5,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons and chips, 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons, chips, selects and text fields (a multi-line field 24px, D184), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a rounded hover and press tile clear of the hairlines (`.row-action`). Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
 - Scroll edge fade masks on tabs and shelf; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.

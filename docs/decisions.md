@@ -82,7 +82,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggestions from the catalogue, unscored (D75); a new topic stays on its list (D79); no time zone selector (D89) |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; amended by D75, D79, D89 |
 | D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
 | D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
@@ -189,6 +189,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D181 | Claude writes only | active |
 | D183 | Costs page counts Anthropic's bill | active |
 | D179 | Every name says Singularity; saved state moves once | active |
+| D184 | Every control is a pill | amends D167 |
 
 ---
 
@@ -1927,3 +1928,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the ledger sees only the app's own calls. The episode eval (estimated at $4 to $6 a run, 12 runs on 24 Oct) and local scripts reach the bill but never the page, so the page read far below the bill. The bill is the only source that catches spend nobody thought to meter.
 - Revisit if: another project shares the Anthropic organization (the report covers the whole organization, so its spend would land in "Outside the app"), or Gemini spend grows enough to need its billing export.
 
+## D184: every control is a pill, text fields and a card's buttons too
+
+- Date: 2026-10-24 (the owner, on the edit source panel: "all the ui elements as much as possible should have fully rounded corners to be consistent")
+- Decision: `--field-radius` is the pill, so every one-line text field and every form select that follows it (the Add and edit source panels, Blocked sources, the sheets) is round like the buttons, chips and selects beside it. A multi-line field takes `--field-radius-multiline`, 24px, half a field's height, so its corners draw the one-line field's arc. A button in a card is a pill (the concentric `.card-group .btn` override goes), the floating button is a pill (a circle folded) (owner, 2026-10-24: "only to the components that make sense"). Page row tiles are #295's (`--row-tile-radius`).
+- Why: D167 left text fields at 8px and a card's buttons concentric, so an 8px Name field stood over pill selects in one panel; the owner read it as two languages.
+- Rejected: a pill textarea (it clips the first and last lines' corners); rounding containers (cards, sheets, menus, toasts, banners, covers), which are surfaces, not controls.
+- Kept for the owner's call: the Create Title (a filled field with round top corners over its D54 bottom line), menu and list option tiles inside a popup or sheet, checkbox squares (round reads as a radio), the mini player's open target, the emoji grid's cells (a wide cell would hover as a pill).
+- Amends: D167's text-field and card-button rules.
+- Revisit if: a pill field's text or placeholder reads cramped at its start.

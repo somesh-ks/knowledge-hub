@@ -1359,11 +1359,11 @@
   background: var(--color-surface-container);
 }
 
-/* A row's tile and a button in a card are concentric with its corners (2026-10-22): a tile one inset
-   in from the edge takes the inner radius, a button one padding in the content radius. A row's tile
-   sits the inset clear of the card's edges and of the next row's tile, so it never runs into a
-   corner. A chip, a select's value and a segmented control keep their pill in a card as out of it:
-   one control has one shape wherever it stands (owner, 2026-10-23, D167). */
+/* A row's tile in a card is concentric with its corners (2026-10-22): a tile one inset in from the
+   edge takes the inner radius. A row's tile sits the inset clear of the card's edges and of the next
+   row's tile, so it never runs into a corner. A button, a chip, a select's value and a segmented
+   control keep their pill in a card as out of it: one control has one shape wherever it stands
+   (owner, 2026-10-23, D167; buttons too since 2026-10-24, D184). */
 .card-group > .row-action {
   width: auto;
   margin-inline: calc(var(--card-inset) - var(--card-padding));
@@ -1377,10 +1377,6 @@
 
 .card-group > :is(.row-action, .settings-row) + :is(.row-action, .settings-row) {
   margin-block-start: var(--card-inset);
-}
-
-.card-group .btn {
-  border-radius: var(--card-content-radius);
 }
 
 /* A card of chips has the same room on all four sides (2026-10-22: the bottom was half the top). */
