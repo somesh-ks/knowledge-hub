@@ -210,7 +210,9 @@ function geometry(width: number, count: number): { band: number; barW: number } 
 
 function draw(): void {
   const plot = pick<HTMLElement>("[data-costs-plot]");
-  if (!plot || !drawn) return;
+  // A hidden plot (a failed fetch, load) has no box, and its resize still calls here: drawing into
+  // zero height wrote a negative rect (2026-10-24). render draws it again once it shows.
+  if (!plot || !drawn || plot.hidden) return;
   const { buckets, period, data } = drawn;
   plot.querySelector("svg")?.remove();
   const width = Math.max(plot.clientWidth, 240);
