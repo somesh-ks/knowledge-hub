@@ -53,11 +53,14 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
     help: `Usage:
   dispatch config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
                                                       source.add, source.set, source.remove, weights.set,
-                                                      mix.set, topic.mix, schedule.set
+                                                      mix.set, topic.mix, schedule.set, topic.scope,
+                                                      structure.set, profile.block, profile.unblock,
+                                                      profile.vote
   dispatch config commit --message <text> [--no-push] Commit what apply wrote as chore(config): <text>
 
 Writes config/topics.json, config/sources.user.json, config/queries.json, config/preferences.json,
-config/schedule.json and state/source-candidates.json, and nothing else; the write guard enforces it.`,
+config/schedule.json, config/structure.json, config/profiles/owner.json and
+state/source-candidates.json, and nothing else; the write guard enforces it.`,
     load: async () => (await import("./commands/config.js")).run,
   },
   {

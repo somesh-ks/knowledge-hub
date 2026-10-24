@@ -4,6 +4,7 @@ import {
   type PodcastFormat,
   type PodcastRequest,
 } from "@dispatch/core";
+import { CUSTOM_BLOCK_CHARS, type ScriptShape } from "./structure.js";
 
 type PodcastLength = PodcastRequest["length_minutes"];
 
@@ -86,10 +87,19 @@ export function deepDiveCount(minutes: PodcastLength, stories: number): number {
   return Math.min(Math.max(0, stories), base + (stories >= extra_from ? 1 : 0));
 }
 
+/** A long close runs half as long again as the length's own. */
+const LONG_CLOSE_SHARE = 1.5;
+
+/**
+ * The episode's shape. With a Catch up structure (`shape`, D170) the rundown, the close and the
+ * owner blocks follow it and the deep dives are the stories it marks deep, as many as the length
+ * has room for; without one it is the shape every episode had before.
+ */
 export function structureFor(
   minutes: PodcastLength,
   stories: number,
   format: PodcastFormat,
+  shape?: ScriptShape | null,
 ): EpisodeStructure {
   const count = Math.max(0, stories);
   if (format === "headlines") {
@@ -100,6 +110,28 @@ export function structureFor(
       frame_chars: HEADLINES_FRAME_CHARS,
       teaser_chars: 0,
       close_chars: 0,
+    };
+  }
+  if (shape) {
+    const deep = Math.min(shape.deep.length, deepDiveCount(minutes, count));
+    const teased = shape.rundown === false ? 0 : Math.min(count, shape.rundown ?? TEASED[minutes]);
+    const teaserChars = teased * TEASER_CLAUSE_CHARS;
+    const closeChars =
+      shape.close === null
+        ? 0
+        : Math.round(CLOSE_CHARS[minutes] * (shape.close === "long" ? LONG_CLOSE_SHARE : 1));
+    return {
+      deep_dives: deep,
+      nuggets: count - deep,
+      teased,
+      frame_chars:
+        HELLO_CHARS +
+        teaserChars +
+        closeChars +
+        shape.customs.length * CUSTOM_BLOCK_CHARS +
+        SIGN_OFF_CHARS,
+      teaser_chars: teaserChars,
+      close_chars: closeChars,
     };
   }
   const deep = deepDiveCount(minutes, count);
@@ -145,8 +177,9 @@ export function reachableChars(
   stories: number,
   format: PodcastFormat,
   minutes: PodcastLength,
+  shape?: ScriptShape | null,
 ): number {
-  const structure = structureFor(minutes, Math.max(1, stories), format);
+  const structure = structureFor(minutes, Math.max(1, stories), format, shape);
   const capacity =
     structure.deep_dives * STORY_CAPACITY_CHARS[format] +
     structure.nuggets * NUGGET_CAPACITY_CHARS[format];
@@ -185,8 +218,9 @@ export function partChars(
   stories: number,
   format: PodcastFormat,
   minutes: PodcastLength,
+  shape?: ScriptShape | null,
 ): { deep_dive: number; nugget: number } {
-  const structure = structureFor(minutes, Math.max(1, stories), format);
+  const structure = structureFor(minutes, Math.max(1, stories), format, shape);
   const aimed = aimedChars(structure, format) - structure.frame_chars;
   const scale = Math.max(0, budget - structure.frame_chars) / Math.max(1, aimed);
   return {
@@ -209,13 +243,13 @@ export interface PodcastPlan {
   max_stories: number;
 }
 
-export function planPodcast(request: PodcastRequest): PodcastPlan {
+export function planPodcast(request: PodcastRequest, shape?: ScriptShape | null): PodcastPlan {
   const budget = Math.min(request.length_minutes * PODCAST_CHARS_PER_MINUTE, PODCAST_MAX_CHARS);
   // The frame and the share of deep dives both depend on the count, so find the most that fits.
   let maxStories = 0;
   while (
     aimedChars(
-      structureFor(request.length_minutes, maxStories + 1, request.format),
+      structureFor(request.length_minutes, maxStories + 1, request.format, shape),
       request.format,
     ) <= budget
   ) {

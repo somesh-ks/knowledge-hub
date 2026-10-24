@@ -10,6 +10,7 @@ import {
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { describeError } from "../llm/errors.js";
+import { loadSectionPlan } from "../score/sectionPlan.js";
 import { readLastRun } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
@@ -118,6 +119,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       MaterialsFile,
     );
     const pool = await loadPassPool(file("pool.json"), file("general.json"));
+    const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
     const materials = new Map<string, SourceMaterial>(materialsFile.items.map((m) => [m.id, m]));
     const entryOf = new Map<string, SelectionItem>(selection.items.map((e) => [e.id, e]));
     const asSelection = (items: readonly GroundedItem[]): Selection => ({
@@ -159,6 +161,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
           allocateId: () => pass.id,
           verified: false,
           topics,
+          plan: sectionPlan,
         });
         // Selection already held the pass to its length or its kind's cap, and the window above
         // holds this digest to its hard cap, so the count check here is that cap.
@@ -168,6 +171,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
           linter,
           topics,
           cap: VOICE_LIMITS.items.hardMax,
+          plan: sectionPlan,
         });
         warnings = report.warnings;
         validated = digest;

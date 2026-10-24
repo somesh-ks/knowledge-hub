@@ -5,8 +5,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { DigestEntry } from "../../lib/digests";
 import { listenLength } from "../../lib/digestView";
 import { briefingCard } from "../../lib/linkCard";
-import { getSite, readSiteFrom, type Site } from "../../lib/site";
-import { CONTENT_CDN_CACHE, loadStoreSite } from "../../server/contentRepo";
+import { getSite } from "../../lib/site";
+import { CONTENT_CDN_CACHE, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
 
 // Rendered on request from the content repository (D173), so a new briefing shows without a build.
 // The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
@@ -28,38 +28,13 @@ interface Props {
 
 let props = Astro.props as Props;
 if (!Astro.isPrerendered) {
-  const load = async (): Promise<Site> => {
-    const site = await loadStoreSite({
-      env: process.env,
-      fetch,
-      now: Date.now,
-      log: (message) => console.error(`[d] ${message}`),
-    });
-    if (site === null) throw new Error("the content store has no manifest");
-    return site;
-  };
-  let site: Site;
-  try {
-    site = await load();
-  } catch (error) {
-    console.error(
-      `[d] content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
-    );
-    return new Response("This briefing could not be loaded right now. Try again in a minute.", {
-      status: 503,
-      headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "60" },
-    });
-  }
-  readSiteFrom(load);
+  const unavailable = await readFromContentRepo("d");
+  if (unavailable) return unavailable;
+  const site = await getSite();
   const index = site.entries.findIndex((entry) => entry.id === Astro.params.id);
   const entry = site.entries[index];
-  // The 404 page is built, not part of this function, so it is fetched from the site's own edge.
   if (!entry) {
-    const notFound = await fetch(new URL("/404", Astro.url)).catch(() => null);
-    return new Response(notFound?.ok ? await notFound.text() : "Not found", {
-      status: 404,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    return notFoundPage(Astro.url);
   }
   props = { entry, earlier: site.entries.slice(index + 1, index + 4), isLatest: index === 0 };
   Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);

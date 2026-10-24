@@ -4,12 +4,15 @@ import {
   isGeneralTopicId,
   normalizeTopicIds,
   type PodcastRequest,
+  type StructureBlock,
   serializeEpisodeFile,
+  storedStructure,
 } from "@dispatch/core";
 import type { Logger } from "../context.js";
 import { createHttpClient, type HttpClient } from "../http.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
 import { tasteHeadlines } from "../profile/votes.js";
+import { loadStructureFile } from "../structure/store.js";
 import { allocateEpisodeId, buildEpisode, topicLabel, writeEpisodeFile } from "./episode.js";
 import { type GeneralSelection, selectGeneralStories } from "./general.js";
 import { planPodcast } from "./plan.js";
@@ -17,6 +20,7 @@ import { discussionHostNames } from "./prompt.js";
 import { generateScript, type ScriptResult } from "./script.js";
 import { joinNames, type Selection, selectStories } from "./select.js";
 import type { StreamPublisher } from "./stream.js";
+import { airsUnder, type ScriptShape, shapeStories } from "./structure.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
 
 export interface GenerateInput {
@@ -119,6 +123,7 @@ export function mergeGroups<T>(
 async function select(
   input: GenerateInput,
   budget: ReturnType<typeof planPodcast>,
+  blocks: readonly StructureBlock[] | null,
 ): Promise<Selected> {
   const topicIds = input.request.topic_ids;
   const generalIds = topicIds.filter(isGeneralTopicId);
@@ -130,7 +135,14 @@ async function select(
   const mixed = generalIds.length > 0 && briefingIds.length > 0;
   const fromBriefings = async (): Promise<Selection> => {
     const { plan, minStories } = sub(briefingIds, mixed ? 1 : undefined);
-    return selectStories(input.root, plan, input.now, input.log, minStories);
+    return selectStories(
+      input.root,
+      plan,
+      input.now,
+      input.log,
+      minStories,
+      blocks ? (story) => airsUnder(blocks, story) : undefined,
+    );
   };
   const fromFeeds = async (): Promise<GeneralSelection> => {
     const { plan, minStories } = sub(generalIds, mixed ? 1 : undefined);
@@ -221,6 +233,18 @@ export function withHostNames(request: PodcastRequest): PodcastRequest {
     : rest;
 }
 
+/**
+ * The structure's shape before the stories are known, to size the episode: any deep block may
+ * take the deep dives the length has room for.
+ */
+function planningShape(blocks: readonly StructureBlock[]): ScriptShape {
+  const { shape } = shapeStories([], blocks);
+  const anyDeep = blocks.some(
+    (block) => (block.type === "section" || block.type === "top_picks") && block.depth === "deep",
+  );
+  return { ...shape, deep: anyDeep ? Array.from({ length: 99 }, (_, i) => String(i)) : [] };
+}
+
 /** Plan, select, script, check and write one episode file. It does not commit. */
 export async function generateEpisode(raw: GenerateInput): Promise<GenerateResult> {
   // A stored request may name a topic that has since been renamed: `technology` reads `tech`. The
@@ -232,8 +256,12 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
       topic_ids: normalizeTopicIds(raw.request.topic_ids),
     }),
   };
-  const plan = planPodcast(input.request);
-  const selection = await select(input, plan);
+  // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
+  const blocks = storedStructure(await loadStructureFile(input.root), "catch_up");
+  const plan = planPodcast(input.request, blocks ? planningShape(blocks) : null);
+  const picked = await select(input, plan, blocks);
+  const shaped = blocks ? shapeStories(picked.stories, blocks) : null;
+  const selection = shaped ? { ...picked, stories: shaped.stories } : picked;
   input.log?.info("Selected stories", {
     stories: selection.stories.length,
     matched: selection.matched,
@@ -251,6 +279,7 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     stories: selection.stories,
     budget_chars: plan.budget_chars,
     ...(input.feedback ? { feedback: input.feedback } : {}),
+    ...(shaped ? { shape: shaped.shape } : {}),
     taste: tasteHeadlines((await createFileProfileStore(input.root).read(OWNER_ID)).votes),
     ...(input.log ? { log: input.log } : {}),
     ...(stream ? { onOpening: (opening: readonly ScriptTurn[]) => stream.opening(opening) } : {}),

@@ -1,14 +1,14 @@
-import { sharedUrl, track } from "../lib/analytics";
+import { sharedItem, sharedUrl, track } from "../lib/analytics";
 import { listenUrl, NOT_STORED_COPY } from "../lib/share";
 
 export type ShareOutcome = "shared" | "copied" | "none";
 
 /** Hands a finished address to the share sheet, or copies it where there is none. */
-async function send(title: string, url: string, kind: string): Promise<ShareOutcome> {
+async function send(title: string, url: string, kind: string, item: string): Promise<ShareOutcome> {
   if (navigator.share) {
     try {
       await navigator.share({ title, url });
-      track("share", { kind, outcome: "shared" });
+      track("share", { kind, item, outcome: "shared" });
       return "shared";
     } catch (error) {
       // The reader closed the share sheet: nothing more to do. Any other failure falls back to a copy.
@@ -17,7 +17,7 @@ async function send(title: string, url: string, kind: string): Promise<ShareOutc
   }
   try {
     await navigator.clipboard.writeText(url);
-    track("share", { kind, outcome: "copied" });
+    track("share", { kind, item, outcome: "copied" });
     return "copied";
   } catch {
     // The clipboard is not available here (an insecure origin, a denied permission).
@@ -32,8 +32,8 @@ async function send(title: string, url: string, kind: string): Promise<ShareOutc
  */
 export async function shareLink(title: string, address: string): Promise<ShareOutcome> {
   const url = sharedUrl(address, location.href);
-  const kind = new URL(url).pathname.startsWith("/e/") ? "episode" : "briefing";
-  return send(title, url, kind);
+  const { kind, item } = sharedItem(url);
+  return send(title, url, kind, item);
 }
 
 /** The items this device made a link for, so their menus offer Stop sharing. Device only. */
@@ -173,7 +173,7 @@ export async function shareItem(item: {
   const answer = ready !== undefined ? ready : await prepareShare(item.id);
   if (answer === null) return shareLink(item.title, item.path);
   if ("refused" in answer) return answer;
-  const outcome = send(item.title, answer.url, item.kind);
+  const outcome = send(item.title, answer.url, item.kind, item.id);
   remember(item.id, true);
   return outcome;
 }

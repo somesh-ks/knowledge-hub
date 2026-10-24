@@ -13,6 +13,7 @@ import {
   scriptTargetChars,
   wordsFor,
 } from "./plan.js";
+import type { ScriptShape } from "./structure.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
 
 /** Attempts at a valid reply: the first call and two retries that name what was wrong. */
@@ -44,6 +45,8 @@ export interface ScriptDeps {
    * are checked, before the rest of the script is written. The script then continues after them.
    */
   onOpening?: (turns: readonly ScriptTurn[]) => Promise<void>;
+  /** The Catch up structure's asks (D170); absent is the shape every episode had before it. */
+  shape?: ScriptShape | undefined;
 }
 
 /** An opening is a few turns; more than this is the writer ignoring the ask, and is cut. */
@@ -91,6 +94,7 @@ async function requestOpening(deps: ScriptDeps): Promise<ScriptTurn[] | null> {
       budget_chars: deps.budget_chars,
       ...(deps.feedback ? { feedback: deps.feedback } : {}),
       ...(deps.taste ? { taste: deps.taste } : {}),
+      ...(deps.shape ? { shape: deps.shape } : {}),
       deadline_at: (deps.now ?? Date.now)() + SCRIPT_TIME_LIMIT_MS,
     });
     const turns = validateOpening(raw, deps.request, deps.stories);
@@ -225,6 +229,7 @@ function tooShortProblem(
   stories: readonly PodcastStory[],
   budget: number,
   request: PodcastRequest,
+  shape?: ScriptShape,
 ): string {
   const used = new Map<string, number>();
   for (const turn of turns) {
@@ -234,7 +239,7 @@ function tooShortProblem(
     .sort((a, b) => (used.get(a.item_id) ?? 0) - (used.get(b.item_id) ?? 0))
     .slice(0, 3)
     .map((story) => `"${story.headline}"`);
-  const parts = partChars(budget, stories.length, request.format, request.length_minutes);
+  const parts = partChars(budget, stories.length, request.format, request.length_minutes, shape);
   const sizes =
     request.format === "headlines"
       ? `Every story needs about ${wordsFor(parts.nugget)} words.`
@@ -262,6 +267,7 @@ async function requestTurns(
     deps.stories.length,
     deps.request.format,
     deps.request.length_minutes,
+    deps.shape,
   );
   const now = deps.now ?? Date.now;
   const deadline = now() + SCRIPT_TIME_LIMIT_MS;
@@ -283,6 +289,7 @@ async function requestTurns(
           ...(deps.feedback ? { feedback: deps.feedback } : {}),
           ...(deps.taste ? { taste: deps.taste } : {}),
           ...(opening ? { opening } : {}),
+          ...(deps.shape ? { shape: deps.shape } : {}),
           deadline_at: deadline,
         },
         problems,
@@ -305,7 +312,7 @@ async function requestTurns(
         }
         // Keep the longest of the short replies: a rewrite is not always longer.
         if (!short || chars > charCount(short)) short = result.turns;
-        problems = [tooShortProblem(result.turns, deps.stories, reach, deps.request)];
+        problems = [tooShortProblem(result.turns, deps.stories, reach, deps.request, deps.shape)];
       } else {
         problems = result.problems;
       }
@@ -338,7 +345,8 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
   if (!/singularity/i.test(turns[0]?.text ?? "")) {
     turns = [{ speaker: "a", text: FALLBACK_OPENING }, ...turns];
   }
-  const fitted = fitToBudget(turns, deps.budget_chars);
+  // A structured episode gives up its close before any story (D170): order there is priority.
+  const fitted = fitToBudget(turns, deps.budget_chars, { closeFirst: deps.shape !== undefined });
   const shortBy = shortByChars(fitted.turns, deps.budget_chars);
   if (shortBy > 0) {
     deps.log?.warn("The script is shorter than the length asked for", {

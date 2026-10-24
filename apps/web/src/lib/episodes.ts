@@ -2,6 +2,7 @@ import type { CoverSpec } from "@dispatch/core";
 import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@dispatch/cover";
 import type { PlayerDigestData } from "../types/contracts";
 import { type ContentFiles, diskFiles } from "./contentFiles";
+import type { DigestEntry } from "./digests";
 import { type Episode, parseEpisodeFile } from "./episodeFile";
 import { isWebUrl } from "./safeUrl";
 
@@ -133,4 +134,19 @@ export function buildEpisodeEntries(episodes: readonly Episode[]): EpisodeEntry[
       a.generated_at < b.generated_at ? 1 : a.generated_at > b.generated_at ? -1 : 0,
     )
     .map(toEntry);
+}
+
+/** Every briefing's summary and topic by item id, newest first, so an episode's story reads as it did there. */
+export function storyLookups(entries: readonly DigestEntry[]): {
+  summaries: Map<string, string>;
+  topics: Map<string, string>;
+} {
+  const summaries = new Map<string, string>();
+  const topics = new Map<string, string>();
+  for (const { digest } of entries)
+    for (const item of digest.items) {
+      if (!topics.has(item.id)) topics.set(item.id, item.category);
+      if (item.summary && !summaries.has(item.id)) summaries.set(item.id, item.summary);
+    }
+  return { summaries, topics };
 }

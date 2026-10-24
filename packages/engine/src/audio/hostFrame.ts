@@ -144,6 +144,27 @@ export function openingLine(digest: Digest, firstSection: SpokenSection | undefi
   }
 }
 
+/**
+ * The rundown a briefing's structure asks for (D176): the first stories in reading order, named by
+ * their chapters, the player bar's short labels. Code, not a model, so it says nothing a story
+ * does not. Null when the digest asks for none or no story has a chapter.
+ */
+export function rundownLine(
+  digest: Pick<Digest, "rundown">,
+  ordered: readonly { chapter?: string | undefined }[],
+): string | null {
+  if (!digest.rundown) return null;
+  const names = ordered
+    .flatMap((item) => (item.chapter ? [item.chapter.replace(/[.!?]+$/, "")] : []))
+    .slice(0, digest.rundown);
+  if (names.length === 0) return null;
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")}${names.length > 2 ? "," : ""} and ${names[names.length - 1]}`;
+  return `Coming up: ${list}.`;
+}
+
 /** Phrases that introduce a section. None repeats a section title word for word. */
 export function bridgeCandidates(
   /** A bare id is enough for a built-in section. */
