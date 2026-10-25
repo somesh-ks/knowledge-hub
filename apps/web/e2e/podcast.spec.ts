@@ -165,7 +165,7 @@ test.describe("the profile pages", () => {
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
     await mockConfig(page);
     await open(page, "daily");
-    const hint = page.getByText("No topics chosen, so Daily episodes have nothing to cover.");
+    const hint = page.getByText("No categories chosen, so Daily episodes have nothing to cover.");
     await expect(hint).toBeHidden();
     const chips = page.locator("input[data-scope]");
     for (let i = 0; i < (await chips.count()); i += 1) await chips.nth(i).uncheck({ force: true });
