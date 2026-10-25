@@ -1488,7 +1488,7 @@ test.describe("the podcast structure", () => {
       "aria-selected",
       "true",
     );
-    const list = page.getByRole("list", { name: "Daily blocks" });
+    const list = page.getByRole("list", { name: "Structure blocks" });
     const names = () => list.locator(".structure-row .settings-label").allTextContents();
     const before = await names();
     expect(before.slice(0, 2)).toEqual(["Top picks", "Design"]);
@@ -1496,9 +1496,11 @@ test.describe("the podcast structure", () => {
     await page.getByRole("menuitem", { name: "Move down" }).click();
     await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length));
     await expect.poll(names).toEqual([before[0], before[2], before[1], ...before.slice(3)]);
+    // An edit of the order is the owner's own list: the profile says Custom.
+    await expect(page.getByLabel("Profile")).toHaveValue("custom");
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => server.applied.length).toBe(1);
-    expect(server.applied[0]).toMatchObject({ op: "structure.set", kind: "daily" });
+    expect(server.applied[0]).toMatchObject({ op: "structure.set", profile: "custom" });
     const moved = await names();
 
     await page.reload();
@@ -1528,7 +1530,6 @@ test.describe("the podcast structure", () => {
     expect(set.blocks.find((block) => block.id === "design")).toMatchObject({ per_source: 1 });
     expect(server.applied[2]).toEqual({
       op: "structure.prompt",
-      kind: "daily",
       key: "section:design",
       prompt: "Tell each design story in two plain sentences.",
     });
