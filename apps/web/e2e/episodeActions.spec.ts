@@ -236,6 +236,24 @@ test.describe("regenerate and delete an episode", () => {
     await expect(card(page)).toHaveCount(0);
   });
 
+  test("Latest shows the next newest item once the newest episode is deleted", async ({
+    page,
+  }) => {
+    // The newest item of the fixture site is this episode; a delete leaves the site listing it for
+    // minutes (the Library hides it from the same list), and Latest must not keep showing it.
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-digest-id", ID);
+    await mock(page, [{ run_id: 77, state: "queued", step: null }]);
+    await open(page);
+    await choose(page, "Delete");
+    await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
+    await page.goto("/");
+    await expect(page).not.toHaveURL(/\/e\/ep-20261007-1930/);
+    await expect(page.locator("html")).not.toHaveAttribute("data-digest-id", ID);
+    await expect(page.locator("main h1").first()).toBeVisible();
+  });
+
   test("Delete returns to the Library as it was left, and counts what is there", async ({
     page,
   }) => {
