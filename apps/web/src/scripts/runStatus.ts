@@ -1,18 +1,20 @@
 /**
  * The run indicator: one line of status over a thin progress bar, in the side column from 64rem and
  * above the player bar below it. It lives in the layout and persists across client-side navigations;
- * the run id is kept in sessionStorage, so a reload picks the run up again. The status route names
+ * the run is kept in localStorage, so a reload, or another tab, picks it up (a run an older page
+ * kept in sessionStorage is read once and moved). The status route names
  * the stage (n of m, lib/runStages.ts); the bar sits at the start of that stage and creeps toward,
  * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
  * After the workflow has published, the last stage waits for the new page. Every sentence is in the
- * element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), and this file imports
- * only the error reference helper up front; the episode prewarm is loaded only once a new episode is
+ * element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), except a failed
+ * stage's sentence (lib/runStages.ts); this file imports only that and the error reference helper up front; the episode prewarm is loaded only once a new episode is
  * live.
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
  * out again and the new run is followed. A finished run goes away once its episode has been opened.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { failureLine, timeLeft } from "../lib/runStages";
 
 const KEY = "singularity:run";
 const POLL_MS = 4000;
@@ -52,13 +54,34 @@ interface Stored {
   note?: string;
   /** A failed run's log on GitHub, from the status route: where the real error is. */
   log?: string;
+  /** When the run entered the stage it is in, for the time left. */
+  stageAt?: number;
+  /** The usual length of each stage in ms (the route's stage_estimates_ms), when it knows them. */
+  estimates?: number[];
+  /** A failed run: the stage it stopped in and what the earlier stages kept (the route's words). */
+  failedStage?: string;
+  kept?: string[];
+  /** Where polling ran out, so Check again asks the same question again. */
+  lostIn?: "follow" | "site";
 }
 
 /** The stage fields of a status answer, kept with the run. */
-const staged = (body: { stage?: number; stages?: number; label?: string }) => ({
+const staged = (body: {
+  stage?: number;
+  stages?: number;
+  label?: string;
+  stage_estimates_ms?: unknown;
+  failed_stage?: unknown;
+  kept?: unknown;
+}) => ({
   stage: body.stage,
   stages: body.stages,
   label: body.label,
+  estimates: Array.isArray(body.stage_estimates_ms)
+    ? (body.stage_estimates_ms as number[])
+    : undefined,
+  failedStage: typeof body.failed_stage === "string" ? body.failed_stage : undefined,
+  kept: Array.isArray(body.kept) ? body.kept.map(String) : undefined,
 });
 
 const FINISHED: Phase[] = ["done", "started", "failed"];
@@ -70,10 +93,35 @@ let following = 0;
 /** True while a Try again request is out. */
 let retrying = false;
 
+type Store = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+const parse = (text: string | null): Stored | null => {
+  try {
+    const value = JSON.parse(text ?? "null");
+    return value && typeof value.id === "number" ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The run on record: localStorage, so every tab shows it. A run an older page kept in
+ * sessionStorage under the same key is moved over once, so a run under way across the update is kept.
+ */
+export function readRun(local: Store, session: Store): Stored | null {
+  const run = parse(local.getItem(KEY));
+  if (run) return run;
+  const old = parse(session.getItem(KEY));
+  if (old) {
+    local.setItem(KEY, JSON.stringify(old));
+    session.removeItem(KEY);
+  }
+  return old;
+}
+
 function read(): Stored | null {
   try {
-    const value = JSON.parse(sessionStorage.getItem(KEY) ?? "null");
-    return value && typeof value.id === "number" ? value : null;
+    return readRun(localStorage, sessionStorage);
   } catch {
     return null;
   }
@@ -81,11 +129,84 @@ function read(): Stored | null {
 
 function write(run: Stored | null): void {
   try {
-    if (run) sessionStorage.setItem(KEY, JSON.stringify(run));
-    else sessionStorage.removeItem(KEY);
+    if (run) localStorage.setItem(KEY, JSON.stringify(run));
+    else localStorage.removeItem(KEY);
+    // The old key is never read again once the record is here, or a cleared run would come back.
+    sessionStorage.removeItem(KEY);
   } catch {
     // Storage can be blocked; the indicator then lasts until the page does.
   }
+}
+
+const BADGE = "● ";
+
+/** A run that finished while the tab was out of sight: the title says so until the tab is looked at. */
+function markTitle(): void {
+  if (document.hidden && !document.title.startsWith(BADGE)) document.title = BADGE + document.title;
+}
+
+function clearTitle(): void {
+  if (!document.hidden && document.title.startsWith(BADGE)) {
+    document.title = document.title.slice(BADGE.length);
+  }
+}
+
+/** The time-left line for a run, or "" when it has nothing to say (lib/runStages.ts timeLeft). */
+function etaLine(root: HTMLElement, run: Stored | null): string {
+  if (!run || run.kind || !GOING.includes(run.phase)) return "";
+  const left = timeLeft(
+    run.stage ?? 0,
+    run.estimates,
+    Date.now() - (run.stageAt ?? run.t0 ?? Date.now()),
+  );
+  if (left.kind === "slow") return root.dataset.slow ?? "";
+  if (left.kind === "left") return (root.dataset.eta ?? "").replace("{n}", String(left.minutes));
+  return "";
+}
+
+/** Writes the time left under the stage name, and tells a screen reader once when the words change. */
+function showEta(root: HTMLElement, card: HTMLElement, run: Stored | null): void {
+  const eta = card.querySelector<HTMLElement>("[data-run-eta]");
+  const text = etaLine(root, run);
+  if (eta && eta.textContent !== text) eta.textContent = text;
+  if (eta) eta.hidden = !text;
+  const announce = root.querySelector("[data-run-announce]");
+  const line = card.querySelector("[data-run-text]")?.textContent ?? "";
+  const said = text ? `${line}. ${text}` : line;
+  if (announce && run && announce.textContent !== said) announce.textContent = said;
+}
+
+/** The minutes move on between polls: the line is brought up to date without redrawing the card. */
+function refreshEta(): void {
+  const root = document.querySelector<HTMLElement>("[data-run-status]");
+  const card = root?.querySelector<HTMLElement>("[data-run-card]");
+  if (root && card && !card.hidden) showEta(root, card, read());
+}
+
+/**
+ * The card arrives from where the Create sheet was (a FLIP on transform and opacity only: it starts
+ * at the sheet's centre, smaller, and settles into its place). Below 64rem the strip fades in, and
+ * with reduced motion every width crossfades (fades keep their time, travel goes).
+ */
+export function morphFrom(from: DOMRect): void {
+  const card = document.querySelector<HTMLElement>("[data-run-card]");
+  if (!card || card.hidden || typeof card.animate !== "function") return;
+  const to = card.getBoundingClientRect();
+  if (!to.width) return;
+  const css = getComputedStyle(card);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const wide = matchMedia("(width >= 64rem)").matches;
+  const duration =
+    Number.parseFloat(css.getPropertyValue(reduced ? "--duration-enter" : "--duration-sheet-in")) ||
+    300;
+  const easing = css.getPropertyValue("--ease-out").trim() || "ease-out";
+  const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+  const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+  const start =
+    reduced || !wide
+      ? { opacity: 0 }
+      : { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.6)` };
+  card.animate([start, { opacity: 1, transform: "none" }], { duration, easing });
 }
 
 function dismiss(): void {
@@ -124,11 +245,21 @@ function show(run: Stored | null): void {
   if (!root || !card) return;
   if (!root.hasAttribute("data-bound")) {
     root.setAttribute("data-bound", "");
+    document.addEventListener("visibilitychange", clearTitle);
     root.addEventListener("click", (event) => {
       const target = event.target as Element;
       if (target.closest("[data-run-dismiss]")) dismiss();
       if (target.closest("[data-run-retry]")) void retry();
       if (target.closest("[data-run-play]")) void listenLive();
+      if (target.closest("[data-run-check]")) checkAgain();
+      // Below 64rem the strip is one slim line; a press on it, or on its chevron, opens it.
+      if (
+        target.closest("[data-run-expand]") ||
+        (target.closest(".run-text") && !matchMedia("(width >= 64rem)").matches)
+      ) {
+        const open = card.toggleAttribute("data-expanded");
+        card.querySelector("[data-run-expand]")?.setAttribute("aria-expanded", String(open));
+      }
       // The episode, or the Library, is being opened: the line has said what it had to. It goes
       // after the press has been handled, so the link still leads where it points.
       if (target.closest("[data-run-library]")) {
@@ -150,6 +281,14 @@ function show(run: Stored | null): void {
   card.hidden = !run;
   if (run) {
     card.dataset.state = run.phase;
+    // A failed or lost run opens the strip once, so its whole sentence reads on a phone (the owner
+    // asked for plain error messages). The reader can close it again: it opens once for each run.
+    const alarm = run.phase === "failed" || run.phase === "started" ? `${run.id}:${run.phase}` : "";
+    if (alarm && card.dataset.opened !== alarm) {
+      card.dataset.opened = alarm;
+      card.setAttribute("data-expanded", "");
+      card.querySelector("[data-run-expand]")?.setAttribute("aria-expanded", "true");
+    }
     const text = card.querySelector("[data-run-text]");
     // A rewrite in the "running" phase reads data-regenerate-running; a new episode reads data-running.
     const key = run.kind ? run.kind + run.phase.charAt(0).toUpperCase() + run.phase.slice(1) : "";
@@ -158,14 +297,16 @@ function show(run: Stored | null): void {
     const line =
       run.phase === "failed" && run.note
         ? run.note
-        : named && run.phase === "failed"
-          ? (root.dataset.failedStage ?? "").replace("{label}", run.label?.toLowerCase() ?? "")
-          : named && run.phase !== "done" && run.phase !== "started"
-            ? run.label
-            : (root.dataset[key] ?? root.dataset[run.phase]);
+        : !run.kind && run.phase === "failed" && failureLine(run.failedStage, run.kept)
+          ? failureLine(run.failedStage, run.kept)
+          : named && run.phase === "failed"
+            ? (root.dataset.failedStage ?? "").replace("{label}", run.label?.toLowerCase() ?? "")
+            : named && run.phase !== "done" && run.phase !== "started"
+              ? run.label
+              : (root.dataset[key] ?? root.dataset[run.phase]);
     if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
-    // The status region hears the line alone, and only when it changes.
-    if (announce && announce.textContent !== (line ?? "")) announce.textContent = line ?? "";
+    // The status region hears the line and the time left together, and only when they change.
+    showEta(root, card, run);
     fill(card, run);
   } else if (announce) {
     // The card is gone and so is what it said: browse mode must not read a finished run's last line.
@@ -200,6 +341,8 @@ function show(run: Stored | null): void {
     if (href && log.getAttribute("href") !== href) log.setAttribute("href", href);
     log.hidden = !href;
   }
+  const check = card.querySelector<HTMLButtonElement>("[data-run-check]");
+  if (check) check.hidden = run?.phase !== "started";
   const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
   if (again) again.hidden = !(run?.phase === "failed" && run.retry);
   const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
@@ -250,6 +393,19 @@ export function fill(card: HTMLElement, run: Stored): void {
 function set(run: Stored): void {
   write(run);
   show(run);
+  if (FINISHED.includes(run.phase)) markTitle();
+}
+
+/** Check again: polling ran out, so ask once more where the run is, the way it was asked before. */
+function checkAgain(): void {
+  const run = read();
+  if (!run || run.phase !== "started") return;
+  const phase: Phase = run.lostIn === "site" ? "updating" : "running";
+  const next: Stored = { ...run, phase, lostIn: undefined };
+  following = 0;
+  set(next);
+  if (phase === "updating") void waitForSite(next);
+  else void follow(next, true);
 }
 
 /** The last stage: ask until the redeployed site lists the new episode, then offer it. */
@@ -278,7 +434,7 @@ async function waitForSite(run: Stored): Promise<void> {
   }
   if (following === run.id) {
     following = 0;
-    set({ ...run, phase: "started" });
+    set({ ...run, phase: "started", lostIn: "site" });
   }
 }
 
@@ -324,15 +480,21 @@ async function follow(run: Stored, now: boolean): Promise<void> {
   following = run.id;
   let phase = run.phase;
   let stage = run.stage;
+  let stageAt = run.stageAt;
   for (let turn = 0; turn < MAX_POLLS && following === run.id; turn += 1) {
     if (turn > 0 || !now) await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     if (following !== run.id) return;
-    const res = await fetch(`/api/status?run=${run.id}`).catch(() => null);
+    const asked = run.retry?.body.request as
+      | { format?: string; length_minutes?: number }
+      | undefined;
+    const about = asked?.format ? `&format=${asked.format}&length=${asked.length_minutes}` : "";
+    const res = await fetch(`/api/status?run=${run.id}${about}`).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
     // A run the status route does not know (a 4xx): the episode was started all the same, so say
     // that and stop asking. A hiccup is asked again, until the loop runs out.
     if (res && res.status < 500 && !res.ok) break;
     if (!body?.state) continue;
+    refreshEta();
     if (body.state === "running") void watchStream(run);
     if (body.state === "completed") {
       following = 0;
@@ -341,7 +503,7 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       // route's, and finishes at once.
       const waiting = !failed && !run.kind && body.stages;
       const phase: Phase = failed ? "failed" : waiting ? "updating" : "done";
-      const next: Stored = { ...run, ...staged(body), phase };
+      const next: Stored = { ...run, ...staged(body), phase, stageAt: Date.now() };
       if (failed && typeof body.run_url === "string") next.log = body.run_url;
       if (waiting)
         next.label = document.querySelector<HTMLElement>("[data-run-status]")?.dataset.updating;
@@ -357,12 +519,13 @@ async function follow(run: Stored, now: boolean): Promise<void> {
     if (next !== phase || body.stage !== stage) {
       phase = next;
       stage = body.stage;
-      set({ ...run, ...staged(body), phase });
+      stageAt = Date.now();
+      set({ ...run, ...staged(body), phase, stageAt });
     }
   }
   if (following === run.id) {
     following = 0;
-    set({ ...run, phase: "started" });
+    set({ ...run, phase: "started", lostIn: "follow" });
   }
 }
 
@@ -441,7 +604,11 @@ async function retry(): Promise<void> {
   const res = await fetch("/api/podcast", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(run.retry.body),
+    // A failed run that kept its earlier stages is resumed from them, not made again from nothing.
+    body: JSON.stringify({
+      ...run.retry.body,
+      ...(run.kept?.length ? { resume_from: run.id } : {}),
+    }),
   }).catch(() => null);
   const reply = (await res?.json().catch(() => null)) ?? {};
   retrying = false;

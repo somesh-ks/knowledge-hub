@@ -8,7 +8,11 @@ const lines = {
   "data-queued": "Episode queued",
   "data-running": "Writing your episode",
   "data-done": "Episode ready",
-  "data-started": "Still being made. It will appear in your Library.",
+  // Polling ran out: the page cannot tell where the run is. Check again asks once more.
+  "data-started": "Lost track of this run",
+  // Time left, from the status route's stage estimates ({n} is whole minutes); with none, the stage name stands alone.
+  "data-eta": "About {n} min left",
+  "data-slow": "Taking longer than usual",
   "data-failed": "Couldn't make the episode",
   // The stage names come from the status route (lib/runStages.ts); these are the sentences around them.
   "data-failed-stage": "Stopped while {label}",
@@ -20,12 +24,12 @@ const lines = {
   // The workflow has published; the site is redeployed about a minute later, so the page still shows
   // the old version until then.
   "data-regenerate-done": "Rewritten. Live in about a minute.",
-  "data-regenerate-started": "Still being rewritten. The new version will replace it.",
+  "data-regenerate-started": "Lost track of this rewrite",
   "data-regenerate-failed": "Couldn't rewrite the episode",
   "data-delete-queued": "Removal queued",
   "data-delete-running": "Removing the episode",
   "data-delete-done": "Episode removed",
-  "data-delete-started": "Still being removed. It will leave your Library.",
+  "data-delete-started": "Lost track of this removal",
   "data-delete-failed": "Couldn't remove the episode",
   // Try again: on the button while the request is out, and what a refusal of it says instead of the
   // failure ({wait} is the server's own wait).
@@ -53,12 +57,20 @@ const lines = {
     <p class="run-text">
       <Icon name="alert" class="run-alert" />
       <Icon name="check" class="run-ok" />
-      <span class="run-message" data-run-text></span>
+      <span class="run-lines">
+        <span class="run-message" data-run-text></span>
+        <span class="run-eta" data-run-eta hidden></span>
+      </span>
     </p>
+    {/* Below 64rem the strip is one slim line; this opens it to the whole status. */}
+    <button class="icon-btn run-expand press" type="button" data-run-expand aria-expanded="false" aria-label="Show the whole status">
+      <Icon name="chevronDown" class="icon-lg" />
+    </button>
     <a class="run-link" href="/library" data-run-library hidden>Open Library</a>
-    <a class="run-link" href="#" data-run-log target="_blank" rel="noopener noreferrer" hidden>Details</a>
+    <a class="text-link run-details" href="#" data-run-log target="_blank" rel="noopener noreferrer" hidden>Details</a>
     <button class="btn run-retry" type="button" data-run-retry hidden>Try again</button>
-    <button class="btn run-retry" type="button" data-run-play hidden>Listen now</button>
+    <button class="btn run-check" type="button" data-run-check hidden>Check again</button>
+    <button class="btn-primary run-play" type="button" data-run-play hidden>Listen now</button>
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
       <Icon name="close" class="icon-lg" />
     </button>
