@@ -20,6 +20,7 @@ import {
   readFileSync,
   realpathSync,
   rmdirSync,
+  statSync,
   symlinkSync,
   unlinkSync,
 } from "node:fs";
@@ -42,9 +43,16 @@ const isLink = (path) => {
     return false;
   }
 };
-// Takes off the link itself, never what it points at: a junction is a directory to Windows, a
-// symlink is a file to Linux.
-const unlink = (path) => (process.platform === "win32" ? rmdirSync(path) : unlinkSync(path));
+// Takes off the link itself, never what it points at: rmdir takes a Windows junction, and refuses
+// (ENOTDIR) a Linux symlink or a Windows file link, which unlink takes.
+const unlink = (path) => {
+  try {
+    rmdirSync(path);
+  } catch (error) {
+    if (error.code !== "ENOTDIR") throw error;
+    unlinkSync(path);
+  }
+};
 const link = (target, path) => {
   if (existsSync(path) || isLink(path)) return;
   mkdirSync(dirname(path), { recursive: true });
@@ -89,7 +97,8 @@ const own = new Map(
     return readdirSync(dir).flatMap((name) => {
       const manifest = join(dir, name, "package.json");
       if (!existsSync(manifest)) return [];
-      return [[JSON.parse(readFileSync(manifest, "utf8")).name, join(dir, name)]];
+      const packageName = JSON.parse(readFileSync(manifest, "utf8")).name;
+      return typeof packageName === "string" ? [[packageName, join(dir, name)]] : [];
     });
   }),
 );
@@ -121,6 +130,8 @@ for (const name of readdirSync(modules)) {
   const path = join(modules, name);
   const split =
     name.startsWith("@") &&
+    existsSync(path) &&
+    statSync(path).isDirectory() &&
     (scopes.has(name) || readdirSync(path).some((pkg) => isMainOwn(join(path, pkg))));
   if (!split) {
     if (shared(name)) link(path, join(linked, name));

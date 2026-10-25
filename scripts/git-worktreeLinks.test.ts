@@ -21,8 +21,14 @@ import { afterEach, expect, it } from "vitest";
 // name, so a worktree got none of its own packages, or, once main reinstalled, main's.
 const script = join(import.meta.dirname, "worktreeLinks.mjs");
 const roots: string[] = [];
+// A failed run can leave the worktree's links into main: they come off before the delete.
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    try {
+      links(join(root, "worktree"), "--remove");
+    } catch {}
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 const put = (path: string, text: string) => {
