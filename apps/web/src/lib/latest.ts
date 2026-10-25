@@ -14,6 +14,21 @@ export interface LatestResponse {
   outcome_at: string | null;
 }
 
+/**
+ * What `/` shows: the most recently written item of any kind. Briefings sort by date and a catch-up
+ * episode has no digest, so entries[0] alone kept Latest on the daily or weekly briefing.
+ */
+export function newestItem(
+  site: Pick<Site, "entries" | "episodes">,
+): { kind: "digest" | "episode"; id: string } | null {
+  const digest = site.entries[0]?.digest;
+  const episode = site.episodes[0];
+  if (episode && (!digest || episode.episode.generated_at > digest.generated_at)) {
+    return { kind: "episode", id: episode.id };
+  }
+  return digest ? { kind: "digest", id: digest.id } : null;
+}
+
 /** An explicit whitelist: nothing else from the run record or the digest can leak into the file. */
 export function buildLatest(
   site: Pick<Site, "entries" | "lastRun"> & { episodes?: Site["episodes"] },

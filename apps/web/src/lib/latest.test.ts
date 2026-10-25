@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { makeDigest } from "../testing/digestFactory";
 import { buildEntries } from "./digests";
-import { buildLatest } from "./latest";
+import { buildLatest, newestItem } from "./latest";
 import { NO_RUN } from "./runState";
+import type { Site } from "./site";
 
 describe("buildLatest", () => {
   it("is all null when nothing exists yet", () => {
@@ -53,5 +54,29 @@ describe("buildLatest", () => {
       "outcome_at",
     ]);
     expect(JSON.stringify(body)).not.toContain("example.com");
+  });
+});
+
+describe("newestItem", () => {
+  const entries = buildEntries(
+    ["2026-10-25"].map((id) => ({ digest: makeDigest({ id }), timeline: null })),
+  );
+  const episodeAt = (generated_at: string) =>
+    [{ id: "ep-1", episode: { generated_at } }] as unknown as Site["episodes"];
+
+  it("is the catch-up episode made after the daily briefing, not the briefing", () => {
+    const at = entries[0]?.digest.generated_at ?? "";
+    const later = new Date(Date.parse(at) + 60_000).toISOString();
+    expect(newestItem({ entries, episodes: episodeAt(later) })).toEqual({
+      kind: "episode",
+      id: "ep-1",
+    });
+  });
+
+  it("stays the briefing when it is newer than every episode", () => {
+    expect(newestItem({ entries, episodes: episodeAt("2000-01-01T00:00:00.000Z") })).toEqual({
+      kind: "digest",
+      id: "2026-10-25",
+    });
   });
 });
