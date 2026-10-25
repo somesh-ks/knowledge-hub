@@ -44,7 +44,9 @@
   inset-block: var(--space-1);
   inset-inline: calc(var(--space-4) * -1);
   z-index: var(--z-beneath);
-  border-radius: var(--row-radius);
+  /* Fully round on the page, as the rail's rows are (owner, 2026-10-24); a card's tile takes the
+     card's inner radius (.card-group > .row-action::after). */
+  border-radius: var(--row-tile-radius);
   /* The layer is the fill's own alpha, never the element's opacity: that would fade the focus ring
      drawn on this element to the same 8% and leave a keyboard user no ring to see. */
   background: transparent;
@@ -122,20 +124,10 @@
 /*
  * Sticky under the app bar, scrollable sideways, with an accent underline on the section in view.
  * The strip runs past the gutters so labels slide off the edge of the screen, not off a margin.
- * Markup: <div class="tabs-bar"><nav class="tabs"><a class="tab" aria-current="true">...</a></nav></div>
+ * Its ends fade by .scroll-fade-inline (below).
+ * Markup: <div class="tabs-bar"><nav class="tabs scroll-fade-inline"><a class="tab" aria-current="true">...</a></nav></div>
  * A filter's tabs are buttons in a tablist, the chosen one aria-selected (SourceFilter.astro).
  */
-@property --tabs-left-mask {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --tabs-right-mask {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 32px;
-}
 
 /* The bar sticks and carries the surface and the line under it; the strip inside it scrolls and
    fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls
@@ -159,43 +151,6 @@
   overscroll-behavior-x: contain;
   scroll-padding-inline: var(--page-gutter-start);
   scrollbar-width: none;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0px,
-    black var(--tabs-left-mask, 0px),
-    black calc(100% - var(--tabs-right-mask, 32px)),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0px,
-    black var(--tabs-left-mask, 0px),
-    black calc(100% - var(--tabs-right-mask, 32px)),
-    transparent 100%
-  );
-  /* Longhands: the minifier folds a shorthand and the timeline into a declaration Chrome rejects. */
-  animation-name: tabs-scroll-fade;
-  animation-timing-function: var(--ease-linear);
-  animation-timeline: scroll(self inline);
-}
-
-@keyframes tabs-scroll-fade {
-  0% {
-    --tabs-left-mask: 0px;
-    --tabs-right-mask: 32px;
-  }
-  10% {
-    --tabs-left-mask: 32px;
-    --tabs-right-mask: 32px;
-  }
-  90% {
-    --tabs-left-mask: 32px;
-    --tabs-right-mask: 32px;
-  }
-  100% {
-    --tabs-left-mask: 32px;
-    --tabs-right-mask: 0px;
-  }
 }
 
 .tabs::-webkit-scrollbar {
@@ -290,12 +245,17 @@
 /* ------------------------------------------------------------------ scroll fade */
 
 /*
- * A sideways scroller's hidden edge fades while more lies past it, by its own scroll, as the section
- * tabs above and the Library's shelf fade theirs (2026-10-24: the shared form, first used by the
- * Costs table, whose last column was cut with nothing saying there was more). The properties are
- * registered at 0px, so a scroller with nothing to scroll (an inactive timeline) or a browser
- * without scroll timelines shows no fade at all. The element keeps its own overflow.
- * Markup: <div class="costs-table-scroll scroll-fade-inline"> on an element with overflow-x: auto.
+ * A sideways scroller's hidden edge fades while more lies past it, by its own scroll (2026-10-24: the
+ * shared form, first used by the Costs table, whose last column was cut with nothing saying there
+ * was more; the section tabs and the Earlier shelf gave up their own copies for it the same day).
+ * The properties are registered at 0px, so a scroller with nothing to scroll (an inactive timeline)
+ * or a browser without scroll timelines shows no fade at all. The fade is 32px; a scroller sets
+ * --scroll-fade-size for another (the Earlier shelf, 40px). The element keeps its own overflow.
+ * Markup: class="scroll-fade-inline" on an element with overflow-x: auto, as
+ * <div class="costs-table-scroll scroll-fade-inline">, <nav class="tabs scroll-fade-inline">,
+ * <ul class="shelf scroll-fade-inline">.
+ * A scroller with a pinned start sets --scroll-fade-inset (default 0px) to the pinned column's
+ * width, so the pin stays whole and the fade begins at its edge (the Costs table's dates, 2026-10-24).
  */
 @property --scroll-fade-start {
   syntax: "<length>";
@@ -312,15 +272,17 @@
 .scroll-fade-inline {
   mask-image: linear-gradient(
     to right,
-    transparent 0px,
-    black var(--scroll-fade-start),
+    black 0 var(--scroll-fade-inset, 0px),
+    transparent var(--scroll-fade-inset, 0px),
+    black calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-start)),
     black calc(100% - var(--scroll-fade-end)),
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to right,
-    transparent 0px,
-    black var(--scroll-fade-start),
+    black 0 var(--scroll-fade-inset, 0px),
+    transparent var(--scroll-fade-inset, 0px),
+    black calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-start)),
     black calc(100% - var(--scroll-fade-end)),
     transparent 100%
   );
@@ -345,15 +307,15 @@
 @keyframes scroll-fade-inline {
   0% {
     --scroll-fade-start: 0px;
-    --scroll-fade-end: var(--space-8);
+    --scroll-fade-end: var(--scroll-fade-size, var(--space-8));
   }
   10%,
   90% {
-    --scroll-fade-start: var(--space-8);
-    --scroll-fade-end: var(--space-8);
+    --scroll-fade-start: var(--scroll-fade-size, var(--space-8));
+    --scroll-fade-end: var(--scroll-fade-size, var(--space-8));
   }
   100% {
-    --scroll-fade-start: var(--space-8);
+    --scroll-fade-start: var(--scroll-fade-size, var(--space-8));
     --scroll-fade-end: 0px;
   }
 }
@@ -1407,9 +1369,11 @@
   }
 }
 
-/* Inside a card the dividers, where a page draws them, start and end at the card's content edge. */
+/* Inside a card the dividers, where a page draws them, run the card's full width, edge to edge
+   (owner, 2026-10-24, on the Structure sheet: "the divider should go full bleed"; until then they
+   stopped at the content edge). */
 .card-group > * + *::before {
-  inset-inline: 0;
+  inset-inline: calc(var(--card-padding) * -1);
 }
 
 /* A card of one note (the install card): an accent tone says it is an offer, not a setting. */

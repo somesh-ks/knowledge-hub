@@ -99,3 +99,8 @@ export const AUDIO_UNAVAILABLE_COPY = {
   // Said once, plainly: the chip's preparing state shows that pressing it makes the audio again.
   expired: { label: "The audio has expired." },
 } as const;
+
+/** Whether a briefing draws section tabs and the contents column: two sections or more. */
+export function hasSectionTabs(entry: DigestEntry): boolean {
+  return digestSections(entry.digest).length > 1;
+}

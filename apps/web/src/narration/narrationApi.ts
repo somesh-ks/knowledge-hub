@@ -10,6 +10,11 @@ import type { NarrateResult, NarrationFailure } from "./segmentQueue";
 export interface ApiDeps {
   fetch(input: string, init?: RequestInit): Promise<Response>;
   isOnline(): boolean;
+  /**
+   * The share token of the page showing this briefing, on a shared page (/s/<token>, D153). Its
+   * lookup is then a play start on the link, which answers the link's stored files.
+   */
+  shareToken?(digestId: string): string | null;
 }
 
 export type LookupResult =
@@ -115,18 +120,38 @@ function parseTimeline(value: unknown): NarrationTimeline | null {
   return itemsOk && sectionsOk ? (value as NarrationTimeline) : null;
 }
 
-/** GET /api/narrate. Free, and never makes audio. */
+/** A shared link's refusals (server/share.ts), named for the listener. */
+function linkRefusal(response: Response, body: Json | null): NarrationFailure {
+  if (body?.error === "link_limit" || body?.error === "month_limit") return body.error;
+  if (response.status === 404 || response.status === 410) return "link_gone";
+  return response.status === 503 ? "unavailable" : "failed";
+}
+
+/**
+ * GET /api/narrate. Free, and never makes audio. On a shared page it is POST /api/share-play, one
+ * play start on the link: the same answer, with every file the link's and already confirmed, so
+ * nothing is ever narrated for a listener.
+ */
 export async function lookupNarration(digestId: string, deps: ApiDeps): Promise<LookupResult> {
+  const token = deps.shareToken?.(digestId) ?? null;
   let response: Response;
   try {
-    response = await deps.fetch(`/api/narrate?digest=${encodeURIComponent(digestId)}`, {
-      headers: { accept: "application/json" },
-    });
+    response = token
+      ? await deps.fetch("/api/share-play", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ token }),
+        })
+      : await deps.fetch(`/api/narrate?digest=${encodeURIComponent(digestId)}`, {
+          headers: { accept: "application/json" },
+        });
   } catch {
     return { ok: false, reason: networkFailure(deps) };
   }
   const body = await readJson(response);
-  if (response.status !== 200 || !body) return { ok: false, reason: refusal(response, body) };
+  if (response.status !== 200 || !body) {
+    return { ok: false, reason: token ? linkRefusal(response, body) : refusal(response, body) };
+  }
 
   const listed = Array.isArray(body.segments) ? body.segments.map(parseSegment) : [];
   const segments = listed.filter((segment): segment is SegmentInfo => segment !== null);
@@ -191,6 +216,12 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
       return "You are offline. Reconnect, then try again.";
     case "failed":
       return "The audio could not be made. Try again.";
+    case "link_limit":
+      return "This link has been played its limit.";
+    case "month_limit":
+      return "Shared listening is paused until next month.";
+    case "link_gone":
+      return "This link has stopped working.";
   }
 }
 
@@ -203,6 +234,9 @@ const STANDING_REASONS: ReadonlySet<NarrationFailure> = new Set([
   "monthly_budget",
   "not_narratable",
   "digest_not_found",
+  "link_limit",
+  "month_limit",
+  "link_gone",
 ]);
 
 /** The short line for the mini player, from the reason rather than the kind of error. */
@@ -224,6 +258,12 @@ function failureSummary(reason: NarrationFailure): string | undefined {
     case "failed":
       // The notice's own words, shortened: one failure is not told two ways.
       return "Audio could not be made";
+    case "link_limit":
+      return "Link played its limit";
+    case "month_limit":
+      return "Paused until next month";
+    case "link_gone":
+      return "Link stopped working";
     default:
       return undefined;
   }

@@ -2,7 +2,14 @@ import { z } from "zod";
 import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
-import { kindProblems, StructureBlocks, StructureKind } from "./structure.js";
+import {
+  BlockPrompt,
+  BlockPromptKey,
+  kindProblems,
+  promptProblems,
+  StructureBlocks,
+  StructureKind,
+} from "./structure.js";
 import {
   MAX_KEYWORDS,
   MixStop,
@@ -97,6 +104,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
  * - structure.set: replace one podcast kind's whole list of blocks (D170) in config/structure.json,
  *   as weights.set replaces weights: idempotent, no index arithmetic on the wire.
+ * - structure.prompt: replace one block's prompt in one kind (D182), or put back the built-in
+ *   prompt with null. Daily and weekly take prompts for story blocks only.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -132,13 +141,16 @@ export const ConfigOp = z.discriminatedUnion("op", [
       format: SourceFormat.optional(),
       /** A general source's political lean, -2 to 2; null clears it. */
       lean: z.number().int().min(-2).max(2).nullable().optional(),
+      /** A favorite: every post it brings goes to the judge, ranked up, with no keyword needed. */
+      high_signal: z.boolean().optional(),
     })
     .refine(
       (value) =>
         value.name !== undefined ||
         value.topic_ids !== undefined ||
         value.format !== undefined ||
-        value.lean !== undefined,
+        value.lean !== undefined ||
+        value.high_signal !== undefined,
       { message: "set name, topic_ids, format, lean or any of them" },
     ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
@@ -190,6 +202,20 @@ export const ConfigOp = z.discriminatedUnion("op", [
     .superRefine((value, ctx) => {
       for (const message of kindProblems(value.kind, value.blocks)) {
         ctx.addIssue({ code: "custom", message, path: ["blocks"] });
+      }
+    }),
+  // One block's prompt (D182), apart from structure.set so a reorder never carries prompts and a
+  // prompt of six thousand characters fits one request. null puts back the built-in prompt.
+  z
+    .object({
+      op: z.literal("structure.prompt"),
+      kind: StructureKind,
+      key: BlockPromptKey,
+      prompt: BlockPrompt.nullable(),
+    })
+    .superRefine((value, ctx) => {
+      for (const message of promptProblems(value.kind, [value.key])) {
+        ctx.addIssue({ code: "custom", message, path: ["key"] });
       }
     }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.

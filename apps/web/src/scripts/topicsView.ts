@@ -167,6 +167,7 @@ export function storedSourceRow(
     format: source.format,
     general: source.general,
     lean: source.lean === null ? "" : String(source.lean),
+    high_signal: source.high_signal,
   });
   const main = element("span", "source-main");
   const text = element("span", "source-text");

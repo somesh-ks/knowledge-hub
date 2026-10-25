@@ -130,7 +130,7 @@ export function serializeUserSources(file: SourcesUserFile): string {
 /**
  * The seed registry with the app's edits applied. Added sources join the list (a seed id always
  * wins a clash, so a hand-written line in sources.md cannot be shadowed); overrides then switch,
- * pin, hide, rename or re-topic sources by id, seed or added alike. An override's name and topics
+ * pin, hide, rename, re-topic or favorite sources by id, seed or added alike. An override's name and topics
  * win over the source's own, and an empty topic list leaves it feeding none of its own. Pure, so a
  * run and a test see the same result.
  *
@@ -160,6 +160,7 @@ export function mergeUserSources(file: SourcesFile, user: SourcesUserFile): Sour
         ...(override.pinned === undefined ? {} : { pinned: override.pinned }),
         ...(override.format === undefined ? {} : { format: override.format }),
         ...(override.lean === undefined ? {} : { lean: override.lean }),
+        ...(override.high_signal === undefined ? {} : { high_signal: override.high_signal }),
       };
       if (override.topic_ids !== undefined) {
         if (override.topic_ids.length > 0) next.topic_ids = [...override.topic_ids];

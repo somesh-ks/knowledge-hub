@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page, Route } from "@playwright/test";
 import { configHash } from "../src/lib/configHash";
 import { GAP_MS } from "../src/scripts/managePageSave";
-import { BUILT_FILES, routeConfigStore } from "./configServer";
+import { BUILT_FILES, routeConfigServer, routeConfigStore } from "./configServer";
 import { expect, test } from "./fixtures";
 
 const LIST = "/settings/topics";
@@ -567,6 +567,29 @@ test.describe("a topic's page", () => {
     await expect
       .poll(() => ops(sent))
       .toEqual([{ op: "source.update", id: "studio-notes", name: "Studio Notes Weekly" }]);
+  });
+
+  // A favorite that did not reach the store, or a panel that forgot it, leaves its posts filtered
+  // out before the judge with nothing on screen to say so (YouTube, 2026-10-24).
+  test("a favorite changed in the panel is sent, and the panel still says so when opened again", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, CRAFT);
+    const edit = source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" });
+    const sheet = page.getByRole("dialog", { name: "Edit source" });
+    const favorite = sheet.getByRole("checkbox", { name: "Favorite source" });
+    await edit.click();
+    // The fixture ships Studio Notes as high signal.
+    await expect(favorite).toBeChecked();
+    await favorite.uncheck();
+    await sheet.getByRole("button", { name: "Save" }).click();
+    await expect(sheet).toBeHidden();
+    await expect
+      .poll(() => ops(sent))
+      .toEqual([{ op: "source.update", id: "studio-notes", high_signal: false }]);
+    await edit.click();
+    await expect(favorite).not.toBeChecked();
   });
 
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
@@ -1449,5 +1472,66 @@ test.describe("Blocked sources", () => {
     await page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect(page.getByText("No blocked sources")).toBeHidden();
+  });
+});
+
+test.describe("the podcast structure", () => {
+  // A reorder went out as the whole list, so a move that the server's own schema refused, or one
+  // lost on a reload before the build, would leave the next episode in the old order unseen.
+  test("a block moved by its menu goes as one structure.set and holds after a reload; its rules and prompt go as one structure.set and one structure.prompt", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const server = await routeConfigServer(page);
+    await open(page, "/settings/preferences?view=structure");
+    await expect(page.getByRole("tab", { name: "Structure" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    const list = page.getByRole("list", { name: "Daily blocks" });
+    const names = () => list.locator(".structure-row .settings-label").allTextContents();
+    const before = await names();
+    expect(before.slice(0, 2)).toEqual(["Top picks", "Design"]);
+    await list.getByRole("button", { name: "More for Design", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Move down" }).click();
+    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length));
+    await expect.poll(names).toEqual([before[0], before[2], before[1], ...before.slice(3)]);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => server.applied.length).toBe(1);
+    expect(server.applied[0]).toMatchObject({ op: "structure.set", kind: "daily" });
+    const moved = await names();
+
+    await page.reload();
+    await expect(page.locator("[data-structure]")).toHaveAttribute("data-mounted", "");
+    await expect.poll(names).toEqual(moved);
+    // The server takes one edit every ten seconds, and a reloaded page has forgotten when it sent.
+    await page.clock.runFor(GAP_MS);
+
+    await list.getByRole("button", { name: "More for Design", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+    const sheet = page.getByRole("dialog", { name: "Design" });
+    await sheet.getByRole("combobox", { name: "Most from one source" }).selectOption("1");
+    await sheet.getByText("Writing instructions (advanced)").click();
+    const prompt = sheet.getByRole("textbox", { name: "Instructions for the model" });
+    await expect(prompt).toHaveValue(/FIELDS/);
+    await prompt.fill("Tell each design story in two plain sentences.");
+    await sheet.getByRole("button", { name: "Done" }).click();
+    await expect(sheet).toBeHidden();
+    const design = list
+      .locator(".structure-row")
+      .filter({ has: page.locator(".settings-label", { hasText: /^Design$/ }) });
+    await expect(design).toContainText("1 per source");
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => server.applied.length).toBe(3);
+    const set = server.applied[1] as { op: string; blocks: Array<Record<string, unknown>> };
+    expect(set.op).toBe("structure.set");
+    expect(set.blocks.find((block) => block.id === "design")).toMatchObject({ per_source: 1 });
+    expect(server.applied[2]).toEqual({
+      op: "structure.prompt",
+      kind: "daily",
+      key: "section:design",
+      prompt: "Tell each design story in two plain sentences.",
+    });
+    expect(server.statuses).toEqual([202, 202]);
   });
 });

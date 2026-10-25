@@ -169,8 +169,7 @@ test.describe("sharing", () => {
     const more = page.getByRole("button", { name: "More actions" });
     await expect
       .poll(async () => {
-        await more.click();
-        await page.getByRole("menuitem", { name: "Share" }).click();
+        await page.getByRole("button", { name: "Share", exact: true }).click();
         return page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared[0]);
       })
       .toBeTruthy();
@@ -200,10 +199,9 @@ test.describe("sharing", () => {
       });
     });
     await page.goto(SILENT_DIGEST);
-    // An older briefing has the same menu as the latest (D104); Share copies its own address.
+    // An older briefing has the same Share as the latest (D104); it copies its own address.
     await hydrated(page);
-    await page.getByRole("button", { name: "More actions" }).click();
-    await page.getByRole("menuitem", { name: "Share" }).click();
+    await page.getByRole("button", { name: "Share", exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __copied: string[] }).__copied))
       .toEqual([expect.stringMatching(/\/d\/2026-10-05\?ref=share$/)]);
@@ -218,7 +216,7 @@ test.describe("sharing", () => {
       await hydrated(page);
       await page.getByRole("button", { name: "More actions" }).click();
       const items = page.locator("#hero-menu [role=menuitem]");
-      await expect(items).toHaveText(["Share", "Regenerate"]);
+      await expect(items).toHaveText(["Regenerate"]);
     }
     await openNewBriefing(page);
   });

@@ -373,7 +373,14 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           ? value.lean
           : undefined;
       const format = SOURCE_FORMATS.find((entry) => entry === value.format);
-      if (name === undefined && ids === undefined && lean === undefined && format === undefined) {
+      const highSignal = typeof value.high_signal === "boolean" ? value.high_signal : undefined;
+      if (
+        name === undefined &&
+        ids === undefined &&
+        lean === undefined &&
+        format === undefined &&
+        highSignal === undefined
+      ) {
         return null;
       }
       return {
@@ -383,6 +390,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         ...(ids === undefined ? {} : { topic_ids: ids }),
         ...(lean === undefined ? {} : { lean }),
         ...(format === undefined ? {} : { format }),
+        ...(highSignal === undefined ? {} : { high_signal: highSignal }),
       };
     }
     case "source.remove": {
@@ -435,6 +443,13 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const blocks = StructureBlocks.safeParse(value.blocks);
       if (!kind.success || !blocks.success) return null;
       return { op: "structure.set", kind: kind.data, blocks: blocks.data };
+    }
+    case "structure.prompt": {
+      // Core's schema (D182) bounds the key, the length and which kinds take which prompts.
+      const parsed = CoreConfigOp.safeParse(value);
+      if (!parsed.success || parsed.data.op !== "structure.prompt") return null;
+      const { kind, key, prompt } = parsed.data;
+      return { op: "structure.prompt", kind, key, prompt };
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

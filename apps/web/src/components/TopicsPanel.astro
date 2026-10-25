@@ -196,6 +196,15 @@ const { topics } = Astro.props;
             <Icon name="chevronDown" />
           </div>
         </div>
+        {/* A favorite (high_signal) skips the keyword filter: every post goes to the judge, ranked up.
+            The app's checkbox (.suggest-box), its words beside it (owner, 2026-10-24). */}
+        <label class="edit-favorite">
+          <span class="edit-favorite-box">
+            <input type="checkbox" name="favorite" autocomplete="off" data-edit-favorite />
+            <span class="suggest-box" aria-hidden="true"></span>
+          </span>
+          <span>Favorite source</span>
+        </label>
         <div class="manage-field" data-edit-lean-field hidden>
           <label for="panel-edit-lean">Political lean</label>
           <div class="manage-select">

@@ -44,7 +44,7 @@ export function compile(entries: Entry[], groups: Message[]): EmojiFile {
   const named = groups.filter((group) => group.order !== COMPONENT);
   return {
     groups: named.map((group) => ({
-      name: group.message.replace(/^./, (c) => c.toUpperCase()).replace("&", "and"),
+      name: group.message.replace(/^./, (c) => c.toUpperCase()).replaceAll("&", "and"),
       emoji: entries
         .filter((e) => e.group === group.order && e.version <= MAX_VERSION)
         .map((e): [string, string, string] => {

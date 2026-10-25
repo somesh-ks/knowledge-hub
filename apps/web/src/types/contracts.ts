@@ -320,6 +320,8 @@ export type ConfigOp =
       format?: SourceFormat;
       /** A general source's lean, -2 to 2; null clears it. */
       lean?: number | null;
+      /** A favorite: every post goes to the judge, ranked up, with no keyword needed. */
+      high_signal?: boolean;
     }
   | { op: "source.remove"; id: string }
   | { op: "weights.set"; weights: Record<string, number> }
@@ -386,12 +388,20 @@ export type ConfigOp =
       custom?: boolean;
     }
   /**
-   * The profile ops (block, unblock, vote) and structure.set (one podcast kind's whole list of
-   * blocks, D170) are core's own definitions: one place for their shape.
+   * The profile ops (block, unblock, vote), structure.set (one podcast kind's whole list of
+   * blocks, D170) and structure.prompt (one block's prompt, D182) are core's own definitions: one
+   * place for their shape.
    */
   | Extract<
       CoreConfigOp,
-      { op: "profile.block" | "profile.unblock" | "profile.vote" | "structure.set" }
+      {
+        op:
+          | "profile.block"
+          | "profile.unblock"
+          | "profile.vote"
+          | "structure.set"
+          | "structure.prompt";
+      }
     >;
 
 /** One vote on a story, as profile.vote carries it (VoteInput in core). */
@@ -506,6 +516,8 @@ export interface StoreSource {
   lean: number | null;
   /** Whether it feeds a general news topic (its edit panel offers a lean). */
   general: boolean;
+  /** A favorite (high_signal). */
+  high_signal: boolean;
 }
 
 /** GET /api/config with the config store on (D149): what it holds, over the build's copy. */

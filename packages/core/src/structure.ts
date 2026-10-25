@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BLOCK_PROMPT_MAX } from "./blockPrompts.js";
 import { type SECTIONS, SectionId } from "./categories.js";
 
 /**
@@ -40,6 +41,17 @@ const Depth = z.enum(["deep", "brief"]);
 export type BlockDepth = z.infer<typeof Depth>;
 
 /**
+ * Settings a story block holds that code enforces exactly, whatever model writes (the owner,
+ * 2026-10-24: "deterministic parameters ... we've gotta stay robust"). `per_source` is the most
+ * stories one outlet may bring to the block; absent means the engine's own (two per outlet across
+ * the briefing). How far back a podcast looks is the kind's, not a block's (owner, 2026-10-24).
+ */
+export const PER_SOURCE_MAX = 4;
+const StoryRules = {
+  per_source: z.number().int().min(1).max(PER_SOURCE_MAX).optional(),
+};
+
+/**
  * Counts are optional on purpose: absent means the engine's own allowance (three Top picks, five
  * stories for a section with an allowance of its own, the length's rundown), which is how the
  * defaults reproduce today's episodes without copying today's constants into the file.
@@ -55,19 +67,23 @@ const SectionBlock = z.object({
   id: SectionId,
   depth: Depth.default("brief"),
   max_stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const TopPicksBlock = z.object({
   type: z.literal("top_picks"),
   stories: z.number().int().min(1).max(6).optional(),
   depth: Depth.default("deep"),
+  ...StoryRules,
 });
 const TrendingBlock = z.object({
   type: z.literal("trending"),
   stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const ReleaseNewsBlock = z.object({
   type: z.literal("release_news"),
   stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const CustomBlock = z.object({
   type: z.literal("custom"),
@@ -182,15 +198,47 @@ export function kindProblems(
       ];
 }
 
+/**
+ * The name a block's prompt is kept under (blockPromptKey): a block type a model writes, or
+ * `section:<id>`. The kinds' own rules (which blocks a model writes there) are checked below.
+ */
+export const BlockPromptKey = z
+  .string()
+  .regex(
+    /^(hello|rundown|top_picks|trending|release_news|close|sign_off|section:[a-z0-9][a-z0-9-]*)$/,
+  );
+export const BlockPrompt = z.string().trim().min(1).max(BLOCK_PROMPT_MAX);
+
+/** Blocks a daily or weekly episode lets the owner prompt: code speaks the rest. */
+const BRIEFING_PROMPT_KEY = /^(top_picks|trending|release_news|section:.+)$/;
+
+/** What a kind refuses of the prompts kept for it; empty when they fit the kind. */
+export function promptProblems(kind: StructureKind, keys: readonly string[]): string[] {
+  if (kind === "catch_up") return [];
+  const refused = keys.find((key) => !BRIEFING_PROMPT_KEY.test(key));
+  return refused === undefined
+    ? []
+    : [`A ${kind} episode speaks its ${refused.replace("_", " ")} in code, so it has no prompt.`];
+}
+
 export const StructureFile = z
   .object({
     version: z.literal(1),
     kinds: z.partialRecord(StructureKind, StructureBlocks),
+    /**
+     * The owner's replacement prompts (D182), by kind and block key. Kept apart from the blocks so
+     * a reorder never carries several thousand characters, and so a block removed and put back
+     * keeps its prompt. A prompt whose block is not in the structure is never read.
+     */
+    prompts: z.partialRecord(StructureKind, z.record(BlockPromptKey, BlockPrompt)).optional(),
   })
   .superRefine((file, ctx) => {
     for (const kind of STRUCTURE_KINDS) {
       for (const message of kindProblems(kind, file.kinds[kind] ?? [])) {
         ctx.addIssue({ code: "custom", message, path: ["kinds", kind] });
+      }
+      for (const message of promptProblems(kind, Object.keys(file.prompts?.[kind] ?? {}))) {
+        ctx.addIssue({ code: "custom", message, path: ["prompts", kind] });
       }
     }
   });
@@ -326,4 +374,37 @@ export function withoutSection(file: StructureFile, section: string): StructureF
     kinds[kind] = structureProblems(next).length === 0 ? next : blocks;
   }
   return { ...file, kinds };
+}
+
+/** The owner's prompt for a block in a kind, or null for the built-in one. */
+export function storedBlockPrompt(
+  file: StructureFile | null,
+  kind: StructureKind,
+  key: string,
+): string | null {
+  return file?.prompts?.[kind]?.[key] ?? null;
+}
+
+/** A story block's own rules for a section, or none when no block names it or it sets none. */
+export function blockStoryRules(
+  blocks: readonly StructureBlock[],
+  section: string,
+): { per_source?: number } {
+  for (const block of blocks) {
+    const named =
+      (block.type === "section" && block.id === section) ||
+      (block.type === "top_picks" && section === TOP_PICKS_SECTION) ||
+      (block.type === "trending" && section === TRENDING_BLOCK_SECTION) ||
+      (block.type === "release_news" && section === RELEASE_NEWS_SECTION);
+    if (!named) continue;
+    if (
+      block.type === "section" ||
+      block.type === "top_picks" ||
+      block.type === "trending" ||
+      block.type === "release_news"
+    ) {
+      return block.per_source === undefined ? {} : { per_source: block.per_source };
+    }
+  }
+  return {};
 }

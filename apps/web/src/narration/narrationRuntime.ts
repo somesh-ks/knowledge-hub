@@ -39,18 +39,38 @@ function getController(): NarrationController {
   controller ??= createNarrationController({
     store: getPlayerStore(),
     audio: getPlayerAudio(),
-    api: { fetch: (input, init) => fetch(input, init), isOnline: () => navigator.onLine },
+    api: {
+      fetch: (input, init) => fetch(input, init),
+      isOnline: () => navigator.onLine,
+      shareToken,
+    },
     notify: (message) => showToast({ message }),
     setPreparing,
   });
   return controller;
 }
 
+/**
+ * The token of a shared page showing this briefing (DigestView and EpisodeView mark it), else null.
+ * Read from the address the page was opened at, /s/<token>.
+ */
+function shareToken(digestId: string): string | null {
+  const [route, token] = location.pathname.split("/").filter(Boolean);
+  if (route !== "s" || !token) return null;
+  for (const main of document.querySelectorAll<HTMLElement>("main[data-shared]")) {
+    if (main.dataset.digestId === digestId) return token;
+  }
+  return null;
+}
+
 /** Asks for the first segments of a page's briefing in the background. Silent whatever happens. */
 export function prewarmPage(): Promise<void> {
   const page = getPlayerStore().getPageDigest();
-  // Read again now: the listener may have moved on, or the audio may have arrived meanwhile.
-  if (!page || page.audio || !startPrewarm(page.id)) return Promise.resolve();
+  // Read again now: the listener may have moved on, or the audio may have arrived meanwhile. A
+  // shared page never prewarms: its lookup is a play start, counted against the link's caps.
+  if (!page || page.audio || shareToken(page.id) || !startPrewarm(page.id)) {
+    return Promise.resolve();
+  }
   return getController().prewarm(page);
 }
 

@@ -217,6 +217,15 @@ function expandSlashes(input: string): string {
     );
 }
 
+const SPOKEN_ENTITIES: Record<string, string> = {
+  amp: "&",
+  quot: '"',
+  "#39": "'",
+  lt: "<",
+  gt: ">",
+  nbsp: " ",
+};
+
 /**
  * Normalize one field for narration without changing what it says. Idempotent. Strips anything the
  * voice should never read aloud (markdown, URLs, emoji) and respells what a text-to-speech engine
@@ -224,13 +233,16 @@ function expandSlashes(input: string): string {
  */
 export function toSpeech(input: string): string {
   let out = input.normalize("NFC");
-  out = out
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;/g, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&nbsp;/gi, " ");
+  // One table, repeated until nothing decodes: double-escaped feed text ("AT&amp;amp;T") still
+  // reads as "AT&T", and no entity is decoded by a replace that an earlier one fed.
+  let previous: string;
+  do {
+    previous = out;
+    out = out.replace(
+      /&(amp|quot|#0?39|lt|gt|nbsp);/gi,
+      (_, name: string) => SPOKEN_ENTITIES[name.toLowerCase().replace("#039", "#39")] ?? "",
+    );
+  } while (out !== previous);
   out = stripMarkdown(out);
   // Emoji and other astral characters are dropped so UTF-16 and code point offsets agree.
   out = out

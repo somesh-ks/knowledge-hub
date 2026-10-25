@@ -578,3 +578,32 @@ describe("enforceVoice", () => {
     });
   });
 });
+
+describe("a section's own prompt (D182)", () => {
+  it("writes that section's stories under the owner's prompt alone, never batched with the built-in one, and a rewrite keeps to it", async () => {
+    const prompt =
+      "FIELDS\n- headline: say what changed for a designer.\nRULES\nFacts from the text only.";
+    const owned = material({ prompt });
+    const plain = material();
+    const llm = new FakeLlm(writeAll);
+    const writer = new LlmWriter({ llm, voice });
+    const result = await writer.write([owned, plain]);
+    expect(result.written).toHaveLength(2);
+    const system = (call: number) => llm.calls[call]?.messages[0]?.content ?? "";
+    const withOwner = [0, 1].find((call) => llm.userText(call).includes(owned.id)) ?? -1;
+    expect(llm.calls).toHaveLength(2);
+    expect(system(withOwner)).toContain(prompt);
+    expect(llm.userText(withOwner)).not.toContain(`id=${plain.id}`);
+    expect(system(1 - withOwner)).not.toContain(prompt);
+    expect(system(1 - withOwner)).toBe(writerSystemPrompt(voice));
+
+    const rewrites = new FakeLlm(() => ({ text: "Springlet 2.0 retargets springs mid-flight" }));
+    await new LlmWriter({ llm: rewrites, voice }).rewrite({
+      material: owned,
+      field: "headline",
+      current: "Springlet ships",
+      problems: ["Too vague."],
+    });
+    expect(rewrites.calls[0]?.messages[0]?.content).toContain(prompt);
+  });
+});

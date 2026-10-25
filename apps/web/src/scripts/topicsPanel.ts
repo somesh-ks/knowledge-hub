@@ -52,6 +52,8 @@ export interface SourceEdit {
   format?: SourceFormat;
   /** -2 to 2, or null to clear it. */
   lean?: number | null;
+  /** A favorite (high_signal). */
+  high_signal?: boolean;
 }
 
 /** What a source's row tells the panel about it. */
@@ -70,6 +72,8 @@ export interface SourceFacts {
   general: boolean;
   /** -2 to 2 as text; empty is unrated. */
   lean: string;
+  /** A favorite; absent on a row drawn before favorites existed reads as not. */
+  high_signal?: boolean;
   /** Each part 0 to 1; trust is null until enough items were checked for hype and sponsorship. */
   parts: { health: number; quality: number; trust: number | null } | null;
 }
@@ -115,8 +119,8 @@ export type PanelStart =
 /** What changed between a source and the edit panel's fields, or null when nothing did. */
 export function editOf(
   source: Pick<SourceFacts, "id" | "name" | "topic_id" | "format"> &
-    Partial<Pick<SourceFacts, "general" | "lean">>,
-  fields: { name: string; topic: string; format: string; lean?: string },
+    Partial<Pick<SourceFacts, "general" | "lean" | "high_signal">>,
+  fields: { name: string; topic: string; format: string; lean?: string; favorite?: boolean },
 ): SourceEdit | null {
   const edit: SourceEdit = { id: source.id };
   const name = fields.name.trim();
@@ -126,10 +130,14 @@ export function editOf(
   if (source.general && fields.lean !== undefined && fields.lean !== source.lean) {
     edit.lean = fields.lean === "" ? null : Number(fields.lean);
   }
+  if (fields.favorite !== undefined) {
+    if (fields.favorite !== (source.high_signal === true)) edit.high_signal = fields.favorite;
+  }
   return edit.name === undefined &&
     edit.topic_ids === undefined &&
     edit.format === undefined &&
-    edit.lean === undefined
+    edit.lean === undefined &&
+    edit.high_signal === undefined
     ? null
     : edit;
 }
@@ -138,14 +146,14 @@ export function editOf(
 export function guessFormat(address: string): string {
   let host = "";
   try {
-    host = new URL(address).hostname.replace(/^www./, "");
+    host = new URL(address).hostname.replace(/^www\./, "");
   } catch {
     return "blog";
   }
-  if (/(^|.)(youtube.com|youtu.be)$/.test(host)) return "video";
-  if (/(^|.)(github.com|producthunt.com)$/.test(host)) return "releases";
-  if (/(^|.)(arxiv.org|crossref.org)$/.test(host)) return "research";
-  if (/(^|.)(news.ycombinator.com|lobste.rs)$/.test(host)) return "forum";
+  if (/(^|\.)(youtube\.com|youtu\.be)$/.test(host)) return "video";
+  if (/(^|\.)(github\.com|producthunt\.com)$/.test(host)) return "releases";
+  if (/(^|\.)(arxiv\.org|crossref\.org)$/.test(host)) return "research";
+  if (/(^|\.)(news\.ycombinator\.com|lobste\.rs)$/.test(host)) return "forum";
   return "blog";
 }
 
@@ -458,6 +466,7 @@ export function openPanel(
   const editTopic = one<HTMLSelectElement>("[data-edit-topic]");
   const editFormat = one<HTMLSelectElement>("[data-edit-format]");
   const editLean = one<HTMLSelectElement>("[data-edit-lean]");
+  const editFavorite = one<HTMLInputElement>("[data-edit-favorite]");
   const editNote = one<HTMLElement>('[data-error="edit-name"]');
   const edited = start.kind === "edit" ? start.source : null;
   if (edited) {
@@ -471,6 +480,7 @@ export function openPanel(
     // Only a general news source has a lean to rate.
     one<HTMLElement>("[data-edit-lean-field]").hidden = !edited.general;
     editLean.value = edited.lean;
+    editFavorite.checked = edited.high_signal === true;
     const open = one<HTMLAnchorElement>("[data-edit-open]");
     const where = one<HTMLElement>(".edit-address");
     if (edited.url) {
@@ -510,6 +520,7 @@ export function openPanel(
           topic: editTopic.value,
           format: editFormat.value,
           lean: editLean.value,
+          favorite: editFavorite.checked,
         })
       : null;
   editName.addEventListener("input", () => {
@@ -521,6 +532,7 @@ export function openPanel(
   });
   editTopic.addEventListener("change", render);
   editFormat.addEventListener("change", render);
+  editFavorite.addEventListener("change", render);
 
   // ---------------------------------------------------------------------------------- the frame
 
