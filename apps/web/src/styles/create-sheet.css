@@ -680,6 +680,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   gap: var(--space-2);
 }
 
+/* Usage: .run-lines holds .run-message (the stage) over .run-eta (time left), inside .run-text. The expand chevron is .run-expand, below 64rem only. */
 /* The stage name over the time left (2026-10-25). The time left is the status route's estimate, so it
    shows only when there is one; a strip below 64rem keeps it for when it is opened. */
 .run-lines {
