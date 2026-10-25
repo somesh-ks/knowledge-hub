@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { StreamDoc } from "../lib/liveStream";
 import { storyEntries } from "../player/core/storyEntries";
 import { buildTimeline } from "../player/core/timeline";
-import { createGrowth, liveDigestFrom } from "./liveEpisode";
+import { createGrowth, liveDigestFrom, liveNarrated } from "./liveEpisode";
 import { narratedDigest, planNarration } from "./narrationPlan";
 import type { TrackSegment } from "./trackAudio";
 
@@ -109,5 +109,37 @@ describe("the player's copy of a live catch-up episode", () => {
     const named = new Set(entries.sections.map((section) => section.slug));
     expect(entries.items.every((item) => named.has(item.section))).toBe(true);
     expect(named.size).toBe(1);
+  });
+});
+
+describe("a live episode that keeps being written", () => {
+  it("shows a turn added after Listen now in the transcript and its story among the chapters", () => {
+    const turn = (text: string, item_id?: string) => ({
+      speaker: "a" as const,
+      text,
+      ...(item_id ? { item_id } : {}),
+    });
+    const stories = [
+      { item_id: "i1", headline: "One", source: "S", url: "https://a.test", section: "x" },
+      { item_id: "i2", headline: "Two", source: "S", url: "https://b.test", section: "x" },
+    ];
+    const opened: StreamDoc = {
+      ...doc("writing", 0),
+      turns: [turn("Welcome."), turn("First.", "i1")],
+      stories,
+    };
+    const later: StreamDoc = { ...opened, turns: [...opened.turns, turn("Second.", "i2")] };
+    const segments: TrackSegment[] = [
+      { key: "t0", start: 0, end: 3, url: null },
+      { key: "t1", start: 3, end: 8, url: null },
+    ];
+    const { api } = growth([opened], segments);
+    const now = new Date("2026-10-25T10:00:00Z");
+    expect(liveNarrated(opened, segments, now).turns).toHaveLength(2);
+    expect(api.sync(later)).toBe(1);
+    const digest = liveNarrated(later, segments, now);
+    expect(digest.turns?.map((t) => t.text)).toEqual(["Welcome.", "First.", "Second."]);
+    expect(digest.turns?.[2]?.start_ms).toBe(8000);
+    expect(digest.items.find((item) => item.id === "i2")?.start_ms).toBe(8000);
   });
 });
