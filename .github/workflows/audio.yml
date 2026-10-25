@@ -7,6 +7,12 @@ name: audio
 
 on:
   workflow_call:
+    inputs:
+      # What the step is called, so an episode run can show it as "Recording voices". run.yml leaves
+      # it out and its step keeps the name "Audio", which the status route reads.
+      step_name:
+        type: string
+        default: Audio
   workflow_dispatch:
 
 # A separate group from run.yml: a called workflow that shares its caller's group is cancelled.
@@ -39,7 +45,7 @@ jobs:
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
       # Audio failures leave audio null and never block the text digest.
-      - name: Audio
+      - name: ${{ inputs.step_name || 'Audio' }}
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

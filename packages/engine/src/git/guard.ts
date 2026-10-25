@@ -16,7 +16,7 @@ export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   run: ["Digests/", "state/"],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],
   learn: ["config/preferences.json"],
-  podcast: ["Podcasts/", "state/costs-*.json"],
+  podcast: ["Podcasts/", "state/costs-*.json", "state/podcast-timings.json"],
   // Exactly the files `singularity config apply` and `singularity sources suggest` write, and no others.
   config: [
     "config/topics.json",
