@@ -9,6 +9,7 @@ import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import { noteOwnWrite } from "./configStoreRead";
 import { sendToast } from "./toastEvent";
 
 export const SAVING = "Saving";
@@ -279,6 +280,7 @@ export function remember(
   waiting: readonly ConfigOp[] = heldOps(),
   stored?: number,
 ): void {
+  if (stored !== undefined) noteOwnWrite(stored);
   try {
     const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now, stored);
     const entries = waiting.length > 0 ? withPending(saved, waiting, now) : saved;

@@ -1911,10 +1911,9 @@
   flex: none;
 }
 
-/* Each menu hangs under its own dots, and Add's under Add: one anchor each, named on the wrapper. */
+/* Each menu hangs under its own dots: one anchor each, named on the wrapper. */
 @supports (top: anchor(bottom)) {
-  .structure-more,
-  .structure-add > .btn-secondary {
+  .structure-more {
     anchor-name: var(--row-anchor);
   }
 
@@ -1925,18 +1924,6 @@
 
 .structure-add {
   margin-block-start: var(--space-4);
-}
-
-/* Add sits at the card's start, so from 40rem its menu hangs from its left edge and grows out of
-   that corner, not from the right edge as a menu under a row's end does. */
-@media (width >= 40rem) {
-  @supports (top: anchor(bottom)) {
-    .structure-add > .hero-menu-list {
-      inset-inline-start: anchor(left);
-      inset-inline-end: auto;
-      transform-origin: top left;
-    }
-  }
 }
 
 /* Tonal, as wide as its words: the one action under the list. */
