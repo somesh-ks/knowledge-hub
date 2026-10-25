@@ -17,6 +17,7 @@ export interface Preferences {
   sounds: boolean | null;
   /** 0 to 1, before the engine's quadratic taper. */
   volume: number;
+  /** The default speed: where every episode starts. A change in the player lasts one episode. */
   rate: PlaybackRate;
 }
 
@@ -105,11 +106,6 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
       return () => listeners.delete(listener);
     },
   };
-}
-
-/** Keeps the speed the player moved to for next time: any step the slider reaches, not only a preset. */
-export function rememberRate(preferences: Pick<PreferencesStore, "set">, rate: number): void {
-  if (isPlaybackRate(rate)) preferences.set({ rate });
 }
 
 /** Matches defaultSoundsEnabled() in @singularity/sound; used before that module has loaded. */

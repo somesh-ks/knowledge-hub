@@ -16,7 +16,6 @@ import {
   DEFAULT_PREFERENCES,
   PREFERENCES_KEY,
   parsePreferences,
-  rememberRate,
 } from "./preferences";
 import { MemoryStorage } from "./testing";
 
@@ -91,18 +90,6 @@ describe("preferences store", () => {
     reducedMotion = true;
     store.set({ sounds: true });
     expect(store.getSoundsEnabled()).toBe(true);
-  });
-
-  it("remembers any speed the slider reaches, and nothing off its steps", () => {
-    const storage = new MemoryStorage();
-    const store = createPreferencesStore({ storage, defaultSounds: () => true });
-    rememberRate(store, 1.15);
-    expect(store.get().rate).toBe(1.15);
-    // A reload reads it back, rather than a nearby preset.
-    expect(createPreferencesStore({ storage, defaultSounds: () => true }).get().rate).toBe(1.15);
-    rememberRate(store, 3);
-    rememberRate(store, 1.03);
-    expect(store.get().rate).toBe(1.15);
   });
 
   it("works without storage and when storage throws", () => {

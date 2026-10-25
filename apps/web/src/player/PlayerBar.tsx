@@ -15,6 +15,7 @@ import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scru
 import { itemIndexAt, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
+import SpeedOffer from "./SpeedOffer";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -124,6 +125,27 @@ function DockSeek({ duration }: { duration: number }) {
         onBlur={commit}
       />
     </>
+  );
+}
+
+/** Expands the player, or lowers it when open. Desktop only, because it lives in dock-tools. */
+function DockExpand() {
+  const open = useSyncExternalStore(
+    playerSheet.subscribe,
+    () => playerSheet.getSnapshot().open,
+    () => false,
+  );
+  return (
+    <button
+      className="icon-btn press dock-expand"
+      type="button"
+      aria-expanded={open}
+      aria-controls={PLAYER_PAGE_ID}
+      aria-label={open ? "Collapse player" : "Expand player"}
+      onClick={() => void playerSheet.toggle()}
+    >
+      <Icon name="chevronDown" />
+    </button>
   );
 }
 
@@ -332,8 +354,10 @@ export default function PlayerBar() {
           <Icon name="skipForward" />
         </button>
       </div>
+      <SpeedOffer />
       <div className="dock-tools">
         <DockVolume />
+        <DockExpand />
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
 ---
 import { MIX_STOPS, PROFILE_LABEL, SOURCE_FORMATS, STRUCTURE_PROFILES } from "@singularity/core";
+import { PLAYBACK_RATES } from "../../player/core/playerTypes";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import MenuSheet from "../../components/MenuSheet.astro";
@@ -51,6 +52,20 @@ const offers = addOffers(structure.blocks, structure.sections);
       <noscript>
         <p class="manage-note">Changing preferences needs JavaScript, which is turned off in this browser.</p>
       </noscript>
+
+      {/* Where every episode starts (2026-10-25). A speed chosen in the player lasts one episode.
+           Saved on this device with the player's other preferences, not through the config store. */}
+      <div class="rows topic-controls">
+        <div class="settings-row">
+          <label class="settings-label" for="default-speed">Default playback speed</label>
+          <span class="manage-select value-select">
+            <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+              {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
+            </select>
+            <Icon name="chevronDown" />
+          </span>
+        </div>
+      </div>
 
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Preferences</legend>
@@ -314,4 +329,28 @@ const offers = addOffers(structure.blocks, structure.sections);
   import { installTopicsPage } from "../../scripts/topicsPage";
 
   installTopicsPage();
+</script>
+
+<script>
+  import { isPlaybackRate } from "../../player/core/playerTypes";
+  import { getPreferences } from "../../player/core/preferences";
+
+  // Read on each page load, so the select shows what the player will start at.
+  function installDefaultSpeed(): void {
+    const select = document.querySelector<HTMLSelectElement>("[data-default-speed]");
+    if (!select) return;
+    const preferences = getPreferences();
+    const current = preferences.get().rate;
+    // A speed saved when the slider set the default is not a preset: it still shows, and stays chosen.
+    if (![...select.options].some((o) => Number(o.value) === current)) {
+      select.add(new Option(`${current}x`, String(current)), 0);
+    }
+    select.value = String(current);
+    select.addEventListener("change", () => {
+      const rate = Number(select.value);
+      if (isPlaybackRate(rate)) preferences.set({ rate });
+    });
+  }
+
+  document.addEventListener("astro:page-load", installDefaultSpeed);
 </script>

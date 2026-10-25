@@ -38,10 +38,11 @@ import {
   QUEUE_CHANGED_EVENT,
   queueItemUrl,
 } from "./playQueue";
-import { getPreferences, rememberRate } from "./preferences";
+import { getPreferences } from "./preferences";
 import { createReaderSync, type ReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
+import { getSpeedDefault } from "./speedDefaultRuntime";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
 let store: PlayerStore | null = null;
@@ -147,8 +148,10 @@ export function getPlayerStore(): PlayerStore {
   store ??= createPlayerStore({
     createAudio: getPlayerAudio,
     storage: safeLocalStorage(),
-    getPreferredRate: () => getPreferences().get().rate,
-    onRateChange: (rate) => rememberRate(getPreferences(), rate),
+    getPreferredRate: () => getSpeedDefault().getDefaultRate(),
+    // A speed chosen here lasts this episode; the default is only a Settings choice or an accepted offer.
+    onRateChange: (rate) =>
+      getSpeedDefault().noteRate(store?.getState().track?.digest.id ?? null, rate),
     onPageHide,
   });
   return store;
@@ -249,6 +252,7 @@ export function startPlayerRuntime(): () => void {
   });
   const offQueueEnd = playerStore.onEvent((event) => {
     if (event.type !== "ended") return;
+    getSpeedDefault().noteEnded(playerStore.getState().rate);
     // The listener chose what comes next, so it starts by itself. With nothing queued, Up next only
     // offers the previous briefing.
     const next = playQueue.shift(playerStore.getState().track?.digest.id ?? null);
