@@ -393,11 +393,16 @@
 }
 
 /* The radio is the target and covers its segment. It is invisible, so the segment draws every state. */
+/* The item is 38px inside the 40px outline; the radio reaches 44px, a chip's target, by extending
+   past the item above and below (the fieldset's radius clips nothing: the radio is invisible). */
 .segmented-choice-item input {
   position: absolute;
-  inset: 0;
+  inset-block: calc(
+    (var(--size-touch) - var(--chip-height) - var(--space-1) + var(--stroke-hairline) * 2) / -2
+  );
+  inset-inline: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   margin: 0;
   appearance: none;
   opacity: 0;

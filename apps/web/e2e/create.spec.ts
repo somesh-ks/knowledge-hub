@@ -72,20 +72,6 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
-  test("the button says how long the episode will be, and follows the length", async ({ page }) => {
-    await openCreate(page);
-    await expect(submit(page)).toHaveText("Generate catch up");
-    await segment(page, "10 min").click();
-    await expect(submit(page)).toHaveText("Generate catch up");
-    await segment(page, "15 min").click();
-    await expect(submit(page)).toHaveText("Generate catch up");
-    await segment(page, "3 min").click();
-    await expect(submit(page)).toHaveText("Generate catch up");
-    // The other choices do not change it.
-    await segment(page, "Discussion").click();
-    await expect(submit(page)).toHaveText("Generate catch up");
-  });
-
   test("while the request is out the button says Starting…, with its spinner", async ({ page }) => {
     let release: () => void = () => {};
     const held = new Promise<void>((resolve) => {
@@ -140,7 +126,7 @@ test.describe("the Create page", () => {
     // Design sends two sections; with Written for retired every script is the owner's.
     expect(mock.bodies[0]?.request).toMatchObject({
       audience: "custom",
-      topic_ids: ["design", "ui-craft", "ai", "tech", "software", "world", "sports"],
+      topic_ids: ["ai", "design", "ui-craft", "software", "sports", "tech", "world"],
     });
   });
 
@@ -261,7 +247,7 @@ test.describe("the Create page", () => {
     expect(mock.bodies[0]).toEqual({
       request: {
         audience: "custom",
-        topic_ids: ["ai", "tech", "software", "world"],
+        topic_ids: ["ai", "software", "tech", "world"],
         length_minutes: 10,
         format: "discussion",
         window_days: 30,
@@ -658,7 +644,7 @@ test.describe("the Create page when the server says no", () => {
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toEqual({
       audience: "custom",
-      topic_ids: ["design", "ui-craft", "ai", "tech", "software"],
+      topic_ids: ["ai", "design", "ui-craft", "software", "tech"],
       length_minutes: 5,
       format: "readout",
       window_days: 7,

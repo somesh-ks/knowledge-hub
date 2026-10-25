@@ -204,8 +204,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       else button.removeAttribute(name);
     }
     const words = button.querySelector("[data-submit-text]");
-    if (words && on) words.textContent = copy("starting");
-    else if (words) sync();
+    // The button's own words come back when the request ends: they no longer follow the length.
+    if (words && on) {
+      words.setAttribute("data-rest", words.textContent ?? "");
+      words.textContent = copy("starting");
+    } else if (words) words.textContent = words.getAttribute("data-rest") ?? words.textContent;
   }
 
   /**
