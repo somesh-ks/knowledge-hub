@@ -1,5 +1,14 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseVoiceDefaults, parseVoices, voiceFlag, voiceKeywords, voiceLabel } from "./voices";
+import {
+  FLAG_REGIONS,
+  flagSymbolId,
+  parseVoiceDefaults,
+  parseVoices,
+  voiceFlag,
+  voiceKeywords,
+  voiceLabel,
+} from "./voices";
 
 describe("parseVoices", () => {
   it("reads the API's shape and skips rows without an id or a name", () => {
@@ -36,10 +45,9 @@ describe("voiceLabel", () => {
     expect(voiceLabel({ ...base, gender: null })).toBe("Ada");
   });
 
-  it("leads with the flag of the voice's accent", () => {
+  it("stays plain text whatever the accent: the flag is drawn, never typed", () => {
     const base = { id: "a", name: "Ada", gender: "Female", preview_url: null };
-    expect(voiceLabel({ ...base, language: "en-GB" })).toBe("\u{1F1EC}\u{1F1E7} Ada, female");
-    expect(voiceLabel({ ...base, language: "en" })).toBe("Ada, female");
+    expect(voiceLabel({ ...base, language: "en-GB" })).toBe("Ada, female");
   });
 });
 
@@ -53,11 +61,28 @@ describe("voiceKeywords", () => {
 });
 
 describe("voiceFlag", () => {
-  it("turns a locale's region into its flag, and anything else into nothing", () => {
-    expect(voiceFlag("en-US")).toBe("\u{1F1FA}\u{1F1F8}");
-    expect(voiceFlag("en_au")).toBe("\u{1F1E6}\u{1F1FA}");
+  it("reads a locale's region, and nothing from a locale without one", () => {
+    expect(voiceFlag("en-US")).toBe("US");
+    expect(voiceFlag("en_au")).toBe("AU");
     for (const language of [null, "", "en", "en-419", "en-Latn"])
       expect(voiceFlag(language)).toBe("");
+  });
+});
+
+// Windows draws no flag emoji, so the pickers draw SVG from public/flags.svg; a region listed here
+// without a symbol there would show a broken flag with no error.
+describe("flag sprite", () => {
+  const sprite = readFileSync(new URL("../../public/flags.svg", import.meta.url), "utf8");
+
+  it("has a symbol for every region the pickers draw, and the symbol id for a region", () => {
+    for (const region of FLAG_REGIONS)
+      expect(sprite).toContain(`<symbol id="flag-${region.toLowerCase()}" `);
+    expect(sprite.match(/<symbol id="flag-[a-z]{2}" /g)?.length).toBe(FLAG_REGIONS.size);
+    expect(flagSymbolId("GB")).toBe("flag-gb");
+  });
+
+  it("falls back to no symbol, so a letter badge is drawn, for a region without a flag", () => {
+    expect(flagSymbolId("PT")).toBeNull();
   });
 });
 
