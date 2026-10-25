@@ -51,6 +51,7 @@ const NAMES: Record<string, string> = {
   exa: "Exa",
   firecrawl: "Firecrawl",
   gemini: "Gemini",
+  github: "GitHub",
   speechify: "Speechify",
   typesafe: "TypeSafe",
   daily: "Daily",
@@ -431,7 +432,7 @@ function renderStats(data: CostResponse, period: Period): void {
       strong.textContent = value;
       const text = document.createElement("span");
       text.textContent = label;
-      item.append(strong, text);
+      item.append(strong, " ", text);
       return item;
     }),
   );
@@ -468,10 +469,14 @@ function renderBreakdown(data: CostResponse, by: string): void {
           "aria-hidden": "true",
           focusable: "false",
         });
+        if (mark.height) logo.style.setProperty("--mark-h", String(mark.height));
         logo.append(
           svgEl("path", { d: mark.d, ...(mark.evenodd ? { "fill-rule": "evenodd" } : {}) }),
         );
-        name.append(logo);
+        const slot = document.createElement("span");
+        slot.className = "costs-rank-slot";
+        slot.append(logo);
+        name.append(slot);
       }
       const label = document.createElement("span");
       label.textContent = part.unpriced ? `${part.label}, no price yet` : part.label;

@@ -118,22 +118,22 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  min-block-size: calc(var(--font-size-label) * var(--font-leading-label) + var(--space-4));
+  min-block-size: var(--space-8);
+  /* Out of the head's column sizing: the pills wrap inside the card's width, never widen the grid. */
+  min-inline-size: 0;
+  contain: inline-size;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .costs-stat {
-  display: flex;
-  gap: var(--space-2);
-  align-items: baseline;
-  padding: var(--space-2) var(--space-4);
+  padding-inline: var(--space-4);
   border-radius: var(--radius-round);
   background: var(--color-surface-overlay);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+  line-height: var(--space-8);
   white-space: nowrap;
 }
 
@@ -298,7 +298,7 @@
   grid-template-columns: minmax(0, 1fr) auto var(--space-12);
   column-gap: var(--space-4);
   row-gap: var(--space-2);
-  align-items: baseline;
+  align-items: center;
   font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
 }
@@ -312,10 +312,16 @@
 }
 
 /* A provider's mark, one line tall, in the text's ink. */
-.costs-rank-mark {
+.costs-rank-slot {
+  display: flex;
   flex: none;
-  inline-size: var(--space-4);
-  block-size: var(--space-4);
+  justify-content: center;
+  inline-size: var(--space-6);
+}
+
+.costs-rank-mark {
+  inline-size: auto;
+  block-size: calc(var(--space-4) * var(--mark-h, 1));
   fill: currentColor;
 }
 
