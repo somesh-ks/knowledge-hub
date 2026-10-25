@@ -128,7 +128,8 @@ export function guardSheet(sheet: HTMLDialogElement, options: SheetGuardOptions)
     request,
     dirty: options.dirty,
     holdBack() {
-      if (!options.dirty()) return false;
+      // A sheet already closed (Save, then the pop its entry causes) has nothing left to ask about.
+      if (!sheet.open || !options.dirty()) return false;
       ask();
       return true;
     },

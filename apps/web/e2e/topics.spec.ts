@@ -78,6 +78,15 @@ async function setup(
   return { sent, previews };
 }
 
+/** Escape on a sheet with a changed field asks "Save changes?" (sheetGuard.ts); Discard leaves it. */
+async function abandon(page: Page): Promise<void> {
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("dialog", { name: "Save changes?" })
+    .getByRole("button", { name: "Discard" })
+    .click();
+}
+
 async function open(page: Page, path = LIST): Promise<void> {
   await page.goto(path);
   await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
@@ -1332,7 +1341,7 @@ test.describe("a refused lookup", () => {
     // No empty card stands in for the message.
     await expect(sheet.locator(".source-card")).toHaveCount(0);
     await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
-    await page.keyboard.press("Escape");
+    await abandon(page);
     await expect(sheet).toBeHidden();
   });
 });
@@ -1397,7 +1406,7 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await expect(sheet.getByText("Newsroom Example")).toBeVisible();
   await settled(sheet);
   expect(await scan()).toEqual([]);
-  await page.keyboard.press("Escape");
+  await abandon(page);
   await expect(sheet).toBeHidden();
   await source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" }).click();
   const edit = page.getByRole("dialog", { name: "Edit source" });
