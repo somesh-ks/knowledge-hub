@@ -52,7 +52,9 @@
    search bar"); until then the chevron was pulled out to the page's edge. */
 .topics .row-action {
   padding-inline: var(--space-4);
-  border-radius: var(--row-radius);
+  /* The row's corners keep to its tile's, fully round as every link row's on the page (owner,
+     2026-10-24); the ring is drawn on the tile. */
+  border-radius: var(--row-tile-radius);
 }
 
 /* The tile is the row's own box (owner, 2026-10-24: "optical alignment of list's hover state and
@@ -531,7 +533,9 @@
   z-index: var(--z-base);
   inset-block: 0;
   inset-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
-  border-radius: var(--radius-md);
+  /* On the page a row's tile is fully round, as the topics' rows above it are (owner, 2026-10-24);
+     in a topic's card it takes the card's inner radius (below). */
+  border-radius: var(--row-tile-radius);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 

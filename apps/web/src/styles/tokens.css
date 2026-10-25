@@ -411,6 +411,7 @@
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
+  --row-tile-radius: var(--radius-round);
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);
   --card-radius: var(--radius-2xl);
