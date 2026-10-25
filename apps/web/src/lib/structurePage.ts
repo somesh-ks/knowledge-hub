@@ -83,8 +83,10 @@ export async function loadStructureData(
   const texts: string[] = [];
   const builtins: StructureData["builtins"] = {};
   for (const sample of SAMPLES) {
-    // The briefings' story prompts; a close is the one other block a model writes that is listed.
-    const text = defaultBlockPrompt(sample.type === "close" ? "catch_up" : "daily", sample);
+    // The briefings' story prompts; the hello, rundown, close and sign-off are written by a model
+    // only in Catch up, which keeps their rows (quiet, for their prompts) in the list.
+    const story = ["section", "top_picks", "trending", "release_news"].includes(sample.type);
+    const text = defaultBlockPrompt(story ? "daily" : "catch_up", sample);
     if (text === null) continue;
     if (!texts.includes(text)) texts.push(text);
     builtins[sample.type] = texts.indexOf(text);
