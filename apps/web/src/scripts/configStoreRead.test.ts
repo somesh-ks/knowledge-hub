@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { ConfigOp } from "../types/contracts";
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -150,7 +152,7 @@ describe("loadStore", () => {
       Response.json({ status: 200, built: "built-here", written_at: writtenAt, ops, sources: [] });
 
     // This device saved an edit the store stamped 5; the next page view finds it in the store.
-    remember(own, 0, [], 5);
+    remember(own as unknown as ConfigOp[], 0, [], 5);
     void loadStore(0);
     await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
     answers[0]?.(answer(5, own));
