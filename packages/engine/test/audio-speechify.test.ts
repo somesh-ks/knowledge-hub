@@ -392,11 +392,11 @@ describe("transient failures", () => {
       startSse(res);
       res.end(standardStream());
     });
-    await client(flaky).synthesizeWithMarks(REQUEST);
+    await client(flaky, { transientRetries: 2 }).synthesizeWithMarks(REQUEST);
     expect(flaky.requests).toHaveLength(2);
 
     const bad = await serve((_req, res) => jsonError(res, 400, "bad_request", "no"));
-    await client(bad)
+    await client(bad, { transientRetries: 2 })
       .synthesizeWithMarks(REQUEST)
       .catch(() => {});
     expect(bad.requests).toHaveLength(1);

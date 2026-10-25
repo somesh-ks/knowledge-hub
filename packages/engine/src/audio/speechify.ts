@@ -127,6 +127,12 @@ export interface SpeechifyClientOptions {
   maxRetries?: number;
   /** Longer Retry-After values are not waited out; the call fails with the wait in the message. */
   maxRetryWaitMs?: number;
+  /**
+   * Retries after a 5xx, a timeout or a dropped connection. Off by default: the site's narrate route
+   * retries and counts every attempt itself, so a second layer here would spend characters twice.
+   * The audio command (digests and episodes) turns it on.
+   */
+  transientRetries?: number;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
   defaultVoiceId?: string;
@@ -136,8 +142,6 @@ export interface SpeechifyClientOptions {
 const DEFAULT_TIMEOUT_MS = 300_000;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_MAX_RETRY_WAIT_MS = 60_000;
-/** Retries after a 5xx, a timeout or a dropped connection (a 429 has its own, larger budget). */
-const TRANSIENT_RETRIES = 2;
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 
 const defaultSleep = (ms: number): Promise<void> =>
@@ -158,6 +162,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
   const now = options.now ?? (() => new Date());
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const transientRetries = options.transientRetries ?? 0;
   const maxRetryWaitMs = options.maxRetryWaitMs ?? DEFAULT_MAX_RETRY_WAIT_MS;
   const apiKey = options.apiKey;
 
@@ -219,7 +224,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
         });
       } catch (error) {
         // A timeout or a dropped connection is transient: retried like a 5xx, up to the same cap.
-        if (attempt < TRANSIENT_RETRIES) {
+        if (attempt < transientRetries) {
           await sleep(transientDelayMs(attempt));
           continue;
         }
@@ -231,8 +236,8 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
         throw fail(`Speechify request could not be sent: ${reason}`);
       }
       if (response.status !== 429) {
-        // A 5xx is retried twice with backoff and jitter; any other status (a 400, a 401) is the caller's.
-        if (response.status < 500 || attempt >= TRANSIENT_RETRIES) return response;
+        // A 5xx is retried (transientRetries times) with backoff and jitter; any other status (a 400, a 401) is the caller's.
+        if (response.status < 500 || attempt >= transientRetries) return response;
         await sleep(
           response.headers.has("retry-after")
             ? retryDelayMs(response, attempt)
