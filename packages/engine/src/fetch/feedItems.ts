@@ -26,6 +26,7 @@ export function entryToRaw(entry: FeedEntry): RawItem {
   return {
     url: entry.link,
     title: entry.title,
+    guid: entry.id,
     author: entry.author,
     publishedAt: entry.published ?? entry.updated,
     summary: entry.summary ?? entry.mediaDescription,

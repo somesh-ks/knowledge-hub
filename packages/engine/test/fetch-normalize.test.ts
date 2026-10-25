@@ -188,6 +188,36 @@ describe("slugify", () => {
   });
 });
 
+describe("buildItems shared URLs", () => {
+  const context = { source: makeSource({ id: "log" }), window: WIDE, fetchedAt: NOW };
+  const when = "2026-10-03T09:00:00Z";
+
+  it("gives two anchor entries from one changelog distinct ids", () => {
+    const items = buildItems(
+      [
+        { url: "https://example.com/changelog#v2", title: "v2", publishedAt: when },
+        { url: "https://example.com/changelog#v1", title: "v1", publishedAt: when },
+      ],
+      context,
+    );
+    expect(new Set(items.map((item) => item.id)).size).toBe(2);
+  });
+
+  it("gives items of a feed that all link to one page distinct ids, and leaves the rest alone", () => {
+    const items = buildItems(
+      [
+        { url: "https://example.com/show", title: "Ep 1", guid: "g1", publishedAt: when },
+        { url: "https://example.com/show", title: "Ep 2", guid: "g2", publishedAt: when },
+        { url: "https://example.com/other", title: "Solo", publishedAt: when },
+      ],
+      context,
+    );
+    expect(items[0]?.id).not.toBe(items[1]?.id);
+    expect(items[0]?.url).toBe("https://example.com/show");
+    expect(items[2]?.id).toBe(itemId("https://example.com/other"));
+  });
+});
+
 describe("buildItem", () => {
   const source = makeSource({ id: "blog" });
   const context = { source, window: WIDE, fetchedAt: NOW };
