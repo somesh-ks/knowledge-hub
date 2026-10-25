@@ -120,7 +120,10 @@ jobs:
   run:
     if: github.event_name != 'schedule' || github.event.schedule == (vars.RUN_CRON || '13 7 * * *') || github.event.schedule == vars.RUN_CRON_WEEKLY
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Generation takes about 10 minutes; a run that started ahead then waits in the Commit step
+    # for its scheduled time, at most 135 minutes (D193, MAX_HOLD_MS in commitStage.ts). The
+    # repository is public, so Actions minutes are free and the wait costs nothing.
+    timeout-minutes: 150
     outputs:
       outcome: ${{ steps.commit.outputs.outcome }}
       deploy: ${{ steps.commit.outputs.deploy }}

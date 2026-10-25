@@ -65,6 +65,11 @@ export const RunRecord = z.object({
   outcome: Outcome,
   digest_id: z.string().optional(),
   items: z.number().int().nonnegative().default(0),
+  /**
+   * When generation finished. `at` is when the run published, which can be later: a run that
+   * started ahead waits for the scheduled time (D193).
+   */
+  generated_at: isoDateTime.optional(),
 });
 export type RunRecord = z.infer<typeof RunRecord>;
 

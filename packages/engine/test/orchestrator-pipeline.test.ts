@@ -124,6 +124,7 @@ describe("published run", () => {
         at: WED.toISOString(),
         outcome: "published",
         digest_id: "2026-10-07",
+        generated_at: WED.toISOString(),
         items: 6,
       });
       expect(lastRun.last_fetch_at).toBe(WED.toISOString());
@@ -343,7 +344,12 @@ describe("nothing outcome", () => {
     );
     // The fetch window advances and judged items stay unseen, for the next run to reconsider.
     const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-    expect(lastRun.regular).toEqual({ at: WED.toISOString(), outcome: "nothing", items: 0 });
+    expect(lastRun.regular).toEqual({
+      at: WED.toISOString(),
+      outcome: "nothing",
+      items: 0,
+      generated_at: WED.toISOString(),
+    });
     expect(lastRun.last_fetch_at).toBe(WED.toISOString());
     expect(lastRun.last_cover).toBeUndefined();
     const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
