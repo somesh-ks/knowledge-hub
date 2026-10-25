@@ -79,30 +79,10 @@ describe("qualityInWords", () => {
 });
 
 describe("fallbackTopics", () => {
-  it("lists every category as a built-in topic with its stored weight", () => {
-    const topics = fallbackTopics({
-      weights: { design_engineering_craft: 0.95, frontier_model_releases: 0.3 },
-    });
+  it("lists every category as a built-in topic with a section and a description", () => {
+    const topics = fallbackTopics();
     expect(topics.map((topic) => topic.id)).toEqual([...CATEGORIES]);
-    expect(topics.every((topic) => topic.origin === "builtin")).toBe(true);
-    const craft = topics.find((topic) => topic.id === "design_engineering_craft");
-    expect(craft).toMatchObject({ name: "Build breakdowns", weight: 0.95 });
-    expect(topics.find((topic) => topic.id === "frontier_model_releases")?.weight).toBe(0.5);
-  });
-
-  it("uses Normal when preferences are missing", () => {
-    const topics = fallbackTopics(null);
-    expect(topics.every((topic) => topic.weight === 0.7 && !topic.never_publish)).toBe(true);
-  });
-
-  it("marks the categories at Off as never publishing and gives each a section and a description", () => {
-    const topics = fallbackTopics({
-      weights: { venture_capital_and_gossip: 0, generic_ai_hype_listicles: 0.02 },
-    });
-    expect(topics.filter((topic) => topic.never_publish).map((topic) => topic.id)).toEqual([
-      "venture_capital_and_gossip",
-      "generic_ai_hype_listicles",
-    ]);
+    expect(topics.every((topic) => topic.origin === "builtin" && !topic.never_publish)).toBe(true);
     for (const topic of topics) {
       expect(topic.description, topic.id).not.toBe("");
       expect(topic.section_id, topic.id).not.toBe("");
@@ -183,7 +163,6 @@ describe("withGeneralTopics", () => {
         id: "world",
         name: "Global",
         description: "",
-        weight: 1,
         enabled: false,
         keywords: [],
         section_id: "general",
@@ -504,7 +483,7 @@ describe("buildSources: the topic a source is filed under", () => {
 });
 
 describe("buildCandidates", () => {
-  const topics = fallbackTopics(null);
+  const topics = fallbackTopics();
   const file = {
     topic_id: "design_engineering_craft",
     candidates: [

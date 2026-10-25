@@ -296,7 +296,6 @@ export type ConfigOp =
         id: string;
         name: string;
         description: string;
-        weight: number;
         enabled: boolean;
         keywords: string[];
         section_id: string;
@@ -324,7 +323,6 @@ export type ConfigOp =
       high_signal?: boolean;
     }
   | { op: "source.remove"; id: string }
-  | { op: "weights.set"; weights: Record<string, number> }
   | {
       op: "topic.mix";
       id: string;

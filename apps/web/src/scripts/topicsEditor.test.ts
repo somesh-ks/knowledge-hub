@@ -191,7 +191,6 @@ describe("pack", () => {
           id: "audio",
           name: "Audio",
           description: "Audio.",
-          weight: 0.5,
           enabled: true,
           keywords: [],
           section_id: "audio",
@@ -269,10 +268,7 @@ describe("settle", () => {
 });
 
 describe("buildQueue", () => {
-  const row = (value?: string) => ({
-    closest: () => ({ querySelector: () => (value === undefined ? null : { value }) }),
-  });
-  const pending = (op: ConfigOp, el: unknown = row()): Pending => ({
+  const pending = (op: ConfigOp, el: unknown = {}): Pending => ({
     op,
     el: el as HTMLElement,
     now: "",
@@ -281,7 +277,6 @@ describe("buildQueue", () => {
     id: "audio",
     name: "Audio",
     description: "Audio.",
-    weight: 0.5,
     enabled: true,
     keywords: [],
     section_id: "tech",
@@ -289,13 +284,13 @@ describe("buildQueue", () => {
 
   it("sends every slider change in one request, after the other edits", () => {
     const changes = new Map<string, Pending>([
-      ["w1", pending({ op: "weights.set", weights: { audio: 1 } })],
+      ["w1", pending({ op: "mix.set", format_mix: { video: "More" } })],
       ["e1", pending({ op: "source.set", id: "studio-notes", enabled: false })],
-      ["w2", pending({ op: "weights.set", weights: { motion: 0.25 } })],
+      ["w2", pending({ op: "mix.set", format_mix: { audio: "Less" } })],
     ]);
     expect(buildQueue(changes)).toEqual([
       { op: { op: "source.set", id: "studio-notes", enabled: false }, keys: ["e1"] },
-      { op: { op: "weights.set", weights: { audio: 1, motion: 0.25 } }, keys: ["w1", "w2"] },
+      { op: { op: "mix.set", format_mix: { video: "More", audio: "Less" } }, keys: ["w1", "w2"] },
     ]);
   });
 
@@ -315,30 +310,15 @@ describe("buildQueue", () => {
     const changes = new Map<string, Pending>([
       ["r", pending({ op: "topic.remove", id: "audio" })],
       ["u", pending({ op: "topic.upsert", topic: { ...topic, enabled: false } })],
-      ["w", pending({ op: "weights.set", weights: { audio: 0 } })],
+      ["w", pending({ op: "mix.set", format_mix: { video: "Normal" } })],
       ["s", pending({ op: "source.remove", id: "old-feed" })],
     ]);
     expect(buildQueue(changes).map((step) => step.op.op)).toEqual([
       "topic.upsert",
-      "weights.set",
+      "mix.set",
       "topic.remove",
       "source.remove",
     ]);
-  });
-
-  it("gives a topic edit the slider's value now, not the one it had when the page was built", () => {
-    const changes = new Map<string, Pending>([
-      ["u", pending({ op: "topic.upsert", topic: { ...topic, weight: 0.5 } }, row("0.75"))],
-    ]);
-    const [step] = buildQueue(changes);
-    expect(step?.op).toMatchObject({ op: "topic.upsert", topic: { weight: 0.75 } });
-  });
-
-  it("leaves the weight alone when the row has no slider", () => {
-    const changes = new Map<string, Pending>([
-      ["u", pending({ op: "topic.upsert", topic: { ...topic, weight: 0.5 } }, row())],
-    ]);
-    expect(buildQueue(changes)[0]?.op).toMatchObject({ topic: { weight: 0.5 } });
   });
 
   it("is empty when nothing changed", () => {
