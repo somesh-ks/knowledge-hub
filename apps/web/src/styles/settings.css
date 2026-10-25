@@ -32,8 +32,20 @@
 
 /* ------------------------------------------------------------------ a settings page's title */
 
-/* The page's name stands alone, at the display size (2026-10-20: no "Settings >" before it at any
-   width; below 64rem the app bar's back arrow is the way up). */
+/* The page's name at the display size. A subpage has a small "Settings /" line above it (owner,
+   2026-10-25, reversing 2026-10-20's "no breadcrumb"; the app bar's back arrow stays below 64rem).
+   Markup: <nav class="settings-crumb"><a class="text-link" href="/settings">Settings</a> /</nav> */
+.settings-crumb {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
+.settings-crumb a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .settings-head > h1 {
   font-family: var(--text-display-family);
   font-size: var(--text-display-size);
