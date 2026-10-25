@@ -12,7 +12,7 @@ reviews:
     enabled: true
     drafts: false
     base_branches:
-      - "main"
+      - ".*"
   path_filters:
     - "!Digests/**"
     - "!Podcasts/**"
@@ -21,7 +21,7 @@ reviews:
     - "!package-lock.json"
     - "!**/dist/**"
     - "!**/.astro/**"
-  instructions:
+  path_instructions:
     - path: "**/*"
       instructions: |
         - Conventional Commits: PR titles and commit messages must follow Conventional Commits (feat, fix, docs, chore, etc.).
