@@ -29,6 +29,12 @@ async function fillStore(updatedAt: string, leaveOut = ""): Promise<void> {
     files[repoPath] = createHash("sha256").update(text).digest("hex");
     store.set(`content/${repoPath}`, text);
   }
+  for (const path of await diskFiles.list(join(FIXTURES, "podcasts"))) {
+    const repoPath = `Podcasts/${relative(join(FIXTURES, "podcasts"), path).split(sep).join("/")}`;
+    const text = await readFile(path, "utf8");
+    files[repoPath] = createHash("sha256").update(text).digest("hex");
+    store.set(`content/${repoPath}`, text);
+  }
   store.set("content/manifest.json", JSON.stringify({ version: 1, updated_at: updatedAt, files }));
 }
 
@@ -83,4 +89,16 @@ it("reads the manifest once per window and reloads when it changes", async () =>
   const site = await loadStoreSite(deps);
   expect(manifestReads).toBe(2);
   expect(site?.entries.length).toBe(before - 1);
+});
+
+it("skips an episode deleted a moment ago, before the sync drops it from the store", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const before = await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 });
+  const gone = before?.episodes[0]?.id ?? "";
+  expect(gone).not.toBe("");
+  store.set("tombstones/episodes.json", JSON.stringify([{ id: gone, at: 0 }]));
+  resetContentRepo();
+  const after = await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 });
+  expect(after?.episodes.map((entry) => entry.id)).not.toContain(gone);
+  expect(after?.episodes.length).toBe((before?.episodes.length ?? 0) - 1);
 });

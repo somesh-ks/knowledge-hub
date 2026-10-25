@@ -1,9 +1,13 @@
+import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
+import { createVercelBlobStore } from "../../server/blobStore";
+import { readBlobCredentials } from "../../server/config";
 import { contentEpisodeIds } from "../../server/contentSources";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { handlePodcast } from "../../server/podcast";
 import { burstCap } from "../../server/rateLimit";
+import { addTombstone } from "../../server/tombstones";
 
 // The site is static; this route runs on demand, as a Vercel Function.
 export const prerender = false;
@@ -26,6 +30,17 @@ export const POST: APIRoute = ({ request, url }) =>
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         burst: burstCap("podcast", REQUESTS_PER_MINUTE),
         episodeIds: () => contentEpisodeIds(),
+        tombstone: async (id) => {
+          const credentials = readBlobCredentials(process.env, () =>
+            request.headers.get("x-vercel-oidc-token"),
+          );
+          if (!credentials) return;
+          await addTombstone(
+            createVercelBlobStore(credentials, { head, put, del }, fetch),
+            id,
+            Date.now(),
+          );
+        },
         log,
       },
     );
