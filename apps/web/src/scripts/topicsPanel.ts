@@ -21,6 +21,7 @@ import {
 import { fitAboveKeyboard } from "./keyboardFit";
 import { sheetGestures } from "./pullDismiss";
 import { mountSegmentedNav, selectTab } from "./segmentedNav";
+import { fieldsDirty, guardSheet } from "./sheetGuard";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -637,9 +638,17 @@ export function openPanel(
     });
   });
 
-  panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
+  // Only the main button saves; Close, the scrim, a pull, Escape and Back ask first when a field changed.
+  const guard = guardSheet(panel, {
+    dirty: fieldsDirty(panel),
+    save() {
+      go.click();
+      return !panel.open;
+    },
+  });
+  panel.querySelector("[data-panel-close]")?.addEventListener("click", guard.request);
   // On a phone the full-screen panel also closes when pulled down; a tap on the scrim closes it.
-  sheetGestures(panel);
+  sheetGestures(panel, guard.request);
   // On a phone the full-screen panel ends where the keyboard begins, so the screen never pans.
   const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(panel) : () => {};
 
@@ -647,8 +656,12 @@ export function openPanel(
   let entry = true;
   const onBack = (event: Event): void => {
     if (!entry) return;
-    entry = false;
     event.preventDefault();
+    if (guard.holdBack()) {
+      history.pushState({ ...history.state, topicsPanel: true }, "");
+      return;
+    }
+    entry = false;
     removeEventListener("singularity:back", onBack);
     if (panel.open) panel.close();
   };

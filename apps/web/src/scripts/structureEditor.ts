@@ -37,6 +37,7 @@ import { mountAutosave } from "./autosave";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { MAX_BODY_CHARS, type Pending } from "./managePageSave";
 import { sheetGestures } from "./pullDismiss";
+import { fieldsDirty, guardSheet } from "./sheetGuard";
 
 /** A block as the page holds it, with the defaults a stored op may leave out filled in. */
 function normal(block: StructureBlock): StructureBlock {
@@ -570,12 +571,10 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       return fits;
     };
 
-    let done = false;
     /** Takes what the sheet holds: one structure.set for the block, one structure.prompt for its prompt. */
     const apply = (): boolean => {
       const next = edited();
       if (next === null || !fitsOneRequest()) return false;
-      done = true;
       let at = index ?? -1;
       let changed = false;
       const current = blocks;
@@ -609,17 +608,23 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     one<HTMLButtonElement>("[data-sheet-done]").addEventListener("click", () => {
       if (apply()) sheet.close();
     });
-    sheet.querySelector("[data-panel-close]")?.addEventListener("click", () => sheet.close());
     sheet.querySelector("form")?.addEventListener("submit", (event) => event.preventDefault());
-    sheetGestures(sheet);
+    // Only Save keeps an edit; Close, the scrim, a pull, Escape and Back ask first when it changed.
+    const guard = guardSheet(sheet, { dirty: fieldsDirty(sheet), save: apply });
+    sheet.querySelector("[data-panel-close]")?.addEventListener("click", guard.request);
+    sheetGestures(sheet, guard.request);
     const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(sheet) : () => {};
 
     // Browser Back closes the sheet and stays on the page, as it closes the Topics panel.
     let entry = true;
     const onBack = (event: Event): void => {
       if (!entry) return;
-      entry = false;
       event.preventDefault();
+      if (guard.holdBack()) {
+        history.pushState({ ...history.state, structureSheet: true }, "");
+        return;
+      }
+      entry = false;
       removeEventListener("singularity:back", onBack);
       if (sheet.open) sheet.close();
     };
@@ -628,9 +633,6 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     sheet.addEventListener(
       "close",
       () => {
-        // Closed by its Close, a pull, Escape or Back: an edit keeps what it holds, as every setting
-        // does; a new block of the owner's own is only added by Add.
-        if (!done && !adding) apply();
         unfit();
         removeEventListener("singularity:back", onBack);
         const row = focusAt >= 0 ? list.querySelector(`[data-index="${focusAt}"]`) : null;
