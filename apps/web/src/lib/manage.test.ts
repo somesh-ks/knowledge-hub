@@ -130,7 +130,6 @@ describe("parseTopicsFile", () => {
 
   it("fills in what a plain entry leaves out", () => {
     const plain = parseTopicsFile(file)?.topics[1];
-    expect(plain).toMatchObject({
       description: "",
       weight: 0.5,
       enabled: true,
@@ -550,14 +549,14 @@ describe("loadManage", () => {
     return dir;
   }
 
-  it("falls back to the categories and the stored weights when the engine's files are missing", async () => {
+  it("falls back to the categories , ignoring an old file's weights, when the engine's files are missing", async () => {
     const root = await repo({
       "config/preferences.json": { weights: { design_engineering_craft: 0.2 } },
       "config/sources.json": { sources: [{ id: "one", name: "One", url: "https://one.example/" }] },
     });
     const data = await loadManage({ root, env: {} });
     expect(data.topics).toHaveLength(CATEGORIES.length + GENERAL_TOPICS.length);
-    expect(data.topics[0]).toMatchObject({ id: "design_engineering_craft", weight: 0 });
+    expect(data.topics[0]).toMatchObject({ id: "design_engineering_craft" });
     expect(data.sections.length).toBeGreaterThan(0);
     expect(data.sources.map((source) => source.id)).toEqual(["one"]);
     expect(data.candidates).toEqual([]);

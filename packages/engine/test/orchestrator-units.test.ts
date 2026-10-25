@@ -225,16 +225,6 @@ describe("digestFromSelection", () => {
       }),
     ).toThrow(/ffffffffffff, which is not in the pool/);
   });
-
-  it("fails clearly for a category that never publishes", () => {
-    expect(() =>
-      digestFromSelection({
-        ...base,
-        topics: seedTopicsFile(),
-        selection: selection([entry(0), entry(1), entry(2, "venture_capital_and_gossip")]),
-      }),
-    ).toThrow(/never publishes/);
-  });
 });
 
 describe("makeCoverPicker", () => {

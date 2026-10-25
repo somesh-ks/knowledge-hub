@@ -201,7 +201,7 @@ describe("savedControl", () => {
       undefined,
     );
     expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.blog")).toBe("0.75");
-    expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.news")).toBe(undefined);
+    expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.audio")).toBe(undefined);
     const upsert = ops[3] as Extract<ConfigOp, { op: "topic.upsert" }>;
     expect(savedControl(ops, upsert, "topic.enabled")).toBe("false");
     expect(savedControl(ops, { op: "topic.scope", ids: ["ui"] }, "weekly")).toBe("false");

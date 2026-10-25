@@ -444,7 +444,7 @@ describe("profile.block and profile.unblock", () => {
       blocked_domains: ["medium.com"],
       votes: [],
       opens: [],
-      auto_adjust: { topics: {}, sources: {} },
+      auto_adjust: { sources: {} },
     });
     expect((await apply({ op: "profile.block", domain: "medium.com" })).code).toBe(1);
 

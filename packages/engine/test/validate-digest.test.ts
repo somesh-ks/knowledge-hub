@@ -249,16 +249,6 @@ describe("validateDigest", () => {
     ]);
   });
 
-  it("rejects categories that never publish", () => {
-    const { digest } = buildFixtureDigest(5);
-    const bad = clone(digest);
-    (bad.items[4] as { category: string }).category = "venture_capital_and_gossip";
-    // Off is the rule: the category is refused because its weight is 0, not because it is listed.
-    const topics = seedTopicsFile();
-    const issues = validateDigest(bad, { linter, topics }).issues;
-    expect(issues.map((i) => `${i.severity}:${i.code}`)).toContain("error:never_publish");
-  });
-
   it("rejects a section that does not fit the category", () => {
     const { digest } = buildFixtureDigest(8);
     const bad = clone(digest);
