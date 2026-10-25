@@ -10,7 +10,7 @@ Last updated 2026-10-25. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61): Vercel Cron at 07:00 dispatches `run.yml`.
-- Deploy: Vercel deploys `main`. CI (PRs): checks, gitleaks, audit, browser suites by path (D148). Dependabot auto-merges; others by hand (D143).
+- Deploy: Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
 - Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
 
 ## Tests

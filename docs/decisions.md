@@ -199,6 +199,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D189 | Catalogue route | active |
 | D190 | Votes tune weights | amends D108, D118 |
 | D191 | Structure by profile | amends D170, D176 |
+| D192 | CodeRabbit review agent | amends D143 |
 
 ---
 
@@ -1631,6 +1632,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: every PR is opened with the `review` label. `claude-code-review.yml` reviews it and `automerge.yml` skips it, so it merges by hand once the review has landed and its blocking findings are fixed. A large change also gets the `/code-review` skill on the branch before the PR.
 - Why: two large PRs auto-merged on green CI with no review, and the review run afterwards on the merged diff found real bugs (a broken import, cost records that overwrote each other, a paid call on empty text).
 - Cost: no PR merges itself any more; each waits for a review run and a hand merge.
+- Amends: amended by D192 (CodeRabbit replaces claude-code-review.yml).
 
 ## D144: phone sheets close by gesture and show no Close
 
@@ -2018,3 +2020,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: three lists said the same thing three times and read as a design-engineering product; a profile names the listener, and the length already says how much a block holds.
 - Rejected: a profile per podcast type (the owner asked for one global structure); hiding the Catch up frame rows (the owner keeps Hello and Sign-off listed for their prompts, D170).
 - Revisit if: a type needs a block the others must not have (then a per-type override on top of the profile, not a second list).
+
+## D192: CodeRabbit is the default PR review agent
+
+- Date: 2026-10-25 (the owner: "I have installed code rabbit on github, where do I change to use it as default review agent?").
+- Decision: CodeRabbit replaces `claude-code-review.yml` as the automated review agent on GitHub. `.coderabbit.yaml` defines repository conventions (no em dashes, 8pt grid, shared design tokens, TypeScript 6.x, snake_case data keys, and excludes `Digests/`, `Podcasts/`, and `state/`). Reviews run automatically on pull requests without requiring label triggers or Actions runner minutes; a human merges once findings are resolved. Local `/code-review` remains available for pre-PR checks.
+- Why: CodeRabbit reviews incrementally on each commit, supports threaded conversation, and avoids the single-run and re-label limits of the Claude action (learning 2026-10-11).
+- Rejected: keeping `claude-code-review.yml` in parallel (duplicate comments and Anthropic token spend); relying on manual review only.
+- Amends: D143.
