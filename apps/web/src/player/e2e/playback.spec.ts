@@ -66,7 +66,7 @@ test.describe("playback on a briefing", () => {
     expect(widths.size, JSON.stringify(seen)).toBe(1);
   });
 
-  test("speed: from the keyboard, then a common speed in one press, kept over a reload @desktop", async ({
+  test("speed: from the keyboard, then a common speed in one press, back at the default after a reload @desktop", async ({
     player,
     audio,
     page,
@@ -144,7 +144,7 @@ test.describe("playback on a briefing", () => {
     await expect(speed).toBeFocused();
     await expect(player.root).toHaveAttribute("data-player", "open");
     await page.reload({ waitUntil: "networkidle" });
-    await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
+    await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1);
   });
 
   test("moves by story, back ten seconds and forward ten from the transport controls", async ({
