@@ -476,7 +476,11 @@ async function follow(run: Stored, now: boolean): Promise<void> {
   for (let turn = 0; turn < MAX_POLLS && following === run.id; turn += 1) {
     if (turn > 0 || !now) await new Promise((resolve) => setTimeout(resolve, POLL_MS));
     if (following !== run.id) return;
-    const res = await fetch(`/api/status?run=${run.id}`).catch(() => null);
+    const asked = run.retry?.body.request as
+      | { format?: string; length_minutes?: number }
+      | undefined;
+    const about = asked?.format ? `&format=${asked.format}&length=${asked.length_minutes}` : "";
+    const res = await fetch(`/api/status?run=${run.id}${about}`).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
     // A run the status route does not know (a 4xx): the episode was started all the same, so say
     // that and stop asking. A hiccup is asked again, until the loop runs out.

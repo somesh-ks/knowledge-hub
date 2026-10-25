@@ -40,8 +40,8 @@ export const NAMED_EPISODE_STEPS = [
   "Gathering stories",
   "Writing the script",
   "Cover art",
-  "Recording voices",
   "Publishing",
+  "Recording voices",
 ] as const;
 export const NAMED_EPISODE_STAGES = [...NAMED_EPISODE_STEPS, UPDATING_LABEL] as const;
 
@@ -83,6 +83,44 @@ export function failureLine(failedStage: unknown, kept: unknown): string | null 
   const list = saved.length > 1 ? `${saved.slice(0, -1).join(", ")} and ${saved.at(-1)}` : saved[0];
   const text = `${list} ${saved.length > 1 ? "are" : "is"} saved.`;
   return `${sentence} ${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+/** What state/podcast-timings.json times for each run, in the order of NAMED_EPISODE_STAGES. */
+export interface TimedRun {
+  format: string;
+  length_minutes: number;
+  stages: { select?: number; script?: number; cover?: number; publish?: number };
+}
+
+const median = (values: number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2
+    ? (sorted[mid] as number)
+    : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
+};
+
+/**
+ * The usual length of each stage of NAMED_EPISODE_STAGES: the median of the last 10 runs of the same
+ * format and length, or of the same format when fewer than 3 match. The voices and the wait for the
+ * site are untimed (null), so the page shows their names alone. `runs` are oldest first.
+ */
+export function medianEstimates(
+  runs: readonly TimedRun[],
+  format: string,
+  length: number,
+): (number | null)[] | null {
+  const same = runs.filter((run) => run.format === format);
+  const exact = same.filter((run) => run.length_minutes === length);
+  const chosen = (exact.length >= 3 ? exact : same).slice(-10);
+  if (chosen.length === 0) return null;
+  const of = (key: keyof TimedRun["stages"]) => {
+    const values = chosen
+      .map((run) => run.stages[key])
+      .filter((value): value is number => typeof value === "number" && value > 0);
+    return values.length ? median(values) : null;
+  };
+  return [of("select"), of("script"), of("cover"), of("publish"), null, null];
 }
 
 /** The current stage is "slow" once it has run this many times its usual length. */

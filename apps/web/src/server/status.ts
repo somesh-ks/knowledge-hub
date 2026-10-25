@@ -2,13 +2,22 @@ import {
   briefingStage,
   EPISODE_STEP,
   episodeStage,
+  medianEstimates,
   NAMED_EPISODE_STEPS,
   STAGE_IDS,
   type StageInfo,
+  type TimedRun,
   updatingStage,
 } from "../lib/runStages";
 import { type GenerateStep, STEP_FOR_WORKFLOW_STEP, type StatusResponse } from "../types/contracts";
-import { readServerConfig, type ServerConfig, type ServerEnv, secretsOf } from "./config";
+import { readPublicText } from "./blobStore";
+import {
+  readPublicBlobBase,
+  readServerConfig,
+  type ServerConfig,
+  type ServerEnv,
+  secretsOf,
+} from "./config";
 import {
   createGitHubClient,
   type FetchLike,
@@ -181,6 +190,41 @@ export function parseOnDemandRecord(text: string): OnDemandRecord | null {
   }
 }
 
+/** state/podcast-timings.json on main, kept per instance for a minute: every poll asks. */
+const TIMINGS_TTL_MS = 60_000;
+let timingsCache: { at: number; runs: TimedRun[] } | null = null;
+
+async function readTimings(github: ReturnType<typeof createGitHubClient>): Promise<TimedRun[]> {
+  if (timingsCache && Date.now() - timingsCache.at < TIMINGS_TTL_MS) return timingsCache.runs;
+  let runs: TimedRun[] = [];
+  try {
+    const file = JSON.parse(
+      (await github.readFile("state/podcast-timings.json", "main")) ?? "null",
+    );
+    if (Array.isArray(file?.runs)) runs = file.runs;
+  } catch {
+    // No file yet, or a bad one: no estimate.
+  }
+  timingsCache = { at: Date.now(), runs };
+  return runs;
+}
+
+/** What the engine saved when a stage failed: podcast-runs/<run id>/failure.json in Blob. */
+async function readFailure(deps: StatusDeps, runId: number) {
+  const base = readPublicBlobBase(deps.env);
+  if (!base) return {};
+  try {
+    const url = `${base}/podcast-runs/${runId}/failure.json`;
+    const text = await readPublicText(url, deps.fetch as never);
+    const file = text ? JSON.parse(text) : null;
+    if (typeof file?.failed_stage !== "string") return {};
+    const kept = Array.isArray(file.kept) ? file.kept.map(String) : [];
+    return { failed_stage: file.failed_stage, kept };
+  } catch {
+    return {};
+  }
+}
+
 export function runUrlFor(config: ServerConfig, runId: number): string {
   return `https://github.com/${config.repository}/actions/runs/${runId}`;
 }
@@ -188,6 +232,7 @@ export function runUrlFor(config: ServerConfig, runId: number): string {
 export async function handleStatus(
   runParam: string | null,
   deps: StatusDeps,
+  about?: { format?: string | null; length?: string | null },
 ): Promise<ApiResult<StatusBody>> {
   const config = readServerConfig(deps.env);
   if (!config) return { status: 503, body: { error: "unavailable" } };
@@ -210,10 +255,21 @@ export async function handleStatus(
     if (isPodcastRun(run)) {
       const steps = state === "queued" ? [] : await github.listSteps(runId);
       if (state !== "completed") {
+        const length = Number(about?.length);
+        const estimates =
+          hasNamedSteps(steps) && about?.format && Number.isFinite(length)
+            ? medianEstimates(await readTimings(github), about.format, length)
+            : null;
         return {
           status: 200,
           headers,
-          body: { run_id: runId, state, step: null, ...stageFields(episodeStage(steps)) },
+          body: {
+            run_id: runId,
+            state,
+            step: null,
+            ...stageFields(episodeStage(steps)),
+            ...(estimates ? { stage_estimates_ms: estimates as number[] } : {}),
+          },
         };
       }
       const done = run.conclusion === "success";
@@ -229,7 +285,13 @@ export async function handleStatus(
           step: null,
           ...stageFields(stage),
           outcome: done ? "published" : "failed",
-          ...(done ? {} : { run_url: runUrlFor(config, runId), ...failureFields(steps) }),
+          ...(done
+            ? {}
+            : {
+                run_url: runUrlFor(config, runId),
+                ...failureFields(steps),
+                ...(await readFailure(deps, runId)),
+              }),
         },
       };
     }
