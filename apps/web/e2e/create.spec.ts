@@ -105,7 +105,7 @@ test.describe("the Create page", () => {
     await expect(error).toBeHidden();
     await page.locator("[data-submit]").click();
     await expect(error).toBeVisible();
-    await expect(error).toHaveText("Pick at least one topic.");
+    await expect(error).toHaveText("Pick at least one category.");
     // Focus goes to the first topic, where the fix is.
     await expect(page.locator('input[name="topic"]').first()).toBeFocused();
     // Choosing one clears the message.

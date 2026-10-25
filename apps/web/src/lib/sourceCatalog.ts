@@ -5,7 +5,7 @@ import { usesFixtures } from "./site";
 import { type CatalogSource, parseSourceCatalog } from "./sourceCatalogMatch";
 
 /**
- * The source catalogue the Add a topic form offers from: config/source-catalog.json, read at build
+ * The source catalogue the Add a category form offers from: config/source-catalog.json, read at build
  * time. An entry is an offer, not a source; nothing in it is fetched until the owner adds it.
  *
  * The engine writes the file and it may not exist yet, so a missing or malformed file is an empty

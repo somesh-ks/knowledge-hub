@@ -12,7 +12,7 @@ interface Props {
 const { topics } = Astro.props;
 ---
 
-{/* The Topics and sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
+{/* The Categories and sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
      opens it on Topic, a topic's Add source opens it on Source with that topic chosen, a topic's Edit
      topic opens it on that topic's details, and a source's row opens it to edit that source. It wears the Create sheet's looks (create-sheet.css) and is not
      that sheet: regen-sheet keeps createSheet.ts from taking it for the Create panel. A full-screen
@@ -20,7 +20,7 @@ const { topics } = Astro.props;
 <template id="topics-panel-template">
   <dialog class="create-sheet regen-sheet topics-panel" aria-labelledby="topics-panel-title" data-mode="topic">
     <SheetHeader
-      title="Add a topic"
+      title="Add a category"
       titleId="topics-panel-title"
       close="data-panel-close"
       titleData={{ "data-panel-title": "" }}
@@ -36,7 +36,7 @@ const { topics } = Astro.props;
           aria-controls="topics-panel-pane-topic"
           data-value="topic"
         >
-          Topic
+          Category
         </button>
         <button
           class="segmented-nav-tab"
@@ -55,10 +55,10 @@ const { topics } = Astro.props;
       {/* A topic: its name, what counts and where it plays (D71); its page then suggests sources.
            Adding starts it empty; editing starts it filled, and a built-in topic keeps what counts,
            as fixed questions judge it. */}
-      <form class="manage-form topics-pane" id="topics-panel-pane-topic" data-pane="topic" aria-label="Add a topic" novalidate>
+      <form class="manage-form topics-pane" id="topics-panel-pane-topic" data-pane="topic" aria-label="Add a category" novalidate>
         <div class="topics-step">
           <p class="manage-quiet" data-fixed-note hidden>
-            The app judges this topic by questions of its own, so what counts stays as it is. Its name
+            The app judges this category by questions of its own, so what counts stays as it is. Its name
             can change.
           </p>
           <div class="manage-field">
@@ -79,7 +79,7 @@ const { topics } = Astro.props;
             </p>
           </div>
           <div class="manage-field">
-            <label for="panel-topic-description">What should count as this topic</label>
+            <label for="panel-topic-description">What should count as this category</label>
             <textarea
               class="manage-input"
               id="panel-topic-description"
@@ -133,7 +133,7 @@ const { topics } = Astro.props;
           </p>
         </div>
         <div class="manage-field">
-          <label for="panel-source-topic">Topic</label>
+          <label for="panel-source-topic">Category</label>
           <div class="manage-select">
             <select class="manage-input" id="panel-source-topic" name="topic" data-source-topic>
               {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
@@ -179,7 +179,7 @@ const { topics } = Astro.props;
           </p>
         </div>
         <div class="manage-field">
-          <label for="panel-edit-topic">Topic</label>
+          <label for="panel-edit-topic">Category</label>
           <div class="manage-select">
             <select class="manage-input" id="panel-edit-topic" name="topic" data-edit-topic>
               {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
@@ -257,7 +257,7 @@ const { topics } = Astro.props;
     </div>
     <div class="source-sheet-foot topics-panel-foot">
       <button class="btn confirm-delete" type="button" data-panel-delete hidden>Delete source</button>
-      <button class="btn-primary" type="button" data-panel-go>Add topic</button>
+      <button class="btn-primary" type="button" data-panel-go>Add category</button>
     </div>
   </dialog>
 </template>

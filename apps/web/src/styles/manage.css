@@ -2,7 +2,7 @@
  * The Topics and Sources pages: rows in the shared row grammar (primitives.css), a form of fields,
  * the bar that counts unsaved changes, and the passphrase dialog. The switch and the slider are the
  * settings page's (settings.css), the search field and the chips are the Library's (library.css).
- * Imported by pages/settings/topics.astro and sources.astro, after the layout's stylesheets.
+ * Imported by pages/settings/categories.astro and sources.astro, after the layout's stylesheets.
  *
  * Type comes in two steps only: a name at the body size and one quiet line at the label size, with
  * air between them. Nothing small sits tight against anything larger.

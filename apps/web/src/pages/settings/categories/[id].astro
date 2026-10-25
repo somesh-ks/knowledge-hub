@@ -99,7 +99,7 @@ const { group, topic, list, choices, taken, shell = false } = Astro.props;
 const names = choices.map((choice) => choice.name);
 const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = group?.name ?? topic?.name ?? "Other";
-const note = group?.note ?? topic?.description ?? "Sources not filed under a topic.";
+const note = group?.note ?? topic?.description ?? "Sources not filed under a category.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
 // another topic is chosen.
 const shown = group ? { id: group.home, name: group.name } : undefined;
@@ -139,7 +139,7 @@ const memberRows = (group?.members ?? [])
     adjust: adjusts[member.id] ?? 0,
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
-// The topic as Edit topic sends it: a topic is always on, so it goes as enabled.
+// The topic as Edit category sends it: a topic is always on, so it goes as enabled.
 const upsert =
   topic &&
   JSON.stringify({
@@ -158,7 +158,7 @@ const upsert =
 const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
 const general = topic?.origin === "general";
-// Every weight the page sets, in one Topic weightage group on every topic that has one (2026-10-20):
+// Every weight the page sets, in one Category weightage group on every topic that has one (2026-10-20):
 // a group's per member, or a topic's own.
 const weightRows =
   topic && !general
@@ -187,7 +187,7 @@ const SHOWN = 7;
 const hidden = Math.max(0, list.length - SHOWN);
 // The topic's picture: a pure function of its id and name, drawn here at build time like the page.
 const art = topicArt(group?.id ?? topic?.id ?? OTHER_ID, name);
-// What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
+// What Edit category hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
 // built-in one keeps what counts, as fixed questions judge it.
 const facts = topic && {
   id: topic.id,
@@ -209,7 +209,7 @@ const facts = topic && {
          D149). */}
     <div class="manage topics topic-page" data-topics data-page={group?.id ?? topic?.id ?? OTHER_ID} data-members={scopeIds.join(" ")} data-shell={shell ? "" : undefined} data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
       <noscript>
-        <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Changing categories and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
@@ -262,7 +262,7 @@ const facts = topic && {
                       type="button"
                       role="menuitem"
                       aria-haspopup="dialog"
-                      aria-label={`Edit topic ${name}`}
+                      aria-label={`Edit category ${name}`}
                       data-edit-topic={JSON.stringify(facts)}
                       data-topic-base={upsert}
                     >
@@ -274,16 +274,16 @@ const facts = topic && {
                         type="button"
                         role="menuitem"
                         data-pressed="false"
-                        aria-label={`Delete topic ${name}`}
+                        aria-label={`Delete category ${name}`}
                         data-name={name}
-                        data-label={`Delete topic ${name}`}
-                        data-label-undo={`Keep topic ${name}`}
+                        data-label={`Delete category ${name}`}
+                        data-label-undo={`Keep category ${name}`}
                         data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
                         data-remove
                         data-confirm
                       >
                         <Icon name="trash" /><span class="topic-delete-do">Delete</span>
-                        <span class="topic-delete-undo">Keep topic</span>
+                        <span class="topic-delete-undo">Keep category</span>
                       </button>
                     )}
                   </MenuSheet>
@@ -358,7 +358,7 @@ const facts = topic && {
                 {
                   weightRows.length > 0 && (
                     <section class="topic-weights" aria-labelledby="weights-head">
-                      <h2 class="section-head" id="weights-head">Topic weightage</h2>
+                      <h2 class="section-head" id="weights-head">Category weightage</h2>
                       <div class="rows topic-controls">
                         {weightRows.map((row) => <WeightRow {...row} />)}
                       </div>

@@ -64,7 +64,7 @@ async function serveNarration(page: Page): Promise<void> {
 }
 
 test.describe("the floating button", () => {
-  test("is Create on the Library, Play on Today, a briefing or an episode, Add on Topics and sources, and absent elsewhere", async ({
+  test("is Create on the Library, Play on Today, a briefing or an episode, Add on Categories and sources, and absent elsewhere", async ({
     page,
   }) => {
     // Short enough that even an episode's page scrolls its hero's Play out of view.
@@ -97,7 +97,7 @@ test.describe("the floating button", () => {
       await page.goto(path);
       await expect(page.locator(".create-fab"), path).toHaveCount(0);
     }
-    await page.goto("/settings/topics");
+    await page.goto("/settings/categories");
     await expect(page.locator(".create-fab")).toHaveCount(1);
     await expect(page.locator("html")).toHaveAttribute("data-fab", "");
   });

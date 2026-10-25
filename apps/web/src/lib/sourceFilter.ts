@@ -1,5 +1,5 @@
 /**
- * The search on Topics & Sources, and the search and format tabs on each topic's page. Pure, so the
+ * The search on Categories & Sources, and the search and format tabs on each topic's page. Pure, so the
  * build (which writes each row's search text and format) and the page script (which filters as you
  * type) agree.
  * Imports no runtime from core: the page script loads this file.

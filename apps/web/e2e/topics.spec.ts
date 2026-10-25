@@ -5,8 +5,8 @@ import { GAP_MS } from "../src/scripts/managePageSave";
 import { BUILT_FILES, routeConfigServer, routeConfigStore } from "./configServer";
 import { expect, test } from "./fixtures";
 
-const LIST = "/settings/topics";
-const CRAFT_PAGE = "/settings/topics/design";
+const LIST = "/settings/categories";
+const CRAFT_PAGE = "/settings/categories/design";
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 // A one-pixel PNG, so the sources' icons load in a browser that is not online.
 const PIXEL = Buffer.from(
@@ -101,7 +101,7 @@ test.describe("the Topics list", () => {
     await setup(page);
     await open(page);
     await expect(page.getByRole("heading", { level: 1, name: "Sources" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add a topic or a source" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add a category or a source" })).toBeVisible();
     const rows = [
       ["Design", "2 sources"],
       ["AI", "1 source"],
@@ -202,12 +202,12 @@ test.describe("the Topics list", () => {
       "World",
     ]);
     await expect(page.getByRole("heading", { level: 2, name: "General news" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add a topic" });
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a category" });
     await sheet.getByRole("tab", { name: "Source" }).click();
     const options = await page
       .getByRole("dialog", { name: "Add a source" })
-      .getByRole("combobox", { name: "Topic" })
+      .getByRole("combobox", { name: "Category" })
       .locator("option")
       .allTextContents();
     expect(options).toEqual([
@@ -236,8 +236,8 @@ test.describe("the Topics list", () => {
   }) => {
     const { sent, previews } = await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    await expect(page.getByRole("dialog", { name: "Add a topic" })).toBeVisible();
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
+    await expect(page.getByRole("dialog", { name: "Add a category" })).toBeVisible();
     await page.getByRole("tab", { name: "Source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await expect(sheet).toBeVisible();
@@ -254,7 +254,7 @@ test.describe("the Topics list", () => {
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
     await expect(add).toBeEnabled();
     expect(previews).toEqual(["https://newsroom.example/"]);
-    await sheet.getByRole("combobox", { name: "Topic" }).selectOption("audio_interfaces");
+    await sheet.getByRole("combobox", { name: "Category" }).selectOption("audio_interfaces");
     await add.click();
     await expect(sheet).toBeHidden();
     const row = page.locator("[data-added] li.source-row").first();
@@ -284,13 +284,13 @@ test.describe("the Topics list", () => {
       await route.fulfill({ status: 200, contentType: "application/json", body: '{"emoji":"🧪"}' });
     });
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add a topic" });
-    const form = sheet.getByRole("form", { name: "Add a topic" });
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a category" });
+    const form = sheet.getByRole("form", { name: "Add a category" });
     // Its name, what counts and where it plays (D71): no keywords and no sources step.
     await expect(form.getByLabel(/Keywords/)).toHaveCount(0);
     await expect(sheet.getByRole("button", { name: "Next" })).toHaveCount(0);
-    const add = sheet.getByRole("button", { name: "Add topic", exact: true });
+    const add = sheet.getByRole("button", { name: "Add category", exact: true });
     // Add refuses details that are missing, beside the field.
     await add.click();
     await expect(form.getByText("Enter a name.")).toBeVisible();
@@ -298,10 +298,10 @@ test.describe("the Topics list", () => {
     // A name a topic already has is refused, whatever its case.
     await form.getByLabel("Name").fill("design");
     await add.click();
-    await expect(form.getByText("You already have a topic called Design.")).toBeVisible();
+    await expect(form.getByText("You already have a category called Design.")).toBeVisible();
     await form.getByLabel("Name").fill("Motion design");
     await form
-      .getByLabel("What should count as this topic")
+      .getByLabel("What should count as this category")
       .fill("Animation and motion in interfaces.");
     await add.click();
     await expect(sheet).toBeHidden();
@@ -341,7 +341,7 @@ test.describe("the Topics list", () => {
     await expect(page.getByRole("heading", { name: "Suggested sources" })).toHaveCount(0);
     // Its row opens its page before the build, drawn as a built topic's, with its suggestions.
     await row.click();
-    await expect(page).toHaveURL(/\/settings\/topics\/new\?id=motion-design$/);
+    await expect(page).toHaveURL(/\/settings\/categories\/new\?id=motion-design$/);
     await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
     await expect(page.locator("#page-title")).toHaveText("Motion design");
     await expect(page.getByText("No sources yet")).toBeVisible();
@@ -357,16 +357,16 @@ test.describe("the Topics list", () => {
     await page.clock.install();
     const { sent } = await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
     const form = page
-      .getByRole("dialog", { name: "Add a topic" })
-      .getByRole("form", { name: "Add a topic" });
-    const sheet = page.getByRole("dialog", { name: "Add a topic" });
+      .getByRole("dialog", { name: "Add a category" })
+      .getByRole("form", { name: "Add a category" });
+    const sheet = page.getByRole("dialog", { name: "Add a category" });
     await form.getByLabel("Name").fill("Motion design");
     await form
-      .getByLabel("What should count as this topic")
+      .getByLabel("What should count as this category")
       .fill("Animation and motion in interfaces.");
-    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    await sheet.getByRole("button", { name: "Add category", exact: true }).click();
     // Opened at once, whether or not its save has gone yet.
     await page.locator(".topics-index > a.row-action", { hasText: "Motion design" }).click();
     await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
@@ -401,17 +401,17 @@ test.describe("the Topics list", () => {
   test("a refused detail keeps what was typed and sends nothing", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add a topic" });
-    const form = sheet.getByRole("form", { name: "Add a topic" });
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a category" });
+    const form = sheet.getByRole("form", { name: "Add a category" });
     await form.getByLabel("Name").fill("Motion design");
-    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
-    await expect(form.getByText("Say what should count as this topic.")).toBeVisible();
-    await expect(form.getByLabel("What should count as this topic")).toBeFocused();
+    await sheet.getByRole("button", { name: "Add category", exact: true }).click();
+    await expect(form.getByText("Say what should count as this category.")).toBeVisible();
+    await expect(form.getByLabel("What should count as this category")).toBeFocused();
     await expect(form.getByLabel("Name")).toHaveValue("Motion design");
     // Typing clears the note.
-    await form.getByLabel("What should count as this topic").fill("Animation.");
-    await expect(form.getByText("Say what should count as this topic.")).toBeHidden();
+    await form.getByLabel("What should count as this category").fill("Animation.");
+    await expect(form.getByText("Say what should count as this category.")).toBeHidden();
     await expect(sheet).toBeVisible();
     expect(sent).toHaveLength(0);
   });
@@ -419,12 +419,12 @@ test.describe("the Topics list", () => {
   test("a topic cannot take the address of the Other page", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add a topic" });
-    const form = sheet.getByRole("form", { name: "Add a topic" });
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a category" });
+    const form = sheet.getByRole("form", { name: "Add a category" });
     await form.getByLabel("Name").fill("Other");
-    await form.getByLabel("What should count as this topic").fill("Anything else.");
-    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    await form.getByLabel("What should count as this category").fill("Anything else.");
+    await sheet.getByRole("button", { name: "Add category", exact: true }).click();
     await expect.poll(() => sent.length).toBe(1);
     expect(ops(sent)).toMatchObject([{ op: "topic.upsert", topic: { id: "other-2" } }]);
   });
@@ -432,13 +432,13 @@ test.describe("the Topics list", () => {
 
 test.describe("a topic's page", () => {
   // Design gathers the fixture's Design engineering craft and Product design (D69).
-  const CRAFT = "/settings/topics/design";
+  const CRAFT = "/settings/categories/design";
 
   test("a weight change on Preferences saves itself as one weights.set, and a reload keeps the view", async ({
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
+    await open(page, "/settings/categories/audio_interfaces");
     await page.getByRole("tab", { name: "Preferences" }).click();
     await expect(page).toHaveURL(/\?view=preferences$/);
     const slider = page.locator("[data-weight]");
@@ -481,7 +481,7 @@ test.describe("a topic's page", () => {
   }) => {
     const { sent } = await setup(page);
     await open(page, CRAFT);
-    const weights = page.getByRole("region", { name: "Topic weightage" });
+    const weights = page.getByRole("region", { name: "Category weightage" });
     // Shown on Preferences, not with the sources.
     await expect(weights.getByRole("slider")).toHaveCount(0);
     await page.getByRole("tab", { name: "Preferences" }).click();
@@ -508,12 +508,12 @@ test.describe("a topic's page", () => {
       }).observe(document, { childList: true, subtree: true, attributes: true });
       requestAnimationFrame(probe);
     });
-    await open(page, "/settings/topics/ai?view=preferences");
+    await open(page, "/settings/categories/ai?view=preferences");
     await expect(page.locator("[data-weight]")).toBeVisible();
     expect(
       await page.evaluate(() => (window as unknown as { sourcesFlashed: boolean }).sourcesFlashed),
     ).toBe(false);
-    const single = page.getByRole("region", { name: "Topic weightage" });
+    const single = page.getByRole("region", { name: "Category weightage" });
     await expect(single.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 
@@ -552,7 +552,7 @@ test.describe("a topic's page", () => {
     // Editing starts with reading: focus stays in the panel, off the field, so no keyboard comes up.
     await expect(name).not.toBeFocused();
     expect(await sheet.evaluate((panel) => panel.contains(document.activeElement))).toBe(true);
-    await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue(
+    await expect(sheet.getByRole("combobox", { name: "Category" })).toHaveValue(
       "design_engineering_craft",
     );
     await expect(
@@ -760,7 +760,7 @@ test.describe("a topic's page", () => {
           ),
       ).resolves.toContain("Pottery");
 
-      await open(page, "/settings/topics/audio_interfaces");
+      await open(page, "/settings/categories/audio_interfaces");
       await expect(page).toHaveTitle(/^Audio UI, /);
       await expect(
         page.getByRole("button", { name: "Add source to Audio UI" }).first(),
@@ -776,7 +776,7 @@ test.describe("a topic's page", () => {
     // A short screen, so the fixture page scrolls far enough to hold the block stuck at two
     // positions clear of its card's end (at the very end the card's edge pushes the block up).
     await page.setViewportSize({ width: 390, height: 600 });
-    await open(page, "/settings/topics/design");
+    await open(page, "/settings/categories/design");
     const block = page.locator(".source-filter[data-chips]");
     // Where the block meets its sticky edge, from its own place and inset: two scroll positions
     // past it, both well inside the card the block sticks within.
@@ -800,18 +800,18 @@ test.describe("a topic's page", () => {
   test("its Add source button opens the panel with the topic chosen", async ({ page }) => {
     await page.clock.install();
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
+    await open(page, "/settings/categories/audio_interfaces");
     await page.getByRole("button", { name: "Add source to Audio interfaces" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
-    await expect(sheet.getByRole("combobox", { name: "Topic" })).toHaveValue("audio_interfaces");
+    await expect(sheet.getByRole("combobox", { name: "Category" })).toHaveValue("audio_interfaces");
     // It adds a source to this topic: no switch to a new topic.
-    await expect(sheet.getByRole("tab", { name: "Topic" })).toBeHidden();
+    await expect(sheet.getByRole("tab", { name: "Category" })).toBeHidden();
     // It suggests the catalogue's feeds for the topic chosen, and changes them with it.
-    await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Design" });
+    await sheet.getByRole("combobox", { name: "Category" }).selectOption({ label: "Design" });
     await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toBeVisible();
-    await sheet.getByRole("combobox", { name: "Topic" }).selectOption({ label: "Sports" });
+    await sheet.getByRole("combobox", { name: "Category" }).selectOption({ label: "Sports" });
     await expect(sheet.getByRole("button", { name: "Add Pixel Ledger" })).toHaveCount(0);
-    await sheet.getByRole("combobox", { name: "Topic" }).selectOption("audio_interfaces");
+    await sheet.getByRole("combobox", { name: "Category" }).selectOption("audio_interfaces");
     await sheet.getByLabel("Site or feed address").fill("newsroom.example");
     // The feed address ends in an ellipsis rather than breaking mid-word.
     await expect(sheet.locator(".source-facts-url")).toHaveCSS("white-space", "nowrap");
@@ -859,8 +859,8 @@ test.describe("a topic's page", () => {
   }) => {
     const { sent } = await setup(page);
     await page.goto("/settings");
-    await open(page, "/settings/topics/audio_interfaces");
-    await pick(page, "Audio interfaces", "Delete topic Audio interfaces");
+    await open(page, "/settings/categories/audio_interfaces");
+    await pick(page, "Audio interfaces", "Delete category Audio interfaces");
     // Delete asks first (D103).
     await page
       .getByRole("dialog", { name: "Delete Audio interfaces?" })
@@ -870,21 +870,21 @@ test.describe("a topic's page", () => {
     // Gone from the page at once, before its request goes (D142).
     await expect(page.locator(".topic-gone")).toBeVisible();
     expect(ops(sent)).toEqual([]);
-    await expect(page).toHaveURL(/\/settings\/topics$/, AFTER_UNDO);
-    await expect(page.locator('a[href="/settings/topics/audio_interfaces"]')).toBeHidden();
+    await expect(page).toHaveURL(/\/settings\/categories$/, AFTER_UNDO);
+    await expect(page.locator('a[href="/settings/categories/audio_interfaces"]')).toBeHidden();
     expect(ops(sent)).toEqual([{ op: "topic.remove", id: "audio_interfaces" }]);
     // The list took the removed page's place: Back goes on to where the person came from.
     await page.goBack();
     await expect(page).toHaveURL(/\/settings$/);
     // Opened again before the build, the removed topic's page gives way to the list.
-    await page.goto("/settings/topics/audio_interfaces");
-    await expect(page).toHaveURL(/\/settings\/topics$/);
+    await page.goto("/settings/categories/audio_interfaces");
+    await expect(page).toHaveURL(/\/settings\/categories$/);
   });
 
   test("a built-in topic cannot be removed", async ({ page }) => {
     await setup(page);
     await open(page, CRAFT);
-    await expect(page.getByRole("button", { name: /^Delete topic/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Delete category/ })).toHaveCount(0);
   });
 
   test("a topic that never publishes and one the app no longer lists have no page; their sources are on Other", async ({
@@ -894,7 +894,7 @@ test.describe("a topic's page", () => {
     await open(page);
     await expect(page.getByRole("link", { name: /^Venture capital and gossip/ })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /^Trending/ })).toHaveCount(0);
-    await open(page, "/settings/topics/other");
+    await open(page, "/settings/categories/other");
     await expect(page.locator("li.source-row")).toHaveCount(2);
   });
 
@@ -902,10 +902,10 @@ test.describe("a topic's page", () => {
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/world");
+    await open(page, "/settings/categories/world");
     await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeVisible();
     await expect(page.locator("[data-weight]")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^Delete topic/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Delete category/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add source to World" })).toBeVisible();
     await expect(source(page, "Meridian Wire").locator(".score")).toBeVisible();
     await expect(source(page, "Quiet Gazette").locator(".score")).toBeVisible();
@@ -913,9 +913,9 @@ test.describe("a topic's page", () => {
       source(page, "Quiet Gazette").getByRole("checkbox", { name: "Read Quiet Gazette" }),
     ).not.toBeChecked();
     // What counts is editable, as for Design and Trending.
-    await pick(page, "World", "Edit topic World");
-    const sheet = page.getByRole("dialog", { name: "Edit topic" });
-    await expect(sheet.getByLabel("What should count as this topic")).toBeEditable();
+    await pick(page, "World", "Edit category World");
+    const sheet = page.getByRole("dialog", { name: "Edit category" });
+    await expect(sheet.getByLabel("What should count as this category")).toBeEditable();
     await page.keyboard.press("Escape");
     // A general topic can be put in or out of each podcast and is always on: a list of podcasts, no switch.
     await expect(page.getByRole("button", { name: /^Listen in/ })).toHaveCount(1);
@@ -925,7 +925,7 @@ test.describe("a topic's page", () => {
 
   test("an off source stays readable, and every name is a 44px target", async ({ page }) => {
     await setup(page);
-    for (const path of ["/settings/topics/world", "/settings/topics/other"]) {
+    for (const path of ["/settings/categories/world", "/settings/categories/other"]) {
       await open(page, path);
       const found = await new AxeBuilder({ page })
         .include("[data-fields]")
@@ -945,7 +945,7 @@ test.describe("a topic's page", () => {
 
   test("Other lists the sources with no topic, and can turn one back on", async ({ page }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/other");
+    await open(page, "/settings/categories/other");
     await expect(page.getByRole("heading", { level: 1, name: "Other" })).toBeVisible();
     await page.getByRole("checkbox", { name: "Read Quiet Motion" }).check();
     await expect(spoken(page)).toHaveText(SAVED);
@@ -957,7 +957,7 @@ test.describe("a topic's page", () => {
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/other");
+    await open(page, "/settings/categories/other");
     const row = page.locator('li.source-row[data-id="quiet-motion"]');
     const confirm = page.getByRole("dialog", { name: "Delete Quiet Motion?" });
     await page.getByRole("button", { name: "Edit Quiet Motion" }).click();
@@ -983,14 +983,14 @@ test.describe("a topic's page", () => {
       .toEqual([{ op: "source.remove", id: "quiet-motion" }]);
     // The build has not run: the page opened next still leaves it out.
     await page.reload();
-    await open(page, "/settings/topics/other");
+    await open(page, "/settings/categories/other");
     await expect(row).toBeHidden();
   });
 });
 
 // The catalogue's feeds that fit a topic are in the page when it is built: no request, no waiting.
 test.describe("a topic's suggested sources", () => {
-  const DESIGN = "/settings/topics/design";
+  const DESIGN = "/settings/categories/design";
   const region = (page: Page) => page.getByRole("region", { name: "Suggested sources" });
   /** The suggestions on show; the spares wait hidden in the page. */
   const names = (page: Page) => region(page).locator("li:not([hidden]) .source-name");
@@ -1081,7 +1081,7 @@ test.describe("a topic's suggested sources", () => {
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/world");
+    await open(page, "/settings/categories/world");
     await expect(names(page)).toHaveText(["Headline Desk"]);
     await suggestion(page, "Headline Desk")
       .getByRole("button", { name: "Add Headline Desk" })
@@ -1103,9 +1103,9 @@ test.describe("a topic's suggested sources", () => {
   }) => {
     await setup(page);
     for (const path of [
-      "/settings/topics/other",
-      "/settings/topics/sports",
-      "/settings/topics/culture",
+      "/settings/categories/other",
+      "/settings/categories/sports",
+      "/settings/categories/culture",
     ]) {
       await open(page, path);
       await expect(page.getByRole("heading", { name: "Suggested sources" }), path).toHaveCount(0);
@@ -1122,10 +1122,10 @@ test.describe("editing a topic", () => {
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
-    await pick(page, "Audio interfaces", "Edit topic Audio interfaces");
-    const sheet = page.getByRole("dialog", { name: "Edit topic" });
-    const form = sheet.getByRole("form", { name: "Edit topic" });
+    await open(page, "/settings/categories/audio_interfaces");
+    await pick(page, "Audio interfaces", "Edit category Audio interfaces");
+    const sheet = page.getByRole("dialog", { name: "Edit category" });
+    const form = sheet.getByRole("form", { name: "Edit category" });
     await expect(sheet.getByRole("tablist", { name: "What to add" })).toBeHidden();
     const name = form.getByLabel("Name");
     await expect(name).toHaveValue("Audio interfaces");
@@ -1158,7 +1158,7 @@ test.describe("editing a topic", () => {
     page,
   }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
+    await open(page, "/settings/categories/audio_interfaces");
     const button = page.getByRole("button", { name: "Change emoji for Audio interfaces" });
     const before = await button.textContent();
     await button.click();
@@ -1185,7 +1185,7 @@ test.describe("editing a topic", () => {
     page,
   }) => {
     await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
+    await open(page, "/settings/categories/audio_interfaces");
     await page.getByRole("button", { name: "Change emoji for Audio interfaces" }).click();
     const picker = page.getByRole("dialog", { name: /emoji/i });
     await expect(picker.locator(".emoji-cell").first()).toBeVisible();
@@ -1210,10 +1210,13 @@ test.describe("editing a topic", () => {
   test("a new topic sets its scope as it is added, in the same request", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add a topic" });
-    await sheet.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Spatial audio");
-    await sheet.getByLabel("What should count as this topic").fill("Spatial audio in apps.");
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add a category" });
+    await sheet
+      .getByRole("form", { name: "Add a category" })
+      .getByLabel("Name")
+      .fill("Spatial audio");
+    await sheet.getByLabel("What should count as this category").fill("Spatial audio in apps.");
     // Every podcast ticked reads as it does on every topic page.
     await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText("All podcasts");
     await sheet.getByRole("button", { name: /^Listen in/ }).click();
@@ -1223,7 +1226,7 @@ test.describe("editing a topic", () => {
     );
     await page.keyboard.press("Escape");
     await expect(sheet).toBeVisible();
-    await sheet.getByRole("button", { name: "Add topic", exact: true }).click();
+    await sheet.getByRole("button", { name: "Add category", exact: true }).click();
     await expect
       .poll(() => ops(sent))
       .toMatchObject([
@@ -1234,10 +1237,10 @@ test.describe("editing a topic", () => {
 
   test("Save waits until a detail changed, and putting it back waits again", async ({ page }) => {
     const { sent } = await setup(page);
-    await open(page, "/settings/topics/audio_interfaces");
-    await pick(page, "Audio interfaces", "Edit topic Audio interfaces");
-    const sheet = page.getByRole("dialog", { name: "Edit topic" });
-    const name = sheet.getByRole("form", { name: "Edit topic" }).getByLabel("Name");
+    await open(page, "/settings/categories/audio_interfaces");
+    await pick(page, "Audio interfaces", "Edit category Audio interfaces");
+    const sheet = page.getByRole("dialog", { name: "Edit category" });
+    const name = sheet.getByRole("form", { name: "Edit category" }).getByLabel("Name");
     const save = sheet.getByRole("button", { name: "Save", exact: true });
     await expect(save).toBeDisabled();
     await name.fill("Audio and voice");
@@ -1253,7 +1256,7 @@ test.describe("editing a topic", () => {
 test.describe("a refused suggested add", () => {
   // The refusal is the point: the browser logs the 500 it was sent.
   test.use({ allowNetworkErrors: true });
-  const DESIGN = "/settings/topics/design";
+  const DESIGN = "/settings/categories/design";
   const suggestion = (page: Page, name: string) =>
     page.locator("[data-suggested-sources] li.source-row", { hasText: name });
 
@@ -1303,7 +1306,7 @@ test.describe("a refused lookup", () => {
   test("a source whose site has no icon shows its first letter instead", async ({ page }) => {
     await setup(page);
     await page.route("**/api/site-icon**", (route) => route.fulfill({ status: 404, body: "" }));
-    await open(page, "/settings/topics/design_engineering_craft");
+    await open(page, "/settings/categories/design_engineering_craft");
     const tile = source(page, "Studio Notes").locator(".source-icon");
     await expect(tile.locator(".source-initial")).toHaveText("S");
     await expect(tile.locator(".source-initial")).toBeVisible();
@@ -1320,7 +1323,7 @@ test.describe("a refused lookup", () => {
       }),
     );
     await open(page);
-    await page.getByRole("button", { name: "Add a topic or a source" }).click();
+    await page.getByRole("button", { name: "Add a category or a source" }).click();
     await page.getByRole("tab", { name: "Source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("nothing.example");
@@ -1356,7 +1359,7 @@ test("a long feed address never widens the Add source panel past the screen", as
   );
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page);
-  await page.getByRole("button", { name: "Add a topic or a source" }).click();
+  await page.getByRole("button", { name: "Add a category or a source" }).click();
   await page.getByRole("tab", { name: "Source" }).click();
   const sheet = page.getByRole("dialog", { name: "Add a source" });
   await sheet.getByLabel("Site or feed address").fill("newsroom.example");
@@ -1383,7 +1386,7 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
     );
   await open(page);
   expect(await scan()).toEqual([]);
-  await open(page, "/settings/topics/design");
+  await open(page, "/settings/categories/design");
   expect(await scan()).toEqual([]);
   await page.getByRole("button", { name: /^Listen in/ }).click();
   expect(await scan()).toEqual([]);
@@ -1404,21 +1407,24 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await page.keyboard.press("Escape");
   // Closing gives the panel's history entry back; let that land before the next page is opened.
   await expect(edit).toBeHidden();
-  await open(page, "/settings/topics/audio_interfaces");
-  await pick(page, "Audio interfaces", "Edit topic Audio interfaces");
-  const editTopic = page.getByRole("dialog", { name: "Edit topic" });
+  await open(page, "/settings/categories/audio_interfaces");
+  await pick(page, "Audio interfaces", "Edit category Audio interfaces");
+  const editTopic = page.getByRole("dialog", { name: "Edit category" });
   await expect(editTopic).toBeVisible();
   await settled(editTopic);
   expect(await scan()).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(editTopic).toBeHidden();
   await open(page);
-  await page.getByRole("button", { name: "Add a topic or a source" }).click();
-  const topic = page.getByRole("dialog", { name: "Add a topic" });
-  await topic.getByRole("form", { name: "Add a topic" }).getByLabel("Name").fill("Motion design");
+  await page.getByRole("button", { name: "Add a category or a source" }).click();
+  const topic = page.getByRole("dialog", { name: "Add a category" });
+  await topic
+    .getByRole("form", { name: "Add a category" })
+    .getByLabel("Name")
+    .fill("Motion design");
   // The panel as a refused detail leaves it: the note beside the field, with its alert glyph.
-  await topic.getByRole("button", { name: "Add topic", exact: true }).click();
-  await expect(topic.getByText("Say what should count as this topic.")).toBeVisible();
+  await topic.getByRole("button", { name: "Add category", exact: true }).click();
+  await expect(topic.getByText("Say what should count as this category.")).toBeVisible();
   await settled(topic);
   expect(await scan()).toEqual([]);
 });

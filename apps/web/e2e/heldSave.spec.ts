@@ -157,16 +157,16 @@ test.describe("a change held in the server's gap when its page is left", () => {
   test("a topic's page says it was not saved, and Retry sends it once", async ({ page }) => {
     await page.clock.install();
     const sent = await mockConfig(page, [202, 500]);
-    await page.goto("/settings/topics");
-    await page.locator('a.row-action[href="/settings/topics/design"]').click();
+    await page.goto("/settings/categories");
+    await page.locator('a.row-action[href="/settings/categories/design"]').click();
     const root = page.locator("[data-topics]");
     await expect(root).toHaveAttribute("data-ready", "");
     await page.getByRole("checkbox", { name: "Read Studio Notes" }).uncheck();
     await expect(spoken(page)).toHaveText(SAVED);
     await page.getByRole("checkbox", { name: "Read Type and Grid" }).uncheck();
     await page.goBack();
-    await expect(page).toHaveURL(/\/settings\/topics$/);
-    await page.locator('a.row-action[href="/settings/topics/design"]').click();
+    await expect(page).toHaveURL(/\/settings\/categories$/);
+    await page.locator('a.row-action[href="/settings/categories/design"]').click();
     await expect(page).toHaveURL(/\/design$/);
     await expect(page.getByRole("checkbox", { name: "Read Type and Grid" })).not.toBeChecked();
     await expect(note(page)).toBeHidden();

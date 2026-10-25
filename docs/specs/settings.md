@@ -12,10 +12,10 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Form fields have a 3:1 outline. Every select opens one drawn list (`appearance: base-select`). Time zone and voices use searchable pickers (D101). Theme is a select that draws no value until the stored one is set.
 
 ### Schedule
-- Daily and Weekly show Episode, Schedule, Topics: Max length, Format (Weekly), Look back (`lookback_hours`: unset is since the last episode, or 12 hours to 7 days, D184), Profile (disabled, D191), then time zone (one for both), time, repeat (Daily) or day (Weekly). A top-level `format` is ignored, not written. No voice rows; Weekly has no switch (the engine reads `weekly.enabled`) (D129).
+- Daily and Weekly show Episode, Schedule, Categories: Max length, Format (Weekly), Look back (`lookback_hours`: unset is since the last episode, else 12 h to 7 days, D184), Profile (off, D191), then time zone (one for both), time, repeat (Daily) or day (Weekly). A top-level `format` is ignored, not written. No voice rows; Weekly has no switch (the engine reads `weekly.enabled`) (D129).
 - One voice pair serves Daily, Weekly and Catch up, chosen on `/settings/voice` (Primary and Secondary, each with a sample): `voice_id` and `voice_id_b` at the top of `config/schedule.json`, read by `podcastVoices()`. The per-podcast voices already stored apply only while the pair is unset. New episode keeps a per-request voice that defaults to the pair (D129).
 - `config/schedule.json`: the Daily fields (no format), `timezone` (Europe/Stockholm by default), a `weekly` profile (day, hour, skipped topics, format, length, on/off) and `custom`; skipped topics are `skip_topics`, `weekly.skip_topics`, `custom.skip_topics`. Weekly follows its own day, hour, topics and length and takes Sunday over the Daily (D63, D65).
-- The Topics section shows every topic as a chip, by name (D102): the owner's four, their own and the five general topics (World, Business, Science, Culture, Sports), which play as sections of their own (two stories each, outside the briefing's cap) once ticked and start unticked until the first edit of a skip list writes `general_scoped` (`effectiveSkipTopics`, core).
+- The Categories section shows each category as a chip by name (D102): the owner's four, their own and five general ones (World, Business, Science, Culture, Sports), which play as sections of their own (two stories each, outside the briefing's cap) once ticked and start unticked until the first edit of a skip list writes `general_scoped` (`effectiveSkipTopics`, core).
 
 ### Sources
 - Sources (page title too, D129) is a search, Add and the topics by name, one page each, each led by an emoji (D69, D125): fixed for shipped topics (`BUILTIN_TOPIC_EMOJI`, core), Jev's for an added one (`/api/topic-emoji`, stored as `emoji`) or `fallbackEmoji`. No Other row; Blocked sources (red mark) sits under a line. Search and filters are the Library's.
@@ -47,7 +47,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 
 ## Code
 - `apps/web/src/pages/settings.astro`, `settings/about.astro`, `lib/changelog.ts`
-- `apps/web/src/pages/settings/topics.astro`, `topics/[id].astro`, `preferences.astro`, `voice.astro`
+- `apps/web/src/pages/settings/categories.astro`, `categories/[id].astro`, `preferences.astro`, `voice.astro`
 - `apps/web/src/scripts/autosave.ts`, `structureEditor.ts`
 - `apps/web/src/scripts/settingsPage.ts`
 - `apps/web/src/pages/api/config.ts`, `server/configView.ts`

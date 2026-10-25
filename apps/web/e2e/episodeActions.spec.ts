@@ -173,7 +173,7 @@ test.describe("regenerate and delete an episode", () => {
     // Dropping every topic is refused inline and sends nothing.
     while ((await on.count()) > 0) await on.first().click();
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-    await expect(panel(page).getByRole("alert")).toHaveText("Pick at least one topic.");
+    await expect(panel(page).getByRole("alert")).toHaveText("Pick at least one category.");
     expect(bodies).toHaveLength(0);
     // One topic that was not ticked: sent as this regeneration's topics, comments left out.
     await panel(page).locator("label.filter-chip", { hasText: other }).click();

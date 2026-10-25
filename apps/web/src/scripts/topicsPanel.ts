@@ -1,7 +1,7 @@
 /**
- * The Topics and sources panel: one native modal dialog, cloned from the page's template each time it
+ * The Categories and sources panel: one native modal dialog, cloned from the page's template each time it
  * opens, for four jobs. Add opens it on Topic: a new topic's name, what counts and where it plays,
- * added in one press (D71); its sources are suggested on its page. A topic's Edit topic opens the
+ * added in one press (D71); its sources are suggested on its page. A topic's Edit category opens the
  * same details filled in. Its Source segment, and a topic's Add source, take an address, look it up
  * after a pause (GET /api/source-preview) and file the source under a topic. A source's row opens
  * it to edit that source: its name, its topic, where it lives and what its score is made of. A
@@ -307,7 +307,7 @@ export function openPanel(
     scope: { daily: scoped("daily"), weekly: scoped("weekly"), custom: scoped("custom") },
   });
   if (editedTopic) {
-    topicPane.setAttribute("aria-label", "Edit topic");
+    topicPane.setAttribute("aria-label", "Edit category");
     one<HTMLElement>("[data-scope]").hidden = true;
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
@@ -546,13 +546,13 @@ export function openPanel(
     editPane.hidden = mode !== "edit";
     remove.hidden = mode !== "edit";
     title.textContent = {
-      topic: "Add a topic",
-      "topic-edit": "Edit topic",
+      topic: "Add a category",
+      "topic-edit": "Edit category",
       source: "Add a source",
       edit: "Edit source",
     }[mode];
     if (mode === "topic") {
-      go.textContent = "Add topic";
+      go.textContent = "Add category";
       go.disabled = false;
     } else if (mode === "topic-edit") {
       go.textContent = "Save";

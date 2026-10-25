@@ -248,7 +248,7 @@ export function settle(batch: Pick<Batch, "ops" | "sent">, changes: Map<string, 
         // the dead page's place in history, so Back from the list does not return to it; a page
         // already left stays left.
         if (pending.op.op === "topic.remove" && !el.closest("li") && el.isConnected)
-          globalThis.location?.replace("/settings/topics");
+          globalThis.location?.replace("/settings/categories");
       } else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
       // Every control, a pressed remove button included, now starts from what was saved: read again,
       // it is no longer a change.

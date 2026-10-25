@@ -66,7 +66,7 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every other day at 7", "/settings/daily"],
       ["Weekly", "Sundays at 7", "/settings/weekly"],
-      ["Sources", "", "/settings/topics"],
+      ["Sources", "", "/settings/categories"],
       ["Preferences", "", "/settings/preferences"],
       ["Podcast voice", "", "/settings/voice"],
       ["Interface sounds", "On", "/settings/sounds"],
@@ -97,9 +97,9 @@ test.describe("the Settings index", () => {
       "/settings/voice",
       "/settings/sounds",
       "/settings/preferences",
-      "/settings/topics",
-      "/settings/topics/design",
-      "/settings/topics/design?view=preferences",
+      "/settings/categories",
+      "/settings/categories/design",
+      "/settings/categories/design?view=preferences",
       "/settings/blocked-outlets",
     ];
     for (const path of ROUTES) {
@@ -125,8 +125,9 @@ test.describe("the Settings index", () => {
     const moves = [
       ["/settings/podcast", /\/settings$/],
       ["/settings/schedule", /\/settings\/daily$/],
-      ["/settings/podcast/topics", /\/settings\/topics$/],
-      ["/settings/sources", /\/settings\/topics$/],
+      ["/settings/podcast/topics", /\/settings\/categories$/],
+      ["/settings/sources", /\/settings\/categories$/],
+      ["/settings/topics/design", /\/settings\/categories\/design$/],
       // An episode on request is set up in the Create panel.
       ["/settings/custom", /\/create$/],
     ] as const;
@@ -164,7 +165,7 @@ test.describe("the profile pages", () => {
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
     await mockConfig(page);
     await open(page, "daily");
-    const hint = page.getByText("No topics chosen, so Daily episodes have nothing to cover.");
+    const hint = page.getByText("No categories chosen, so Daily episodes have nothing to cover.");
     await expect(hint).toBeHidden();
     const chips = page.locator("input[data-scope]");
     for (let i = 0; i < (await chips.count()); i += 1) await chips.nth(i).uncheck({ force: true });
@@ -542,7 +543,7 @@ test.describe("saved, before the build", () => {
     await expect(hint("Weekly")).toHaveText("Mondays at 7");
     await expect(hint("Sources")).toHaveText("12 sources");
 
-    await page.goto("/settings/topics");
+    await page.goto("/settings/categories");
     await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
     await expect(page.locator('a[data-page="audio_interfaces"]')).toBeHidden();
 

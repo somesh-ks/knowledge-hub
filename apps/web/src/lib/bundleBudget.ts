@@ -9,7 +9,7 @@ import { gzipSync } from "node:zlib";
 
 /**
  * First-load JavaScript, gzipped. It was 100 KB until the bottom bar became a full transport (seek,
- * clock, volume) and the Topics and Sources pages arrived; 68 KB of it is React itself. Raised to
+ * clock, volume) and the Categories and Sources pages arrived; 68 KB of it is React itself. Raised to
  * 104 KB on 2026-10-08 for interface sounds, live run stages and the cover play button. On
  * 2026-10-10 the Podcast page's editor moved after first paint (the Topics editor already was), so
  * the heaviest page was /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every

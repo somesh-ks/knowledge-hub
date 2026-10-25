@@ -36,11 +36,11 @@ export type VitalDevice = (typeof VITAL_DEVICES)[number];
 /** The Network Information API's effective types (Chromium only; absent elsewhere). */
 export const VITAL_CONNECTIONS = ["slow-2g", "2g", "3g", "4g"] as const;
 
-const DYNAMIC_PAGE = /^\/(d|e|settings\/topics)\/[^/]+$/;
+const DYNAMIC_PAGE = /^\/(d|e|settings\/categories)\/[^/]+$/;
 const NAMED_PAGE = /^\/(?:library|create|offline|analytics|settings(?:\/[a-z]+(?:-[a-z]+)*)?)$/;
 
 /**
- * The page's route, never its address: a briefing, an episode or a topic is its template
+ * The page's route, never its address: a briefing, an episode or a category is its template
  * (`/d/[id]`), a named page is its path, anything else (a 404's typed address) is `other`. The page
  * sends this and the server applies it again, so nothing else is ever stored.
  */

@@ -60,7 +60,7 @@ const moreSummary = moreOptionsSummary(
 // Every sentence the form's script can show lives here, in the markup, not in the script. The
 // script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
 const COPY = {
-  topics: "Pick at least one topic.",
+  topics: "Pick at least one category.",
   "400": "The server turned that request down. Reload the page and try again.",
   cooldown: "You can make another episode in",
   daily_cap: "That's today's limit. Try again in",
@@ -102,7 +102,7 @@ const COPY = {
          to look follow; the rest has a default and waits under More options, whose line says what
          those defaults are. */}
     <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
-      <h2 class="section-head" id="create-topics-label">Topics</h2>
+      <h2 class="section-head" id="create-topics-label">Categories</h2>
       <fieldset class="filter-chips" aria-labelledby="create-topics-label" data-built-topics={allTopics.map((topic) => topic.id).join(" ")}>
         {
           topics.map((topic) => (
