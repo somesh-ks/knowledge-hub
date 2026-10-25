@@ -107,7 +107,7 @@ test.describe("the Topics list", () => {
       ["AI", "1 source"],
       ["Technology", "No sources yet"],
       ["Audio interfaces", "1 source"],
-      ["World", "2 of 3 sources on"],
+      ["World", "3 sources"],
       ["Science", "1 source"],
       ["Sports", "No sources yet"],
     ] as const;
