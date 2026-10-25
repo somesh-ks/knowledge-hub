@@ -1,6 +1,6 @@
 import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
-import { DigestKind, JudgmentsFile, requireKey } from "@singularity/core";
+import { DigestKind, JudgmentsFile, offCategories } from "@singularity/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { validateAgentSelection } from "../curate/agentMode.js";
 import { type ApiRuntimeFactory, createApiRuntime } from "../curate/apiRuntime.js";
@@ -200,6 +200,7 @@ async function runApi(
       window,
       sourceNames: sourceNameMap(sources),
       threshold: flags.threshold,
+      offCategories: offCategories(await loadTopics(ctx.root)),
     },
   );
 
@@ -314,7 +315,7 @@ async function runAgent(ctx: CommandContext, flags: Flags): Promise<number> {
     linter: createLinter(voice),
     kind,
     window,
-    topics: await loadTopics(root, await loadPreferences(root)),
+    topics: await loadTopics(root),
   });
   if (!checked.ok) {
     ctx.log.error(`selection.json has ${checked.issues.length} problems`);

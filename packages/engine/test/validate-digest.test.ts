@@ -14,7 +14,7 @@ import {
   NOW,
   WINDOW,
 } from "./render-factories.js";
-import { plainPreferences, REPO_ROOT } from "./score-factories.js";
+import { REPO_ROOT } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const linter = testLinter();
@@ -254,7 +254,7 @@ describe("validateDigest", () => {
     const bad = clone(digest);
     (bad.items[4] as { category: string }).category = "venture_capital_and_gossip";
     // Off is the rule: the category is refused because its weight is 0, not because it is listed.
-    const topics = seedTopicsFile(plainPreferences().weights);
+    const topics = seedTopicsFile();
     const issues = validateDigest(bad, { linter, topics }).issues;
     expect(issues.map((i) => `${i.severity}:${i.code}`)).toContain("error:never_publish");
   });

@@ -318,11 +318,7 @@ export function countSample(input: {
     counts.sampled = (counts.sampled ?? 0) + 1;
     counts.asked = (counts.asked ?? 0) + 1;
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
-    if (
-      eligibility(scoreItem(entry, input.preferences, item), undefined, input.preferences.weights)
-        .eligible
-    )
-      counts.passed += 1;
+    if (eligibility(scoreItem(entry, input.preferences, item)).eligible) counts.passed += 1;
   }
   const unanswered = new Set(input.judged.unjudged);
   const waiting = new Set(

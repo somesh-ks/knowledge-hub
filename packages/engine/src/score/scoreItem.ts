@@ -3,6 +3,7 @@ import {
   type CategoryOrNone,
   type Item,
   type JudgmentEntry,
+  NORMAL_TASTE,
   type Preferences,
   TECH_CATEGORY,
 } from "@singularity/core";
@@ -14,7 +15,7 @@ import type { ScoreBreakdown, ScoredItem } from "./types.js";
  *
  *   score = clamp01( taste x depthFactor x penaltyFactor + bonus )
  *
- * taste         = sum over the twelve categories of P(category) x preferences.weights[category].
+ * taste         = sum over the twelve categories of P(category) x NORMAL_TASTE (D193).
  *                 Probability mass on "none" contributes 0, so unplaceable items sink on their own.
  * depthFactor   = floor + (1 - floor) x (1 - (1 - depth)^2), depth in 0..1.
  *                 A concave ease-out, read from one of two answers:
@@ -71,12 +72,9 @@ export function penaltyFactor(flags: JudgmentEntry["flags"]): number {
   );
 }
 
-export function taste(
-  probs: JudgmentEntry["category_probs"],
-  weights: Preferences["weights"],
-): number {
+export function taste(probs: JudgmentEntry["category_probs"]): number {
   let sum = 0;
-  for (const category of CATEGORIES) sum += (probs[category] ?? 0) * weights[category];
+  for (const category of CATEGORIES) sum += (probs[category] ?? 0) * NORMAL_TASTE;
   return sum;
 }
 
@@ -145,7 +143,7 @@ export function scoreItem(entry: JudgmentEntry, preferences: Preferences, item: 
   const depth =
     top === TECH_CATEGORY ? launchFactor(entry.launch_scale ?? 0) : craftFactor(entry.craft_depth);
   const breakdown: ScoreBreakdown = {
-    taste: round4(taste(entry.category_probs, preferences.weights)),
+    taste: round4(taste(entry.category_probs)),
     craftFactor: round4(depth),
     penaltyFactor: round4(penaltyFactor(entry.flags)),
     bonus: preferenceBonus(item, preferences),
@@ -153,6 +151,5 @@ export function scoreItem(entry: JudgmentEntry, preferences: Preferences, item: 
   const score = round4(
     clamp01(breakdown.taste * breakdown.craftFactor * breakdown.penaltyFactor + breakdown.bonus),
   );
-  const categoryWeight = top === "none" ? undefined : preferences.weights[top];
-  return { item, entry, score, topCategory: top, breakdown, categoryWeight };
+  return { item, entry, score, topCategory: top, breakdown };
 }

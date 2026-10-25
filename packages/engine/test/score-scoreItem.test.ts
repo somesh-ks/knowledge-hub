@@ -86,15 +86,9 @@ describe("penaltyFactor", () => {
 });
 
 describe("taste", () => {
-  it("sums probability times weight and ignores the none option", () => {
+  it("sums probability times the normal taste and ignores the none option", () => {
     const entry = makeEntry("aaaaaaaaaaaa", { category: "design_engineering_craft", p: 0.5 });
-    expect(taste(entry.category_probs, prefs.weights)).toBeCloseTo(0.475, 6);
-  });
-
-  it("weights a split distribution across categories", () => {
-    const entry = makeEntry("aaaaaaaaaaaa", { category: "design_engineering_craft", p: 0.6 });
-    const probs = { ...entry.category_probs, none: 0, frontier_model_releases: 0.4 };
-    expect(taste(probs, prefs.weights)).toBeCloseTo(0.6 * 0.95 + 0.4 * 0.85, 6);
+    expect(taste(entry.category_probs)).toBeCloseTo(0.35, 6);
   });
 });
 
@@ -320,22 +314,6 @@ describe("scoreItem for consumer tech", () => {
     expect(eligibility(tech(0.12)).eligible).toBe(false);
     expect(tech(0.13).score).toBe(0.4064);
     expect(eligibility(tech(0.13)).eligible).toBe(true);
-  });
-
-  it("keeps a level 0 item out even at the highest weight and with the full bonus", () => {
-    const real = { ...realPreferences(), weights: { ...prefs.weights, consumer_tech_releases: 1 } };
-    const item = makeItem({ author: "Emil Kowalski", title: "Spring physics phone case deal" });
-    const result = scoreItem(makeEntry(item, { category: TECH, launchScale: 0 }), real, item);
-    expect(result.breakdown.bonus).toBe(0.05);
-    expect(result.score).toBe(0.4);
-    // Exactly at the bar only with every lever at its maximum; at the shipped 0.8 it is 0.33.
-    const shipped = scoreItem(
-      makeEntry(item, { category: TECH, launchScale: 0 }),
-      realPreferences(),
-      item,
-    );
-    expect(shipped.score).toBe(0.33);
-    expect(eligibility(shipped).eligible).toBe(false);
   });
 
   it("still applies the hype, sponsored and funding penalties", () => {

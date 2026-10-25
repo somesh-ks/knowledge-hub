@@ -4,11 +4,11 @@ import {
   adjustmentAt,
   type Category,
   type Item,
+  offCategories,
   type Preferences,
   type ScheduleFile,
   type SourceStatsFile,
   sourceShift,
-  type Topic,
   VOICE_LIMITS,
 } from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
@@ -26,7 +26,6 @@ import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.
 import type { ExtractedText } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
-import { withAutoAdjust } from "../profile/autoAdjust.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
 import { TASTE_LIMITS, type TasteProfile, tasteProfile } from "../profile/tasteFit.js";
 import type { Taste } from "../profile/tasteNote.js";
@@ -97,6 +96,8 @@ interface PassContext {
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
+  /** Built-in categories set never to publish. */
+  offCategories: readonly string[];
   /** Topics the scheduled daily briefing leaves out. */
   skipTopics: readonly string[];
   /** Regenerate: the topics chosen for this run alone. Every other topic is left out of every pass. */
@@ -137,15 +138,12 @@ export async function writeStage(
 ): Promise<StageReport> {
   const runtime = await deps.runtime();
   const linter = createLinter(await loadVoice(deps.root));
-  const [owned, sources] = await Promise.all([loadPreferences(deps.root), loadSources(deps.root)]);
+  const [preferences, sources] = await Promise.all([
+    loadPreferences(deps.root),
+    loadSources(deps.root),
+  ]);
   const profile = await createFileProfileStore(deps.root).read(OWNER_ID);
-  // The owner's weights plus what votes added (profile/autoAdjust.ts); the files keep the owner's.
-  const { preferences, topics } = withAutoAdjust(
-    owned,
-    await loadTopics(deps.root, owned),
-    profile.auto_adjust,
-    deps.now(),
-  );
+  const topics = await loadTopics(deps.root);
   const votePrefs = votePreferences(profile.votes, deps.now());
   const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
@@ -158,6 +156,7 @@ export async function writeStage(
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
     customTopics: activeFitTopics(topics),
+    offCategories: offCategories(topics),
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
@@ -219,6 +218,7 @@ async function writePass(
     preferences,
     sourceNames,
     customTopics,
+    offCategories: off,
     skipTopics,
     onlyTopics,
     weeklySkipTopics,
@@ -320,7 +320,7 @@ async function writePass(
     scored: [...scored, ...generalScored],
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    weights: preferences.weights,
+    offCategories: off,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.
     skipTopics:

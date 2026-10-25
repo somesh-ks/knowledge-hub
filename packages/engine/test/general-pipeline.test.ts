@@ -32,7 +32,6 @@ import {
   type TestRepo,
   WED,
 } from "./orchestrator-fixtures.js";
-import { realPreferences } from "./score-factories.js";
 import { NO_WAIT } from "./write-fakes.js";
 
 let template: string;
@@ -427,7 +426,7 @@ describe("general topics in the daily and weekly briefings", () => {
 
   async function sunday(skip: string[]) {
     // World's stored `enabled` is false: a general topic is always on, so it must not matter.
-    const base = resolveTopics(null, realPreferences());
+    const base = resolveTopics(null);
     const topics = TopicsFile.parse({
       ...base,
       topics: base.topics.map((t) => (t.id === "world" ? { ...t, enabled: false } : t)),

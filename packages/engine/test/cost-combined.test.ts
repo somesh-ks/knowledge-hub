@@ -25,7 +25,6 @@ function topic(id: string, overrides: Partial<Topic> = {}): Topic {
     id,
     name: `Topic ${id}`,
     description: `Everything about ${id}.`,
-    weight: 0.7,
     enabled: true,
     keywords: [id],
     section_id: id,

@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 /**
- * Every number that decides how far story votes move a topic's weight or a source's score, in one
- * place. First guesses: tune them against real votes. The owner's own weight is never written by
- * this loop; the adjustment is stored beside it and added at scoring time.
+ * Every number that decides how far story votes move a source's score, in one place. First guesses:
+ * tune them against real votes. Votes no longer move a topic's weight (D193); a source's adjustment
+ * is stored beside the source and added at scoring time.
  */
 export const AUTO_ADJUST = {
-  /** Largest adjustment either way, on the 0 to 1 weight scale. */
+  /** Largest adjustment either way, on the 0 to 1 score scale. */
   max: 0.2,
   /** What one vote moves an adjustment, before the bound. Ten net votes reach the bound. */
   step: 0.02,
@@ -24,13 +24,13 @@ const DAY_MS = 86_400_000;
 export const AdjustEntry = z.object({ value: z.number(), at: z.string().min(1) });
 export type AdjustEntry = z.infer<typeof AdjustEntry>;
 
+/** An older document may still carry `topics`; it is stripped on parse and never read. */
 export const AutoAdjust = z.object({
-  topics: z.record(z.string(), AdjustEntry).default({}),
   sources: z.record(z.string(), AdjustEntry).default({}),
 });
 export type AutoAdjust = z.infer<typeof AutoAdjust>;
 
-export const emptyAutoAdjust = (): AutoAdjust => ({ topics: {}, sources: {} });
+export const emptyAutoAdjust = (): AutoAdjust => ({ sources: {} });
 
 const bound = (n: number): number => Math.max(-AUTO_ADJUST.max, Math.min(AUTO_ADJUST.max, n));
 const round4 = (n: number): number => Math.round(n * 10_000) / 10_000;
@@ -50,11 +50,6 @@ export function nudgeEntry(entry: AdjustEntry | undefined, votes: number, at: st
   return { value: round4(bound(base + votes * AUTO_ADJUST.step)), at };
 }
 
-/** The weight a run scores with: the owner's weight plus the adjustment, kept on 0 to 1. */
-export function effectiveWeight(weight: number, adjustment: number): number {
-  return Math.max(0, Math.min(1, weight + adjustment));
-}
-
 /** The score change for an item of a source with this adjustment. */
 export function sourceShift(adjustment: number): number {
   return round4(adjustment * AUTO_ADJUST.source_scale);
@@ -71,7 +66,7 @@ export interface AdjustVote {
 
 /**
  * The adjustments after `incoming` votes are applied over the `stored` ones: a new vote moves its
- * topic and source one step, a changed vote undoes the old one first, a repeat of the same vote
+ * source one step, a changed vote undoes the old one first, a repeat of the same vote
  * does nothing, and a clear undoes it. Pure; the caller writes.
  */
 export function applyVotes(
@@ -80,14 +75,13 @@ export function applyVotes(
   incoming: readonly AdjustVote[],
 ): AutoAdjust {
   const prior = new Map(stored.map((vote) => [vote.story_id, vote.value]));
-  const next: AutoAdjust = { topics: { ...current.topics }, sources: { ...current.sources } };
+  const next: AutoAdjust = { sources: { ...current.sources } };
   const sign = (value: "up" | "down"): number => (value === "up" ? 1 : -1);
   for (const vote of incoming) {
     const before = prior.get(vote.story_id);
     if (before === vote.value) continue;
     const net = (vote.value === "clear" ? 0 : sign(vote.value)) - (before ? sign(before) : 0);
     if (net === 0) continue;
-    next.topics[vote.topic] = nudgeEntry(next.topics[vote.topic], net, vote.at);
     next.sources[vote.source_id] = nudgeEntry(next.sources[vote.source_id], net, vote.at);
     if (vote.value === "clear") prior.delete(vote.story_id);
     else prior.set(vote.story_id, vote.value);

@@ -88,7 +88,6 @@ describe("topic.upsert", () => {
       id: "quantum_computing",
       name: "Quantum computing",
       description: "Hardware, algorithms and error correction.",
-      weight: 0.7,
       enabled: true,
       keywords: ["qubit", "error correction"],
       section_id: "quantum_computing",
@@ -138,9 +137,9 @@ describe("topic.upsert", () => {
     expect(queries.queries).toHaveLength(2);
     expect(queries.queries[1]?.query).toBe("Photonic and superconducting machines.");
 
-    const reweighted = { op: "topic.upsert", topic: { ...edited.topic, weight: 0.9 } };
+    const toggled = { op: "topic.upsert", topic: { ...edited.topic, enabled: false } };
     const before = await repo.read("config/queries.json");
-    await apply(reweighted);
+    await apply(toggled);
     expect(await repo.read("config/queries.json")).toBe(before);
   });
 
@@ -189,14 +188,13 @@ describe("topic.upsert", () => {
     }
   });
 
-  it("sets name, weight and keywords on a built-in topic, and writes the weight to the preferences", async () => {
+  it("sets name and keywords on a built-in topic and leaves its description, flags and section", async () => {
     const { code, report } = await apply({
       op: "topic.upsert",
       topic: {
         id: "design_engineering_craft",
         name: "UI craft",
         description: "Changed by mistake.",
-        weight: 0.5,
         keywords: ["springs"],
         never_publish: true,
         section_id: "ai",
@@ -209,14 +207,11 @@ describe("topic.upsert", () => {
     expect(builtin).toMatchObject({
       name: "UI craft",
       description: "How a detail was made, with code",
-      weight: 0.5,
       keywords: ["springs"],
       never_publish: false,
       section_id: "ui-craft",
     });
-    const prefs = await repo.readJson<Preferences>("config/preferences.json");
-    expect(prefs.weights.design_engineering_craft).toBe(0.5);
-    expect(repo.dirty().sort()).toEqual(["config/preferences.json", "config/topics.json"]);
+    expect(repo.dirty()).toEqual(["config/topics.json"]);
   });
 
   it("rewords a topic that ships with the app and keeps its section and depth", async () => {
@@ -226,7 +221,6 @@ describe("topic.upsert", () => {
         id: "design",
         name: "Product design",
         description: "Interface and product design for a designer.",
-        weight: 0.85,
         keywords: [],
         section_id: "ai",
       },
@@ -252,7 +246,6 @@ describe("topic.upsert on a general news topic", () => {
         id: "world",
         name: "World news",
         description: "International news.",
-        weight: 1,
         keywords: [],
         enabled: false,
       },
@@ -271,23 +264,6 @@ describe("topic.upsert on a general news topic", () => {
     const removed = await apply({ op: "topic.remove", id: "world" });
     expect(removed.code).toBe(1);
     expect(repo.errors.join("\n")).toContain("cannot be removed");
-  });
-});
-
-describe("weights.set", () => {
-  it("sets built-in weights in the preferences and custom weights in the topics", async () => {
-    await apply(QUANTUM);
-    const { code, report } = await apply({
-      op: "weights.set",
-      weights: { quantum_computing: 0.5, taste_and_design_philosophy: 0.85 },
-    });
-    expect(code).toBe(0);
-    expect(report.summary).toBe("set 2 topic weights");
-    const prefs = await repo.readJson<Preferences>("config/preferences.json");
-    expect(prefs.weights.taste_and_design_philosophy).toBe(0.85);
-    const topics = await repo.readJson<TopicsFile>("config/topics.json");
-    expect(topics.topics.find((t) => t.id === "quantum_computing")?.weight).toBe(0.5);
-    expect(topics.topics.find((t) => t.id === "taste_and_design_philosophy")?.weight).toBe(0.85);
   });
 });
 
@@ -795,7 +771,6 @@ describe("refused ops write nothing", () => {
       "topic.upsert with a built-in id as its name",
       { op: "topic.upsert", topic: { name: "None", description: "Nothing at all." } },
     ],
-    ["weights.set for an unknown topic", { op: "weights.set", weights: { nope: 0.4 } }],
     ["topic.scope for an unknown topic", { op: "topic.scope", ids: ["nope"], daily: false }],
     ["schedule.set with a bad voice id", { op: "schedule.set", voice_id: "not a voice" }],
     ["schedule.set with a bad weekly day", { op: "schedule.set", weekly: { day: 7 } }],
@@ -830,11 +805,11 @@ describe("invalid input", () => {
     repo.errors.length = 0;
     expect(
       await run(
-        ["apply", "--op", JSON.stringify({ op: "weights.set", weights: { x: 7 } })],
+        ["apply", "--op", JSON.stringify({ op: "mix.set", format_mix: { video: "Never" } })],
         repo.context(),
       ),
     ).toBe(1);
-    expect(repo.errors.join("\n")).toContain("Invalid op at weights.x");
+    expect(repo.errors.join("\n")).toContain("Invalid op at format_mix.video");
     expect(repo.dirty()).toEqual([]);
   });
 
