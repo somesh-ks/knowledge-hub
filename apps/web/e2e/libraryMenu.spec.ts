@@ -30,7 +30,10 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
 
   await openMenu(page, AUDIO_ID);
   await row(page, AUDIO_ID).getByRole("menuitem", { name: "Share" }).click();
-  await expect(page.getByText("Link copied")).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "Share link" });
+  await dialog.getByRole("button", { name: "Copy link" }).click();
+  await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).click();
   const copied = await page.evaluate(() => (window as unknown as { copied: string[] }).copied);
   expect(copied[0]).toContain(`/d/${AUDIO_ID}`);
 
@@ -78,7 +81,7 @@ test("pressing a row's three dots moves nothing: not the card, its title or the 
   expect(Math.abs(dots.y + dots.height / 2 - (title.y + 12))).toBeLessThan(8);
 });
 
-test("opening a row's menu leaves the card stack where it was", async ({ page }) => {
+test("opening a row's menu leaves the card stack where it was", { tag: "@both" }, async ({ page }) => {
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const stack = page.locator("[data-library]");

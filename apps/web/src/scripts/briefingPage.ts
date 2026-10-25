@@ -4,12 +4,11 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
-import { prepareEarly, shareItem, shareLink, stopSharing, syncStopSharing } from "./shareLink";
+import { prepareEarly, shareItem, shareLink } from "./shareLink";
 import { sendToast } from "./toastEvent";
 
 installHeroMenu();
 
-const COPIED_MS = 2_000;
 const reducedMotion = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let observer: IntersectionObserver | null = null;
@@ -207,30 +206,8 @@ async function share(button: HTMLElement): Promise<void> {
   const outcome = id
     ? await shareItem({ id, title: document.title, path, kind })
     : await shareLink(document.title, path, shareOf ? { kind, item: shareOf } : undefined);
-  if (typeof outcome === "object") {
-    sendToast({ message: outcome.refused });
-    return;
-  }
-  if (outcome !== "copied") return;
-  const host = button.closest("[data-share-host]");
-  // Share beside Play stays on screen: the copy is said in a toast.
-  if (!host) {
-    sendToast({ message: "Link copied", kind: "success" });
-    return;
-  }
-  // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
-  const status = host?.querySelector("[data-share-status]");
-  const mark = host?.querySelector<HTMLElement>("[data-hero-more]") ?? button;
-  const name = mark.getAttribute("aria-label") ?? "";
-  mark.setAttribute("data-copied", "");
-  mark.setAttribute("aria-label", "Link copied");
-  if (status) status.textContent = "Link copied";
-  document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
-  setTimeout(() => {
-    mark.removeAttribute("data-copied");
-    mark.setAttribute("aria-label", name);
-    if (status) status.textContent = "";
-  }, COPIED_MS);
+  // A link that was made opens the share dialog, which says its own copy (shareDialog.ts).
+  if (typeof outcome === "object") sendToast({ message: outcome.refused });
 }
 
 // A tab reached with the keyboard can sit cut off at the strip's edge: bring it into the strip, at
@@ -281,18 +258,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   const button = event.target.closest<HTMLElement>("[data-share]");
-  if (button && !button.closest("[data-share-host]")?.querySelector("[data-copied]"))
-    void share(button);
-  const stop = event.target.closest<HTMLElement>(".hero-menu [data-share-stop]");
-  if (stop) {
-    void stopSharing(stop.dataset.shareStop ?? "").then((stopped) =>
-      sendToast(
-        stopped
-          ? { message: "Stopped sharing", kind: "success" }
-          : { message: "Could not stop sharing. Try again.", kind: "error" },
-      ),
-    );
-  }
+  if (button) void share(button);
 });
 
 const release = (): void => {
@@ -332,7 +298,6 @@ const watchPage = (): void => {
   const fit = fitStrip();
   watchSections();
   watchHeroPlay();
-  syncStopSharing();
   prepareEarly();
   fit();
   void document.fonts?.ready.then(measure);
