@@ -70,8 +70,10 @@ export const NUGGET_CHARS: Record<PodcastFormat, number> = {
  * The deep dive figure was measured on real runs on 2026-10-08.
  */
 export const STORY_CAPACITY_CHARS: Record<PodcastFormat, number> = {
-  readout: 650,
-  discussion: 950,
+  // 2026-10-26: raised from 650 and 950 so that a few stories can fill a long episode (12 stories
+  // for 15 minutes reached 61%): a thin window tells each story longer, up to this cap.
+  readout: 1150,
+  discussion: 1500,
   // One sentence a story: real headlines ran 137 to 154 characters each, 140 on a thin day.
   headlines: 170,
 };

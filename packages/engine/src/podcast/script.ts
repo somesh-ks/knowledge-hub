@@ -327,13 +327,73 @@ async function requestTurns(
   throw new PodcastError(`The writer did not return a usable script. ${problems.join(" ")}`);
 }
 
+/** A script under this share of what the stories can carry is extended, up to twice. */
+export const EXTEND_BELOW_SHARE = 0.9;
+const EXTEND_PASSES = 2;
+
+/**
+ * A valid script still under 90% of its target is sent back to deepen its shortest segments from
+ * the story blocks (no invention), at most twice; a pass that is not longer is dropped. The
+ * planned, written and final lengths are logged so a run shows where the minutes went.
+ */
+async function extendTurns(deps: ScriptDeps, written: ScriptTurn[]): Promise<ScriptTurn[]> {
+  const reach = reachableChars(
+    deps.budget_chars,
+    deps.stories.length,
+    deps.request.format,
+    deps.request.length_minutes,
+    deps.shape,
+  );
+  const target = scriptTargetChars(reach);
+  const writtenChars = charCount(written);
+  let turns = written;
+  let passes = 0;
+  const writer = deps.writer;
+  if (writer.extendScript) {
+    while (passes < EXTEND_PASSES && charCount(turns) < Math.floor(reach * EXTEND_BELOW_SHARE)) {
+      passes += 1;
+      try {
+        const problem = tooShortProblem(turns, deps.stories, reach, deps.request, deps.shape);
+        const result = validateReply(
+          await writer.extendScript(
+            {
+              request: deps.request,
+              stories: deps.stories,
+              budget_chars: deps.budget_chars,
+              ...(deps.shape ? { shape: deps.shape } : {}),
+            },
+            turns,
+            problem.replace(/^The script is too short/, "The script is under its length"),
+          ),
+          deps.request,
+          deps.stories,
+        );
+        if (result.ok && charCount(result.turns) > charCount(turns)) turns = result.turns;
+      } catch (error) {
+        if (error instanceof BudgetExceededError) throw error;
+        deps.log?.warn("An extend pass failed", { reason: describeError(error) });
+      }
+    }
+  }
+  deps.log?.info("Script length", {
+    planned_chars: target,
+    reachable_chars: reach,
+    written_chars: writtenChars,
+    final_chars: charCount(turns),
+    extend_passes: passes,
+  });
+  return turns;
+}
+
 /**
  * One writer call, validated and held to the stories: unknown story ids and invented numbers are
  * dealt with, the show is always named in the opening, and the length is enforced in code.
  */
 export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
   const opening = await requestOpening(deps);
-  const { turns: raw, calls, rejected } = await requestTurns(deps, opening);
+  const requested = await requestTurns(deps, opening);
+  const { calls, rejected } = requested;
+  const raw = await extendTurns(deps, requested.turns);
   const checked = await checkTurns({
     request: deps.request,
     turns: raw,
