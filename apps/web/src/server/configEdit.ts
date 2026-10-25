@@ -2,6 +2,7 @@ import {
   ConfigOp as CoreConfigOp,
   DEFAULT_SCHEDULE,
   isSupportedTimeZone,
+  LOOKBACK_STOPS,
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
@@ -172,6 +173,14 @@ function lengthOf(value: unknown): PodcastLength | null {
   return SCHEDULE_LENGTHS.find((minutes) => minutes === value) ?? null;
 }
 
+type Lookback = (typeof LOOKBACK_STOPS)[number];
+
+/** A lookback: one of the stops, null for Auto, undefined when absent, false when invalid. */
+function lookbackOf(value: unknown): Lookback | null | undefined | false {
+  if (value === undefined || value === null) return value;
+  return LOOKBACK_STOPS.find((hours) => hours === value) ?? false;
+}
+
 /** The part `weekly` and `custom` share: type, length and the two voices. False when one is invalid. */
 function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp): boolean {
   if (value.format !== undefined) {
@@ -235,6 +244,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (checked === false) return null;
     if (checked !== undefined) op[key] = checked;
   }
+  const lookback = lookbackOf(value.lookback_hours);
+  if (lookback === false) return null;
+  if (lookback !== undefined) op.lookback_hours = lookback;
   if (value.weekly !== undefined) {
     if (!isRecord(value.weekly)) return null;
     const weekly: WeeklyOp = {};
@@ -256,6 +268,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (weeklySkip === false) return null;
     if (weeklySkip !== undefined) weekly.skip_topics = weeklySkip;
     if (!podcastParts(value.weekly, weekly)) return null;
+    const weeklyLookback = lookbackOf(value.weekly.lookback_hours);
+    if (weeklyLookback === false) return null;
+    if (weeklyLookback !== undefined) weekly.lookback_hours = weeklyLookback;
     op.weekly = weekly;
   }
   if (value.custom !== undefined) {
@@ -443,6 +458,13 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const blocks = StructureBlocks.safeParse(value.blocks);
       if (!kind.success || !blocks.success) return null;
       return { op: "structure.set", kind: kind.data, blocks: blocks.data };
+    }
+    case "structure.prompt": {
+      // Core's schema (D182) bounds the key, the length and which kinds take which prompts.
+      const parsed = CoreConfigOp.safeParse(value);
+      if (!parsed.success || parsed.data.op !== "structure.prompt") return null;
+      const { kind, key, prompt } = parsed.data;
+      return { op: "structure.prompt", kind, key, prompt };
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

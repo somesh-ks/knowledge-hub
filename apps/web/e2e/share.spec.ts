@@ -154,8 +154,12 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
     });
   });
   const copied = () => page.evaluate(() => (window as unknown as { copied: string[] }).copied);
+  // The link is asked for before the press: iOS opens no share sheet after an awaited request, so a
+  // first tap that had to wait for it did nothing.
+  const prepared = page.waitForRequest((request) => request.url().endsWith("/api/share"));
   await page.goto(AUDIO_DIGEST);
   await hydrated(page);
+  await prepared;
   await page.getByRole("button", { name: "Share", exact: true }).click();
   await expect.poll(async () => (await copied()).length).toBe(1);
   const link = (await copied())[0] ?? "";

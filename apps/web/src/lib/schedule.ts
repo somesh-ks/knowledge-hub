@@ -16,6 +16,19 @@ export { hourLabel, WEEKDAYS } from "./nextRun";
 export { CADENCES, dailySummary, weeklySummary } from "./settingsSummary";
 
 /**
+ * How far back a scheduled podcast looks (core's LOOKBACK_STOPS), with Auto, everything since the
+ * last run, as the empty choice. Day counts read as the Create panel's Look back does.
+ */
+export const LOOKBACKS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "Since last episode" },
+  { value: "12", label: "12 hours" },
+  { value: "24", label: "1 day" },
+  { value: "48", label: "2 days" },
+  { value: "72", label: "3 days" },
+  { value: "168", label: "7 days" },
+];
+
+/**
  * What the Schedule page shows, read from the repository at build time. A missing or invalid
  * config/schedule.json means the defaults, which is what the engine runs on too.
  */
@@ -28,6 +41,8 @@ export interface ScheduleView {
   /** Topic ids the daily briefing leaves out. */
   skipTopics: string[];
   lengthMinutes: number;
+  /** How far back the daily podcast looks, in hours; null is Auto (since the last run). */
+  lookbackHours: number | null;
   /** Speechify voice ids of every podcast (the Podcast voice page); null is the engine's default. */
   voiceId: string | null;
   voiceIdB: string | null;
@@ -69,7 +84,11 @@ export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
   // The lists the engine reads: until an edit says where the general news topics play, they count as
   // left out of the daily and weekly podcasts, and the chips show them so.
   const skipTopics = effectiveSkipTopics(file, "daily");
-  const weekly = { ...file.weekly, skip_topics: effectiveSkipTopics(file, "weekly") };
+  const weekly = {
+    ...file.weekly,
+    skip_topics: effectiveSkipTopics(file, "weekly"),
+    lookback_hours: file.weekly.lookback_hours ?? null,
+  };
   const timezone = scheduleZone(storedZone);
   return {
     timezone,
@@ -77,6 +96,7 @@ export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
     cadenceDays,
     skipTopics,
     lengthMinutes,
+    lookbackHours: file.lookback_hours ?? null,
     voiceId,
     voiceIdB,
     weekly,

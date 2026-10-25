@@ -115,7 +115,7 @@
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
   /* Flat: a hairline and a tonal step lift it off the page, no shadow (owner, 2026-10-21). */
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  /* A pill, as every control is (D184): folded, a circle. */
+  /* A pill, as every control is (D185): folded, a circle. */
   border-radius: var(--radius-round);
   background: var(--color-accent-container-high);
   color: var(--color-on-accent-container-high);
@@ -395,9 +395,11 @@ dialog.create-sheet[open]::backdrop {
   align-items: center;
   gap: var(--space-2);
   min-height: var(--app-bar-height);
-  padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
+  /* More room round a full-screen phone sheet's edges (owner, 2026-10-24: "more padding in all
+     fullscreen phone modals"): the title a step down from the top and on the body's 24px gutter. */
+  padding-block: max(var(--space-4), var(--safe-top)) var(--space-1);
   /* The title at the start, on the body's gutter; Close at the end, its 44px reaching the edge. */
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-1), var(--safe-right));
+  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-2), var(--safe-right));
   background: var(--sheet-bg);
   transition: background-color var(--duration-state) var(--ease-out);
 }
@@ -438,8 +440,9 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
 }
 
 .create-sheet-body {
-  /* The hairline between groups runs to the edges of the scrolling area, as it does on the page. */
-  --sheet-gutter: var(--space-4);
+  /* The hairline between groups runs to the edges of the scrolling area, as it does on the page.
+     24px on a phone (owner, 2026-10-24: more padding in full-screen phone sheets). */
+  --sheet-gutter: var(--space-6);
   --page-gutter-start: max(var(--sheet-gutter), var(--safe-left));
   --page-gutter-end: max(var(--sheet-gutter), var(--safe-right));
   flex: 1 1 auto;
@@ -471,7 +474,7 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
   --sheet-foot: calc(
     var(--button-height) +
     var(--space-4) +
-    max(var(--space-4), var(--safe-bottom))
+    max(var(--space-6), var(--safe-bottom))
   );
   mask-image: linear-gradient(
     to top,
@@ -525,7 +528,7 @@ dialog.create-sheet .create-submit {
   position: sticky;
   inset-block-end: 0;
   z-index: var(--z-raised);
-  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
+  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
   background: var(--sheet-bg);
   box-shadow: 0 0 0 100vmax var(--sheet-bg);
   clip-path: inset(0 -100vmax);

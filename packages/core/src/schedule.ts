@@ -20,6 +20,17 @@ export const ScheduleLengthMinutes = z.union([
 
 const CadenceDays = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(7)]);
 
+/**
+ * How far back a scheduled podcast looks, in hours (the owner, 2026-10-24: one lookback for daily
+ * and one for weekly, set on their pages, not per block). A story older than that at selection is
+ * left out. Absent or null is Auto: everything since the last run, within the fetch window.
+ */
+export const LOOKBACK_STOPS = [12, 24, 48, 72, 168] as const;
+const LookbackHours = z
+  .union([z.literal(12), z.literal(24), z.literal(48), z.literal(72), z.literal(168)])
+  .nullable()
+  .optional();
+
 /** Types a weekly or Create-panel podcast may be: the owner no longer picks Headlines. */
 export const SCHEDULE_FORMATS = ["readout", "discussion"] as const;
 const ScheduleFormat = z.enum(SCHEDULE_FORMATS);
@@ -41,6 +52,7 @@ const WeeklyFields = z.object({
   length_minutes: ScheduleLengthMinutes,
   voice_id: VoiceId,
   voice_id_b: VoiceId,
+  lookback_hours: LookbackHours,
 });
 export type WeeklySchedule = z.infer<typeof WeeklyFields>;
 
@@ -95,6 +107,7 @@ export const ScheduleFile = z
     length_minutes: ScheduleLengthMinutes.default(10),
     voice_id: VoiceId.default(null),
     voice_id_b: VoiceId.default(null),
+    lookback_hours: LookbackHours,
     weekly: WeeklyFields.partial().optional(),
     custom: CustomFields.partial().optional(),
     /**
@@ -189,6 +202,7 @@ export const ScheduleSettings = z.object({
   length_minutes: ScheduleLengthMinutes,
   voice_id: VoiceId,
   voice_id_b: VoiceId,
+  lookback_hours: LookbackHours,
   weekly: WeeklyFields,
   custom: CustomFields,
 });
@@ -204,6 +218,7 @@ export const ScheduleChange = z.object({
   length_minutes: ScheduleLengthMinutes.optional(),
   voice_id: VoiceId.optional(),
   voice_id_b: VoiceId.optional(),
+  lookback_hours: LookbackHours,
   weekly: WeeklyFields.partial().optional(),
   custom: CustomFields.partial().optional(),
 });

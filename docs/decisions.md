@@ -136,7 +136,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card; pull down to close the source panel | active; amends D73, D123, D124 |
+| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
@@ -189,9 +189,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
 | D183 | Costs read the bill | active |
+| D184 | Podcast lookback | active |
 | D179 | Every name says Singularity; saved state moves once | active |
-| D184 | Every control is a pill | amends D167 |
-| D185 | Glyphs align by their ink | active |
+| D182 | Block prompts | active |
+| D185 | Every control is a pill | amends D167 |
+| D186 | Glyphs align by ink | active |
 
 ---
 
@@ -1889,6 +1891,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+
 ## D177: on a phone the Costs chart or table switch sits beside the figure
 
 - Date: 2026-10-24
@@ -1932,6 +1935,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Later the same day: a voice rewrite sends the first 4,000 characters of its source, not up to 10,000 (`rewriteOnce.ts`); grounding repairs still send the whole text.
 - Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
 
+## D182: each block's prompt is the owner's to replace, per kind
+
+- Date: 2026-10-24 (the owner: "the block level model instructions must be open for editing"; on the cards, "The full prompt per block" and "Separate per kind")
+- Decision: `config/structure.json` keeps `prompts` by kind and block key (`section:<id>` or the block type), apart from the blocks, set one at a time by `structure.prompt` (null puts back the built-in). The built-in prompts live in `packages/core/src/blockPrompts.ts`, the strings the engine sends, so the page shows exactly what the writer is told. Daily and weekly: a story block's prompt replaces the fields and fact rules for the stories of that section (they are batched apart); the voice from `config/voice.md`, the source handling and the reply's JSON shape stay in code, and the linter, numbers and grounding checks still run. The hello, rundown and sign-off are spoken by code there, so they take no prompt. Catch up: every block but an owner block (whose brief is its prompt) takes one, delimited in the message as the owner's text; a prompt set while the kind is on its defaults runs the defaults as a structure.
+- Why: one request per prompt keeps a reorder small and a 6000-character prompt inside the settings request limit; a prompt kept apart survives a block's removal and Undo.
+- Revisit if: login (Google, in progress) lands, since until then anyone with the URL can edit a prompt (D160); or a prompt edit is wanted for the voice itself.
+
 ## D183: The Costs page counts what Anthropic billed, not only what the app recorded
 
 - Date: 2026-10-24 (the owner: "show all costs in the cost page including evals and others to get accurate cost")
@@ -1939,7 +1949,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the ledger sees only the app's own calls. The episode eval (estimated at $4 to $6 a run, 12 runs on 24 Oct) and local scripts reach the bill but never the page, so the page read far below the bill. The bill is the only source that catches spend nobody thought to meter.
 - Revisit if: another project shares the Anthropic organization (the report covers the whole organization, so its spend would land in "Outside the app"), or Gemini spend grows enough to need its billing export.
 
-## D184: every control is a pill, text fields and a card's buttons too
+## D184: Each podcast looks back as far as its settings page says
+
+- Date: 2026-10-25 (the owner, on the Structure view's per-block "Newer than": "this should be gone if we are handling globally for daily and weekly setting")
+- Decision: Daily and Weekly each have a Look back row in Episode: since the last episode (the default, no field written) or 12 hours, 1, 2, 3 or 7 days, stored as `lookback_hours` at the top of `config/schedule.json` and in `weekly`. Selection drops a story dated (or, undated, fetched) before the lookback as `too_old`. Catch up and briefings run by hand ignore it.
+- Why: the fetch window (since the last fetch, at most 7 days) decides what is read; the lookback only narrows what airs, so it cannot reach stories the engine never fetched, and an unset field keeps every run as it was.
+- Revisit if: a lookback longer than the fetch window is wanted, which needs the fetch to read further back.
+
+## D185: every control is a pill, text fields and a card's buttons too
 
 - Date: 2026-10-24 (the owner, on the edit source panel: "all the ui elements as much as possible should have fully rounded corners to be consistent")
 - Decision: `--field-radius` is the pill, so every one-line text field and every form select that follows it (the Add and edit source panels, Blocked sources, the sheets) is round like the buttons, chips and selects beside it. A multi-line field takes `--field-radius-multiline`, 24px, half a field's height, so its corners draw the one-line field's arc. A button in a card is a pill (the concentric `.card-group .btn` override goes), the floating button is a pill (a circle folded) (owner, 2026-10-24: "only to the components that make sense"). Page row tiles are #295's (`--row-tile-radius`).
@@ -1949,7 +1966,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D167's text-field and card-button rules.
 - Revisit if: a pill field's text or placeholder reads cramped at its start.
 
-## D185: a glyph that ends a row lands its ink on the row's end, not its box
+## D186: a glyph that ends a row lands its ink on the row's end, not its box
 
 - Date: 2026-10-25 (the owner, on Blocked sources: "so many ui elements that are not aligned optically on both sides of the screen - fix them all and check if other screens also have this to fix it at the source of design system")
 - Decision: words and bare glyphs align by their ink; a filled or outlined control (a field, a select chip, a segmented track, the sample disc) aligns by its edge. Each Phosphor glyph's ink margin is measured once (`getBBox` on its path) and set as `--ink-end` on the glyph and on what holds it (`buttons.css`; `Icon.astro` writes `data-icon`). A row's chevron, a value select's chevron, a settings multi-select's chevron, Create's More options chevron, and `.icon-btn-end` (the Blocked row's cross, a topic card's More) pull out by it; the voice sample's disc meets the row's end. Measured at 390 and 1280px on Settings, Daily, Weekly, Voice, Blocked sources and a topic page: every row-end glyph's ink 24px in from the card's edge, where the words end (before: 24 to 39.5px, the select chevrons 3px and the cross 6.5px short).

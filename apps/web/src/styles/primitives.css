@@ -254,6 +254,8 @@
  * Markup: class="scroll-fade-inline" on an element with overflow-x: auto, as
  * <div class="costs-table-scroll scroll-fade-inline">, <nav class="tabs scroll-fade-inline">,
  * <ul class="shelf scroll-fade-inline">.
+ * A scroller with a pinned start sets --scroll-fade-inset (default 0px) to the pinned column's
+ * width, so the pin stays whole and the fade begins at its edge (the Costs table's dates, 2026-10-24).
  */
 @property --scroll-fade-start {
   syntax: "<length>";
@@ -270,15 +272,17 @@
 .scroll-fade-inline {
   mask-image: linear-gradient(
     to right,
-    transparent 0px,
-    black var(--scroll-fade-start),
+    black 0 var(--scroll-fade-inset, 0px),
+    transparent var(--scroll-fade-inset, 0px),
+    black calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-start)),
     black calc(100% - var(--scroll-fade-end)),
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to right,
-    transparent 0px,
-    black var(--scroll-fade-start),
+    black 0 var(--scroll-fade-inset, 0px),
+    transparent var(--scroll-fade-inset, 0px),
+    black calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-start)),
     black calc(100% - var(--scroll-fade-end)),
     transparent 100%
   );
@@ -1321,7 +1325,7 @@
    edge takes the inner radius. A row's tile sits the inset clear of the card's edges and of the next
    row's tile, so it never runs into a corner. A button, a chip, a select's value and a segmented
    control keep their pill in a card as out of it: one control has one shape wherever it stands
-   (owner, 2026-10-23, D167; buttons too since 2026-10-24, D184). */
+   (owner, 2026-10-23, D167; buttons too since 2026-10-24, D185). */
 .card-group > .row-action {
   width: auto;
   margin-inline: calc(var(--card-inset) - var(--card-padding));
@@ -1361,9 +1365,11 @@
   }
 }
 
-/* Inside a card the dividers, where a page draws them, start and end at the card's content edge. */
+/* Inside a card the dividers, where a page draws them, run the card's full width, edge to edge
+   (owner, 2026-10-24, on the Structure sheet: "the divider should go full bleed"; until then they
+   stopped at the content edge). */
 .card-group > * + *::before {
-  inset-inline: 0;
+  inset-inline: calc(var(--card-padding) * -1);
 }
 
 /* A card of one note (the install card): an accent tone says it is an offer, not a setting. */

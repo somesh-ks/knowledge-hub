@@ -147,6 +147,7 @@ export type FieldValues = Record<string, string>;
 const CONTROL_NAMES: Record<string, string> = {
   cadence_days: "cadence",
   length_minutes: "length",
+  lookback_hours: "lookback",
   voice_id: "voice",
   voice_id_b: "voice_b",
 };

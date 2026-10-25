@@ -75,7 +75,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Its cross ends where the words of every row end (.icon-btn-end, D185). */
+/* Its cross ends where the words of every row end (.icon-btn-end, D186). */
 .blocked-row .icon-btn {
   flex: none;
 }

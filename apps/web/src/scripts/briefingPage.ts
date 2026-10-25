@@ -4,7 +4,7 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
-import { shareItem, shareLink, stopSharing, syncStopSharing } from "./shareLink";
+import { prepareEarly, shareItem, shareLink, stopSharing, syncStopSharing } from "./shareLink";
 import { sendToast } from "./toastEvent";
 
 installHeroMenu();
@@ -329,6 +329,7 @@ const watchPage = (): void => {
   watchSections();
   watchHeroPlay();
   syncStopSharing();
+  prepareEarly();
   fit();
   void document.fonts?.ready.then(measure);
 };

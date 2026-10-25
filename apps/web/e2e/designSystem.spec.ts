@@ -42,7 +42,7 @@ const EXEMPT = [
   ".hero-more",
   ".scrubber-track",
   ".player-dock",
-  // An optical nudge sized by the glyph's own side bearing (--ink-end, D185), so its ink meets the
+  // An optical nudge sized by the glyph's own side bearing (--ink-end, D186), so its ink meets the
   // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
   // an icon button that ends a row.
   ".row-action .icon",

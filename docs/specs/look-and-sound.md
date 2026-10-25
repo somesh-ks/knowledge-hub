@@ -5,11 +5,11 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons, chips, selects and text fields (a multi-line field 24px, D184), 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons, chips, selects and text fields (a multi-line field 24px, D185), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a hover and press tile clear of the hairlines (`.row-action`): fully round on the page, the card's inner radius in a card. Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
 - Sideways scrollers (the section tabs, the Earlier shelf, the Costs table) fade their hidden edges by `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
-- Dropdowns share one chevron gap. A glyph that ends a row lands its ink, not its box, where the words end (`--ink-end`, D185).
+- Dropdowns share one chevron gap. A glyph that ends a row lands its ink, not its box, where the words end (`--ink-end`, D186).
 - A secondary action beside the hero's Play (Share) is `.btn-secondary.hero-share`: tonal, in Play's pill and height, as wide as its label, its touch area 44px (D153).
 - Latest's navigation icon is a fire (outline, filled when current) (D129). Theme is a select in Appearance and draws no value until the stored one is set, so the page never flashes the default (D129).
 
@@ -40,7 +40,7 @@ Three layers, each catching what the others miss (the owner's ask, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, a PostToolUse hook on Edit, Write and MultiEdit for `apps/web/src/**` and `tokens/**`; silent when green, exit 2 with the failing rules when not.
 - Audit: the `design-audit` agent (`.claude/agents/design-audit.md`) screenshots the touched pages at phone and desktop in light and dark and judges them against the ledger. A UI change runs it before the PR; `/close-session` checks it ran.
 CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser job on any PR touching `apps/web`, `packages` or `tokens`.
-A component changes in the system, never on one page only (the owner, 2026-10-24): in its shared class, component or token, with its record in the same PR, the usage comment over its class, its ledger line and, for a new variant, this spec. The audit flags a shared class restyled in a page stylesheet. Variants: the segmented navigation's glyph tab (an icon alone, centred; Costs' chart and table switch) and its compact form (`.segmented-nav-compact`: a chip's height, a 44px target, `--segmented-nav-bg` for the track); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past it (the Costs table, the section tabs, and the Earlier shelf at 40px by `--scroll-fade-size`).
+A component changes in the system, never on one page only (the owner, 2026-10-24): in its shared class, component or token, with its record in the same PR, the usage comment over its class, its ledger line and, for a new variant, this spec. The audit flags a shared class restyled in a page stylesheet. Variants: the segmented navigation's glyph tab (an icon alone, centred; Costs' chart and table switch) and its compact form (`.segmented-nav-compact`: a chip's height, a 44px target, `--segmented-nav-bg` for the track); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past it (the Costs table, the section tabs, and the Earlier shelf at 40px by `--scroll-fade-size`), with `--scroll-fade-inset` for a pinned start column: the fade begins at its edge (the Costs dates, 2026-10-24).
 
 ## Code
 - `apps/web/src/styles/tokens.css`

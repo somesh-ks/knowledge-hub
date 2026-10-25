@@ -33,6 +33,7 @@ import {
   voteReportLine,
 } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
+import { isReleaseStory, RELEASE_SECTION } from "../score/releaseNotes.js";
 import { scoreItem } from "../score/scoreItem.js";
 import {
   applyFormatMix,
@@ -69,6 +70,7 @@ import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./p
 import {
   charsForMinutes,
   lengthMinutesFor,
+  lookbackHoursFor,
   overNarrationLimit,
   storiesForMinutes,
   WRITE_MAX,
@@ -314,6 +316,9 @@ async function writePass(
     // Regenerate with chosen topics: a candidate stays only when its category is one of them.
     ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
     plan: sectionPlan,
+    // The owner's lookback for this podcast (Daily or Weekly settings); Auto has none.
+    lookbackHours: lookbackHoursFor(context.schedule, pass.kind, context.mode),
+    now: deps.now(),
   };
   const chosen = selectItems({
     ...selectArgs,
@@ -428,10 +433,19 @@ async function writePass(
   const topCategoryOf = new Map(scored.map((s) => [s.item.id, s.topCategory]));
   const writerCategoryOf = (sel: { item: Item; category: string }): Category =>
     writerCategory(sel.category, topCategoryOf.get(sel.item.id));
+  // The section each story would air in, for the owner's prompt of that block (D182). Writing can
+  // drop a Top pick and promote the next story, which then keeps the prompt of its own section.
+  const sectionOf = new Map(
+    assignSections(chosen.selected, sectionPlan).map((sel) => [sel.item.id, sel.section]),
+  );
   const { materials, methods, writeResult, voice } = await writeFinalists({
     runtime,
     linter,
-    finalists: chosen.selected.map((sel) => ({ item: sel.item, category: writerCategoryOf(sel) })),
+    finalists: chosen.selected.map((sel) => ({
+      item: sel.item,
+      category: writerCategoryOf(sel),
+      prompt: sectionPlan.prompt(sectionOf.get(sel.item.id) ?? sel.home),
+    })),
     sourceNames,
     feedback: context.feedback,
     taste: context.taste,
@@ -455,6 +469,8 @@ async function writePass(
           category: sel.category,
           score: sel.score,
           writer_category: writerCategoryOf(sel),
+          // A replacement comes after the Top picks, so it airs in its own section.
+          section: isReleaseStory(sel) ? RELEASE_SECTION : sel.home,
         }));
   await writeJson(file("reserve.json"), {
     version: 1,
@@ -536,10 +552,14 @@ async function readGeneralCounts(
   }
 }
 
-/** A finalist to write: the item and the built-in category its writer prompt is told. */
+/**
+ * A finalist to write: the item, the built-in category its writer prompt is told, and the owner's
+ * prompt for its block when there is one (D182).
+ */
 export interface Finalist {
   item: Item;
   category: Category;
+  prompt?: string | undefined;
 }
 
 /**
@@ -583,6 +603,7 @@ export async function writeFinalists(args: {
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: sel.category,
       text: text.text,
+      ...(sel.prompt === undefined ? {} : { prompt: sel.prompt }),
     });
   }
 

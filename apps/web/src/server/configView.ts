@@ -209,6 +209,8 @@ function scheduleOps(
     set.length_minutes = stored.lengthMinutes as ScheduleSet["length_minutes"];
   if (built.voiceId !== stored.voiceId) set.voice_id = stored.voiceId;
   if (built.voiceIdB !== stored.voiceIdB) set.voice_id_b = stored.voiceIdB;
+  if (built.lookbackHours !== stored.lookbackHours)
+    set.lookback_hours = stored.lookbackHours as ScheduleSet["lookback_hours"];
   const weekly: NonNullable<ScheduleSet["weekly"]> = {};
   for (const key of [
     "enabled",
@@ -218,6 +220,7 @@ function scheduleOps(
     "length_minutes",
     "voice_id",
     "voice_id_b",
+    "lookback_hours",
   ] as const)
     if (built.weekly[key] !== stored.weekly[key])
       Object.assign(weekly, { [key]: stored.weekly[key] });
@@ -271,6 +274,32 @@ export function structureViewOf(json: unknown): StructureView {
   };
 }
 
+/** The owner's block prompts (D182) by kind; a missing or malformed file has none. */
+export type PromptView = Record<StructureKind, Record<string, string>>;
+
+export function promptViewOf(json: unknown): PromptView {
+  const parsed = StructureFile.safeParse(json);
+  const prompts = parsed.success ? parsed.data.prompts : undefined;
+  return {
+    daily: { ...(prompts?.daily ?? {}) },
+    weekly: { ...(prompts?.weekly ?? {}) },
+    catch_up: { ...(prompts?.catch_up ?? {}) },
+  };
+}
+
+/** A structure.prompt for each block prompt the store set, changed or put back since the build. */
+function promptOps(built: PromptView, stored: PromptView): ConfigOp[] {
+  return STRUCTURE_KINDS.flatMap((kind): ConfigOp[] => {
+    const keys = [...new Set([...Object.keys(built[kind]), ...Object.keys(stored[kind])])].sort();
+    return keys.flatMap((key): ConfigOp[] => {
+      const prompt = stored[kind][key] ?? null;
+      return prompt === (built[kind][key] ?? null)
+        ? []
+        : [{ op: "structure.prompt", kind, key, prompt }];
+    });
+  });
+}
+
 /**
  * A structure.set for each kind whose stored blocks differ from the build's. A kind the store has
  * put back on its defaults sends none: the op cannot say "defaults", and no page shows it yet.
@@ -289,6 +318,7 @@ interface ConfigView {
   schedule: ScheduleView;
   blocked: string[];
   structure: StructureView;
+  prompts: PromptView;
 }
 
 interface BuiltView extends ConfigView {
@@ -302,6 +332,7 @@ function viewOf(files: ConfigFiles): ConfigView {
     schedule: scheduleViewOf(json(files["config/schedule.json"])),
     blocked: blockedDomainsIn(json(files["config/profiles/owner.json"])),
     structure: structureViewOf(json(files["config/structure.json"])),
+    prompts: promptViewOf(json(files["config/structure.json"])),
   };
 }
 
@@ -346,6 +377,7 @@ export function storeChanges(built: ConfigFiles, storedRows: ConfigFiles): Store
       ),
       ...blockedOps(before.blocked, after.blocked),
       ...structureOps(before.structure, after.structure),
+      ...promptOps(before.prompts, after.prompts),
     ],
     sources: sources.sources,
   };

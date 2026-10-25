@@ -352,6 +352,8 @@ export type ConfigOp =
       /** Speechify voice ids of the daily podcast; null means the engine's default. */
       voice_id?: string | null;
       voice_id_b?: string | null;
+      /** Hours the daily podcast looks back (core's LOOKBACK_STOPS); null is Auto. */
+      lookback_hours?: 12 | 24 | 48 | 72 | 168 | null;
       /** The weekly podcast. Fields left out keep what the file holds. */
       weekly?: {
         enabled?: boolean;
@@ -364,6 +366,7 @@ export type ConfigOp =
         length_minutes?: PodcastRequest["length_minutes"];
         voice_id?: string | null;
         voice_id_b?: string | null;
+        lookback_hours?: 12 | 24 | 48 | 72 | 168 | null;
       };
       /** What the Create panel starts from. */
       custom?: {
@@ -388,12 +391,20 @@ export type ConfigOp =
       custom?: boolean;
     }
   /**
-   * The profile ops (block, unblock, vote) and structure.set (one podcast kind's whole list of
-   * blocks, D170) are core's own definitions: one place for their shape.
+   * The profile ops (block, unblock, vote), structure.set (one podcast kind's whole list of
+   * blocks, D170) and structure.prompt (one block's prompt, D182) are core's own definitions: one
+   * place for their shape.
    */
   | Extract<
       CoreConfigOp,
-      { op: "profile.block" | "profile.unblock" | "profile.vote" | "structure.set" }
+      {
+        op:
+          | "profile.block"
+          | "profile.unblock"
+          | "profile.vote"
+          | "structure.set"
+          | "structure.prompt";
+      }
     >;
 
 /** One vote on a story, as profile.vote carries it (VoteInput in core). */

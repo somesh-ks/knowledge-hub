@@ -516,7 +516,7 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D185). */
+/* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D186). */
 .settings-row .value-select > .icon {
   inset-inline-end: calc(
     var(--space-2) +
