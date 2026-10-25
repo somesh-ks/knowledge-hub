@@ -868,3 +868,135 @@ html[data-player="open"] .run-status {
     background: Highlight;
   }
 }
+
+/* ------------------------------------------------------------------ the share dialog */
+
+/*
+ * Share (scripts/shareDialog.ts, 2026-10-25): a small centred dialog at every width, with the shared
+ * SheetHeader row, the page's name, the link in a read-only field and one Copy link button that
+ * says "Copied" for a moment. Placed and stacked by itself, not by the modal state (as
+ * dialog.confirm-dialog, episode-actions.css); it fades and scales in and only fades the scrim.
+ */
+dialog.share-dialog {
+  --color-focus-gap: var(--sheet-bg);
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  width: min(26rem, calc(100% - var(--space-8)));
+  margin: auto;
+  padding: 0 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+  color: var(--color-on-surface);
+  opacity: 0;
+  transform: scale(var(--scale-enter));
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.share-dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.share-dialog[open] {
+    opacity: 0;
+    transform: scale(var(--scale-enter));
+  }
+}
+
+dialog.share-dialog::backdrop {
+  background: var(--color-scrim);
+  opacity: 0;
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.share-dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.share-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+dialog.share-dialog:focus-visible {
+  outline: none;
+}
+
+.share-dialog > .create-sheet-head {
+  padding-block: var(--space-1);
+  padding-inline: var(--space-4) var(--space-1);
+}
+
+.share-about {
+  margin-block: var(--space-2) var(--space-4);
+  padding-inline: var(--space-4);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+}
+
+.share-url {
+  display: block;
+  width: calc(100% - var(--space-4) * 2);
+  height: var(--field-height);
+  margin-inline: var(--space-4);
+  padding-inline: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  text-overflow: ellipsis;
+}
+
+.share-url:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.share-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-start: var(--space-4);
+  padding-inline: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.share-dialog,
+  dialog.share-dialog[open] {
+    transform: none;
+    transition-duration: var(--duration-state);
+  }
+
+  dialog.share-dialog::backdrop,
+  dialog.share-dialog[open]::backdrop {
+    transition-duration: var(--duration-state);
+  }
+
+  @starting-style {
+    dialog.share-dialog[open] {
+      transform: none;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  dialog.share-dialog {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}

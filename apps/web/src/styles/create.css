@@ -100,6 +100,11 @@
   padding-inline: var(--space-4);
 }
 
+/* Open, the grey is a card around the questions; the summary inside it stays a pill. */
+.create-more[open] {
+  border-radius: var(--radius-lg);
+}
+
 .create-more-body {
   padding-block-end: var(--space-4);
 }
