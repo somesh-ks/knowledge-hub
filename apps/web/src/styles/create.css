@@ -157,6 +157,8 @@
 
 .create-more-chevron {
   flex: none;
+  /* Its ink, not its box, ends on the page's edge, where the fields and chips end (D185). */
+  margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
   color: var(--color-on-surface-muted);
   transition: rotate var(--duration-state) var(--ease-out);
 }

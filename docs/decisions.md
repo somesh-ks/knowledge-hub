@@ -191,6 +191,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D183 | Costs read the bill | active |
 | D179 | Every name says Singularity; saved state moves once | active |
 | D184 | Every control is a pill | amends D167 |
+| D185 | Glyphs align by their ink | active |
 
 ---
 
@@ -1947,3 +1948,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Kept for the owner's call: the Create Title (a filled field with round top corners over its D54 bottom line), menu and list option tiles inside a popup or sheet, checkbox squares (round reads as a radio), the mini player's open target, the emoji grid's cells (a wide cell would hover as a pill).
 - Amends: D167's text-field and card-button rules.
 - Revisit if: a pill field's text or placeholder reads cramped at its start.
+
+## D185: a glyph that ends a row lands its ink on the row's end, not its box
+
+- Date: 2026-10-25 (the owner, on Blocked sources: "so many ui elements that are not aligned optically on both sides of the screen - fix them all and check if other screens also have this to fix it at the source of design system")
+- Decision: words and bare glyphs align by their ink; a filled or outlined control (a field, a select chip, a segmented track, the sample disc) aligns by its edge. Each Phosphor glyph's ink margin is measured once (`getBBox` on its path) and set as `--ink-end` on the glyph and on what holds it (`buttons.css`; `Icon.astro` writes `data-icon`). A row's chevron, a value select's chevron, a settings multi-select's chevron, Create's More options chevron, and `.icon-btn-end` (the Blocked row's cross, a topic card's More) pull out by it; the voice sample's disc meets the row's end. Measured at 390 and 1280px on Settings, Daily, Weekly, Voice, Blocked sources and a topic page: every row-end glyph's ink 24px in from the card's edge, where the words end (before: 24 to 39.5px, the select chevrons 3px and the cross 6.5px short).
+- Why: the chevron's 0.28 pull fitted one glyph only; a chevron down, a cross and the More dots sit further inside their boxes, so each ended a few pixels short of the line the words make.
+- Rejected: pulling the More dots on Today's story rows and hero, and the Library's view buttons, to the 16px page edge (their 44px targets would leave the screen); moving the topic page's source list, which lines up with its search field's glyph (owner, 2026-10-23).
+- Revisit if: a glyph outside the table ends a row (add its measured margin).

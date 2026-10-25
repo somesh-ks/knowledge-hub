@@ -42,10 +42,14 @@ const EXEMPT = [
   ".hero-more",
   ".scrubber-track",
   ".player-dock",
-  // An optical nudge sized by the glyph's own side bearing, so its edge meets the switches'.
+  // An optical nudge sized by the glyph's own side bearing (--ink-end, D185), so its ink meets the
+  // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
+  // an icon button that ends a row.
   ".row-action .icon",
-  // The same nudge inside a select on the index (Theme), so its value ends where the link rows' do.
-  ".settings-view .value-select > select.manage-input",
+  ".settings-row .value-select > select.manage-input",
+  ".settings-row .multiselect-trigger",
+  ".create-more-chevron",
+  ".icon-btn-end",
   // An optical pad sized by the font's metrics, so the emoji's ink sits in its cell's centre.
   ".emoji-cell",
 ];

@@ -75,9 +75,9 @@
   overflow-wrap: anywhere;
 }
 
+/* Its cross ends where the words of every row end (.icon-btn-end, D185). */
 .blocked-row .icon-btn {
   flex: none;
-  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 /* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list. */

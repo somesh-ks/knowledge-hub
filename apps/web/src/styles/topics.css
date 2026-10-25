@@ -133,9 +133,10 @@
 }
 
 /* The glyph, not the 44px target, sits at the card's corner padding. */
+/* Its dots end where the card's words do (.icon-btn-end, D185). */
 .topic-more {
   anchor-name: --hero-more;
-  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  margin-block-start: calc(var(--space-2) * -1);
 }
 
 /* Listen in closes the card under a line that runs its full width, edge to edge through the card's

@@ -9,7 +9,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a hover and press tile clear of the hairlines (`.row-action`): fully round on the page, the card's inner radius in a card. Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
 - Sideways scrollers (the section tabs, the Earlier shelf, the Costs table) fade their hidden edges by `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
-- Dropdowns share one chevron gap.
+- Dropdowns share one chevron gap. A glyph that ends a row lands its ink, not its box, where the words end (`--ink-end`, D185).
 - A secondary action beside the hero's Play (Share) is `.btn-secondary.hero-share`: tonal, in Play's pill and height, as wide as its label, its touch area 44px (D153).
 - Latest's navigation icon is a fire (outline, filled when current) (D129). Theme is a select in Appearance and draws no value until the stored one is set, so the page never flashes the default (D129).
 

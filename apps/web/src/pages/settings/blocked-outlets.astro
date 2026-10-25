@@ -66,7 +66,7 @@ const domains = await loadBlockedDomains();
                   <div class="settings-row">
                     <span class="settings-label">{domain}</span>
                     <button
-                      class="icon-btn"
+                      class="icon-btn icon-btn-end"
                       type="button"
                       aria-label={`Unblock ${domain}`}
                       data-remove
@@ -85,7 +85,7 @@ const domains = await loadBlockedDomains();
           <li class="blocked-row">
             <div class="settings-row">
               <span class="settings-label"></span>
-              <button class="icon-btn" type="button" data-remove>
+              <button class="icon-btn icon-btn-end" type="button" data-remove>
                 <Icon name="close" />
               </button>
             </div>
