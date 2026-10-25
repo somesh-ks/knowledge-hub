@@ -1,4 +1,5 @@
 import {
+  applyVotes,
   GENERAL_TOPICS,
   isBuiltinCategory,
   isBuiltinSection,
@@ -696,6 +697,7 @@ function castVotes(
     return { ...open, domain };
   });
   const next = clone(bundle);
+  next.profile.auto_adjust = applyVotes(next.profile.auto_adjust, next.profile.votes, incoming);
   next.profile.votes = mergeVotes(next.profile.votes, incoming);
   next.profile.opens = mergeOpens(next.profile.opens, opens);
   const cleared = incoming.filter((vote) => vote.value === "clear").length;

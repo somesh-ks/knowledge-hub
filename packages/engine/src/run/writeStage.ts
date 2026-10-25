@@ -1,10 +1,13 @@
 import {
+  type AutoAdjust,
   activeFitTopics,
+  adjustmentAt,
   type Category,
   type Item,
   type Preferences,
   type ScheduleFile,
   type SourceStatsFile,
+  sourceShift,
   type Topic,
   VOICE_LIMITS,
 } from "@singularity/core";
@@ -23,6 +26,7 @@ import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.
 import type { ExtractedText } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { withAutoAdjust } from "../profile/autoAdjust.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
 import { TASTE_LIMITS, type TasteProfile, tasteProfile } from "../profile/tasteFit.js";
 import type { Taste } from "../profile/tasteNote.js";
@@ -102,6 +106,8 @@ interface PassContext {
   weeklySkipTopics: readonly string[];
   /** 30-day per-source counters, for the small score adjustment from each source's pass rate. */
   sourceStats: SourceStatsFile;
+  /** What votes added to sources (core/autoAdjust.ts). */
+  autoAdjust: AutoAdjust;
   /** The owner's votes as source and domain preferences, and the headlines the writer is told of. */
   votePrefs: VotePreferences;
   taste: Taste;
@@ -131,12 +137,15 @@ export async function writeStage(
 ): Promise<StageReport> {
   const runtime = await deps.runtime();
   const linter = createLinter(await loadVoice(deps.root));
-  const [preferences, sources] = await Promise.all([
-    loadPreferences(deps.root),
-    loadSources(deps.root),
-  ]);
-  const topics = await loadTopics(deps.root, preferences);
+  const [owned, sources] = await Promise.all([loadPreferences(deps.root), loadSources(deps.root)]);
   const profile = await createFileProfileStore(deps.root).read(OWNER_ID);
+  // The owner's weights plus what votes added (profile/autoAdjust.ts); the files keep the owner's.
+  const { preferences, topics } = withAutoAdjust(
+    owned,
+    await loadTopics(deps.root, owned),
+    profile.auto_adjust,
+    deps.now(),
+  );
   const votePrefs = votePreferences(profile.votes, deps.now());
   const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
@@ -154,6 +163,7 @@ export async function writeStage(
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
     sourceStats: await readSourceStats(deps.root),
     votePrefs,
+    autoAdjust: profile.auto_adjust,
     taste,
     tasteProfile: tasteProfile(profile),
     generalTopics: activeGeneralFrom(topics),
@@ -214,6 +224,7 @@ async function writePass(
     weeklySkipTopics,
     sourceStats,
     votePrefs,
+    autoAdjust,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
@@ -248,6 +259,7 @@ async function writePass(
           context.sourceFacts,
         ),
         sourceStats,
+        sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now())),
       ),
     );
   }
