@@ -505,6 +505,9 @@
   --value-select-pull: calc(
     var(--card-padding) - var(--card-inset) - var(--space-2) - var(--space-4)
   );
+  /* The chevron's ink sits 12px inside the tile, not 4 (2026-10-26 audit), which is where the link
+     rows' chevrons end: the tile keeps its 12px inset, and the chevron and the value step in. */
+  --value-select-end: var(--space-2);
 }
 
 .settings-row .value-select > select.manage-input {
@@ -516,6 +519,7 @@
     calc(
       var(--space-2) +
       var(--value-select-pull, 0px) +
+      var(--value-select-end, 0px) +
       var(--size-icon) *
       (1 - var(--ink-end, 0)) +
       var(--field-chevron-gap)
@@ -532,7 +536,8 @@
 .settings-row .value-select > .icon {
   inset-inline-end: calc(
     var(--space-2) +
-    var(--value-select-pull, 0px) -
+    var(--value-select-pull, 0px) +
+    var(--value-select-end, 0px) -
     var(--size-icon) *
     var(--ink-end, 0)
   );
