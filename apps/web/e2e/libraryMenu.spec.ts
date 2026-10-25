@@ -78,6 +78,19 @@ test("pressing a row's three dots moves nothing: not the card, its title or the 
   expect(Math.abs(dots.y + dots.height / 2 - (title.y + 12))).toBeLessThan(8);
 });
 
+test("opening a row's menu leaves the card stack where it was", async ({ page }) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const stack = page.locator("[data-library]");
+  const card = row(page, AUDIO_ID);
+  const boxes = () => Promise.all([stack, card].map((n) => n.boundingBox()));
+  const rest = await boxes();
+  await openMenu(page, AUDIO_ID);
+  // Past the sheet's slide in: a scrollbar taken away or a padding added would have landed.
+  await page.waitForTimeout(400);
+  expect(await boxes()).toEqual(rest);
+});
+
 test.describe("a briefing download", () => {
   // Offline, a cover the download did not save fails to load; the player's art is not under test.
   test.use({ allowNetworkErrors: true });

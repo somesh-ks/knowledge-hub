@@ -168,6 +168,10 @@ function watchSections({ keepHeld = false } = {}): void {
     if (current) mark(current.dataset.chapter);
   };
   refollow = follow;
+  // A thin band a third of the way down the space under the sticky chrome: the section whose title
+  // has just come up to it is the one marked, so the rail answers as a heading enters the reading
+  // area, not once the section before it has left (2026-10-25: it lit well after the title arrived).
+  const line = Math.round(chrome + (innerHeight - chrome) * 0.33);
   observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -176,7 +180,7 @@ function watchSections({ keepHeld = false } = {}): void {
       }
       follow();
     },
-    { rootMargin: `-${Math.round(chrome) + 48}px 0px -50% 0px` },
+    { rootMargin: `-${line}px 0px -${Math.max(0, innerHeight - line - 2)}px 0px` },
   );
   // The end element has no height, so it counts as all on screen whenever it is on screen at all.
   endObserver = new IntersectionObserver(
