@@ -6,7 +6,7 @@ import "../../styles/settings.css";
 const title = "Privacy";
 // What this says is the inventory behind docs/specs/analytics.md, D154 and D156: change them together,
 // and the date with them.
-const updated = "22 October 2026";
+const updated = "25 October 2026";
 ---
 
 <BaseLayout title={title} view="settings" skipLabel="Skip to the privacy page">
@@ -50,10 +50,13 @@ const updated = "22 October 2026";
             Votes, stories you open and outlets you stop go to the server, so the briefings learn what is worth hearing. They name the story, not you, and are never shown to anyone.
           </p>
           <p class="settings-about">
-            Topics, sources and episodes are shared: anyone with the link sees them and can change or delete them. What you type for one (an episode title, feedback, a topic's name or description) is sent to AI services that write and judge the briefings (Anthropic, Google Gemini, TypeSafe and Exa) and is kept in the project's private records. Do not type anything personal into them.
+            Topics, sources and episodes are shared: anyone with the link sees them and can change or delete them. What you type for one (an episode title, feedback, a topic's name or description) is sent to the AI and search services that write and judge the briefings, such as <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic</a> and <a href="https://www.firecrawl.dev/privacy-policy" target="_blank" rel="noopener">Firecrawl</a>, and is kept in the project's private records on <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub</a>. Do not type anything personal into them.
           </p>
           <p class="settings-about">
             When a page fails, it reports the error, the page's path and the site version, with no address and no browser details. What is kept is less: the kind of page (a briefing, not which one), only the start of the error's message, cut before any quote, number, address or line break (where something you typed could appear), and for a blocked file only the site it came from. Each report is deleted after about a week.
+          </p>
+          <p class="settings-about">
+            Playing a briefing aloud sends its text, never anything about you, to <a href="https://speechify.com/privacy/" target="_blank" rel="noopener">Speechify</a>, which turns it into speech.
           </p>
           <p class="settings-about">
             Share makes a link anyone can open to hear one briefing or episode. The server keeps the link, when it stops working and how many times it was played, never who played it. Stop sharing in the item's menu ends it; it also ends by itself after 30 days.
@@ -68,7 +71,7 @@ const updated = "22 October 2026";
         <h2 class="section-head">Hosting</h2>
         <div class="rows card-group">
           <p class="settings-about">
-            The site runs on Vercel, whose servers see your IP address to answer each request and may keep it in their logs under Vercel's own privacy policy. Previewing a source's address uses your IP address, in memory only, to limit how often it can be asked. Audio is served from a public Vercel store and deleted after about 120 days.
+            The site is hosted by <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel</a>, whose servers see your IP address to answer each request and may keep it in their logs under its privacy policy. Previewing a source's address uses your IP address, in memory only, to limit how often it can be asked. Audio is served from a public store and deleted after about 120 days.
           </p>
         </div>
       </section>

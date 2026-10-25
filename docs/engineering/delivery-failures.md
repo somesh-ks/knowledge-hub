@@ -9,6 +9,9 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 3. **Merge `main` into an open branch after `main` changes `apps/web/vercel.json` or a workflow.** Vercel and Actions read those files from the branch's own commit, so an old branch keeps the old rules (class 2).
 4. **A red check is classified before anyone acts on it:** billing, Vercel branch limit, a cancelled run, an ignored build, a known flake, or a real failure. Only the last needs a code change (classes 1 to 6).
 5. **Never remove a worktree or branch another session made.** A worktree with no commits looks merged and is someone's work in progress (class 8).
+6. **Verify branch HEAD after pushing.** After `git push`, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`. A push on a detached HEAD reports "Everything up-to-date" while remote remains stale (class 11).
+7. **Workers never allocate decision IDs.** Decision numbers are assigned strictly by the lead on `main` right before merge to avoid parallel branch collisions (class 12).
+8. **Config store synchronization before config edits.** When editing `config/` in Git, sync with the live config store so deployed snapshots do not overwrite runtime state (class 13).
 
 ## Failure classes
 
@@ -24,6 +27,9 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 | 8 | Local: this session's worktree removed mid-task (2026-10-22, also `settings-ui-refinements-676801` the same day) | Another session's cleanup took a clean worktree whose branch sat on `main` for merged | Recovered by hand | Rule 5 |
 | 9 | Local: the browser suites cannot start ("Executable doesn't exist ... chromium_headless_shell-1248") | Playwright was bumped to 1.64.1; the machine has Chromium 1243 | Worked around with an untracked config; open | After a Playwright bump, `npx playwright install chromium` |
 | 10 | Next: `docsCheck` fails any PR that adds a decision row (read-first 40.0 of 40 KB on 2026-10-22) | Every decision adds an Index row; the budget has no room left | Open | The owner raises the budget or the Index rows move out of read-first |
+| 11 | PR merged without review fixes (#160) | Commits were made on a detached HEAD; `git push` reported up-to-date, so another session merged the stale branch head | Fixed | Rule 6: compare `git ls-remote` with `git rev-parse HEAD` |
+| 12 | Decision number collision (D157, D159, D176) | Multiple parallel worktrees assigned the next decision ID locally | Fixed | Rule 7: workers allocate no D-numbers; lead numbers on `main` before merge |
+| 13 | Silent config reversion (2026-10-25) | PR edited repo config while live config store held newer state; store snapshot undid PR edit (D185) | Fixed | Rule 8: sync store before config edits; write guard allows snapshot |
 
 ## The merge flow, as designed (not failures)
 

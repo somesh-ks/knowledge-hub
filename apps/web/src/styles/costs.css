@@ -39,7 +39,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "filters filters"
-    "answer view";
+    "answer view"
+    "stats stats";
   align-items: start;
   gap: var(--space-4);
 }
@@ -53,7 +54,9 @@
 @media (width >= 40rem) {
   .costs-head {
     grid-template-columns: minmax(max-content, 1fr) minmax(min-content, max-content) auto;
-    grid-template-areas: "answer filters view";
+    grid-template-areas:
+      "answer filters view"
+      "stats stats stats";
     column-gap: var(--space-2);
   }
 
@@ -97,15 +100,6 @@
   min-width: 0;
 }
 
-/* The label, the one figure and the supporting line: told apart by size and ink, at two weights. */
-.costs-label {
-  margin: 0;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--font-leading-label);
-}
-
 /* The figure the page leads with: the same sans, proportional figures, the display step. */
 .costs-total {
   margin: 0;
@@ -116,11 +110,37 @@
   line-height: var(--text-display-leading);
 }
 
-.costs-detail {
+/* Under the total: small pills of the figures it is made of (2026-10-25, the owner). The card is the
+   surface-container tone, so a pill takes the overlay tone, as the chips do. One row's height is
+   held while they load, so the chart does not drop when they arrive. */
+.costs-stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-block-size: var(--space-8);
+  /* Out of the head's column sizing: the pills wrap inside the card's width, never widen the grid. */
+  min-inline-size: 0;
+  contain: inline-size;
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.costs-stat {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-overlay);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+  line-height: var(--space-8);
+  white-space: nowrap;
+}
+
+.costs-stat strong {
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ------------------------------------------------------------------ the chart */
@@ -165,6 +185,34 @@
 
 .costs-mark {
   fill: var(--color-accent);
+}
+
+/* The first paint of data grows the columns from the baseline over the enter timing, the settle
+   easing (2026-10-25, the owner). Later draws (a filter, a resize) carry no class, so they hold
+   still. */
+.costs-columns.is-growing .costs-mark {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: costs-grow var(--duration-press-in) var(--ease-out) both;
+}
+
+@keyframes costs-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* Reduced motion: no travel, the columns fade in. */
+@media (prefers-reduced-motion: reduce) {
+  .costs-columns.is-growing .costs-mark {
+    animation-name: costs-fade;
+  }
+
+  @keyframes costs-fade {
+    from {
+      opacity: 0;
+    }
+  }
 }
 
 .costs-columns > .is-active .costs-mark {
@@ -250,14 +298,31 @@
   grid-template-columns: minmax(0, 1fr) auto var(--space-12);
   column-gap: var(--space-4);
   row-gap: var(--space-2);
-  align-items: baseline;
+  align-items: center;
   font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
 }
 
 .costs-rank-name {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
   min-inline-size: 0;
   overflow-wrap: anywhere;
+}
+
+/* A provider's mark, one line tall, in the text's ink. */
+.costs-rank-slot {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  inline-size: var(--space-6);
+}
+
+.costs-rank-mark {
+  inline-size: auto;
+  block-size: calc(var(--space-4) * var(--mark-h, 1));
+  fill: currentColor;
 }
 
 .costs-rank-value {
@@ -359,6 +424,10 @@
 
 .costs-note {
   margin-block-start: var(--space-2);
+}
+
+.costs-note p {
+  margin: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

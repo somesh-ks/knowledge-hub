@@ -2,25 +2,18 @@ import { costsReport, expect, test } from "./fixtures";
 
 /**
  * The Costs page draws from /api/costs (the frozen report in fixtures.ts), whose report is split by
- * the chosen breakdown. A total read as estimated only while the split was by provider (2026-10-22):
- * switching to "By use" lost the providers, and the label changed with it. The label holds across
- * every split.
+ * the chosen breakdown. Switching the split must redraw the breakdown and keep the chart.
  */
-test("the total keeps its label across every breakdown, and the chart and breakdown follow the split", async ({
-  page,
-}) => {
+test("the chart and breakdown follow the split", async ({ page }) => {
   await page.clock.setFixedTime(new Date("2026-10-22T10:00:00Z"));
   await page.goto("/analytics");
-  const label = page.locator("[data-costs-label]");
   const breakdown = page.locator("[data-costs-rank] > li");
   await expect(breakdown).toHaveCount(2);
-  const byProvider = await label.textContent();
   const first = await breakdown.first().textContent();
   await expect(page.locator(".costs-mark")).toHaveCount(2);
 
   await page.locator("#costs-by").selectOption("kind");
   await expect(breakdown.first()).not.toHaveText(first ?? "");
-  await expect(label).toHaveText(byProvider ?? "");
 });
 
 test.describe("when the costs cannot be fetched", () => {

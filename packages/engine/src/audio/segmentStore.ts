@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { EpisodeId, readEpisodeScript } from "@singularity/core";
-import { DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
+import { DEFAULT_LANGUAGE, DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
 
 /**
  * Where a narrated segment lives, shared by the site's /api/narrate (which narrates a segment on
@@ -52,10 +52,13 @@ export const SEGMENT_KEY = /^[a-z0-9]{1,32}$/;
 export const segmentPrefix = (digest: string): string => `audio/${digest}/seg/`;
 
 export function segmentHash(text: string, voice: string, model: string): string {
-  return createHash("sha256")
-    .update(`${voice}\n${model}\n${text}`)
-    .digest("hex")
-    .slice(0, SEGMENT_HASH_CHARS);
+  return (
+    createHash("sha256")
+      // The language is in the key so a segment made before it was pinned is never stitched in.
+      .update(`${voice}\n${model}\n${DEFAULT_LANGUAGE}\n${text}`)
+      .digest("hex")
+      .slice(0, SEGMENT_HASH_CHARS)
+  );
 }
 
 export function segmentPath(digest: string, key: string, hash: string): string {
