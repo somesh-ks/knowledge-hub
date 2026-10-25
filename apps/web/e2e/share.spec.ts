@@ -163,7 +163,7 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   await page.getByRole("button", { name: "Share", exact: true }).click();
   // The dialog shows the link and copies it on request, then says so.
   const dialog = page.getByRole("dialog", { name: "Share link" });
-  await expect(dialog.getByLabel("Link")).toHaveValue(//s//);
+  await expect(dialog.getByLabel("Link")).toHaveValue(/\/s\//);
   await dialog.getByRole("button", { name: "Copy link" }).click();
   await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
   await expect.poll(async () => (await copied()).length).toBe(1);

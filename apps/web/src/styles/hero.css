@@ -508,7 +508,7 @@ dialog.share-dialog:focus-visible {
   width: calc(100% - var(--space-4) * 2);
   height: var(--field-height);
   margin-inline: var(--space-4);
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-surface-container);

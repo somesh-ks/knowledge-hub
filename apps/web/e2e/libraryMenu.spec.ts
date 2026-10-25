@@ -81,7 +81,9 @@ test("pressing a row's three dots moves nothing: not the card, its title or the 
   expect(Math.abs(dots.y + dots.height / 2 - (title.y + 12))).toBeLessThan(8);
 });
 
-test("opening a row's menu leaves the card stack where it was", { tag: "@both" }, async ({ page }) => {
+test("opening a row's menu leaves the card stack where it was", { tag: "@both" }, async ({
+  page,
+}) => {
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const stack = page.locator("[data-library]");
