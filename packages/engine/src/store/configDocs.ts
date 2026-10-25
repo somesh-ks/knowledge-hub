@@ -62,13 +62,47 @@ function isJson(text: string): boolean {
 }
 
 /**
+ * A config file changed in the repo and in the store since the last snapshot. Neither copy may
+ * replace the other without losing an edit, so the run stops before it spends anything.
+ */
+export class ConfigConflict extends Error {
+  readonly paths: readonly string[];
+
+  constructor(paths: readonly string[]) {
+    super(
+      `${paths.join(", ")} changed both in the repo and in the app since the last run. Make the two agree (edit it in the app, or put the app's version in the repo), then run again.`,
+    );
+    this.name = "ConfigConflict";
+    this.paths = paths;
+  }
+}
+
+/**
+ * The file's text at the last snapshot commit (configBase), or null when there is none to compare
+ * against: a store copied before any snapshot carried the trailer, or a file the snapshot lacked.
+ */
+export type ConfigBase = (path: string) => Promise<string | null>;
+
+/**
  * Copy each stored document over its file. A row whose path is not one of CONFIG_DOCUMENT_PATHS is
  * never written (a stray path must not reach `.env`, `Digests/` or outside the checkout), and a row
  * that is not JSON is skipped so the loaders keep the committed file. A file with no row is kept.
- * Returns the paths whose content changed.
+ *
+ * With `base`, a file that differs from its row is compared with the last snapshot first, since a
+ * pull request or a workflow can edit the committed files too (2026-10-25: a stale row overwrote
+ * new queries). Changed in the repo only: the file is written to the store, on the version read,
+ * and kept. Changed in both: ConfigConflict, and nothing is written. Changed in the store only, or
+ * no base: the row is copied, as before. Returns the paths whose file changed and those pushed.
  */
-export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): Promise<string[]> {
-  const changed: string[] = [];
+export async function hydrateConfig(
+  root: string,
+  sql: SqlClient,
+  log: Logger,
+  base?: ConfigBase,
+): Promise<string[]> {
+  const copy: { file: string; document: ConfigDocument }[] = [];
+  const push: DocumentWrite[] = [];
+  const conflicts: string[] = [];
   for (const document of await readConfigDocuments(sql)) {
     if (!KNOWN.has(document.path)) {
       log.warn(`config store: ignored a row for ${JSON.stringify(document.path)}`);
@@ -79,11 +113,32 @@ export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): 
       continue;
     }
     const file = join(root, document.path);
-    if ((await readText(file)) === document.content) continue;
+    const committed = await readText(file);
+    if (committed === document.content) continue;
+    const was = base ? await base(document.path) : null;
+    if (was !== null && committed !== null && committed !== was && isJson(committed)) {
+      if (document.content === was) {
+        push.push({ path: document.path, content: committed, version: document.version });
+      } else {
+        conflicts.push(document.path);
+      }
+      continue;
+    }
+    copy.push({ file, document });
+  }
+  if (conflicts.length > 0) throw new ConfigConflict(conflicts);
+  // All pushed together and only on the versions read: an app edit that lands meanwhile is a
+  // conflict too, and nothing has been copied yet.
+  if (push.length > 0 && !(await writeConfigDocuments(sql, push))) {
+    throw new ConfigConflict(push.map((write) => write.path));
+  }
+  const changed: string[] = [];
+  for (const { file, document } of copy) {
     await writeFileAtomic(file, document.content);
     changed.push(document.path);
   }
-  return changed;
+  for (const write of push) log.info(`config store: ${write.path} taken from the repo`);
+  return [...changed, ...push.map((write) => write.path)];
 }
 
 /**
@@ -93,22 +148,40 @@ export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): 
  */
 const COPIED_MARKER = join(".cache", "config-store.json");
 
-/** Notes whether this run's config came from the store; false removes any note an older run left. */
-export async function markCopiedFromStore(root: string, copied: boolean): Promise<void> {
+/**
+ * Notes whether this run's config came from the store; false removes any note an older run left.
+ * `synced` is noted once hydrateConfig finished, so the files equal the store: only then is the
+ * commit a snapshot that later runs may compare with (configBase).
+ */
+export async function markCopiedFromStore(
+  root: string,
+  copied: boolean,
+  synced = false,
+): Promise<void> {
   const file = join(root, COPIED_MARKER);
   if (!copied) return rm(file, { force: true });
   await mkdir(dirname(file), { recursive: true });
-  await writeFileAtomic(file, `${JSON.stringify({ copied: true })}\n`);
+  await writeFileAtomic(file, `${JSON.stringify(synced ? { copied, synced } : { copied })}\n`);
+}
+
+async function readMarker(root: string): Promise<{ copied?: unknown; synced?: unknown }> {
+  const text = await readText(join(root, COPIED_MARKER)).catch(() => null);
+  try {
+    return text === null ? {} : (JSON.parse(text) as { copied?: unknown; synced?: unknown });
+  } catch {
+    return {};
+  }
 }
 
 /** Whether this run copied the owner's config from the store, so its commit may carry it. */
 export async function copiedFromStore(root: string): Promise<boolean> {
-  const text = await readText(join(root, COPIED_MARKER)).catch(() => null);
-  try {
-    return text !== null && (JSON.parse(text) as { copied?: unknown }).copied === true;
-  } catch {
-    return false;
-  }
+  return (await readMarker(root)).copied === true;
+}
+
+/** Whether the copy finished, so the files this run commits are exactly the store's. */
+export async function syncedWithStore(root: string): Promise<boolean> {
+  const marker = await readMarker(root);
+  return marker.copied === true && marker.synced === true;
 }
 
 async function readText(path: string): Promise<string | null> {

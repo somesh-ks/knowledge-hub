@@ -18,6 +18,12 @@ export const CONFIG_DOCUMENT_PATHS = [
   "state/source-candidates.json",
 ] as const;
 
+/**
+ * The git trailer on a commit that carries a config snapshot: its config files are the store's as
+ * the run copied them. The newest one is the base that tells a repo edit from an app edit.
+ */
+export const SNAPSHOT_TRAILER = "Config-Store: snapshot";
+
 export type ConfigDocumentPath = (typeof CONFIG_DOCUMENT_PATHS)[number];
 
 /** What the store needs from a SQL client: one parameterised query, rows back as objects. */

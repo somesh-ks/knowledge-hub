@@ -192,6 +192,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D184 | Podcast lookback | active |
 | D179 | Every name says Singularity; saved state moves once | active |
 | D182 | Block prompts | active |
+| D185 | Repo config to store | amends D149 |
 
 ---
 
@@ -1953,3 +1954,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: Daily and Weekly each have a Look back row in Episode: since the last episode (the default, no field written) or 12 hours, 1, 2, 3 or 7 days, stored as `lookback_hours` at the top of `config/schedule.json` and in `weekly`. Selection drops a story dated (or, undated, fetched) before the lookback as `too_old`. Catch up and briefings run by hand ignore it.
 - Why: the fetch window (since the last fetch, at most 7 days) decides what is read; the lookback only narrows what airs, so it cannot reach stories the engine never fetched, and an unset field keeps every run as it was.
 - Revisit if: a lookback longer than the fetch window is wanted, which needs the fetch to read further back.
+
+## D185: a config edit made in the repo reaches the store; one made in both stops the run
+
+- Date: 2026-10-25 (the 06:52 UTC weekly: #263 changed `config/queries.json` after the store was seeded, the gate copied the store's older row over it, the commit stage refused the copy and the failure record committed the old queries to `main`)
+- Decision: a run or podcast commit whose gate finished copying the store ends with the trailer `Config-Store: snapshot` (`SNAPSHOT_TRAILER`). When a stored row differs from its file, `hydrateConfig` compares both with the file at the newest such commit (`git/configBase.ts`; before the first, the newest run commit that changed a config file). Changed in the repo only: the file goes to the store on the version read and stays. Changed in both: the gate stops before any spend (`ConfigConflict`), naming the file. Changed in the store only, or no base found: the row is copied, as before. The commit stage's early check allows what the guard allows (`commandAllowlist`).
+- Why: a pull request, `config.yml` or a hand edit can change the committed files while the app edits the store, and the old rule (the store always wins) undid the repo edit without a word. A base tells the two apart without a new column or file; stopping on both edits costs a run, never an edit.
+- Revisit if: a conflict stop happens often enough to want a merge of the two JSON documents.
+

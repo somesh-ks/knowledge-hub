@@ -1,5 +1,5 @@
-import { copiedFromStore } from "../store/configDocs.js";
-import { CONFIG_DOCUMENT_PATHS } from "../store/configPaths.js";
+import { copiedFromStore, syncedWithStore } from "../store/configDocs.js";
+import { CONFIG_DOCUMENT_PATHS, SNAPSHOT_TRAILER } from "../store/configPaths.js";
 import type { ChangedPath, GitCommand } from "./guard.js";
 import {
   ALLOWLISTS,
@@ -89,6 +89,24 @@ function identityFlags(identity: BotIdentity): string[] {
   ];
 }
 
+/**
+ * What `command` may change, and whether that includes the config files. With the config store on
+ * (D149), `run` and `podcast` copy the owner's config from it over the config files at their start,
+ * and their commit is the snapshot that keeps it in git, so those paths are allowed too, when this
+ * run copied them (noted at its start, not read from the switch now). Otherwise it is exactly
+ * ALLOWLISTS. The commit stage's early check asks here too, so it cannot refuse what this allows.
+ */
+export async function commandAllowlist(
+  root: string,
+  command: GitCommand,
+): Promise<{ allowlist: readonly string[]; snapshot: boolean }> {
+  const snapshot = (command === "run" || command === "podcast") && (await copiedFromStore(root));
+  return {
+    allowlist: snapshot ? [...ALLOWLISTS[command], ...CONFIG_DOCUMENT_PATHS] : ALLOWLISTS[command],
+    snapshot,
+  };
+}
+
 function pathsOf(changed: readonly ChangedPath[]): string[] {
   const paths = new Set<string>();
   for (const change of changed) {
@@ -114,15 +132,8 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   const changed = await readChangedPaths(run);
   if (changed.length === 0) return { status: "nothing_to_commit" };
 
-  // With the config store on (D149), `run` and `podcast` copy the owner's config from it over the
-  // config files at their start, and their commit is the snapshot that keeps it in git, so those
-  // paths are allowed too, when this run copied them (noted at its start, not read from the switch
-  // now). Otherwise the allowlist is exactly ALLOWLISTS.
-  const snapshot =
-    (input.command === "run" || input.command === "podcast") && (await copiedFromStore(input.root));
-  const allowlist = snapshot
-    ? [...ALLOWLISTS[input.command], ...CONFIG_DOCUMENT_PATHS]
-    : ALLOWLISTS[input.command];
+  const { allowlist, snapshot } = await commandAllowlist(input.root, input.command);
+  const synced = snapshot && (await syncedWithStore(input.root));
   const offending = findViolations(changed, allowlist);
   if (offending.length === 0 && input.command === "publish") {
     offending.push(...(await findDigestContentViolations({ root: input.root, run, changed })));
@@ -145,7 +156,9 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
     // Literal pathspecs: a file name containing glob characters must not match anything else.
     await gitOutput(run, ["--literal-pathspecs", "add", "-A", "--", ...unstaged]);
   }
-  await gitOutput(run, [...identityFlags(identity), "commit", "-m", input.message]);
+  // The trailer marks the commit whose config files equal the store's (configBase reads it back).
+  const message = synced ? `${input.message}\n\n${SNAPSHOT_TRAILER}` : input.message;
+  await gitOutput(run, [...identityFlags(identity), "commit", "-m", message]);
   const sha = (await gitOutput(run, ["rev-parse", "HEAD"])).trim();
 
   if (!input.push) return { status: "committed", sha, paths };
