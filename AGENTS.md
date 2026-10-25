@@ -29,7 +29,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review before every merge (D143). Open PRs with the `review` label: `claude-code-review.yml` reviews and automerge skips; merge by hand once review lands and findings are fixed. Large changes: run `/code-review` first.
+- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Large changes: run `/code-review` first.
 - TypeScript stays on 6.x.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR. Screenshot open states first.
 - A component changes in the design system, never on one page only: in its shared class, component or token, and its record in the same PR (the usage comment over its class, its ledger line, a new variant in `docs/specs/look-and-sound.md`).
@@ -53,6 +53,6 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 
 Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
-After a large piece of work: clean up scratch files, servers, stashes, and local branches. Review merged diff (`code-review` skill or `review` label), fix findings, and verify Vercel production deployment.
+After a large piece of work: clean up scratch files, servers, stashes, and local branches. Review merged diff (CodeRabbit or code-review skill), fix findings, and verify Vercel production deployment.
 
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
