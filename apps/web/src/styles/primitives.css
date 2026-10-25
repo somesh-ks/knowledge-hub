@@ -254,6 +254,8 @@
  * Markup: class="scroll-fade-inline" on an element with overflow-x: auto, as
  * <div class="costs-table-scroll scroll-fade-inline">, <nav class="tabs scroll-fade-inline">,
  * <ul class="shelf scroll-fade-inline">.
+ * A scroller with a pinned start sets --scroll-fade-inset (default 0px) to the pinned column's
+ * width, so the pin stays whole and the fade begins at its edge (the Costs table's dates, 2026-10-24).
  */
 @property --scroll-fade-start {
   syntax: "<length>";
@@ -270,15 +272,17 @@
 .scroll-fade-inline {
   mask-image: linear-gradient(
     to right,
-    transparent 0px,
-    black var(--scroll-fade-start),
+    black 0 var(--scroll-fade-inset, 0px),
+    transparent var(--scroll-fade-inset, 0px),
+    black calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-start)),
     black calc(100% - var(--scroll-fade-end)),
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to right,
-    transparent 0px,
-    black var(--scroll-fade-start),
+    black 0 var(--scroll-fade-inset, 0px),
+    transparent var(--scroll-fade-inset, 0px),
+    black calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-start)),
     black calc(100% - var(--scroll-fade-end)),
     transparent 100%
   );
