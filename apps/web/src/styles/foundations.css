@@ -43,9 +43,7 @@
   }
 }
 
-@media (display-mode: standalone) and (pointer: coarse) and (width >= 40rem) and (
-    min-height: 40rem
-  ) {
+@media (display-mode: standalone) and (pointer: coarse) and (width >= 40rem) and (min-height: 40rem) {
   :root {
     --window-controls-inset: var(--layout-window-controls);
   }
