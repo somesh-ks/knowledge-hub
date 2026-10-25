@@ -1,28 +1,26 @@
 /**
  * The Structure view on the Preferences page (D170, docs/design/podcast-structure.md "The screen"):
- * a tab for each podcast kind, its blocks as rows, Add and Reorder under them. A row moves by its
+ * the listener profile's select, the one list of blocks as rows, Add and Reorder under them. A row moves by its
  * dots (Move up, Move down) or, once Reorder is pressed, by its grip (pulled with a finger or a mouse,
  * or the arrow keys), and Edit opens the
  * block's sheet: its depth, its stories, how many may come from one source (a rule code holds it
  * to), a close's length, an owner block's title and brief, and, closed
- * under Writing instructions, the block's prompt in this kind (D182). Every change saves
- * itself as the topics editor's do (autosave.ts, D115): a kind's blocks go as one structure.set and a
+ * under Writing instructions, the block's prompt (D182). Every change saves
+ * itself as the topics editor's do (autosave.ts, D115): the profile and blocks go as one structure.set and a
  * prompt as one structure.prompt; a removal leaves at once and waits with Undo (D142).
  *
  * Loaded by topicsPage.ts when the view first shows, after the store and this device's saved edits
  * have been read, so the list starts from what is saved, not from the build.
  */
-import type { StructureBlock, StructureKind } from "@singularity/core";
+import type { NamedProfile, StructureBlock, StructureProfile } from "@singularity/core";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import {
   addOffers,
   blockName,
   builtinPrompt,
-  fitLine,
   insertAt,
   isFrame,
   isStoryBlock,
-  KIND_LABEL,
   moved,
   promptKey,
   rowsHtml,
@@ -39,16 +37,6 @@ import { mountAutosave } from "./autosave";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { MAX_BODY_CHARS, type Pending } from "./managePageSave";
 import { sheetGestures } from "./pullDismiss";
-import { mountSegmentedNav, selectTab } from "./segmentedNav";
-
-const KINDS: readonly StructureKind[] = ["daily", "weekly", "catch_up"];
-
-/**
- * A kind as one of the literals, never the address's or a control's own text, so nothing typed
- * into the URL or the page reaches the rows' markup.
- */
-const kindOf = (value: string | null): StructureKind =>
-  value === "weekly" ? "weekly" : value === "catch_up" ? "catch_up" : "daily";
 
 /** A block as the page holds it, with the defaults a stored op may leave out filled in. */
 function normal(block: StructureBlock): StructureBlock {
@@ -65,7 +53,6 @@ const canonical = (block: StructureBlock): string =>
 const same = (a: StructureBlock, b: StructureBlock): boolean => canonical(a) === canonical(b);
 
 interface Removal {
-  kind: StructureKind;
   block: StructureBlock;
   index: number;
 }
@@ -77,28 +64,30 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   const list = pane.querySelector<HTMLOListElement>("[data-structure-list]");
   const addButton = pane.querySelector<HTMLButtonElement>(".structure-add > .btn-secondary");
   const addItems = pane.querySelector<HTMLElement>("#structure-add-menu .menu-sheet-items");
-  const fit = root.querySelector<HTMLElement>("[data-structure-fit]");
+  const profileSelect = pane.querySelector<HTMLSelectElement>("#structure-profile");
+  const confirm = pane.querySelector<HTMLElement>("[data-profile-confirm]");
   const live = root.querySelector<HTMLElement>("[data-live]");
-  if (!data || !list || !addButton || !addItems) return;
+  if (!data || !list || !addButton || !addItems || !profileSelect || !confirm) return;
 
   // What the store holds and this device saved since the build, laid over what the page was built with.
   const ops: ConfigOp[] =
     hasSaved() || storeOn()
       ? await import("./savedView").then((module) => module.readSaved()).catch(() => [])
       : [];
-  const blocks = {} as Record<StructureKind, StructureBlock[]>;
-  const prompts = {} as Record<StructureKind, Record<string, string>>;
-  for (const kind of KINDS) {
-    blocks[kind] = data.blocks[kind].map(normal);
-    prompts[kind] = { ...data.prompts[kind] };
-  }
+  let profile: StructureProfile = data.profile;
+  let blocks = data.blocks.map(normal);
+  const prompts: Record<string, string> = { ...data.prompts };
   for (const op of ops) {
-    if (op.op === "structure.set") blocks[op.kind] = (op.blocks as StructureBlock[]).map(normal);
+    if (op.op === "structure.set") {
+      profile = op.profile;
+      blocks = (op.blocks as StructureBlock[]).map(normal);
+    }
     if (op.op === "structure.prompt") {
-      if (op.prompt === null) delete prompts[op.kind][op.key];
-      else prompts[op.kind][op.key] = op.prompt;
+      if (op.prompt === null) delete prompts[op.key];
+      else prompts[op.key] = op.prompt;
     }
   }
+  profileSelect.value = profile;
   const skip: SkipLists = skipAfter(data.skip, ops);
 
   // ------------------------------------------------------------------------------- recording
@@ -120,21 +109,26 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     if (now === el.dataset.was) changes.delete(key);
     else changes.set(key, { op, el, now });
   };
-  const savedBlocks = Object.fromEntries(
-    KINDS.map((kind) => [kind, JSON.stringify(blocks[kind])]),
-  ) as Record<StructureKind, string>;
-  const recordBlocks = (kind: StructureKind): void =>
-    record(`structure:${kind}`, savedBlocks[kind], JSON.stringify(blocks[kind]), {
+  const stateOf = (): string => JSON.stringify({ profile, blocks });
+  const savedBlocks = stateOf();
+  const recordBlocks = (): void =>
+    record("structure", savedBlocks, stateOf(), {
       op: "structure.set",
-      kind,
-      blocks: structuredClone(blocks[kind]),
+      profile,
+      blocks: structuredClone(blocks),
     });
+  /** An edit of the list, or of its order, is the owner's own list: the select says Custom. */
+  const editedList = (): void => {
+    profile = "custom";
+    profileSelect.value = "custom";
+    confirm.hidden = true;
+    recordBlocks();
+  };
   const savedPrompts = structuredClone(prompts);
-  const recordPrompt = (kind: StructureKind, key: string): void => {
-    const now = prompts[kind][key] ?? null;
-    record(`prompt:${kind}:${key}`, savedPrompts[kind][key] ?? "", now ?? "", {
+  const recordPrompt = (key: string): void => {
+    const now = prompts[key] ?? null;
+    record(`prompt:${key}`, savedPrompts[key] ?? "", now ?? "", {
       op: "structure.prompt",
-      kind,
       key,
       prompt: now,
     });
@@ -146,11 +140,11 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     changes,
     () => {
       // A removal sent is no longer one to undo.
-      removals = removals.filter((removal) => changes.has(`structure:${removal.kind}`));
+      removals = removals.filter(() => changes.has("structure"));
     },
     {
       removing() {
-        const waiting = removals.filter((removal) => changes.has(`structure:${removal.kind}`));
+        const waiting = removals.filter(() => changes.has("structure"));
         if (waiting.length === 0) return null;
         return waiting.length === 1
           ? `Removing ${blockName(waiting[0]?.block as StructureBlock, data.sections)}`
@@ -159,11 +153,10 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       undo() {
         const back = removals.reverse();
         removals = [];
-        for (const { kind: from, block, index } of back) {
-          const kept = blocks[from];
-          if (kept.some((each) => same(each, block))) continue;
-          kept.splice(Math.min(Math.max(index, 1), kept.length - 1), 0, block);
-          recordBlocks(from);
+        for (const { block, index } of back) {
+          if (blocks.some((each) => same(each, block))) continue;
+          blocks.splice(Math.min(Math.max(index, 1), blocks.length - 1), 0, block);
+          editedList();
         }
         render();
         say("Put back.");
@@ -174,24 +167,15 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   // ------------------------------------------------------------------------------- drawing
 
-  const chosen = new URLSearchParams(location.search).get("kind");
-  let kind: StructureKind = kindOf(chosen);
-  const kindTabs = pane.querySelector<HTMLElement>(".structure-kinds");
-  const panel = pane.querySelector<HTMLElement>("[data-structure-panel]");
-  if (kindTabs) selectTab(kindTabs, kind);
-
   const say = (message: string): void => {
     if (live) live.textContent = message;
   };
 
-  /** Draws the kind's rows, its Add list and the line under the card; focus goes to `focus`'s row. */
+  /** Draws the rows and its Add list; focus goes to `focus`'s row. */
   const render = (focus?: { index: number; part: "more" | "edit" | "grip" }): void => {
-    const rows = blocks[kind];
-    list.innerHTML = rowsHtml(kind, rows, data, skip);
-    list.setAttribute("aria-label", `${KIND_LABEL[kind]} blocks`);
-    panel?.setAttribute("aria-labelledby", `structure-kind-${kind}`);
-    if (fit) fit.textContent = fitLine(kind, rows, data.sections, skip);
-    const offers = addOffers(kind, rows, data.sections);
+    const rows = blocks;
+    list.innerHTML = rowsHtml(rows, data, skip);
+    const offers = addOffers(rows, data.sections);
     addItems.replaceChildren(
       ...offers.map((offer) => {
         const button = document.createElement("button");
@@ -222,45 +206,77 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   // ------------------------------------------------------------------------------- changes
 
-  const bodyCount = (): number => blocks[kind].length - 2;
+  const bodyCount = (): number => blocks.length - 2;
 
   /** `part` takes focus after the move; a pointer's drop leaves focus where it was (null). */
   const move = (from: number, to: number, part: "more" | "grip" | null = "more"): void => {
-    const next = moved(blocks[kind], from, to);
-    if (JSON.stringify(next) === JSON.stringify(blocks[kind])) return;
-    const block = blocks[kind][from] as StructureBlock;
-    blocks[kind] = next;
-    recordBlocks(kind);
+    const next = moved(blocks, from, to);
+    if (JSON.stringify(next) === JSON.stringify(blocks)) return;
+    const block = blocks[from] as StructureBlock;
+    blocks = next;
+    editedList();
     render(part === null ? undefined : { index: to, part });
     say(`${blockName(block, data.sections)}, ${to} of ${bodyCount()}`);
     autosave.changed();
   };
 
   const remove = (index: number): void => {
-    const block = blocks[kind][index];
+    const block = blocks[index];
     if (!block || isFrame(block) || bodyCount() <= 1) return;
-    removals.push({ kind, block, index });
-    blocks[kind] = blocks[kind].filter((_, at) => at !== index);
-    recordBlocks(kind);
-    render({ index: Math.min(index, blocks[kind].length - 2), part: "more" });
+    removals.push({ block, index });
+    blocks = blocks.filter((_, at) => at !== index);
+    editedList();
+    render({ index: Math.min(index, blocks.length - 2), part: "more" });
     autosave.changed();
   };
 
   const add = (block: StructureBlock): void => {
-    const at = insertAt(blocks[kind], block);
-    blocks[kind] = [...blocks[kind].slice(0, at), block, ...blocks[kind].slice(at)];
-    recordBlocks(kind);
+    const at = insertAt(blocks, block);
+    blocks = [...blocks.slice(0, at), block, ...blocks.slice(at)];
+    editedList();
     render({ index: at, part: "more" });
     say(`${blockName(block, data.sections)} added, ${at} of ${bodyCount()}`);
     autosave.changed();
   };
 
-  // The kind's tabs keep their choice in the address (?kind=, segmentedNav.ts), so a reload finds it.
-  if (kindTabs)
-    mountSegmentedNav(kindTabs, (value) => {
-      kind = kindOf(value);
-      render();
-    });
+  // A named profile replaces the list with its preset; the owner's own list is only given up after
+  // asking, in the page (no window.confirm). Custom keeps the list as it stands.
+  let asked: NamedProfile | null = null;
+  const label = (id: string): string =>
+    profileSelect.querySelector(`option[value="${id}"]`)?.textContent ?? id;
+  const chooseProfile = (next: StructureProfile): void => {
+    profile = next;
+    if (next !== "custom") blocks = data.presets[next].map(normal);
+    profileSelect.value = next;
+    confirm.hidden = true;
+    asked = null;
+    recordBlocks();
+    render();
+    say(`${label(next)} profile.`);
+    autosave.changed();
+  };
+  profileSelect.addEventListener("change", () => {
+    const chosen = profileSelect.value as StructureProfile;
+    if (chosen === profile) return;
+    if (chosen === "custom" || profile !== "custom") {
+      chooseProfile(chosen);
+      return;
+    }
+    asked = chosen;
+    profileSelect.value = profile;
+    const text = confirm.querySelector("[data-profile-confirm-text]");
+    if (text) text.textContent = `Replace your list with the ${label(chosen)} profile?`;
+    confirm.hidden = false;
+    confirm.querySelector<HTMLElement>("[data-profile-replace]")?.focus({ preventScroll: true });
+  });
+  confirm.querySelector("[data-profile-replace]")?.addEventListener("click", () => {
+    if (asked !== null) chooseProfile(asked);
+  });
+  confirm.querySelector("[data-profile-keep]")?.addEventListener("click", () => {
+    asked = null;
+    confirm.hidden = true;
+    profileSelect.focus({ preventScroll: true });
+  });
 
   // Reorder shows the grips and hides the dots and Add; Done puts them back. Outside it a row has
   // no handle, so nothing a finger does by chance moves a block (owner, 2026-10-24).
@@ -290,9 +306,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
         openSheet(null, addButton);
         return;
       }
-      const block = addOffers(kind, blocks[kind], data.sections).find(
-        (each) => each.key === offer,
-      )?.block;
+      const block = addOffers(blocks, data.sections).find((each) => each.key === offer)?.block;
       if (block) add(block);
       return;
     }
@@ -443,17 +457,16 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     const template = document.querySelector<HTMLTemplateElement>("#structure-sheet-template");
     const sheet = template?.content.firstElementChild?.cloneNode(true) as HTMLDialogElement | null;
     if (!sheet) return;
-    const editing = kind;
     const adding = index === null;
     const block: StructureBlock = adding
       ? { type: "custom", title: "", brief: "" }
-      : (blocks[editing][index] as StructureBlock);
+      : (blocks[index] as StructureBlock);
     const one = <T extends Element>(selector: string): T => sheet.querySelector(selector) as T;
     const part = (name: string, shown: boolean): void => {
       const el = sheet.querySelector<HTMLElement>(`[data-part="${name}"]`);
       if (el) el.hidden = !shown;
     };
-    const builtin = builtinPrompt(data, editing, block);
+    const builtin = builtinPrompt(data, block);
     const key = promptKey(block);
     const stories = storiesOf(block);
     one<HTMLElement>("[data-sheet-title]").textContent = adding
@@ -506,7 +519,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     };
     if (builtin !== null) {
       prompt.maxLength = 6000;
-      prompt.value = prompts[editing][key] ?? builtin;
+      prompt.value = prompts[key] ?? builtin;
       counted();
       prompt.addEventListener("input", counted);
       one<HTMLButtonElement>("[data-reset]").addEventListener("click", () => {
@@ -549,7 +562,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     };
     const fitsOneRequest = (): boolean => {
       const text = promptNow();
-      const op = { op: "structure.prompt", kind: editing, key, prompt: text };
+      const op = { op: "structure.prompt", key, prompt: text };
       const fits = text === null || JSON.stringify({ op }).length <= MAX_BODY_CHARS;
       error("prompt", !fits);
       // The message is inside the closed section: open it, so it is seen.
@@ -565,27 +578,27 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       done = true;
       let at = index ?? -1;
       let changed = false;
-      const kindBlocks = blocks[editing];
+      const current = blocks;
       if (adding) {
-        at = insertAt(kindBlocks, next);
-        blocks[editing] = [...kindBlocks.slice(0, at), next, ...kindBlocks.slice(at)];
-        recordBlocks(editing);
+        at = insertAt(current, next);
+        blocks = [...current.slice(0, at), next, ...current.slice(at)];
+        editedList();
         changed = true;
-        say(`${blockName(next, data.sections)} added, ${at} of ${blocks[editing].length - 2}`);
+        say(`${blockName(next, data.sections)} added, ${at} of ${blocks.length - 2}`);
       } else if (!same(next, block)) {
-        blocks[editing] = kindBlocks.map((each, position) => (position === at ? next : each));
-        recordBlocks(editing);
+        blocks = current.map((each, position) => (position === at ? next : each));
+        editedList();
         changed = true;
       }
       const text = promptNow();
-      if (builtin !== null && text !== (prompts[editing][key] ?? null)) {
-        if (text === null) delete prompts[editing][key];
-        else prompts[editing][key] = text;
-        recordPrompt(editing, key);
+      if (builtin !== null && text !== (prompts[key] ?? null)) {
+        if (text === null) delete prompts[key];
+        else prompts[key] = text;
+        recordPrompt(key);
         changed = true;
       }
       if (changed) {
-        if (editing === kind) render();
+        render();
         autosave.changed();
       }
       focusAt = at;
@@ -620,8 +633,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
         if (!done && !adding) apply();
         unfit();
         removeEventListener("singularity:back", onBack);
-        const row =
-          focusAt >= 0 && editing === kind ? list.querySelector(`[data-index="${focusAt}"]`) : null;
+        const row = focusAt >= 0 ? list.querySelector(`[data-index="${focusAt}"]`) : null;
         const back =
           row?.querySelector<HTMLElement>(".structure-more, .structure-edit") ??
           (trigger?.isConnected ? trigger : addButton);

@@ -1,5 +1,5 @@
 ---
-import { MIX_STOPS, SOURCE_FORMATS, STRUCTURE_KINDS } from "@singularity/core";
+import { MIX_STOPS, PROFILE_LABEL, SOURCE_FORMATS, STRUCTURE_PROFILES } from "@singularity/core";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import MenuSheet from "../../components/MenuSheet.astro";
@@ -11,7 +11,7 @@ import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
-import { addOffers, fitLine, KIND_LABEL, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
+import { addOffers, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
@@ -33,11 +33,11 @@ const rows = formats.map((format) => ({
   custom: { stops, op: { op: "mix.set", format_mix: {} }, field: `format_mix.${format}` },
 }));
 
-// The podcast structure (D170): each kind's blocks, drawn here for Daily and again by the editor
-// (structureEditor.ts) from the same markup once the store and this device's edits are read.
+// The podcast structure (D170): the listener profile and the one list of blocks every podcast
+// follows, drawn here and again by the editor (structureEditor.ts) from the same markup once the
+// store and this device's edits are read.
 const structure = await loadStructureData(topics, sections, await loadScheduleView());
-const firstKind = "daily";
-const offers = addOffers(firstKind, structure.blocks[firstKind], structure.sections);
+const offers = addOffers(structure.blocks, structure.sections);
 ---
 
 <BaseLayout title="Preferences" view="settings" skipLabel="Skip to preferences">
@@ -103,26 +103,24 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
               aria-labelledby="pref-tab-structure"
               data-structure={JSON.stringify(structure)}
             >
-              {/* Three views of one list, so tabs, not chips: chips read as filters (owner, 2026-10-24).
-                   Reorder sits at the strip's end, in reach above the list however long it is. */}
+              {/* The profile picks the list: a select, in the Daily and Weekly pages' row (owner,
+                   2026-10-25). Editing a block or the order switches it to Custom. Reorder sits at
+                   the row's end, in reach above the list however long it is. */}
               <div class="structure-kinds-bar">
-                <div class="tabs tabs-in-card structure-kinds" role="tablist" aria-label="Podcast" data-param="kind">
-                  {
-                    STRUCTURE_KINDS.map((kind) => (
-                      <button
-                        class="tab"
-                        type="button"
-                        role="tab"
-                        id={`structure-kind-${kind}`}
-                        aria-controls="structure-panel"
-                        aria-selected={kind === firstKind ? "true" : "false"}
-                        tabindex={kind === firstKind ? 0 : -1}
-                        data-value={kind}
-                      >
-                        {KIND_LABEL[kind]}
-                      </button>
-                    ))
-                  }
+                <div class="rows topic-controls structure-profile">
+                  <div class="settings-row">
+                    <label class="settings-label" for="structure-profile">Profile</label>
+                    <span class="manage-select value-select">
+                      <select class="manage-input" id="structure-profile" autocomplete="off" data-needs-js>
+                        {
+                          STRUCTURE_PROFILES.map((id) => (
+                            <option value={id} selected={id === structure.profile}>{PROFILE_LABEL[id]}</option>
+                          ))
+                        }
+                      </select>
+                      <Icon name="chevronDown" />
+                    </span>
+                  </div>
                 </div>
                 {/* The grips show only after Reorder is pressed, so a stray drag down the page never
                     moves a block (owner, 2026-10-24: "I'm worried about accidental reorders"). Here
@@ -133,14 +131,20 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
                 </button>
               </div>
               <p class="sr-only" id="structure-grip-hint">Drag to move, or press the up and down arrow keys.</p>
-              <div role="tabpanel" id="structure-panel" aria-labelledby={`structure-kind-${firstKind}`} data-structure-panel>
-                <ol
-                  class="rows topic-controls structure-list"
-                  aria-label={`${KIND_LABEL[firstKind]} blocks`}
-                  data-structure-list
-                  set:html={rowsHtml(firstKind, structure.blocks[firstKind], structure, structure.skip)}
-                ></ol>
+              {/* Asked in the page, not with window.confirm: choosing a profile over the owner's own list. */}
+              <div class="structure-confirm" role="group" aria-label="Replace your list" data-profile-confirm hidden>
+                <p class="settings-hint" data-profile-confirm-text></p>
+                <div class="structure-confirm-actions">
+                  <button class="btn-secondary" type="button" data-profile-keep>Keep my list</button>
+                  <button class="btn-secondary" type="button" data-profile-replace>Replace</button>
+                </div>
               </div>
+              <ol
+                class="rows topic-controls structure-list"
+                aria-label="Structure blocks"
+                data-structure-list
+                set:html={rowsHtml(structure.blocks, structure, structure.skip)}
+              ></ol>
               <div class="structure-add" style="--row-anchor: --structure-add">
                 <button
                   class="btn-secondary"
@@ -166,9 +170,6 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
               </div>
             </section>
           </div>
-          <p class="manage-quiet structure-fit pref-view-structure" data-structure-fit>
-            {fitLine(firstKind, structure.blocks[firstKind], structure.sections, structure.skip)}
-          </p>
         </div>
       </fieldset>
       <ManageChrome />
@@ -189,7 +190,7 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
 
     {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's
          sheet (full screen on a phone, a side panel from 40rem). Each part shows for the blocks that
-         have it; the prompt is the kind's own (the owner chose one per kind, D182). */}
+         have it; the prompt is the block's own (D182). */}
     <template id="structure-sheet-template">
       <dialog class="create-sheet regen-sheet topics-panel structure-sheet" aria-labelledby="structure-sheet-title">
         <SheetHeader

@@ -6,6 +6,7 @@
  */
 
 import { hasSaved, storeOn } from "../lib/savedKey";
+import { activeSummary } from "../lib/settingsSummary";
 import { drawStop } from "../lib/weightStops";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
@@ -101,6 +102,27 @@ function mount(root: HTMLElement): void {
         show(chosen);
         if (chosen === "structure") loadStructure();
       });
+    });
+  }
+
+  // The line over the sources counts the rows that are on, so it follows a switch, an added row and
+  // a removed one.
+  const status = root.querySelector<HTMLElement>("[data-sources-status]");
+  const sources = root.querySelector<HTMLElement>("ul[data-sources]:not([data-added])");
+  if (status && sources) {
+    const count = (): void => {
+      const rows = [...sources.querySelectorAll<HTMLElement>("li.source-row:not([data-gone])")];
+      const on = rows.filter(
+        (row) => row.querySelector<HTMLInputElement>("input[data-field=enabled]")?.checked,
+      );
+      status.textContent = activeSummary(rows.length, on.length);
+    };
+    root.addEventListener("change", count);
+    new MutationObserver(count).observe(sources, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-gone"],
     });
   }
 

@@ -1,10 +1,9 @@
 import {
   isGeneralTopicId,
   MIX_STOPS,
-  STRUCTURE_KINDS,
   type StructureBlock,
   StructureFile,
-  type StructureKind,
+  type StructureProfile,
   storedStructure,
 } from "@singularity/core";
 import { blockedDomainsIn } from "../lib/blockedProfile";
@@ -260,57 +259,43 @@ function blockedOps(built: string[], stored: string[]): ConfigOp[] {
   ];
 }
 
-/** Each podcast kind's stored blocks (D170), or null where it runs on its defaults. */
-export type StructureView = Record<StructureKind, StructureBlock[] | null>;
+/** The one structure every podcast follows (D170): the profile and its stored blocks, or null on the defaults. */
+export type StructureView = { profile: StructureProfile; blocks: StructureBlock[] } | null;
 
-/** The structure file as each kind's blocks; a missing or malformed file is all defaults. */
+/** The structure file as its profile and blocks; a missing or malformed file is the defaults. */
 export function structureViewOf(json: unknown): StructureView {
   const parsed = StructureFile.safeParse(json);
   const file = parsed.success ? parsed.data : null;
-  return {
-    daily: storedStructure(file, "daily"),
-    weekly: storedStructure(file, "weekly"),
-    catch_up: storedStructure(file, "catch_up"),
-  };
+  const blocks = storedStructure(file);
+  return blocks === null ? null : { profile: file?.profile ?? "custom", blocks };
 }
 
-/** The owner's block prompts (D182) by kind; a missing or malformed file has none. */
-export type PromptView = Record<StructureKind, Record<string, string>>;
+/** The owner's block prompts (D182) by key; a missing or malformed file has none. */
+export type PromptView = Record<string, string>;
 
 export function promptViewOf(json: unknown): PromptView {
   const parsed = StructureFile.safeParse(json);
-  const prompts = parsed.success ? parsed.data.prompts : undefined;
-  return {
-    daily: { ...(prompts?.daily ?? {}) },
-    weekly: { ...(prompts?.weekly ?? {}) },
-    catch_up: { ...(prompts?.catch_up ?? {}) },
-  };
+  return { ...(parsed.success ? parsed.data.prompts : undefined) };
 }
 
 /** A structure.prompt for each block prompt the store set, changed or put back since the build. */
 function promptOps(built: PromptView, stored: PromptView): ConfigOp[] {
-  return STRUCTURE_KINDS.flatMap((kind): ConfigOp[] => {
-    const keys = [...new Set([...Object.keys(built[kind]), ...Object.keys(stored[kind])])].sort();
-    return keys.flatMap((key): ConfigOp[] => {
-      const prompt = stored[kind][key] ?? null;
-      return prompt === (built[kind][key] ?? null)
-        ? []
-        : [{ op: "structure.prompt", kind, key, prompt }];
-    });
+  const keys = [...new Set([...Object.keys(built), ...Object.keys(stored)])].sort();
+  return keys.flatMap((key): ConfigOp[] => {
+    const prompt = stored[key] ?? null;
+    return prompt === (built[key] ?? null) ? [] : [{ op: "structure.prompt", key, prompt }];
   });
 }
 
 /**
- * A structure.set for each kind whose stored blocks differ from the build's. A kind the store has
- * put back on its defaults sends none: the op cannot say "defaults", and no page shows it yet.
+ * A structure.set when the stored profile or blocks differ from the build's. A store put back on
+ * the defaults sends none: the op cannot say "defaults", and no page shows it yet.
  */
 function structureOps(built: StructureView, stored: StructureView): ConfigOp[] {
-  return STRUCTURE_KINDS.flatMap((kind): ConfigOp[] => {
-    const blocks = stored[kind];
-    return blocks === null || same(built[kind], blocks)
-      ? []
-      : [{ op: "structure.set", kind, blocks }];
-  });
+  if (stored === null) return [];
+  if (built !== null && built.profile === stored.profile && same(built.blocks, stored.blocks))
+    return [];
+  return [{ op: "structure.set", profile: stored.profile, blocks: stored.blocks }];
 }
 
 interface ConfigView {

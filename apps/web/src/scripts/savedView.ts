@@ -512,8 +512,8 @@ function recount(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
   let shown = false;
   for (const row of rows) {
     const page = row.dataset.page ?? "";
-    const { total, on } = sourceCounts(spots, page);
-    const text = sourcesSummary({ total, on, never: row.dataset.never !== undefined });
+    const { total } = sourceCounts(spots, page);
+    const text = sourcesSummary({ total, never: row.dataset.never !== undefined });
     const hint = row.querySelector("[data-hint]");
     // The built line may carry the template's own spaces: a line that reads the same is no change.
     if (!hint || hint.textContent?.trim() === text) continue;

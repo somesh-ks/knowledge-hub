@@ -197,6 +197,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
 | D189 | Catalogue route | active |
+| D190 | Votes tune weights | amends D108, D118 |
+| D191 | Structure by profile | amends D170, D176 |
 
 ---
 
@@ -2000,3 +2002,19 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: Storybook with `@storybook-astro/framework` (a second build and dev server, a story per component); zeroheight and Supernova (Figma sync and team governance this project does not have); Backlight (shut down 2025-06-01).
 - Revisit if: a second app consumes the styles (then lift them into a workspace package under `packages/`), or the catalogue needs knobs and isolation per state (then try Storybook on a branch first).
 
+
+## D190: votes tune topic weights and source scores through a bounded, decaying adjustment
+
+- Date: 2026-10-25 (the owner: "make sure topics evolve as models generate new podcasts. This should be refined and intelligently managed").
+- Decision: a story vote moves an `auto_adjust` on its topic and its source in the owner's profile (`packages/core/src/autoAdjust.ts`, applied in `profile/autoAdjust.ts` by the same `profile.vote` op that stores the vote): 0.02 a vote, within plus or minus 0.2, halving over 30 days without votes, sources at a quarter of the step. Scoring reads the owner's weight plus the decayed adjustment (Off stays Off); the weight itself is never written. A weight row with a live adjustment says "Adjusted" (`lib/topicAdjust.ts`, WeightRow).
+- Why: D108 kept votes out of weights so a bad week could not rewrite the owner's choices; a separate, bounded, decaying term keeps that guarantee and still lets the mix follow what the owner likes. The constants are first guesses, named in one place for tuning against real data.
+- Rejected: writing the adjustment into the weight (the owner's setting would drift under them); a separate learn step (the vote op already runs on every batch and commits through the config store, D185).
+- Revisit if: two weeks of votes show the step or the cap moving a topic further than the owner meant, or Jev's taste answer (D118) and this term pull apart.
+
+## D191: one podcast structure, chosen by listener profile, sized to the episode's length
+
+- Date: 2026-10-25 (the owner: "have one global structure of the podcast instead of daily, weekly, catch up"; "the current podcast structure is very focused on design engineers. If you can add a profile selector in preferences settings page").
+- Decision: `config/structure.json` holds one block list for every podcast type, `{version: 1, profile, blocks, prompts}`; a Profile select on `/settings/preferences` (Artist, Designer, Founder, General, Journalist, Product Manager, Researcher, Software Engineer, Student, then Custom) loads a preset list, and any edit turns the profile Custom and keeps the list. The engine applies the one structure and scales each block's count by the episode's length over ten minutes (`score/sectionPlan.ts`). Daily and Weekly show the profile as a disabled select with "Set once for every podcast in Preferences" linking there. The old per-kind shape reads as Custom (the daily list, else the first present) and the next save rewrites it.
+- Why: three lists said the same thing three times and read as a design-engineering product; a profile names the listener, and the length already says how much a block holds.
+- Rejected: a profile per podcast type (the owner asked for one global structure); hiding the Catch up frame rows (the owner keeps Hello and Sign-off listed for their prompts, D170).
+- Revisit if: a type needs a block the others must not have (then a per-type override on top of the profile, not a second list).
