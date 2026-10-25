@@ -582,7 +582,7 @@ Each is a chat ask with no later record of being built or dropped. Check the cod
 - The New episode button at the navigation items' size (owner list of 2026-10-12).
 - Voice preview inside the New episode form (2026-10-12).
 - "Narration is not available", reported 2026-10-12 and never diagnosed.
-- Regenerate replacing the item in place while it runs, a menu for built-in topics, and Listen now switching itself on (2026-10-13).
+- Regenerate replacing the item in place while it runs, a menu for built-in topics, and Listen now switching itself on (2026-10-13). Then (owner, 2026-10-25): Listen now read as a link, sharing Details' slot; it is now the shared `.btn-primary` in its own grid row (`create-sheet.css .run-play`), Details the shared `.text-link` (`.run-details`), and neither carries the other's classes.
 - General chips unticked by default, waiting on an answer from the owner (2026-10-13).
 - From the PWA audit of 2026-10-16 (D123), each the owner's call: offline listening of the latest few recordings, iOS startup images in both themes, an iPhone check of the light theme's status bar, and a Gallery and List morph.
 - QA defects from 2026-10-08: a Play tap before hydration lost on a phone, a 429 that shows no wait time, focus on opening the expanded player, and "5 min" repeated in an episode's meta. Status unknown.

@@ -714,7 +714,12 @@ dialog.create-sheet .create-submit > .btn-primary {
   color: var(--color-danger);
 }
 
-.run-link {
+/* Two components in two slots (2026-10-25 owner report: Listen now read as a link). Open Library and
+   Details are text links: Details is the shared .text-link, .run-details only places and colours it.
+   Listen now is the shared .btn-primary, .run-play only sizes it to the card; neither carries the
+   other's classes. */
+.run-link,
+.run-details {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -726,12 +731,14 @@ dialog.create-sheet .create-submit > .btn-primary {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .run-link:hover {
+  .run-link:hover,
+  .run-details:hover {
     text-decoration: underline;
   }
 }
 
-.run-link:active {
+.run-link:active,
+.run-details:active {
   color: var(--color-accent-pressed);
   text-decoration: underline;
 }
@@ -739,6 +746,14 @@ dialog.create-sheet .create-submit > .btn-primary {
 .run-dismiss,
 .run-retry {
   flex: none;
+}
+
+/* The filled button at its own width: the block button's full width would fill the card. */
+.run-play {
+  flex: none;
+  width: auto;
+  /* Inside the card's fixed 3rem line, with room left for the bar along its edge. */
+  min-height: var(--size-touch);
 }
 
 /* The bar: a track and a fill that is a share of it. runStatus.ts sets --run-to (0 to 1) and
@@ -800,6 +815,7 @@ html[data-player="open"] .run-status {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "text text"
+      "play play"
       "extra close";
     align-items: center;
     gap: 0 var(--space-2);
@@ -824,9 +840,17 @@ html[data-player="open"] .run-status {
     grid-area: close;
   }
 
-  .run-link {
+  .run-link,
+  .run-details {
     grid-area: extra;
     justify-self: start;
+  }
+
+  /* Its own row above the link, so the button and the Details link never share a slot. */
+  .run-play {
+    grid-area: play;
+    justify-self: start;
+    margin-block: var(--space-2);
   }
 
   /* Try again shares the link's place (they never show together); its words line up with the
