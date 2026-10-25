@@ -104,8 +104,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
 - 2026-10-08: `npx` can stall a minute before a local binary runs: read its output, do not rerun it. A full disk was another project's temp folder: measure before deleting.
 
-- 2026-10-25: Windows has no flag emoji: two regional-indicator letters render as plain letters in every browser there. Flags are SVG from a sprite (`public/flags.svg`); a locale with no flag gets a letter badge.
-- 2026-10-25: Playwright wanted Chromium 1248 while 1243 was cached, and a worker read that as "no browser installed". An untracked `playwright.override.config.ts` beside each config, spreading the base config and setting `launchOptions.executablePath` to the cached headless shell, runs both suites; never commit it.
+- 2026-10-25: Windows has no flag emoji (regional-indicator letters render as letters). Flags are SVG from `public/flags.svg`; a locale with no flag gets a letter badge.
 
 ## Agents and worktrees
 
