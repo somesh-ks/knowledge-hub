@@ -115,7 +115,7 @@
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
   /* Flat: a hairline and a tonal step lift it off the page, no shadow (owner, 2026-10-21). */
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  /* A pill, as every control is (D185): folded, a circle. */
+  /* A pill, as every control is (D186): folded, a circle. */
   border-radius: var(--radius-round);
   background: var(--color-accent-container-high);
   color: var(--color-on-accent-container-high);

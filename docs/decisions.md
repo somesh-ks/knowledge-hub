@@ -192,8 +192,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D184 | Podcast lookback | active |
 | D179 | Every name says Singularity; saved state moves once | active |
 | D182 | Block prompts | active |
-| D185 | Every control is a pill | amends D167 |
-| D186 | Glyphs align by ink | active |
+| D185 | Repo config to store | amends D149 |
+| D186 | Every control is a pill | amends D167 |
+| D187 | Glyphs align by ink | active |
 
 ---
 
@@ -1956,7 +1957,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the fetch window (since the last fetch, at most 7 days) decides what is read; the lookback only narrows what airs, so it cannot reach stories the engine never fetched, and an unset field keeps every run as it was.
 - Revisit if: a lookback longer than the fetch window is wanted, which needs the fetch to read further back.
 
-## D185: every control is a pill, text fields and a card's buttons too
+## D185: a config edit made in the repo reaches the store; one made in both stops the run
+
+- Date: 2026-10-25 (the 06:52 UTC weekly: #263 changed `config/queries.json` after the store was seeded, the gate copied the store's older row over it, the commit stage refused the copy and the failure record committed the old queries to `main`)
+- Decision: a run or podcast commit whose gate finished copying the store ends with the trailer `Config-Store: snapshot` (`SNAPSHOT_TRAILER`). When a stored row differs from its file, `hydrateConfig` compares both with the file at the newest such commit (`git/configBase.ts`; before the first, the newest run commit that changed a config file). Changed in the repo only: the file goes to the store on the version read and stays. Changed in both: the gate stops before any spend (`ConfigConflict`), naming the file. Changed in the store only, or no base found: the row is copied, as before. The commit stage's early check allows what the guard allows (`commandAllowlist`).
+- Why: a pull request, `config.yml` or a hand edit can change the committed files while the app edits the store, and the old rule (the store always wins) undid the repo edit without a word. A base tells the two apart without a new column or file; stopping on both edits costs a run, never an edit.
+- Revisit if: a conflict stop happens often enough to want a merge of the two JSON documents.
+
+## D186: every control is a pill, text fields and a card's buttons too
 
 - Date: 2026-10-24 (the owner, on the edit source panel: "all the ui elements as much as possible should have fully rounded corners to be consistent")
 - Decision: `--field-radius` is the pill, so every one-line text field and every form select that follows it (the Add and edit source panels, Blocked sources, the sheets) is round like the buttons, chips and selects beside it. A multi-line field takes `--field-radius-multiline`, 24px, half a field's height, so its corners draw the one-line field's arc. A button in a card is a pill (the concentric `.card-group .btn` override goes), the floating button is a pill (a circle folded) (owner, 2026-10-24: "only to the components that make sense"). Page row tiles are #295's (`--row-tile-radius`).
@@ -1966,7 +1974,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D167's text-field and card-button rules.
 - Revisit if: a pill field's text or placeholder reads cramped at its start.
 
-## D186: a glyph that ends a row lands its ink on the row's end, not its box
+## D187: a glyph that ends a row lands its ink on the row's end, not its box
 
 - Date: 2026-10-25 (the owner, on Blocked sources: "so many ui elements that are not aligned optically on both sides of the screen - fix them all and check if other screens also have this to fix it at the source of design system")
 - Decision: words and bare glyphs align by their ink; a filled or outlined control (a field, a select chip, a segmented track, the sample disc) aligns by its edge. Each Phosphor glyph's ink margin is measured once (`getBBox` on its path) and set as `--ink-end` on the glyph and on what holds it (`buttons.css`; `Icon.astro` writes `data-icon`). A row's chevron, a value select's chevron, a settings multi-select's chevron, Create's More options chevron, and `.icon-btn-end` (the Blocked row's cross, a topic card's More) pull out by it; the voice sample's disc meets the row's end. Measured at 390 and 1280px on Settings, Daily, Weekly, Voice, Blocked sources and a topic page: every row-end glyph's ink 24px in from the card's edge, where the words end (before: 24 to 39.5px, the select chevrons 3px and the cross 6.5px short).

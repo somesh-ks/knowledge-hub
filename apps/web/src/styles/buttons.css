@@ -23,7 +23,7 @@
 /* Glyph ink. A Phosphor glyph's ink stops short of its box by its own margin, a fraction of the box:
    a chevron right 0.28 at its end, a chevron down 0.16, a close 0.19, the More dots 0.44 (each path's
    getBBox in the 256 grid, 2026-10-25). A glyph that ends a row lands its ink on the row's end, where
-   the words end, not its box (owner, 2026-10-25: "not aligned optically on both sides", D186). Set on
+   the words end, not its box (owner, 2026-10-25: "not aligned optically on both sides", D187). Set on
    the glyph and on what holds it, so a button can pull itself out by its glyph's margin. */
 :is(.icon[data-icon="chevronRight"], :has(> .icon[data-icon="chevronRight"])) {
   --ink-end: 0.281;
@@ -79,7 +79,7 @@
 }
 
 /* An icon button that ends a row: its glyph's ink lands on the row's end, where the words of the
-   rows around it end, and its target hangs out past it (D186). */
+   rows around it end, and its target hangs out past it (D187). */
 .icon-btn-end {
   margin-inline-end: calc(
     (var(--size-touch) - var(--size-icon-lg)) /

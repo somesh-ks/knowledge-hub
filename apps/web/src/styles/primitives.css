@@ -1325,7 +1325,7 @@
    edge takes the inner radius. A row's tile sits the inset clear of the card's edges and of the next
    row's tile, so it never runs into a corner. A button, a chip, a select's value and a segmented
    control keep their pill in a card as out of it: one control has one shape wherever it stands
-   (owner, 2026-10-23, D167; buttons too since 2026-10-24, D185). */
+   (owner, 2026-10-23, D167; buttons too since 2026-10-24, D186). */
 .card-group > .row-action {
   width: auto;
   margin-inline: calc(var(--card-inset) - var(--card-padding));
