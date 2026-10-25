@@ -8,7 +8,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
 import { faviconOf } from "../../lib/manage";
-import { cadenceLabel, catalogHost, loadSourceCatalog } from "../../lib/sourceCatalog";
+import { catalogHost, loadSourceCatalog } from "../../lib/sourceCatalog";
 import { sourceInitial } from "../../lib/sourceInitial";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
@@ -125,7 +125,8 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
           <SheetHeader title="Block sources" titleId="blocked-sheet-title" close="data-panel-close" />
           <div class="create-sheet-body">
             <div class="manage-field blocked-sheet-field">
-              <label class="search-field">
+              <div class="search-wrap filter-field">
+<label class="search-field">
                 <Icon name="search" />
                 <input
                   type="search"
@@ -141,6 +142,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
                   data-sheet-input
                 />
               </label>
+</div>
               <p class="manage-error" id="blocked-sheet-error" role="alert" data-sheet-error hidden>
                 <Icon name="alert" /><span></span>
               </p>
@@ -162,7 +164,6 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
               {
                 offers.map(({ offer, domain }) => {
                   const icon = faviconOf(offer.url ?? offer.feed_url);
-                  const cadence = cadenceLabel(offer.cadence);
                   return (
                     <li
                       class="source-row is-suggested"
@@ -189,7 +190,6 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
                           <span class="source-name">{offer.name}</span>
                           <span class="source-meta">
                             <span class="source-host">{catalogHost(offer)}</span>
-                            {cadence && <span class="source-cadence">{cadence}</span>}
                           </span>
                         </span>
                       </span>
