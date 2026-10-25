@@ -1,5 +1,5 @@
 /*
- * The Topics & Sources pages (pages/settings/topics.astro and topics/[id].astro): each topic with its
+ * The Topics & Sources pages (pages/settings/categories.astro and topics/[id].astro): each topic with its
  * switch, its weight and the sources under it; a source's row and its rating out of 5; the sources the
  * catalogue suggests for a topic; and the panel that adds a topic or a source and edits a source
  * (TopicsPanel.astro).

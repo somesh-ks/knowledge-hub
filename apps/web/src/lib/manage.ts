@@ -18,7 +18,7 @@ import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
 /**
- * What the Topics and Sources pages show, read from the repository at build time. The engine writes
+ * What the Categories and Sources pages show, read from the repository at build time. The engine writes
  * these files and some may not exist yet, so every read is defensive: a missing or malformed file
  * falls back to what the site can know without it, and a malformed entry is skipped, never guessed.
  *

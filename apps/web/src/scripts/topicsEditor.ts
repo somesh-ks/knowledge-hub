@@ -1,6 +1,6 @@
 /**
- * The Topics and sources editor, loaded the first time a switch, a slider, a remove button, a source's
- * row, a suggestion's +, Edit topic or Add is used (topicsPage.ts forwards the event that woke it).
+ * The Categories and sources editor, loaded the first time a switch, a slider, a remove button, a source's
+ * row, a suggestion's +, Edit category or Add is used (topicsPage.ts forwards the event that woke it).
  * It records each change as an op, and autosave.ts sends it a moment later through
  * managePageSave.ts. The panel that adds and edits topics and sources is topicsPanel.ts, loaded when
  * it is first opened.
@@ -496,7 +496,7 @@ export function mountEditor(root: HTMLElement): Editor {
   };
 
   /**
-   * The topic's emoji from the picker, shown at once and sent now through the same edit as Edit topic
+   * The topic's emoji from the picker, shown at once and sent now through the same edit as Edit category
    * (one topic.upsert; a second pick or edit coalesces with it). A topic whose own add has not gone
    * yet carries the pick in that add too.
    */
@@ -654,7 +654,7 @@ export function mountEditor(root: HTMLElement): Editor {
     update(control);
   };
 
-  /** A topic's Delete asks first (D103); Keep topic, the undo, goes straight through. */
+  /** A topic's Delete asks first (D103); Keep category, the undo, goes straight through. */
   const confirmTopic = (button: HTMLButtonElement): void => {
     const dialog = root.querySelector<HTMLDialogElement>("[data-topic-confirm]");
     if (!dialog) {

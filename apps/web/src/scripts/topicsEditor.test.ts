@@ -248,7 +248,7 @@ describe("settle", () => {
     const sent: Pending = { op: { op: "topic.remove", id: "knit" }, el: page(true), now: "true" };
     settle({ ops: [sent.op], sent: [["a", sent]] }, new Map([["a", sent]]));
     // Replaced, not pushed: Back from the list never returns to the dead page.
-    expect(replace).toHaveBeenCalledWith("/settings/topics");
+    expect(replace).toHaveBeenCalledWith("/settings/categories");
     // A page already left (the removal went after a swap) stays left.
     replace.mockClear();
     const left: Pending = { ...sent, el: page(false) };
@@ -350,10 +350,10 @@ describe("topicProblems", () => {
   const taken = ["Design", "World"];
   it("refuses a name a topic already has, whatever its case", () => {
     expect(topicProblems({ name: "design", description: "x" }, taken).name).toBe(
-      "You already have a topic called Design.",
+      "You already have a category called Design.",
     );
     expect(topicProblems({ name: " WORLD ", description: "x" }, taken).name).toBe(
-      "You already have a topic called World.",
+      "You already have a category called World.",
     );
   });
   it("takes a new name", () => {

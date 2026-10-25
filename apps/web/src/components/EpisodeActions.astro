@@ -28,7 +28,7 @@ const MAX_FEEDBACK_CHARS = 500;
 
 // Every sentence the script can show is here, in the markup, not in the script.
 const COPY = {
-  topics: "Pick at least one topic.",
+  topics: "Pick at least one category.",
   left: "characters left",
   "400": "The server turned that request down. Reload the page and try again.",
   cooldown: "You can do that again in",
@@ -62,7 +62,7 @@ const COPY = {
               </p>
               <section class="create-group" aria-labelledby="regen-topics-label">
                 {/* A field label, as Comments is: not a second title under the panel's own. */}
-                <div class="sheet-field-label regen-label" id="regen-topics-label">Topics</div>
+                <div class="sheet-field-label regen-label" id="regen-topics-label">Categories</div>
                 <fieldset class="filter-chips" aria-labelledby="regen-topics-label" data-built-topics={manageTopics.map((topic) => topic.id).join(" ")}>
                   {chips.map((chip) => (
                     <label class="filter-chip">

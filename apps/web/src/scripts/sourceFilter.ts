@@ -1,5 +1,5 @@
 /**
- * Search, and on a topic's page format chips, over the source rows of the Topics & Sources index
+ * Search, and on a topic's page format chips, over the source rows of the Categories & Sources index
  * (every source) or a topic's page (its own). Loaded by topicsPage.ts after the page is ready; the
  * page is whole HTML without it. The state lives in the address (?q=&format=a&format=b), written with
  * replaceState so a reload, or Back to the page, finds it as it was.

@@ -186,7 +186,7 @@ const inScope = (ids: readonly string[]): boolean =>
   </section>
 
   <section class="podcast-section" aria-labelledby={`${id}-topics-head`}>
-    <h2 class="section-head" id={`${id}-topics-head`}>Topics</h2>
+    <h2 class="section-head" id={`${id}-topics-head`}>Categories</h2>
     {
       topics.length > 0 ? (
         <fieldset class="filter-chips podcast-topics card-group" aria-labelledby={`${id}-topics-head`} data-scope-chips data-built-topics={builtTopics.join(" ")}>
@@ -205,13 +205,13 @@ const inScope = (ids: readonly string[]): boolean =>
           ))}
         </fieldset>
       ) : (
-        <p class="manage-quiet">No topics yet.</p>
+        <p class="manage-quiet">No categories yet.</p>
       )
     }
     {
       topics.length > 0 && (
         <p class="settings-hint podcast-hint" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
-          No topics chosen, so {label} episodes have nothing to cover.
+          No categories chosen, so {label} episodes have nothing to cover.
         </p>
       )
     }

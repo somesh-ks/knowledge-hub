@@ -14,8 +14,8 @@ const DESTINATIONS = ["/", "/library", "/create", "/settings"];
 const SUBPAGES = [
   "/settings/daily",
   "/settings/weekly",
-  "/settings/topics",
-  "/settings/topics/audio_interfaces",
+  "/settings/categories",
+  "/settings/categories/audio_interfaces",
 ];
 
 /** The top edge of a page's first block, measured from the top of <main>. */

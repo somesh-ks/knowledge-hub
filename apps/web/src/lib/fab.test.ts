@@ -12,8 +12,8 @@ describe("which floating button a page shows", () => {
     }
   });
 
-  it("offers Add on Topics and sources and on a topic's page, and not on Blocked outlets", () => {
-    for (const path of ["/settings/topics", "/settings/topics/design", "/settings/topics/other"]) {
+  it("offers Add on Categories and sources and on a topic's page, and not on Blocked outlets", () => {
+    for (const path of ["/settings/categories", "/settings/categories/design", "/settings/categories/other"]) {
       expect(fabFor({ path, playable: false }), path).toBe("add");
     }
     expect(fabFor({ path: "/settings/blocked-outlets", playable: false })).toBeNull();

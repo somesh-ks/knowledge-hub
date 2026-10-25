@@ -61,8 +61,8 @@ const PAGES = [
   ...new Set([
     ...ROUTES.map((route) => route.path),
     ...SITE_PAGES,
-    "/settings/topics/design",
-    "/settings/topics/design?view=preferences",
+    "/settings/categories/design",
+    "/settings/categories/design?view=preferences",
   ]),
 ];
 
@@ -164,7 +164,7 @@ test.describe("the 8pt spacing system", () => {
     expect.soft(await offGrid(page), "a Library row's menu").toEqual([]);
 
     // The Add source panel with the topic's suggested sources.
-    await page.goto("/settings/topics/design");
+    await page.goto("/settings/categories/design");
     await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
     await page
       .getByRole("button", { name: /^Add source to / })

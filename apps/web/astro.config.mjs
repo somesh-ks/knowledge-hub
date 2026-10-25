@@ -170,8 +170,11 @@ export default defineConfig({
   redirects: {
     "/archive": { status: 308, destination: "/library" },
     "/settings/podcast": { status: 308, destination: "/settings" },
-    "/settings/podcast/topics": { status: 308, destination: "/settings/topics" },
-    "/settings/sources": { status: 308, destination: "/settings/topics" },
+    // Topics became Categories (2026-10-25): the old addresses keep working.
+    "/settings/topics": { status: 308, destination: "/settings/categories" },
+    "/settings/topics/[id]": { status: 308, destination: "/settings/categories/[id]" },
+    "/settings/podcast/topics": { status: 308, destination: "/settings/categories" },
+    "/settings/sources": { status: 308, destination: "/settings/categories" },
     "/settings/schedule": { status: 308, destination: "/settings/daily" },
     // An episode on request is set up in the Create panel, which /create shows as a page.
     "/settings/custom": { status: 308, destination: "/create" },
@@ -193,8 +196,8 @@ export default defineConfig({
         ["generic_ai_hype_listicles", "other"],
         ["trending", "other"],
       ].map(([from, to]) => [
-        `/settings/topics/${from}`,
-        { status: 308, destination: `/settings/topics/${to}` },
+        `/settings/categories/${from}`,
+        { status: 308, destination: `/settings/categories/${to}` },
       ]),
     ),
   },
