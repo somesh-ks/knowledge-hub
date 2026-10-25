@@ -56,27 +56,25 @@ describe("pack", () => {
     // A structure.set and a 6000-character prompt in one request outgrew the server's 8192 characters.
     const changes = new Map<string, Pending>([
       [
-        "structure:daily",
+        "structure",
         change({
           op: "structure.set",
-          kind: "daily",
+          profile: "custom",
           blocks: [{ type: "hello" }, { type: "trending" }, { type: "sign_off" }],
         }),
       ],
       [
-        "prompt:daily:trending",
+        "prompt:trending",
         change({
           op: "structure.prompt",
-          kind: "daily",
           key: "trending",
           prompt: "a".repeat(6000),
         }),
       ],
       [
-        "prompt:daily:top_picks",
+        "prompt:top_picks",
         change({
           op: "structure.prompt",
-          kind: "daily",
           key: "top_picks",
           prompt: "b".repeat(3000),
         }),

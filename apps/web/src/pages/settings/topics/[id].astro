@@ -18,6 +18,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
 import { loadSourceCatalog, suggestSources } from "../../../lib/sourceCatalog";
+import { loadTopicAdjusts } from "../../../lib/topicAdjust";
 import {
   type GroupPage,
   OTHER_ID,
@@ -27,6 +28,7 @@ import {
 } from "../../../lib/topicPages";
 import { NEW_TOPIC_ID, SHELL } from "../../../lib/topicText";
 import "../../../styles/settings.css";
+import { activeSummary } from "../../../lib/settingsSummary";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
 import "../../../styles/episode-actions.css";
@@ -122,6 +124,7 @@ const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
 // How much each judge topic a group gathers counts (D69), by name. A group of one shows a plain
 // Weight row, as a topic of the owner's does; the member that shares the group's name reads as
 // the group in general, so Design's own row is not "Design" under Design.
+const adjusts = await loadTopicAdjusts();
 const memberRows = (group?.members ?? [])
   .map((member) => ({
     id: member.id,
@@ -133,6 +136,7 @@ const memberRows = (group?.members ?? [])
           : member.name,
     name: member.name,
     weight: member.weight,
+    adjust: adjusts[member.id] ?? 0,
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
 // The topic as Edit topic sends it: a topic is always on, so it goes as enabled.
@@ -158,7 +162,15 @@ const general = topic?.origin === "general";
 // a group's per member, or a topic's own.
 const weightRows =
   topic && !general
-    ? [{ id: topic.id, label: "Weight", name: topic.name, weight: topic.weight }]
+    ? [
+        {
+          id: topic.id,
+          label: "Weight",
+          name: topic.name,
+          weight: topic.weight,
+          adjust: adjusts[topic.id] ?? 0,
+        },
+      ]
     : memberRows;
 // Left to right is a question for political coverage: world affairs and business, not sport, science
 // or culture (2026-10-20).
@@ -421,6 +433,13 @@ const facts = topic && {
                     <span>Add source</span>
                   </button>
                 </SourceFilter>
+              )
+            }
+            {
+              list.length > 0 && (
+                <p class="settings-hint topic-status" data-sources-status>
+                  {activeSummary(list.length, list.filter((source) => source.enabled).length)}
+                </p>
               )
             }
             <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>

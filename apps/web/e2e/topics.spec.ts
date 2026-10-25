@@ -107,7 +107,7 @@ test.describe("the Topics list", () => {
       ["AI", "1 source"],
       ["Technology", "No sources yet"],
       ["Audio interfaces", "1 source"],
-      ["World", "2 of 3 sources on"],
+      ["World", "3 sources"],
       ["Science", "1 source"],
       ["Sports", "No sources yet"],
     ] as const;
@@ -1434,12 +1434,16 @@ test.describe("Blocked sources", () => {
     await page.getByRole("link", { name: /Blocked sources/ }).click();
     await expect(page.locator("[data-blocked]")).toHaveAttribute("data-ready", "");
 
-    // Any address of the outlet works; the page lists and sends its domain.
-    await page.getByLabel("Block a source").fill("not a domain");
+    // Block opens the sheet; any address of the outlet works, and the page lists and sends its domain.
+    const sheet = page.getByRole("dialog", { name: "Block sources" });
+    const sheetField = sheet.getByLabel("Search sources or paste an address");
     await page.getByRole("button", { name: "Block", exact: true }).click();
-    await expect(page.locator("[data-error]")).toBeVisible();
-    await page.getByLabel("Block a source").fill("https://www.Example.com/story?id=1");
-    await page.getByRole("button", { name: "Block", exact: true }).click();
+    await sheetField.fill("not a domain");
+    await sheetField.press("Enter");
+    await expect(sheet.locator("[data-sheet-error]")).toBeVisible();
+    await sheetField.fill("https://www.Example.com/story?id=1");
+    await sheetField.press("Enter");
+    await sheet.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect.poll(() => ops(sent)).toEqual([{ op: "profile.block", domain: "example.com" }]);
 
@@ -1468,8 +1472,10 @@ test.describe("Blocked sources", () => {
     await expect(page.getByText("No blocked sources")).toBeVisible();
 
     // Blocked again once the unblock has gone: the row was hidden as removing and stayed hidden.
-    await page.getByLabel("Block a source").fill("example.com");
     await page.getByRole("button", { name: "Block", exact: true }).click();
+    await sheetField.fill("example.com");
+    await sheetField.press("Enter");
+    await sheet.getByRole("button", { name: "Block", exact: true }).click();
     await expect(page.getByRole("button", { name: "Unblock example.com" })).toBeVisible();
     await expect(page.getByText("No blocked sources")).toBeHidden();
   });
@@ -1488,17 +1494,22 @@ test.describe("the podcast structure", () => {
       "aria-selected",
       "true",
     );
-    const list = page.getByRole("list", { name: "Daily blocks" });
+    const list = page.getByRole("list", { name: "Structure blocks" });
     const names = () => list.locator(".structure-row .settings-label").allTextContents();
     const before = await names();
-    expect(before.slice(0, 2)).toEqual(["Top picks", "Design"]);
+    // The frames Catch up's model writes stay listed, quiet, at the ends of the one list.
+    expect(before.slice(0, 3)).toEqual(["Hello", "Top picks", "Design"]);
     await list.getByRole("button", { name: "More for Design", exact: true }).click();
     await page.getByRole("menuitem", { name: "Move down" }).click();
-    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length));
-    await expect.poll(names).toEqual([before[0], before[2], before[1], ...before.slice(3)]);
+    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length - 2));
+    await expect
+      .poll(names)
+      .toEqual([before[0], before[1], before[3], before[2], ...before.slice(4)]);
+    // An edit of the order is the owner's own list: the profile says Custom.
+    await expect(page.getByLabel("Profile")).toHaveValue("custom");
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => server.applied.length).toBe(1);
-    expect(server.applied[0]).toMatchObject({ op: "structure.set", kind: "daily" });
+    expect(server.applied[0]).toMatchObject({ op: "structure.set", profile: "custom" });
     const moved = await names();
 
     await page.reload();
@@ -1528,7 +1539,6 @@ test.describe("the podcast structure", () => {
     expect(set.blocks.find((block) => block.id === "design")).toMatchObject({ per_source: 1 });
     expect(server.applied[2]).toEqual({
       op: "structure.prompt",
-      kind: "daily",
       key: "section:design",
       prompt: "Tell each design story in two plain sentences.",
     });

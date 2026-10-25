@@ -39,8 +39,10 @@ export function sourceAdjustment(stats: SourceStatsFile | undefined, sourceId: s
 export function withSourceAdjustment(
   scored: ScoredItem,
   stats: SourceStatsFile | undefined,
+  /** What the owner's votes add to this source (core/autoAdjust.ts), already decayed. */
+  voteShift = 0,
 ): ScoredItem {
-  const source = sourceAdjustment(stats, scored.item.source_id);
+  const source = round4(sourceAdjustment(stats, scored.item.source_id) + voteShift);
   if (source === 0) return scored;
   return {
     ...scored,

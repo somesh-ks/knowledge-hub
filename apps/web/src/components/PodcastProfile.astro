@@ -54,7 +54,7 @@ const inScope = (ids: readonly string[]): boolean =>
     <h2 class="section-head" id={`${id}-episode-head`}>Episode</h2>
     <div class="rows card-group">
       <div class="settings-row">
-        <label class="settings-label" for={`${id}-length`}>Length</label>
+        <label class="settings-label" for={`${id}-length`}>Max length</label>
         <span class="manage-select value-select">
           <select class="manage-input" id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
             {LENGTHS.map((entry) => (

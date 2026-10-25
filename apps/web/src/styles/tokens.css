@@ -414,6 +414,7 @@
   --row-padding-block: var(--space-4);
   --row-radius: var(--radius-md);
   --row-tile-radius: var(--radius-round);
+  --slider-max-width: 10rem;
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);
   --card-radius: var(--radius-2xl);

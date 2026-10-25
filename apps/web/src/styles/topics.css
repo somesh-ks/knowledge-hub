@@ -232,6 +232,10 @@
 .topic .topic-panel .topic-suggested {
   margin-block-start: var(--space-4);
   padding-block-start: var(--space-2);
+  /* Full bleed, as the design system's hairlines are (2026-10-25): it reaches the card's edges and the
+     content keeps the card's padding. */
+  margin-inline: calc(var(--card-padding) * -1);
+  padding-inline: var(--card-padding);
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
@@ -1728,24 +1732,59 @@
 /* ------------------------------------------------------------------ the podcast structure (D170) */
 
 /* Source types or Structure on the Preferences page, as a topic's page shows Sources or Preferences:
-   one pane at a time, read from ?view= (topicsPage.ts). The line under the card is the Structure's. */
+   one pane at a time, read from ?view= (topicsPage.ts). */
 .preferences-page:not([data-view="structure"]) .pref-view-structure,
 .preferences-page[data-view="structure"] .pref-view-types {
   display: none;
 }
 
-/* The kind's tabs (2026-10-24: chips read as filters, the owner; `.tabs-in-card`, so the first label
-   starts at the card's words) and Reorder at the strip's end sit a full step under the switch, and
-   the blocks a step under them. Reorder's words end where the rows' dots do. */
+/* The profile's row is a settings row like Daily's, in the same `.rows` as the blocks, so its
+   label sits on the rows' text edge and the select ends where theirs do (2026-10-25). Reorder sits on the
+   line under it, at the strip's end, where the rows' dots end; below 64rem the page's floating
+   button is Reorder instead. */
 .structure-kinds-bar {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
   margin-block-start: var(--space-6);
 }
 
-.structure-kinds {
-  flex: 1 1 auto;
+.structure-kinds-bar > .structure-reorder {
+  align-self: flex-end;
+}
+
+.structure-profile {
   min-width: 0;
+}
+
+/* The value's chevron ends under the dots' glyphs, as the link rows' values do (D187). */
+.structure-profile .value-select {
+  --value-select-pull: var(--space-2);
+}
+
+/* The question before a named profile replaces the owner's own list, asked in the page. */
+.structure-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-block-start: var(--space-4);
+  padding-inline: var(--card-padding);
+}
+
+.structure-confirm > p {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+.structure-confirm-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.structure-confirm-actions > .btn-secondary {
+  width: auto;
 }
 
 /* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
@@ -1905,12 +1944,6 @@
   width: auto;
 }
 
-/* The line under the card starts where the card's words do. */
-.structure-fit {
-  margin-block-start: var(--space-4);
-  padding-inline: var(--card-padding);
-}
-
 .structure-sheet .segmented-choice {
   flex: none;
 }
@@ -1941,4 +1974,41 @@ textarea.manage-input.structure-prompt {
 .structure-prompt-foot > .btn {
   flex: none;
   margin-inline-end: calc(var(--space-4) * -1);
+}
+
+/* A weight row, 2026-10-25 (owner): the stop's name starts where the slider's track starts, in the
+   slider's column, with the slider under it; the topic's name takes the rest of the row and the
+   whole height. The text wrapper dissolves so its label and output are the grid's own items. One
+   grid for the phone and the desktop, so the name never gives its line to the slider
+   (--slider-max-width, settings.css). The doubled class beats `.topic .topic-weight`, and the last
+   selector `.preferences-page`'s row gap. */
+.settings-row.topic-weight,
+.topic .settings-row.topic-weight,
+.preferences-page .topic .settings-row.topic-weight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--slider-max-width));
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: 0;
+}
+
+.topic-weight > .settings-text {
+  display: contents;
+}
+
+.topic-weight > .settings-text > .settings-label {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+.topic-weight > .settings-text > .settings-hint {
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.topic-weight > .settings-range {
+  grid-row: 2;
+  grid-column: 2;
+  inline-size: 100%;
+  margin: 0;
 }

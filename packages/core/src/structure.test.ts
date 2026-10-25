@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { defaultStructure, STRUCTURE_KINDS, StructureBlocks, StructureFile } from "./structure.js";
+import {
+  defaultStructure,
+  NAMED_PROFILES,
+  profileBlocks,
+  REFERENCE_MINUTES,
+  STRUCTURE_KINDS,
+  StructureBlocks,
+  StructureFile,
+  scaleStructure,
+  storedStructure,
+} from "./structure.js";
 
 describe("the structure schema refuses a broken episode shape", () => {
   const hello = { type: "hello" };
@@ -19,17 +29,67 @@ describe("the structure schema refuses a broken episode shape", () => {
     expect(StructureBlocks.safeParse(value).success).toBe(false);
   });
 
-  it("refuses a close or a block of your own in a daily or weekly kind, which code narrates, and takes them for Catch up", () => {
-    const close = [hello, design, { type: "close" }, signOff];
-    expect(StructureFile.safeParse({ version: 1, kinds: { daily: close } }).success).toBe(false);
-    expect(StructureFile.safeParse({ version: 1, kinds: { catch_up: close } }).success).toBe(true);
-  });
-
   it("accepts every kind's defaults, so an untouched kind always validates", () => {
     for (const kind of STRUCTURE_KINDS) {
       expect(StructureBlocks.safeParse(defaultStructure(kind, ["quantum", "world"])).success).toBe(
         true,
       );
     }
+  });
+});
+
+describe("the listener profile", () => {
+  const hello = { type: "hello" };
+  const signOff = { type: "sign_off" };
+  const design = { type: "section", id: "design", max_stories: 2 };
+  const trending = { type: "trending" };
+
+  it("reads a file saved per podcast kind as Custom, from the daily list or else the first present, with the kinds' prompts merged", () => {
+    const file = StructureFile.parse({
+      version: 1,
+      kinds: { weekly: [hello, trending, signOff], daily: [hello, design, signOff] },
+      prompts: {
+        daily: { "section:design": "Plain." },
+        catch_up: { hello: "Hi.", "section:design": "No." },
+      },
+    });
+    expect(file.profile).toBe("custom");
+    expect(file.blocks).toEqual([hello, { ...design, depth: "brief" }, signOff]);
+    expect(file.prompts).toEqual({ hello: "Hi.", "section:design": "Plain." });
+    const weeklyOnly = StructureFile.parse({
+      version: 1,
+      kinds: { weekly: [hello, trending, signOff] },
+    });
+    expect(weeklyOnly.blocks).toEqual([hello, trending, signOff]);
+  });
+
+  it("reads a named profile saved by its id alone as its preset, and every preset is a sound structure", () => {
+    const file = StructureFile.parse({ version: 1, profile: "designer" });
+    expect(storedStructure(file)).toEqual(profileBlocks("designer"));
+    for (const profile of NAMED_PROFILES) {
+      expect(StructureBlocks.safeParse(profileBlocks(profile, ["quantum"])).success).toBe(true);
+    }
+  });
+
+  it("sizes every story count to the episode's length, and leaves a block with no count to the engine", () => {
+    const blocks = StructureBlocks.parse([
+      hello,
+      { type: "top_picks", stories: 3 },
+      { type: "section", id: "design", max_stories: 4 },
+      trending,
+      signOff,
+    ]);
+    const counts = (minutes: number): (number | undefined)[] =>
+      scaleStructure(blocks, minutes).map((block) =>
+        block.type === "top_picks"
+          ? block.stories
+          : block.type === "section"
+            ? block.max_stories
+            : undefined,
+      );
+    expect(counts(REFERENCE_MINUTES)).toEqual([undefined, 3, 4, undefined, undefined]);
+    expect(counts(5)).toEqual([undefined, 2, 2, undefined, undefined]);
+    expect(counts(15)).toEqual([undefined, 5, 6, undefined, undefined]);
+    expect(scaleStructure(blocks, 3).find((block) => block.type === "trending")).toEqual(trending);
   });
 });

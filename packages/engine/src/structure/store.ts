@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { CONFIG_FILES, STRUCTURE_KINDS, StructureFile } from "@singularity/core";
+import { CONFIG_FILES, StructureFile } from "@singularity/core";
 
 export class StructureError extends Error {
   constructor(problems: string[]) {
@@ -33,26 +33,19 @@ export async function loadStructureFile(root: string): Promise<StructureFile | n
   return parsed.data;
 }
 
-/** Stable text for the file: kinds in STRUCTURE_KINDS order, two-space indent, trailing newline. */
+/** Stable text for the file: the profile, its blocks, the prompts by key, two-space indent, trailing newline. */
 export function serializeStructure(file: StructureFile): string {
   const checked = StructureFile.parse(file);
-  const kinds: StructureFile["kinds"] = {};
-  for (const kind of STRUCTURE_KINDS) {
-    const blocks = checked.kinds[kind];
-    if (blocks !== undefined) kinds[kind] = blocks;
-  }
-  const prompts: NonNullable<StructureFile["prompts"]> = {};
-  for (const kind of STRUCTURE_KINDS) {
-    const kept = checked.prompts?.[kind];
-    if (kept === undefined) continue;
-    prompts[kind] = Object.fromEntries(
-      Object.entries(kept).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-    );
-  }
+  const prompts = Object.fromEntries(
+    Object.entries(checked.prompts ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
   const body = {
     version: checked.version,
-    kinds,
+    ...(checked.profile === undefined ? {} : { profile: checked.profile }),
+    // The resolved list is kept for a named profile too: it holds the owner's topic sections.
+    ...(checked.blocks === undefined ? {} : { blocks: checked.blocks }),
     ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
   };
-  return `${JSON.stringify(body, null, 2)}\n`;
+  return `${JSON.stringify(body, null, 2)}
+`;
 }

@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { StructureFile } from "@singularity/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
@@ -19,9 +21,13 @@ async function apply(op: unknown): Promise<number> {
   return makeConfigCommand()(["apply", "--op", JSON.stringify(op)], repo.context());
 }
 
-it("a topic made after the structure was saved still plays in the stored kind, and a kind on its defaults stays off the file", async () => {
-  const daily = [{ type: "hello" }, { type: "top_picks" }, { type: "sign_off" }];
-  expect(await apply({ op: "structure.set", kind: "daily", blocks: daily })).toBe(0);
+const names = (file: StructureFile): string[] =>
+  (file.blocks ?? []).map((block) => (block.type === "section" ? block.id : block.type));
+
+const SHORT = [{ type: "hello" }, { type: "top_picks" }, { type: "sign_off" }];
+
+it("a topic made after the structure was saved still plays in it, and removing its last topic takes the section out again", async () => {
+  expect(await apply({ op: "structure.set", profile: "custom", blocks: SHORT })).toBe(0);
   const quantum = {
     name: "Quantum computing",
     description: "Hardware, algorithms and error correction.",
@@ -29,48 +35,72 @@ it("a topic made after the structure was saved still plays in the stored kind, a
   };
   expect(await apply({ op: "topic.upsert", topic: quantum })).toBe(0);
   const file = await repo.readJson<StructureFile>("config/structure.json");
-  expect(
-    file.kinds.daily?.map((block) => (block.type === "section" ? block.id : block.type)),
-  ).toEqual(["hello", "top_picks", "quantum_computing", "sign_off"]);
-  expect(file.kinds.weekly).toBeUndefined();
-  // Removing its last topic takes the section out again.
+  expect(file.profile).toBe("custom");
+  expect(names(file)).toEqual(["hello", "top_picks", "quantum_computing", "sign_off"]);
   expect(await apply({ op: "topic.remove", id: "quantum_computing" })).toBe(0);
-  const after = await repo.readJson<StructureFile>("config/structure.json");
-  expect(after.kinds.daily?.map((block) => block.type)).toEqual(["hello", "top_picks", "sign_off"]);
+  expect(names(await repo.readJson<StructureFile>("config/structure.json"))).toEqual([
+    "hello",
+    "top_picks",
+    "sign_off",
+  ]);
 });
 
-it("putting a general topic into a stored kind adds the section its stories are filed under, not the shared general one", async () => {
-  const daily = [{ type: "hello" }, { type: "top_picks" }, { type: "sign_off" }];
-  expect(await apply({ op: "structure.set", kind: "daily", blocks: daily })).toBe(0);
+it("putting a general topic into the structure adds the section its stories are filed under, not the shared general one", async () => {
+  expect(await apply({ op: "structure.set", profile: "custom", blocks: SHORT })).toBe(0);
   expect(await apply({ op: "topic.scope", ids: ["world", "trending"], daily: true })).toBe(0);
-  const file = await repo.readJson<StructureFile>("config/structure.json");
-  expect(
-    file.kinds.daily?.map((block) => (block.type === "section" ? block.id : block.type)),
-  ).toEqual(["hello", "top_picks", "world", "sign_off"]);
+  expect(names(await repo.readJson<StructureFile>("config/structure.json"))).toEqual([
+    "hello",
+    "top_picks",
+    "world",
+    "sign_off",
+  ]);
 });
 
-it("a block's own prompt survives a reorder of its kind, and putting back the built-in one removes it (D182)", async () => {
-  const prompt = "Write each design story as one plain sentence on what changed for a designer.";
+it("a named profile is saved by its id with the preset's blocks, and a file saved per podcast kind is read as Custom and rewritten in the new shape by the next save", async () => {
+  expect(await apply({ op: "structure.set", profile: "designer" })).toBe(0);
+  const designer = await repo.readJson<StructureFile>("config/structure.json");
+  expect(designer.profile).toBe("designer");
+  expect(names(designer)).toContain("ui-craft");
+
+  await mkdir(join(repo.root, "config"), { recursive: true });
+  const old = {
+    version: 1,
+    kinds: {
+      weekly: [...SHORT],
+      daily: [{ type: "hello" }, { type: "trending" }, { type: "sign_off" }],
+    },
+    prompts: { daily: { trending: "Name the outlet first." } },
+  };
+  await writeFile(join(repo.root, "config/structure.json"), JSON.stringify(old), "utf8");
   expect(
-    await apply({ op: "structure.prompt", kind: "daily", key: "section:design", prompt }),
+    await apply({ op: "structure.prompt", key: "section:design", prompt: "One plain line." }),
   ).toBe(0);
-  const daily = [
+  const migrated = await repo.readJson<StructureFile & { kinds?: unknown }>(
+    "config/structure.json",
+  );
+  expect(migrated.kinds).toBeUndefined();
+  expect(migrated.profile).toBe("custom");
+  expect(names(migrated)).toEqual(["hello", "trending", "sign_off"]);
+  expect(migrated.prompts).toEqual({
+    trending: "Name the outlet first.",
+    "section:design": "One plain line.",
+  });
+});
+
+it("a block's own prompt survives a change of the blocks, and putting back the built-in one removes it (D182)", async () => {
+  const prompt = "Write each design story as one plain sentence on what changed for a designer.";
+  expect(await apply({ op: "structure.prompt", key: "section:design", prompt })).toBe(0);
+  const blocks = [
     { type: "hello" },
     { type: "section", id: "design" },
     { type: "top_picks" },
     { type: "sign_off" },
   ];
-  expect(await apply({ op: "structure.set", kind: "daily", blocks: daily })).toBe(0);
+  expect(await apply({ op: "structure.set", profile: "custom", blocks })).toBe(0);
   const file = await repo.readJson<StructureFile>("config/structure.json");
-  expect(file.prompts?.daily?.["section:design"]).toBe(prompt);
-  // Code speaks a daily hello, so it takes no prompt.
-  expect(
-    await apply({ op: "structure.prompt", kind: "daily", key: "hello", prompt: "Say hi." }),
-  ).not.toBe(0);
-  expect(
-    await apply({ op: "structure.prompt", kind: "daily", key: "section:design", prompt: null }),
-  ).toBe(0);
+  expect(file.prompts?.["section:design"]).toBe(prompt);
+  expect(await apply({ op: "structure.prompt", key: "section:design", prompt: null })).toBe(0);
   const after = await repo.readJson<StructureFile>("config/structure.json");
   expect(after.prompts).toBeUndefined();
-  expect(after.kinds.daily).toHaveLength(4);
+  expect(after.blocks).toHaveLength(4);
 });
