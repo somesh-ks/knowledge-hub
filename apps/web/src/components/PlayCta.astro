@@ -38,8 +38,8 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     data-minutes={Number.parseInt(length, 10)}
   />
   {/* Share, the page's second action (D153), tonal beside the filled Play (.hero-share in hero.css).
-       scripts/briefingPage.ts handles the press; the link is asked for as the finger lands
-       (scripts/shareLink.ts), so the share sheet can open inside the tap. */}
+       scripts/briefingPage.ts handles the press; the link is asked for once the page is idle
+       (data-share-early, scripts/shareLink.ts), so the share sheet opens inside the first tap. */}
   {
     share && (
       <button
@@ -47,6 +47,7 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
         type="button"
         data-share={share.path}
         data-share-item={share.item}
+        data-share-early={share.item ? "" : undefined}
         data-share-kind={share.kind}
         data-share-of={share.of}
       >
