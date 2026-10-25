@@ -50,7 +50,7 @@
    them stay shorter than the answer, so the band keeps its height whatever is chosen. On a phone
    the breakdown reads "Shared or own", not "Shared or personal", so the two chips hold one row
    from 390px with every choice (owner, 2026-10-24). */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .costs-head {
     grid-template-columns: minmax(max-content, 1fr) minmax(min-content, max-content) auto;
     grid-template-areas: "answer filters view";
@@ -133,7 +133,7 @@
   block-size: calc(var(--space-24) * 2);
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .costs-plot {
     block-size: calc(var(--space-24) * 2 + var(--space-12));
   }

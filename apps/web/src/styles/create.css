@@ -80,7 +80,7 @@
   margin-block-start: 0;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .create-view .create-choice {
     grid-auto-columns: minmax(6rem, 1fr);
     inline-size: fit-content;
@@ -252,7 +252,7 @@
   padding-block: var(--space-4) var(--space-8);
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .create-view .create-submit > .btn-primary {
     width: auto;
     min-width: 14rem;
@@ -429,7 +429,7 @@
 /* From 80rem the page takes the track the shell keeps for a contents list as well, and More options
    stands open in it beside the main questions, so the right of the window is not left empty and
    the whole form is in view at once. The title keeps the place it has on every other page. */
-@media (min-width: 80rem) {
+@media (width >= 80rem) {
   .shell:has(.create-page) > main {
     grid-column: 1 / -1;
   }

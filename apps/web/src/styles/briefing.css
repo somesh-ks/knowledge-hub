@@ -104,7 +104,7 @@ html[data-has-tabs] {
 
 /* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
    top chrome. */
-@media (min-width: 80rem) {
+@media (width >= 80rem) {
   .briefing > .tabs-bar {
     display: none;
   }

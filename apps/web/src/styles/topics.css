@@ -297,7 +297,7 @@
   padding-block-start: 0;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .topic-card {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
@@ -340,7 +340,7 @@
   flex: 1 1 auto;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .topic-weight > .settings-range {
     flex: 0 1 var(--settings-control-width);
     margin-inline-start: auto;
@@ -360,7 +360,7 @@
   flex-basis: 100%;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .topic .topic-weight {
     flex-wrap: nowrap;
   }
@@ -721,7 +721,7 @@
   white-space: normal;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-host {
     display: block;
   }
@@ -840,7 +840,7 @@
   flex: 1 1 auto;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-sheet-foot {
     padding-block-end: max(var(--space-6), var(--safe-bottom));
     padding-inline: var(--space-6);
@@ -1329,7 +1329,7 @@
   white-space: nowrap;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-line {
     display: flex;
   }
@@ -1351,7 +1351,7 @@
 
 /* From 40rem a suggestion is three lines (name, site and cadence, what it covers): it takes a
    three-line row's height, so its lines have the air the Sources rows above have. */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-row.is-suggested:has(.source-line) {
     min-height: calc(var(--space-12) + var(--space-8) + var(--space-2));
   }
@@ -1896,7 +1896,7 @@
 
 /* Add sits at the card's start, so from 40rem its menu hangs from its left edge and grows out of
    that corner, not from the right edge as a menu under a row's end does. */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   @supports (top: anchor(bottom)) {
     .structure-add > .hero-menu-list {
       inset-inline-start: anchor(left);

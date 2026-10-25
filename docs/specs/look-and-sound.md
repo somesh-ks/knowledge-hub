@@ -31,7 +31,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Every enabled control makes one: an action button a soft tap, a dialog or popover its open and close including Escape, a toast its outcome. The first press of a page is queued until the engine is ready. A save that went through is silent.
 
 ### Style rules
-- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths and undefined custom properties. Unpinned: copy, geometry.
+- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths, undefined custom properties, and a width media query not in range syntax at a breakpoint's width (22.5, 40, 64, 80, 100rem). Unpinned: copy, geometry.
 - Design fixes with a commented reason are extended, never rewritten.
 
 ### Design system enforcement

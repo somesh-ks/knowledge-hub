@@ -558,7 +558,7 @@ Each was found by the code read; the first five were checked by hand on 2026-10-
    - Three sheet systems, each with its own transition list.
    - 36 button class signatures, against a census target of four primitives (`history/2026-10-11-design-systems-audit.md`).
 7. **Breakpoints and timings written many ways.**
-   - The same three breakpoints appear as `min-width`, `max-width: 63.9375rem`, `not all and`, `width <` and range syntax.
+   - The same three breakpoints appeared as `min-width`, `max-width: 63.9375rem`, `not all and`, `width <` and range syntax; one spelling since 2026-10-25, held by a style rule.
    - Idle timeouts of 4000, 3000, 2000 and 200 ms.
    - Scroll thresholds of 64/12 px for the app bar and 48/8 px for the floating button.
 8. **Layout properties animated.**

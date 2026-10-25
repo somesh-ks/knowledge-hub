@@ -150,6 +150,11 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ],
 ];
 
+/** The widths a media query may name, in rem: --breakpoint-wide, -side and -aside (tokens.css), the
+ * narrowest phone (22.5rem, where a four-way control loses its labels) and the widest player page
+ * (100rem). */
+const BREAKPOINTS = ["22.5", "40", "64", "80", "100"];
+
 const SHARED_CONTROL_SHEETS = ["buttons.css", "primitives.css"];
 
 /** The shared control classes, defined in buttons.css and primitives.css. */
@@ -450,6 +455,25 @@ const RULES: Rule[] = [
             return LABEL_CONTROLS.some((name) => selector.includes(`.${name}`));
           })
           .map(([, selector = ""]) => `${file}: ${selector.trim()}`),
+      ),
+  },
+  {
+    // The same two breakpoints were spelled five ways (min-width, max-width: 63.9375rem, "not all
+    // and", width <, range syntax; the design-system audit, 2026-10-25), so a search for a breakpoint
+    // missed rules that use it. One spelling, range syntax, at the widths the breakpoint tokens name.
+    name: "writes a width media query in range syntax at a breakpoint's width",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        [...css.matchAll(/@media\s+([^{]+)\{/g)].flatMap(([, query = ""]) => {
+          const q = query.replace(/\s+/g, " ").trim();
+          if (/\b(?:min|max)-width\b|not all and/.test(q)) return [`${file}: @media ${q}`];
+          const widths = [
+            ...q.matchAll(/([\d.]+)rem\s*<=?\s*width|width\s*[<>]=?\s*([\d.]+)rem/g),
+          ].map(([, low, high]) => low ?? high ?? "");
+          return widths.every((width) => BREAKPOINTS.includes(width))
+            ? []
+            : [`${file}: @media ${q}`];
+        }),
       ),
   },
   {
