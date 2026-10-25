@@ -168,8 +168,8 @@
 }
 
 :is(.settings-view, .manage) .row-action .icon {
-  /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
-  margin-inline-end: calc(var(--size-icon) * -0.28);
+  /* The glyph sits inside its box; this pulls its ink out to the switch's and the segments' edge. */
+  margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
   color: var(--color-on-surface-subtle);
 }
 
@@ -504,7 +504,8 @@
     calc(
       var(--space-2) +
       var(--value-select-pull, 0px) +
-      var(--size-icon) +
+      var(--size-icon) *
+      (1 - var(--ink-end, 0)) +
       var(--field-chevron-gap)
     );
   border-color: transparent;
@@ -515,8 +516,14 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */
 .settings-row .value-select > .icon {
-  inset-inline-end: calc(var(--space-2) + var(--value-select-pull, 0px));
+  inset-inline-end: calc(
+    var(--space-2) +
+    var(--value-select-pull, 0px) -
+    var(--size-icon) *
+    var(--ink-end, 0)
+  );
 }
 
 /* On Settings the model is a row's current value, as every other row's hint is: the muted colour at
@@ -530,22 +537,8 @@
    values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
    the stored value is set, which comes later and so still wins. */
 .settings-view .value-select > select.manage-input {
-  padding-inline-end: calc(
-    var(--space-2) +
-    var(--value-select-pull, 0px) +
-    var(--size-icon) *
-    0.72 +
-    var(--field-chevron-gap)
-  );
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
-}
-
-/* Its value and chevron end where the link rows' do: their glyph is pulled out by 0.28 of the icon
-   (`.row-action .icon` above), so this one moves the same way inside the select's fill, whose box
-   stays one inset from the card's edge (the design audit, 2026-10-22: 5.6px apart). */
-.settings-view .value-select > .icon {
-  inset-inline-end: calc(var(--space-2) + var(--value-select-pull, 0px) - var(--size-icon) * 0.28);
 }
 
 .settings-row .value-select > select.manage-input:focus-visible {

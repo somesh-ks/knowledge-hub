@@ -357,7 +357,8 @@
   --segmented-segment-radius: var(--radius-sm);
   --segmented-selected-bg: var(--color-surface-raised);
   --field-height: var(--size-touch-comfortable);
-  --field-radius: var(--radius-sm);
+  --field-radius: var(--radius-round);
+  --field-radius-multiline: var(--radius-xl);
   --field-padding: var(--space-4);
   --field-chevron-gap: var(--space-4);
   --field-border: var(--color-border-control);

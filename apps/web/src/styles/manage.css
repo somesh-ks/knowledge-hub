@@ -114,6 +114,7 @@
 /* It grows with what is typed, so it needs no grip to drag. */
 textarea.manage-input {
   min-block-size: 6rem;
+  border-radius: var(--field-radius-multiline);
   padding-block: var(--field-padding);
   field-sizing: content;
   resize: none;

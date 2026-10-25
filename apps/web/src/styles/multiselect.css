@@ -103,15 +103,17 @@
   inline-size: auto;
   max-inline-size: 100%;
   justify-content: flex-end;
-  padding-inline: var(--space-4) calc(var(--space-2) + var(--size-icon) + var(--field-chevron-gap));
+  padding-inline: var(--space-4)
+    calc(var(--space-2) + var(--size-icon) * (1 - var(--ink-end, 0)) + var(--field-chevron-gap));
   border-color: transparent;
   border-radius: var(--button-radius);
   font-weight: var(--font-weight-medium);
   text-align: end;
 }
 
+/* The chevron's ink ends where the link rows' chevrons do (D187). */
 .settings-row .multiselect-trigger > .icon {
-  inset-inline-end: var(--space-2);
+  inset-inline-end: calc(var(--space-2) - var(--size-icon) * var(--ink-end, 0));
 }
 
 .settings-row .multiselect-trigger:is(:focus-visible, [aria-expanded="true"]) {
