@@ -90,7 +90,8 @@ describe("the schedule's hours in its own time zone", () => {
   it.each([
     ["the UTC hour that ends inside 07:00 to 08:00 in India", "2026-10-12T01:10:00Z", "daily"],
     ["the UTC hour that starts inside it", "2026-10-12T02:50:00Z", "daily"],
-    ["the hour before", "2026-10-12T00:50:00Z", null],
+    ["the hour before, where a run starts ahead", "2026-10-12T00:50:00Z", "daily"],
+    ["two hours before", "2026-10-11T23:50:00Z", null],
     ["the hour after", "2026-10-12T03:10:00Z", null],
   ])("counts a call in %s", (_name, at, slot) => {
     expect(slotAt(zoned("Asia/Kolkata"), new Date(at))).toBe(slot);
