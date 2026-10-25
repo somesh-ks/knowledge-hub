@@ -48,22 +48,54 @@ export function parseVoiceDefaults(body: unknown): VoiceDefaults | null {
     : null;
 }
 
+/** The regions public/flags.svg draws (Flagpack), as its symbol ids name them. */
+export const FLAG_REGIONS: ReadonlySet<string> = new Set(
+  "AE AR AU BR CA CL CN CO CZ DE DK ES FI FR GB GR IE IN IT JP KR MX NG NL NO NZ PE PH PL PT RU SE SG TR UA US ZA".split(
+    " ",
+  ),
+);
+
 /**
- * The flag of a voice's accent, from its locale's region ("en-GB" gives the British flag), or "" when
- * the locale names no region. Two regional indicator letters make the flag emoji; a system without
- * flag emoji (Windows) shows the letters instead, which still name the accent.
+ * The region of a voice's accent, from its locale ("en-GB" gives "GB"), or "" when the locale names
+ * none. The flag is drawn from it (flagNode); search and the accessible name read the words.
  */
 export function voiceFlag(language: string | null): string {
   const region = language?.split(/[-_]/)[1]?.toUpperCase() ?? "";
-  if (!/^[A-Z]{2}$/.test(region)) return "";
-  return String.fromCodePoint(...[...region].map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65));
+  return /^[A-Z]{2}$/.test(region) ? region : "";
 }
 
-/** What an option reads: "🇺🇸 Sophia, female", the flag first so the accents line up in the list. */
+/** The sprite symbol id of a region's flag ("GB" gives "flag-gb"), or null when the sprite has none. */
+export function flagSymbolId(region: string): string | null {
+  return FLAG_REGIONS.has(region) ? `flag-${region.toLowerCase()}` : null;
+}
+
+/**
+ * A region's flag as an SVG from the sprite, the same on every system (Windows draws no flag emoji).
+ * A region the sprite lacks gets a small badge of its two letters. Hidden from assistive tech: the
+ * option's words and its accent in the search keywords carry the meaning.
+ */
+export function flagNode(region: string): Element {
+  const symbol = flagSymbolId(region);
+  if (symbol === null) {
+    const badge = document.createElement("span");
+    badge.className = "flag flag-badge";
+    badge.dataset.code = region;
+    badge.setAttribute("aria-hidden", "true");
+    return badge;
+  }
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "flag");
+  svg.setAttribute("aria-hidden", "true");
+  const use = document.createElementNS(ns, "use");
+  use.setAttribute("href", `/flags.svg#${symbol}`);
+  svg.append(use);
+  return svg;
+}
+
+/** What an option reads, as plain text: "Sophia, female". The accent's flag is drawn beside it. */
 export function voiceLabel(voice: Voice): string {
-  const name = voice.gender ? `${voice.name}, ${voice.gender.toLowerCase()}` : voice.name;
-  const flag = voiceFlag(voice.language);
-  return flag ? `${flag} ${name}` : name;
+  return voice.gender ? `${voice.name}, ${voice.gender.toLowerCase()}` : voice.name;
 }
 
 /**
@@ -94,19 +126,23 @@ export function fillVoiceSelect(
   fallback?: Voice,
 ): void {
   const options: HTMLOptionElement[] = [];
-  const add = (value: string, text: string, keywords = ""): void => {
+  const add = (value: string, text: string, keywords = "", region = ""): void => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = text;
     if (keywords !== "") option.dataset.keywords = keywords;
+    // The picker draws this region's flag before the words.
+    if (region !== "") option.dataset.region = region;
     options.push(option);
   };
-  const fallbackFlag = fallback ? voiceFlag(fallback.language) : "";
   add(
     "",
-    fallback ? `${fallbackFlag ? `${fallbackFlag} ` : ""}Default (${fallback.name})` : "Default",
+    fallback ? `Default (${fallback.name})` : "Default",
+    "",
+    fallback ? voiceFlag(fallback.language) : "",
   );
-  for (const voice of voices) add(voice.id, voiceLabel(voice), voiceKeywords(voice));
+  for (const voice of voices)
+    add(voice.id, voiceLabel(voice), voiceKeywords(voice), voiceFlag(voice.language));
   if (chosen !== "" && !voices.some((voice) => voice.id === chosen)) add(chosen, "Saved voice");
   select.replaceChildren(...options);
   select.value = chosen;

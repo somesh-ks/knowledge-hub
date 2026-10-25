@@ -186,10 +186,10 @@ test.describe("the profile pages", () => {
       await openPicker(page, field);
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
-        // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
-        "\u{1F1FA}\u{1F1F8} Ada, female",
-        "\u{1F1FA}\u{1F1F8} Leo, male",
-        "\u{1F1EC}\u{1F1E7} Nora, female",
+        // Each voice's accent flag is an SVG beside the text (2026-10-25), not part of it.
+        "Ada, female",
+        "Leo, male",
+        "Nora, female",
       ]);
       // The search narrows the list by name, and by accent in words.
       await pickerList(page).getByRole("combobox").fill("british");

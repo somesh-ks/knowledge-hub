@@ -364,8 +364,9 @@
   display: grid;
   place-items: center;
   min-width: 0;
-  /* With the outline the control is 48px tall, as tall as a select, and taller if the text grows. */
-  min-height: calc(var(--segmented-height) - var(--stroke-hairline) * 2);
+  /* With the outline the control is 40px tall, between a filter chip (36px) and a select (48px), so
+     it reads as the chips' sibling, and taller if the text grows. */
+  min-height: calc(var(--chip-height) + var(--space-1) - var(--stroke-hairline) * 2);
   padding-inline: var(--space-2);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
@@ -392,11 +393,17 @@
 }
 
 /* The radio is the target and covers its segment. It is invisible, so the segment draws every state. */
+/* The item is 38px inside the 40px outline; the radio reaches 44px, a chip's target, by extending
+   past the item above and below (the fieldset's radius clips nothing: the radio is invisible). */
 .segmented-choice-item input {
   position: absolute;
-  inset: 0;
+  inset-block: calc(
+    (var(--size-touch) - var(--chip-height) - var(--space-1) + var(--stroke-hairline) * 2) /
+    -2
+  );
+  inset-inline: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   margin: 0;
   appearance: none;
   opacity: 0;
@@ -692,9 +699,11 @@
 
 /*
  * The one link out of a story or an episode highlight: the publisher's name (or its host) and an
- * opens-elsewhere glyph. A text button: no container until it is hovered or pressed. The padding is
- * taken back at the start, so the words sit where they would without it and the fill reaches past
- * them; at the end it stays, so the fill never runs past the column.
+ * opens-elsewhere glyph. A link, not a button: no container, no fill. On hover an underline draws in
+ * under the name from its start (a background on the span, so it animates where text-decoration
+ * does not); a press deepens the words to the pressed accent. The padding is taken back at the
+ * start, so the words sit where they would without it and the target reaches past them; at the
+ * end it stays, so the target never runs past the column.
  */
 .source-link {
   display: inline-flex;
@@ -711,14 +720,17 @@
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   text-decoration: none;
-  transition: background-color var(--duration-hover) var(--ease-hover);
+  transition: color var(--duration-hover) var(--ease-hover);
 }
 
-/* A long name shortens with an ellipsis; the glyph always stays. */
+/* A long name shortens with an ellipsis; the glyph always stays. The underline is the span's own
+   background, a rail thick and flush with its foot, empty until hovered. */
 .source-link > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0 var(--stroke-rail);
+  transition: background-size var(--duration-hover) var(--ease-hover);
 }
 
 .source-link .icon {
@@ -727,15 +739,21 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .source-link:hover {
-    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
+  .source-link:hover > span {
+    background-size: 100% var(--stroke-rail);
   }
 }
 
-/* A press is not a hover: the layer deepens and the words take the pressed accent. */
+/* A press is not a hover: the words take the pressed accent. */
 .source-link:active {
-  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
   color: var(--color-accent-pressed);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-link,
+  .source-link > span {
+    transition: none;
+  }
 }
 
 /* ------------------------------------------------------------------ filter chips */

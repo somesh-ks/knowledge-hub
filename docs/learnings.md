@@ -104,6 +104,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
 - 2026-10-08: `npx` can stall a minute before a local binary runs: read its output, do not rerun it. A full disk was another project's temp folder: measure before deleting.
 
+- 2026-10-25: Windows has no flag emoji; flags are SVG from `public/flags.svg`.
+
 ## Agents and worktrees
 
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
@@ -116,7 +118,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
-- 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; after #272 a worktree missed them or got main's copies. It reads the worktree's `package.json` names now; `--remove` works on Linux.
+- 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; after #272 a worktree missed them. It reads `package.json` names now.
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
 - 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` after the clean and junction checks.

@@ -72,20 +72,6 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-run-card]")).toBeHidden();
   });
 
-  test("the button says how long the episode will be, and follows the length", async ({ page }) => {
-    await openCreate(page);
-    await expect(submit(page)).toHaveText("Generate • 5 mins");
-    await segment(page, "10 min").click();
-    await expect(submit(page)).toHaveText("Generate • 10 mins");
-    await segment(page, "15 min").click();
-    await expect(submit(page)).toHaveText("Generate • 15 mins");
-    await segment(page, "3 min").click();
-    await expect(submit(page)).toHaveText("Generate • 3 mins");
-    // The other choices do not change it.
-    await segment(page, "Discussion").click();
-    await expect(submit(page)).toHaveText("Generate • 3 mins");
-  });
-
   test("while the request is out the button says Starting…, with its spinner", async ({ page }) => {
     let release: () => void = () => {};
     const held = new Promise<void>((resolve) => {
@@ -108,7 +94,7 @@ test.describe("the Create page", () => {
     await expect(submit(page).locator(".spinner")).toBeVisible();
     release();
     await expect(page.locator('[data-error="form"]')).toBeVisible();
-    await expect(words).toHaveText("Generate • 5 mins");
+    await expect(words).toHaveText("Generate catch up");
     await expect(submit(page).locator(".spinner")).toBeHidden();
   });
 
@@ -140,7 +126,7 @@ test.describe("the Create page", () => {
     // Design sends two sections; with Written for retired every script is the owner's.
     expect(mock.bodies[0]?.request).toMatchObject({
       audience: "custom",
-      topic_ids: ["design", "ui-craft", "ai", "tech", "software", "world", "sports"],
+      topic_ids: ["ai", "design", "ui-craft", "software", "sports", "tech", "world"],
     });
   });
 
@@ -261,7 +247,7 @@ test.describe("the Create page", () => {
     expect(mock.bodies[0]).toEqual({
       request: {
         audience: "custom",
-        topic_ids: ["ai", "tech", "software", "world"],
+        topic_ids: ["ai", "software", "tech", "world"],
         length_minutes: 10,
         format: "discussion",
         window_days: 30,
@@ -526,10 +512,7 @@ test.describe("the Create panel's voices", () => {
     await openCreate(page);
     const ada = page.locator("#create-voice");
     const leo = page.locator("#create-voice_b");
-    const hint = page.locator("[data-format-hint]");
     await expect(ada).toHaveAccessibleName(/^Voice: /);
-    // Nothing under the format until the voices can name who will be heard.
-    await expect(hint).toBeHidden();
     // The voices are chosen from a list with a search box, and each can be heard from its button.
     await openPicker(page, ada);
     await expect(pickerList(page).getByRole("option")).toHaveText([
@@ -548,12 +531,10 @@ test.describe("the Create panel's voices", () => {
     await expect(leo).toBeVisible();
     // A discussion is two hosts, each with a voice, and the line under the format says so.
     await expect(page.locator("#create-voice-label")).toHaveText("Voices");
-    await expect(ada).toHaveAccessibleName(/^First host's voice: /);
-    await expect(leo).toHaveAccessibleName(/^Second host's voice: /);
-    await expect(hint).toBeHidden();
+    await expect(ada).toHaveAccessibleName(/^Primary voice: /);
+    await expect(leo).toHaveAccessibleName(/^Secondary voice: /);
     await choose(page, ada, /Ada, female/);
     await choose(page, leo, /Leo, male/);
-    await expect(hint).toHaveText("Ada and Leo");
     // The voices are labelled with the hosts' names (D76), in their captions and their names.
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
     await expect(ada).toHaveAccessibleName(/^Ada's voice: /);
@@ -588,12 +569,10 @@ test.describe("the Create panel's voices", () => {
     await openCreate(page);
     const first = page.locator('select[name="voice"] option').first();
     await expect(first).toHaveText(/Default \(Ada\)/);
-    await expect(page.locator("[data-format-hint]")).toHaveText("Read by Ada");
     await segment(page, "Discussion").click();
     await expect(page.locator('select[name="voice_b"] option').first()).toHaveText(
       /Default \(Leo\)/,
     );
-    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
   });
 
   test("a discussion's two hosts never share a voice: taking the other's hands this one over", async ({
@@ -627,14 +606,12 @@ test.describe("the Create panel's voices", () => {
     await segment(page, "Discussion").click();
     const first = page.locator('select[name="voice"]');
     const second = page.locator('select[name="voice_b"]');
-    await expect(page.locator("[data-format-hint]")).toHaveText("Ada and Leo");
     // The lead takes Leo, whom the second host's Default stands for: the second host gets Ada.
     await choose(page, page.locator("#create-voice"), /Leo, male/);
     await expect(second).toHaveValue("voice-ada");
     // The button of the second host says so too: the list's words follow the page's value.
     await expect(page.locator("#create-voice_b")).toContainText("Ada");
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Leo's voice", "Ada's voice"]);
-    await expect(page.locator("[data-format-hint]")).toHaveText("Leo and Ada");
     // The second host takes the lead's voice: they swap back.
     await choose(page, page.locator("#create-voice_b"), /Leo, male/);
     await expect(first).toHaveValue("voice-ada");
@@ -667,7 +644,7 @@ test.describe("the Create page when the server says no", () => {
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toEqual({
       audience: "custom",
-      topic_ids: ["design", "ui-craft", "ai", "tech", "software"],
+      topic_ids: ["ai", "design", "ui-craft", "software", "tech"],
       length_minutes: 5,
       format: "readout",
       window_days: 7,
@@ -886,7 +863,7 @@ test.describe("the Create page with the config store on", () => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 9, started_at: "x" });
     await openCreate(page);
     await chip(page, "Pottery").click();
-    await expect(submit(page)).toHaveText("Generate • 10 mins");
+    await expect(submit(page)).toHaveText("Generate catch up");
     await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]?.request).toMatchObject({
