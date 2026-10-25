@@ -1734,10 +1734,9 @@
   display: none;
 }
 
-/* The kind's tabs (2026-10-24: chips read as filters, the owner) and Reorder at the strip's end sit
-   a full step under the switch, and the blocks a step under them. The strip's own padding is the
-   page's gutter; in the card the first label starts at the card's words instead, its 16px of tab
-   padding pulled back, and Reorder's words end where the rows' dots do. */
+/* The kind's tabs (2026-10-24: chips read as filters, the owner; `.tabs-in-card`, so the first label
+   starts at the card's words) and Reorder at the strip's end sit a full step under the switch, and
+   the blocks a step under them. Reorder's words end where the rows' dots do. */
 .structure-kinds-bar {
   display: flex;
   align-items: center;
@@ -1747,8 +1746,6 @@
 .structure-kinds {
   flex: 1 1 auto;
   min-width: 0;
-  margin-inline-start: calc(var(--space-4) * -1);
-  padding-inline: 0;
 }
 
 /* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
@@ -1785,11 +1782,9 @@
   flex-wrap: nowrap;
 }
 
-/* The hello and the sign-off frame the episode and never move: drawn quieter, with no menu. A
-   section whose topics are all left out of the briefing stays where it was, as quiet, and says so. */
-.structure-row:is([data-frame], [data-off]) .settings-label {
-  color: var(--color-on-surface-muted);
-}
+/* The hello and the sign-off frame the episode and never move: drawn quieter (`data-quiet`,
+   settings.css), with no menu. A section whose topics are all left out of the briefing stays where
+   it was, as quiet, and says so. */
 
 /*
  * The grip (2026-10-24, the owner: "there are no reordering mechanism I see"): a body row's handle at
@@ -1871,11 +1866,10 @@
   }
 }
 
-/* The glyph, not its 44px target, ends where the row's words could. */
-.structure-menu,
-.structure-edit {
+/* The dots and the pencil land their ink on the row's end by `icon-btn-end` (D187); the menu's
+   wrapper only keeps its width. */
+.structure-menu {
   flex: none;
-  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 /* Each menu hangs under its own dots, and Add's under Add: one anchor each, named on the wrapper. */
@@ -1917,12 +1911,6 @@
   padding-inline: var(--card-padding);
 }
 
-/* The Edit sheet: a field's name at the body size, as the Topics panel's labels are. */
-.structure-field-label {
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-label);
-}
-
 .structure-sheet .segmented-choice {
   flex: none;
 }
@@ -1939,7 +1927,7 @@
 
 /* A long prompt scrolls inside its field, so the count and Reset stay in reach under it. */
 textarea.manage-input.structure-prompt {
-  max-block-size: calc(var(--space-16) * 5);
+  max-block-size: var(--field-max-height-multiline);
   overflow-y: auto;
 }
 

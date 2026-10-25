@@ -70,8 +70,9 @@
 }
 
 /* A field's label is the body size, as the Create panel's are: the Add source panel wears that panel's
-   looks, and the Add topic form sits among 16px rows. */
-.manage-field > label {
+   looks, and the Add topic form sits among 16px rows. A group with no one control (a segmented
+   choice) names itself with `.field-label` and the same looks. */
+.manage-field > :is(label, .field-label) {
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);

@@ -157,6 +157,15 @@
   display: none;
 }
 
+/* Tabs inside a card (the Structure's kinds, 2026-10-24): the strip's padding is the page's gutter,
+   so in a card it is pulled back by the first tab's own 16px and the first label starts at the
+   card's words, where the rows' names start.
+   Markup: <div class="tabs tabs-in-card" role="tablist">...</div> */
+.tabs-in-card {
+  margin-inline-start: calc(var(--space-4) * -1);
+  padding-inline: 0;
+}
+
 .tab {
   position: relative;
   display: inline-flex;
