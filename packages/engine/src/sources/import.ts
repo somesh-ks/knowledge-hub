@@ -43,7 +43,8 @@ export function urlKey(url: string): string {
   const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
   const channel = parsed.searchParams.get("channel_id");
   const path = `${host}${parsed.pathname.replace(/\/+$/, "").toLowerCase()}`;
-  return channel && host.endsWith("youtube.com") ? `${path}?channel_id=${channel}` : path;
+  const youtube = host === "youtube.com" || host.endsWith(".youtube.com");
+  return channel && youtube ? `${path}?channel_id=${channel}` : path;
 }
 
 function displayName(raw: string): string {
