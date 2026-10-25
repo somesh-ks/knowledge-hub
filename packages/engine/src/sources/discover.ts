@@ -313,7 +313,11 @@ export async function resolveYoutubeChannel(
   handleUrl: string,
   deps: DiscoverDeps,
 ): Promise<string | undefined> {
-  const direct = CHANNEL_PATH.exec(new URL(handleUrl).pathname)?.[1];
+  const parsedUrl = new URL(handleUrl);
+  const direct =
+    CHANNEL_PATH.exec(parsedUrl.pathname)?.[1] ??
+    // A channel's feed address names its id; it is the stored form of an added source.
+    /^(UC[\w-]{22})$/.exec(parsedUrl.searchParams.get("channel_id") ?? "")?.[1];
   if (direct) return direct;
   const resolved = await resolveViaApi(handleUrl, deps).catch(() => undefined);
   if (resolved) return resolved;

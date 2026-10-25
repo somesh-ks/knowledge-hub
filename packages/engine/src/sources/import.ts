@@ -33,11 +33,17 @@ const WATCH_SOURCES: Readonly<Record<string, { id: string; name: string }>> = {
   "remix.run/blog": { id: "remix-blog", name: "Remix Blog" },
 };
 
-/** Host and path, lowercase, no www, no trailing slash: the identity of a page for matching. */
+/**
+ * Host and path, lowercase, no www, no trailing slash: the identity of a page for matching. A
+ * YouTube feed (`/feeds/videos.xml?channel_id=...`) is told apart by its channel id, else every
+ * channel's feed would read as one page.
+ */
 export function urlKey(url: string): string {
   const parsed = new URL(url);
   const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-  return `${host}${parsed.pathname.replace(/\/+$/, "").toLowerCase()}`;
+  const channel = parsed.searchParams.get("channel_id");
+  const path = `${host}${parsed.pathname.replace(/\/+$/, "").toLowerCase()}`;
+  return channel && host.endsWith("youtube.com") ? `${path}?channel_id=${channel}` : path;
 }
 
 function displayName(raw: string): string {
