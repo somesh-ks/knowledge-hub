@@ -4,18 +4,18 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Working
 
-- Engine end to end live (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
-- Reader: Latest, Library (row menu, downloads), Catch up, Settings, in a tonal Material 3 look: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
-- Narration on Play, story by story; `audio.yml` pre-narrates briefings after each run, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
-- Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Schedule (D61): Vercel Cron's 07:00 call dispatches `run.yml`.
-- Deploy: Vercel deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook.
+- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
+- Reader: Latest, Library, Catch up, Settings, tonal Material 3: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
+- Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
+- Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
+- Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
+- Schedule (D61): Vercel Cron at 07:00 dispatches `run.yml`.
+- Deploy: Vercel deploys `main`. CI (PRs): checks, gitleaks, audit, browser suites by path (D148). Dependabot auto-merges; others by hand (D143).
+- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`.
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 minutes. Player e2e: 71 runs, 3 minutes.
+Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 min. Player e2e: 71 runs, 3 min.
 
 ## Not working or unverified
 
@@ -23,7 +23,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
-- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
+- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast, health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` (#183); `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
@@ -73,7 +73,8 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty store `store_JmrDq8MB5Kwn3ejW`; decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`git show 91bc533:docs/state.md`).
-2. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the other first-load cuts (D141, D178).
-3. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
-4. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).
+1. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty store `store_JmrDq8MB5Kwn3ejW`. Decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`91bc533:docs/state.md`).
+2. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first narrated turn, a shallow checkout; the other first-load cuts (D141, D178).
+3. Workflows: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
+4. `SPEECHIFY_VOICE_ID_B` on GitHub.
+5. Design system: a `/design` catalogue, one breakpoint spelling (lint), switch and segmented duplicates (`design-system/report.md`).

@@ -195,6 +195,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D185 | Repo config to store | amends D149 |
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
+| D188 | Script-drawn markup | active |
 
 ---
 
@@ -1981,3 +1982,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the chevron's 0.28 pull fitted one glyph only; a chevron down, a cross and the More dots sit further inside their boxes, so each ended a few pixels short of the line the words make.
 - Rejected: pulling the More dots on Today's story rows and hero, and the Library's view buttons, to the 16px page edge (their 44px targets would leave the screen); moving the topic page's source list, which lines up with its search field's glyph (owner, 2026-10-23).
 - Revisit if: a glyph outside the table ends a row (add its measured margin).
+
+## D188: a list a script redraws takes its sheet header and icons from the same source as the pages
+
+- Date: 2026-10-25 (the design-system audit; the owner: "I see too many deviations - especially in the structure tab").
+- Decision: `apps/web/src/lib/sheetHead.ts` holds the markup of a sheet's header row and of an icon; `SheetHeader.astro` renders it, and any list a script rebuilds (`structureView.ts`) calls it. A menu a script builds is `MenuSheet.astro`'s menu: the header, and each item with its glyph at the start. Every glyph carries `data-icon`, so D187's ink margins reach it. A row that cannot act says `data-quiet` (settings.css) rather than a page recolouring `.settings-label`; tabs in a card are `.tabs-in-card`; a multi-line field's ceiling is `--field-max-height-multiline`.
+- Why: the Structure view copied the menu sheet by hand, lost the item icons and the D187 alignment, and placed its glyphs with negative margins; each copy is a place the system drifts.
+- Rejected: server-rendering the menus once per row (the list is rebuilt after every edit, so the client needs the markup too).
+- Revisit if: a second script-drawn list appears (then `MenuSheet.astro` should also render through `sheetHead.ts`).
+

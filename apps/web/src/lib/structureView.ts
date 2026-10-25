@@ -7,7 +7,8 @@
  */
 import type { StructureBlock, StructureKind } from "@singularity/core";
 import type { ConfigOp } from "../types/contracts";
-import { ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
+import type { IconName } from "./icons";
+import { escapeHtml, iconHtml, sheetHeadHtml } from "./sheetHead";
 
 export const KIND_LABEL: Record<StructureKind, string> = {
   daily: "Daily",
@@ -161,7 +162,7 @@ const storiesText = (count: number): string => (count === 1 ? "1 story" : `${cou
 /**
  * What a row says under the block's name, in parts joined by a centred dot: "4 stories · in depth
  * · 1 per source". A setting left to the app says nothing, except where nothing else
- * would ("The usual count").
+ * would ("Auto", the word the Stories select uses for the same thing).
  */
 export function blockSummary(kind: StructureKind, block: StructureBlock): string {
   const count = storiesOf(block);
@@ -177,9 +178,9 @@ export function blockSummary(kind: StructureKind, block: StructureBlock): string
       return join([counted, DEPTH_LABEL[block.depth], ...rules]);
     case "trending":
     case "release_news":
-      return join([counted ?? (rules.some(Boolean) ? null : "The usual count"), ...rules]);
+      return join([counted ?? (rules.some(Boolean) ? null : "Auto"), ...rules]);
     case "rundown":
-      return counted ?? "The usual count";
+      return counted ?? "Auto";
     case "close":
       return block.length === "long" ? "Long" : "Short";
     case "custom":
@@ -301,14 +302,6 @@ export function moved(
 
 // ------------------------------------------------------------------------------------- markup
 
-const escapeHtml = (text: string): string =>
-  text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
 /**
  * The kind as it goes into an id, read from a table rather than written through: the editor's kind
  * comes from the address, and markup takes only text this file wrote.
@@ -319,19 +312,20 @@ const KIND_ID: Record<StructureKind, string> = {
   catch_up: "catch-up",
 };
 
-const icon = (name: IconName): string =>
-  `<svg class="icon" viewBox="${ICON_VIEW_BOX}" aria-hidden="true" focusable="false"><path d="${ICON_PATHS[name]}"></path></svg>`;
+const icon = (name: IconName): string => iconHtml(name);
 
-const item = (act: string, label: string, disabled = false, extra = ""): string =>
-  `<button class="hero-menu-item${extra}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${label}</button>`;
+/** A menu's row, as MenuSheet.astro's slot holds them: its glyph at the start, then the word. */
+const item = (act: string, glyph: IconName, label: string, disabled = false, extra = ""): string =>
+  `<button class="hero-menu-item${extra}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${icon(glyph)}${label}</button>`;
 
 /**
  * The kind's rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
- * name and what it holds, its dots with Move up, Move down,
- * Edit and Remove (the More menu, MenuSheet.astro's markup: a bottom sheet on a phone). The hello
- * and sign-off the app speaks are left out; a frame a model writes (Catch up's) is drawn quieter
- * with one pencil for its prompt. A section whose every topic is left out of the
- * briefing stays, quiet, and says so.
+ * name and what it holds, its dots with Move up, Move down, Edit and Remove (the More menu,
+ * MenuSheet.astro's markup through sheetHead.ts: a bottom sheet on a phone). The hello and sign-off
+ * the app speaks are left out; a frame a model writes (Catch up's) is drawn quieter (`data-quiet`,
+ * settings.css) with one pencil for its prompt. A section whose every topic is left out of the
+ * briefing stays, quiet, and says so. The dots and the pencil end the row as every row's end glyph
+ * does (`icon-btn-end`, D187).
  */
 export function rowsHtml(
   kind: StructureKind,
@@ -356,23 +350,23 @@ export function rowsHtml(
         // A frame the app speaks has nothing to change, so it is not listed (owner, 2026-10-24:
         // "remove hello and closing"); one a model writes (Catch up's) stays for its prompt.
         if (builtinPrompt(data, kind, block) === null) return "";
-        const edit = `<button class="icon-btn press structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
-        return `<li class="settings-row structure-row" data-index="${index}" data-frame><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
+        const edit = `<button class="icon-btn press icon-btn-end structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
+        return `<li class="settings-row structure-row" data-index="${index}" data-frame data-quiet><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
       }
       const menu = `structure-menu-${KIND_ID[kind]}-${Number(index)}`;
       return [
-        `<li class="settings-row structure-row" data-index="${index}"${off ? " data-off" : ""}>`,
-        `<button class="icon-btn structure-grip" type="button" aria-label="Move ${name}" aria-describedby="structure-grip-hint" data-grip>${icon("grip")}</button>`,
+        `<li class="settings-row structure-row" data-index="${index}"${off ? " data-off data-quiet" : ""}>`,
+        `<button class="icon-btn press structure-grip" type="button" aria-label="Move ${name}" aria-describedby="structure-grip-hint" data-grip>${icon("grip")}</button>`,
         text,
         `<div class="structure-menu" style="--row-anchor: --${menu}">`,
-        `<button class="icon-btn press structure-more" type="button" aria-label="More for ${name}" aria-haspopup="menu" popovertarget="${menu}" data-hero-more>${icon("moreVert")}</button>`,
+        `<button class="icon-btn press icon-btn-end structure-more" type="button" aria-label="More for ${name}" aria-haspopup="menu" popovertarget="${menu}" data-hero-more>${icon("moreVert")}</button>`,
         `<div class="hero-menu-list menu-sheet structure-menu-list" id="${menu}" popover>`,
-        `<div class="create-sheet-head"><h2 class="sheet-title" id="${menu}-title">${name}</h2><button class="icon-btn press" type="button" aria-label="Close" data-menu-close>${icon("close").replace('class="icon"', 'class="icon icon-lg"')}</button></div>`,
+        sheetHeadHtml(blockName(block, data.sections), `${menu}-title`, "data-menu-close"),
         `<div class="menu-sheet-items" role="menu" aria-label="${name}">`,
-        item("up", "Move up", index <= 1),
-        item("down", "Move down", index >= last),
-        item("edit", "Edit"),
-        item("remove", "Remove", alone, " hero-menu-delete"),
+        item("up", "arrowUp", "Move up", index <= 1),
+        item("down", "arrowDown", "Move down", index >= last),
+        item("edit", "pencil", "Edit"),
+        item("remove", "trash", "Remove", alone, " hero-menu-delete"),
         `</div></div></div></li>`,
       ].join("");
     })
