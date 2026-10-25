@@ -45,10 +45,6 @@
   line-height: var(--font-leading-body);
 }
 
-.create-format-hint {
-  padding-block-start: var(--space-2);
-}
-
 .create-error {
   display: flex;
   align-items: flex-start;
@@ -98,6 +94,14 @@
    row is the press target and wears the row's state layer. */
 .create-more {
   margin-block: var(--space-2) var(--space-4);
+  /* The grey of the menu sections; the summary is a pill inside it (2026-10-25). */
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+  padding-inline: var(--space-4);
+}
+
+.create-more-body {
+  padding-block-end: var(--space-4);
 }
 
 .create-more-summary {
@@ -108,7 +112,7 @@
   min-height: var(--fab-size);
   margin-inline: calc(var(--space-4) * -1);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--row-radius);
+  border-radius: var(--radius-round);
   list-style: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -170,12 +174,6 @@
 /* Open, the choices are on show: the line that repeated them steps aside. */
 .create-more[open] .create-more-values {
   display: none;
-}
-
-/* Inside, the questions are a step quieter than the main ones above. */
-.create-view .create-more-body .create-group .section-head {
-  padding-block: var(--space-4) var(--space-2);
-  font-size: var(--font-size-label);
 }
 
 .create-more-body > .create-group:last-child {
@@ -487,10 +485,5 @@
      body size, so the two columns read as one form. */
   .create-page .create-more .create-choice {
     inline-size: fit-content;
-  }
-
-  .create-page .create-more-body .create-group .section-head {
-    padding-block: var(--space-4) var(--space-4);
-    font-size: var(--font-size-body);
   }
 }

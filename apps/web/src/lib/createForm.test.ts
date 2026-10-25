@@ -10,9 +10,8 @@ import {
 } from "./createForm";
 
 describe("submitLabel", () => {
-  it("names the action and the length, with a dot between", () => {
-    expect(submitLabel(10)).toBe("Generate • 10 mins");
-    expect(submitLabel(3)).toBe("Generate • 3 mins");
+  it("names the action only; the Length control shows the minutes", () => {
+    expect(submitLabel()).toBe("Generate catch up");
   });
 });
 
@@ -35,6 +34,7 @@ describe("the options", () => {
 });
 
 describe("topicOptions", () => {
+  const CHIP_VALUES = new Set(["design", "ai", "technology", "software"]);
   const news = (id: string, name: string, enabled = true) => ({
     id,
     name,
@@ -60,18 +60,18 @@ describe("topicOptions", () => {
     ...over,
   });
 
-  it("is one list in a fixed order, never Top picks or Trending", () => {
+  it("is one alphabetical list, never Top picks or Trending", () => {
     const options = topicOptions([], general);
     expect(options.map((option) => option.label)).toEqual([
-      "Design",
       "AI",
-      "Technology",
-      "Software Engineering",
-      "World",
       "Business",
-      "Science",
       "Culture",
+      "Design",
+      "Science",
+      "Software Engineering",
       "Sports",
+      "Technology",
+      "World",
     ]);
     expect(options.map((option) => option.value)).not.toContain("top");
     expect(options.flatMap((option) => option.ids)).not.toContain("trending");
@@ -91,13 +91,18 @@ describe("topicOptions", () => {
     const ticked = topicOptions([], [...general, mine()])
       .filter((option) => option.ticked)
       .map((option) => option.label);
-    expect(ticked).toEqual(["Design", "AI", "Technology", "Software Engineering"]);
+    expect(ticked).toEqual(["AI", "Design", "Software Engineering", "Technology"]);
   });
 
   it("titles of the owner's topics follow the file; Design, AI and Technology are fixed", () => {
     const options = topicOptions([{ id: "ai", title: "Artificial" }], [mine()]);
-    expect(options[1]?.label).toBe("AI");
-    expect(options.at(-1)?.label).toBe("Audio interfaces");
+    expect(options.map((option) => option.label)).toEqual([
+      "AI",
+      "Audio interfaces",
+      "Design",
+      "Software Engineering",
+      "Technology",
+    ]);
   });
 
   it("names the general chips as the file does and leaves out one that is off", () => {
@@ -106,17 +111,17 @@ describe("topicOptions", () => {
       [news("world", "Global"), news("business", "Business", false), news("sports", "Sport")],
     );
     expect(options.map((option) => option.label)).toEqual([
-      "Design",
       "AI",
-      "Technology",
-      "Software Engineering",
+      "Design",
       "Global",
+      "Software Engineering",
       "Sport",
+      "Technology",
     ]);
     expect(options.find((option) => option.value === "world")?.ids).toEqual(["world"]);
   });
 
-  it("adds the owner's enabled custom topics after the chips, unticked", () => {
+  it("adds the owner's enabled custom topics, unticked", () => {
     const options = topicOptions(
       [],
       [
@@ -130,7 +135,11 @@ describe("topicOptions", () => {
         mine({ name: "Again", section_id: "audio_interfaces" }),
       ],
     );
-    expect(options.slice(9)).toEqual([
+    expect(
+      options.filter(
+        (option) => !CHIP_VALUES.has(option.value) && option.ids[0] === "audio_interfaces",
+      ),
+    ).toEqual([
       {
         value: "audio_interfaces",
         label: "Audio interfaces",
@@ -138,6 +147,7 @@ describe("topicOptions", () => {
         ticked: false,
       },
     ]);
+    expect(options).toHaveLength(10);
   });
 
   it("never offers one id twice", () => {

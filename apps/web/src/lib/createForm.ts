@@ -41,9 +41,9 @@ export const DEFAULTS = {
   tone: "neutral",
 } as const;
 
-/** The button names what it makes and how long it will run: "Generate • 10 mins". */
-export function submitLabel(minutes: number): string {
-  return `Generate • ${minutes} mins`;
+/** The button names what it makes; the Length control shows how long. */
+export function submitLabel(): string {
+  return "Generate catch up";
 }
 
 /**
@@ -149,5 +149,6 @@ export function topicOptions(
       ticked: false,
     });
   }
-  return [...chips, ...general, ...own];
+  // Always alphabetical, whatever order the config lists them in.
+  return [...chips, ...general, ...own].sort((a, b) => a.label.localeCompare(b.label));
 }

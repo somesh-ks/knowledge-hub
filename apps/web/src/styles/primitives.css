@@ -364,8 +364,9 @@
   display: grid;
   place-items: center;
   min-width: 0;
-  /* With the outline the control is 48px tall, as tall as a select, and taller if the text grows. */
-  min-height: calc(var(--segmented-height) - var(--stroke-hairline) * 2);
+  /* With the outline the control is 40px tall, between a filter chip (36px) and a select (48px), so
+     it reads as the chips' sibling, and taller if the text grows. */
+  min-height: calc(var(--chip-height) + var(--space-1) - var(--stroke-hairline) * 2);
   padding-inline: var(--space-2);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
