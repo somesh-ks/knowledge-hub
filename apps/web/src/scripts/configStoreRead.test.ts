@@ -166,4 +166,24 @@ describe("loadStore", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
   });
+
+  // The bug: a save left the device's copy a write behind, so another tab, reading the same copy on
+  // its next navigation, showed the old name until it was reloaded.
+  it("takes the store's answer after a save into the device's copy", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, afterOwnSave } = await fresh();
+    const body = (written_at: number, name: string) => ({
+      status: 200,
+      built: "built-here",
+      written_at,
+      ops: [{ op: "topic.upsert", name }],
+      sources: [],
+    });
+    const storage = fakeStorage({ [CACHE_KEY]: JSON.stringify(body(1, "Old")) });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("fetch", async () => Response.json(body(5, "New")));
+    afterOwnSave();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null").ops[0].name).toBe("New");
+  });
 });

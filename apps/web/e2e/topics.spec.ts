@@ -13,7 +13,7 @@ const PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
 );
-const SAVED = "Saved.";
+const SAVED = "Settings saved";
 const ADDED = "Added. Read from the next update.";
 
 interface Sent {

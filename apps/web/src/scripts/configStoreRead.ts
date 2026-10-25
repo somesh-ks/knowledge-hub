@@ -112,6 +112,33 @@ function writeCache(body: ConfigReadBody): void {
 }
 
 /**
+ * A save made here went through (written_at is the store's clock for it): the device's copy is a
+ * write behind, so the store is asked again at once and the copy takes the answer. Another tab reads
+ * the same copy on its next navigation, so it shows the edit without a reload. The ask carries its
+ * own query so the edge's one-second cache cannot hand back the answer from before the save.
+ */
+export function afterOwnSave(): void {
+  const asked = { at: 0 } as { at: number; read: Promise<ConfigReadBody | null> };
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), STORE_READ_TIMEOUT_MS * 2);
+  asked.read = fetch(`/api/config?after=${Date.now()}`, {
+    signal: stop.signal,
+    headers: { Accept: "application/json" },
+  })
+    .then((response) => (response.ok ? response.json() : null))
+    .then(parseRead)
+    .catch(() => null)
+    .then((body) => {
+      clearTimeout(timer);
+      if (body && last === asked) current = body;
+      if (body) writeCache(body);
+      return body;
+    });
+  // Reads started before the save no longer speak for the store.
+  last = asked;
+}
+
+/**
  * Asks the store, once per page view: the store's answer when it comes within the grace, else the
  * device's copy at once while the store is still asked; null when it is off, down, slow or
  * unreadable and the device has no copy.
