@@ -247,6 +247,13 @@ const { topics } = Astro.props;
               <dd><span class="part-meter" aria-hidden="true"></span><span class="part-num"></span></dd>
             </div>
           </dl>
+          {/* What the score measures, in two plain sentences (2026-10-25). */}
+          <p class="settings-hint score-card-info">
+            The score is out of 5 and combines three things: whether the feed keeps working, how much of
+            what it sends passes the judge and is published, and how free it is of hype and sponsorship.
+            A source shows New until enough of its stories are judged, and one that posts rarely is scored
+            on the quality of what it does send.
+          </p>
           <div class="score-card-empty" data-edit-empty hidden>
             <span class="score-card-empty-art" aria-hidden="true"><Icon name="star" /></span>
             <p class="score-card-empty-title">Not scored yet</p>

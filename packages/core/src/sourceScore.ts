@@ -10,12 +10,15 @@ import { daysBetween, stockholmDate } from "./time.js";
  * - Health: does the feed keep working? Consecutive failed fetches (60 percent of the part) and
  *   how recently a fetch last worked (40 percent). Five failures in a row empty the first share;
  *   two weeks without a working fetch leave a fifth of the second.
- * - Quality: is what it publishes good enough to use? Three quarters yield, one quarter volume.
- *   Yield is the share of judged items that passed (40 percent of it) and that were published
- *   (60 percent): a pass rate of 50 percent and a publish rate of 25 percent each earn their full
- *   share, and a source that never reaches a digest earns nothing there. Volume is the items
- *   published in the 30-day window against four, because a source that yields one item a month is
- *   weak even when every item is good.
+ * - Quality: is what it publishes good enough to use? The share of judged items that passed (40
+ *   percent) and that were published (60 percent): a pass rate of 50 percent and a publish rate
+ *   of 25 percent each earn their full share, and a source that never reaches a digest earns
+ *   nothing there. Volume is not a part and never multiplies the score: it is a confidence weight
+ *   on the publish share. A source judged fewer than CONFIDENT_JUDGED times has the missing weight
+ *   made up from its pass share, so a careful source that publishes rarely scores on its pass
+ *   and publish quality, not on how little it sends (the old volume term, items published against
+ *   four, marked such a source Fair). One judged fewer than MIN_JUDGED times has no score at all:
+ *   it reads New.
  * - Trust (the owner calls it accuracy): how much of what it sends is free of hype and
  *   sponsorship. Of the items the judge asked the flag questions (a topic-only item, one a
  *   coverage topic such as Trending decides alone, is not asked), the share flagged as hype or
@@ -55,6 +58,8 @@ import { daysBetween, stockholmDate } from "./time.js";
  * is below WEAK_PART, and says so when trust is not measured yet.
  */
 export const MIN_JUDGED = 10;
+/** The judged count at which the publish share is fully trusted; below it, the pass share fills in. */
+export const CONFIDENT_JUDGED = 20;
 /** The fewest judged items a source that posts rarely is scored on, once its feed was read (D70). */
 export const MIN_SPARSE = 3;
 /**
@@ -254,10 +259,13 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   const passShare = clamp01(passRate / 0.5);
   // Read on what could have been published, blended with the pass share alone by its share of the
   // judged items (D70).
+  // How much the judged count backs the publish share: a source judged fewer than CONFIDENT_JUDGED
+  // times leans on the pass share, so a careful low-volume source is not marked down for volume.
+  const confidence = clamp01(judged / CONFIDENT_JUDGED);
+  const publishShare = clamp01(used / publishable / 0.25);
   const pooled =
     publishable > 0
-      ? 0.75 * (0.4 * passShare + 0.6 * clamp01(used / publishable / 0.25)) +
-        0.25 * clamp01(used / 4)
+      ? 0.4 * passShare + 0.6 * (confidence * publishShare + (1 - confidence) * passShare)
       : 0;
   const weight = publishable / judged;
   const quality = weight * pooled + (1 - weight) * passShare;

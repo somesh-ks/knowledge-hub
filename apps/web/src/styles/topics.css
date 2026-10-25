@@ -803,9 +803,10 @@
   white-space: nowrap;
 }
 
-/* Poor is told apart by its word and its weight as well as its colour. */
+/* Poor is told apart by its word and its weight, in neutral ink: a low or zero rating is a measure
+   of what a source sent, not an error, so it never takes the danger colour (2026-10-25). */
 .score[data-label="Poor"] {
-  color: var(--color-danger);
+  color: var(--color-on-surface);
   font-weight: var(--font-weight-medium);
 }
 
@@ -818,12 +819,6 @@
 
 .source-row > .score {
   justify-self: end;
-}
-
-@media (forced-colors: active) {
-  .score[data-label="Poor"] {
-    color: CanvasText;
-  }
 }
 
 /* ------------------------------------------------------------------ the Topics & Sources panel */
