@@ -7,6 +7,7 @@ import {
   SCORE_MAX,
   SCORE_THRESHOLDS,
   scoreLabel,
+  scoreReasons,
   sourceScore,
   WEAK_PART,
 } from "./index.js";
@@ -339,5 +340,17 @@ describe("sourceScore: the reason", () => {
     expect(result.parts).toEqual({ health: 0.92, quality: 1, trust: 1 });
     expect(result.score).toBe(4.9);
     expect(result.reason).toBe("No weak part: 10 of 40 judged items published, no failures.");
+  });
+});
+
+describe("scoreReasons", () => {
+  it("words the pass rate, then the hype share, for a source that fits few categories and is often flagged", () => {
+    const counters = { judged: 57, passed: 9, published: 0, asked: 51, flagged: 22, failures: 0 };
+    const rated = scoreOf({ ...counters, fetched: 84 });
+    expect(scoreReasons(rated.parts, counters)).toEqual([
+      "Most of its posts don't match your categories: 9 of 57 passed.",
+      "4 in 10 of its posts were flagged as hype or sponsored.",
+    ]);
+    expect(scoreReasons(scoreOf({}).parts, { ...counters, failures: 0 })).toEqual([]);
   });
 });

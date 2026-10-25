@@ -308,3 +308,45 @@ export function sourceScore(input: SourceScoreInput): SourceScoreResult {
   }
   return { score, label: scoreLabel(score), parts, reason };
 }
+
+/** The counters `scoreReasons` words, from the source's stat and failure record. */
+export interface ScoreCounters {
+  judged: number;
+  passed: number;
+  published: number;
+  asked: number;
+  flagged: number;
+  failures: number;
+}
+
+/**
+ * Up to two plain sentences on why a score is low, for the weakest parts, worst first; none when
+ * the score is Good or better, or the source is new. The measure itself is unchanged: this only
+ * says what the numbers mean (2026-10-25).
+ */
+export function scoreReasons(parts: SourceScoreParts | null, c: ScoreCounters): string[] {
+  if (parts === null) return [];
+  const measured =
+    parts.trust === null
+      ? [parts.health, parts.quality]
+      : [parts.health, parts.quality, parts.trust];
+  if (combineScoreParts(measured) >= SCORE_THRESHOLDS.good) return [];
+  const sentence: Record<PartName, () => string> = {
+    health: () =>
+      c.failures > 0
+        ? `Its feed failed the last ${c.failures} ${c.failures === 1 ? "fetch" : "fetches"}.`
+        : "No fetch of its feed has worked lately.",
+    quality: () =>
+      c.judged > 0 && c.passed / c.judged < 0.25
+        ? `Most of its posts don't match your categories: ${c.passed} of ${c.judged} passed.`
+        : c.published === 0
+          ? "None of its posts has reached a briefing yet."
+          : `Few of its posts reach a briefing: ${c.published} of ${c.judged} published.`,
+    trust: () =>
+      `${Math.round((c.flagged / Math.max(1, c.asked)) * 10)} in 10 of its posts were flagged as hype or sponsored.`,
+  };
+  return PART_NAMES.filter((name) => parts[name] !== null && (parts[name] ?? 1) < WEAK_PART)
+    .sort((a, b) => (parts[a] ?? 1) - (parts[b] ?? 1))
+    .slice(0, 2)
+    .map((name) => sentence[name]());
+}

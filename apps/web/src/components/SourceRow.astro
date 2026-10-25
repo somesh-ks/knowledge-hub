@@ -42,6 +42,7 @@ const facts = {
   score: source.score,
   label: source.score_label,
   parts: source.score_parts,
+  why: source.score_why,
   format: source.format,
   /** A general news source can be rated; "" is unrated. */
   general: source.topic_ids.some((id) => isGeneralTopicId(id)),

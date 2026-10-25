@@ -247,6 +247,8 @@ const { topics } = Astro.props;
               <dd><span class="part-meter" aria-hidden="true"></span><span class="part-num"></span></dd>
             </div>
           </dl>
+          {/* Why the score is low, when it is below Good (scoreReasons, sourceScore.ts). */}
+          <p class="settings-hint score-card-why" data-edit-why hidden></p>
           {/* What the score measures, in two plain sentences (2026-10-25). */}
           <p class="settings-hint score-card-info">
             The score is out of 5 and combines three things: whether the feed keeps working, how much of
