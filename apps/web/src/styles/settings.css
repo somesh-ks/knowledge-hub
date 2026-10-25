@@ -503,7 +503,10 @@
    chevrons end. */
 .card-group .settings-row .value-select {
   --value-select-pull: calc(
-    var(--card-padding) - var(--card-inset) - var(--space-2) - var(--space-4)
+    var(--card-padding) -
+    var(--card-inset) -
+    var(--space-2) -
+    var(--space-4)
   );
   /* The chevron's ink sits 12px inside the tile, not 4 (2026-10-26 audit), which is where the link
      rows' chevrons end: the tile keeps its 12px inset, and the chevron and the value step in. */
