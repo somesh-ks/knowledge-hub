@@ -98,6 +98,15 @@
   background: var(--cover-fallback) center / cover no-repeat;
 }
 
+/* No image sits in a pending cover's frame, so nothing gives the page's cover box a width to be a
+   percentage of: at 64rem and up, where the slot is a flex item, it collapsed to its padding. The
+   frame offers the box's own size, without the percentage a flex item cannot resolve. */
+@media (width >= 64rem) {
+  .player-cover-box .player-cover-frame[data-fallback] {
+    min-width: min(var(--cover-size-player), var(--player-cover-share));
+  }
+}
+
 :is(.cover, .player-cover-frame)[data-fallback] :is(.cover-image, .player-cover-image) {
   visibility: hidden;
 }
