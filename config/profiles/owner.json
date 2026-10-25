@@ -1,7 +1,9 @@
 {
   "user_id": "owner",
   "blocked_domains": [
-    "tuts.kandz.me"
+    "tuts.kandz.me",
+    "uiux.studio",
+    "uxplanet.org"
   ],
   "votes": [],
   "opens": [

@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "profile": "designer",
+  "blocks": [
+    {
+      "type": "hello"
+    },
+    {
+      "type": "top_picks",
+      "stories": 3,
+      "depth": "deep"
+    },
+    {
+      "type": "section",
+      "id": "design",
+      "depth": "brief",
+      "max_stories": 3
+    },
+    {
+      "type": "section",
+      "id": "ui-craft",
+      "depth": "brief",
+      "max_stories": 3
+    },
+    {
+      "type": "section",
+      "id": "ai",
+      "depth": "brief",
+      "max_stories": 2
+    },
+    {
+      "type": "section",
+      "id": "tech",
+      "depth": "brief",
+      "max_stories": 2
+    },
+    {
+      "type": "trending",
+      "stories": 2
+    },
+    {
+      "type": "section",
+      "id": "software",
+      "depth": "brief"
+    },
+    {
+      "type": "release_news",
+      "stories": 1
+    },
+    {
+      "type": "sign_off"
+    }
+  ]
+}
