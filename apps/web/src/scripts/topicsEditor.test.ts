@@ -284,13 +284,13 @@ describe("buildQueue", () => {
 
   it("sends every slider change in one request, after the other edits", () => {
     const changes = new Map<string, Pending>([
-      ["w1", pending({ op: "mix.set", format_mix: { video: "More" } })],
+      ["w1", pending({ op: "mix.set", format_mix: { video: 1.2 } })],
       ["e1", pending({ op: "source.set", id: "studio-notes", enabled: false })],
-      ["w2", pending({ op: "mix.set", format_mix: { audio: "Less" } })],
+      ["w2", pending({ op: "mix.set", format_mix: { audio: 0.5 } })],
     ]);
     expect(buildQueue(changes)).toEqual([
       { op: { op: "source.set", id: "studio-notes", enabled: false }, keys: ["e1"] },
-      { op: { op: "mix.set", format_mix: { video: "More", audio: "Less" } }, keys: ["w1", "w2"] },
+      { op: { op: "mix.set", format_mix: { video: 1.2, audio: 0.5 } }, keys: ["w1", "w2"] },
     ]);
   });
 
@@ -310,7 +310,7 @@ describe("buildQueue", () => {
     const changes = new Map<string, Pending>([
       ["r", pending({ op: "topic.remove", id: "audio" })],
       ["u", pending({ op: "topic.upsert", topic: { ...topic, enabled: false } })],
-      ["w", pending({ op: "mix.set", format_mix: { video: "Normal" } })],
+      ["w", pending({ op: "mix.set", format_mix: { video: 1 } })],
       ["s", pending({ op: "source.remove", id: "old-feed" })],
     ]);
     expect(buildQueue(changes).map((step) => step.op.op)).toEqual([
