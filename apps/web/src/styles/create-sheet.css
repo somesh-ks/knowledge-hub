@@ -21,7 +21,7 @@
    here" alone, so beside the current row it no longer reads as a second selected item (owner,
    2026-10-22; it was accent-container-high, D86). On /create it is the current place and takes the
    rows' current fill. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .app-nav-create {
     --color-focus-gap: var(--color-surface);
     display: flex;
@@ -233,7 +233,7 @@ html[data-dialog-open] .create-fab {
   }
 }
 
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .create-fab {
     display: none;
   }
@@ -560,7 +560,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   justify-self: stretch;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   /* A side panel docked to the right edge, full height, on top of everything including the player
      bar, so its button at the foot is always reachable. The scrim covers the rest. */
   dialog.create-sheet {
@@ -779,7 +779,7 @@ html[data-player="open"] .run-status {
 
 /* Below 64rem the line runs to the window's right edge, which an open dialog moves out by the
    scrollbar's width (foundations.css): it keeps that room, so its link and button hold still. */
-@media not all and (min-width: 64rem) {
+@media (width < 64rem) {
   html[data-dialog-open] .run-card {
     padding-inline-end: calc(max(var(--space-2), var(--safe-right)) + var(--gutter, 0px));
   }
@@ -788,7 +788,7 @@ html[data-player="open"] .run-status {
 /* From 64rem: at the foot of the side column, over the column's own surface. The line starts where
    the navigation's icons do and has the column's whole width; the link and the close button share
    the row under it, and the bar takes that row's whole width when there is no close button. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .run-status {
     inset-inline: 0 auto;
     inset-block-end: var(--dock-room);

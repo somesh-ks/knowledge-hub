@@ -378,7 +378,7 @@
   }
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   /* The cover grows to 10rem, room for a two-line title, its facts and Play beside it. */
   .hero {
     --hero-cover: var(--cover-size-hero-wide);

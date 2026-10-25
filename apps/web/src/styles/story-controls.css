@@ -77,7 +77,7 @@
   position-anchor: var(--story-anchor);
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .hero-menu-list.story-menu-list {
     margin-inline-end: var(--space-2);
   }

@@ -319,7 +319,7 @@
   flex: none;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .library-filters {
     flex: 0 1 auto;
   }
@@ -351,7 +351,7 @@
   }
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .library-bar .sort-field {
     margin-inline-start: auto;
   }
@@ -396,7 +396,7 @@
   contain-intrinsic-size: auto 240px;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .library-grid {
     grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
     column-gap: var(--space-6);
@@ -677,7 +677,7 @@ html[data-library-page="empty"] {
   contain-intrinsic-size: auto 12.5rem;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .shelf > .card {
     width: 10.5rem;
     contain-intrinsic-size: auto 14rem;
@@ -778,7 +778,7 @@ html[data-library-page="empty"] {
   display: block;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .hero-menu-list.card-menu-list {
     margin-inline-end: var(--space-2);
   }

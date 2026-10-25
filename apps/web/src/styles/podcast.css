@@ -24,7 +24,7 @@
   min-width: 0;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .daily-selects {
     flex: 0 0 calc(var(--settings-control-width) * 1.7);
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.8fr);
@@ -133,7 +133,7 @@
 
 /* From 40rem one list keeps one row height: a segmented row (Format, Length) takes a select row's
    padding, so its 48px control sits in a 56px row as the selects do. */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .podcast-profile .rows > .settings-row[data-layout="choice"] {
     padding-block: var(--space-2);
   }

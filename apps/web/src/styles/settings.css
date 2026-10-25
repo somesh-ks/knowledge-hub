@@ -182,7 +182,7 @@
   flex-basis: 100%;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .settings-row[data-layout="choice"] > .settings-text {
     flex-basis: 0;
   }
@@ -655,7 +655,7 @@
 }
 
 /* From 64rem "Last updated" lives at the foot of the side column (AppNav); a phone keeps it here. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .settings-updated {
     display: none;
   }

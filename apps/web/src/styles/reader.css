@@ -43,7 +43,7 @@
   padding-block: var(--space-6) var(--space-2);
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .page-head {
     padding-block-start: var(--space-8);
   }

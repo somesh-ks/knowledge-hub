@@ -37,15 +37,13 @@
   --window-controls-inset: 0px;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   :root {
     --page-gutter: var(--layout-gutter-wide);
   }
 }
 
-@media (display-mode: standalone) and (pointer: coarse) and (min-width: 40rem) and (
-    min-height: 40rem
-  ) {
+@media (display-mode: standalone) and (pointer: coarse) and (width >= 40rem) and (min-height: 40rem) {
   :root {
     --window-controls-inset: var(--layout-window-controls);
   }
@@ -591,7 +589,7 @@
   }
 
   /* Centered dialog from 40rem. Modals are exempt from origin-aware scaling: they stay centered. */
-  @media (min-width: 40rem) {
+  @media (width >= 40rem) {
     dialog.sheet {
       inset: 0;
       width: min(100%, var(--layout-dialog));

@@ -150,7 +150,7 @@ textarea.manage-input {
   width: 100%;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .manage-form .manage-submit {
     width: auto;
     justify-self: start;
