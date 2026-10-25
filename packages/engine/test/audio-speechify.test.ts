@@ -95,6 +95,7 @@ describe("synthesizeWithMarks", () => {
       input: "Hello world.",
       voice_id: "voice_x",
       model: "simba-3.0",
+      language: "en-US",
       output_format: "mp3_24000_64",
     });
   });
@@ -585,6 +586,7 @@ describe("synthesize (plain stream)", () => {
       input: "Hi.",
       voice_id: "geffen_32",
       model: "simba-3.2",
+      language: "en-US",
       output_format: "mp3_24000_64",
     });
   });
