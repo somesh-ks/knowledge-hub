@@ -7,7 +7,7 @@ function subscribe(onChange: () => void): () => void {
 }
 
 /**
- * "Make 1.5x your default speed?": the shared confirm dialog (episode-actions.css), asked once per
+ * "Make 1.5x your default speed?": the shared confirm dialog (create-sheet.css), asked once per
  * speed (core/speedDefault.ts). Not now, Escape and a press outside all decline.
  */
 export default function SpeedOffer() {

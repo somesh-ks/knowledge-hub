@@ -73,7 +73,7 @@ Patterns from about 150 asks, strongest first.
    - No hedging helper text, and a plainer About (#68, 2026-10-10).
    - Content is brief too: headlines up to 12 words, summaries of 25 to 80 words (D12, D34). The digest has no emoji, no intro paragraph, no dividers and no sign-off (`plan/vision.md`).
    - One filled action per screen: the hero's Play (D77), an empty state's single button (D96), New episode in its own tone so it never competes with Play (D86), the open player's Play disc (`player.css:1548`).
-   - Colour is information, not decoration. The bar's play "doesnt need a blue background... catches unnecessary attention", and the bar lost its hover tint (2026-10-08). Delete is red only inside its confirm dialog (`episode-actions.css:152`).
+   - Colour is information, not decoration. The bar's play "doesnt need a blue background... catches unnecessary attention", and the bar lost its hover tint (2026-10-08). Delete is red only inside its confirm dialog (`episode-actions.css` `.confirm-delete`).
    - One of each. "Two playback timelines... remove the duplicate" (2026-10-08): one timeline, owned by the bar, with chapter ticks. One transport on screen (D92). Siblings share one size: "Make them all equal sizes" (2026-10-12).
    - Content is the owner's voice: "high brevity, thoughtful, and concise" (2026-10-05). Decorative furniture goes: "Thought of the Day" was cut (D8). Daily is short, weekly is deep.
 7. **Every control is complete.** It gets a 44px target (test in `e2e/layout.spec.ts`), a sound (D101), a press state that never shrinks words (D72, `styles.test.ts`) and a focus ring that survives forced colours.
@@ -247,6 +247,7 @@ Ask, then what was built, then the decision. Values are as built.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
 - **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126). The ended view had kept the Stories tab (audit, 2026-10-22): the tab line now holds Up next alone, so nothing under it moves and a focused tab keeps focus, until the recording plays again; `firstPlay.spec.ts` asserts no Stories tab at the end.
+- **Expand chevron and speed offer (2026-10-25).** On desktop the dock holds a chevron `.icon-btn` right of volume (`.dock-expand`, PlayerBar.tsx): up while the player is collapsed, down when open, turning in `--duration-state` (not under reduced motion), `aria-expanded` and "Expand player" or "Collapse player". A speed chosen in the player lasts one episode; the next starts at Preferences, Default playback speed. After the same speed in three episodes, or an episode ending off the default, the shared confirm dialog asks "Make 1.5x your default speed?" once per speed (`SpeedOffer.tsx`, `core/speedDefault.ts`). Browser specs for both are unrun (no browser binary in the first pass).
 
 ### The bottom stack on a phone
 
