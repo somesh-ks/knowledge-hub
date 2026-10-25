@@ -17,18 +17,15 @@ export default function SpeedOffer() {
     () => null,
   );
   const ref = useRef<HTMLDialogElement>(null);
-  const shown = useRef<number | null>(null);
 
+  // Mounted only while an offer stands, so no second confirm dialog sits in the page for Delete's
+  // `dialog.confirm-dialog` lookup to find.
   useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (rate !== null && !dialog.open) {
-      shown.current = rate;
-      dialog.showModal();
-    } else if (rate === null && dialog.open) dialog.close();
+    if (rate !== null && ref.current && !ref.current.open) ref.current.showModal();
   }, [rate]);
 
-  const label = rateLabel(rate ?? shown.current ?? 1);
+  if (rate === null) return null;
+  const label = rateLabel(rate);
   return (
     <dialog
       ref={ref}
