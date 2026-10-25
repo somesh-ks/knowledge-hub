@@ -1212,7 +1212,10 @@ test.describe("editing a topic", () => {
     await open(page);
     await page.getByRole("button", { name: "Add a category or a source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a category" });
-    await sheet.getByRole("form", { name: "Add a category" }).getByLabel("Name").fill("Spatial audio");
+    await sheet
+      .getByRole("form", { name: "Add a category" })
+      .getByLabel("Name")
+      .fill("Spatial audio");
     await sheet.getByLabel("What should count as this category").fill("Spatial audio in apps.");
     // Every podcast ticked reads as it does on every topic page.
     await expect(sheet.getByRole("button", { name: /^Listen in/ })).toHaveText("All podcasts");
@@ -1415,7 +1418,10 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await open(page);
   await page.getByRole("button", { name: "Add a category or a source" }).click();
   const topic = page.getByRole("dialog", { name: "Add a category" });
-  await topic.getByRole("form", { name: "Add a category" }).getByLabel("Name").fill("Motion design");
+  await topic
+    .getByRole("form", { name: "Add a category" })
+    .getByLabel("Name")
+    .fill("Motion design");
   // The panel as a refused detail leaves it: the note beside the field, with its alert glyph.
   await topic.getByRole("button", { name: "Add category", exact: true }).click();
   await expect(topic.getByText("Say what should count as this category.")).toBeVisible();
