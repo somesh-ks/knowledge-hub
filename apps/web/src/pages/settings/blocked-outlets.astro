@@ -3,58 +3,72 @@ import EmptyArt from "../../components/EmptyArt.astro";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
+import SheetHeader from "../../components/SheetHeader.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { outletsSummary } from "../../lib/blockedOutlets";
+import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
+import { faviconOf } from "../../lib/manage";
+import { cadenceLabel, catalogHost, loadSourceCatalog } from "../../lib/sourceCatalog";
+import { sourceInitial } from "../../lib/sourceInitial";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
+import "../../styles/topics.css";
 import "../../styles/blocked.css";
 
 // The blocklist as of the build; blockedPage.ts lays the edits saved since over it (savedBlocked).
 const domains = await loadBlockedDomains();
+// The sources the sheet offers: the catalogue, each with the domain pressing + would block. One
+// whose address is no host has nothing to block and is left out.
+const offers = (await loadSourceCatalog()).flatMap((offer) => {
+  const domain = blockedDomainOf(offer.url ?? offer.feed_url);
+  return domain ? [{ offer, domain }] : [];
+});
 ---
 
 <BaseLayout title="Blocked sources" view="settings" skipLabel="Skip to blocked sources">
   <main id="main" tabindex="-1">
-    {/* One field to block a source and the list of those blocked, each with a remove control.
-         blockedPage.ts records a change; autosave.ts sends an addition a moment later and a removal
-         after five seconds with Undo in the toast. */}
+    {/* A search field that filters the list of those blocked, with a Block button that opens the sheet
+         of every known source (blockedPage.ts, blockedSheet.ts). The field and the button are in the
+         page as sent, not revealed by the script: before it loads they simply do nothing (2026-10-25,
+         refresh flash). blockedPage.ts records a change; autosave.ts sends an addition a moment later
+         and a removal after five seconds with Undo in the toast. */}
     <div class="manage blocked" data-blocked data-domains={JSON.stringify(domains)}>
-      <SettingsHead
-        title="Blocked sources"
-        note="Left out of all briefings, subdomains too."
-      />
+      <SettingsHead title="Blocked sources" />
       <noscript>
         <p class="manage-note">Changing blocked sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Blocked sources</legend>
-        <form class="blocked-add manage-field" novalidate data-add data-needs-js>
-          <label for="blocked-input">Block a source</label>
-          <div class="blocked-add-row">
-            <input
-              class="manage-input"
-              id="blocked-input"
-              name="domain"
-              type="text"
-              inputmode="url"
-              maxlength="2048"
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-              placeholder="example.com"
-              aria-describedby="blocked-error"
-              data-input
-            />
-            <button class="btn-secondary" type="submit">
+        <form class="blocked-add" method="dialog" role="search" novalidate data-add>
+          {/* The Library's field and the Add source button beside it (SourceFilter.astro, topics.css). */}
+          <div class="filter-row">
+            <div class="search-wrap filter-field">
+              <label class="search-field">
+                <Icon name="search" />
+                <input
+                  type="search"
+                  name="domain"
+                  inputmode="url"
+                  maxlength="2048"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  enterkeyhint="search"
+                  placeholder="Search sources"
+                  aria-label="Search sources"
+                  data-input
+                />
+              </label>
+              <button class="search-clear press press-subtle" type="button" aria-label="Clear text" hidden data-clear>
+                <Icon name="close" />
+              </button>
+            </div>
+            <button class="btn-secondary topic-add-source" type="submit">
               <Icon name="plus" />
               <span>Block</span>
             </button>
           </div>
-          <p class="manage-error" id="blocked-error" role="alert" data-error hidden>
-            <Icon name="alert" /><span></span>
-          </p>
         </form>
 
         <section class="blocked-list" aria-labelledby="blocked-head">
@@ -70,7 +84,6 @@ const domains = await loadBlockedDomains();
                       type="button"
                       aria-label={`Unblock ${domain}`}
                       data-remove
-                      data-needs-js
                     >
                       <Icon name="close" />
                     </button>
@@ -79,6 +92,9 @@ const domains = await loadBlockedDomains();
               ))
             }
           </ul>
+          <p class="manage-quiet blocked-nomatch" role="status" data-nomatch hidden>
+            No blocked source matches. Press Enter to block it.
+          </p>
         </section>
 
         <template data-row>
@@ -96,9 +112,108 @@ const domains = await loadBlockedDomains();
         <div class="blocked-empty empty" data-compact>
           <EmptyArt art="library" size="compact" />
           <p class="empty-title">No blocked sources</p>
-          <p class="empty-body">Type a domain above, or paste the address of any page on the source.</p>
+          <p class="empty-body">Press Block to pick a source, or paste the address of any page on it.</p>
         </div>
       </fieldset>
+
+      {/* The sheet, inert until blockedSheet.ts clones it: a full-screen sheet on a phone and a side
+           panel from 40rem, worn as the Topics panel is (create-sheet.css). Its rows are the Suggested
+           sources' (SuggestedSources.astro): the source's tile, name and site, and a + in place of
+           the score; a picked row shows the accent check in the +'s slot. */}
+      <template data-sheet>
+        <dialog class="create-sheet regen-sheet blocked-sheet" aria-labelledby="blocked-sheet-title">
+          <SheetHeader title="Block sources" titleId="blocked-sheet-title" close="data-panel-close" />
+          <div class="create-sheet-body">
+            <div class="manage-field blocked-sheet-field">
+              <label class="search-field">
+                <Icon name="search" />
+                <input
+                  type="search"
+                  inputmode="url"
+                  maxlength="2048"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  enterkeyhint="done"
+                  placeholder="Search sources or paste an address"
+                  aria-label="Search sources or paste an address"
+                  aria-describedby="blocked-sheet-error"
+                  data-sheet-input
+                />
+              </label>
+              <p class="manage-error" id="blocked-sheet-error" role="alert" data-sheet-error hidden>
+                <Icon name="alert" /><span></span>
+              </p>
+            </div>
+            <ul class="topic-sources" role="list" aria-label="Sources" data-sheet-list>
+              <li class="source-row is-suggested" data-custom hidden>
+                <span class="source-main">
+                  <span class="source-icon" aria-hidden="true"><span class="source-initial"></span></span>
+                  <span class="source-text">
+                    <span class="source-name"></span>
+                    <span class="source-meta"><span class="source-host">Address you entered</span></span>
+                  </span>
+                </span>
+                <button class="source-plus-btn press" type="button" aria-pressed="false" data-pick>
+                  <Icon name="plus" class="suggested-plus" />
+                  <Icon name="check" class="suggested-check" />
+                </button>
+              </li>
+              {
+                offers.map(({ offer, domain }) => {
+                  const icon = faviconOf(offer.url ?? offer.feed_url);
+                  const cadence = cadenceLabel(offer.cadence);
+                  return (
+                    <li
+                      class="source-row is-suggested"
+                      data-domain={domain}
+                      data-search={`${offer.name} ${catalogHost(offer)} ${domain} ${offer.tags.join(" ")}`.toLowerCase()}
+                    >
+                      <span class="source-main">
+                        <span class="source-icon" aria-hidden="true">
+                          <span class="source-initial">{sourceInitial(offer.name)}</span>
+                          {icon && (
+                            <img
+                              src={`/api/site-icon?url=${encodeURIComponent(icon)}`}
+                              alt=""
+                              width="20"
+                              height="20"
+                              loading="lazy"
+                              decoding="async"
+                              referrerpolicy="no-referrer"
+                              data-favicon
+                            />
+                          )}
+                        </span>
+                        <span class="source-text">
+                          <span class="source-name">{offer.name}</span>
+                          <span class="source-meta">
+                            <span class="source-host">{catalogHost(offer)}</span>
+                            {cadence && <span class="source-cadence">{cadence}</span>}
+                          </span>
+                        </span>
+                      </span>
+                      <button
+                        class="source-plus-btn press"
+                        type="button"
+                        aria-label={`Block ${offer.name}`}
+                        aria-pressed="false"
+                        data-pick
+                      >
+                        <Icon name="plus" class="suggested-plus" />
+                        <Icon name="check" class="suggested-check" />
+                      </button>
+                    </li>
+                  );
+                })
+              }
+            </ul>
+          </div>
+          <div class="source-sheet-foot">
+            <button class="btn-primary" type="button" disabled data-sheet-go>Block</button>
+          </div>
+        </dialog>
+      </template>
 
       <ManageChrome />
     </div>
@@ -109,6 +224,6 @@ const domains = await loadBlockedDomains();
   import { whenIdle } from "../../scripts/idle";
 
   // The editor is not in the page's first load: until it mounts, the list reads as it is and the
-  // add field keeps its place hidden (manage.css). It loads at idle, never on a first press.
+  // field and buttons are there but do nothing. It loads at idle, never on a first press.
   whenIdle(() => void import("../../scripts/blockedPage").then((page) => page.installBlockedPage()));
 </script>

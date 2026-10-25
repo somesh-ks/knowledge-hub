@@ -1,47 +1,28 @@
 /*
- * The Blocked outlets page (pages/settings/blocked-outlets.astro): a field that blocks an outlet and
- * the list of those blocked. The field, its error and the rows are manage.css and settings.css; the
- * Block button is the Add button of the Topics page (topics.css, .topic-add-source) in the same
- * compact outline. Tokens only.
+ * The Blocked outlets page (pages/settings/blocked-outlets.astro): a search field that filters the
+ * list of those blocked, a Block button that opens the sheet of known sources, and the list. The
+ * field and the rows are manage.css and settings.css; the sheet wears the Topics panel (create-sheet.css)
+ * and its rows are topics.css (.source-row.is-suggested). The field is the Library's
+ * (.search-field) and Block is the Sources page's Add button (topics.css, .topic-add-source). Tokens only.
  */
 
+/* The Library's field and the Add button, set where a row's tile is (2026-10-25): one card-inset in
+   from the list card's edges, as .card-group > .row-action is (primitives.css). The glyph and the
+   Block label start and end where the rows' words do, the card's padding in (2026-10-22). */
 .blocked-add {
   padding-block-start: var(--space-6);
 }
 
-.blocked-add-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.blocked-add .filter-row {
+  margin-inline: var(--card-inset);
 }
 
-.blocked-add-row > .manage-input {
-  flex: 1 1 0;
-  min-width: 0;
+.blocked-add .search-field {
+  padding-inline-start: calc(var(--card-padding) - var(--card-inset));
 }
 
-/* One left text edge (2026-10-22, settings.css): the field's label, its words and its error (led by
-   its icon, as a source row is by its emoji) start the card's padding in, where the title and the
-   rows' words do, and the field's outline hangs out into the margin as the card does. */
-.blocked-add > :is(label, .manage-error) {
-  padding-inline-start: var(--card-padding);
-}
-
-/* Less the outline's hairline, so the words land on the edge itself; the same at the end, so a long
-   domain clips as far from either side. */
-.blocked-add-row > .manage-input {
-  padding-inline: calc(var(--card-padding) - var(--stroke-hairline));
-}
-
-.blocked-add-row > .btn-secondary {
-  flex: none;
-  width: auto;
-  min-height: var(--field-height);
-  padding-inline: var(--space-4);
-  font-size: var(--font-size-label);
-  border: var(--stroke-hairline) solid var(--color-border-control);
-  background: transparent;
-  color: var(--color-on-surface);
+.blocked-add .filter-row > .topic-add-source {
+  padding-inline: calc(var(--card-padding) - var(--card-inset));
 }
 
 .blocked-list {
@@ -61,8 +42,8 @@
 }
 
 /* Rows in a card are divided by a hairline, as in the other cards (manage.css turns them off). */
-.blocked-row:not([data-removing], [data-gone])
-~ .blocked-row:not([data-removing], [data-gone])::before {
+.blocked-row:not([data-removing], [data-gone], [data-filtered])
+~ .blocked-row:not([data-removing], [data-gone], [data-filtered])::before {
   content: "";
 }
 
@@ -81,7 +62,7 @@
 }
 
 /* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list. */
-.blocked-row:is([data-removing], [data-gone]) {
+.blocked-row:is([data-removing], [data-gone], [data-filtered]) {
   display: none;
 }
 
@@ -92,4 +73,19 @@
 
 .blocked:has(.blocked-row:not([data-removing], [data-gone])) .blocked-empty {
   display: none;
+}
+
+/* The filter found no blocked source: a quiet line under the list, on the rows' words' edge. */
+.blocked-nomatch {
+  margin: var(--space-2) 0 0;
+  padding-inline: var(--card-padding);
+}
+
+.blocked-nomatch[hidden] {
+  display: none;
+}
+
+/* The sheet's search field takes the column; its error and the rows below keep the sheet's gutter. */
+.blocked-sheet-field {
+  padding-block: var(--space-4);
 }
