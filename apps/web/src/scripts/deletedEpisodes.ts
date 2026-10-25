@@ -59,8 +59,21 @@ function hideIn(doc: Document): void {
     document.dispatchEvent(new Event("singularity:library-pruned"));
 }
 
-/** A page for a deleted episode has nothing to show: go to the Library as it was left. */
+/**
+ * A page for a deleted episode has nothing to show: go to the Library as it was left. Latest (/)
+ * is the exception: it shows the newest item, so it moves to the next newest one the server listed.
+ */
 function leaveIfDeleted(): void {
+  if (location.pathname === "/") {
+    const root = document.documentElement.dataset;
+    const gone = new Set(load().map((entry) => entry.id));
+    if (!root.digestId || !gone.has(root.digestId)) return;
+    const next = (root.latestFallback ?? "")
+      .split(" ")
+      .find((href) => href && !gone.has(ID_FROM_HREF.exec(href)?.[1] ?? ""));
+    location.replace(next ?? libraryAddress());
+    return;
+  }
   const id = ID_FROM_HREF.exec(location.pathname)?.[1];
   if (id && load().some((entry) => entry.id === id)) location.replace(libraryAddress());
 }
