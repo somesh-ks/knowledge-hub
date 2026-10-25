@@ -26,7 +26,11 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   // The daily fields sit at the top of the op; the weekly and custom ones in their own object.
   const top: Record<string, unknown> = {};
   const nested: Record<string, Record<string, unknown>> = { weekly: {}, custom: {} };
-  const names: Record<string, string> = { cadence: "cadence_days", length: "length_minutes" };
+  const names: Record<string, string> = {
+    cadence: "cadence_days",
+    length: "length_minutes",
+    lookback: "lookback_hours",
+  };
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
     const [profile = "", field = ""] = key.split(".");
@@ -37,13 +41,18 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
     }
     const name = names[field] ?? field;
     const number = ["hour", "day", "cadence", "length"].includes(field);
+    // The lookback's Auto is the empty choice, stored as null.
     const parsed = number
       ? Number(value)
-      : field === "enabled"
-        ? value === "true"
-        : field.startsWith("voice")
-          ? nullable(value)
-          : value;
+      : field === "lookback"
+        ? value === ""
+          ? null
+          : Number(value)
+        : field === "enabled"
+          ? value === "true"
+          : field.startsWith("voice")
+            ? nullable(value)
+            : value;
     const voice = field === "voice" ? "voice_id" : field === "voice_b" ? "voice_id_b" : name;
     (nested[profile] ?? top)[voice] = parsed;
   }

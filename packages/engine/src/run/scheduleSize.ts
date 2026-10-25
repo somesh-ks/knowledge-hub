@@ -103,6 +103,20 @@ export function lengthMinutesFor(
   return null;
 }
 
+/**
+ * Hours a pass looks back: the weekly podcast's lookback for the weekly pass, the daily podcast's
+ * for a scheduled regular briefing; null (Auto) otherwise or when unset.
+ */
+export function lookbackHoursFor(
+  schedule: Pick<ScheduleFile, "lookback_hours" | "weekly">,
+  kind: DigestKind,
+  mode: RunMode,
+): number | null {
+  if (kind === "weekly") return schedule.weekly.lookback_hours ?? null;
+  if (kind === "regular" && mode === "scheduled") return schedule.lookback_hours ?? null;
+  return null;
+}
+
 /** Narration characters a briefing of this many minutes holds at the measured pace. */
 export function charsForMinutes(minutes: number): number {
   return Math.round(minutes * BRIEFING_CHARS_PER_MINUTE);
