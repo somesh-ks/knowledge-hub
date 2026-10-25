@@ -50,6 +50,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-20: a group page saved its mix on a fallback home while the engine read the fixed one, and the outlet cap keyed by `source_id` let BBC's five feeds through; one helper (`groupHomeId`) and the story's host fix both. Review found both, no test did.
 - 2026-10-19: adding a YouTube channel said "The address could not be read": the preview caps a page at 1 MB, a channel page is 1.3 MB, and `resolveYoutubeChannel` swallowed the throw. The id comes from the path, then `navigation/resolve_url`, then the page. Firecrawl's copy of a channel page carries a 401 banner (its feed reads are fine, #235); a social page with no feed (x, instagram, tiktok) is refused as a scrape source.
 - 2026-10-24: YouTube refuses datacenter addresses: the player API says 429 and yt-dlp hits "Sign in to confirm you're not a bot"; cookies lift it, PO tokens do not (yt-dlp #15865). Firecrawl's `youtube-com/videos/video_transcript` makes the call from its network, 5 credits.
+- 2026-10-24: no YouTube video had ever reached the judge (25 fetched since 9 Oct, `asked` 0 in `state/source-stats.json`): the prefilter keeps only keyword, author, high-signal or tagged items, and video titles name no keyword. The channels are seeded high-signal now. Check `asked` before debugging a later stage.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts`: subtitles, then Gemini (`GEMINI_TRANSCRIBE_MODEL`, first 30 minutes, 3 a run), cached in `state/video-text.json`; failure degrades to the description.
 - 2026-10-19: the caption track URLs on a watch page answer 200 with an empty body, so every video fell through to Gemini. The player API's Android client (`youtubei/v1/player`, no key) lists tracks whose URLs return the text. A fake that returns captions proves the parser, not that YouTube still serves them: probe one live video after any change here.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
@@ -69,6 +70,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `singularity doctor --online` after any credential change.
 
 ## Site and service worker
+
+- 2026-10-24: a chart panel hidden by CSS (`display: none`, the Costs table view) still gets its ResizeObserver callback, at zero height, and drew a rect of -40. Guard a draw on the box (`clientHeight === 0`), not on `hidden`.
 
 - 2026-10-24: an audit asked for `s-maxage` and one hourly cron: `no-cache` pages and `/api/site-icon` are already edge hits, and Hobby fails `0 * * * *`, so keep the 24 (D61).
 - 2026-10-24: with the store on, a refused add said only "The server turned that change down": the function refuses edits itself now (duplicate source, missing topic, dead page) and said why only in its log. The 400 carries the engine's sentence as `reason` for the toast.
@@ -100,7 +103,9 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 ## Agents and worktrees
 
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
-- 2026-10-22: two sessions took D157 at once. Workers add no decision; the lead numbers them.
+- 2026-10-22: two sessions took D157 at once, and D159 and D176 collided later the same way. Workers add no decision; the lead numbers them and checks `main`'s Index again right before merging.
+- 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
+- 2026-10-24: a layout test's invented $97.70 in a screenshot read to the owner as real spend. Use plainly fake figures, or say "fixture", in shots shown to the owner.
 
 - 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask; review every PR locally when the bot is silent.
 - 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.

@@ -141,13 +141,16 @@ export const ConfigOp = z.discriminatedUnion("op", [
       format: SourceFormat.optional(),
       /** A general source's political lean, -2 to 2; null clears it. */
       lean: z.number().int().min(-2).max(2).nullable().optional(),
+      /** A favorite: every post it brings goes to the judge, ranked up, with no keyword needed. */
+      high_signal: z.boolean().optional(),
     })
     .refine(
       (value) =>
         value.name !== undefined ||
         value.topic_ids !== undefined ||
         value.format !== undefined ||
-        value.lean !== undefined,
+        value.lean !== undefined ||
+        value.high_signal !== undefined,
       { message: "set name, topic_ids, format, lean or any of them" },
     ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),

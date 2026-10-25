@@ -107,6 +107,8 @@ export const SourceOverride = z.object({
   format: SourceFormat.optional(),
   /** Replaces the source's own lean; null clears it. */
   lean: z.number().int().min(-2).max(2).nullable().optional(),
+  /** Replaces the source's own high_signal: a favorite in the app. */
+  high_signal: z.boolean().optional(),
 });
 export type SourceOverride = z.infer<typeof SourceOverride>;
 

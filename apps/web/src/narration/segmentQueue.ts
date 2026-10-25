@@ -20,7 +20,11 @@ export type NarrationFailure =
   | "segment_not_found"
   | "unavailable"
   | "offline"
-  | "failed";
+  | "failed"
+  // A shared page's link (D153): played its limit, the month's shared listening used up, or stopped.
+  | "link_limit"
+  | "month_limit"
+  | "link_gone";
 
 export class NarrationError extends Error {
   readonly reason: NarrationFailure;

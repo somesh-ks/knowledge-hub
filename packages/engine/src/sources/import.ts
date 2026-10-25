@@ -99,7 +99,7 @@ function fromRow(row: MdRow, warnings: string[]): Source | null {
     };
   }
 
-  if (host.endsWith("youtube.com")) {
+  if (host === "youtube.com" || host.endsWith(".youtube.com")) {
     const handle = /\/@([^/]+)/.exec(parsed.pathname)?.[1];
     if (handle && YOUTUBE_SEED.some((seed) => seed.handle.toLowerCase() === handle.toLowerCase())) {
       return null;
@@ -140,9 +140,12 @@ function githubSources(): Source[] {
 
 function youtubeSources(): Source[] {
   return YOUTUBE_SEED.map((seed) => ({
+    // High signal: a video title rarely names a preferred keyword, so without it the prefilter
+    // dropped every video before the judge saw one (25 of 25 from 9 to 24 October 2026).
     ...baseSource(seed.id, seed.name, `https://www.youtube.com/@${seed.handle}`, {
       category_hint: seed.category_hint,
       enabled: false,
+      high_signal: true,
     }),
     type: "youtube" as const,
     options: {

@@ -12,7 +12,8 @@ export interface JudgeState {
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control characters is the point
 const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
-const TAGS = /<[^>]*>/g;
+// `[^<>]`, not `[^>]`: a run of "<" with no ">" stays linear instead of rescanning to the end.
+const TAGS = /<[^<>]*>/g;
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",

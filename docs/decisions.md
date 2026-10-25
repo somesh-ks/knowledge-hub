@@ -181,14 +181,16 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
+| D173 | Content is data in one repository; builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
+| D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
+| D183 | Costs read the bill | active |
 | D179 | Every name says Singularity; saved state moves once | active |
-| D182 | Block prompts | amends D170 |
+| D182 | Block prompts | active |
 
 ---
 
@@ -1906,6 +1908,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
 - Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
 
+## D180: the episode eval runs only when asked, and on a pull request judges only the branch's rewrites
+
+- Date: 2026-10-24 (the owner: "generating a podcast script shouldnt be this expensive as today", "especially anthropic api costs")
+- Decision: `episode-eval.yml` runs when a pull request gets the `eval` label (re-add it to run again) or by hand, never on a push. On a pull request it judges only the four rewritten episodes (main's prompt and the branch's, daily and weekly); a manual run judges the fixtures and every replay as before.
+- Why: it ran on every push to a writer, judge or `loop/` change, 12 times on 2026-10-24 (the rename and structure PRs), and each run made about 40 Sonnet calls on the API key: four replay rewrites and two scores of about 20 episodes, 16 of them fixtures and replays a pull request never changes. Estimated at $4 to $6 a run, in no cost ledger, against about $1.10 for a briefing run.
+- Amends: D148's "`episode-eval.yml` runs only for the writer, the judges, the voice and `loop/`".
+- Revisit if: a writer or voice change merges without an eval and an episode gets worse, or the eval's spend is recorded and found small.
+
 ## D179: Every name says Singularity; saved state moves once
 
 - Date: 2026-10-24 (the owner: "I'd like to move everything that's named dispatch to singularity", then chose the full rename with migration)
@@ -1919,6 +1929,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-24 (the owner: "use jev mostly and use gemini models as backup. use anthropic models mostly for script generation")
 - Decision: in `config/models.json` Claude Haiku leaves every chain: judge, taste fit and source format are Jev then Gemini Flash Lite, grounding Jev then Gemini Flash, fact extraction Gemini Flash Lite then Flash. Sonnet keeps the story writer, its rewrites and the podcast script. The story writer sends no effort (the model's default) and its rewrites medium, in place of #187's medium and low.
 - Why: since #187 (2026-10-22) a daily run made 43 to 49 Claude calls, against 19 to 22 before, about 27 of them voice rewrites of one field each, every one resending the article (about 5k tokens). Weaker first drafts were the likely cause; a rewrite costs more than the thinking the lower effort saved.
+- Later the same day: a voice rewrite sends the first 4,000 characters of its source, not up to 10,000 (`rewriteOnce.ts`); grounding repairs still send the whole text.
 - Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
 
 ## D182: each block's prompt is the owner's to replace, per kind
@@ -1927,4 +1938,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: `config/structure.json` keeps `prompts` by kind and block key (`section:<id>` or the block type), apart from the blocks, set one at a time by `structure.prompt` (null puts back the built-in). The built-in prompts live in `packages/core/src/blockPrompts.ts`, the strings the engine sends, so the page shows exactly what the writer is told. Daily and weekly: a story block's prompt replaces the fields and fact rules for the stories of that section (they are batched apart); the voice from `config/voice.md`, the source handling and the reply's JSON shape stay in code, and the linter, numbers and grounding checks still run. The hello, rundown and sign-off are spoken by code there, so they take no prompt. Catch up: every block but an owner block (whose brief is its prompt) takes one, delimited in the message as the owner's text; a prompt set while the kind is on its defaults runs the defaults as a structure.
 - Why: one request per prompt keeps a reorder small and a 6000-character prompt inside the settings request limit; a prompt kept apart survives a block's removal and Undo.
 - Revisit if: login (Google, in progress) lands, since until then anyone with the URL can edit a prompt (D160); or a prompt edit is wanted for the voice itself.
+
+## D183: The Costs page counts what Anthropic billed, not only what the app recorded
+
+- Date: 2026-10-24 (the owner: "show all costs in the cost page including evals and others to get accurate cost")
+- Decision: with `ANTHROPIC_ADMIN_KEY` set on Vercel, `/api/costs` reads Anthropic's cost report (Admin API, by UTC day, cached 10 minutes) and adds, per day, the billed total less the ledger's Anthropic records as one "Outside the app" record (kind `outside_app`, no run). Without the key the page says spend outside the app is not counted. Other providers stay metered.
+- Why: the ledger sees only the app's own calls. The episode eval (estimated at $4 to $6 a run, 12 runs on 24 Oct) and local scripts reach the bill but never the page, so the page read far below the bill. The bill is the only source that catches spend nobody thought to meter.
+- Revisit if: another project shares the Anthropic organization (the report covers the whole organization, so its spend would land in "Outside the app"), or Gemini spend grows enough to need its billing export.
 

@@ -569,6 +569,29 @@ test.describe("a topic's page", () => {
       .toEqual([{ op: "source.update", id: "studio-notes", name: "Studio Notes Weekly" }]);
   });
 
+  // A favorite that did not reach the store, or a panel that forgot it, leaves its posts filtered
+  // out before the judge with nothing on screen to say so (YouTube, 2026-10-24).
+  test("a favorite changed in the panel is sent, and the panel still says so when opened again", async ({
+    page,
+  }) => {
+    const { sent } = await setup(page);
+    await open(page, CRAFT);
+    const edit = source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" });
+    const sheet = page.getByRole("dialog", { name: "Edit source" });
+    const favorite = sheet.getByRole("checkbox", { name: "Favorite source" });
+    await edit.click();
+    // The fixture ships Studio Notes as high signal.
+    await expect(favorite).toBeChecked();
+    await favorite.uncheck();
+    await sheet.getByRole("button", { name: "Save" }).click();
+    await expect(sheet).toBeHidden();
+    await expect
+      .poll(() => ops(sent))
+      .toEqual([{ op: "source.update", id: "studio-notes", high_signal: false }]);
+    await edit.click();
+    await expect(favorite).not.toBeChecked();
+  });
+
   test("every source has a checkbox: unticking turns it off and ticking turns it back on", async ({
     page,
   }) => {

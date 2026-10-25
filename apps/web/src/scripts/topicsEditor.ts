@@ -431,6 +431,7 @@ export function mountEditor(root: HTMLElement): Editor {
       button.setAttribute("aria-label", `Edit ${edit.name}`);
     }
     if (edit.lean !== undefined) facts.lean = edit.lean === null ? "" : String(edit.lean);
+    if (edit.high_signal !== undefined) facts.high_signal = edit.high_signal;
     if (edit.format !== undefined) {
       facts.format = edit.format;
       row.dataset.format = edit.format;

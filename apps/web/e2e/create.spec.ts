@@ -775,10 +775,11 @@ test.describe("an episode page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Quiet interfaces and fast latency",
     );
-    // The format and the date stand under the title; the length is the chip's label, said once.
+    // The format and the story count stand under the title, as a briefing's facts (owner,
+    // 2026-10-24); the length is the chip's label, said once.
     await expect(page.locator(".hero-text .hero-facts > span")).toHaveText([
       "Discussion",
-      "7 October",
+      "2 stories",
     ]);
     await expect(page.locator('.hero .cover img[data-mode="light"]')).toHaveAttribute(
       "srcset",

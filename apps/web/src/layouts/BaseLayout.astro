@@ -66,6 +66,8 @@ interface Props {
   library?: "empty" | "items";
   /** The card a chat app draws when this page's link is pasted: briefings and episodes (D153). */
   card?: LinkCard;
+  /** Whether the page draws section tabs: a briefing or an episode with two sections or more. */
+  tabs?: boolean;
 }
 
 const {
@@ -80,11 +82,12 @@ const {
   deviceBanner = true,
   library,
   card,
+  tabs = false,
 } = Astro.props;
 // What the page holds, said on the root from the first frame, where the stylesheets once asked with
 // a root :has() that restyled the whole page (D147): data-has-hero, a hero with its own Play (every
 // page with audio draws one, DigestHero.astro and EpisodeView.astro); data-has-tabs, the section
-// tabs (Briefing.astro, on every briefing); data-library-page, the Library and whether it is empty.
+// tabs (SectionTabs.astro, from two sections); data-library-page, the Library and whether it is empty.
 
 const colors = readBrandColors();
 // Create is the primary action, not a destination. Its page sits under the Library, where episodes
@@ -134,7 +137,7 @@ const back =
   data-digest-id={digestId}
   data-device-banner={deviceBanner ? undefined : "off"}
   data-has-hero={audio ? "" : undefined}
-  data-has-tabs={audio?.noun === "briefing" ? "" : undefined}
+  data-has-tabs={tabs ? "" : undefined}
   data-library-page={library}
   data-player="closed"
   data-mini="hidden"

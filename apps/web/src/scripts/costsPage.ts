@@ -18,6 +18,8 @@ interface CostResponse {
   prices_as_of: string;
   unconfirmed: string[];
   site: "ok" | "unavailable";
+  /** Anthropic's own bill: "off" until the owner sets an Admin key. */
+  billing?: "ok" | "unavailable" | "off";
   report: {
     buckets: Array<{ bucket: string; total: Rollup; groups: Record<string, Rollup> }>;
     total: Rollup;
@@ -56,6 +58,7 @@ const NAMES: Record<string, string> = {
   on_demand: "Episodes on request",
   narration_on_play: "Narration on Play",
   config: "Settings changes",
+  outside_app: "Outside the app",
   shared: "Shared editions",
   owner: "You",
 };
@@ -531,6 +534,11 @@ function noteOf(data: CostResponse): string {
   parts.push("Days follow Stockholm time.");
   if (data.site === "unavailable")
     parts.push("Narration on Play could not be read, so it is left out.");
+  if (data.billing === "ok")
+    parts.push("Anthropic is what it billed: Outside the app is the eval and runs off the site.");
+  else if (data.billing === "unavailable")
+    parts.push("Anthropic's bill could not be read, so spend outside the app is left out.");
+  else parts.push("Spend outside the app, such as the eval, is not counted yet.");
   return parts.join(" ");
 }
 

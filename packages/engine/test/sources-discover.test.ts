@@ -483,9 +483,9 @@ describe("discoverAll", () => {
       "https://e.example/": fixture("sources-page-no-feed.html"),
     });
     await discoverAll(registry(), deps);
-    expect(fake.calls.some((url) => url.startsWith("https://e.example"))).toBe(false);
+    expect(fake.calls.some((url) => url.startsWith("https://e.example/"))).toBe(false);
     await discoverAll(registry(), deps, { all: true });
-    expect(fake.calls.some((url) => url.startsWith("https://e.example"))).toBe(true);
+    expect(fake.calls.some((url) => url.startsWith("https://e.example/"))).toBe(true);
   });
 
   it("keeps a known feed when a re-check finds the page down, dead or feedless", async () => {

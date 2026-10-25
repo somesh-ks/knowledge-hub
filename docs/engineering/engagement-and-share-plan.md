@@ -62,7 +62,7 @@ D154's events stay as they are. The listen page adds:
 
 **Who makes a link.** Anyone today, since nothing signs in (D160); the owner alone once OAuth lands. One active link per item, reused if it exists; it expires after 30 days (Blob drops audio after 120) and can be revoked from the item's menu (Stop sharing). Only an item whose every segment is stored can be shared: `POST /api/share` checks each with a head and otherwise answers "Play it once to finish its audio, then share."
 
-**What it opens.** `/s/<token>`, rendered on the server and cached at the CDN for five minutes, so a revoke takes effect within that. The token is a random link id plus an HMAC of it under a new `SHARE_SECRET`, so a made-up token is refused before any database call.
+**What it opens.** `/s/<token>`, rendered on the server and cached at the CDN for five minutes, so a revoke takes effect within that. The token is the link's random 128-bit id, looked up in Neon: nothing to set up and nothing for a listener to enter. A token of the wrong shape is refused before any database call, a D150 bucket stands in front of the lookup, and the CDN's copy absorbs repeat hits. (It was first planned as an id plus an HMAC under a `SHARE_SECRET`; the owner dropped the secret, 2026-10-24.)
 
 | A listener can | A listener cannot |
 | :--- | :--- |
@@ -72,7 +72,7 @@ D154's events stay as they are. The listen page adds:
 | Read the transcript (static text, folded) | Install the app: no service worker, manifest or install prompt on `/s/` |
 | Send the link on, or react | Be found by search: `noindex` in the page and an `X-Robots-Tag` header |
 
-Play asks `POST /api/share/play`, which checks the link, its play cap and the month's budget, adds one to the link's plays and returns the segment addresses; the page chains them in one audio element. The listen page's script stays under 8 KB gzipped, on its own `checkBundle` line, with Simple Analytics loaded as on every page (D154: production only, never for Do Not Track or Global Privacy Control).
+Play asks `POST /api/share-play` (built as `share-play`: the static test build cannot hold a file and a folder both named `share`), which checks the link, its play cap and the month's budget, adds one to the link's plays and returns the segment addresses; the page chains them in one audio element. The listen page's script stays under 8 KB gzipped, on its own `checkBundle` line, with Simple Analytics loaded as on every page (D154: production only, never for Do Not Track or Global Privacy Control).
 
 **The card.** `og:title` (the title), `og:description` (the summary, 160 characters at most), `og:image` (the 1024 px PNG cover, which the build already makes), `og:image:alt`, `og:site_name` Singularity, `twitter:card` summary. `robots.txt` now disallows everything, which hides the card from previewers that honour it, so it allows the shared pages and `/covers/` while the meta tag and header keep pages out of search. A 1200 by 630 card is stage 4.
 
@@ -86,7 +86,7 @@ Play asks `POST /api/share/play`, which checks the link, its play cap and the mo
 | :--- | :--- | :--- |
 | Blob transfer | Hobby includes 10 GB a month; past it Blob is locked for 30 days, which stops the owner's own playback. A 15 minute episode at 128 kbps is about 14 MB, so about 700 full plays | Shared plays stop at 4 GB a month (play starts times item size, counted in Neon) and 100 plays a link; the page says the limit is reached. Stage 4 adds a 64 kbps rendition, half the bytes |
 | Narration spend | A stranger's Play narrating missing segments | Never from the listen page: stored audio only, links only for fully stored items. The app itself narrates for anyone, inside the daily cap and the monthly budget, until OAuth (D160) |
-| Functions and Neon | Scanners, bursts | HMAC before the database, CDN cache, D150 buckets on every new route |
+| Functions and Neon | Scanners, bursts | Token shape check before the database, CDN cache, D150 buckets on every new route |
 | The app behind the domain | The page names news.someshks.work | Open to anyone until OAuth (D160): the owner will hide actions from logged-out users. The listen page links nowhere into the app meanwhile |
 | Leaked links | A public dashboard lists paths | The token never reaches Simple Analytics (section 4) |
 | Undercounting | Ad blockers stop the script; an offline listen sends nothing | Counts are a floor (D154); the play count in Neon is exact for shared plays |
@@ -100,7 +100,7 @@ One PR per stage, labelled `review` (D143); site PRs run both browser suites fir
 
 **Stage 1, the User engagement row.** A row under Settings, Analytics that opens the Simple Analytics dashboard, and `item` added to the app's `listen_*` and `share` metadata. Tests: the existing analytics unit tests extended for `item`, nothing new for a link. Done when: the row opens the dashboard and a listen on production shows its item.
 
-**Stage 2, share links and the listen page.** `share_links(id, item_id, created_at, expires_at, revoked_at, plays)`, `POST /api/share`, `/s/<token>`, `POST /api/share/play`, Share in the hero and Library menus making the link, Stop sharing, robots and card, and the listen page's events. Tests: a token with a bad HMAC never reaches the database; the play gate refuses an expired, revoked, over-cap or over-budget link; no event carries the token; one e2e journey across contexts: a link is made, a fresh context opens it, Play plays stored audio with no request to `/api/narrate` and no service worker, then a revoked link answers 410. Done when: a link opened on a second phone plays and its listen shows in Simple Analytics with `surface` listen.
+**Stage 2, share links and the listen page.** `share_links(id, item_id, created_at, expires_at, revoked_at, plays)`, `POST /api/share`, `/s/<token>`, `POST /api/share-play`, Share in the hero and Library menus making the link, Stop sharing, robots and card, and the listen page's events. Tests: a malformed token never reaches the database and an unknown one is 404; the play gate refuses an expired, revoked, over-cap or over-budget link; no event carries the token; one e2e journey across contexts: a link is made, a fresh context opens it, Play plays stored audio with no request to `/api/narrate` and no service worker, then a revoked link answers 410. Done when: a link opened on a second phone plays and its listen shows in Simple Analytics with `surface` listen.
 
 **Stage 3, the call to action.** Send it on with `g`, `react`, their caps, and the line to the Privacy page, which gains the listen page's counts. Tests: `g` grows by one and stops at 9. Done when: a second-generation listen is counted.
 

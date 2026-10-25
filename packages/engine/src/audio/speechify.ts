@@ -136,9 +136,16 @@ const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 const defaultSleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+/** A loop, not `/\/+$/`: that regex rescans a long run of slashes from every start (CodeQL). */
+function trimTrailingSlashes(url: string): string {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end--;
+  return url.slice(0, end);
+}
+
 /** Speechify text to speech over HTTP, with the fetch, base URL and key injected. */
 export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSynthesizer {
-  const baseUrl = (options.baseUrl ?? SPEECHIFY_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = trimTrailingSlashes(options.baseUrl ?? SPEECHIFY_BASE_URL);
   const doFetch = options.fetch ?? fetch;
   const sleep = options.sleep ?? defaultSleep;
   const now = options.now ?? (() => new Date());

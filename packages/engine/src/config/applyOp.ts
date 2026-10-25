@@ -396,11 +396,13 @@ function updateSource(
     }
     if (op.format !== undefined) added.format = op.format;
     if (op.lean !== undefined) added.lean = op.lean;
+    if (op.high_signal !== undefined) added.high_signal = op.high_signal;
   } else {
     next.sourcesUser.overrides[op.id] = {
       ...next.sourcesUser.overrides[op.id],
       ...(op.format === undefined ? {} : { format: op.format }),
       ...(op.lean === undefined ? {} : { lean: op.lean }),
+      ...(op.high_signal === undefined ? {} : { high_signal: op.high_signal }),
       ...(op.name === undefined ? {} : { name: op.name }),
       ...(topicIds === undefined ? {} : { topic_ids: topicIds }),
     };
@@ -409,7 +411,10 @@ function updateSource(
   const rename = op.name === undefined ? null : `rename source ${tidy(before)} to ${tidy(op.name)}`;
   let summary: string;
   if (rename === null && topicIds === undefined) {
-    summary = `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
+    summary =
+      op.high_signal !== undefined && op.format === undefined && op.lean === undefined
+        ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
+        : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
   } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;

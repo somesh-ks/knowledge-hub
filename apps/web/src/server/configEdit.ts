@@ -373,7 +373,14 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           ? value.lean
           : undefined;
       const format = SOURCE_FORMATS.find((entry) => entry === value.format);
-      if (name === undefined && ids === undefined && lean === undefined && format === undefined) {
+      const highSignal = typeof value.high_signal === "boolean" ? value.high_signal : undefined;
+      if (
+        name === undefined &&
+        ids === undefined &&
+        lean === undefined &&
+        format === undefined &&
+        highSignal === undefined
+      ) {
         return null;
       }
       return {
@@ -383,6 +390,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         ...(ids === undefined ? {} : { topic_ids: ids }),
         ...(lean === undefined ? {} : { lean }),
         ...(format === undefined ? {} : { format }),
+        ...(highSignal === undefined ? {} : { high_signal: highSignal }),
       };
     }
     case "source.remove": {

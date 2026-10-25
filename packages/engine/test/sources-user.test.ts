@@ -1,10 +1,12 @@
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadEnv, type SourcesFile, type SourcesUserFile } from "@singularity/core";
+import { loadEnv, Preferences, type SourcesFile, SourcesUserFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "../src/commands/sources.js";
 import { createLogger } from "../src/context.js";
+import { prefilter } from "../src/prefilter/prefilter.js";
 import {
   loadSources,
   loadSourcesRaw,
@@ -20,7 +22,7 @@ import {
   rollWindow,
   STATS_WINDOW_DAYS,
 } from "../src/state/sourceStats.js";
-import { makeSource } from "./fetch-helpers.js";
+import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
 
 let root: string;
 
@@ -151,6 +153,32 @@ describe("config/sources.user.json", () => {
     expect(merged.sources.map((s) => [s.id, s.enabled, s.pinned])).toEqual([
       ["a", true, true],
       ["c", false, undefined],
+    ]);
+  });
+
+  // Every YouTube video was dropped before the judge (no keyword in its title); a favorite marked
+  // in the app must survive the stored file and reach the prefilter as high signal.
+  it("sends every post from a source favorited in the app to the judge", () => {
+    const base = { version: 1 as const, sources: [makeSource({ id: "channel" })] };
+    const video = makeItem({
+      url: "https://www.youtube.com/watch?v=aaaaaaaaaaa",
+      title: "I was wrong about this",
+      source_id: "channel",
+    });
+    const pool = (user: unknown) =>
+      prefilter({
+        items: [video],
+        preferences: Preferences.parse(
+          JSON.parse(
+            readFileSync(new URL("./fixtures/config/preferences.json", import.meta.url), "utf8"),
+          ),
+        ),
+        sources: mergeUserSources(base, SourcesUserFile.parse(user)).sources,
+        now: NOW,
+      }).items;
+    expect(pool({ version: 1, added: [], overrides: {} })).toEqual([]);
+    expect(pool({ version: 1, added: [], overrides: { channel: { high_signal: true } } })).toEqual([
+      video,
     ]);
   });
 });
