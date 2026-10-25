@@ -83,7 +83,6 @@ describe("synthesizeWithMarks", () => {
       text: "Hello world.",
       voiceId: "voice_x",
       model: "simba-3.0",
-      language: "en-US",
       outputFormat: "mp3_24000_64",
     });
     const request = must(server.requests[0]);
