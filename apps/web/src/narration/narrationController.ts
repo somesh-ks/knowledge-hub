@@ -9,7 +9,13 @@
 import type { StreamStatus } from "../lib/liveStream";
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
-import { createGrowth, type GrowthDeps } from "./liveEpisode";
+import {
+  createGrowth,
+  GROWTH_GIVE_UP_MS,
+  GROWTH_POLL_MS,
+  type GrowthDeps,
+  liveNarrated,
+} from "./liveEpisode";
 import {
   type ApiDeps,
   describeNarrationFailure,
@@ -220,6 +226,37 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
+  /**
+   * While the writer is going, the transcript and the chapters grow with the script, not only the
+   * audio: each turn that arrives is laid on the timeline and the player's copy is loaded again,
+   * which the store takes as a refresh (same episode, same audio), so playback, playhead and scroll
+   * stay where they are.
+   */
+  async function followLive(
+    id: string,
+    growth: ReturnType<typeof createGrowth>,
+    live: LiveSource,
+    segments: Parameters<typeof liveNarrated>[1],
+  ): Promise<void> {
+    let lastGrowth = live.now();
+    while (growth.pending() && sessions.has(id)) {
+      await live.delay(live.pollMs ?? GROWTH_POLL_MS);
+      const doc = await live.fetchDoc().catch(() => null);
+      if (!doc) continue;
+      const added = growth.sync(doc);
+      if (added === 0 && doc.status === "writing") {
+        if (live.now() - lastGrowth > (live.giveUpMs ?? GROWTH_GIVE_UP_MS)) return;
+        continue;
+      }
+      lastGrowth = live.now();
+      const narrated = liveNarrated(doc, segments, new Date());
+      const session = sessions.get(id);
+      if (session) session.narrated = narrated;
+      rememberNarrated(narrated);
+      if (deps.store.getState().digestId === id) deps.store.load(narrated);
+    }
+  }
+
   async function play(
     digest: PlayerDigestData,
     itemId?: string,
@@ -266,6 +303,13 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       }
 
       sessions.set(digest.id, { queue, narrated });
+      const growth = live
+        ? createGrowth(
+            plan.segments,
+            { status: live.status },
+            { ...live, msPerCharacter: FALLBACK_MS_PER_CHARACTER },
+          )
+        : null;
       playlists.set(narrationSource(digest.id), {
         get segments() {
           return queue.segments;
@@ -275,20 +319,13 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         describeFailure: (error) =>
           error instanceof NarrationError ? describeNarrationFailure(error.reason, noun) : null,
         // An episode still being written: the track grows with it (liveEpisode.ts).
-        ...(live
-          ? {
-              growth: createGrowth(
-                plan.segments,
-                { status: live.status },
-                { ...live, msPerCharacter: FALLBACK_MS_PER_CHARACTER },
-              ),
-            }
-          : {}),
+        ...(growth ? { growth } : {}),
       });
       installAdapter();
       rememberNarrated(narrated);
       activate(digest.id);
       start(narrated, itemId);
+      if (live && growth) void followLive(digest.id, growth, live, plan.segments);
       return "playing";
     } finally {
       if (mine === attempt) deps.setPreparing(null);
