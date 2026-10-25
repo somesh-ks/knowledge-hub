@@ -1497,11 +1497,14 @@ test.describe("the podcast structure", () => {
     const list = page.getByRole("list", { name: "Structure blocks" });
     const names = () => list.locator(".structure-row .settings-label").allTextContents();
     const before = await names();
-    expect(before.slice(0, 2)).toEqual(["Top picks", "Design"]);
+    // The frames Catch up's model writes stay listed, quiet, at the ends of the one list.
+    expect(before.slice(0, 3)).toEqual(["Hello", "Top picks", "Design"]);
     await list.getByRole("button", { name: "More for Design", exact: true }).click();
     await page.getByRole("menuitem", { name: "Move down" }).click();
-    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length));
-    await expect.poll(names).toEqual([before[0], before[2], before[1], ...before.slice(3)]);
+    await expect(spoken(page)).toHaveText("Design, 3 of " + String(before.length - 2));
+    await expect
+      .poll(names)
+      .toEqual([before[0], before[1], before[3], before[2], ...before.slice(4)]);
     // An edit of the order is the owner's own list: the profile says Custom.
     await expect(page.getByLabel("Profile")).toHaveValue("custom");
     await page.clock.runFor(GAP_MS);

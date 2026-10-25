@@ -795,6 +795,19 @@
     color var(--duration-hover) var(--ease-hover);
 }
 
+/* A link inside a line of small text (a settings hint): the words stay inline, the touch target is
+   44px tall through a hit layer centred on the line (D189 sweep, layout.spec.ts). Usage: class="text-link". */
+.text-link {
+  position: relative;
+}
+
+.text-link::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - 1lh) / -2);
+}
+
 /* The chip is 36px tall; its target is 44px, measured from the outside of its border. */
 .filter-chip::after {
   content: "";
