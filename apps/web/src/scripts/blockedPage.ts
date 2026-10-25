@@ -198,7 +198,7 @@ function mount(root: HTMLElement): void {
   };
   form.addEventListener("submit", (event) => event.preventDefault());
   form
-    .querySelector("button")
+    .querySelector(".topic-add-source")
     ?.addEventListener("click", (event) => openSheet(event.currentTarget as HTMLElement));
   // Enter blocks only when the filter found nothing to look at.
   input.addEventListener("keydown", (event) => {
