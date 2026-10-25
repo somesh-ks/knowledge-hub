@@ -33,17 +33,14 @@ const blocked = await loadBlockedDomains();
 // which is no topic, comes last. Each topic's page sets where it plays.
 const layout = topicLayout(topics, sources);
 const { groups } = layout;
-// How many sources a topic has, and how many of them are read.
-const counts = (id: string): [number, number] => {
-  const list = layout.sources.get(id) ?? [];
-  return [list.length, list.filter((source) => source.enabled).length];
-};
+// How many sources a topic has.
+const counts = (id: string): number => layout.sources.get(id)?.length ?? 0;
 const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
     emoji: topicEmoji(group),
-    hint: topicSummary(null, ...counts(group.id)),
+    hint: topicSummary(null, counts(group.id)),
     members: group.members.map((member) => member.id),
     never: undefined,
   })),
@@ -51,7 +48,7 @@ const rows = [
     id: topic.id,
     name: topic.name,
     emoji: topicEmoji(topic),
-    hint: topicSummary(topic, ...counts(topic.id)),
+    hint: topicSummary(topic, counts(topic.id)),
     members: [topic.id],
     never: topic.never_publish ? "" : undefined,
   })),

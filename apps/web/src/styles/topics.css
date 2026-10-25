@@ -232,6 +232,10 @@
 .topic .topic-panel .topic-suggested {
   margin-block-start: var(--space-4);
   padding-block-start: var(--space-2);
+  /* Full bleed, as the design system's hairlines are (2026-10-25): it reaches the card's edges and the
+     content keeps the card's padding. */
+  margin-inline: calc(var(--card-padding) * -1);
+  padding-inline: var(--card-padding);
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
@@ -1941,4 +1945,41 @@ textarea.manage-input.structure-prompt {
 .structure-prompt-foot > .btn {
   flex: none;
   margin-inline-end: calc(var(--space-4) * -1);
+}
+
+/* A weight row, 2026-10-25 (owner): the stop's name starts where the slider's track starts, in the
+   slider's column, with the slider under it; the topic's name takes the rest of the row and the
+   whole height. The text wrapper dissolves so its label and output are the grid's own items. One
+   grid for the phone and the desktop, so the name never gives its line to the slider
+   (--slider-max-width, settings.css). The doubled class beats `.topic .topic-weight`, and the last
+   selector `.preferences-page`'s row gap. */
+.settings-row.topic-weight,
+.topic .settings-row.topic-weight,
+.preferences-page .topic .settings-row.topic-weight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--slider-max-width));
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: 0;
+}
+
+.topic-weight > .settings-text {
+  display: contents;
+}
+
+.topic-weight > .settings-text > .settings-label {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+.topic-weight > .settings-text > .settings-hint {
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.topic-weight > .settings-range {
+  grid-row: 2;
+  grid-column: 2;
+  inline-size: 100%;
+  margin: 0;
 }

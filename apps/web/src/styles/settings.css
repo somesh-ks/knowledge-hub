@@ -695,3 +695,17 @@
 .changelog-entry > .settings-about {
   padding: 0;
 }
+
+/* A slider in a row is at most --slider-max-width, so the name beside it keeps the focus (owner,
+   2026-10-25). It overrides the control column's width (--settings-control-width) and every
+   topics.css flex basis, which only set how it grows. */
+.settings-row input[type="range"] {
+  max-inline-size: var(--slider-max-width);
+}
+
+/* A control on the card's end sits 16px from the card's edge, the row's own block padding, where the
+   card's 24px pushed a select further in than the card's top and bottom (owner, 2026-10-25). The row
+   reaches into the card's padding on its end side only, so the labels keep their edge. */
+.settings-view .card-group > .settings-row {
+  margin-inline-end: calc(var(--row-padding-block) - var(--card-padding));
+}

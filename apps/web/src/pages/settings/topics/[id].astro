@@ -27,6 +27,7 @@ import {
 } from "../../../lib/topicPages";
 import { NEW_TOPIC_ID, SHELL } from "../../../lib/topicText";
 import "../../../styles/settings.css";
+import { activeSummary } from "../../../lib/settingsSummary";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
 import "../../../styles/episode-actions.css";
@@ -421,6 +422,13 @@ const facts = topic && {
                     <span>Add source</span>
                   </button>
                 </SourceFilter>
+              )
+            }
+            {
+              list.length > 0 && (
+                <p class="settings-hint topic-status" data-sources-status>
+                  {activeSummary(list.length, list.filter((source) => source.enabled).length)}
+                </p>
               )
             }
             <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>
