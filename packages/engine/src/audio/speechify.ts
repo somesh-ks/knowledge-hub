@@ -5,6 +5,11 @@ export const SPEECHIFY_BASE_URL = "https://api.speechify.ai";
 export const DEFAULT_VOICE_ID = "geffen_32";
 export const DEFAULT_MODEL = "simba-3.2";
 export const DEFAULT_OUTPUT_FORMAT = "mp3_24000_128";
+/**
+ * Pinned on every request. Left out, Speechify detects the language per input, so a segment with a
+ * foreign name or an acronym can be read with another accent and pitch than its neighbours.
+ */
+export const DEFAULT_LANGUAGE = "en-US";
 
 /** The MP3 formats `output_format` accepts on the stream endpoints, which is all we publish. */
 export const MP3_OUTPUT_FORMATS = [
@@ -241,6 +246,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
       input: request.text,
       voice_id: request.voiceId ?? options.defaultVoiceId ?? DEFAULT_VOICE_ID,
       model: request.model ?? DEFAULT_MODEL,
+      language: DEFAULT_LANGUAGE,
       output_format: request.outputFormat ?? DEFAULT_OUTPUT_FORMAT,
     };
   }

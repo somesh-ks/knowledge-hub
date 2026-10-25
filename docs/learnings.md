@@ -45,6 +45,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 ## Engine and workflows
 
 - 2026-10-25: the config store silently undid a PR's config edit (D185).
+- 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`/feeds/videos.xml?channel_id=...`) matched every other: a second channel failed "Already a source: <first channel>", and the store's replay of an added channel could not read its address. Keys that identify a feed keep `channel_id`.
+- 2026-10-25: a Speechify request without `language` is detected per segment; a segment with a foreign name or acronym came back in another language's prosody, heard as the voice shifting pitch mid-episode. Pin `language` and put it in the segment hash.
 - 2026-10-23: Vercel's Neon integration names its variables `NEON_*`, which nothing reads; seed before the GitHub variable goes on. lightningcss rejects `::picker(select)::backdrop`: scrim with a `0 0 0 100vmax` shadow; a page's `::picker` rule wins by load order. A long-press drag that keeps the list scrolling cannot be pointer events (`touch-action: none` kills scroll): use `draggable`, cancel `dragstart` on a sideways swipe.
 - 2026-10-24: a 5-minute daily aired 3.0: 14 written, validation cut 7, nothing refilled. Validation refills once from `reserve.json`. Grounding never saw the title the writer read.
 - 2026-10-22: three review rounds of new `health` checks each found false faults (a waking Neon, an edit during a run, Dependabot merges Hobby never deploys, a regenerate read as late). A fault must be actionable and hold a day; make the rest warnings.
