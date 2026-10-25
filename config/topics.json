@@ -93,7 +93,7 @@
       "id": "ai_ux_interaction_patterns",
       "name": "AI interface patterns",
       "description": "Chat, agents, streaming UI",
-      "weight": 0.85,
+      "weight": 0.95,
       "enabled": true,
       "keywords": [],
       "section_id": "ai",
