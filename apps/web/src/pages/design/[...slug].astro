@@ -28,21 +28,28 @@ const semantic = tokenGroups("semantic");
 const component = tokenGroups("component");
 const colors = semantic.get("color") ?? [];
 const text = semantic.get("text") ?? [];
-const fontSizes = (primitive.get("font") ?? []).filter((token) => token.path.startsWith("font.size."));
+const fontSizes = (primitive.get("font") ?? []).filter((token) =>
+  token.path.startsWith("font.size."),
+);
 const space = primitive.get("space") ?? [];
 const radius = primitive.get("radius") ?? [];
 const shadows = (semantic.get("shadow") ?? []).filter((token) =>
   ["popover", "floating", "sheet"].includes(token.path.split(".").at(-1) ?? ""),
 );
-const tables: [string, string, readonly { name: string; value: string; description?: string }[]][] = [
-  ["Durations", "duration", primitive.get("duration") ?? []],
-  ["Easing", "ease", primitive.get("ease") ?? []],
-  ["Scale and distance", "scale", [...(primitive.get("scale") ?? []), ...(primitive.get("distance") ?? [])]],
-  ["Layers", "z", primitive.get("z") ?? []],
-  ["Sizes", "size", semantic.get("size") ?? []],
-  ["Breakpoints", "breakpoint", semantic.get("breakpoint") ?? []],
-  ["Layout", "layout", semantic.get("layout") ?? []],
-];
+const tables: [string, string, readonly { name: string; value: string; description?: string }[]][] =
+  [
+    ["Durations", "duration", primitive.get("duration") ?? []],
+    ["Easing", "ease", primitive.get("ease") ?? []],
+    [
+      "Scale and distance",
+      "scale",
+      [...(primitive.get("scale") ?? []), ...(primitive.get("distance") ?? [])],
+    ],
+    ["Layers", "z", primitive.get("z") ?? []],
+    ["Sizes", "size", semantic.get("size") ?? []],
+    ["Breakpoints", "breakpoint", semantic.get("breakpoint") ?? []],
+    ["Layout", "layout", semantic.get("layout") ?? []],
+  ];
 const componentGroups = [...component.entries()];
 const icons = Object.keys(ICON_PATHS) as IconName[];
 
@@ -65,7 +72,9 @@ const parts: [title: string, sheet: string, selector: string][] = [
   ["Menu", "hero.css", ".hero-menu-item"],
   ["Section heading", "primitives.css", ".section-head"],
 ];
-const usage = Object.fromEntries(parts.map(([title, sheet, selector]) => [title, usageComment(sheet, selector)]));
+const usage = Object.fromEntries(
+  parts.map(([title, sheet, selector]) => [title, usageComment(sheet, selector)]),
+);
 const title = "Design system";
 ---
 
