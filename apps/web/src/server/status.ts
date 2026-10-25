@@ -2,6 +2,8 @@ import {
   briefingStage,
   EPISODE_STEP,
   episodeStage,
+  NAMED_EPISODE_STEPS,
+  STAGE_IDS,
   type StageInfo,
   updatingStage,
 } from "../lib/runStages";
@@ -57,9 +59,37 @@ function failedEpisodeStage(steps: readonly WorkflowStep[]): StageInfo {
   const failed = steps.find(
     (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
   );
+  if (failed && failed.name in STAGE_IDS)
+    return episodeStage([{ name: failed.name, status: "completed" }]);
   return episodeStage(
     failed?.name === EPISODE_STEP ? [{ name: EPISODE_STEP, status: "completed" }] : [],
   );
+}
+
+/** Whether the workflow reports named steps (lib/runStages.ts), so a failure can say which. */
+const hasNamedSteps = (steps: readonly WorkflowStep[]) =>
+  steps.some((step) => step.name in STAGE_IDS);
+
+/**
+ * What a failed episode run says about itself: the stage that failed and the artifacts the stages
+ * before it finished (script, cover, voices), so the page can say what was kept.
+ */
+function failureFields(steps: readonly WorkflowStep[]) {
+  const failed = steps.find(
+    (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
+  );
+  const id = failed ? STAGE_IDS[failed.name] : undefined;
+  if (!failed || !id) return {};
+  const kept = steps
+    .filter((step) => step.conclusion === "success" && step.name in STAGE_IDS)
+    .filter(
+      (step) =>
+        NAMED_EPISODE_STEPS.indexOf(step.name as never) <
+        NAMED_EPISODE_STEPS.indexOf(failed.name as never),
+    )
+    .map((step) => STAGE_IDS[step.name] as string)
+    .filter((stage) => stage === "script" || stage === "cover" || stage === "voices");
+  return { failed_stage: id, kept };
 }
 
 /** Whether a run is an episode run: podcast.yml, which has no named steps and no last-run record. */
@@ -187,7 +217,9 @@ export async function handleStatus(
         };
       }
       const done = run.conclusion === "success";
-      const stage = done ? updatingStage("episode") : failedEpisodeStage(steps);
+      const stage = done
+        ? updatingStage("episode", hasNamedSteps(steps))
+        : failedEpisodeStage(steps);
       return {
         status: 200,
         headers,
@@ -197,7 +229,7 @@ export async function handleStatus(
           step: null,
           ...stageFields(stage),
           outcome: done ? "published" : "failed",
-          ...(done ? {} : { run_url: runUrlFor(config, runId) }),
+          ...(done ? {} : { run_url: runUrlFor(config, runId), ...failureFields(steps) }),
         },
       };
     }

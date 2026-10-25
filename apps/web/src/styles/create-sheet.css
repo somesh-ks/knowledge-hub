@@ -680,6 +680,19 @@ dialog.create-sheet .create-submit > .btn-primary {
   gap: var(--space-2);
 }
 
+/* The stage name over the time left (2026-10-25). The time left is the status route's estimate, so it
+   shows only when there is one; a strip below 64rem keeps it for when it is opened. */
+.run-lines {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.run-eta {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
 .run-message {
   min-width: 0;
   display: -webkit-box;
@@ -744,8 +757,39 @@ dialog.create-sheet .create-submit > .btn-primary {
 }
 
 .run-dismiss,
-.run-retry {
+.run-retry,
+.run-check {
   flex: none;
+}
+
+/* Below 64rem the card is one slim line; the chevron (or a press on the line) opens the whole status:
+   the message unclamped, the time left, and the buttons on a row of their own. It grows upward from
+   the foot it is fixed to. */
+.run-expand {
+  flex: none;
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
+@media (width < 64rem) {
+  .run-card:not([data-expanded]) .run-expand {
+    transform: rotate(180deg);
+  }
+
+  .run-card:not([data-expanded]) .run-eta {
+    display: none;
+  }
+
+  .run-card[data-expanded] {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--run-height);
+    padding-block: var(--space-2);
+  }
+
+  .run-card[data-expanded] .run-message {
+    display: block;
+    overflow: visible;
+  }
 }
 
 /* The filled button at its own width: the block button's full width would fill the card. */
@@ -847,6 +891,11 @@ html[data-player="open"] .run-status {
   }
 
   /* Its own row above the link, so the button and the Details link never share a slot. */
+  /* One slot for the whole status above 64rem: the column has the room, so nothing is opened. */
+  .run-card .run-expand {
+    display: none;
+  }
+
   .run-play {
     grid-area: play;
     justify-self: start;
@@ -855,7 +904,8 @@ html[data-player="open"] .run-status {
 
   /* Try again shares the link's place (they never show together); its words line up with the
      message above, its state layer reaching out into the column's margin. */
-  .run-retry {
+  .run-retry,
+  .run-check {
     grid-area: extra;
     justify-self: start;
     margin-inline-start: calc(-1 * var(--space-4));
@@ -877,7 +927,8 @@ html[data-player="open"] .run-status {
 
 /* The bar still fills, stage by stage; it just does not glide. */
 @media (prefers-reduced-motion: reduce) {
-  .run-fill {
+  .run-fill,
+  .run-card .run-expand {
     transition: none;
   }
 }
