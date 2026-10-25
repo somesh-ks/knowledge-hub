@@ -612,11 +612,20 @@
 /* Compact: each segment a chip's height on a 44px column, so it sits level with the chips beside it
    (Costs' chart and table switch, D169, until 2026-10-24 drawn in costs.css). Its face is 36px, so
    a layer above and below takes the target to 44px, as a chip's select does (the design audit,
-   2026-10-24: the tabs answered a touch across 36px). */
+   2026-10-24: the tabs answered a touch across 36px). The column stays 44px (the target the layout
+   sweep measures), but the pill under a glyph is the chip's height each way, centred in its column,
+   so the glyph has the same air on all four sides (owner, 2026-10-25: the pill was 44 by 36); a step
+   is still one column. */
 .segmented-nav-compact {
   flex: none;
   grid-auto-columns: var(--size-touch);
   min-inline-size: 0;
+}
+
+.segmented-nav-compact::before {
+  inset-inline-start: calc(var(--segmented-padding) + (var(--size-touch) - var(--chip-height)) / 2);
+  width: calc(var(--chip-height) - var(--segmented-padding) * 2);
+  transform: translateX(calc(var(--seg-i) * var(--size-touch)));
 }
 
 .segmented-nav-compact > .segmented-nav-tab {
