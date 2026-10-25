@@ -398,7 +398,8 @@
 .segmented-choice-item input {
   position: absolute;
   inset-block: calc(
-    (var(--size-touch) - var(--chip-height) - var(--space-1) + var(--stroke-hairline) * 2) / -2
+    (var(--size-touch) - var(--chip-height) - var(--space-1) + var(--stroke-hairline) * 2) /
+    -2
   );
   inset-inline: 0;
   width: 100%;
