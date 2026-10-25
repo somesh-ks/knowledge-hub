@@ -1738,19 +1738,29 @@
   display: none;
 }
 
-/* The profile's row (2026-10-25: the structure varies by who listens, not by podcast) and Reorder at
-   the strip's end sit a full step under the switch, and the blocks a step under them. Reorder's
-   words end where the rows' dots do. */
+/* The profile's row is a settings row like Daily's, in the same `.rows` as the blocks, so its
+   label sits on the rows' text edge and the select ends where theirs do (2026-10-25). Reorder sits on the
+   line under it, at the strip's end, where the rows' dots end; below 64rem the page's floating
+   button is Reorder instead. */
 .structure-kinds-bar {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--space-4);
   margin-block-start: var(--space-6);
 }
 
+.structure-kinds-bar > .structure-reorder {
+  align-self: flex-end;
+}
+
 .structure-profile {
-  flex: 1 1 auto;
   min-width: 0;
+}
+
+/* The value's chevron ends under the dots' glyphs, as the link rows' values do (D187). */
+.structure-profile .value-select {
+  --value-select-pull: var(--space-2);
 }
 
 /* The question before a named profile replaces the owner's own list, asked in the page. */
