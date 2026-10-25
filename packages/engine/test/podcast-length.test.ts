@@ -116,7 +116,21 @@ describe("the length asked of the writer", () => {
     expect(reachableChars(99_999, 4, "headlines", 15)).toBeLessThan(reach);
   });
 
-  it("asks a discussion for full turns, and lets a host give a view but not a fact", () => {
+  it("tells more stories at length when too few come to fill the length asked for", () => {
+    // ep-20261025-1746: seven stories for five minutes aired at 72% of the budget, because one deep
+    // dive and six nuggets can carry only 83% of it.
+    const budget = planPodcast({ ...REQUEST, format: "readout", length_minutes: 5 }).budget_chars;
+    expect(reachableChars(budget, 7, "readout", 5)).toBe(budget);
+    expect(structureFor(5, 7, "readout").deep_dives).toBeGreaterThan(1);
+    // Never more deep dives than stories, and no promotion once the stories fill the length.
+    expect(structureFor(15, 4, "readout").deep_dives).toBe(4);
+    const full = planPodcast({ ...REQUEST, format: "readout", length_minutes: 15 });
+    expect(structureFor(15, full.max_stories, "readout").deep_dives).toBe(
+      deepDiveCount(15, full.max_stories),
+    );
+  });
+
+  it("asks a discussion for full turns,and lets a host give a view but not a fact", () => {
     const prompt = scriptSystemPrompt(inputFor("discussion", 5));
     expect(prompt).toContain("Turns run one to four sentences each");
     expect(prompt).toContain("clearly as their own view");
@@ -198,9 +212,12 @@ describe("the prompt per length", () => {
 
   it("has no deep dives at 3 minutes and more of them as the length grows", () => {
     expect(prompts[3]).toContain("There are no deep dives in this episode");
-    expect(prompts[5]).toMatch(/The first 1 story is a deep dive/);
-    expect(prompts[10]).toMatch(/The first 2 stories are deep dives/);
-    expect(prompts[15]).toMatch(/The first 3 stories are deep dives/);
+    // Eight stories are too few to fill 5 minutes or more with nuggets, so more are told at length.
+    const deep = (minutes: (typeof LENGTHS)[number]): number =>
+      Number(prompts[minutes].match(/The first (\d+) stor(?:y is|ies are) deep dives?/)?.[1]);
+    expect(deep(5)).toBeGreaterThan(1);
+    expect(deep(10)).toBeGreaterThanOrEqual(deep(5));
+    expect(deep(15)).toBeGreaterThanOrEqual(deep(10));
   });
 
   it("names fewer lead stories in the rundown than it tells in long episodes", () => {

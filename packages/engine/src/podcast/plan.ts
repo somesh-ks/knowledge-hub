@@ -134,15 +134,23 @@ export function structureFor(
       close_chars: closeChars,
     };
   }
-  const deep = deepDiveCount(minutes, count);
   const teased = Math.min(count, TEASED[minutes]);
   const teaserChars = teased * TEASER_CLAUSE_CHARS;
   const closeChars = CLOSE_CHARS[minutes];
+  const frame = HELLO_CHARS + teaserChars + closeChars + SIGN_OFF_CHARS;
+  // With few stories the usual few deep dives cannot fill the length (a 5 minute readout of seven
+  // stories reached 83% of it, aired at 72%): tell more of them at length, as many as it takes.
+  const gap = Math.min(minutes * PODCAST_CHARS_PER_MINUTE, PODCAST_MAX_CHARS) - frame;
+  const needed = Math.ceil(
+    (gap - count * NUGGET_CAPACITY_CHARS[format]) /
+      Math.max(1, STORY_CAPACITY_CHARS[format] - NUGGET_CAPACITY_CHARS[format]),
+  );
+  const deep = Math.min(count, Math.max(deepDiveCount(minutes, count), needed));
   return {
     deep_dives: deep,
     nuggets: count - deep,
     teased,
-    frame_chars: HELLO_CHARS + teaserChars + closeChars + SIGN_OFF_CHARS,
+    frame_chars: frame,
     teaser_chars: teaserChars,
     close_chars: closeChars,
   };
