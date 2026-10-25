@@ -2,6 +2,7 @@
 import type { SectionView } from "../lib/digestView";
 import Chapter from "./Chapter.astro";
 import Item from "./Item.astro";
+import SectionTabs from "./SectionTabs.astro";
 
 interface Props {
   sections: SectionView[];
@@ -12,27 +13,9 @@ const { sections, hasAudio } = Astro.props;
 ---
 
 {/* The tabs live inside this wrapper so they stay stuck for the sections and let go after the last
-     one. Server-rendered and complete without script: the tabs are plain links to the sections, and
-     briefingPage.ts only moves the mark to the section in view. The bar sticks and draws the
-     surface; the strip inside it scrolls and fades its ends (primitives.css). */}
+     one (SectionTabs.astro). */}
 <div class="briefing" id="briefing">
-  <div class="tabs-bar" data-tabs-bar>
-    <nav class="tabs" aria-label="Sections" data-section-tabs>
-      {
-        sections.map((section, index) => (
-          <a
-            class="tab"
-            href={`#c-${section.slug}`}
-            data-astro-history="replace"
-            data-section={section.slug}
-            aria-current={index === 0 ? "true" : undefined}
-          >
-            {section.title}
-          </a>
-        ))
-      }
-    </nav>
-  </div>
+  <SectionTabs sections={sections} />
   {
     sections.map((section) => (
       <Chapter section={section}>

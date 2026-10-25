@@ -1,10 +1,11 @@
-import type { CoverSpec } from "@singularity/core";
+import { type CoverSpec, digestSections } from "@singularity/core";
 import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@singularity/cover";
 import type { PlayerDigestData } from "../types/contracts";
 import { type ContentFiles, diskFiles } from "./contentFiles";
 import type { DigestEntry } from "./digests";
 import { type Episode, parseEpisodeFile } from "./episodeFile";
 import { isWebUrl } from "./safeUrl";
+import { type SectionRef, sectionLabel } from "./sectionLabel";
 
 /**
  * Podcast episodes as the pages see them, read at build time from Podcasts/YYYY/MM/<id>.md. A
@@ -136,17 +137,28 @@ export function buildEpisodeEntries(episodes: readonly Episode[]): EpisodeEntry[
     .map(toEntry);
 }
 
-/** Every briefing's summary and topic by item id, newest first, so an episode's story reads as it did there. */
+/**
+ * Every briefing's summary, topic and section by item id, newest first, so an episode's story reads
+ * as it did there and sits under the section it had there.
+ */
 export function storyLookups(entries: readonly DigestEntry[]): {
   summaries: Map<string, string>;
   topics: Map<string, string>;
+  sections: Map<string, SectionRef>;
 } {
   const summaries = new Map<string, string>();
   const topics = new Map<string, string>();
-  for (const { digest } of entries)
+  const sections = new Map<string, SectionRef>();
+  for (const { digest } of entries) {
+    const titles = new Map(
+      digestSections(digest).map(({ id, title }) => [id, sectionLabel(title)]),
+    );
     for (const item of digest.items) {
       if (!topics.has(item.id)) topics.set(item.id, item.category);
       if (item.summary && !summaries.has(item.id)) summaries.set(item.id, item.summary);
+      const title = titles.get(item.section);
+      if (title && !sections.has(item.id)) sections.set(item.id, { slug: item.section, title });
     }
-  return { summaries, topics };
+  }
+  return { summaries, topics, sections };
 }

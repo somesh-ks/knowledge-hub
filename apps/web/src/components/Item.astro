@@ -4,7 +4,6 @@ import { publisherOf } from "../lib/episodeHighlights";
 import { headlineParts } from "../lib/format";
 import { sourceHost } from "../lib/sourceLabel";
 import { idleStoryChip } from "../player/core/readerMath";
-import Icon from "./Icon.astro";
 import PlayChip from "./PlayChip.astro";
 import StoryControls from "./StoryControls.astro";
 
@@ -49,7 +48,6 @@ const publisher = publisherOf(item.source, host);
         title={publisher}
       >
         <span>{publisher}</span>
-        <Icon name="openInNew" />
       </a>
     )
   }
@@ -71,7 +69,6 @@ const publisher = publisherOf(item.source, host);
     }
   </h3>
   <p class="story-summary">{item.summary}</p>
-  {item.why && <p class="story-why"><span class="story-why-label">Why:</span>{" "}{item.why}</p>}
   <div class="story-actions">
     {/* Always in the page. Hidden while the briefing has no audio timeline, so audio that arrives
          later only has to reveal it. */}

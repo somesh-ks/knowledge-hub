@@ -1,0 +1,134 @@
+---
+import DigestView from "../../components/DigestView.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import EpisodeView from "../../components/EpisodeView.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { hasSectionTabs, listenLength } from "../../lib/digestView";
+import { episodeSections } from "../../lib/episodeHighlights";
+import { episodeLength, storyLookups } from "../../lib/episodes";
+import { briefingCard, episodeCard } from "../../lib/linkCard";
+import { getSite } from "../../lib/site";
+import { readFromContentRepo } from "../../server/contentRepo";
+import { openListenLink } from "../../server/share";
+import { listenDeps } from "../../server/shareSite";
+
+// The shared page (D153): the app's own briefing or episode page for the link's item, with no owner
+// actions, and Play going through the link's caps. Rendered on demand for each token; the static
+// test build has no server, so astro.config.mjs prerenders it there at /s/<item id>.
+export const prerender = false;
+
+export async function getStaticPaths() {
+  if (!__SINGULARITY_STATIC_ONLY__) return [];
+  const { entries, episodes, fixtures } = await getSite();
+  if (!fixtures) return [];
+  return [...entries, ...episodes].map((entry) => ({
+    params: { token: entry.id },
+    props: { itemId: entry.id },
+  }));
+}
+
+interface Props {
+  itemId?: string;
+}
+
+/** A copy at the CDN for five minutes, so a Stop sharing takes effect within that. */
+const CDN_CACHE = "public, max-age=0, s-maxage=300";
+
+const token = Astro.params.token ?? "";
+let itemId = Astro.props.itemId ?? null;
+let status = 200;
+if (!itemId) {
+  // The token first: a malformed one is refused before the store or the database is asked.
+  const opened = await openListenLink(token, listenDeps());
+  status = opened.status;
+  if (opened.status === 200) {
+    const unavailable = await readFromContentRepo("s");
+    if (unavailable) return unavailable;
+    itemId = opened.link.item_id;
+  }
+}
+const site = itemId ? await getSite() : null;
+const index = site && itemId ? site.entries.findIndex((entry) => entry.id === itemId) : -1;
+const briefing = site?.entries[index];
+const episode = site?.episodes.find((entry) => entry.id === itemId);
+const lookups = episode && site ? storyLookups(site.entries) : undefined;
+// Tabs and the contents column from two sections, as on the owner's pages.
+const tabs = briefing
+  ? hasSectionTabs(briefing)
+  : episode && lookups
+    ? episodeSections(episode.episode, lookups).length > 1
+    : false;
+if (status === 200 && !briefing && !episode) status = 404;
+
+Astro.response.status = status;
+Astro.response.headers.set(
+  "Cache-Control",
+  status === 200 || status === 404 || status === 410 ? CDN_CACHE : "no-store",
+);
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+
+const message =
+  status === 410
+    ? "This link has stopped working"
+    : status === 404
+      ? "This link does not work"
+      : status === 503
+        ? "This page cannot open right now"
+        : "Too many people are opening shared links";
+const hint =
+  status === 410 || status === 404
+    ? "Ask the person who sent it for a new one."
+    : "Try again in a minute.";
+---
+
+{
+  briefing && site ? (
+    <BaseLayout
+      title={briefing.player.title}
+      view="home"
+      nav={null}
+      layout={tabs ? "aside" : "single"}
+      tabs={tabs}
+      digestId={briefing.id}
+      card={briefingCard(briefing)}
+      audio={{
+        noun: "briefing",
+        length: listenLength(briefing),
+        expired: briefing.audioMode === "expired",
+      }}
+    >
+      <DigestView
+        entry={briefing}
+        earlier={site.entries.slice(index + 1, index + 4)}
+        isLatest={false}
+        shareToken={token}
+      />
+    </BaseLayout>
+  ) : episode && site ? (
+    <BaseLayout
+      title={episode.episode.title}
+      view="library"
+      nav={null}
+      layout={tabs ? "aside" : "single"}
+      tabs={tabs}
+      digestId={episode.id}
+      card={episodeCard(episode)}
+      audio={{ noun: "episode", length: episodeLength(episode.episode) }}
+      skipLabel="Skip to the episode"
+    >
+      <EpisodeView entry={episode} {...lookups} shareToken={token} />
+    </BaseLayout>
+  ) : (
+    <BaseLayout title={message} view="home" nav={null} skipLabel="Skip to the content">
+      <main id="main" tabindex="-1">
+        <EmptyState
+          art="notfound"
+          title={message}
+          body={hint}
+          primary={{ label: "Go to Latest", href: "/" }}
+          secondary={null}
+        />
+      </main>
+    </BaseLayout>
+  )
+}

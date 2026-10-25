@@ -1,7 +1,9 @@
 ---
 import type { AudioMode } from "../lib/digests";
 import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
+import type { HeroShare } from "../lib/share";
 import { type ChipNoun, idleBriefingChip } from "../player/core/readerMath";
+import Icon from "./Icon.astro";
 import PlayChip from "./PlayChip.astro";
 
 interface Props {
@@ -11,9 +13,10 @@ interface Props {
   length: string;
   /** What the chip plays, in its accessible name. */
   noun?: ChipNoun;
+  share?: HeroShare;
 }
 
-const { digestId, mode, length, noun = "briefing" } = Astro.props;
+const { digestId, mode, length, noun = "briefing", share } = Astro.props;
 const chip = idleBriefingChip(length, noun);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
@@ -34,5 +37,22 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     data-noun={noun}
     data-minutes={Number.parseInt(length, 10)}
   />
+  {/* Share, the page's second action (D153), tonal beside the filled Play (.hero-share in hero.css).
+       scripts/briefingPage.ts handles the press; the link is asked for as the finger lands
+       (scripts/shareLink.ts), so the share sheet can open inside the tap. */}
+  {
+    share && (
+      <button
+        class="btn-secondary hero-share"
+        type="button"
+        data-share={share.path}
+        data-share-item={share.item}
+        data-share-kind={share.kind}
+        data-share-of={share.of}
+      >
+        <Icon name="shareArrow" />Share
+      </button>
+    )
+  }
 </div>
 {unavailable && <p class="hero-hint" id="play-hint">{unavailable.label}</p>}

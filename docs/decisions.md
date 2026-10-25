@@ -181,13 +181,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D170 | Podcast structure | accepted |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Content is data read through one repository (Blob now, Postgres for many users); builds ship code only | accepted |
+| D173 | Content is data in one repository; builds ship code only | accepted |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | active; amends D112 |
+| D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
-| D183 | Costs page counts Anthropic's bill | active |
+| D183 | Costs read the bill | active |
 | D179 | Every name says Singularity; saved state moves once | active |
 | D184 | Every control is a pill | amends D167 |
 
@@ -1906,6 +1907,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D112 (the first load is about 38 KB on every page, so the 130 KB budget of D141 is far off).
 - Revisit if: the bar is seen late after a first Play on a phone, or a press is seen lost before the wake.
 
+## D180: the episode eval runs only when asked, and on a pull request judges only the branch's rewrites
+
+- Date: 2026-10-24 (the owner: "generating a podcast script shouldnt be this expensive as today", "especially anthropic api costs")
+- Decision: `episode-eval.yml` runs when a pull request gets the `eval` label (re-add it to run again) or by hand, never on a push. On a pull request it judges only the four rewritten episodes (main's prompt and the branch's, daily and weekly); a manual run judges the fixtures and every replay as before.
+- Why: it ran on every push to a writer, judge or `loop/` change, 12 times on 2026-10-24 (the rename and structure PRs), and each run made about 40 Sonnet calls on the API key: four replay rewrites and two scores of about 20 episodes, 16 of them fixtures and replays a pull request never changes. Estimated at $4 to $6 a run, in no cost ledger, against about $1.10 for a briefing run.
+- Amends: D148's "`episode-eval.yml` runs only for the writer, the judges, the voice and `loop/`".
+- Revisit if: a writer or voice change merges without an eval and an episode gets worse, or the eval's spend is recorded and found small.
+
 ## D179: Every name says Singularity; saved state moves once
 
 - Date: 2026-10-24 (the owner: "I'd like to move everything that's named dispatch to singularity", then chose the full rename with migration)
@@ -1919,6 +1928,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-24 (the owner: "use jev mostly and use gemini models as backup. use anthropic models mostly for script generation")
 - Decision: in `config/models.json` Claude Haiku leaves every chain: judge, taste fit and source format are Jev then Gemini Flash Lite, grounding Jev then Gemini Flash, fact extraction Gemini Flash Lite then Flash. Sonnet keeps the story writer, its rewrites and the podcast script. The story writer sends no effort (the model's default) and its rewrites medium, in place of #187's medium and low.
 - Why: since #187 (2026-10-22) a daily run made 43 to 49 Claude calls, against 19 to 22 before, about 27 of them voice rewrites of one field each, every one resending the article (about 5k tokens). Weaker first drafts were the likely cause; a rewrite costs more than the thinking the lower effort saved.
+- Later the same day: a voice rewrite sends the first 4,000 characters of its source, not up to 10,000 (`rewriteOnce.ts`); grounding repairs still send the whole text.
 - Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
 
 ## D183: The Costs page counts what Anthropic billed, not only what the app recorded

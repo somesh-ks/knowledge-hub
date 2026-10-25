@@ -209,6 +209,8 @@ export default defineConfig({
   markdown: { syntaxHighlight: false },
   vite: {
     plugins: [keepCoverFontsReachable()],
+    // The shared page's static paths exist only in the static build, so the server build drops them.
+    define: { __SINGULARITY_STATIC_ONLY__: JSON.stringify(staticOnly) },
     // Astro writes a script smaller than this limit into the page. When the router swaps in a page
     // whose last module script is inline, it adds a `data:` script to wait for it, and the policy
     // blocks that. Every page script stays a file.

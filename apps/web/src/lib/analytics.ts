@@ -1,3 +1,5 @@
+import { analyticsPath, isSharedPath } from "./listenAnalytics";
+
 /**
  * Simple Analytics (D154): cookieless page views and a few named events, on the production site
  * alone. No cookie, no storage, no identifier: the script counts visits, referrers (a shared link's
@@ -30,9 +32,17 @@ export type AnalyticsMetadata = Record<string, string | number | boolean>;
 
 type SaEvent = ((name: string, metadata?: AnalyticsMetadata) => void) & { q?: unknown[][] };
 
+/**
+ * The global the script calls for the path of every page view and event, named by the script tag's
+ * `data-path-overwriter` (Simple Analytics' "Overwrite path"). A shared page reports `/s`, so a
+ * share token in its address never reaches the dashboard (D153, lib/listenAnalytics.ts).
+ */
+const PATH_OVERWRITER = "singularityAnalyticsPath";
+
 interface AnalyticsWindow {
   sa_event?: SaEvent;
   sa_metadata?: AnalyticsMetadata;
+  [PATH_OVERWRITER]?: () => string;
 }
 
 /** The query a shared link carries, so a visit it brings in is counted as a share. */
@@ -47,11 +57,15 @@ export function sharedUrl(address: string, base: string): string {
 
 /**
  * The briefing or episode a shared address names: its kind and its id (`/d/<id>`, `/e/<id>`), so a
- * share is counted per item. Never anything about a person.
+ * share is counted per item. Never anything about a person, and never a shared page's token: any
+ * other address names no item.
  */
 export function sharedItem(url: string): { kind: "briefing" | "episode"; item: string } {
   const [route = "", item = ""] = new URL(url).pathname.split("/").filter(Boolean);
-  return { kind: route === "e" ? "episode" : "briefing", item };
+  return {
+    kind: route === "e" ? "episode" : "briefing",
+    item: route === "d" || route === "e" ? item : "",
+  };
 }
 
 /**
@@ -92,6 +106,11 @@ export function installAnalytics(): void {
   if (installed || !counted()) return;
   installed = true;
   const target = window as unknown as AnalyticsWindow;
+  // A session that opens on a shared page reports it as /s, and the pages it moves on to (by the
+  // client router) as their own. Nothing in the app links to a shared page, so no other session
+  // reaches one without a fresh load.
+  const shared = isSharedPath(window.location.pathname ?? "");
+  if (shared) target[PATH_OVERWRITER] = () => analyticsPath(window.location.pathname);
   // An installed app is a reader who came back: the one retention signal that needs no identifier.
   target.sa_metadata = { installed: matchMedia("(display-mode: standalone)").matches };
   if (!target.sa_event) {
@@ -104,5 +123,6 @@ export function installAnalytics(): void {
   const script = document.createElement("script");
   script.async = true;
   script.src = `${ANALYTICS_SCRIPT_ORIGIN}/latest.js`;
+  if (shared) script.setAttribute("data-path-overwriter", PATH_OVERWRITER);
   document.head.append(script);
 }

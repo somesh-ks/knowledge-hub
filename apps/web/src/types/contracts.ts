@@ -320,6 +320,8 @@ export type ConfigOp =
       format?: SourceFormat;
       /** A general source's lean, -2 to 2; null clears it. */
       lean?: number | null;
+      /** A favorite: every post goes to the judge, ranked up, with no keyword needed. */
+      high_signal?: boolean;
     }
   | { op: "source.remove"; id: string }
   | { op: "weights.set"; weights: Record<string, number> }
@@ -506,6 +508,8 @@ export interface StoreSource {
   lean: number | null;
   /** Whether it feeds a general news topic (its edit panel offers a lean). */
   general: boolean;
+  /** A favorite (high_signal). */
+  high_signal: boolean;
 }
 
 /** GET /api/config with the config store on (D149): what it holds, over the build's copy. */

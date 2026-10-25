@@ -4,7 +4,8 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
-import { shareLink } from "./shareLink";
+import { shareItem, shareLink, stopSharing, syncStopSharing } from "./shareLink";
+import { sendToast } from "./toastEvent";
 
 installHeroMenu();
 
@@ -194,9 +195,26 @@ function watchSections({ keepHeld = false } = {}): void {
 }
 
 async function share(button: HTMLElement): Promise<void> {
-  if ((await shareLink(document.title, button.dataset.share ?? "")) !== "copied") return;
-  // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
+  const { shareItem: id, shareKind, shareOf } = button.dataset;
+  // Empty on a shared page: it sends on the link it was opened at.
+  const path = button.dataset.share || location.pathname;
+  const kind = shareKind === "episode" ? "episode" : "briefing";
+  // A shared page sends its own link on, counted by the item it plays (data-share-of), never the token.
+  const outcome = id
+    ? await shareItem({ id, title: document.title, path, kind })
+    : await shareLink(document.title, path, shareOf ? { kind, item: shareOf } : undefined);
+  if (typeof outcome === "object") {
+    sendToast({ message: outcome.refused });
+    return;
+  }
+  if (outcome !== "copied") return;
   const host = button.closest("[data-share-host]");
+  // Share beside Play stays on screen: the copy is said in a toast.
+  if (!host) {
+    sendToast({ message: "Link copied", kind: "success" });
+    return;
+  }
+  // The menu closes on a pick, so the confirmation shows on its More button, and is spoken.
   const status = host?.querySelector("[data-share-status]");
   const mark = host?.querySelector<HTMLElement>("[data-hero-more]") ?? button;
   const name = mark.getAttribute("aria-label") ?? "";
@@ -261,6 +279,16 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest<HTMLElement>("[data-share]");
   if (button && !button.closest("[data-share-host]")?.querySelector("[data-copied]"))
     void share(button);
+  const stop = event.target.closest<HTMLElement>(".hero-menu [data-share-stop]");
+  if (stop) {
+    void stopSharing(stop.dataset.shareStop ?? "").then((stopped) =>
+      sendToast(
+        stopped
+          ? { message: "Stopped sharing", kind: "success" }
+          : { message: "Could not stop sharing. Try again.", kind: "error" },
+      ),
+    );
+  }
 });
 
 const release = (): void => {
@@ -300,6 +328,7 @@ const watchPage = (): void => {
   const fit = fitStrip();
   watchSections();
   watchHeroPlay();
+  syncStopSharing();
   fit();
   void document.fonts?.ready.then(measure);
 };

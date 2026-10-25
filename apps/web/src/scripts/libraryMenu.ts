@@ -9,7 +9,7 @@ import { track } from "../lib/analytics";
 import { NotReadyError } from "../lib/downloads";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
-import { shareLink } from "./shareLink";
+import { shareItem, stopSharing, syncStopSharing } from "./shareLink";
 import { sendToast } from "./toastEvent";
 
 const ROOT = "[data-library-menu]";
@@ -92,11 +92,23 @@ async function onPick(item: HTMLElement): Promise<void> {
       toast(detail.added === false ? "Already in the queue" : "Added to queue");
       return;
     }
-    case "share":
-      if ((await shareLink(title, path)) === "copied") {
+    case "share": {
+      const outcome = await shareItem({
+        id,
+        title,
+        path,
+        kind: root.dataset.episode ? "episode" : "briefing",
+      });
+      if (typeof outcome === "object") toast(outcome.refused);
+      else if (outcome === "copied") {
         toast("Link copied", "success");
         document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
       }
+      return;
+    }
+    case "unshare":
+      if (await stopSharing(id)) toast("Stopped sharing", "success");
+      else toast("Could not stop sharing. Try again.", "error");
       return;
   }
 }
@@ -135,6 +147,7 @@ export function installLibraryMenu(): void {
   // The menus answer from here on (the browser suite waits for it).
   const ready = (): void => {
     document.querySelector("[data-library]")?.setAttribute("data-menus-ready", "");
+    syncStopSharing();
     void syncDownloads();
   };
   document.addEventListener("astro:page-load", ready);

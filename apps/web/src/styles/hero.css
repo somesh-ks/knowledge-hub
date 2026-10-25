@@ -59,13 +59,35 @@
   grid-area: menu;
 }
 
-/* Play, the page's main action. */
+/* Play, the page's main action, and Share beside it (PlayCta.astro). */
 .hero-actions {
   grid-area: actions;
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: var(--size-touch);
   margin-block-start: var(--space-4);
+}
+
+/*
+ * Share (D153): the tonal button at the hero chip's height and in its pill, so Play and Share read
+ * as one row with Play the filled one. Its own width, not the sheet button's full row.
+ */
+.hero-share {
+  position: relative;
+  width: auto;
+  min-height: calc(var(--size-touch) - var(--space-1));
+  padding-inline: var(--space-4) var(--space-6);
+  border-radius: var(--chip-radius);
+  font-size: var(--font-size-label);
+}
+
+/* 40px tall, as the chip beside it; its target is 44px, as the chip's is (buttons.css). */
+.hero-share::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - 100%) / -2);
 }
 
 /*
