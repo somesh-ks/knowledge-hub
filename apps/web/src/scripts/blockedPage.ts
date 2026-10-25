@@ -1,19 +1,17 @@
 /**
- * The Blocked outlets page. A domain typed or pasted is normalised here as the server does
- * (lib/blockedOutlets.ts), listed at once and saved a moment later as profile.block; a removal waits
+ * The Blocked outlets page. The field filters the list of those blocked; Block (or Enter when the
+ * filter finds nothing) opens the sheet of known sources (blockedSheet.ts), which also takes a pasted
+ * address. A domain picked is normalised as the server does (lib/blockedOutlets.ts), listed at once and saved a moment later as profile.block; a removal waits
  * five seconds with Undo in the toast, then goes as profile.unblock (autosave.ts). The list is the
  * one built into the page with the edits saved since laid over it, so it is right before the next
  * build (lib/savedOverlay.ts).
  */
-import { blockedDomainOf, outletsSummary, savedBlocked } from "../lib/blockedOutlets";
+import { filterBlocked, outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { hasSaved, SAVED_KEY, storeOn } from "../lib/savedKey";
 import { parseSaved, withStore } from "../lib/savedOverlay";
 import type { ConfigReadBody } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import type { Pending } from "./managePageSave";
-
-const NOT_A_DOMAIN =
-  "Enter a domain like example.com, or paste the address of a page on the source.";
 
 /**
  * The edits saved in the last few minutes, oldest first, after what the config store holds when it
@@ -34,7 +32,7 @@ function mount(root: HTMLElement): void {
   const input = one<HTMLInputElement>("[data-input]");
   const form = one<HTMLFormElement>("[data-add]");
   const count = one("[data-count]");
-  const error = one("[data-error]");
+  const nomatch = one("[data-nomatch]");
   /** Each pending change by `block:domain` or `unblock:domain`. */
   const changes = new Map<string, Pending>();
 
@@ -45,14 +43,21 @@ function mount(root: HTMLElement): void {
     rows().find((row) => row.dataset.domain === domain);
   const recount = (): void => {
     count.textContent = outletsSummary(rows().filter(shown).length);
+    filter();
   };
-
-  const say = (message: string): void => {
-    const text = error.querySelector("span");
-    if (text) text.textContent = message;
-    error.hidden = message === "";
-    if (message) input.setAttribute("aria-invalid", "true");
-    else input.removeAttribute("aria-invalid");
+  /** Rows the filter leaves are listed; the others wait hidden (blocked.css). */
+  const filter = (): void => {
+    const left = new Set(
+      filterBlocked(
+        rows().map((row) => row.dataset.domain ?? ""),
+        input.value,
+      ),
+    );
+    for (const row of rows())
+      row.toggleAttribute("data-filtered", !left.has(row.dataset.domain ?? ""));
+    nomatch.hidden =
+      input.value.trim() === "" ||
+      rows().some((row) => shown(row) && !row.hasAttribute("data-filtered"));
   };
 
   const removals = (): string[] =>
@@ -169,26 +174,47 @@ function mount(root: HTMLElement): void {
     autosave.changed();
   };
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const domain = blockedDomainOf(input.value);
-    if (domain === null) {
-      say(NOT_A_DOMAIN);
-      input.focus();
-      return;
-    }
-    const row = rowOf(domain);
-    if (row && shown(row)) {
-      say(`${domain} is already blocked.`);
-      input.focus();
-      return;
-    }
-    say("");
-    add(domain);
+  const openSheet = (trigger: HTMLElement | null): void => {
+    const template = one<HTMLTemplateElement>("template[data-sheet]");
+    void import("./blockedSheet").then((sheet) =>
+      sheet.openBlockedSheet({
+        template,
+        query: input.value,
+        trigger,
+        blocked: () =>
+          new Set(
+            rows()
+              .filter(shown)
+              .map((row) => row.dataset.domain ?? ""),
+          ),
+        onBlock(domains) {
+          for (const domain of domains) add(domain);
+          input.value = "";
+          clear.hidden = true;
+          filter();
+        },
+      }),
+    );
+  };
+  form.addEventListener("submit", (event) => event.preventDefault());
+  form
+    .querySelector("button")
+    ?.addEventListener("click", (event) => openSheet(event.currentTarget as HTMLElement));
+  // Enter blocks only when the filter found nothing to look at.
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !nomatch.hidden) openSheet(input);
+  });
+  const clear = one<HTMLButtonElement>("[data-clear]");
+  input.addEventListener("input", () => {
+    clear.hidden = input.value === "";
+    filter();
+  });
+  clear.addEventListener("click", () => {
     input.value = "";
+    clear.hidden = true;
+    filter();
     input.focus();
   });
-  input.addEventListener("input", () => say(""));
   list.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>("button[data-remove]");
     if (button) remove(button);
