@@ -1,34 +1,20 @@
 import { sharedItem, sharedUrl, track } from "../lib/analytics";
 import { listenUrl, NOT_STORED_COPY } from "../lib/share";
 import { whenIdle } from "./idle";
+import { openShareDialog } from "./shareDialog";
 
-export type ShareOutcome = "shared" | "copied" | "none";
+export type ShareOutcome = "copied" | "none";
 
-/** Hands a finished address to the share sheet, or copies it where there is none. */
+/** Opens the share dialog on a finished address; counted when the link was copied from it. */
 async function send(title: string, url: string, kind: string, item: string): Promise<ShareOutcome> {
-  if (navigator.share) {
-    try {
-      await navigator.share({ title, url });
-      track("share", { kind, item, outcome: "shared" });
-      return "shared";
-    } catch (error) {
-      // The reader closed the share sheet: nothing more to do. Any other failure falls back to a copy.
-      if (error instanceof Error && error.name === "AbortError") return "none";
-    }
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-    track("share", { kind, item, outcome: "copied" });
-    return "copied";
-  } catch {
-    // The clipboard is not available here (an insecure origin, a denied permission).
-    return "none";
-  }
+  const outcome = await openShareDialog(title, url);
+  if (outcome === "copied") track("share", { kind, item, outcome });
+  return outcome;
 }
 
 /**
- * Share a link: the system share sheet where there is one, a copy to the clipboard where there is
- * not. Returns what happened so the caller can say so ("copied" is the one that needs a word). The
+ * Share a link: a small dialog with the address and a Copy link button (shareDialog.ts), which says
+ * its own "Copied". Returns what happened once it closes. The
  * link carries `ref=share`, so the visit it brings is counted as a share's (D154).
  */
 export async function shareLink(

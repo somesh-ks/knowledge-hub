@@ -18,11 +18,15 @@
   width: 100%;
   margin-block-end: var(--space-2);
   box-shadow: none;
-  transition: scale var(--duration-press-out) var(--ease-out);
 }
 
-/* A press lays the press layer over the art and settles the cover a little: art may scale. The
-   title and facts are words and never do. */
+/* A press lays the press layer over the art; the art itself holds its size (owner, 2026-10-25: it
+   shrank on click). Native tap flash off on the card and all it holds, so only this layer answers. */
+.card-link,
+.card-link * {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .card-link .cover::after {
   content: "";
   position: absolute;
@@ -33,20 +37,9 @@
   transition: opacity var(--duration-press-out) var(--ease-out);
 }
 
-.card-link:active .cover {
-  scale: var(--scale-press);
-  transition-duration: var(--duration-press-in);
-}
-
 .card-link:active .cover::after {
   opacity: 1;
   transition-duration: var(--duration-press-in);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card-link:active .cover {
-    scale: 1;
-  }
 }
 
 /* A half-heard item: a bar on its own track along the bottom of the art, inset from its corners, in
