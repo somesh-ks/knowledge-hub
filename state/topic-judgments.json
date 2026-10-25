@@ -9,6 +9,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "022fe37be68a:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.1225,
+      "item_id": "022fe37be68a",
+      "judged_at": "2026-10-25T08:49:12.852Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "02ee58c463c5:design:52215b733fd1:jev-1.14.0": {
       "fit": 0.395,
       "item_id": "02ee58c463c5",
@@ -358,6 +366,14 @@
       "item_id": "35a29c4a3acf",
       "judged_at": "2026-10-13T12:45:01.936Z",
       "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "366f270fee9c:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.375,
+      "item_id": "366f270fee9c",
+      "judged_at": "2026-10-25T08:49:12.598Z",
+      "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
@@ -801,6 +817,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "7a54ef41c74f:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.4075,
+      "item_id": "7a54ef41c74f",
+      "judged_at": "2026-10-25T08:49:12.627Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "7ebfdbe4c9fe:design:52215b733fd1:jev-1.14.0": {
       "fit": 0.915,
       "item_id": "7ebfdbe4c9fe",
@@ -829,6 +853,14 @@
       "fit": 0.7625,
       "item_id": "85eb7319b3af",
       "judged_at": "2026-10-24T05:39:13.536Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "861b74ad9b74:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.3875,
+      "item_id": "861b74ad9b74",
+      "judged_at": "2026-10-25T08:49:12.621Z",
       "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
@@ -1009,6 +1041,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "9b3434d0bea5:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.6875,
+      "item_id": "9b3434d0bea5",
+      "judged_at": "2026-10-25T08:49:12.607Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "9d6f2b80be47:design:52215b733fd1:jev-latest": {
       "fit": 0.04,
       "item_id": "9d6f2b80be47",
@@ -1102,6 +1142,14 @@
       "item_id": "ac087b0582a0",
       "judged_at": "2026-10-11T11:28:08.738Z",
       "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "ac2e905eafca:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.78,
+      "item_id": "ac2e905eafca",
+      "judged_at": "2026-10-25T08:49:12.603Z",
+      "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
@@ -1289,6 +1337,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "c472da8117d7:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.665,
+      "item_id": "c472da8117d7",
+      "judged_at": "2026-10-25T08:49:12.611Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "c5ffcaa649d0:design:52215b733fd1:jev-1.14.0": {
       "fit": 0.95,
       "item_id": "c5ffcaa649d0",
@@ -1309,6 +1365,14 @@
       "fit": 0.795,
       "item_id": "c72dd237a379",
       "judged_at": "2026-10-22T05:39:20.173Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "c8d361589f84:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.6575,
+      "item_id": "c8d361589f84",
+      "judged_at": "2026-10-25T08:49:12.736Z",
       "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
@@ -1414,6 +1478,14 @@
       "item_id": "d591baa0621a",
       "judged_at": "2026-10-11T11:28:08.696Z",
       "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "d5a4540f32c4:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.73,
+      "item_id": "d5a4540f32c4",
+      "judged_at": "2026-10-25T08:49:12.627Z",
+      "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
