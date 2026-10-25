@@ -66,12 +66,10 @@ describe("the length asked of the writer", () => {
       expect(scriptFloorChars(budget)).toBe(Math.floor(budget * 0.8));
       // The plan gives a format as many stories as its length carries, so the whole length is in reach.
       expect(reach).toBe(budget);
-      expect(prompt).toContain(
-        `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together, and no more than ${wordsFor(reach)}.`,
-      );
-      expect(prompt).toContain(
-        `A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short.`,
-      );
+      // The writer is told the target, the floor and the ceiling, in words (not the wording itself).
+      expect(prompt).toContain(`about ${wordsFor(scriptTargetChars(reach))} words in total`);
+      expect(prompt).toContain(`under ${wordsFor(scriptFloorChars(reach))} words is rejected`);
+      expect(prompt).toContain(`${wordsFor(reach)} words is the ceiling`);
       const parts = partChars(reach, stories, format, minutes);
       if (format === "headlines") {
         expect(prompt).toContain(`about ${wordsFor(parts.nugget)} words on each of the ${stories}`);
@@ -109,7 +107,7 @@ describe("the length asked of the writer", () => {
       full.budget_chars,
     );
     const prompt = scriptSystemPrompt(thin);
-    expect(prompt).toContain(`no more than ${wordsFor(reach)}.`);
+    expect(prompt).toContain(`${wordsFor(reach)} words is the ceiling`);
     expect(prompt).toContain("Never pad with filler and never repeat a fact.");
     // A discussion carries more per story than a readout, and headlines far less.
     expect(reachableChars(99_999, 4, "discussion", 15)).toBeGreaterThan(reach);

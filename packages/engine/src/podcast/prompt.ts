@@ -199,7 +199,7 @@ export function lengthLines(input: ScriptInput): string[] {
   const nugget = wordsFor(parts.nugget);
   const sentences = (words: number): number => Math.max(1, Math.round(words / WORDS_PER_SENTENCE));
   const lines = [
-    `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together, and no more than ${wordsFor(reach)}. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short.`,
+    `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together: reach that length, and use the detail in the story blocks to get there. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short; ${wordsFor(reach)} words is the ceiling.`,
   ];
   if (format === "headlines") {
     lines.push(
@@ -208,7 +208,7 @@ export function lengthLines(input: ScriptInput): string[] {
   } else {
     const deep = wordsFor(parts.deep_dive);
     lines.push(
-      `Word counts: the hello about ${wordsFor(HELLO_CHARS)} words; the rundown about ${wordsFor(TEASER_CLAUSE_CHARS)} words for each story it names, ${wordsFor(structure.teaser_chars)} in all; ${structure.deep_dives > 0 ? `each of the ${structure.deep_dives} deep dives about ${deep} words (${sentences(deep)} sentences); ` : ""}each of the ${structure.nuggets} nuggets about ${nugget} words (${sentences(nugget)} sentences at most); the close about ${wordsFor(structure.close_chars)} words; the sign-off a few words. A spoken sentence is about ${WORDS_PER_SENTENCE} words.`,
+      `Word counts: the hello about ${wordsFor(HELLO_CHARS)} words; the rundown about ${wordsFor(TEASER_CLAUSE_CHARS)} words for each story it names, ${wordsFor(structure.teaser_chars)} in all; ${structure.deep_dives > 0 ? `each of the ${structure.deep_dives} deep dives about ${deep} words (${sentences(deep)} sentences); ` : ""}each of the ${structure.nuggets} nuggets about ${nugget} words (about ${sentences(nugget)} sentences); the close about ${wordsFor(structure.close_chars)} words; the sign-off a few words. A spoken sentence is about ${WORDS_PER_SENTENCE} words.`,
     );
   }
   lines.push(
