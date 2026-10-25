@@ -53,14 +53,23 @@ export interface PodcastDeps {
   blob?: BlobClient;
 }
 
-/** The workflow run id a rerun resumes from, read from the raw request; anything else is ignored. */
-export function resumeFromOf(raw: string): string | undefined {
+/**
+ * `resume_from` is the id of the failed workflow run a rerun picks up from (the page's Try again). It
+ * rides in the request JSON but is not part of an episode or of the command schema, so it is taken
+ * out here: the request without it, and the id when it is a run id. Anything else is ignored.
+ */
+export function splitResumeFrom(raw: string): { request: string; resumeFrom?: string } {
   try {
-    const value = (JSON.parse(raw) as { resume_from?: unknown } | null)?.resume_from;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || !("resume_from" in parsed)) {
+      return { request: raw };
+    }
+    const { resume_from: value, ...rest } = parsed as { resume_from?: unknown };
     const id = typeof value === "number" ? String(value) : value;
-    return typeof id === "string" && /^[1-9]\d{0,14}$/.test(id) ? id : undefined;
+    const valid = typeof id === "string" && /^[1-9]\d{0,14}$/.test(id);
+    return { request: JSON.stringify(rest), ...(valid ? { resumeFrom: id } : {}) };
   } catch {
-    return undefined;
+    return { request: raw };
   }
 }
 
@@ -209,9 +218,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     let store: ArtifactStore | null = null;
     let current: EpisodeStageId | undefined;
     try {
-      const command = parseCommand(values.request);
-      // `resume_from` rides in the request JSON (the page's Try again) but is not part of an episode.
-      const resumeFrom = resumeFromOf(values.request);
+      const { request: requestJson, resumeFrom } = splitResumeFrom(values.request);
+      const command = parseCommand(requestJson);
       if (command.action === "delete") {
         // A delete is one action: the first step does it and the steps after it have nothing to do.
         if (only !== undefined && only !== "select") return 0;

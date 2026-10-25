@@ -27,7 +27,7 @@ import { planPodcast } from "./plan.js";
 import { discussionHostNames } from "./prompt.js";
 import { generateScript, type ScriptResult } from "./script.js";
 import { joinNames, type Selection, selectStories } from "./select.js";
-import { EPISODE_STAGE_IDS, type EpisodeStageId, type ArtifactStore } from "./stages.js";
+import { type ArtifactStore, EPISODE_STAGE_IDS, type EpisodeStageId } from "./stages.js";
 import type { StreamPublisher } from "./stream.js";
 import { airsUnder, type ScriptShape, shapeStories } from "./structure.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
@@ -368,13 +368,13 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
       shape: shaped ? shaped.shape : null,
     };
   });
-  if (only === "select") return outcome(selection.id);
 
-  // Chosen from the id alone, so it is ready before the script is, and never waits on the voices.
+  // Chosen from the id alone, in the select step itself: ready before the script is written, and it
+  // never waits on the voices. The Cover art step then finds it saved (or makes it on a resume).
   const { cover } = await run<CoverArtifact>("cover", async () => ({
     cover: await pickEpisodeCover(input.root, selection.id),
   }));
-  if (only === "cover") return outcome(selection.id);
+  if (only === "select" || only === "cover") return outcome(selection.id);
 
   // The live copy of the script: made once per process, by the first stage that needs it.
   let stream: StreamPublisher | null | undefined;
