@@ -54,8 +54,8 @@ export interface RunDecision {
   /** Calendar date, in the schedule's zone, the decision was made for. */
   date: string;
   /**
-   * The instant the run publishes (commits): the top of the scheduled hour. A run that starts
-   * after it publishes as soon as it is ready. Null when nothing is scheduled: an on-demand,
+   * The instant the run commits: the top of the scheduled hour less DEPLOY_LEAD_MS, so the site
+   * shows the briefing by the hour. A run that starts after it commits as soon as it is ready. Null when nothing is scheduled: an on-demand,
    * forced or weekly-mode run, or a daily run decided without `hour`.
    */
   publishAt: Date | null;
@@ -66,7 +66,13 @@ export interface RunDecision {
  * Vercel Cron lands anywhere in its hour and GitHub starts runs hours late, so a run that starts
  * at the scheduled hour cannot publish at it.
  */
-export const GENERATE_AHEAD_HOURS = 1;
+export const GENERATE_AHEAD_HOURS = 2;
+
+/**
+ * The commit goes this long before the scheduled time: Vercel deploys a commit in about 35 seconds
+ * to 2 minutes, and the site must show the briefing by the slot. The digest's own time stays the slot.
+ */
+export const DEPLOY_LEAD_MS = 3 * 60_000;
 
 const HOUR_MS = 3_600_000;
 
@@ -141,8 +147,10 @@ export function decideRun({
   const weeklyDay = weekly.enabled && weekday(date) === weekly.day;
   const inWeeklySlot =
     weeklyDay && zonedHour(now, zone) >= Math.max(0, weekly.hour - GENERATE_AHEAD_HOURS);
-  const weeklyAt = instantAtHour(now, zone, weekly.hour);
-  const dailyAt = hour === undefined ? null : instantAtHour(now, zone, hour);
+  const commitAt = (at: number): Date =>
+    new Date(instantAtHour(now, zone, at).getTime() - DEPLOY_LEAD_MS);
+  const weeklyAt = commitAt(weekly.hour);
+  const dailyAt = hour === undefined ? null : commitAt(hour);
 
   if (mode === "weekly") {
     return { due: false, runWeekly: true, reason: "weekly pass requested", date, publishAt: null };

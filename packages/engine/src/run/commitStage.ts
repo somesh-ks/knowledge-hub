@@ -131,7 +131,7 @@ function failedReport(
 }
 
 /** The longest a run waits for its publish time: more than that and it publishes now. */
-export const MAX_HOLD_MS = 90 * 60_000;
+export const MAX_HOLD_MS = 135 * 60_000;
 
 /** Waits until the plan's publish time when it is ahead, within MAX_HOLD_MS. */
 export async function holdUntilPublishTime(deps: RunDeps, plan: Plan): Promise<void> {

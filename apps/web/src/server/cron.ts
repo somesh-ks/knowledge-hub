@@ -87,13 +87,13 @@ export const MIN_CRON_SECRET_CHARS = 16;
 const HOUR_MS = 3_600_000;
 
 /**
- * True in the scheduled hour and the hour before it: a run starts ahead, generates, and publishes
+ * True in the scheduled hour and the GENERATE_AHEAD_HOURS before it: a run starts ahead, generates, and publishes
  * at the scheduled time (D193; the engine's gate holds the commit). Hour 0 has no hour before it
  * on the same date, so it starts in its own hour.
  */
 function inScheduleHour(at: Date, zone: string, hour: number): boolean {
   const local = zonedHour(at, zone);
-  return local === hour || (hour > 0 && local === hour - GENERATE_AHEAD_HOURS);
+  return local <= hour && local >= Math.max(0, hour - GENERATE_AHEAD_HOURS);
 }
 
 /**

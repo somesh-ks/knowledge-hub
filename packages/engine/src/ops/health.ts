@@ -4,15 +4,17 @@ import {
   compareNewestFirst,
   type Digest,
   parseDigestFile,
+  scheduleZone,
   stockholmDate,
   VOICE_LIMITS,
 } from "@singularity/core";
 import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
+import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
-import { loadScheduleFile } from "../schedule/store.js";
+import { loadSchedule, loadScheduleFile } from "../schedule/store.js";
 import {
   readJudgments,
   readLastRun,
@@ -109,6 +111,8 @@ export const DEPLOY_LAG_MS = 45 * 60_000;
  */
 export const DEPLOY_MISSING_FAULT_MS = 24 * 60 * 60_000;
 const DAY_MS = 86_400_000;
+/** How long past its commit time a due briefing may stay unpublished before health says so. */
+const SLOT_MISSED_AFTER_MS = 15 * 60_000;
 const TIMEOUT_MS = 20_000;
 
 /** Headers vercel.json sets on every page; a deploy that drops one has lost the file. */
@@ -150,6 +154,33 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     );
   } else {
     passed.push(`next regular briefing due ${status.next_regular_due}`);
+  }
+
+  // The slot's own hour has passed with its briefing unpublished: said the same day, not the next
+  // (D193; `run_overdue` waits for the date). A later cron call or health's heal can still publish.
+  const slotSchedule = await loadSchedule(root).catch(() => null);
+  if (slotSchedule !== null) {
+    const due = decideRun({
+      now,
+      mode: "scheduled",
+      lastRun: await readLastRun(root),
+      force: false,
+      cadenceDays: slotSchedule.cadence_days,
+      weekly: slotSchedule.weekly,
+      zone: scheduleZone(slotSchedule.timezone),
+      hour: slotSchedule.hour,
+    });
+    if (
+      (due.due || due.runWeekly) &&
+      due.publishAt !== null &&
+      now.getTime() - due.publishAt.getTime() > SLOT_MISSED_AFTER_MS
+    ) {
+      fault(
+        "slot_missed",
+        "reliability",
+        `The ${due.runWeekly ? "weekly podcast" : "briefing"} was due at its scheduled time (${due.publishAt.toISOString()}) and has not published.`,
+      );
+    }
   }
 
   if (options.runs) {

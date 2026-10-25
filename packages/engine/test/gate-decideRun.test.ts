@@ -275,9 +275,9 @@ describe("decideRun: the weekly slot", () => {
   // Friday 9 October 2026; 18:00 in Stockholm (CEST) is 16:00Z.
   const quiet = lastWith(record("2026-10-09T05:13:00Z"));
 
-  it("is due on its day from the hour before its slot, independent of the daily cadence", () => {
-    expect(at("2026-10-09T14:59:00Z", quiet).runWeekly).toBe(false);
-    expect(at("2026-10-09T15:00:00Z", quiet)).toMatchObject({ due: false, runWeekly: true });
+  it("is due on its day from the two hours before its slot, independent of the daily cadence", () => {
+    expect(at("2026-10-09T13:59:00Z", quiet).runWeekly).toBe(false);
+    expect(at("2026-10-09T14:00:00Z", quiet)).toMatchObject({ due: false, runWeekly: true });
     expect(at("2026-10-09T21:30:00Z", quiet).runWeekly).toBe(true);
   });
 
@@ -308,8 +308,8 @@ describe("decideRun: the weekly slot", () => {
   it("uses the Stockholm hour across the changeover", () => {
     // Sunday 25 October 2026, after the clocks went back: 18:00 CET is 17:00Z.
     const sunday = { enabled: true, day: 0, hour: 18 };
-    expect(at("2026-10-25T15:59:00Z", quiet, sunday).runWeekly).toBe(false);
-    expect(at("2026-10-25T16:00:00Z", quiet, sunday).runWeekly).toBe(true);
+    expect(at("2026-10-25T14:59:00Z", quiet, sunday).runWeekly).toBe(false);
+    expect(at("2026-10-25T15:00:00Z", quiet, sunday).runWeekly).toBe(true);
   });
 });
 
@@ -327,9 +327,9 @@ describe("decideRun: the schedule's time zone", () => {
     });
 
   it("reads the weekly slot's day and hour on the zone's clock", () => {
-    // 05:30 Sunday in New York is 11:30 in Stockholm: before the hour that starts the slot (06:00).
-    expect(inNewYork("2026-10-11T09:30:00Z", lastWith()).runWeekly).toBe(false);
-    expect(inNewYork("2026-10-11T10:30:00Z", lastWith()).runWeekly).toBe(true);
+    // 04:30 Sunday in New York is 10:30 in Stockholm: before the hour that starts the slot (05:00).
+    expect(inNewYork("2026-10-11T08:30:00Z", lastWith()).runWeekly).toBe(false);
+    expect(inNewYork("2026-10-11T09:30:00Z", lastWith()).runWeekly).toBe(true);
     // 22:00 Sunday in New York is already Monday in Stockholm.
     expect(inNewYork("2026-10-12T02:00:00Z", lastWith())).toMatchObject({
       runWeekly: true,
@@ -428,15 +428,15 @@ describe("decideRun: generate ahead, publish at the scheduled hour", () => {
   const at = (now: string, last: LastRunFile = lastWith()) =>
     decideRun({ now: new Date(now), mode: "scheduled", lastRun: last, force: false, weekly: slot });
 
-  it("starts the weekly pass in the hour before its slot and publishes at the slot", () => {
+  it("starts the weekly pass two hours before its slot and commits a deploy lead before it", () => {
     expect(at("2026-10-25T05:20:00Z")).toMatchObject({
       runWeekly: true,
-      publishAt: new Date("2026-10-25T06:00:00Z"),
+      publishAt: new Date("2026-10-25T05:57:00Z"),
     });
   });
 
-  it("does not start two hours ahead", () => {
-    expect(at("2026-10-25T04:50:00Z")).toMatchObject({ runWeekly: false, publishAt: null });
+  it("does not start three hours ahead", () => {
+    expect(at("2026-10-25T03:50:00Z")).toMatchObject({ runWeekly: false, publishAt: null });
   });
 
   it("publishes a late start at once: the instant is already past", () => {
@@ -459,6 +459,28 @@ describe("decideRun: generate ahead, publish at the scheduled hour", () => {
       weekly: NO_WEEKLY,
       hour: 7,
     });
-    expect(daily).toMatchObject({ due: true, publishAt: new Date("2026-10-27T06:00:00Z") });
+    expect(daily).toMatchObject({ due: true, publishAt: new Date("2026-10-27T05:57:00Z") });
+  });
+});
+
+describe("decideRun: the commit time on a daylight saving day", () => {
+  const slot = { enabled: true, day: 0, hour: 7 };
+  const at = (now: string) =>
+    decideRun({
+      now: new Date(now),
+      mode: "scheduled",
+      lastRun: lastWith(),
+      force: false,
+      weekly: slot,
+    });
+
+  // Both days are Sundays. 07:00 is 05:00Z after the spring change (CEST, 29 March) and 06:00Z
+  // after the autumn one (CET, 25 October); the commit goes three minutes before it.
+  it.each([
+    ["spring forward, started two hours ahead", "2026-03-29T03:10:00Z", "2026-03-29T04:57:00Z"],
+    ["fall back, started two hours ahead", "2026-10-25T04:10:00Z", "2026-10-25T05:57:00Z"],
+    ["fall back, started late", "2026-10-25T07:30:00Z", "2026-10-25T05:57:00Z"],
+  ])("commits at the local slot less the lead: %s", (_name, now, commit) => {
+    expect(at(now)).toMatchObject({ runWeekly: true, publishAt: new Date(commit) });
   });
 });

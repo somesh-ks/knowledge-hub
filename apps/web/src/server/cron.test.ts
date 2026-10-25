@@ -91,7 +91,8 @@ describe("the schedule's hours in its own time zone", () => {
     ["the UTC hour that ends inside 07:00 to 08:00 in India", "2026-10-12T01:10:00Z", "daily"],
     ["the UTC hour that starts inside it", "2026-10-12T02:50:00Z", "daily"],
     ["the hour before, where a run starts ahead", "2026-10-12T00:50:00Z", "daily"],
-    ["two hours before", "2026-10-11T23:50:00Z", null],
+    ["two hours before", "2026-10-11T23:50:00Z", "daily"],
+    ["three hours before", "2026-10-11T22:50:00Z", null],
     ["the hour after", "2026-10-12T03:10:00Z", null],
   ])("counts a call in %s", (_name, at, slot) => {
     expect(slotAt(zoned("Asia/Kolkata"), new Date(at))).toBe(slot);
@@ -195,10 +196,10 @@ describe("GET /api/cron/run", () => {
           },
         }),
       });
-    // Saturday 07:30 and 09:30 in Stockholm.
-    expect((await call("2026-10-10T05:30:00Z", true)).body).toMatchObject({ dispatched: false });
+    // Saturday 05:30 and 09:30 in Stockholm: the stored hour 9 opens at 07:00, main's hour 7 at 05:00.
+    expect((await call("2026-10-10T03:30:00Z", true)).body).toMatchObject({ dispatched: false });
     expect((await call("2026-10-10T07:30:00Z", true)).body).toMatchObject({ dispatched: true });
-    expect((await call("2026-10-10T05:30:00Z", false)).body).toMatchObject({ dispatched: true });
+    expect((await call("2026-10-10T03:30:00Z", false)).body).toMatchObject({ dispatched: true });
   });
 
   // The bug: a store that never answers held the call until Vercel killed it, so the hour's run was
