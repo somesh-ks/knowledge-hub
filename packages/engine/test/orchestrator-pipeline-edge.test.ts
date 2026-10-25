@@ -18,6 +18,7 @@ import { BudgetExceededError } from "../src/llm/errors.js";
 import { collectHealth } from "../src/ops/health.js";
 import { readPlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
+import { markCopiedFromStore } from "../src/store/configDocs.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
 import {
@@ -122,6 +123,20 @@ describe("concurrent writers and push handling", () => {
     expect(await exists(repo.root, DIGEST_PATH)).toBe(false);
     expect(await exists(repo.root, "state/last-run.json")).toBe(false);
     expect(head(repo.root)).toBe(before);
+  });
+
+  // 25 Oct 2026: the first weekly with the config store on in Actions failed here, because this
+  // check used the bare run allowlist while the commit itself allows the config the gate copied.
+  it("commits the config the gate copied from the store with the digest", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    await throughValidate(world);
+    await markCopiedFromStore(repo.root, true);
+    await writeFile(join(repo.root, "config/queries.json"), '{"queries":[]}\n', "utf8");
+    const commit = await runStage(world, { stage: "commit" });
+    expect(commit.code).toBe(0);
+    expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toContain(
+      "config/queries.json",
+    );
   });
 
   it("takes the next free id when the planned one appeared meanwhile", LONG, async () => {

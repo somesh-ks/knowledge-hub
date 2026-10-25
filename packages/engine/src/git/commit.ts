@@ -99,6 +99,21 @@ function pathsOf(changed: readonly ChangedPath[]): string[] {
 }
 
 /**
+ * Whether this commit carries the store's config. With the config store on (D149), `run` and
+ * `podcast` copy the owner's config from it over the config files at their start, and their commit
+ * is the snapshot that keeps it in git: true when this run copied them (noted at its start, not
+ * read from the switch now).
+ */
+export async function carriesSnapshot(command: GitCommand, root: string): Promise<boolean> {
+  return (command === "run" || command === "podcast") && (await copiedFromStore(root));
+}
+
+/** Where a command may write: ALLOWLISTS, plus the config paths when it carries a snapshot. */
+export function allowlistFor(command: GitCommand, snapshot: boolean): readonly string[] {
+  return snapshot ? [...ALLOWLISTS[command], ...CONFIG_DOCUMENT_PATHS] : ALLOWLISTS[command];
+}
+
+/**
  * Commit only what the command may change, then optionally push. The guard runs first: any change
  * outside the allowlist, or a digest edit that touches more than its audio field, refuses the whole
  * commit and nothing is staged. A rejected push is retried after `git pull --rebase`; a rebase
@@ -114,16 +129,8 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   const changed = await readChangedPaths(run);
   if (changed.length === 0) return { status: "nothing_to_commit" };
 
-  // With the config store on (D149), `run` and `podcast` copy the owner's config from it over the
-  // config files at their start, and their commit is the snapshot that keeps it in git, so those
-  // paths are allowed too, when this run copied them (noted at its start, not read from the switch
-  // now). Otherwise the allowlist is exactly ALLOWLISTS.
-  const snapshot =
-    (input.command === "run" || input.command === "podcast") && (await copiedFromStore(input.root));
-  const allowlist = snapshot
-    ? [...ALLOWLISTS[input.command], ...CONFIG_DOCUMENT_PATHS]
-    : ALLOWLISTS[input.command];
-  const offending = findViolations(changed, allowlist);
+  const snapshot = await carriesSnapshot(input.command, input.root);
+  const offending = findViolations(changed, allowlistFor(input.command, snapshot));
   if (offending.length === 0 && input.command === "publish") {
     offending.push(...(await findDigestContentViolations({ root: input.root, run, changed })));
   }

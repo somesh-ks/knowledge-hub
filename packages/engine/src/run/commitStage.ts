@@ -19,8 +19,8 @@ import {
   sourceNameMap,
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
-import { type CommitOutcome, commitAndPush } from "../git/commit.js";
-import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
+import { allowlistFor, type CommitOutcome, carriesSnapshot, commitAndPush } from "../git/commit.js";
+import { findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
@@ -311,8 +311,10 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     };
   }
 
-  // Refuse before writing anything when the tree already holds changes the guard would block.
-  const blocked = findViolations(await readChangedPaths(deps.git), ALLOWLISTS.run);
+  // Refuse before writing anything when the tree already holds changes the guard would block: the
+  // same list the commit uses, so the config the gate copied from the store (D149) passes.
+  const allowed = allowlistFor("run", await carriesSnapshot("run", root));
+  const blocked = findViolations(await readChangedPaths(deps.git), allowed);
   if (blocked.length > 0) {
     throw new StageFailure(
       `The working tree has changes outside the write allowlist, so nothing was written: ${blocked.join(", ")}`,
