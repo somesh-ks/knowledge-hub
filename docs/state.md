@@ -5,7 +5,7 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 ## Working
 
 - Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
-- Reader: Latest, Library, Catch up, Settings, tonal Material 3: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
+- Reader: Latest, Library, Catch up, Settings, tonal Material 3, `/design` catalogue: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
@@ -19,7 +19,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 
 ## Not working or unverified
 
-- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev in production and a digest follows a mix change.
+- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or outlet cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
@@ -73,8 +73,8 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty store `store_JmrDq8MB5Kwn3ejW`. Decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`91bc533:docs/state.md`).
+1. Owner: revoke the Vercel token pasted in chat (2026-10-07); delete the empty store `store_JmrDq8MB5Kwn3ejW`. Decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`91bc533:docs/state.md`).
 2. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first narrated turn, a shallow checkout; the other first-load cuts (D141, D178).
 3. Workflows: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
 4. `SPEECHIFY_VOICE_ID_B` on GitHub.
-5. Design system: a `/design` catalogue, one breakpoint spelling (lint), switch and segmented duplicates (`design-system/report.md`).
+5. Design system: one breakpoint spelling (lint), the switch and segmented duplicates.

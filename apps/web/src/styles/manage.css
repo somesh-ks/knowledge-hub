@@ -96,6 +96,8 @@
   block-size: 1lh;
 }
 
+/* The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea
+   24px), the one control with an outline, which shows on focus. */
 .manage-input {
   width: 100%;
   min-height: var(--field-height);
