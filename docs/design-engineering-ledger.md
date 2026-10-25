@@ -246,6 +246,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Chapter gaps are masked into the track.
   - One soft sound per story crossed, with 2% hysteresis.
 - **Errors.** Told once, in the story line's room, with a refresh glyph on the disc. A glyph always says what a press does (D92, D94, D98).
+- **Lean page (2026-10-25).** No transcript and no queue: the list is hidden and the cover and controls take one centred column from 64rem (`.player-page-inner[data-lean]`); a transcript or a queued item brings the list back. The cover keeps its row and size, and on a phone its place; side by side it moves to the left column.
 - **Queue and Up next.** A chevron top left below 64rem shows how to close; a peek strip "Up next" pulls up into a queue sheet with a docked now-playing row; after the end only Up next shows. Drag and pull gestures are untested on a real phone (2026-10-21, D126). The ended view had kept the Stories tab (audit, 2026-10-22): the tab line now holds Up next alone, so nothing under it moves and a focused tab keeps focus, until the recording plays again; `firstPlay.spec.ts` asserts no Stories tab at the end.
 
 ### The bottom stack on a phone

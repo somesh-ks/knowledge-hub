@@ -501,6 +501,12 @@
   padding-block-start: 0;
 }
 
+/* Lean page (2026-10-25): nothing to read and nothing queued, so there is no list to show. The
+   cover and its controls stay where they are on a phone and centre in one column from 64rem. */
+.player-page-inner[data-lean] .player-list {
+  display: none;
+}
+
 .player-list {
   padding-block-start: var(--space-2);
 }
@@ -1493,6 +1499,13 @@
 
   .player-body {
     display: contents;
+  }
+
+  /* D-lean (2026-10-25): with no transcript and no queue the list is empty, so the cover and its
+     controls take one centred column. The cover moves sideways only when a list arrives; its row,
+     size and height hold (the lean spec in surface.spec.ts). */
+  .player-page-inner[data-lean] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .player-controls,
