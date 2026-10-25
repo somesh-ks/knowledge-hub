@@ -19,8 +19,8 @@ import {
   sourceNameMap,
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
-import { type CommitOutcome, commitAndPush } from "../git/commit.js";
-import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
+import { type CommitOutcome, commandAllowlist, commitAndPush } from "../git/commit.js";
+import { findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
@@ -312,7 +312,8 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   }
 
   // Refuse before writing anything when the tree already holds changes the guard would block.
-  const blocked = findViolations(await readChangedPaths(deps.git), ALLOWLISTS.run);
+  const { allowlist } = await commandAllowlist(root, "run");
+  const blocked = findViolations(await readChangedPaths(deps.git), allowlist);
   if (blocked.length > 0) {
     throw new StageFailure(
       `The working tree has changes outside the write allowlist, so nothing was written: ${blocked.join(", ")}`,

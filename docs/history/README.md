@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-25 | [The weekly that put old queries back](2026-10-25-config-store-drift.md) | A PR's config edit lost to the store's older row, the commit stage refusing what the guard allows, and the failure record committing it; repo edits now reach the store (D185) |
 | 2026-10-24 | [The Costs page, to a design audit's pass](2026-10-24-costs-page-to-a-pass.md) | Audit rounds to PASS; the switch beside the figure on a phone (D177), the shared edge fade, a keyboard-reachable table, the compact segmented control; the component rule in AGENTS.md; emoji picker, card rows, Sources edges; sweeps now cover Costs |
 | 2026-10-24 | [No island at first load](2026-10-24-no-island-at-first-load.md) | The player and sheets islands wake when needed (`client:wake`), the runtime starts without React; 112 to 38 KB first load (D178) |
 | 2026-10-24 | [The owner's open tasks, checked](2026-10-24-open-tasks-check.md) | Two lists of open items verified and split between the owner and Claude; the new-source edit fix (#262); `generalCandidates` clean on Node 24; Google sign-in built and parked; docs trimmed to budget |
