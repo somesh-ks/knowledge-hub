@@ -1,6 +1,5 @@
 ---
 import { MIX_STOPS, PROFILE_LABEL, SOURCE_FORMATS, STRUCTURE_PROFILES } from "@singularity/core";
-import { PLAYBACK_RATES } from "../../player/core/playerTypes";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import MenuSheet from "../../components/MenuSheet.astro";
@@ -13,6 +12,7 @@ import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
 import { addOffers, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
+import { PLAYBACK_RATES } from "../../player/core/playerTypes";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
