@@ -5,6 +5,7 @@ import {
   TRENDING_BLOCK_SECTION,
 } from "@singularity/core";
 import { RELEASE_CATEGORY } from "../score/releaseNotes.js";
+import { outletOf } from "../score/selectItems.js";
 import type { PodcastStory } from "./types.js";
 
 /**
@@ -19,6 +20,20 @@ export interface ScriptShape {
   customs: readonly { title: string; brief: string; before: number }[];
   /** Stories told as deep dives when the length has room for them, in the order told. */
   deep: readonly string[];
+  /**
+   * The owner's prompts (D182) by block key ("hello", "rundown", "close", "sign_off", and a story
+   * block's key, the same as `blockPromptKey` in core). A block left out keeps its built-in prompt.
+   */
+  prompts?: Readonly<Record<string, string>>;
+}
+
+/** The key a story's block prompt is kept under. */
+export function storyPromptKey(story: Pick<PodcastStory, "section" | "category">): string {
+  const key = blockKey(story);
+  if (key === TOP_PICKS_SECTION) return "top_picks";
+  if (key === TRENDING_BLOCK_SECTION) return "trending";
+  if (key === RELEASE_NEWS_SECTION) return "release_news";
+  return `section:${key}`;
 }
 
 /** Characters an owner block is planned at: a turn or two. */
@@ -73,6 +88,7 @@ export function airsUnder(
 export function shapeStories(
   stories: readonly PodcastStory[],
   blocks: readonly StructureBlock[],
+  prompts: Readonly<Record<string, string>> = {},
 ): { stories: PodcastStory[]; shape: ScriptShape } {
   const byKey = new Map<string, PodcastStory[]>();
   for (const story of stories) {
@@ -97,7 +113,24 @@ export function shapeStories(
         : block.type === "top_picks" || block.type === "trending" || block.type === "release_news"
           ? block.stories
           : undefined;
-    const taken = (byKey.get(key) ?? []).slice(0, most ?? Number.POSITIVE_INFINITY);
+    // A block's own count per outlet holds here too; its age limit is the form's window's to set.
+    const perSource =
+      block.type === "section" ||
+      block.type === "top_picks" ||
+      block.type === "trending" ||
+      block.type === "release_news"
+        ? block.per_source
+        : undefined;
+    const outlets = new Map<string, number>();
+    const taken = (byKey.get(key) ?? [])
+      .filter((story) => {
+        if (perSource === undefined) return true;
+        const outlet = outletOf({ url: story.url, source_id: story.source });
+        const count = outlets.get(outlet) ?? 0;
+        outlets.set(outlet, count + 1);
+        return count < perSource;
+      })
+      .slice(0, most ?? Number.POSITIVE_INFINITY);
     const isDeep =
       (block.type === "section" || block.type === "top_picks") && block.depth === "deep";
     if (isDeep) deep.push(...taken.map((story) => story.item_id));
@@ -115,6 +148,7 @@ export function shapeStories(
       close: close === undefined ? null : close.length,
       customs,
       deep,
+      ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
     },
   };
 }

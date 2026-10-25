@@ -190,6 +190,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D181 | Claude writes only | active |
 | D183 | Costs read the bill | active |
 | D179 | Every name says Singularity; saved state moves once | active |
+| D182 | Block prompts | active |
 
 ---
 
@@ -1887,6 +1888,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+
 ## D177: on a phone the Costs chart or table switch sits beside the figure
 
 - Date: 2026-10-24
@@ -1929,6 +1931,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: since #187 (2026-10-22) a daily run made 43 to 49 Claude calls, against 19 to 22 before, about 27 of them voice rewrites of one field each, every one resending the article (about 5k tokens). Weaker first drafts were the likely cause; a rewrite costs more than the thinking the lower effort saved.
 - Later the same day: a voice rewrite sends the first 4,000 characters of its source, not up to 10,000 (`rewriteOnce.ts`); grounding repairs still send the whole text.
 - Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
+
+## D182: each block's prompt is the owner's to replace, per kind
+
+- Date: 2026-10-24 (the owner: "the block level model instructions must be open for editing"; on the cards, "The full prompt per block" and "Separate per kind")
+- Decision: `config/structure.json` keeps `prompts` by kind and block key (`section:<id>` or the block type), apart from the blocks, set one at a time by `structure.prompt` (null puts back the built-in). The built-in prompts live in `packages/core/src/blockPrompts.ts`, the strings the engine sends, so the page shows exactly what the writer is told. Daily and weekly: a story block's prompt replaces the fields and fact rules for the stories of that section (they are batched apart); the voice from `config/voice.md`, the source handling and the reply's JSON shape stay in code, and the linter, numbers and grounding checks still run. The hello, rundown and sign-off are spoken by code there, so they take no prompt. Catch up: every block but an owner block (whose brief is its prompt) takes one, delimited in the message as the owner's text; a prompt set while the kind is on its defaults runs the defaults as a structure.
+- Why: one request per prompt keeps a reorder small and a 6000-character prompt inside the settings request limit; a prompt kept apart survives a block's removal and Undo.
+- Revisit if: login (Google, in progress) lands, since until then anyone with the URL can edit a prompt (D160); or a prompt edit is wanted for the voice itself.
 
 ## D183: The Costs page counts what Anthropic billed, not only what the app recorded
 

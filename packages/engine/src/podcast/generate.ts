@@ -1,4 +1,5 @@
 import {
+  defaultStructure,
   type Episode,
   episodeRelPath,
   isGeneralTopicId,
@@ -257,10 +258,15 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
     }),
   };
   // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
-  const blocks = storedStructure(await loadStructureFile(input.root), "catch_up");
+  // A block prompt (D182) set on the defaults runs the defaults as a structure, so it is read.
+  const file = await loadStructureFile(input.root);
+  const prompts = file?.prompts?.catch_up ?? {};
+  const blocks =
+    storedStructure(file, "catch_up") ??
+    (Object.keys(prompts).length > 0 ? defaultStructure("catch_up") : null);
   const plan = planPodcast(input.request, blocks ? planningShape(blocks) : null);
   const picked = await select(input, plan, blocks);
-  const shaped = blocks ? shapeStories(picked.stories, blocks) : null;
+  const shaped = blocks ? shapeStories(picked.stories, blocks, prompts) : null;
   const selection = shaped ? { ...picked, stories: shaped.stories } : picked;
   input.log?.info("Selected stories", {
     stories: selection.stories.length,

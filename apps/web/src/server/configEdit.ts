@@ -444,6 +444,13 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       if (!kind.success || !blocks.success) return null;
       return { op: "structure.set", kind: kind.data, blocks: blocks.data };
     }
+    case "structure.prompt": {
+      // Core's schema (D182) bounds the key, the length and which kinds take which prompts.
+      const parsed = CoreConfigOp.safeParse(value);
+      if (!parsed.success || parsed.data.op !== "structure.prompt") return null;
+      const { kind, key, prompt } = parsed.data;
+      return { op: "structure.prompt", kind, key, prompt };
+    }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.
       const parsed = CoreConfigOp.safeParse(value);

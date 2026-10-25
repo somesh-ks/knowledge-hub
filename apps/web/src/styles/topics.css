@@ -828,8 +828,9 @@
   display: flex;
   flex: none;
   gap: var(--space-2);
-  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  /* On a phone the full-screen sheet's 24px gutter (owner, 2026-10-24, create-sheet.css). */
+  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
+  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-6), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
   background: var(--sheet-bg);
 }
@@ -896,6 +897,35 @@
     background: color-mix(
       in oklch,
       var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+/* Inside a card (the Structure sheet's Writing instructions, 2026-10-24) the card is already the
+   container's fill, so a text field there takes the page's surface instead, as the Topics card's
+   switch and search field do (.topic-panel above), and stays a field you can see. */
+.topics-panel
+  .card-group
+  :is(input, textarea).manage-input:not(
+    :focus-visible,
+    [readonly],
+    [aria-invalid]:not([aria-invalid="false"])
+  ) {
+  background: var(--color-surface);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .topics-panel
+    .card-group
+    :is(input, textarea).manage-input:not(
+      :focus-visible,
+      [readonly],
+      [aria-invalid]:not([aria-invalid="false"])
+    ):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface),
       var(--color-on-surface) var(--state-hover)
     );
   }
@@ -1692,4 +1722,234 @@
   padding: var(--space-4) var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
+}
+
+/* ------------------------------------------------------------------ the podcast structure (D170) */
+
+/* Source types or Structure on the Preferences page, as a topic's page shows Sources or Preferences:
+   one pane at a time, read from ?view= (topicsPage.ts). The line under the card is the Structure's. */
+.preferences-page:not([data-view="structure"]) .pref-view-structure,
+.preferences-page[data-view="structure"] .pref-view-types {
+  display: none;
+}
+
+/* The kind's tabs (2026-10-24: chips read as filters, the owner) and Reorder at the strip's end sit
+   a full step under the switch, and the blocks a step under them. The strip's own padding is the
+   page's gutter; in the card the first label starts at the card's words instead, its 16px of tab
+   padding pulled back, and Reorder's words end where the rows' dots do. */
+.structure-kinds-bar {
+  display: flex;
+  align-items: center;
+  margin-block-start: var(--space-6);
+}
+
+.structure-kinds {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-inline-start: calc(var(--space-4) * -1);
+  padding-inline: 0;
+}
+
+/* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
+   floating button is Reorder instead (owner, 2026-10-24), so one shows at a time. */
+.structure-reorder {
+  flex: none;
+  width: auto;
+}
+
+@media (width < 64rem) {
+  .structure-reorder {
+    display: none;
+  }
+}
+
+/* The floating Reorder shows the grip, and Done (while reordering) the check. */
+.preferences-page:not([data-reordering]) [data-reorder-icon="check"],
+.preferences-page[data-reordering] [data-reorder-icon="grip"] {
+  display: none;
+}
+
+.structure-reorder-icon {
+  display: contents;
+}
+
+.structure-list {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A block: its name and what it holds, its dots at the end. One line of each, never wrapping. */
+.structure-row {
+  flex-wrap: nowrap;
+}
+
+/* The hello and the sign-off frame the episode and never move: drawn quieter, with no menu. A
+   section whose topics are all left out of the briefing stays where it was, as quiet, and says so. */
+.structure-row:is([data-frame], [data-off]) .settings-label {
+  color: var(--color-on-surface-muted);
+}
+
+/*
+ * The grip (2026-10-24, the owner: "there are no reordering mechanism I see"): a body row's handle at
+ * its start, six dots in a 48px target, pulled with a finger or a mouse (pointer events, as no phone
+ * drags an HTML5 draggable) or moved with Up and Down. It takes the row's start, pulled out by the
+ * glyph's own air so the names still share one edge; a frame row keeps the same room empty.
+ * Markup: <button class="icon-btn structure-grip" data-grip aria-label="Move Design"><svg/></button>
+ */
+/* Reorder mode (owner, 2026-10-24: "I'm worried about accidental reorders"): the grips and their
+   room show only once Reorder is pressed, and then the dots, the pencils and Add step aside, so the
+   list does one thing at a time. structureEditor.ts sets data-reordering on the pane. */
+.pref-view-structure:not([data-reordering]) :is(.structure-grip, .structure-grip-room),
+.pref-view-structure[data-reordering] :is(.structure-menu, .structure-edit, .structure-add) {
+  display: none;
+}
+
+.structure-grip,
+.structure-grip-room {
+  flex: none;
+  width: var(--size-touch-comfortable);
+  /* As tall as the dots it stands in for, so a row keeps its height in and out of Reorder. */
+  min-height: var(--size-touch);
+  margin-inline: calc(var(--space-4) * -1) calc(var(--space-4) * -1 + var(--space-2));
+}
+
+.structure-grip {
+  color: var(--color-on-surface-muted);
+  cursor: grab;
+  /* The finger's pull is the row's move, never the page's scroll. */
+  touch-action: none;
+}
+
+/* Below 64rem the grip takes the row's end, where the dots were and the thumb is (owner, 2026-10-24:
+   "move this to the right side for mobile"), ending as the dots do; the names keep the card's edge,
+   so a frame row needs no room. From 64rem it stays at the start. */
+@media (width < 64rem) {
+  .structure-grip {
+    order: 1;
+    margin-inline: var(--space-2) calc(var(--space-2) * -1);
+  }
+
+  .pref-view-structure .structure-grip-room {
+    display: none;
+  }
+}
+
+.structure-grip .icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+/* Held, the row lifts above its neighbours and follows the pointer at once (no easing on the held
+   row); the rows it passes step aside by its height, which shows where it will land. */
+.structure-list[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.structure-list[data-dragging] .structure-row:not([data-dragging]) {
+  transition: translate var(--duration-state) var(--ease-out);
+}
+
+.structure-row[data-dragging] {
+  z-index: var(--z-raised);
+  border-radius: var(--card-inner-radius);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+}
+
+/* The lifted row is the feedback: its grip draws no press layer of its own. */
+.structure-row[data-dragging] .structure-grip {
+  background: none;
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .structure-list[data-dragging] .structure-row:not([data-dragging]) {
+    transition: none;
+  }
+}
+
+/* The glyph, not its 44px target, ends where the row's words could. */
+.structure-menu,
+.structure-edit {
+  flex: none;
+  margin-inline-end: calc(var(--space-2) * -1);
+}
+
+/* Each menu hangs under its own dots, and Add's under Add: one anchor each, named on the wrapper. */
+@supports (top: anchor(bottom)) {
+  .structure-more,
+  .structure-add > .btn-secondary {
+    anchor-name: var(--row-anchor);
+  }
+
+  .hero-menu-list.structure-menu-list {
+    position-anchor: var(--row-anchor);
+  }
+}
+
+.structure-add {
+  margin-block-start: var(--space-4);
+}
+
+/* Add sits at the card's start, so from 40rem its menu hangs from its left edge and grows out of
+   that corner, not from the right edge as a menu under a row's end does. */
+@media (min-width: 40rem) {
+  @supports (top: anchor(bottom)) {
+    .structure-add > .hero-menu-list {
+      inset-inline-start: anchor(left);
+      inset-inline-end: auto;
+      transform-origin: top left;
+    }
+  }
+}
+
+/* Tonal, as wide as its words: the one action under the list. */
+.structure-add > .btn-secondary {
+  width: auto;
+}
+
+/* The line under the card starts where the card's words do. */
+.structure-fit {
+  margin-block-start: var(--space-4);
+  padding-inline: var(--card-padding);
+}
+
+/* The Edit sheet: a field's name at the body size, as the Topics panel's labels are. */
+.structure-field-label {
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-label);
+}
+
+.structure-sheet .segmented-choice {
+  flex: none;
+}
+
+/* The rules card sits one step under the sheet's other fields. */
+.structure-rules {
+  margin-block-start: var(--space-2);
+}
+
+/* Writing instructions sits last, closed, a step clear of the rules above it. */
+.structure-advanced {
+  margin-block-start: var(--space-2);
+}
+
+/* A long prompt scrolls inside its field, so the count and Reset stay in reach under it. */
+textarea.manage-input.structure-prompt {
+  max-block-size: calc(var(--space-16) * 5);
+  overflow-y: auto;
+}
+
+.structure-prompt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.structure-prompt-foot > .btn {
+  flex: none;
+  margin-inline-end: calc(var(--space-4) * -1);
 }

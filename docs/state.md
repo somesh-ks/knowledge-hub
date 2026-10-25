@@ -4,7 +4,7 @@ Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/READM
 
 ## Working
 
-- Engine end to end on live services (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
+- Engine end to end live (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
 - Reader: Latest, Library (row menu, downloads), Catch up, Settings, in a tonal Material 3 look: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings after each run, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
