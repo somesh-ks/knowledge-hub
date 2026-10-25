@@ -73,15 +73,6 @@ describe("newestItem", () => {
     });
   });
 
-  it("skips an episode this device deleted and picks the next newest", () => {
-    const at = entries[0]?.digest.generated_at ?? "";
-    const later = new Date(Date.parse(at) + 60_000).toISOString();
-    expect(newestItem({ entries, episodes: episodeAt(later) }, new Set(["ep-1"]))).toEqual({
-      kind: "digest",
-      id: "2026-10-25",
-    });
-  });
-
   it("stays the briefing when it is newer than every episode", () => {
     expect(newestItem({ entries, episodes: episodeAt("2000-01-01T00:00:00.000Z") })).toEqual({
       kind: "digest",

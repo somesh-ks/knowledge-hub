@@ -30,17 +30,6 @@ const episode =
 const lookups = episode ? storyLookups(site.entries) : undefined;
 const episodeTabs =
   episode && lookups ? episodeSections(episode.episode, lookups).length > 1 : false;
-// Where a device that deleted this episode goes while the store still lists it (deletedEpisodes.ts).
-const fallback: string[] = [];
-if (episode) {
-  const skipped = new Set([episode.id]);
-  for (let i = 0; i < 3; i++) {
-    const next = newestItem(site, skipped);
-    if (!next) break;
-    skipped.add(next.id);
-    fallback.push(next.kind === "episode" ? `/e/${next.id}` : `/d/${next.id}`);
-  }
-}
 const latest = site.entries[0];
 const earlier = site.entries.slice(1, 4);
 ---
@@ -51,7 +40,6 @@ const earlier = site.entries.slice(1, 4);
       title={episode.episode.title}
       view="home"
       digestId={episode.id}
-      latestFallback={fallback}
       card={episodeCard(episode)}
       audio={{ noun: "episode", length: episodeLength(episode.episode) }}
       layout={episodeTabs ? "aside" : "single"}
