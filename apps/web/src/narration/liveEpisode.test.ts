@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { StreamDoc } from "../lib/liveStream";
-import { createGrowth } from "./liveEpisode";
+import { storyEntries } from "../player/core/storyEntries";
+import { buildTimeline } from "../player/core/timeline";
+import { createGrowth, liveDigestFrom } from "./liveEpisode";
+import { narratedDigest, planNarration } from "./narrationPlan";
 import type { TrackSegment } from "./trackAudio";
 
 const doc = (status: StreamDoc["status"], turns: number): StreamDoc => ({
@@ -73,5 +76,38 @@ describe("a track that grows with the script", () => {
   it("stops waiting on a failed run", async () => {
     const { api } = growth([doc("failed", 1)]);
     await expect(api.waitForMore()).resolves.toBe(false);
+  });
+});
+
+describe("the player's copy of a live catch-up episode", () => {
+  it("lists its stories under one section the player names, so a catch-up across topics shows chapters and transcript instead of nothing", () => {
+    const live: StreamDoc = {
+      ...doc("writing", 0),
+      turns: [
+        { speaker: "a", text: "Welcome." },
+        { speaker: "b", text: "First story.", item_id: "i1" },
+        { speaker: "a", text: "Second story.", item_id: "i2" },
+      ],
+      stories: [
+        { item_id: "i1", headline: "One", source: "S", url: "https://a.test", section: "design" },
+        { item_id: "i2", headline: "Two", source: "S", url: "https://b.test", section: "tech" },
+      ],
+    };
+    const digest = liveDigestFrom(live, new Date("2026-10-25T10:00:00Z"));
+    const plan = planNarration(
+      live.turns.map((turn, idx) => ({
+        key: `t${idx}`,
+        item_id: turn.item_id ?? null,
+        characters: turn.text.length,
+        audio: null,
+      })),
+      10,
+    );
+    const narrated = narratedDigest(digest, plan);
+    const entries = storyEntries(buildTimeline(narrated), narrated);
+    expect(entries.items.length).toBe(2);
+    const named = new Set(entries.sections.map((section) => section.slug));
+    expect(entries.items.every((item) => named.has(item.section))).toBe(true);
+    expect(named.size).toBe(1);
   });
 });

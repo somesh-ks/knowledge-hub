@@ -78,6 +78,14 @@ export function createGrowth(
   };
 }
 
+/**
+ * The one section an episode's stories sit in, as the committed episode names it (lib/episodes.ts
+ * EPISODE_SECTION). The stream's stories carry the topic sections they were picked from; the
+ * player's timeline lists a story only under a section the digest names, so left as they were a
+ * catch-up across topics showed no chapters, no transcript and, once named, a "Stories" heading each.
+ */
+const LIVE_SECTION = { slug: "top", title: "Stories" } as const;
+
 /** The player's copy of a live episode: its turns so far and the stories they refer to. */
 export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
   const date = now.toISOString().slice(0, 10);
@@ -91,13 +99,16 @@ export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
     items: doc.stories.map((story) => ({
       id: story.item_id,
       headline: story.headline,
-      section: story.section,
+      section: LIVE_SECTION.slug,
       source: story.source,
       url: story.url,
       start_ms: null,
       end_ms: null,
     })),
-    sections: [],
+    sections:
+      doc.stories.length > 0
+        ? [{ slug: LIVE_SECTION.slug, title: LIVE_SECTION.title, start_ms: null }]
+        : [],
     turns: doc.turns.map((turn, idx) => ({
       key: `t${idx}`,
       speaker: turn.speaker,
