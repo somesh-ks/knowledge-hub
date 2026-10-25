@@ -72,6 +72,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside-rail", "the rail's track padding, around its own segments"],
   [".banner > .btn", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
+  [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".create-sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],

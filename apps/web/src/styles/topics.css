@@ -1911,6 +1911,18 @@
   flex: none;
 }
 
+/* Inside the card's 32px corner the dots read tight at the 24px the words start at, so a row's dots
+   and pencil end 4px further in, 28px from the card's edge, still in one column (2026-10-26). */
+.structure-row .icon-btn-end {
+  margin-inline-end: calc(
+    (var(--size-touch) - var(--size-icon-lg)) /
+    -2 -
+    var(--size-icon-lg) *
+    var(--ink-end, 0) +
+    var(--space-1)
+  );
+}
+
 /* Each menu hangs under its own dots: one anchor each, named on the wrapper. */
 @supports (top: anchor(bottom)) {
   .structure-more {
