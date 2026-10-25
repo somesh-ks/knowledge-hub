@@ -75,6 +75,33 @@
   display: block;
 }
 
+/* The branded fallback (2026-10-25, plan 1.5): the ring and dot of the Singularity mark on a quiet
+   ground, in light and dark (public/brand/cover-*.svg). Shown by `data-fallback`, set when a cover is
+   pending without a path, missing, or fails to load: PlayerCover.tsx sets it on its frame, and the
+   script in Cover.astro on a .cover. A cover that loads never shows it, so the palette's own color
+   still holds the box while the image decodes. */
+:root {
+  --cover-fallback: url("/brand/cover-light.svg");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cover-fallback: url("/brand/cover-dark.svg");
+  }
+}
+
+:root[data-theme="dark"] {
+  --cover-fallback: url("/brand/cover-dark.svg");
+}
+
+:is(.cover, .player-cover-frame)[data-fallback] {
+  background: var(--cover-fallback) center / cover no-repeat;
+}
+
+:is(.cover, .player-cover-frame)[data-fallback] :is(.cover-image, .player-cover-image) {
+  visibility: hidden;
+}
+
 /* Used before any digest exists: the brand mark on a quiet block, not a generated cover. */
 .cover[data-placeholder] {
   display: grid;

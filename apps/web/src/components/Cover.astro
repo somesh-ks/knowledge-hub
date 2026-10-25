@@ -81,3 +81,26 @@ const SIZES: Record<Props["size"], string> = {
   {/* The cover on an item's own page plays it in place. A list's card adds its own button beside the link. */}
   {size === "hero" && <CoverPlay digestId={digestId} pointerOnly />}
 </span>
+
+<script>
+  // A cover that is missing or fails to load shows the branded fallback (cover.css). The error does
+  // not bubble, so it is caught on the way down; an image that failed before this ran is found by
+  // its size once the page has loaded.
+  const failed = (image: Element) => image.closest(".cover")?.setAttribute("data-fallback", "");
+  document.addEventListener(
+    "error",
+    (event) => {
+      if (event.target instanceof HTMLImageElement && event.target.matches(".cover-image")) {
+        failed(event.target);
+      }
+    },
+    true,
+  );
+  addEventListener("load", () => {
+    for (const image of document.querySelectorAll<HTMLImageElement>(".cover-image")) {
+      if (image.complete && image.currentSrc && image.naturalWidth === 0 && image.offsetParent) {
+        failed(image);
+      }
+    }
+  });
+</script>

@@ -109,6 +109,8 @@ export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
     hosts: doc.hosts,
     voices: doc.voices,
     format: doc.format,
+    // Its cover may not be drawn yet: until the file exists the image fails and PlayerCover shows the
+    // branded fallback (cover.css), so the player never shows a broken or empty cover.
     cover: {
       src512: `/covers/${doc.id}-512.webp`,
       src1024: `/covers/${doc.id}-1024.webp`,

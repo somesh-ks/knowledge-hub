@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 import type { PlayerDigestData } from "../../types/contracts";
 
 const MODES = ["light", "dark"] as const;
@@ -29,11 +29,16 @@ interface PlayerCoverProps {
  */
 export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
   const style = { "--cover-key": cover.key } as CSSProperties;
+  // Pending (no drawn path), missing or failed to load: the branded fallback (cover.css), never a
+  // broken or empty box. A new cover path gets a new try.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const fallback = !themedSrc(cover.src512, "light") || failedSrc === cover.src512;
   return (
     <span
       className="player-cover-frame"
       data-size={size}
       data-weekly={weekly ? "" : undefined}
+      data-fallback={fallback ? "" : undefined}
       style={style}
     >
       {MODES.map((mode) => {
@@ -57,6 +62,7 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
             // The other theme's image is display: none, so a lazy one is never fetched.
             loading="lazy"
             draggable={false}
+            onError={() => setFailedSrc(cover.src512)}
           />
         );
       })}
