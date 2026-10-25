@@ -66,7 +66,7 @@ Ops (see ConfigOp in @singularity/core):
   {"op":"mix.set","format_mix":{"video":"Less","forum":1.1}}
   {"op":"topic.mix","id":"world","perspective":-1}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
-  {"op":"structure.set","kind":"daily","blocks":[{"type":"hello"},{"type":"top_picks"},{"type":"sign_off"}]}
+  {"op":"structure.set","profile":"custom","blocks":[{"type":"hello"},{"type":"top_picks"},{"type":"sign_off"}]}
   {"op":"profile.block","domain":"example.com"}
   {"op":"profile.unblock","domain":"example.com"}`;
 

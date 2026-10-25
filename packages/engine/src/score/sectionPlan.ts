@@ -7,12 +7,14 @@ import {
   type StructureBlock,
   type StructureFile,
   type StructureKind,
+  scaleStructure,
   sectionLimit,
   storedStructure,
   structureSectionOrder,
   TOP_PICKS_SECTION,
   TRENDING_BLOCK_SECTION,
 } from "@singularity/core";
+import { loadSchedule } from "../schedule/store.js";
 import { loadStructureFile } from "../structure/store.js";
 
 /** Top picks a briefing carries when its structure leaves the count to the engine. */
@@ -97,12 +99,22 @@ export function structureKindOf(kind: DigestKind): StructureKind | null {
   return null;
 }
 
-/** The plan config/structure.json gives a digest kind, or the default when it has none. */
+/**
+ * The plan config/structure.json gives a digest kind, or the default when it has none. The one
+ * structure serves every kind; its story counts are sized to the kind's configured length.
+ */
 export async function loadSectionPlan(root: string, kind: DigestKind): Promise<SectionPlan> {
   const structureKind = structureKindOf(kind);
   if (structureKind === null) return DEFAULT_SECTION_PLAN;
   const file: StructureFile | null = await loadStructureFile(root);
-  return sectionPlanFor(storedStructure(file, structureKind), file?.prompts?.[structureKind]);
+  const stored = storedStructure(file);
+  const minutes = stored === null ? 0 : await lengthMinutes(root, structureKind);
+  return sectionPlanFor(stored && scaleStructure(stored, minutes), file?.prompts);
+}
+
+async function lengthMinutes(root: string, kind: StructureKind): Promise<number> {
+  const schedule = await loadSchedule(root);
+  return kind === "weekly" ? schedule.weekly.length_minutes : schedule.length_minutes;
 }
 
 /**

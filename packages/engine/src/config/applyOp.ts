@@ -4,7 +4,9 @@ import {
   isBuiltinSection,
   MAX_CUSTOM_TOPICS,
   type ParsedConfigOp,
+  PROFILE_LABEL,
   type Preferences,
+  profileBlocks,
   publishSection,
   RESERVED_TOPIC_IDS,
   type ScheduleFile,
@@ -14,7 +16,6 @@ import {
   type SourcesUserFile,
   STRUCTURE_SECTIONS,
   type StructureFile,
-  type StructureKind,
   type Topic,
   type TopicsFile,
   TopicsFile as TopicsSchema,
@@ -578,30 +579,21 @@ function setScope(
   };
   // A topic put into a stored kind gets its section block (D170, gap 2). Taking one out leaves the
   // block: the skip list leaves the topic out, and putting it back keeps its place.
-  if (next.structure !== null) {
-    const into: StructureKind[] = [];
-    if (op.daily === true) into.push("daily");
-    if (op.weekly === true) into.push("weekly");
-    if (op.custom === true) into.push("catch_up");
-    const kinds = { ...next.structure.kinds };
-    for (const kind of into) {
-      let blocks = kinds[kind];
-      if (blocks === undefined) continue;
-      for (const id of ids) {
-        // The section its stories are filed under: a general topic publishes under its own id.
-        const topic = next.topics.topics.find((entry) => entry.id === id);
-        const section = topic ? publishSection(topic) : undefined;
-        if (section !== undefined) blocks = withSectionBlock(blocks, section);
-      }
-      kinds[kind] = blocks;
+  if (next.structure?.blocks !== undefined && (op.daily || op.weekly || op.custom)) {
+    let blocks = next.structure.blocks;
+    for (const id of ids) {
+      // The section its stories are filed under: a general topic publishes under its own id.
+      const topic = next.topics.topics.find((entry) => entry.id === id);
+      const section = topic ? publishSection(topic) : undefined;
+      if (section !== undefined) blocks = withSectionBlock(blocks, section);
     }
-    next.structure = { ...next.structure, kinds };
+    next.structure = { ...next.structure, blocks };
   }
   const first = next.topics.topics.find((topic) => topic.id === ids[0]);
   return { next, summary: `set where ${tidy(first?.name ?? ids[0] ?? "a topic")} plays` };
 }
 
-/** Replace one kind's blocks; every section block must name a section that exists. */
+/** Choose the profile and replace the blocks; every section block must name a section that exists. */
 function setStructure(
   op: Extract<ParsedConfigOp, { op: "structure.set" }>,
   bundle: ConfigBundle,
@@ -611,19 +603,21 @@ function setStructure(
     ...bundle.topics.topics.map((topic) => publishSection(topic)),
     ...GENERAL_TOPICS.map((topic) => topic.id),
   ]);
-  for (const block of op.blocks) {
+  for (const block of op.blocks ?? []) {
     if (block.type === "section" && !known.has(block.id)) {
       throw new ConfigOpError(`There is no section ${block.id}.`);
     }
   }
   const next = clone(bundle);
+  // A named profile sent alone runs its preset; the site sends the list with the owner's topics in it.
+  const blocks = op.blocks ?? (op.profile === "custom" ? undefined : profileBlocks(op.profile));
   next.structure = {
     ...(bundle.structure ?? {}),
     version: 1,
-    kinds: { ...(bundle.structure?.kinds ?? {}), [op.kind]: op.blocks },
+    profile: op.profile,
+    ...(blocks === undefined ? {} : { blocks }),
   };
-  const name = op.kind === "catch_up" ? "Catch up" : op.kind;
-  return { next, summary: `set the ${name} structure` };
+  return { next, summary: `set the structure to ${PROFILE_LABEL[op.profile]}` };
 }
 
 /** Replace one block's prompt in a kind (D182), or drop it so the built-in prompt applies. */
@@ -632,18 +626,15 @@ function setBlockPrompt(
   bundle: ConfigBundle,
 ): OpOutcome {
   const next = clone(bundle);
-  const prompts = { ...(bundle.structure?.prompts?.[op.kind] ?? {}) };
+  const prompts = { ...(bundle.structure?.prompts ?? {}) };
   if (op.prompt === null) delete prompts[op.key];
   else prompts[op.key] = op.prompt;
-  const all = { ...(bundle.structure?.prompts ?? {}), [op.kind]: prompts };
-  if (Object.keys(prompts).length === 0) delete all[op.kind];
-  const { prompts: _old, ...rest } = bundle.structure ?? { version: 1 as const, kinds: {} };
-  next.structure = { ...rest, ...(Object.keys(all).length > 0 ? { prompts: all } : {}) };
-  const name = op.kind === "catch_up" ? "Catch up" : op.kind;
+  const { prompts: _old, ...rest } = bundle.structure ?? { version: 1 as const };
+  next.structure = { ...rest, ...(Object.keys(prompts).length > 0 ? { prompts } : {}) };
   const block = op.key.replace(/^section:/, "").replace("_", " ");
   return {
     next,
-    summary: `${op.prompt === null ? "reset" : "set"} the ${name} prompt for ${block}`,
+    summary: `${op.prompt === null ? "reset" : "set"} the prompt for ${block}`,
   };
 }
 

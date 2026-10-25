@@ -2,14 +2,7 @@ import { z } from "zod";
 import { IdString, SectionId, snapWeight } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
-import {
-  BlockPrompt,
-  BlockPromptKey,
-  kindProblems,
-  promptProblems,
-  StructureBlocks,
-  StructureKind,
-} from "./structure.js";
+import { BlockPrompt, BlockPromptKey, StructureBlocks, StructureProfile } from "./structure.js";
 import {
   MAX_KEYWORDS,
   MixStop,
@@ -102,10 +95,9 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - profile.vote: store 1 to 50 likes or dislikes of stories in the owner's profile, one per story
  *   (a later one replaces an earlier one; "clear" removes it). The engine derives the domain from
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
- * - structure.set: replace one podcast kind's whole list of blocks (D170) in config/structure.json,
- *   as weights.set replaces weights: idempotent, no index arithmetic on the wire.
- * - structure.prompt: replace one block's prompt in one kind (D182), or put back the built-in
- *   prompt with null. Daily and weekly take prompts for story blocks only.
+ * - structure.set: choose the listener profile (D190) and, for Custom, replace the whole list of
+ *   blocks in config/structure.json that every podcast follows, idempotent, no index arithmetic.
+ * - structure.prompt: replace one block's prompt (D182), or put back the built-in prompt with null.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -197,27 +189,25 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
       { message: "set at least one scope" },
     ),
+  // The one structure every podcast follows (owner, 2026-10-25): a named profile alone, or Custom
+  // with its whole list of blocks.
   z
-    .object({ op: z.literal("structure.set"), kind: StructureKind, blocks: StructureBlocks })
-    .superRefine((value, ctx) => {
-      for (const message of kindProblems(value.kind, value.blocks)) {
-        ctx.addIssue({ code: "custom", message, path: ["blocks"] });
-      }
+    .object({
+      op: z.literal("structure.set"),
+      profile: StructureProfile,
+      blocks: StructureBlocks.optional(),
+    })
+    .refine((value) => value.profile !== "custom" || value.blocks !== undefined, {
+      message: "Custom needs its blocks.",
+      path: ["blocks"],
     }),
   // One block's prompt (D182), apart from structure.set so a reorder never carries prompts and a
   // prompt of six thousand characters fits one request. null puts back the built-in prompt.
-  z
-    .object({
-      op: z.literal("structure.prompt"),
-      kind: StructureKind,
-      key: BlockPromptKey,
-      prompt: BlockPrompt.nullable(),
-    })
-    .superRefine((value, ctx) => {
-      for (const message of promptProblems(value.kind, [value.key])) {
-        ctx.addIssue({ code: "custom", message, path: ["key"] });
-      }
-    }),
+  z.object({
+    op: z.literal("structure.prompt"),
+    key: BlockPromptKey,
+    prompt: BlockPrompt.nullable(),
+  }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),
