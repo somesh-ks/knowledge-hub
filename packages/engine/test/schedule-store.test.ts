@@ -38,6 +38,23 @@ describe("loadSchedule", () => {
     expect(await loadSchedule(root)).toEqual(saved);
   });
 
+  // The file is written field by field: a field left out of the writer is lost on the next edit.
+  it("keeps each podcast's lookback through a write and a read, and writes none while it is Auto", async () => {
+    const saved = {
+      ...DEFAULT_SCHEDULE,
+      lookback_hours: 24 as const,
+      weekly: { ...DEFAULT_SCHEDULE.weekly, lookback_hours: 168 as const },
+    };
+    await writeFile(join(root, "config", "schedule.json"), serializeSchedule(saved));
+    const read = await loadSchedule(root);
+    expect(read.lookback_hours).toBe(24);
+    expect(read.weekly.lookback_hours).toBe(168);
+    expect(serializeSchedule({ ...saved, lookback_hours: null })).toBe(
+      serializeSchedule({ ...DEFAULT_SCHEDULE, weekly: saved.weekly }),
+    );
+    expect(serializeSchedule(DEFAULT_SCHEDULE)).not.toContain("lookback_hours");
+  });
+
   it("reads a file written before length existed", async () => {
     const old = { version: 1, hour: 9, cadence_days: 7 };
     // A file of that age still carried `sections`, always null in use, which is dropped.

@@ -520,6 +520,7 @@ function setSchedule(
     length_minutes: op.length_minutes ?? current.length_minutes,
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
+    lookback_hours: op.lookback_hours !== undefined ? op.lookback_hours : current.lookback_hours,
     weekly,
     custom: { ...current.custom, ...definedOnly(op.custom) },
     ...(current.general_scoped === true ? { general_scoped: true } : {}),
