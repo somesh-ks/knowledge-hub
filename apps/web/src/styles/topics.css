@@ -1732,24 +1732,49 @@
 /* ------------------------------------------------------------------ the podcast structure (D170) */
 
 /* Source types or Structure on the Preferences page, as a topic's page shows Sources or Preferences:
-   one pane at a time, read from ?view= (topicsPage.ts). The line under the card is the Structure's. */
+   one pane at a time, read from ?view= (topicsPage.ts). */
 .preferences-page:not([data-view="structure"]) .pref-view-structure,
 .preferences-page[data-view="structure"] .pref-view-types {
   display: none;
 }
 
-/* The kind's tabs (2026-10-24: chips read as filters, the owner; `.tabs-in-card`, so the first label
-   starts at the card's words) and Reorder at the strip's end sit a full step under the switch, and
-   the blocks a step under them. Reorder's words end where the rows' dots do. */
+/* The profile's row (2026-10-25: the structure varies by who listens, not by podcast) and Reorder at
+   the strip's end sit a full step under the switch, and the blocks a step under them. Reorder's
+   words end where the rows' dots do. */
 .structure-kinds-bar {
   display: flex;
   align-items: center;
+  gap: var(--space-4);
   margin-block-start: var(--space-6);
 }
 
-.structure-kinds {
+.structure-profile {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* The question before a named profile replaces the owner's own list, asked in the page. */
+.structure-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-block-start: var(--space-4);
+  padding-inline: var(--card-padding);
+}
+
+.structure-confirm > p {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+.structure-confirm-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.structure-confirm-actions > .btn-secondary {
+  width: auto;
 }
 
 /* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
@@ -1907,12 +1932,6 @@
 /* Tonal, as wide as its words: the one action under the list. */
 .structure-add > .btn-secondary {
   width: auto;
-}
-
-/* The line under the card starts where the card's words do. */
-.structure-fit {
-  margin-block-start: var(--space-4);
-  padding-inline: var(--card-padding);
 }
 
 .structure-sheet .segmented-choice {

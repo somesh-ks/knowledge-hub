@@ -6,6 +6,7 @@ import {
   normalizeTopicIds,
   type PodcastRequest,
   type StructureBlock,
+  scaleStructure,
   serializeEpisodeFile,
   storedStructure,
 } from "@singularity/core";
@@ -260,10 +261,14 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
   // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
   // A block prompt (D182) set on the defaults runs the defaults as a structure, so it is read.
   const file = await loadStructureFile(input.root);
-  const prompts = file?.prompts?.catch_up ?? {};
-  const blocks =
-    storedStructure(file, "catch_up") ??
-    (Object.keys(prompts).length > 0 ? defaultStructure("catch_up") : null);
+  const prompts = file?.prompts ?? {};
+  const stored = storedStructure(file);
+  // One structure serves every podcast; its counts are sized to this episode's length.
+  const blocks = stored
+    ? scaleStructure(stored, input.request.length_minutes)
+    : Object.keys(prompts).length > 0
+      ? defaultStructure("catch_up")
+      : null;
   const plan = planPodcast(input.request, blocks ? planningShape(blocks) : null);
   const picked = await select(input, plan, blocks);
   const shaped = blocks ? shapeStories(picked.stories, blocks, prompts) : null;

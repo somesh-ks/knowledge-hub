@@ -1,20 +1,14 @@
 /**
  * The Structure view on the Preferences page (D170, docs/design/podcast-structure.md, "The screen"):
- * what each podcast kind's blocks are called, what a row says about a block, which blocks the Add
+ * what the one structure's blocks are called, what a row says about a block, which blocks the Add
  * sheet offers, and the rows' markup. Pure and free of core's runtime (zod), so the build draws the
  * list with it and the editor (scripts/structureEditor.ts) draws it again after an edit from the
  * same text: one markup, one source.
  */
-import type { StructureBlock, StructureKind } from "@singularity/core";
+import type { NamedProfile, StructureBlock, StructureProfile } from "@singularity/core";
 import type { ConfigOp } from "../types/contracts";
 import type { IconName } from "./icons";
 import { escapeHtml, iconHtml, sheetHeadHtml } from "./sheetHead";
-
-export const KIND_LABEL: Record<StructureKind, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  catch_up: "Catch up",
-};
 
 /** A section a block may name: its id, its name, and the topics that file their stories there. */
 export interface SectionOffer {
@@ -31,14 +25,18 @@ export interface SkipLists {
 
 /** Everything the page is built with, handed to the editor in one data attribute. */
 export interface StructureData {
-  /** Each kind's blocks as built: the stored list, or the defaults for the owner's topics. */
-  blocks: Record<StructureKind, StructureBlock[]>;
-  /** The owner's prompts as built, by kind and key. */
-  prompts: Record<StructureKind, Record<string, string>>;
-  /** The built-in prompts, each text once (they repeat across blocks and kinds). */
+  /** The active listener profile as built (Custom until the owner chooses one). */
+  profile: StructureProfile;
+  /** The one list every podcast follows, as built: the stored one, or the defaults for the owner's topics. */
+  blocks: StructureBlock[];
+  /** Each named profile's preset, with the owner's topic sections placed in it. */
+  presets: Record<NamedProfile, StructureBlock[]>;
+  /** The owner's prompts as built, by key. */
+  prompts: Record<string, string>;
+  /** The built-in prompts, each text once (they repeat across blocks). */
   texts: string[];
-  /** For each kind and block type ("section" for every section), the index of its built-in prompt. */
-  builtins: Record<StructureKind, Partial<Record<StructureBlock["type"], number>>>;
+  /** For each block type ("section" for every section), the index of its built-in prompt. */
+  builtins: Partial<Record<StructureBlock["type"], number>>;
   sections: SectionOffer[];
   skip: SkipLists;
 }
@@ -52,13 +50,12 @@ export function promptKey(block: StructureBlock): string {
   return block.type === "section" ? `section:${block.id}` : block.type;
 }
 
-/** The block's built-in prompt in this kind, or null when no model writes it. */
+/** The block's built-in prompt, or null when no model writes it. */
 export function builtinPrompt(
   data: Pick<StructureData, "texts" | "builtins">,
-  kind: StructureKind,
   block: StructureBlock,
 ): string | null {
-  const index = data.builtins[kind][block.type];
+  const index = data.builtins[block.type];
   return index === undefined ? null : (data.texts[index] ?? null);
 }
 
@@ -164,7 +161,7 @@ const storiesText = (count: number): string => (count === 1 ? "1 story" : `${cou
  * · 1 per source". A setting left to the app says nothing, except where nothing else
  * would ("Auto", the word the Stories select uses for the same thing).
  */
-export function blockSummary(kind: StructureKind, block: StructureBlock): string {
+export function blockSummary(block: StructureBlock): string {
   const count = storiesOf(block);
   const counted = typeof count === "number" ? storiesText(count) : null;
   const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
@@ -186,9 +183,9 @@ export function blockSummary(kind: StructureKind, block: StructureBlock): string
     case "custom":
       return "Your own block";
     case "hello":
-      return kind === "catch_up" ? "Opens the episode" : "Opens the episode, spoken by the app";
+      return "Opens the episode";
     case "sign_off":
-      return kind === "catch_up" ? "Ends the episode" : "Ends the episode, spoken by the app";
+      return "Ends the episode";
   }
 }
 
@@ -210,19 +207,20 @@ export function skipAfter(skip: SkipLists, ops: readonly ConfigOp[]): SkipLists 
 }
 
 /**
- * Whether a section block plays nothing in this briefing because every topic it gathers is left out
- * of it (a topic's Listen in). It stays in the list, quiet, so it comes back where it was. Catch up
- * picks its topics on its form, so nothing there is off.
+ * Whether a section block plays nothing in either briefing because every topic it gathers is left
+ * out of both (a topic's Listen in). It stays in the list, quiet, so it comes back where it was.
+ * Catch up picks its topics on its form, so it never makes a block off.
  */
 export function isOff(
-  kind: StructureKind,
   block: StructureBlock,
   sections: readonly SectionOffer[],
   skip: SkipLists,
 ): boolean {
-  if (kind === "catch_up" || block.type !== "section") return false;
+  if (block.type !== "section") return false;
   const topics = sections.find((section) => section.id === block.id)?.topics ?? [];
-  return topics.length > 0 && topics.every((id) => skip[kind].includes(id));
+  return (
+    topics.length > 0 && topics.every((id) => skip.daily.includes(id) && skip.weekly.includes(id))
+  );
 }
 
 /** A block the Add sheet offers: what it adds and the name it is listed by. */
@@ -233,12 +231,12 @@ export interface AddOffer {
 }
 
 /**
- * The blocks not yet in the kind's structure: each section not placed, then the singletons not
- * placed, then (Catch up only) the close and a block of the owner's own. A close and an owner's
- * block have nobody to write them in a briefing, which code narrates (D176). Nothing when full.
+ * The blocks not yet in the structure: each section not placed, then the singletons not placed,
+ * then the close and a block of the owner's own. Only Catch up, whose script a model writes, speaks
+ * a close or an owner's block; the briefings keep them in the list and skip them (D176). Nothing
+ * when full.
  */
 export function addOffers(
-  kind: StructureKind,
   blocks: readonly StructureBlock[],
   sections: readonly SectionOffer[],
 ): AddOffer[] {
@@ -259,15 +257,14 @@ export function addOffers(
     { type: "top_picks", depth: "deep" },
     { type: "trending" },
     { type: "release_news" },
-    ...(kind === "catch_up" ? [{ type: "close", length: "short" } as const] : []),
+    { type: "close", length: "short" } as const,
   ];
   for (const block of singles) {
     if (!placed.has(block.type))
       offers.push({ key: block.type, name: blockName(block, sections), block });
   }
   const own = blocks.filter((block) => block.type === "custom").length;
-  if (kind === "catch_up" && own < MAX_OWN_BLOCKS)
-    offers.push({ key: "custom", name: "Your own block", block: null });
+  if (own < MAX_OWN_BLOCKS) offers.push({ key: "custom", name: "Your own block", block: null });
   return offers;
 }
 
@@ -302,16 +299,6 @@ export function moved(
 
 // ------------------------------------------------------------------------------------- markup
 
-/**
- * The kind as it goes into an id, read from a table rather than written through: the editor's kind
- * comes from the address, and markup takes only text this file wrote.
- */
-const KIND_ID: Record<StructureKind, string> = {
-  daily: "daily",
-  weekly: "weekly",
-  catch_up: "catch-up",
-};
-
 const icon = (name: IconName): string => iconHtml(name);
 
 /** A menu's row, as MenuSheet.astro's slot holds them: its glyph at the start, then the word. */
@@ -319,7 +306,7 @@ const item = (act: string, glyph: IconName, label: string, disabled = false, ext
   `<button class="hero-menu-item${extra}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${icon(glyph)}${label}</button>`;
 
 /**
- * The kind's rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
+ * The rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
  * name and what it holds, its dots with Move up, Move down, Edit and Remove (the More menu,
  * MenuSheet.astro's markup through sheetHead.ts: a bottom sheet on a phone). The hello and sign-off
  * the app speaks are left out; a frame a model writes (Catch up's) is drawn quieter (`data-quiet`,
@@ -328,7 +315,6 @@ const item = (act: string, glyph: IconName, label: string, disabled = false, ext
  * does (`icon-btn-end`, D187).
  */
 export function rowsHtml(
-  kind: StructureKind,
   blocks: readonly StructureBlock[],
   data: Pick<StructureData, "sections" | "texts" | "builtins">,
   skip: SkipLists,
@@ -339,21 +325,19 @@ export function rowsHtml(
   return blocks
     .map((block, index) => {
       const name = escapeHtml(blockName(block, data.sections));
-      const off = isOff(kind, block, data.sections, skip);
+      const off = isOff(block, data.sections, skip);
       const summary = escapeHtml(
-        off
-          ? `Off in ${KIND_LABEL[kind].toLowerCase()} · ${blockSummary(kind, block)}`
-          : blockSummary(kind, block),
+        off ? `Off in daily and weekly · ${blockSummary(block)}` : blockSummary(block),
       );
       const text = `<div class="settings-text"><span class="settings-label">${name}</span><span class="settings-hint">${summary}</span></div>`;
       if (isFrame(block)) {
         // A frame the app speaks has nothing to change, so it is not listed (owner, 2026-10-24:
         // "remove hello and closing"); one a model writes (Catch up's) stays for its prompt.
-        if (builtinPrompt(data, kind, block) === null) return "";
+        if (builtinPrompt(data, block) === null) return "";
         const edit = `<button class="icon-btn press icon-btn-end structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
         return `<li class="settings-row structure-row" data-index="${index}" data-frame data-quiet><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
       }
-      const menu = `structure-menu-${KIND_ID[kind]}-${Number(index)}`;
+      const menu = `structure-menu-${Number(index)}`;
       return [
         `<li class="settings-row structure-row" data-index="${index}"${off ? " data-off data-quiet" : ""}>`,
         `<button class="icon-btn press structure-grip" type="button" aria-label="Move ${name}" aria-describedby="structure-grip-hint" data-grip>${icon("grip")}</button>`,
@@ -371,20 +355,4 @@ export function rowsHtml(
       ].join("");
     })
     .join("");
-}
-
-/** The quiet line under the card: how many blocks bring stories, and how many are off. */
-export function fitLine(
-  kind: StructureKind,
-  blocks: readonly StructureBlock[],
-  sections: readonly SectionOffer[],
-  skip: SkipLists,
-): string {
-  const story = blocks.filter(
-    (block) => storiesOf(block) !== undefined && block.type !== "rundown",
-  );
-  const off = story.filter((block) => isOff(kind, block, sections, skip)).length;
-  const playing = story.length - off;
-  const count = playing === 1 ? "1 block brings stories" : `${playing} blocks bring stories`;
-  return off > 0 ? `${count}; ${off} ${off === 1 ? "is" : "are"} off` : count;
 }
