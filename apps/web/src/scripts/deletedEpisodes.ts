@@ -5,6 +5,7 @@ import {
   parseDeleted,
   pruneDeleted,
 } from "../lib/deletedEpisodes";
+import { parseQueue, QUEUE_KEY } from "../player/core/playQueue";
 import { libraryAddress } from "./libraryAddress";
 
 /**
@@ -78,6 +79,25 @@ function leaveIfDeleted(): void {
   if (id && load().some((entry) => entry.id === id)) location.replace(libraryAddress());
 }
 
+/** A deleted episode leaves this device's queue and its offline copy: it must never play from either. */
+function dropFromDevice(): void {
+  const gone = new Set(load().map((entry) => entry.id));
+  if (!gone.size) return;
+  try {
+    const queued = parseQueue(localStorage.getItem(QUEUE_KEY));
+    const kept = queued.filter((id) => !gone.has(id));
+    if (kept.length !== queued.length) {
+      if (kept.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(kept));
+      else localStorage.removeItem(QUEUE_KEY);
+    }
+  } catch {
+    // Storage can be blocked; the queue then stays as it was.
+  }
+  void import("./libraryDownloads").then(async ({ readDownloads, removeDownload }) => {
+    for (const { id } of await readDownloads()) if (gone.has(id)) await removeDownload(id);
+  });
+}
+
 let installed = false;
 
 function install(): void {
@@ -87,6 +107,7 @@ function install(): void {
   document.addEventListener("astro:page-load", leaveIfDeleted);
   hideIn(document);
   leaveIfDeleted();
+  dropFromDevice();
 }
 
 install();
