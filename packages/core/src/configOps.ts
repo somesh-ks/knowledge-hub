@@ -95,7 +95,7 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - profile.vote: store 1 to 50 likes or dislikes of stories in the owner's profile, one per story
  *   (a later one replaces an earlier one; "clear" removes it). The engine derives the domain from
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
- * - structure.set: choose the listener profile (D190) and, for Custom, replace the whole list of
+ * - structure.set: choose the listener profile and, for Custom, replace the whole list of
  *   blocks in config/structure.json that every podcast follows, idempotent, no index arithmetic.
  * - structure.prompt: replace one block's prompt (D182), or put back the built-in prompt with null.
  */

@@ -7,7 +7,7 @@ import {
   ScheduleFile,
   SOURCE_FORMATS,
   StructureBlocks,
-  StructureKind,
+  StructureProfile,
   scheduleZone,
 } from "@singularity/core";
 
@@ -454,17 +454,17 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     case "structure.set": {
       // The blocks are core's (StructureBlocks, D170), the schema the engine applies the op with.
       // Its parse keeps only the fields a block names, so an unknown key never reaches the store.
-      const kind = StructureKind.safeParse(value.kind);
+      const profile = StructureProfile.safeParse(value.profile);
       const blocks = StructureBlocks.safeParse(value.blocks);
-      if (!kind.success || !blocks.success) return null;
-      return { op: "structure.set", kind: kind.data, blocks: blocks.data };
+      if (!profile.success || !blocks.success) return null;
+      return { op: "structure.set", profile: profile.data, blocks: blocks.data };
     }
     case "structure.prompt": {
-      // Core's schema (D182) bounds the key, the length and which kinds take which prompts.
+      // Core's schema (D182) bounds the key and the length.
       const parsed = CoreConfigOp.safeParse(value);
       if (!parsed.success || parsed.data.op !== "structure.prompt") return null;
-      const { kind, key, prompt } = parsed.data;
-      return { op: "structure.prompt", kind, key, prompt };
+      const { key, prompt } = parsed.data;
+      return { op: "structure.prompt", key, prompt };
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

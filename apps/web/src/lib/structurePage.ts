@@ -5,12 +5,14 @@ import {
   defaultStructure,
   GENERAL_SECTION_ID,
   isBlockSection,
+  NAMED_PROFILES,
+  type NamedProfile,
+  profileBlocks,
   SECTION_TITLES,
-  STRUCTURE_KINDS,
   STRUCTURE_SECTIONS,
   type StructureBlock,
   StructureFile,
-  type StructureKind,
+  type StructureProfile,
   storedStructure,
 } from "@singularity/core";
 import type { ManageSection, ManageTopic } from "./manage";
@@ -19,7 +21,7 @@ import type { ScheduleView } from "./schedule";
 import { usesFixtures } from "./site";
 import type { SectionOffer, StructureData } from "./structureView";
 
-/** config/structure.json as written, or null when it is missing or malformed (every kind's defaults). */
+/** config/structure.json as written, or null when it is missing or malformed (the defaults). */
 async function readStructure(
   env: Record<string, string | undefined>,
 ): Promise<StructureFile | null> {
@@ -35,7 +37,7 @@ async function readStructure(
   }
 }
 
-/** One block of each type, to ask core for the built-in prompt each type takes in a kind. */
+/** One block of each type, to ask core for the built-in prompt each type takes. */
 const SAMPLES: StructureBlock[] = [
   { type: "hello" },
   { type: "rundown" },
@@ -48,8 +50,8 @@ const SAMPLES: StructureBlock[] = [
 ];
 
 /**
- * What the Structure view is built with (D170): each kind's blocks (stored, or the defaults for the
- * owner's topics, as the engine runs them), the prompts, the built-in prompts the engine reads
+ * What the Structure view is built with (D170): the profile and its blocks (stored, or the defaults
+ * for the owner's topics as Custom, as the engine runs them), each preset, the prompts, the built-in prompts the engine reads
  * (core's own strings, so what the page shows is what the writer is told), and the sections the
  * owner's topics offer with the topics each gathers, for the "off in daily" line.
  */
@@ -79,26 +81,33 @@ export async function loadStructureData(
     topics: filed.filter((topic) => topic.section_id === id).map((topic) => topic.id),
   }));
   const texts: string[] = [];
-  const builtins = {} as StructureData["builtins"];
-  const blocks = {} as StructureData["blocks"];
-  const prompts = {} as StructureData["prompts"];
-  for (const kind of STRUCTURE_KINDS) {
-    builtins[kind] = {};
-    for (const sample of SAMPLES) {
-      const text = defaultBlockPrompt(kind, sample);
-      if (text === null) continue;
-      if (!texts.includes(text)) texts.push(text);
-      builtins[kind][sample.type] = texts.indexOf(text);
-    }
-    blocks[kind] = storedStructure(file, kind) ?? defaultStructure(kind as StructureKind, extra);
-    prompts[kind] = { ...(file?.prompts?.[kind] ?? {}) };
+  const builtins: StructureData["builtins"] = {};
+  for (const sample of SAMPLES) {
+    // The briefings' story prompts; a close is the one other block a model writes that is listed.
+    const text = defaultBlockPrompt(sample.type === "close" ? "catch_up" : "daily", sample);
+    if (text === null) continue;
+    if (!texts.includes(text)) texts.push(text);
+    builtins[sample.type] = texts.indexOf(text);
   }
+  // The owner's list from before the profiles is Custom: the daily defaults until they edit it.
+  const presets = Object.fromEntries(
+    NAMED_PROFILES.map((profile) => [profile, profileBlocks(profile, extra)]),
+  ) as Record<NamedProfile, StructureBlock[]>;
   return {
-    blocks,
-    prompts,
+    profile: file?.profile ?? "custom",
+    blocks: storedStructure(file) ?? defaultStructure("daily", extra),
+    presets,
+    prompts: { ...(file?.prompts ?? {}) },
     texts,
     builtins,
     sections,
     skip: { daily: [...schedule.skipTopics], weekly: [...schedule.weekly.skip_topics] },
   };
+}
+
+/** The active listener profile, for the Daily and Weekly pages that show it and cannot change it. */
+export async function loadStructureProfile(
+  env: Record<string, string | undefined> = process.env,
+): Promise<StructureProfile> {
+  return (await readStructure(env))?.profile ?? "custom";
 }
