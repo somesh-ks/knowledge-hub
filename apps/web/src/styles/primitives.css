@@ -767,6 +767,8 @@
   flex: none;
 }
 
+/* The filter chip: a checkbox drawn as a pill that takes the accent container when checked, its
+   check taking no room (D95), in a row that scrolls sideways (the Library's Show filters). */
 .filter-chip {
   position: relative;
   display: inline-flex;

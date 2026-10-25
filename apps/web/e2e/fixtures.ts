@@ -115,6 +115,8 @@ export const SITE_PAGES = [
   "/settings/topics/other",
   // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
   "/analytics",
+  // The design catalogue (D189): every shared component on one page, held to the same grid.
+  "/design",
 ];
 
 /**

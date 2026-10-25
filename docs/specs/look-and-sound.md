@@ -43,6 +43,7 @@ CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser jo
 A component changes in the system, never on one page only (the owner, 2026-10-24): in its shared class, component or token, with its record in the same PR, the usage comment over its class, its ledger line and, for a new variant, this spec. The audit flags a shared class restyled in a page stylesheet. Variants: the segmented navigation's glyph tab (an icon alone, centred; Costs' chart and table switch) and its compact form (`.segmented-nav-compact`: a chip's height, a 44px target, `--segmented-nav-bg` for the track); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past it (the Costs table, the section tabs, and the Earlier shelf at 40px by `--scroll-fade-size`), with `--scroll-fade-inset` for a pinned start column: the fade begins at its edge (the Costs dates, 2026-10-24). `.tabs-in-card`: a tab strip inside a card, its first label on the card's words (the Structure's kinds). A settings row that cannot act says `data-quiet` and its label goes muted (Volume with Sounds off, the Structure's frames). A sheet's header and a script-drawn menu come from `sheetHead.ts` (D188).
 
 ## Code
+- `apps/web/src/pages/design/[...slug].astro` and `apps/web/src/lib/designCatalogue.ts`: the catalogue, dev and fixture builds only (D189)
 - `apps/web/src/styles/tokens.css`
 - `apps/web/src/styles/primitives.css`
 - `apps/web/src/styles/empty.css`

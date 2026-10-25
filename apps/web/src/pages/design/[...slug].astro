@@ -1,0 +1,374 @@
+---
+/**
+ * The design catalogue (D189): the tokens, type, colour, icons and every shared component on one
+ * page, drawn by the stylesheets the app ships, so the catalogue is the system itself. It is built
+ * in dev and in the fixture build only (getStaticPaths yields no path otherwise), so production
+ * never serves it; the design-audit agent and the browser suites screenshot it here.
+ */
+import Banner from "../../components/Banner.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import Icon from "../../components/Icon.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { tokenGroups, usageComment } from "../../lib/designCatalogue";
+import { ICON_PATHS, type IconName } from "../../lib/icons";
+import { usesFixtures } from "../../lib/site";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/design.css";
+
+export const prerender = true;
+
+export function getStaticPaths() {
+  return usesFixtures() || import.meta.env.DEV ? [{ params: { slug: undefined } }] : [];
+}
+
+const primitive = tokenGroups("primitive");
+const semantic = tokenGroups("semantic");
+const component = tokenGroups("component");
+const colors = semantic.get("color") ?? [];
+const text = semantic.get("text") ?? [];
+const fontSizes = (primitive.get("font") ?? []).filter((token) =>
+  token.path.startsWith("font.size."),
+);
+const space = primitive.get("space") ?? [];
+const radius = primitive.get("radius") ?? [];
+const shadows = (semantic.get("shadow") ?? []).filter((token) =>
+  ["popover", "floating", "sheet"].includes(token.path.split(".").at(-1) ?? ""),
+);
+const tables: [string, string, readonly { name: string; value: string; description?: string }[]][] =
+  [
+    ["Durations", "duration", primitive.get("duration") ?? []],
+    ["Easing", "ease", primitive.get("ease") ?? []],
+    [
+      "Scale and distance",
+      "scale",
+      [...(primitive.get("scale") ?? []), ...(primitive.get("distance") ?? [])],
+    ],
+    ["Layers", "z", primitive.get("z") ?? []],
+    ["Sizes", "size", semantic.get("size") ?? []],
+    ["Breakpoints", "breakpoint", semantic.get("breakpoint") ?? []],
+    ["Layout", "layout", semantic.get("layout") ?? []],
+  ];
+const componentGroups = [...component.entries()];
+const icons = Object.keys(ICON_PATHS) as IconName[];
+
+/** A component's record: its name, the stylesheet and class whose usage comment describes it. */
+const parts: [title: string, sheet: string, selector: string][] = [
+  ["Buttons", "buttons.css", ".btn"],
+  ["Icon buttons", "buttons.css", ".icon-btn"],
+  ["Chip", "buttons.css", ".chip"],
+  ["Filter chips", "primitives.css", ".filter-chip"],
+  ["Tabs", "primitives.css", ".tabs-bar"],
+  ["Segmented navigation", "primitives.css", ".segmented-nav"],
+  ["Segmented choice", "primitives.css", ".segmented-choice"],
+  ["Rows", "settings.css", ".settings-row"],
+  ["Row action", "primitives.css", ".row-action"],
+  ["Switch", "settings.css", ".settings-switch"],
+  ["Fields", "manage.css", ".manage-input"],
+  ["Search", "library.css", ".search-field"],
+  ["Card group", "primitives.css", ".card-group"],
+  ["Banner", "banner.css", ".banner"],
+  ["Menu", "hero.css", ".hero-menu-item"],
+  ["Section heading", "primitives.css", ".section-head"],
+];
+const usage = Object.fromEntries(
+  parts.map(([title, sheet, selector]) => [title, usageComment(sheet, selector)]),
+);
+const title = "Design system";
+---
+
+<BaseLayout title={title} view="settings" nav={null} layout="single" skipLabel="Skip to the catalogue">
+  <main id="main" tabindex="-1">
+    <div class="settings-view design-page" data-ready>
+      <SettingsHead title={title} note="Every token and shared component, drawn by the stylesheets the app ships." />
+
+      <section aria-labelledby="design-colour">
+        <h2 class="section-head" id="design-colour">Colour</h2>
+        <p class="design-usage">The semantic roles, the only colour layer a component may read. Each swatch is the live token in the current theme.</p>
+        <ul class="design-swatches">
+          {colors.map((token) => (
+            <li class="design-swatch" style={`--swatch: var(${token.name})`}>
+              <span class="design-swatch-fill" aria-hidden="true"></span>
+              <span class="design-swatch-name">{token.name}</span>
+              <span class="design-swatch-value">{token.value}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="design-type">
+        <h2 class="section-head" id="design-type">Type</h2>
+        <p class="design-usage">The text roles, each a family, size, weight, tracking and leading; then the size scale alone.</p>
+        <ul class="design-type">
+          {text.map((token) => (
+            <li>
+              <p class="design-type-sample" style={`--sample-family: var(${token.name}-family); --sample-size: var(${token.name}-size); --sample-weight: var(${token.name}-weight); --sample-tracking: var(${token.name}-tracking); --sample-leading: var(${token.name}-leading)`}>
+                The quick brown fox jumps over the lazy dog
+              </p>
+              <span class="design-swatch-value">{token.name}</span>
+            </li>
+          ))}
+        </ul>
+        <table class="design-table">
+          <thead><tr><th>Size</th><th>Sample</th></tr></thead>
+          <tbody>
+            {fontSizes.map((token) => (
+              <tr>
+                <td><code>{token.name}</code> {token.value}</td>
+                <td><span class="design-type-sample" style={`--sample-size: var(${token.name})`}>Singularity</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="design-space">
+        <h2 class="section-head" id="design-space">Space, radius and shadow</h2>
+        <p class="design-usage">Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where the style rules name it (D131).</p>
+        <table class="design-table">
+          <tbody>
+            {space.map((token) => (
+              <tr>
+                <td><code>{token.name}</code> {token.value}</td>
+                <td><span class="design-bar" style={`--sample: var(${token.name})`} aria-hidden="true"></span></td>
+              </tr>
+            ))}
+            {radius.map((token) => (
+              <tr>
+                <td><code>{token.name}</code> {token.value}</td>
+                <td><span class="design-corner" style={`--sample: var(${token.name})`} aria-hidden="true"></span></td>
+              </tr>
+            ))}
+            {shadows.map((token) => (
+              <tr>
+                <td><code>{token.name}</code> {token.description ?? token.value}</td>
+                <td><span class="design-shadow" data-shadow={token.path.split(".").at(-1)} aria-hidden="true"></span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="design-motion">
+        <h2 class="section-head" id="design-motion">Motion, layers and layout</h2>
+        {tables.map(([name, id, tokens]) => (
+          <table class="design-table" aria-label={name}>
+            <thead><tr><th>{name}</th><th>Value</th><th>Note</th></tr></thead>
+            <tbody>
+              {tokens.map((token) => (
+                <tr data-group={id}>
+                  <td><code>{token.name}</code></td>
+                  <td>{token.value}</td>
+                  <td>{token.description ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ))}
+      </section>
+
+      <section aria-labelledby="design-components">
+        <h2 class="section-head" id="design-components">Components</h2>
+        <p class="design-usage">Each is its shared class as the app draws it; the line under a name is the usage comment over that class in its stylesheet.</p>
+
+        <h3 class="section-head">Buttons</h3>
+        <p class="design-usage">{usage.Buttons}</p>
+        <div class="design-specimen">
+          <button class="btn-primary" type="button">Play</button>
+          <button class="btn-secondary" type="button">Share</button>
+          <button class="btn" type="button">Settings</button>
+          <button class="btn-primary" type="button" disabled>Play</button>
+          <button class="btn-secondary" type="button" disabled>Share</button>
+        </div>
+
+        <h3 class="section-head">Icon buttons</h3>
+        <p class="design-usage">{usage["Icon buttons"]}</p>
+        <div class="design-specimen">
+          <button class="icon-btn press" type="button" aria-label="More"><Icon name="moreVert" /></button>
+          <button class="icon-btn press" type="button" aria-label="Close"><Icon name="close" class="icon-lg" /></button>
+          <button class="icon-btn press" type="button" aria-label="Edit"><Icon name="pencil" /></button>
+          <button class="icon-btn press" type="button" aria-label="Move"><Icon name="grip" /></button>
+        </div>
+
+        <h3 class="section-head">Chip</h3>
+        <p class="design-usage">{usage.Chip}</p>
+        <div class="design-specimen">
+          <button class="chip" type="button" data-state="idle"><span class="chip-glyph" aria-hidden="true"><Icon name="play" /></span><span class="chip-label">5 min</span></button>
+          <button class="chip" type="button" data-state="idle" aria-pressed="true"><span class="chip-glyph" aria-hidden="true"><Icon name="pause" /></span><span class="chip-label">Playing</span></button>
+          <button class="chip" type="button" data-state="unavailable" aria-disabled="true"><span class="chip-glyph" aria-hidden="true"><Icon name="play" /></span><span class="chip-label">No audio</span></button>
+        </div>
+
+        <h3 class="section-head">Filter chips</h3>
+        <p class="design-usage">{usage["Filter chips"]}</p>
+        <div class="design-specimen">
+          <fieldset class="filter-chips" aria-label="Show">
+            <label class="filter-chip"><input type="checkbox" name="design-show" value="daily" checked /><Icon name="check" class="filter-chip-check" /><span>Daily</span></label>
+            <label class="filter-chip"><input type="checkbox" name="design-show" value="weekly" /><Icon name="check" class="filter-chip-check" /><span>Weekly</span></label>
+            <label class="filter-chip"><input type="checkbox" name="design-show" value="episodes" disabled /><Icon name="check" class="filter-chip-check" /><span>Episodes</span></label>
+          </fieldset>
+        </div>
+
+        <h3 class="section-head">Tabs</h3>
+        <p class="design-usage">{usage.Tabs}</p>
+        <div class="design-specimen" data-stack>
+          <div class="tabs tabs-in-card" role="tablist" aria-label="Design tabs">
+            <button class="tab" type="button" role="tab" aria-selected="true">Daily</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1">Weekly</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1">Catch up</button>
+          </div>
+        </div>
+
+        <h3 class="section-head">Segmented navigation</h3>
+        <p class="design-usage">{usage["Segmented navigation"]}</p>
+        <div class="design-specimen" data-stack>
+          <div class="segmented-nav" role="tablist" aria-label="Design views">
+            <button class="segmented-nav-tab" type="button" role="tab" aria-selected="true">Stories</button>
+            <button class="segmented-nav-tab" type="button" role="tab" aria-selected="false" tabindex="-1">Transcript</button>
+          </div>
+        </div>
+
+        <h3 class="section-head">Segmented choice</h3>
+        <p class="design-usage">{usage["Segmented choice"]}</p>
+        <div class="design-specimen" data-stack>
+          <fieldset class="segmented-choice" role="radiogroup" aria-label="Length">
+            <label class="segmented-choice-item"><input type="radio" name="design-length" value="3" /><span>3 min</span></label>
+            <label class="segmented-choice-item"><input type="radio" name="design-length" value="5" checked /><span>5 min</span></label>
+            <label class="segmented-choice-item"><input type="radio" name="design-length" value="10" /><span>10 min</span></label>
+          </fieldset>
+        </div>
+
+        <h3 class="section-head">Rows</h3>
+        <p class="design-usage">{usage.Rows} {usage["Row action"]}</p>
+        <div class="rows card-group">
+          <a class="row-action" href="#design-components">
+            <span class="settings-text"><span class="settings-label">Daily</span><span class="settings-hint">Every other day at 7</span></span>
+            <Icon name="chevronRight" />
+          </a>
+          <div class="settings-row">
+            <label class="settings-label" for="design-theme">Theme</label>
+            <span class="manage-select value-select">
+              <select class="manage-input" id="design-theme" name="design-theme" autocomplete="off">
+                <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
+              </select>
+              <Icon name="chevronDown" />
+            </span>
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="design-sounds">Sounds</label>
+            <input class="settings-switch" id="design-sounds" name="design-sounds" type="checkbox" role="switch" checked />
+          </div>
+          <div class="settings-row">
+            <label class="settings-label" for="design-volume">Volume</label>
+            <input class="settings-range" id="design-volume" name="design-volume" type="range" min="0" max="1" step="0.05" value="0.7" />
+          </div>
+          <div class="settings-row" data-quiet>
+            <span class="settings-text"><span class="settings-label">Hello</span><span class="settings-hint">Opens the episode, spoken by the app</span></span>
+          </div>
+        </div>
+
+        <h3 class="section-head">Switch</h3>
+        <p class="design-usage">{usage.Switch}</p>
+        <div class="design-specimen">
+          <input class="settings-switch" type="checkbox" role="switch" aria-label="Off" />
+          <input class="settings-switch" type="checkbox" role="switch" aria-label="On" checked />
+          <input class="settings-switch" type="checkbox" role="switch" aria-label="Disabled" disabled />
+        </div>
+
+        <h3 class="section-head">Fields</h3>
+        <p class="design-usage">{usage.Fields}</p>
+        <form class="manage-form" novalidate>
+          <div class="manage-field">
+            <label for="design-title">Title</label>
+            <input class="manage-input" id="design-title" name="design-title" type="text" placeholder="Design Engineering" autocomplete="off" />
+          </div>
+          <div class="manage-field">
+            <label for="design-brief">Brief</label>
+            <textarea class="manage-input" id="design-brief" name="design-brief" rows="3" placeholder="What this block covers"></textarea>
+          </div>
+          <div class="manage-field">
+            <span class="field-label" id="design-depth-label">Depth</span>
+            <fieldset class="segmented-choice" role="radiogroup" aria-labelledby="design-depth-label">
+              <label class="segmented-choice-item"><input type="radio" name="design-depth" value="deep" /><span>In depth</span></label>
+              <label class="segmented-choice-item"><input type="radio" name="design-depth" value="brief" checked /><span>Short</span></label>
+            </fieldset>
+          </div>
+        </form>
+
+        <h3 class="section-head">Search</h3>
+        <p class="design-usage">{usage.Search}</p>
+        <div class="design-specimen" data-stack>
+          <label class="search-field">
+            <Icon name="search" />
+            <span class="sr-only">Search the catalogue</span>
+            <input type="search" name="design-q" placeholder="Search your library" autocomplete="off" />
+          </label>
+        </div>
+
+        <h3 class="section-head">Card group</h3>
+        <p class="design-usage">{usage["Card group"]}</p>
+        <div class="rows card-group">
+          <div class="settings-row"><span class="settings-text"><span class="settings-label">Author</span></span><span class="settings-hint">Somesh</span></div>
+          <div class="settings-row"><span class="settings-text"><span class="settings-label">Version</span></span><span class="settings-hint">2026.10</span></div>
+        </div>
+
+        <h3 class="section-head">Banner</h3>
+        <p class="design-usage">{usage.Banner}</p>
+        <div class="design-specimen" data-stack>
+          <Banner tone="info" icon="info" title="A new version is ready" body="Reload to get it." />
+          <Banner tone="warning" icon="wifiOff" title="You are offline" body="Saved briefings still play." />
+          <Banner tone="danger" icon="alert" title="The server crashed before it could answer" body="Error ref a1b2c3." />
+          <Banner tone="success" icon="checkCircle" title="Back online" body="Everything is up to date." />
+        </div>
+
+        <h3 class="section-head">Menu</h3>
+        <p class="design-usage">{usage.Menu}</p>
+        <div class="design-specimen">
+          <div class="menu-sheet design-menu">
+            <div class="menu-sheet-items" role="menu" aria-label="Design menu">
+              <button class="hero-menu-item" type="button" role="menuitem"><Icon name="arrowUp" />Move up</button>
+              <button class="hero-menu-item" type="button" role="menuitem"><Icon name="arrowDown" />Move down</button>
+              <button class="hero-menu-item" type="button" role="menuitem"><Icon name="pencil" />Edit</button>
+              <button class="hero-menu-item hero-menu-delete" type="button" role="menuitem"><Icon name="trash" />Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="section-head">Empty state</h3>
+        <p class="design-usage">Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96).</p>
+        <div class="design-specimen" data-stack>
+          <EmptyState art="library" title="Nothing saved yet" body="Briefings you download appear here." primary={{ label: "Go to Latest", href: "/" }} secondary={null} />
+        </div>
+      </section>
+
+      <section aria-labelledby="design-icons">
+        <h2 class="section-head" id="design-icons">Icons</h2>
+        <p class="design-usage">One set, Phosphor, through the Icon component; each glyph carries its name in data-icon for the ink margins (D187).</p>
+        <ul class="design-icons">
+          {icons.map((name) => (
+            <li class="design-icon"><Icon name={name} /><span>{name}</span></li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="design-component-tokens">
+        <h2 class="section-head" id="design-component-tokens">Component tokens</h2>
+        <p class="design-usage">The sizes and bindings each component reads, by component.</p>
+        {componentGroups.map(([group, tokens]) => (
+          <table class="design-table" aria-label={group}>
+            <thead><tr><th>{group}</th><th>Value</th><th>Note</th></tr></thead>
+            <tbody>
+              {tokens.map((token) => (
+                <tr>
+                  <td><code>{token.name}</code></td>
+                  <td>{token.value}</td>
+                  <td>{token.description ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ))}
+      </section>
+    </div>
+  </main>
+</BaseLayout>

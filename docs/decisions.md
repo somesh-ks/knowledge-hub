@@ -196,6 +196,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
+| D189 | Catalogue route | active |
 
 ---
 
@@ -1990,4 +1991,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the Structure view copied the menu sheet by hand, lost the item icons and the D187 alignment, and placed its glyphs with negative margins; each copy is a place the system drifts.
 - Rejected: server-rendering the menus once per row (the list is rebuilt after every edit, so the client needs the markup too).
 - Revisit if: a second script-drawn list appears (then `MenuSheet.astro` should also render through `sheetHead.ts`).
+
+## D189: the design catalogue is a route of the site, not a tool
+
+- Date: 2026-10-25 (the owner: "I need a simple storybook kinda tool/page to visualize all the tokens, typography, colors, ui components"; and "shouldn't we have a different ui repo?").
+- Decision: `/design` (`apps/web/src/pages/design/[...slug].astro`) lists the tokens from `tokens.json`, the type roles, the colour roles as live swatches, every glyph, and each shared component drawn by its own class, with the usage comment over that class read from its stylesheet at build time (`lib/designCatalogue.ts`). It is built in dev and in the fixture build only (no static path otherwise), sits in the browser suites' page list, and no separate UI repository or package is made.
+- Why: one consumer and one person; a catalogue rendered by the CSS the app ships cannot drift from it, while zeroheight, Supernova or a Storybook (the community Astro framework is the only one that renders `.astro`) are a second source of truth kept by hand. A separate repository buys versioning and publishing work for no second consumer.
+- Rejected: Storybook with `@storybook-astro/framework` (a second build and dev server, a story per component); zeroheight and Supernova (Figma sync and team governance this project does not have); Backlight (shut down 2025-06-01).
+- Revisit if: a second app consumes the styles (then lift them into a workspace package under `packages/`), or the catalogue needs knobs and isolation per state (then try Storybook on a branch first).
 
