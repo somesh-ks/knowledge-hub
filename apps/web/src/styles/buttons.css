@@ -45,6 +45,10 @@
   --ink-end: 0.438;
 }
 
+:is(.icon[data-icon="pencil"], :has(> .icon[data-icon="pencil"])) {
+  --ink-end: 0.094;
+}
+
 /* ------------------------------------------------------------------ text and icon buttons */
 
 /* The text button: an accent label with no container until it is hovered or pressed. */

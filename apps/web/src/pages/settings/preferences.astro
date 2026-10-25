@@ -106,7 +106,7 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
               {/* Three views of one list, so tabs, not chips: chips read as filters (owner, 2026-10-24).
                    Reorder sits at the strip's end, in reach above the list however long it is. */}
               <div class="structure-kinds-bar">
-                <div class="tabs structure-kinds" role="tablist" aria-label="Podcast" data-param="kind">
+                <div class="tabs tabs-in-card structure-kinds" role="tablist" aria-label="Podcast" data-param="kind">
                   {
                     STRUCTURE_KINDS.map((kind) => (
                       <button
@@ -230,14 +230,14 @@ const offers = addOffers(firstKind, structure.blocks[firstKind], structure.secti
               </p>
             </div>
             <div class="manage-field" data-part="depth">
-              <span class="structure-field-label" id="structure-depth-label">Depth</span>
+              <span class="field-label" id="structure-depth-label">Depth</span>
               <fieldset class="segmented-choice" role="radiogroup" aria-labelledby="structure-depth-label">
                 <label class="segmented-choice-item"><input type="radio" name="depth" value="deep" /><span>In depth</span></label>
                 <label class="segmented-choice-item"><input type="radio" name="depth" value="brief" /><span>Short</span></label>
               </fieldset>
             </div>
             <div class="manage-field" data-part="length">
-              <span class="structure-field-label" id="structure-length-label">Length</span>
+              <span class="field-label" id="structure-length-label">Length</span>
               <fieldset class="segmented-choice" role="radiogroup" aria-labelledby="structure-length-label">
                 <label class="segmented-choice-item"><input type="radio" name="length" value="short" /><span>Short</span></label>
                 <label class="segmented-choice-item"><input type="radio" name="length" value="long" /><span>Long</span></label>
