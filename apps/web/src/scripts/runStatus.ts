@@ -281,6 +281,14 @@ function show(run: Stored | null): void {
   card.hidden = !run;
   if (run) {
     card.dataset.state = run.phase;
+    // A failed or lost run opens the strip once, so its whole sentence reads on a phone (the owner
+    // asked for plain error messages). The reader can close it again: it opens once for each run.
+    const alarm = run.phase === "failed" || run.phase === "started" ? `${run.id}:${run.phase}` : "";
+    if (alarm && card.dataset.opened !== alarm) {
+      card.dataset.opened = alarm;
+      card.setAttribute("data-expanded", "");
+      card.querySelector("[data-run-expand]")?.setAttribute("aria-expanded", "true");
+    }
     const text = card.querySelector("[data-run-text]");
     // A rewrite in the "running" phase reads data-regenerate-running; a new episode reads data-running.
     const key = run.kind ? run.kind + run.phase.charAt(0).toUpperCase() + run.phase.slice(1) : "";
