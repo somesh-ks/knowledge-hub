@@ -22,8 +22,8 @@
       "query": "React component pattern"
     },
     {
-      "id": "design-system-decision-explained",
-      "query": "design system team explains a new component or token decision"
+      "id": "design-system-update-changelog",
+      "query": "design system update changelog"
     },
     {
       "id": "frontend-performance-optimization",
@@ -50,16 +50,6 @@
       "id": "consumer-device-regulation-or-ruling",
       "query": "consumer device regulation or ruling",
       "category_hint": "consumer_tech_releases"
-    },
-    {
-      "id": "ai-interface-pattern-explained",
-      "query": "designer explains a new interaction pattern for an AI assistant or agent interface",
-      "category_hint": "ai_ux_interaction_patterns"
-    },
-    {
-      "id": "ai-product-ux-case-study",
-      "query": "case study of how a product team designed the user experience of its AI feature",
-      "category_hint": "ai_ux_interaction_patterns"
     }
   ]
 }

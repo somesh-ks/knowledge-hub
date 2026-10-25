@@ -30,9 +30,8 @@
     }
   },
   "weekly": {
-    "at": "2026-10-18T05:42:13.841Z",
-    "digest_id": "2026-10-18-weekly",
-    "items": 14,
-    "outcome": "published"
+    "at": "2026-10-25T06:58:01.541Z",
+    "items": 0,
+    "outcome": "failed"
   }
 }
