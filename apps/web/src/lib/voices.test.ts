@@ -82,7 +82,7 @@ describe("flag sprite", () => {
   });
 
   it("falls back to no symbol, so a letter badge is drawn, for a region without a flag", () => {
-    expect(flagSymbolId("PT")).toBeNull();
+    expect(flagSymbolId("SA")).toBeNull();
   });
 });
 

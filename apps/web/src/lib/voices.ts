@@ -50,7 +50,7 @@ export function parseVoiceDefaults(body: unknown): VoiceDefaults | null {
 
 /** The regions public/flags.svg draws (Flagpack), as its symbol ids name them. */
 export const FLAG_REGIONS: ReadonlySet<string> = new Set(
-  "AE AR AU BR CA CL CN CO CZ DE DK FI FR GB GR ID IE IL IN IT JP KE KR MX NG NL NO NZ PL RU SE SG TR TW UA US ZA".split(
+  "AE AR AU BR CA CL CN CO CZ DE DK ES FI FR GB GR IE IN IT JP KR MX NG NL NO NZ PE PH PL PT RU SE SG TR UA US ZA".split(
     " ",
   ),
 );
