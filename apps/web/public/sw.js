@@ -353,6 +353,19 @@ function staleWhileRevalidate(event, cacheName, limit) {
     .then((cached) => cached || refresh.then((fresh) => fresh || offline(request)));
 }
 
+/**
+ * A cover's address carries its record's version (?v=), so a saved cover answers only its own
+ * version. When the network cannot answer, a copy saved before versions (a download) answers
+ * whatever the version, rather than leaving a blank square offline.
+ */
+function coverFetch(event) {
+  const stale = staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA);
+  return stale.then(async (response) => {
+    if (response && response.type !== "error") return response;
+    return (await caches.match(event.request, { ignoreSearch: true })) || response;
+  });
+}
+
 /** Requests for pages that are on their way, by address. */
 const inFlight = new Map();
 
@@ -647,7 +660,7 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   } else if (url.pathname.startsWith("/covers/")) {
-    event.respondWith(healed(event, staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA)));
+    event.respondWith(healed(event, coverFetch(event)));
   } else if (SHELL_FILES.includes(url.pathname)) {
     event.respondWith(healed(event, staleWhileRevalidate(event, SHELL_CACHE)));
   }

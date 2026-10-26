@@ -423,7 +423,7 @@ test.describe("sections and stories", () => {
       "launches",
       "watch",
     ]);
-    expect(data.cover.src512).toBe("/covers/2026-10-07-512.webp");
+    expect(data.cover.src512).toMatch(/^\/covers\/2026-10-07-512\.webp\?v=\w+$/);
     // Pages show the WebP; the PNG beside it is for the lock screen's media controls.
     const webp = await page.request.get(data.cover.src512);
     expect(webp.headers()["content-type"]).toBe("image/webp");
