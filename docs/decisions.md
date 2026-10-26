@@ -140,7 +140,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
+| D129 | Settings is restructured: a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -200,6 +200,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D190 | Votes tune weights | amends D108, D118 |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
+| D195 | Breadcrumb | amends D129 |
 
 ---
 
@@ -1522,6 +1523,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 ## D129: Settings restructured
 
+- Amended by D195: settings subpages show a "Settings /" breadcrumb above the title.
+
 - Date: 2026-10-21 (the owner's backlog)
 - Decision:
   - Index sections: Podcast (Daily, Weekly, Sources, Preferences), Intelligence (AI model), Sound (Podcast voice, Interface sounds, each a page: `/settings/voice`, `/settings/sounds`), Appearance (Theme, a select with no value drawn until the stored one is set), About. No breadcrumbs anywhere: titles stand alone and phones keep the app bar's arrow; a topic page has no "‹ Sources" link.
@@ -2028,3 +2031,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: CodeRabbit reviews incrementally on each commit, supports threaded conversation, and avoids the single-run and re-label limits of the Claude action (learning 2026-10-11).
 - Rejected: keeping `claude-code-review.yml` in parallel (duplicate comments and Anthropic token spend); relying on manual review only.
 - Amends: D143.
+
+## D195: settings subpages show a Settings breadcrumb
+
+- Amends: D129.
+- Context changed: D129 dropped breadcrumbs as repeating the title and app bar; the owner found a subpage gave no quick way up to the Settings index.
+- Date: 2026-10-25 (the owner's ask).
+- Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
+- Why: one tap up beats the app bar's back, which can leave settings.
