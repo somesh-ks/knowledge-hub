@@ -30,15 +30,34 @@ describe("speed default", () => {
     for (const id of ["a", "b"]) speed.noteRate(id, 1.5);
     expect(speed.getPending()).toBeNull();
     speed.noteRate("c", 1.5);
+    speed.flush();
     expect(speed.getPending()).toBe(1.5);
     speed.dismiss();
     speed.noteRate("d", 1.5);
+    speed.flush();
     speed.noteEnded(1.5);
     expect(speed.getPending()).toBeNull();
     // A reload keeps the answer.
     const again = createSpeedDefault({ storage, preferences });
     again.noteEnded(1.5);
     expect(again.getPending()).toBeNull();
+  });
+
+  it("counts only the speed an episode was left at, not the slider steps passed on the way", () => {
+    const { speed } = setup();
+    // Three episodes dragged through 1.5 on the way to 2: 1.5 was never anyone's speed.
+    for (const id of ["a", "b", "c"]) {
+      speed.noteRate(id, 1.25);
+      speed.noteRate(id, 1.5);
+      speed.noteRate(id, 2);
+    }
+    speed.flush();
+    expect(speed.getPending()).toBe(2);
+    speed.dismiss();
+    // 1.5 and 1.25 were never counted, so each still needs its own three episodes.
+    speed.noteRate("d", 1.5);
+    speed.flush();
+    expect(speed.getPending()).toBeNull();
   });
 
   it("offers when an episode ends off the default, and Make default saves it", () => {

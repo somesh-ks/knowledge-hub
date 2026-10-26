@@ -33,10 +33,12 @@ function parse(raw: string | null): OfferRecord {
 export interface SpeedDefault {
   /** The speed every episode starts at: the Settings choice, 1x if none. */
   getDefaultRate(): number;
-  /** The listener chose `rate` in this episode. It changes this episode only. */
+  /** The listener chose `rate` in this episode. It changes this episode only; the last choice is the one counted. */
   noteRate(episodeId: string | null, rate: number): void;
   /** An episode ended at `rate`. */
   noteEnded(rate: number): void;
+  /** Counts the episode in progress at its final speed. Called as the page hides. */
+  flush(): void;
   /** The speed on offer as the new default, or null. */
   getPending(): number | null;
   /** Make Default: saves it and ends the offer. */
@@ -82,21 +84,34 @@ export function createSpeedDefault(options: {
     return isPlaybackRate(rate) && rate !== preferences.get().rate;
   }
 
+  // The slider reports every step. Only the speed an episode was left at counts, once.
+  let chosen: { id: string; rate: number } | null = null;
+
+  function commit(): void {
+    const last = chosen;
+    chosen = null;
+    if (!last || !isOffRate(last.rate)) return;
+    const key = String(last.rate);
+    const ids = record.episodes[key] ?? [];
+    if (ids.includes(last.id)) return;
+    const next = [...ids, last.id].slice(-MAX_IDS_PER_SPEED);
+    record = { ...record, episodes: { ...record.episodes, [key]: next } };
+    save();
+    if (next.length >= OFFER_AFTER_EPISODES) offer(last.rate);
+  }
+
   return {
     getDefaultRate: () => preferences.get().rate,
     noteRate(episodeId, rate) {
-      if (!episodeId || !isOffRate(rate)) return;
-      const key = String(rate);
-      const ids = record.episodes[key] ?? [];
-      if (ids.includes(episodeId)) return;
-      const next = [...ids, episodeId].slice(-MAX_IDS_PER_SPEED);
-      record = { ...record, episodes: { ...record.episodes, [key]: next } };
-      save();
-      if (next.length >= OFFER_AFTER_EPISODES) offer(rate);
+      if (!episodeId) return;
+      if (chosen && chosen.id !== episodeId) commit();
+      chosen = { id: episodeId, rate };
     },
     noteEnded(rate) {
+      commit();
       if (isOffRate(rate)) offer(rate);
     },
+    flush: commit,
     getPending: () => pending,
     accept() {
       if (pending === null) return;

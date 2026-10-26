@@ -15,7 +15,6 @@ import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scru
 import { itemIndexAt, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
-import SpeedOffer from "./SpeedOffer";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -354,7 +353,6 @@ export default function PlayerBar() {
           <Icon name="skipForward" />
         </button>
       </div>
-      <SpeedOffer />
       <div className="dock-tools">
         <DockVolume />
         <DockExpand />

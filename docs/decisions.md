@@ -200,6 +200,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D190 | Votes tune weights | amends D108, D118 |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
+| D193 | Dock chevron; one-episode speed | amends D102 |
 
 ---
 
@@ -2028,3 +2029,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: CodeRabbit reviews incrementally on each commit, supports threaded conversation, and avoids the single-run and re-label limits of the Claude action (learning 2026-10-11).
 - Rejected: keeping `claude-code-review.yml` in parallel (duplicate comments and Anthropic token spend); relying on manual review only.
 - Amends: D143.
+
+## D193: a desktop dock chevron beside volume; a chosen speed lasts one episode
+
+- Date: 2026-10-25 (the owner asked for a way to open the player from the desktop bar, and for speed to stop sticking).
+- Decision: from 64rem the dock holds a chevron `.icon-btn` right of volume that expands and collapses the player. D102 stands for the rest: no chevron on the bar below 64rem (the phone bar opens by press and drag), and the keyboard-focus chevron on the open desktop player is unchanged. A speed chosen in the player applies to that episode only; the next starts at Preferences, Default playback speed. The same speed left in three episodes, or an episode ending off the default, offers it once per speed as the new default (`core/speedDefault.ts`); an episode counts at the speed it was left at, not the slider steps passed.
+- Why: the desktop bar had no visible way to the full player, and a remembered speed carried into episodes where it did not fit.
+- Rejected: a chevron on the phone bar (D102, the bar is the target); remembering the last speed (the old behaviour); counting every slider step.
+- Amends: D102, D126.

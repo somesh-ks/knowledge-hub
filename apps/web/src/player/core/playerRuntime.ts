@@ -250,6 +250,7 @@ export function startPlayerRuntime(): () => void {
     startedId = id;
     if (id) playQueue.started(id);
   });
+  const offPageHide = onPageHide(() => getSpeedDefault().flush());
   const offQueueEnd = playerStore.onEvent((event) => {
     if (event.type !== "ended") return;
     getSpeedDefault().noteEnded(playerStore.getState().rate);
@@ -358,6 +359,7 @@ export function startPlayerRuntime(): () => void {
     offListening();
     offQueueState();
     offQueueEnd();
+    offPageHide();
     window.removeEventListener("online", onOnline);
     window.removeEventListener("offline", onOffline);
     offEvent();

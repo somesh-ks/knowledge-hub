@@ -1,6 +1,6 @@
 # State
 
-Last updated 2026-10-25. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md).
+Updated 2026-10-25. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions.md). Sessions: [history](history/README.md).
 
 ## Working
 
@@ -9,13 +9,13 @@ Last updated 2026-10-25. Rewrite; do not append. Behaviour: [specs/](specs/READM
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Schedule (D61): Vercel Cron at 07:00 dispatches `run.yml`.
-- Deploy: Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
+- Schedule (D61): Vercel Cron 07:00 runs `run.yml`.
+- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
+- Tooling (D38 [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 min. Player e2e: 71 runs, 3 min.
+Unit (CI): 256 files, 4,748 tests (10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 min. Player e2e: 71 runs, 3 min.
 
 ## Not working or unverified
 
