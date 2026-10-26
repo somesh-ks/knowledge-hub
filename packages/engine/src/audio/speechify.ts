@@ -127,6 +127,12 @@ export interface SpeechifyClientOptions {
   maxRetries?: number;
   /** Longer Retry-After values are not waited out; the call fails with the wait in the message. */
   maxRetryWaitMs?: number;
+  /**
+   * Retries after a 5xx, a timeout or a dropped connection. Off by default: the site's narrate route
+   * retries and counts every attempt itself, so a second layer here would spend characters twice.
+   * The audio command (digests and episodes) turns it on.
+   */
+  transientRetries?: number;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
   defaultVoiceId?: string;
@@ -156,6 +162,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
   const now = options.now ?? (() => new Date());
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const transientRetries = options.transientRetries ?? 0;
   const maxRetryWaitMs = options.maxRetryWaitMs ?? DEFAULT_MAX_RETRY_WAIT_MS;
   const apiKey = options.apiKey;
 
@@ -199,6 +206,11 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
     return 1000 * 2 ** attempt;
   }
 
+  /** Exponential backoff with up to 25% jitter, for failures that send no Retry-After. */
+  function transientDelayMs(attempt: number): number {
+    return Math.round(1000 * 2 ** attempt * (1 - 0.25 * Math.random()));
+  }
+
   /** POST with 429 handling. Returns the first non-429 response; the caller checks `ok`. */
   async function post(path: string, body: unknown): Promise<Response> {
     for (let attempt = 0; ; attempt++) {
@@ -211,6 +223,11 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (error) {
+        // A timeout or a dropped connection is transient: retried like a 5xx, up to the same cap.
+        if (attempt < transientRetries) {
+          await sleep(transientDelayMs(attempt));
+          continue;
+        }
         const name = error instanceof Error ? error.name : "";
         if (name === "TimeoutError" || name === "AbortError") {
           throw fail(`Speechify request timed out after ${Math.round(timeoutMs / 1000)}s`);
@@ -218,7 +235,16 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
         const reason = error instanceof Error ? error.message : String(error);
         throw fail(`Speechify request could not be sent: ${reason}`);
       }
-      if (response.status !== 429) return response;
+      if (response.status !== 429) {
+        // A 5xx is retried (transientRetries times) with backoff and jitter; any other status (a 400, a 401) is the caller's.
+        if (response.status < 500 || attempt >= transientRetries) return response;
+        await sleep(
+          response.headers.has("retry-after")
+            ? retryDelayMs(response, attempt)
+            : transientDelayMs(attempt),
+        );
+        continue;
+      }
 
       const failure = await describeFailure(response);
       const waitMs = retryDelayMs(response, attempt);

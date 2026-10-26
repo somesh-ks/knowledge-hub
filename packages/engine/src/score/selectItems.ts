@@ -1,15 +1,11 @@
 import {
-  CATEGORIES,
-  type Category,
   type DigestKind,
   hasOwnAllowance,
   homeSection,
   type Item,
-  isBuiltinCategory,
   isBuiltinSection,
   isGeneralTopicId,
   SECTIONS,
-  snapWeight,
   TECH_SECTION,
   TOP_PICKS_SECTION,
   VOICE_LIMITS,
@@ -99,17 +95,14 @@ export interface SelectInput {
    * briefing's length in stories. Absent means the digest's hard cap.
    */
   total?: number;
-  /**
-   * Preference weights. Only the weekly kind needs them, to find the category median for the
-   * reserved off-taste slot. Without them no slot is reserved.
-   */
-  weights?: Record<Category, number>;
   threshold?: number;
   /**
    * Topic ids this briefing leaves out, from config/schedule.json: a story whose winning topic is
    * one of them is dropped before anything is picked, so it reaches Top picks neither.
    */
   skipTopics?: readonly string[];
+  /** Built-in categories set never to publish (topics.json `never_publish`); their stories are dropped. */
+  offCategories?: readonly string[];
   /** Regenerate: keep only these categories, on top of skipTopics. Absent keeps every category. */
   onlyTopics?: readonly string[];
   /** The briefing's structure: section order, Top picks and allowances. Absent is the default. */
@@ -163,18 +156,6 @@ export function isTech(candidate: Pick<Candidate, "home">): boolean {
  */
 export function hasOwnSection(candidate: Pick<Candidate, "home">): boolean {
   return hasOwnAllowance(candidate.home);
-}
-
-/**
- * Median of the preference weights. With an even number of categories (twelve since D155) it is
- * the mean of the middle two.
- */
-export function medianWeight(weights: Record<Category, number>): number {
-  const sorted = CATEGORIES.map((c) => weights[c]).sort((a, b) => a - b);
-  const mid = sorted.length / 2;
-  return sorted.length % 2 === 0
-    ? ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2
-    : (sorted[Math.floor(mid)] as number);
 }
 
 function publishedMs(item: Item): number {
@@ -353,7 +334,7 @@ export type Eligibility =
 export function eligibility(
   scored: ScoredItem,
   threshold: number = DEFAULT_SCORE_THRESHOLD,
-  weights?: Readonly<Partial<Record<Category, number>>>,
+  offCategories?: readonly string[],
 ): Eligibility {
   if (scored.topic) {
     // A custom topic won: it names the category, the section and whether the story may publish.
@@ -368,9 +349,7 @@ export function eligibility(
   }
   const category = scored.topCategory;
   if (category === "none") return { eligible: false, reason: "no_category" };
-  if (snapWeight(weights?.[category] ?? scored.categoryWeight ?? 1) === 0) {
-    return { eligible: false, reason: "never_publish" };
-  }
+  if (offCategories?.includes(category)) return { eligible: false, reason: "never_publish" };
   const home = homeSection(category, scored.item.source_type);
   if (home === null) return { eligible: false, reason: "never_publish" };
   if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };
@@ -388,8 +367,6 @@ export function eligibility(
  *     cap (at least one). Within that, take the best item of each category first, then walk by rank taking at
  *     most 3 per home section up to the cap, then let overflow fill any remaining room, so a thin
  *     section never leaves slots empty.
- *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
- *     the median of preferences, so taste does not narrow week over week.
  *  6. Sections with an allowance of their own (Tech releases, and each section a custom topic
  *     defines, and each general news section): take the best of each by rank up to its allowance
  *     (5, or 2 for a general section), on top of the cap. The per-section target does not apply,
@@ -418,7 +395,7 @@ export function selectItems(input: SelectInput): SelectResult {
       dropped.push({ id: scored.item.id, reason: "too_old", score: scored.score });
       continue;
     }
-    const verdict = eligibility(scored, threshold, input.weights);
+    const verdict = eligibility(scored, threshold, input.offCategories);
     if (verdict.eligible) {
       if (
         input.skipTopics?.includes(verdict.candidate.category) ||
@@ -537,27 +514,6 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const candidate of main) {
     if (chosen.size >= limit) break;
     if (!chosen.has(candidate) && fits(candidate)) take(candidate);
-  }
-
-  // The reserved slot is one of the capped slots, so it is filled from the same pool. Tech
-  // releases has an allowance of its own and never needs it.
-  if (input.kind === "weekly" && input.weights && limit > 0) {
-    const median = medianWeight(input.weights);
-    // A custom topic has no preference weight, so it never fills the off-taste slot.
-    const reserve = main.find(
-      (c) =>
-        input.weights !== undefined &&
-        (chosen.has(c) || fits(c)) &&
-        isBuiltinCategory(c.category) &&
-        input.weights[c.category] < median,
-    );
-    if (reserve && !chosen.has(reserve)) {
-      if (chosen.size >= limit) {
-        const lowest = [...chosen].sort(compareCandidates).pop();
-        if (lowest) chosen.delete(lowest);
-      }
-      chosen.add(reserve);
-    }
   }
 
   const ownTaken = takeOwnSections(own, total - chosen.size, plan);

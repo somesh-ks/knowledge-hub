@@ -9,6 +9,7 @@
  */
 import type { StreamDoc } from "../lib/liveStream";
 import type { PlayerDigestData } from "../types/contracts";
+import { type NarrationPlan, narratedDigest } from "./narrationPlan";
 import type { Playlist, TrackSegment } from "./trackAudio";
 
 type Growth = NonNullable<Playlist["growth"]>;
@@ -41,8 +42,10 @@ export function createGrowth(
   segments: TrackSegment[],
   initial: Pick<StreamDoc, "status">,
   deps: GrowthDeps,
-): Growth {
+): Growth & { sync(doc: StreamDoc): number } {
   let status = initial.status;
+  /** How many segments the track has been told about by a `waitForMore` that resolved. */
+  let told = segments.length;
 
   function append(doc: StreamDoc): number {
     let added = 0;
@@ -59,13 +62,28 @@ export function createGrowth(
 
   return {
     pending: () => status === "writing",
+    /** Takes a copy read elsewhere (the controller's own poll): turns past the last are added. */
+    sync(doc) {
+      status = doc.status;
+      return append(doc);
+    },
     async waitForMore() {
       const limit = deps.now() + (deps.giveUpMs ?? GROWTH_GIVE_UP_MS);
       for (;;) {
+        // Turns a `sync` added while the track was still playing are news to the track too.
+        if (segments.length > told) {
+          told = segments.length;
+          return true;
+        }
+        if (status !== "writing") return false;
         const doc = await deps.fetchDoc().catch(() => null);
         if (doc) {
           status = doc.status;
-          if (append(doc) > 0) return true;
+          append(doc);
+          if (segments.length > told) {
+            told = segments.length;
+            return true;
+          }
           if (status !== "writing") return false;
         }
         if (deps.now() >= limit) {
@@ -77,6 +95,14 @@ export function createGrowth(
     },
   };
 }
+
+/**
+ * The one section an episode's stories sit in, as the committed episode names it (lib/episodes.ts
+ * EPISODE_SECTION). The stream's stories carry the topic sections they were picked from; the
+ * player's timeline lists a story only under a section the digest names, so left as they were a
+ * catch-up across topics showed no chapters, no transcript and, once named, a "Stories" heading each.
+ */
+const LIVE_SECTION = { slug: "top", title: "Stories" } as const;
 
 /** The player's copy of a live episode: its turns so far and the stories they refer to. */
 export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
@@ -91,13 +117,16 @@ export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
     items: doc.stories.map((story) => ({
       id: story.item_id,
       headline: story.headline,
-      section: story.section,
+      section: LIVE_SECTION.slug,
       source: story.source,
       url: story.url,
       start_ms: null,
       end_ms: null,
     })),
-    sections: [],
+    sections:
+      doc.stories.length > 0
+        ? [{ slug: LIVE_SECTION.slug, title: LIVE_SECTION.title, start_ms: null }]
+        : [],
     turns: doc.turns.map((turn, idx) => ({
       key: `t${idx}`,
       speaker: turn.speaker,
@@ -109,6 +138,8 @@ export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
     hosts: doc.hosts,
     voices: doc.voices,
     format: doc.format,
+    // Its cover may not be drawn yet: until the file exists the image fails and PlayerCover shows the
+    // branded fallback (cover.css), so the player never shows a broken or empty cover.
     cover: {
       src512: `/covers/${doc.id}-512.webp`,
       src1024: `/covers/${doc.id}-1024.webp`,
@@ -117,4 +148,35 @@ export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
     prev_id: null,
     next_id: null,
   };
+}
+
+/**
+ * The player's copy of a live episode as narrated so far: the turns the track holds, each placed on
+ * the timeline, and each story marked from its first turn to its last. Loaded again with every turn
+ * that arrives; the store keeps playing when the id and the audio are the same.
+ */
+export function liveNarrated(
+  doc: StreamDoc,
+  segments: readonly TrackSegment[],
+  now: Date,
+): PlayerDigestData {
+  const spans = new Map(segments.map((segment) => [segment.key, segment]));
+  const items = new Map<string, { start_ms: number; end_ms: number }>();
+  doc.turns.forEach((turn, idx) => {
+    const span = spans.get(`t${idx}`);
+    if (!span || turn.item_id === undefined) return;
+    const earlier = items.get(turn.item_id);
+    items.set(turn.item_id, {
+      start_ms: earlier?.start_ms ?? Math.round(span.start * 1000),
+      end_ms: Math.round(span.end * 1000),
+    });
+  });
+  const last = segments[segments.length - 1];
+  const plan: NarrationPlan = {
+    segments: [...segments],
+    total_ms: Math.round((last?.end ?? 0) * 1000),
+    items,
+    complete: false,
+  };
+  return narratedDigest(liveDigestFrom(doc, now), plan);
 }

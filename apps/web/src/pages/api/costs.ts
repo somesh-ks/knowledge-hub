@@ -1,11 +1,13 @@
 import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@singularity/core";
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
-import { anthropicBilledDays, outsideAppRecords } from "../../server/anthropicBilling";
+import { anthropicBilledDays } from "../../server/anthropicBilling";
 import { createVercelBlobStore, readFresh } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { contentCostRecords, contentPrices } from "../../server/contentSources";
-import { costBody, narrationRecords, parseCostQuery } from "../../server/costs";
+import { bundledCostRecords, bundledPrices } from "../../server/costSource";
+import { narrationRecords, parseCostQuery } from "../../server/costs";
+import { costsAnswer, serveCosts } from "../../server/costsAnswer";
 import { recordingFaults, toResponse } from "../../server/http";
 import { parseState, usageKey } from "../../server/narrationState";
 import { sharedLimit } from "../../server/rateLimit";
@@ -56,24 +58,14 @@ async function siteRecords(
   }
 }
 
-/** Anthropic's bill beyond the ledger; "off" without an Admin key, null records when unreadable. */
-async function billingRecords(
-  days: number,
-  now: Date,
-  engine: CostRecord[],
-): Promise<{ state: "ok" | "unavailable" | "off"; records: CostRecord[] }> {
+/** USD Anthropic billed per UTC day; null without an Admin key. Throws when unreadable. */
+async function billedDays(days: number, now: Date): Promise<Map<string, number> | null> {
   const adminKey = process.env.ANTHROPIC_ADMIN_KEY?.trim();
-  if (!adminKey) return { state: "off", records: [] };
+  if (!adminKey) return null;
   // The report is by UTC day; a day more than the window covers its first local day.
   const from = new Date(now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
   const to = now.toISOString().slice(0, 10);
-  try {
-    const billed = await anthropicBilledDays(adminKey, from, to);
-    return { state: "ok", records: outsideAppRecords(billed, engine) };
-  } catch (error) {
-    log(`billing: ${error instanceof Error ? error.message : "unreadable"}`);
-    return { state: "unavailable", records: [] };
-  }
+  return anthropicBilledDays(adminKey, from, to);
 }
 
 const get: APIRoute = async ({ request, url }) => {
@@ -85,27 +77,29 @@ const get: APIRoute = async ({ request, url }) => {
     });
   }
   const query = parseCostQuery(url.searchParams);
-  const prices = await contentPrices();
-  if (!query || !prices) {
-    return toResponse({
-      status: query ? 503 : 400,
-      body: { error: query ? "unavailable" : "invalid_request" },
-    });
-  }
+  if (!query) return toResponse({ status: 400, body: { error: "invalid_request" } });
   const now = new Date();
-  const [site, engine] = await Promise.all([
-    siteRecords(request, query.days, now, prices),
-    contentCostRecords(),
-  ]);
-  const billing = await billingRecords(query.days, now, engine);
-  return toResponse({
-    status: 200,
-    body: {
-      ...costBody(query, { engine, site: [...(site ?? []), ...billing.records], prices, now }),
-      site: site ? "ok" : "unavailable",
-      billing: billing.state,
-    },
-  });
+  const build = () =>
+    costsAnswer(
+      query,
+      {
+        prices: contentPrices,
+        fallbackPrices: bundledPrices,
+        engine: contentCostRecords,
+        fallbackEngine: bundledCostRecords,
+        site: (table) => siteRecords(request, query.days, now, table),
+        billed: () => billedDays(query.days, now),
+      },
+      now,
+    );
+  // Private: the instance keeps the last complete answer and the route sends no-store, so no CDN does.
+  const answer = await serveCosts(
+    `${query.period}|${query.by}|${query.days}`,
+    build,
+    now.getTime(),
+  );
+  if (!answer) return toResponse({ status: 503, body: { error: "unavailable" } });
+  return toResponse({ status: 200, body: answer.body });
 };
 
 export const GET = recordingFaults("api/costs", get);

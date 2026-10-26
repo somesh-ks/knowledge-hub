@@ -1,17 +1,9 @@
-import {
-  CATEGORIES,
-  LEARN_LIMITS,
-  type Preferences,
-  stopIndex,
-  WEIGHT_STOPS,
-} from "@singularity/core";
+import type { Preferences } from "@singularity/core";
 import { z } from "zod";
 
 /** What the session model produces from a sentence such as "more shaders, less VC funding". */
 export const PreferencesPatch = z.object({
   input: z.string().min(1).max(500),
-  /** Direction only: below 0 moves a weight down one stop, above 0 up one. */
-  weight_deltas: z.partialRecord(z.enum(CATEGORIES), z.number().min(-1).max(1)).default({}),
   add_keywords: z.array(z.string().min(1).max(60)).max(10).default([]),
   remove_keywords: z.array(z.string().min(1).max(60)).max(10).default([]),
   add_authors: z.array(z.string().min(1).max(60)).max(10).default([]),
@@ -25,8 +17,6 @@ export interface PatchResult {
   next: Preferences;
   /** Human-readable change lines, also stored in feedback_history. */
   changes: string[];
-  /** Notes about weight moves left out to stay within bounds. */
-  clamped: string[];
 }
 
 function applyList(
@@ -55,9 +45,9 @@ function applyList(
 }
 
 /**
- * Apply a patch within the learn limits: a weight moves one whole stop up or down (the sign of its
- * delta says which, its size does not matter), and at most `maxMoves` weights move per call, in
- * category order. Pure; the caller writes.
+ * Apply a patch: keywords, authors and disliked patterns are added and removed. Weights are gone
+ * (D194); an older patch that still carries `weight_deltas` parses and the field is ignored. Pure;
+ * the caller writes.
  */
 export function applyPatch(
   current: Preferences,
@@ -66,30 +56,9 @@ export function applyPatch(
 ): PatchResult {
   const patch = PreferencesPatch.parse(rawPatch);
   const changes: string[] = [];
-  const clamped: string[] = [];
-
-  const weights = { ...current.weights };
-  let moves = 0;
-  for (const category of CATEGORIES) {
-    const wanted = patch.weight_deltas[category];
-    if (wanted === undefined || wanted === 0) continue;
-    const before = weights[category];
-    const at = stopIndex(before);
-    const to = Math.min(WEIGHT_STOPS.length - 1, Math.max(0, at + Math.sign(wanted)));
-    if (to === at) continue;
-    if (moves >= LEARN_LIMITS.maxMoves) {
-      clamped.push(`${category}: left for a later call, ${LEARN_LIMITS.maxMoves} moves per call`);
-      continue;
-    }
-    moves += 1;
-    const after = WEIGHT_STOPS[to]?.weight ?? before;
-    weights[category] = after;
-    changes.push(`weight ${category}: ${before} to ${after}`);
-  }
 
   const next: Preferences = {
     ...current,
-    weights,
     preferred_keywords: applyList(
       current.preferred_keywords,
       patch.add_keywords,
@@ -116,5 +85,5 @@ export function applyPatch(
   if (changes.length > 0) {
     next.feedback_history = [...current.feedback_history, { date, input: patch.input, changes }];
   }
-  return { next, changes, clamped };
+  return { next, changes };
 }

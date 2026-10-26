@@ -6,11 +6,15 @@ export const prerender = false;
 
 const get: APIRoute = async ({ url }) =>
   toResponse(
-    await handleStatus(url.searchParams.get("run"), {
-      env: process.env,
-      fetch,
-      log: (message) => console.error(`[api/status] ${message}`),
-    }),
+    await handleStatus(
+      url.searchParams.get("run"),
+      {
+        env: process.env,
+        fetch,
+        log: (message) => console.error(`[api/status] ${message}`),
+      },
+      { format: url.searchParams.get("format"), length: url.searchParams.get("length") },
+    ),
   );
 
 export const GET = recordingFaults("api/status", get);

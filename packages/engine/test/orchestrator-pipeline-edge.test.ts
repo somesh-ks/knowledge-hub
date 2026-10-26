@@ -272,8 +272,6 @@ describe("a run that died before the commit stage", () => {
 });
 
 describe("grounding and validation", () => {
-  const firstId = (): string => (goodFeeds(8)["blog-a"] as Item[])[0]?.id as string;
-
   function writerUnsupportedFor(ids: readonly string[]) {
     return fakeWriter({
       write: (material) =>
@@ -286,19 +284,40 @@ describe("grounding and validation", () => {
     });
   }
 
+  /**
+   * A writer whose first `count` stories carry a claim the source does not support. Which stories
+   * those are follows selection, so the test reads them back from `unsupported`.
+   */
+  function writerUnsupportedFirst(count: number) {
+    const unsupported: string[] = [];
+    const writer = fakeWriter({
+      write: (material) => {
+        if (unsupported.length >= count) return okWritten(material);
+        unsupported.push(material.id);
+        return {
+          ...okWritten(material),
+          summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+        };
+      },
+    });
+    return { writer, unsupported };
+  }
+
   it("drops an item whose sentence the source does not support", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED, writer: writerUnsupportedFor([firstId()]) });
+    const { writer, unsupported } = writerUnsupportedFirst(1);
+    const world = makeWorld(repo.root, { now: WED, writer });
     const result = await runStage(world);
+    const [firstId] = unsupported as [string];
     expect(result.report).toMatchObject({ outcome: "published", items: 5 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
-    expect(digest.items.map((item) => item.id)).not.toContain(firstId());
+    expect(digest.items.map((item) => item.id)).not.toContain(firstId);
     expect(digest.verified).toBe(true);
 
     const written = WrittenFile.parse(
       await readJson(repo.root, ".cache/run/2026-10-07/written.json"),
     );
     expect(written.dropped).toContainEqual(
-      expect.objectContaining({ id: firstId(), stage: "grounding" }),
+      expect.objectContaining({ id: firstId, stage: "grounding" }),
     );
     expect(written.items.every((entry) => entry.verified)).toBe(true);
   });
@@ -320,16 +339,12 @@ describe("grounding and validation", () => {
   // selection came off the owner's length.
   it("fills the owner's length with a spare when grounding drops a story", LONG, async () => {
     await seed(repo.root, { "config/schedule.json": SCHEDULE_3_MINUTES });
-    const feeds = goodFeeds(12);
-    const unsupported = Object.values(feeds).map((items) => items[0]?.id as string);
-    const world = makeWorld(repo.root, {
-      now: WED,
-      feeds,
-      writer: writerUnsupportedFor(unsupported),
-    });
+    const feeds = manyOutlets(45);
+    const { writer, unsupported } = writerUnsupportedFirst(3);
+    const world = makeWorld(repo.root, { now: WED, feeds, writer });
     const result = await runStage(world);
     // Three minutes is eight stories at the narration's pace.
-    expect(result.report).toMatchObject({ outcome: "published", items: 4 });
+    expect(result.report).toMatchObject({ outcome: "published", items: 12 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
     expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
     // The spares filled it, so no replacement was written.

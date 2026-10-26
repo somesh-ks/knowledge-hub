@@ -11,7 +11,7 @@ import {
   scriptSystemPrompt,
   scriptUserMessage,
 } from "./prompt.js";
-import type { ScriptInput, ScriptWriter, TurnRewrite } from "./types.js";
+import type { ScriptInput, ScriptTurn, ScriptWriter, TurnRewrite } from "./types.js";
 
 const REWRITE_MAX_TOKENS = 400;
 /** Per-turn JSON overhead and the model's own slack, on top of the speech itself. */
@@ -70,6 +70,19 @@ export class LlmScriptWriter implements ScriptWriter {
     });
     // The opening was written first and shown already: the whole script starts with it.
     return input.opening?.length ? { turns: [...input.opening, ...value.turns] } : value;
+  }
+
+  async extendScript(
+    input: ScriptInput,
+    turns: readonly ScriptTurn[],
+    problem: string,
+  ): Promise<unknown> {
+    const current = JSON.stringify({ turns });
+    // The current script already holds the opening; writeScript must not prepend it again.
+    const { opening: _held, ...rest } = input;
+    return this.writeScript(rest, [
+      `${problem} Return the whole script again: keep every turn that is long enough as it is and lengthen the shortest ones. This is the current script: ${current}`,
+    ]);
   }
 
   async writeOpening(input: ScriptInput): Promise<unknown> {

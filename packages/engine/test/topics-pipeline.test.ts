@@ -53,7 +53,6 @@ const quantum: Topic = {
   id: "quantum_computing",
   name: "Quantum computing",
   description: "Hardware, algorithms and error correction.",
-  weight: 0.8,
   enabled: true,
   keywords: ["qubit"],
   section_id: "quantum",
@@ -62,8 +61,8 @@ const quantum: Topic = {
   depth: "fit_only",
 };
 
-function topicsText(preferences: Preferences, topic: Topic = quantum): string {
-  const base = resolveTopics(null, preferences);
+function topicsText(_preferences: Preferences, topic: Topic = quantum): string {
+  const base = resolveTopics(null);
   return serializeTopics(
     TopicsFile.parse({
       ...base,
@@ -253,7 +252,7 @@ describe("a run with no custom topic", () => {
     "writes the same digest whether config/topics.json is missing or holds only the seed",
     LONG,
     async () => {
-      const preferences = realPreferences();
+      const _preferences = realPreferences();
       const feeds = goodFeeds(10);
       const without = makeWorld(repo.root, { now: WED, feeds });
       expect((await runStaged(without)).map((r) => r.code)).toEqual([0, 0, 0, 0, 0, 0]);
@@ -262,7 +261,7 @@ describe("a run with no custom topic", () => {
       const second = await instantiate(template);
       try {
         await seed(second.root, {
-          "config/topics.json": serializeTopics(resolveTopics(null, preferences)),
+          "config/topics.json": serializeTopics(resolveTopics(null)),
         });
         const world = makeWorld(second.root, {
           now: WED,

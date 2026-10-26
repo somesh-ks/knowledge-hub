@@ -15,7 +15,6 @@ const topic = (over: Partial<ManageTopic> = {}): ManageTopic => ({
   id: "design",
   name: "Design",
   description: "Design.",
-  weight: 0.5,
   enabled: true,
   keywords: [],
   section_id: "design",
@@ -55,7 +54,7 @@ describe("generalOf", () => {
 describe("topicSummary", () => {
   it("says a topic's sources, never its weight", () => {
     expect(topicSummary(topic({ origin: "general" }), 2)).toBe("2 sources");
-    expect(topicSummary(topic({ weight: 0.95 }), 1)).toBe("1 source");
+    expect(topicSummary(topic(), 1)).toBe("1 source");
   });
 
   it("says when there are none", () => {

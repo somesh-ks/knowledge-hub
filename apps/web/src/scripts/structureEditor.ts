@@ -64,11 +64,10 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   const data = JSON.parse(pane.dataset.structure ?? "null") as StructureData | null;
   const list = pane.querySelector<HTMLOListElement>("[data-structure-list]");
   const addButton = pane.querySelector<HTMLButtonElement>(".structure-add > .btn-secondary");
-  const addItems = pane.querySelector<HTMLElement>("#structure-add-menu .menu-sheet-items");
   const profileSelect = pane.querySelector<HTMLSelectElement>("#structure-profile");
   const confirm = pane.querySelector<HTMLElement>("[data-profile-confirm]");
   const live = root.querySelector<HTMLElement>("[data-live]");
-  if (!data || !list || !addButton || !addItems || !profileSelect || !confirm) return;
+  if (!data || !list || !addButton || !profileSelect || !confirm) return;
 
   // What the store holds and this device saved since the build, laid over what the page was built with.
   const ops: ConfigOp[] =
@@ -177,17 +176,6 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     const rows = blocks;
     list.innerHTML = rowsHtml(rows, data, skip);
     const offers = addOffers(rows, data.sections);
-    addItems.replaceChildren(
-      ...offers.map((offer) => {
-        const button = document.createElement("button");
-        button.className = "hero-menu-item";
-        button.type = "button";
-        button.setAttribute("role", "menuitem");
-        button.dataset.add = offer.key;
-        button.textContent = offer.name;
-        return button;
-      }),
-    );
     addButton.disabled = offers.length === 0;
     if (!focus) return;
     const row = list.querySelector<HTMLElement>(`[data-index="${focus.index}"]`);
@@ -231,13 +219,14 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     autosave.changed();
   };
 
-  const add = (block: StructureBlock): void => {
+  const add = (block: StructureBlock): number => {
     const at = insertAt(blocks, block);
     blocks = [...blocks.slice(0, at), block, ...blocks.slice(at)];
     editedList();
     render({ index: at, part: "more" });
     say(`${blockName(block, data.sections)} added, ${at} of ${bodyCount()}`);
     autosave.changed();
+    return at;
   };
 
   // A named profile replaces the list with its preset; the owner's own list is only given up after
@@ -300,15 +289,12 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   pane.addEventListener("click", (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>("button");
     if (!button || button.disabled) return;
-    const offer = button.dataset.add;
-    if (offer !== undefined) {
-      button.closest<HTMLElement>("[popover]")?.hidePopover();
-      if (offer === "custom") {
-        openSheet(null, addButton);
-        return;
-      }
-      const block = addOffers(blocks, data.sections).find((each) => each.key === offer)?.block;
-      if (block) add(block);
+    if (button === addButton) {
+      // No selection step: the first block not yet in the list goes to the bottom and its sheet opens
+      // at once; when every kind is in, the owner's own block starts empty.
+      const block = addOffers(blocks, data.sections).find((each) => each.block !== null)?.block;
+      if (!block) openSheet(null, addButton);
+      else openSheet(add(block), addButton);
       return;
     }
     const act = button.dataset.act;

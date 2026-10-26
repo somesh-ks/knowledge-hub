@@ -107,6 +107,8 @@ export interface RunDeps {
   runtime: () => Promise<ApiRuntime>;
   pickCover: CoverPickFn;
   git: GitRunner;
+  /** Waits for the scheduled publish time; tests pass a fake that moves their clock. */
+  wait?: (ms: number) => Promise<void>;
   /** Counts paid requests and holds the Firecrawl ceiling for the run. Absent in most tests. */
   spend?: SpendTracker;
 }

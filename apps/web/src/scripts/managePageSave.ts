@@ -7,8 +7,8 @@
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { SAVED_KEY } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
-import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import { noteOwnWrite } from "./configStoreRead";
 import { sendToast } from "./toastEvent";
 
 export const SAVING = "Saving";
@@ -120,8 +120,6 @@ interface Step {
  * and a removal goes last so nothing is edited after it is gone.
  */
 export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
-  const weights: Record<string, number> = {};
-  const weightKeys: string[] = [];
   /** Every type slider goes in one mix.set. */
   const mix: Record<string, number> = {};
   const mixKeys: string[] = [];
@@ -129,14 +127,7 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
   /** A topic's perspective goes in one topic.mix. */
   const mixes = new Map<string, Step>();
   const removals: Step[] = [];
-  for (const [key, { op, el, with: extra }] of changes) {
-    if (op.op === "topic.upsert") {
-      // The switch was built with the slider's value from the page load, which may have moved since.
-      const slider = el
-        .closest("li, [data-topic]")
-        ?.querySelector<HTMLInputElement>("[data-weight]");
-      if (slider) op.topic.weight = weightOf(slider);
-    }
+  for (const [key, { op, with: extra }] of changes) {
     if (op.op === "topic.mix") {
       const step = mixes.get(op.id);
       if (step && step.op.op === "topic.mix") {
@@ -150,9 +141,6 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
     } else if (op.op === "mix.set") {
       Object.assign(mix, op.format_mix);
       mixKeys.push(key);
-    } else if (op.op === "weights.set") {
-      Object.assign(weights, op.weights);
-      weightKeys.push(key);
     } else {
       (op.op.endsWith(".remove") ? removals : edits).push({
         op,
@@ -161,7 +149,6 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
       });
     }
   }
-  if (weightKeys.length > 0) edits.push({ op: { op: "weights.set", weights }, keys: weightKeys });
   if (mixKeys.length > 0) edits.push({ op: { op: "mix.set", format_mix: mix }, keys: mixKeys });
   return [...edits, ...removals];
 }
@@ -279,6 +266,7 @@ export function remember(
   waiting: readonly ConfigOp[] = heldOps(),
   stored?: number,
 ): void {
+  if (stored !== undefined) noteOwnWrite(stored);
   try {
     const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now, stored);
     const entries = waiting.length > 0 ? withPending(saved, waiting, now) : saved;

@@ -72,6 +72,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside-rail", "the rail's track padding, around its own segments"],
   [".banner > .btn", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
+  [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".create-sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
@@ -215,6 +216,15 @@ const rulesOf = (css: string) =>
   [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
     ([, selector = "", body = ""]) => [selector.trim(), body] as const,
   );
+
+/**
+ * The root class of a top-level view. Its inline edges come from the page gutter (`.page`,
+ * foundations.css) and the shell (shell.css), so no stylesheet gives a view root its own gutter or
+ * width: a page that did sat 24px further in than Latest and Library (2026-10-26).
+ */
+const VIEW_ROOTS = ["settings-view", "library", "manage", "create-page", "design-page"];
+const VIEW_EDGE =
+  /^(?:padding|margin)(?:-(?:inline|left|right)(?:-(?:start|end))?)?$|^max-(?:width|inline-size)$/;
 
 /** The declarations of a rule body, as [property, value]. */
 const declarationsOf = (body: string) =>
@@ -706,6 +716,32 @@ const RULES: Rule[] = [
               .map((name) => `${file}: .${name}`),
           ),
         ),
+  },
+  {
+    // Prevents a page-specific gutter: Settings once pushed its title in by a card's padding and sat
+    // 24px off Latest and Library. A view root takes its inline edges from the shared layout.
+    name: "a view root class sets no inline padding, inline margin or max width of its own",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) => {
+          const subjects = selector
+            .replace(/:[a-z-]+\((?:[^()]|\([^()]*\))*\)/g, "")
+            .split(",")
+            .map((part) =>
+              part
+                .trim()
+                .split(/\s*[>+~]\s*|\s+/)
+                .pop(),
+            )
+            .filter((subject) =>
+              VIEW_ROOTS.some((root) => new RegExp(`\\.${root}(?![\\w-])`).test(subject ?? "")),
+            );
+          const edges = declarationsOf(body).filter(([property]) => VIEW_EDGE.test(property));
+          return subjects.length > 0
+            ? edges.map(([property]) => `${file}: ${selector} ${property}`)
+            : [];
+        }),
+      ),
   },
   {
     // Prevents an unstyled or one-off button in markup: every <button> carries a shared control

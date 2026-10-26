@@ -384,6 +384,25 @@ describe("synthesizeWithMarks", () => {
   });
 });
 
+describe("transient failures", () => {
+  // A 503 used to fail a narration that the next request would have served.
+  it("retries a 5xx, and does not retry a 400", async () => {
+    const flaky = await serve((_req, res, _rec, index) => {
+      if (index === 0) return jsonError(res, 503, "unavailable", "try later");
+      startSse(res);
+      res.end(standardStream());
+    });
+    await client(flaky, { transientRetries: 2 }).synthesizeWithMarks(REQUEST);
+    expect(flaky.requests).toHaveLength(2);
+
+    const bad = await serve((_req, res) => jsonError(res, 400, "bad_request", "no"));
+    await client(bad, { transientRetries: 2 })
+      .synthesizeWithMarks(REQUEST)
+      .catch(() => {});
+    expect(bad.requests).toHaveLength(1);
+  });
+});
+
 describe("rate limiting", () => {
   it("waits out Retry-After and retries", async () => {
     const waits: number[] = [];

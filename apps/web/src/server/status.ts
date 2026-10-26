@@ -2,11 +2,22 @@ import {
   briefingStage,
   EPISODE_STEP,
   episodeStage,
+  medianEstimates,
+  NAMED_EPISODE_STEPS,
+  STAGE_IDS,
   type StageInfo,
+  type TimedRun,
   updatingStage,
 } from "../lib/runStages";
 import { type GenerateStep, STEP_FOR_WORKFLOW_STEP, type StatusResponse } from "../types/contracts";
-import { readServerConfig, type ServerConfig, type ServerEnv, secretsOf } from "./config";
+import { readPublicText } from "./blobStore";
+import {
+  readPublicBlobBase,
+  readServerConfig,
+  type ServerConfig,
+  type ServerEnv,
+  secretsOf,
+} from "./config";
 import {
   createGitHubClient,
   type FetchLike,
@@ -57,9 +68,37 @@ function failedEpisodeStage(steps: readonly WorkflowStep[]): StageInfo {
   const failed = steps.find(
     (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
   );
+  if (failed && failed.name in STAGE_IDS)
+    return episodeStage([{ name: failed.name, status: "completed" }]);
   return episodeStage(
     failed?.name === EPISODE_STEP ? [{ name: EPISODE_STEP, status: "completed" }] : [],
   );
+}
+
+/** Whether the workflow reports named steps (lib/runStages.ts), so a failure can say which. */
+const hasNamedSteps = (steps: readonly WorkflowStep[]) =>
+  steps.some((step) => step.name in STAGE_IDS);
+
+/**
+ * What a failed episode run says about itself: the stage that failed and the artifacts the stages
+ * before it finished (script, cover, voices), so the page can say what was kept.
+ */
+function failureFields(steps: readonly WorkflowStep[]) {
+  const failed = steps.find(
+    (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
+  );
+  const id = failed ? STAGE_IDS[failed.name] : undefined;
+  if (!failed || !id) return {};
+  const kept = steps
+    .filter((step) => step.conclusion === "success" && step.name in STAGE_IDS)
+    .filter(
+      (step) =>
+        NAMED_EPISODE_STEPS.indexOf(step.name as never) <
+        NAMED_EPISODE_STEPS.indexOf(failed.name as never),
+    )
+    .map((step) => STAGE_IDS[step.name] as string)
+    .filter((stage) => stage === "script" || stage === "cover" || stage === "voices");
+  return { failed_stage: id, kept };
 }
 
 /** Whether a run is an episode run: podcast.yml, which has no named steps and no last-run record. */
@@ -151,6 +190,41 @@ export function parseOnDemandRecord(text: string): OnDemandRecord | null {
   }
 }
 
+/** state/podcast-timings.json on main, kept per instance for a minute: every poll asks. */
+const TIMINGS_TTL_MS = 60_000;
+let timingsCache: { at: number; runs: TimedRun[] } | null = null;
+
+async function readTimings(github: ReturnType<typeof createGitHubClient>): Promise<TimedRun[]> {
+  if (timingsCache && Date.now() - timingsCache.at < TIMINGS_TTL_MS) return timingsCache.runs;
+  let runs: TimedRun[] = [];
+  try {
+    const file = JSON.parse(
+      (await github.readFile("state/podcast-timings.json", "main")) ?? "null",
+    );
+    if (Array.isArray(file?.runs)) runs = file.runs;
+  } catch {
+    // No file yet, or a bad one: no estimate.
+  }
+  timingsCache = { at: Date.now(), runs };
+  return runs;
+}
+
+/** What the engine saved when a stage failed: podcast-runs/<run id>/failure.json in Blob. */
+async function readFailure(deps: StatusDeps, runId: number) {
+  const base = readPublicBlobBase(deps.env);
+  if (!base) return {};
+  try {
+    const url = `${base}/podcast-runs/${runId}/failure.json`;
+    const text = await readPublicText(url, deps.fetch as never);
+    const file = text ? JSON.parse(text) : null;
+    if (typeof file?.failed_stage !== "string") return {};
+    const kept = Array.isArray(file.kept) ? file.kept.map(String) : [];
+    return { failed_stage: file.failed_stage, kept };
+  } catch {
+    return {};
+  }
+}
+
 export function runUrlFor(config: ServerConfig, runId: number): string {
   return `https://github.com/${config.repository}/actions/runs/${runId}`;
 }
@@ -158,6 +232,7 @@ export function runUrlFor(config: ServerConfig, runId: number): string {
 export async function handleStatus(
   runParam: string | null,
   deps: StatusDeps,
+  about?: { format?: string | null; length?: string | null },
 ): Promise<ApiResult<StatusBody>> {
   const config = readServerConfig(deps.env);
   if (!config) return { status: 503, body: { error: "unavailable" } };
@@ -180,14 +255,27 @@ export async function handleStatus(
     if (isPodcastRun(run)) {
       const steps = state === "queued" ? [] : await github.listSteps(runId);
       if (state !== "completed") {
+        const length = Number(about?.length);
+        const estimates =
+          hasNamedSteps(steps) && about?.format && Number.isFinite(length)
+            ? medianEstimates(await readTimings(github), about.format, length)
+            : null;
         return {
           status: 200,
           headers,
-          body: { run_id: runId, state, step: null, ...stageFields(episodeStage(steps)) },
+          body: {
+            run_id: runId,
+            state,
+            step: null,
+            ...stageFields(episodeStage(steps)),
+            ...(estimates ? { stage_estimates_ms: estimates as number[] } : {}),
+          },
         };
       }
       const done = run.conclusion === "success";
-      const stage = done ? updatingStage("episode") : failedEpisodeStage(steps);
+      const stage = done
+        ? updatingStage("episode", hasNamedSteps(steps))
+        : failedEpisodeStage(steps);
       return {
         status: 200,
         headers,
@@ -197,7 +285,13 @@ export async function handleStatus(
           step: null,
           ...stageFields(stage),
           outcome: done ? "published" : "failed",
-          ...(done ? {} : { run_url: runUrlFor(config, runId) }),
+          ...(done
+            ? {}
+            : {
+                run_url: runUrlFor(config, runId),
+                ...failureFields(steps),
+                ...(await readFailure(deps, runId)),
+              }),
         },
       };
     }

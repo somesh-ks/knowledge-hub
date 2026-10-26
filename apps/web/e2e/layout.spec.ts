@@ -7,7 +7,15 @@ const PAGES = [
   "/create",
   "/settings",
   "/settings/daily",
+  "/settings/weekly",
+  "/settings/preferences",
+  "/settings/preferences?view=structure",
+  "/settings/categories",
   "/settings/categories/design",
+  "/settings/voice",
+  "/settings/sounds",
+  "/settings/about",
+  "/settings/privacy",
   "/e/ep-20261007-1930",
   // Left out until 2026-10-24, so its chart and table switch answered a touch across 36px unseen.
   "/analytics",
@@ -22,14 +30,15 @@ const LONG_HOST = "an-unusually-long-subdomain.publications.a-publisher-network.
 test.describe("layout", () => {
   for (const width of WIDTHS) {
     test(`nothing scrolls sideways at ${width}px`, { tag: "@both" }, async ({ page }) => {
+      // Some twenty pages, each loaded once.
+      test.setTimeout(120_000);
       await page.setViewportSize({ width, height: 900 });
       for (const path of [...ROUTES.map((route) => route.path), ...PAGES]) {
         await page.goto(path);
-        const overflow = await page.evaluate(() => ({
-          scroll: document.documentElement.scrollWidth,
-          client: document.documentElement.clientWidth,
-        }));
-        expect(overflow.scroll, `${path} at ${width}px`).toBeLessThanOrEqual(overflow.client);
+        // Against the width asked for, not the page's own clientWidth: a page that outgrows the phone
+        // widens the layout viewport too (Chromium's mobile zoom-out), so it always fits itself.
+        const scroll = await page.evaluate(() => document.documentElement.scrollWidth);
+        expect(scroll, `${path} at ${width}px`).toBeLessThanOrEqual(width);
       }
     });
   }

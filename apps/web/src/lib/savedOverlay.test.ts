@@ -72,24 +72,19 @@ describe("withStore", () => {
   // The bug (D149): this device's copy of an edit, kept three minutes, was laid over the store, so a
   // later edit made on another device looked undone here, and the next toggle sent the old value.
   it("lays this device's newer edits over the store, never older ones", () => {
-    const mine = addSaved([], [{ op: "weights.set", weights: { design: 0.5 } }], T0);
+    const mine = addSaved([], [{ op: "mix.set", format_mix: { blog: 0.5 } }], T0);
     const waiting = withPending(mine, [{ op: "source.set", id: "a", enabled: false }], T0 + 1000);
-    const later = { op: "weights.set", weights: { design: 0.95 } } as const;
+    const later = { op: "mix.set", format_mix: { blog: 0.95 } } as const;
     expect(withStore(waiting, { ops: [later], written_at: T0 + 30_000 }, T0 + 40_000)).toEqual([
       later,
       { op: "source.set", id: "a", enabled: false },
     ]);
     expect(withStore(mine, { ops: [], written_at: T0 - 30_000 }, T0 + 1000)).toEqual([
-      { op: "weights.set", weights: { design: 0.5 } },
+      { op: "mix.set", format_mix: { blog: 0.5 } },
     ]);
     // Two writes 100 ms apart on the server, this device seeing its own answer later than that: the
     // server's date for this device's write decides, not this device's clock.
-    const close = addSaved(
-      [],
-      [{ op: "weights.set", weights: { design: 0.5 } }],
-      T0 + 300,
-      T0 + 100,
-    );
+    const close = addSaved([], [{ op: "mix.set", format_mix: { blog: 0.5 } }], T0 + 300, T0 + 100);
     expect(withStore(close, { ops: [later], written_at: T0 + 200 }, T0 + 1000)).toEqual([later]);
   });
 });
@@ -177,7 +172,7 @@ describe("savedScope", () => {
 describe("savedControl", () => {
   const ops: ConfigOp[] = [
     { op: "source.set", id: "a", enabled: false },
-    { op: "weights.set", weights: { ui: 0.75, ai: 0.25 } },
+    { op: "mix.set", format_mix: { blog: 0.75, news: 0.25 } },
     { op: "source.set", id: "a", pinned: true },
     {
       op: "topic.upsert",
@@ -185,7 +180,6 @@ describe("savedControl", () => {
         id: "mine",
         name: "Mine",
         description: "d",
-        weight: 0.5,
         enabled: false,
         keywords: [],
         section_id: "mine",
@@ -201,8 +195,10 @@ describe("savedControl", () => {
     expect(savedControl(ops, { op: "source.set", id: "b", enabled: true }, "enabled")).toBe(
       undefined,
     );
-    expect(savedControl(ops, { op: "weights.set", weights: {} }, "weights.ui")).toBe("0.75");
-    expect(savedControl(ops, { op: "weights.set", weights: {} }, "weights.motion")).toBe(undefined);
+    expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.blog")).toBe("0.75");
+    expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.audio")).toBe(
+      undefined,
+    );
     const upsert = ops[3] as Extract<ConfigOp, { op: "topic.upsert" }>;
     expect(savedControl(ops, upsert, "topic.enabled")).toBe("false");
     expect(savedControl(ops, { op: "topic.scope", ids: ["ui"] }, "weekly")).toBe("false");
@@ -210,15 +206,15 @@ describe("savedControl", () => {
   });
 
   it("takes the later of two saves of one control", () => {
-    const twice: ConfigOp[] = [...ops, { op: "weights.set", weights: { ui: 0.5 } }];
-    expect(savedControl(twice, { op: "weights.set", weights: {} }, "weights.ui")).toBe("0.5");
+    const twice: ConfigOp[] = [...ops, { op: "mix.set", format_mix: { blog: 0.5 } }];
+    expect(savedControl(twice, { op: "mix.set", format_mix: {} }, "format_mix.blog")).toBe("0.5");
   });
 });
 
 describe("savedTopics", () => {
   const topic = (id: string, name: string) => ({
     op: "topic.upsert" as const,
-    topic: { id, name, description: "", weight: 0.5, enabled: true, keywords: [], section_id: id },
+    topic: { id, name, description: "", enabled: true, keywords: [], section_id: id },
   });
 
   it("collects added and renamed topics, removals, source edits and added feeds", () => {
@@ -282,7 +278,7 @@ describe("savedSources", () => {
 describe("savedChips", () => {
   const topic = (id: string, name: string, enabled = true) => ({
     op: "topic.upsert" as const,
-    topic: { id, name, description: "", weight: 0.5, enabled, keywords: [], section_id: id },
+    topic: { id, name, description: "", enabled, keywords: [], section_id: id },
   });
   const chips = [
     { value: "design", ids: ["ui", "ux"], label: "Design" },
