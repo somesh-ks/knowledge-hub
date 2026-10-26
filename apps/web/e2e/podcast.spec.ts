@@ -155,9 +155,9 @@ test.describe("the profile pages", () => {
     await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
   });
 
-  test("Weekly is always on: it has no switch and its schedule shows", async ({ page }) => {
+  test("Weekly starts on: its switch is on and its schedule shows", async ({ page }) => {
     await open(page, "weekly");
-    await expect(page.getByRole("switch")).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Weekly briefing" })).toBeChecked();
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
   });
@@ -531,7 +531,7 @@ test.describe("saved, before the build", () => {
     const sent = await mockConfig(page);
     await open(page, "daily");
     await expect(page.locator("#daily-hour")).toBeEnabled();
-    await page.locator("#daily-enabled").click();
+    await page.locator("label[for=daily-enabled]").click();
     await expect(page.locator("#daily-hour")).toBeDisabled();
     await expect(page.getByText("Off: no daily briefing is made")).toBeVisible();
     await page.clock.runFor(GAP_MS);
