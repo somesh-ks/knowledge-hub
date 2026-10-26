@@ -205,6 +205,7 @@ test.describe("one page gutter", () => {
       });
       titles.push(found.title);
       // A card is the page's content edge, left and right.
+      if (path === "/settings") expect(found.card, `${path} renders a card group`).toBeTruthy();
       if (found.card) expect(found.card, `${path} card against its page`).toEqual(found.main);
     }
     for (const [index, title] of titles.entries()) {
