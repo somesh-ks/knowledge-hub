@@ -3,6 +3,7 @@ import {
   type Category,
   type Item,
   type JudgmentEntry,
+  NORMAL_TASTE,
   seedTopicsFile,
   type Topic,
   VOICE_LIMITS,
@@ -37,7 +38,6 @@ function customTopic(overrides: Partial<Topic> = {}): Topic {
     id: "quantum_computing",
     name: "Quantum computing",
     description: "Hardware, algorithms and error correction.",
-    weight: 0.8,
     enabled: true,
     keywords: ["qubit"],
     section_id: "quantum",
@@ -100,7 +100,6 @@ describe("a pool of every category", () => {
         kind,
         floor: VOICE_LIMITS.items.floor,
         cap: VOICE_LIMITS.items.cap,
-        weights: preferences.weights,
       }),
     };
   }
@@ -112,18 +111,13 @@ describe("a pool of every category", () => {
       expect(without.selection.selected.length).toBeGreaterThan(5);
 
       // The seeded file has only built-in topics, so the layer holds no custom topic at all.
-      const seeded = loadTopicsFromSeed(preferences);
+      const seeded = loadTopicsFromSeed();
       const noCustom = run(layerOf(seeded.custom, {}), kind);
       expect(noCustom).toEqual(without);
 
       // A custom topic that was judged for nothing changes nothing either.
       const unjudged = run(layerOf([customTopic()], {}), kind);
       expect(unjudged).toEqual(without);
-
-      // Nor does one whose weight is zero, however well the judge thought items fit it.
-      const fits = Object.fromEntries(POOL.map(({ item }) => [item.id, { quantum_computing: 1 }]));
-      const silenced = run(layerOf([customTopic({ weight: 0 })], fits), kind);
-      expect(silenced).toEqual(without);
     },
   );
 
@@ -140,17 +134,17 @@ describe("a custom topic's score", () => {
   const item = makeItem({ title: "A qubit milestone" });
   const none = makeEntry(item, { category: "none", p: 1 });
 
-  it("is weight x fit^1.5 x the penalty factor", () => {
-    const topic = customTopic({ weight: 0.8 });
+  it("is taste x fit^1.5 x the penalty factor", () => {
+    const topic = customTopic();
     const hyped = makeEntry(item, { category: "none", hype: 0.5, sponsored: 0.5 });
     const result = topicScore(topic, 0.75, hyped);
     expect(FIT_EXPONENT).toBe(1.5);
-    expect(result?.score).toBe(round4(0.8 * 0.75 ** 1.5 * penaltyFactor(hyped.flags)));
+    expect(result?.score).toBe(round4(NORMAL_TASTE * 0.75 ** 1.5 * penaltyFactor(hyped.flags)));
     expect(topicScore(topic, undefined, hyped)).toBeNull();
   });
 
   it("asks for a clear fit: loosely tied stays under the bar, clearly about it clears it", () => {
-    const topic = customTopic({ weight: 0.7 });
+    const topic = customTopic();
     expect(topicScore(topic, 0.5, none)?.score).toBeLessThan(0.4);
     expect(topicScore(topic, 0.75, none)?.score).toBeGreaterThan(0.4);
     expect(fitCurve(0)).toBe(0);
@@ -161,7 +155,7 @@ describe("a custom topic's score", () => {
   // scored 0 (D120).
   it("airs a clearly on-topic one-outlet story in Science alone", () => {
     const general = (id: string) =>
-      customTopic({ id, weight: 1, depth: "coverage", origin: "general", section_id: "general" });
+      customTopic({ id, depth: "coverage", origin: "general", section_id: "general" });
     const single = makeItem({ title: "A new study maps deep ocean currents" });
     const carried = { ...single, signals: { ...single.signals, coverage: 2 } };
     const entry = makeEntry(single, { category: "none", p: 1 });
@@ -178,8 +172,8 @@ describe("a custom topic's score", () => {
     const shallow = makeEntry(item, { category: "none", depth: 0 });
     const plain = topicScore(customTopic({ depth: "fit_only" }), 1, shallow);
     const craft = topicScore(customTopic({ depth: "craft" }), 1, shallow);
-    expect(plain?.score).toBe(0.8);
-    expect(craft?.score).toBe(round4(clamp01(0.8 * craftFactor(0))));
+    expect(plain?.score).toBe(NORMAL_TASTE);
+    expect(craft?.score).toBe(round4(clamp01(NORMAL_TASTE * craftFactor(0))));
   });
 
   it("beats the built-in score only when it is higher, and then names the topic and section", () => {
@@ -202,17 +196,20 @@ describe("a custom topic's score", () => {
       preferences,
       item,
     );
-    const lost = applyTopics(strong, layerOf([customTopic({ weight: 0.5 })], layer.fits));
+    const lost = applyTopics(
+      strong,
+      layerOf([customTopic()], { [item.id]: { quantum_computing: 0.5 } }),
+    );
     expect(lost).toBe(strong);
   });
 
   it("picks the best of several topics", () => {
     const layer = layerOf(
       [
-        customTopic({ id: "a_topic", weight: 0.5, section_id: "sec_a" }),
-        customTopic({ id: "b_topic", weight: 0.9, section_id: "sec_b" }),
+        customTopic({ id: "a_topic", section_id: "sec_a" }),
+        customTopic({ id: "b_topic", section_id: "sec_b" }),
       ],
-      { [item.id]: { a_topic: 1, b_topic: 1 } },
+      { [item.id]: { a_topic: 0.6, b_topic: 1 } },
     );
     expect(applyTopics(scoreItem(none, preferences, item), layer).topic?.id).toBe("b_topic");
   });
@@ -359,7 +356,7 @@ describe("selection with custom topics", () => {
 
 describe("the seed file", () => {
   it("has no custom topic, so the layer is empty", () => {
-    const seed = seedTopicsFile(preferences.weights);
+    const seed = seedTopicsFile();
     // The two shipped topics have origin "app" and are not counted as custom.
     expect(seed.topics.every((topic) => topic.origin !== "custom")).toBe(true);
     expect(seed.topics.filter((topic) => topic.origin === "app")).toHaveLength(2);
@@ -407,10 +404,10 @@ describe("type mix and perspective", () => {
     const item = makeItem();
     const general = customTopic({ origin: "general", depth: "fit_only" });
     const leans = { leans: [2, 2] };
-    const plain = topicScore(general, 1, entry(item), item, leans);
-    const even = topicScore({ ...general, perspective: 0 }, 1, entry(item), item, leans);
+    const plain = topicScore(general, 0.6, entry(item), item, leans);
+    const even = topicScore({ ...general, perspective: 0 }, 0.6, entry(item), item, leans);
     expect(even?.score).toBe(plain?.score);
-    const right = topicScore({ ...general, perspective: 2 }, 1, entry(item), item, leans);
+    const right = topicScore({ ...general, perspective: 2 }, 0.6, entry(item), item, leans);
     expect(right?.score).toBeGreaterThan(plain?.score ?? 0);
   });
 });

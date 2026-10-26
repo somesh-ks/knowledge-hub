@@ -226,6 +226,48 @@ export function withModulePreloads(html: string, read: (url: string) => string |
   return `${html.slice(0, headEnd)}${links}${html.slice(headEnd)}`;
 }
 
+/** Where `importGraph`'s file also names the duplicate stylesheet links to drop. */
+export const WAKE_STYLES_KEY = "stylesheets:wake";
+
+/**
+ * The copies of the player and sheets islands' stylesheet that a page links under a second name.
+ * Astro links player.css (54 KB) in every head twice (Icon.*.css, the file the islands list in their
+ * dependencies, and player.*.css, the same bytes), so a first visit downloads and waits for both.
+ * The islands' own link stays: a resumed bar paints at first load and needs it then (a first try
+ * that left both out let the bar show unstyled and the pages overflow).
+ */
+export function wakeStylesheets(
+  urls: readonly string[],
+  read: (url: string) => string | null,
+): string[] {
+  const listed = (island: string) => {
+    const script = urls.find((url) => url.startsWith(`/_astro/${island}.`) && url.endsWith(".js"));
+    const source = script ? read(script) : null;
+    return new Set(
+      source ? [...source.matchAll(/_astro\/([\w.-]+\.css)/g)].map((m) => `/_astro/${m[1]}`) : [],
+    );
+  };
+  const players = listed("PlayerRoot");
+  const sheets = listed("SheetsRoot");
+  const shared = [...players].filter((url) => sheets.has(url));
+  const bodies = new Set(shared.map(read).filter((body) => body !== null));
+  return urls.filter((url) => {
+    if (!url.endsWith(".css")) return false;
+    const body = read(url);
+    return !shared.includes(url) && body !== null && bodies.has(body);
+  });
+}
+
+/** The page without the render-blocking links to the given stylesheets. */
+export function withoutStylesheets(html: string, hrefs: readonly string[]): string {
+  if (hrefs.length === 0) return html;
+  return html.replace(/<link\b[^>]*>/g, (tag) => {
+    if (!/\brel=["']stylesheet["']/.test(tag)) return tag;
+    const href = /\bhref=["']([^"']+)["']/.exec(tag)?.[1];
+    return href !== undefined && hrefs.includes(href) ? "" : tag;
+  });
+}
+
 /**
  * The modules each `client:wake` island loads when it wakes, beyond what the page loaded at start,
  * in the order of its tags. They are not first load, so the budget does not count them.

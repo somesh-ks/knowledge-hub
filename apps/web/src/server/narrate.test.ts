@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { AudioTimeline, type Digest, serializeDigestFile } from "@singularity/core";
 import { buildSpokenText, type SpokenSegment, spokenSegments } from "@singularity/engine/audio";
+import { SEGMENT_CACHE_SECONDS } from "@singularity/engine/segments";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
@@ -1535,7 +1536,7 @@ describe("POST /api/narrate with a segment", () => {
     expect(context.blob.bytes(path)).toEqual(FAKE_AUDIO);
     expect(context.blob.written(path)).toEqual({
       contentType: "audio/mpeg",
-      cacheSeconds: 30 * 24 * 3600,
+      cacheSeconds: SEGMENT_CACHE_SECONDS,
       timeoutMs: BLOB_UPLOAD_TIMEOUT_MS,
     });
     expect(context.blob.has(audioKey(ID))).toBe(false);

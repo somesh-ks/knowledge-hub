@@ -44,7 +44,7 @@ export interface CronDeps {
 }
 
 /**
- * How long the cron waits for the config store, a cold start's module load included, before it reads
+ * How long the cron waits for the config store's answer (not its module load) before it reads
  * main instead: well inside the function's limit.
  */
 export const STORE_READ_TIMEOUT_MS = 5000;
@@ -63,15 +63,17 @@ async function readSchedule(
     try {
       // Loaded only with the store on, so the function never loads the driver while it is off.
       // A database that hangs must not spend the call: Vercel makes one an hour. The wait counts
-      // from before the store module loads.
+      // from the query, not the module load: the load is local code, and a slow cold start (or a
+      // loaded host) that spent the wait made the cron read main's hour in place of the stored one,
+      // starting the run at the wrong hour.
+      const { readStoredSchedule } = await import("./configStore");
       let timer: ReturnType<typeof setTimeout> | undefined;
       const late = new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error("no answer in time")), STORE_READ_TIMEOUT_MS);
       });
-      const read = import("./configStore").then(({ readStoredSchedule }) =>
-        readStoredSchedule(storeUrl, deps),
+      const stored = await Promise.race([readStoredSchedule(storeUrl, deps), late]).finally(() =>
+        clearTimeout(timer),
       );
-      const stored = await Promise.race([read, late]).finally(() => clearTimeout(timer));
       // A row that is not JSON is skipped, as the run's own copy skips it: main's file stands.
       if (stored !== null && parseJson(stored, (value) => value) !== null) return stored;
     } catch (error) {
@@ -106,7 +108,12 @@ function inScheduleHour(at: Date, zone: string, hour: number): boolean {
 export function slotAt(schedule: ScheduleFile, now: Date): "daily" | "weekly" | null {
   const zone = scheduleZone(schedule.timezone);
   const start = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
-  const ends = [new Date(start), new Date(start + HOUR_MS - 1)];
+  // An end of the UTC hour on another local date than the call's is not this call's hour: the run
+  // is decided for the call's own date.
+  const today = zonedDate(now, zone);
+  const ends = [new Date(start), new Date(start + HOUR_MS - 1)].filter(
+    (at) => zonedDate(at, zone) === today,
+  );
   if (ends.some((at) => inScheduleHour(at, zone, schedule.hour))) return "daily";
   const { weekly } = schedule;
   const inWeekly = (at: Date) =>

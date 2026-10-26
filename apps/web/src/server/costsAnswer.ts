@@ -1,4 +1,5 @@
 import type { CostRecord, PriceTable } from "@singularity/core";
+import { waitUntil } from "@vercel/functions";
 import { outsideAppRecords } from "./anthropicBilling";
 import { type CostBody, type CostQuery, costBody } from "./costs";
 
@@ -16,6 +17,7 @@ export const PART_TIMEOUT_MS = 4_000;
 export const FRESH_MS = 20_000;
 /** An answer older than this is not served; the request waits for a new one. */
 const KEEP_MS = 6 * 3_600_000;
+const MAX_HELD = 32;
 
 export interface CostSources {
   prices(): Promise<PriceTable | null>;
@@ -76,7 +78,8 @@ export async function costsAnswer(
 ): Promise<CostAnswer | null> {
   const ms = options.timeoutMs ?? PART_TIMEOUT_MS;
   const log = options.log ?? ((message: string) => console.error(`[api/costs] ${message}`));
-  const pricesPart = inTime("prices", sources.prices, ms, log);
+  // Half the budget: the site read needs the prices (or the fallback) and keeps the other half.
+  const pricesPart = inTime("prices", sources.prices, Math.floor(ms / 2), log);
   const enginePart = inTime("engine", sources.engine, ms, log);
   // The site's records are priced, so this part waits for the prices inside its own limit.
   const sitePart = inTime(
@@ -138,17 +141,26 @@ export async function serveCosts(
   now: number,
 ): Promise<CostAnswer | null> {
   const keep = (answer: CostAnswer | null): void => {
-    if (answer && complete(answer.body)) held.set(key, { at: now, answer });
+    if (!answer || !complete(answer.body)) return;
+    for (const [k, entry] of held) if (now - entry.at >= KEEP_MS) held.delete(k);
+    if (held.size >= MAX_HELD && !held.has(key)) held.delete(held.keys().next().value as string);
+    held.set(key, { at: now, answer });
   };
   const entry = held.get(key);
   if (entry && now - entry.at < KEEP_MS) {
     if (now - entry.at < FRESH_MS) return entry.answer;
     if (!refreshing.has(key)) {
       refreshing.add(key);
-      void build()
+      const refresh = build()
         .then(keep)
         .catch(() => undefined)
         .finally(() => refreshing.delete(key));
+      try {
+        // Vercel may freeze the function after the response; this keeps it alive for the refresh.
+        waitUntil(refresh);
+      } catch {
+        // Outside Vercel the promise runs on its own.
+      }
     }
     return { body: { ...entry.answer.body, stale: true } };
   }

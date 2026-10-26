@@ -93,7 +93,11 @@ const get: APIRoute = async ({ request, url }) => {
       now,
     );
   // Private: the instance keeps the last complete answer and the route sends no-store, so no CDN does.
-  const answer = await serveCosts(url.search, build, now.getTime());
+  const answer = await serveCosts(
+    `${query.period}|${query.by}|${query.days}`,
+    build,
+    now.getTime(),
+  );
   if (!answer) return toResponse({ status: 503, body: { error: "unavailable" } });
   return toResponse({ status: 200, body: answer.body });
 };

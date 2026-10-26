@@ -64,7 +64,7 @@ export interface PlayerDigestData {
   /** English long date, "Wednesday 7 October". */
   title: string;
   kind: DigestKind;
-  audio: { url: string; duration_ms: number } | null;
+  audio: { url: string; duration_ms: number; m4a_url?: string } | null;
   /** How the item times were derived, or null when there is no audio. */
   timeline: "marks" | "estimated" | null;
   items: PlayerItem[];
@@ -305,7 +305,6 @@ export type ConfigOp =
         id: string;
         name: string;
         description: string;
-        weight: number;
         enabled: boolean;
         keywords: string[];
         section_id: string;
@@ -333,7 +332,6 @@ export type ConfigOp =
       high_signal?: boolean;
     }
   | { op: "source.remove"; id: string }
-  | { op: "weights.set"; weights: Record<string, number> }
   | {
       op: "topic.mix";
       id: string;

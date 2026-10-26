@@ -35,7 +35,7 @@ import type { Logger } from "../context.js";
 import { costKindOf } from "../cost/ledger.js";
 import { loadSchedule } from "../schedule/store.js";
 import type { BlobClient, PruneResult } from "./blob.js";
-import { pruneAudio, uploadAudio } from "./blob.js";
+import { pruneAudio, uploadAudio, uploadOpusAudio } from "./blob.js";
 
 export interface PublishAudioDeps {
   root: string;
@@ -49,6 +49,11 @@ export interface PublishAudioDeps {
   model?: string;
   outputFormat?: Mp3OutputFormat;
   cacheControlMaxAge?: number;
+  /**
+   * MP3 bytes to Opus in MP4 (audio/transcode.ts). When set, the narration is also published
+   * as .m4a; a failure here leaves the MP3 alone, so the briefing still has audio.
+   */
+  transcodeOpus?: (mp3: Uint8Array) => Promise<Uint8Array>;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -396,6 +401,22 @@ async function processDigest(
     return failed(digestId, "upload", error);
   }
 
+  let m4aUrl: string | undefined;
+  const transcode = deps.transcodeOpus;
+  if (transcode) {
+    try {
+      m4aUrl = await uploadOpusAudio(deps.blob, {
+        digestId,
+        audio: await transcode(narration.audio),
+        ...(deps.cacheControlMaxAge !== undefined
+          ? { cacheControlMaxAge: deps.cacheControlMaxAge }
+          : {}),
+      });
+    } catch (error) {
+      deps.log.warn("Opus skipped, the MP3 plays alone", { reason: message(error) });
+    }
+  }
+
   const timelinePath = audioTimelineRelPath(digestId);
   try {
     // Timeline first: a crash in between leaves audio null, so the next run converges.
@@ -404,7 +425,11 @@ async function processDigest(
       join(root, target.relPath),
       serializeDigestFile({
         ...digest,
-        audio: { url, duration_ms: resolved.timeline.duration_ms },
+        audio: {
+          url,
+          duration_ms: resolved.timeline.duration_ms,
+          ...(m4aUrl ? { m4a_url: m4aUrl } : {}),
+        },
       }),
     );
   } catch (error) {

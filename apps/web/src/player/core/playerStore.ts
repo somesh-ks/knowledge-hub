@@ -12,6 +12,15 @@
  */
 import type { PlayerDigestData } from "../../types/contracts";
 import { type AudioNoun, describeMediaError, describePlayRejection } from "./audioErrors";
+import {
+  ADVANCE_CHECK_MS,
+  type AudioSources,
+  audioCandidates,
+  browserCanPlayType,
+  type CanPlayType,
+  PLAY_RESOLVE_LIMIT_MS,
+  shouldFallBack,
+} from "./audioSource";
 import { clamp, isFiniteNumber } from "./mathUtils";
 import {
   type AudioLike,
@@ -63,6 +72,8 @@ export interface PlayerStoreOptions {
   now?: () => number;
   isHidden?: () => boolean;
   isOnline?: () => boolean;
+  /** Whether the browser plays a media type (audioSource.ts); the page's own answer by default. */
+  canPlayType?: CanPlayType;
   /** Called when the page is about to be hidden or closed, so the position is saved in time. */
   onPageHide?: (callback: () => void) => () => void;
 }
@@ -110,6 +121,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     now = () => performance.now(),
     isHidden = () => typeof document !== "undefined" && document.hidden,
     isOnline = () => typeof navigator === "undefined" || navigator.onLine,
+    canPlayType = browserCanPlayType(),
     onPageHide,
   } = options;
 
@@ -124,10 +136,17 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let rate = initialRate;
   /** The listener asked for playback and has not asked for a pause. */
   let wantsPlay = false;
+  // Bumped by a seek or scrub: the 2 s advance check compares positions, so it is void after one.
+  let seekGeneration = 0;
   let wasPlayingBeforeScrub = false;
   let expectedPauseUntil = 0;
   let pendingStart: number | null = null;
   let attachedUrl: string | null = null;
+  /** Files of this track that errored or stalled, so the next source is tried (audioSource.ts). */
+  const skippedUrls = new Set<string>();
+  let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Bumped when the watch stops, so a play() promise that settles later arms nothing. */
+  let watchToken = 0;
   let frameHandle: number | null = null;
   let saveTimer: ReturnType<typeof setInterval> | null = null;
   let bufferTimer: ReturnType<typeof setTimeout> | null = null;
@@ -245,6 +264,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();
+    stopFallbackWatch();
   }
 
   function stopBufferTimer(): void {
@@ -392,6 +412,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function onError(): void {
     if (!audio) return;
+    if (state.status === "playing" || state.status === "loading") {
+      readAudioTime();
+      publishTime("auto", true);
+    }
+    if (fallBack()) return;
     const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
     // A file the narration could not make says why; offline, the connection is the reason. The
@@ -449,6 +474,102 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   /* ---------------------------------------------------------------- loading */
 
+  /**
+   * The file of this track's narration the browser plays. Offline it is the MP3, the file a download
+   * saves (lib/downloads.ts); online, the smallest the browser can decode.
+   */
+  function sourceOf(audio: AudioSources): string {
+    if (!isOnline()) return audio.url;
+    return audioCandidates(audio, canPlayType).find((url) => !skippedUrls.has(url)) ?? audio.url;
+  }
+
+  /** The source after the one attached, or undefined when it is the last. */
+  function nextSource(): string | undefined {
+    const files = track?.digest.audio;
+    if (!files || !attachedUrl || !isOnline()) return undefined;
+    return audioCandidates(files, canPlayType).find(
+      (url) => url !== attachedUrl && !skippedUrls.has(url),
+    );
+  }
+
+  function clearFallbackTimer(): void {
+    if (fallbackTimer !== null) clearTimeout(fallbackTimer);
+    fallbackTimer = null;
+  }
+
+  function stopFallbackWatch(): void {
+    watchToken += 1;
+    clearFallbackTimer();
+  }
+
+  /**
+   * Gives up the attached file for the next one at the same position: it errored, play() never
+   * resolved, or the clock never moved (shouldFallBack). The media session reads the store, so it
+   * follows. Returns false when this is the last file.
+   */
+  function fallBack(): boolean {
+    const next = nextSource();
+    if (!next || !attachedUrl) return false;
+    const wasWanted = wantsPlay;
+    skippedUrls.add(attachedUrl);
+    stopFallbackWatch();
+    if (!wasWanted) {
+      pendingStart = time > 0 ? time : null;
+      attachedUrl = null;
+      attachSource(next);
+      return true;
+    }
+    retryAs("resume");
+    return true;
+  }
+
+  /** Watches a started play() for the two silent failures: it never resolves, or it resolves and the clock stays. */
+  function watchPlayStart(element: AudioLike, started: Promise<unknown>): void {
+    stopFallbackWatch();
+    const watched = attachedUrl;
+    if (!nextSource()) return;
+    const token = watchToken;
+    const stale = () => attachedUrl !== watched || !wantsPlay || token !== watchToken;
+    let resolved = false;
+    fallbackTimer = setTimeout(() => {
+      if (stale() || resolved) return;
+      if (
+        shouldFallBack({
+          errored: false,
+          playResolved: false,
+          sincePlayMs: PLAY_RESOLVE_LIMIT_MS,
+          sinceResolveMs: null,
+          advancedSec: 0,
+        })
+      )
+        fallBack();
+    }, PLAY_RESOLVE_LIMIT_MS);
+    started.then(
+      () => {
+        if (stale()) return;
+        resolved = true;
+        clearFallbackTimer();
+        const from = element.currentTime;
+        const generation = seekGeneration;
+        fallbackTimer = setTimeout(() => {
+          if (stale() || generation !== seekGeneration) return;
+          const advancedSec = element.currentTime - from;
+          if (
+            shouldFallBack({
+              errored: false,
+              playResolved: true,
+              sincePlayMs: ADVANCE_CHECK_MS,
+              sinceResolveMs: ADVANCE_CHECK_MS,
+              advancedSec,
+            })
+          )
+            fallBack();
+        }, ADVANCE_CHECK_MS);
+      },
+      () => undefined,
+    );
+  }
+
   function attachSource(url: string): void {
     const element = ensureAudio();
     if (attachedUrl === url) return;
@@ -482,6 +603,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     if (track) saveResume();
     stopTimers();
+    skippedUrls.clear();
     wantsPlay = false;
     wasPlayingBeforeScrub = false;
 
@@ -493,10 +615,12 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     track = { digest, timeline };
     rate = isPlaybackRate(getPreferredRate()) ? getPreferredRate() : 1;
 
-    // Offline there is nothing to warm up: attaching now would only log a failed request, and the
-    // play paths attach the source themselves when the listener taps.
-    if (digest.audio && isOnline()) attachSource(digest.audio.url);
-    else releaseSource();
+    // No audio is fetched until the listener presses play (2026-10-26: the weekly MP3, 7.6 MiB,
+    // downloaded on every page view and woke download managers). The duration comes from the
+    // timeline; the play paths attach the source themselves. A source of the track before this one
+    // is let go.
+    if (!digest.audio || attachedUrl !== sourceOf(digest.audio)) releaseSource();
+    if (digest.audio) ensureAudio();
     applyRate();
 
     lastSecond = -1;
@@ -543,8 +667,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function startPlayback(reason: PlayReason): void {
     const element = ensureAudio();
-    const url = track?.digest.audio?.url;
-    if (!url) return;
+    const audioFiles = track?.digest.audio;
+    if (!audioFiles) return;
+    const url = sourceOf(audioFiles);
     // Attaching a source can pause the element, but that is settled by now. A pause of our own
     // that is still on its way (K then Space in quick succession: the element delivers the event
     // after play() was called again) keeps its window; only the one attaching just opened closes.
@@ -556,7 +681,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     // The cue first, so it lands in silence; then the audio.
     emit({ type: "willPlay", reason });
     commit({ status: "loading", hasStarted: true, interrupted: false, error: null });
-    Promise.resolve(element.play()).catch((rejection: unknown) => {
+    const started = Promise.resolve(element.play());
+    watchPlayStart(element, started);
+    started.catch((rejection: unknown) => {
+      // A fallback replaced the file: the old play() rejecting is not this one failing.
+      if (attachedUrl !== url) return;
       const error = describePlayRejection(rejection, isOnline(), audioNoun());
       // The element's own error event may have reported this failure already: once is enough.
       if (!error || state.status === "error") return;
@@ -609,7 +738,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   /** A retry is announced as what asked for it: a step or a row says its story, not "Playing.". */
   function retryAs(reason: PlayReason): void {
     if (!track?.digest.audio) return;
-    const url = track.digest.audio.url;
+    const url = sourceOf(track.digest.audio);
     // A failed element keeps its error until the source is set again.
     attachedUrl = null;
     pendingStart = time > 0 ? time : null;
@@ -626,6 +755,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     const duration = durationNow();
     const target = clamp(seconds, 0, duration > 0 ? duration : Math.max(0, seconds));
     time = target;
+    seekGeneration += 1;
     if (audio && hasAudio()) {
       if (audio.readyState === HAVE_NOTHING) {
         // Setting currentTime before metadata is unreliable on iOS. Apply it on loadedmetadata.
@@ -732,11 +862,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function beginScrub(): void {
     if (state.scrubbing || !hasAudio()) return;
+    seekGeneration += 1;
     wasPlayingBeforeScrub = state.status === "playing" || state.status === "loading";
     // Narration pauses while the thumb is down, so a drag never produces audio bursts or a storm
     // of range requests. The status stays "playing" so the controls do not flicker.
     stopFrameLoop();
     stopBufferTimer();
+    // The paused element would read as a stalled start: the monitor restarts when the scrub ends.
+    stopFallbackWatch();
     if (audio && wasPlayingBeforeScrub) {
       expectPause();
       audio.pause();
@@ -760,7 +893,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       // The status never left "playing", so the controls did not flicker. The element's own
       // playing event restarts the frame loop; a seek that needs data raises waiting.
       wantsPlay = true;
-      Promise.resolve(audio.play()).catch((rejection: unknown) => {
+      const started = Promise.resolve(audio.play());
+      watchPlayStart(audio, started);
+      started.catch((rejection: unknown) => {
         const error = describePlayRejection(rejection, isOnline(), audioNoun());
         if (!error || state.status === "error") return;
         fail(error);
