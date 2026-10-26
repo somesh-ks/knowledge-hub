@@ -404,10 +404,10 @@ describe("type mix and perspective", () => {
     const item = makeItem();
     const general = customTopic({ origin: "general", depth: "fit_only" });
     const leans = { leans: [2, 2] };
-    const plain = topicScore(general, 1, entry(item), item, leans);
-    const even = topicScore({ ...general, perspective: 0 }, 1, entry(item), item, leans);
+    const plain = topicScore(general, 0.6, entry(item), item, leans);
+    const even = topicScore({ ...general, perspective: 0 }, 0.6, entry(item), item, leans);
     expect(even?.score).toBe(plain?.score);
-    const right = topicScore({ ...general, perspective: 2 }, 1, entry(item), item, leans);
+    const right = topicScore({ ...general, perspective: 2 }, 0.6, entry(item), item, leans);
     expect(right?.score).toBeGreaterThan(plain?.score ?? 0);
   });
 });

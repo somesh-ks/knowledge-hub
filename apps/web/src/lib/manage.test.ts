@@ -103,7 +103,6 @@ describe("parseTopicsFile", () => {
         id: "a_topic",
         name: "A topic",
         description: "About a thing.",
-        weight: 0.9,
         enabled: false,
         keywords: ["one", "", 3, "two"],
         section_id: "tech",
@@ -130,8 +129,8 @@ describe("parseTopicsFile", () => {
 
   it("fills in what a plain entry leaves out", () => {
     const plain = parseTopicsFile(file)?.topics[1];
+    expect(plain).toMatchObject({
       description: "",
-      weight: 0.5,
       enabled: true,
       origin: "builtin",
       never_publish: false,
@@ -578,7 +577,7 @@ describe("loadManage", () => {
       "config/topics.json": {
         version: 1,
         sections: [{ id: "tech", title: "Tech Product Launches", order: 0 }],
-        topics: [{ id: "mine", name: "Mine", description: "Mine.", weight: 1, origin: "custom" }],
+        topics: [{ id: "mine", name: "Mine", description: "Mine.", origin: "custom" }],
       },
       "config/sources.json": { sources: [{ id: "one", name: "One", url: "https://one.example/" }] },
       "config/sources.user.json": { added: [], overrides: { one: { pinned: true } } },
@@ -606,8 +605,8 @@ describe("loadManage", () => {
         version: 1,
         sections: [{ id: "mine", title: "Mine", order: 0 }],
         topics: [
-          { id: "mine", name: "Mine", description: "Mine.", weight: 1, origin: "custom" },
-          { id: "design_engineering_craft", name: "Design engineering craft", weight: 0.9 },
+          { id: "mine", name: "Mine", description: "Mine.", origin: "custom" },
+          { id: "design_engineering_craft", name: "Design engineering craft" },
         ],
       },
       "config/sources.json": {

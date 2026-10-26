@@ -234,7 +234,7 @@ describe("countSample", () => {
             category: "design_engineering_craft",
             p: 0.95,
             depth: 0.9,
-            hype: 0.9,
+            hype: 0.6,
           }),
         ],
         unjudged: [],
@@ -248,7 +248,7 @@ describe("countSample", () => {
       flagged: 1,
       read_feed: true,
     });
-    // The hyped craft item still clears the bar (its discount leaves it at 0.41); "none" does not.
+    // The hyped craft item still clears the bar (its discount leaves it at 0.42); "none" does not.
     expect(counts.blog?.passed).toBe(2);
     // A read that found nothing still moves the source's sampled_at.
     expect(counts.quiet).toMatchObject({ judged: 0, read_feed: true });

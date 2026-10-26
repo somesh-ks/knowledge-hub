@@ -794,7 +794,7 @@ describe("scoring and selection together", () => {
     ];
     const flagship = launch(0.75);
     const newProduct = launch(0.5);
-    const refresh = launch(0.25);
+    const refresh = launch(0.3);
     const rumour = launch(0);
     const result = selectItems({
       scored: [rumour, refresh, newProduct, flagship, ...craft],
@@ -807,7 +807,7 @@ describe("scoring and selection together", () => {
     expect(result.dropped).toContainEqual({
       id: rumour.item.id,
       reason: "below_threshold",
-      score: 0.252,
+      score: 0.2205,
     });
     // The flagship outscores one craft item and still stays out of the Top picks.
     expect(flagship.score).toBeGreaterThan(craft[2]?.score ?? 1);
