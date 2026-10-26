@@ -302,8 +302,13 @@ describe("an episode stored as one Opus file", () => {
 
   it("is not used when its turns are not the lookup's, or do not run end to end", () => {
     expect(alignToManifest(listed, { ...manifest, turns: turns.slice(0, 1) })).toBeNull();
-    expect(alignToManifest(listed, { ...manifest, turns: [turns[1], turns[0]] as never })).toBeNull();
-    const gap = { duration_ms: 11_000, turns: [turns[0], { ...turns[1], start_ms: 4_500, end_ms: 11_000 }] };
+    expect(
+      alignToManifest(listed, { ...manifest, turns: [turns[1], turns[0]] as never }),
+    ).toBeNull();
+    const gap = {
+      duration_ms: 11_000,
+      turns: [turns[0], { ...turns[1], start_ms: 4_500, end_ms: 11_000 }],
+    };
     expect(parseEpisodeOpusManifest(gap)).toBeNull();
     expect(parseEpisodeOpusManifest(manifest)).toEqual(manifest);
   });

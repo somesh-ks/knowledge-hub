@@ -91,9 +91,7 @@ function setup(overrides: Partial<ServerState> = {}, canPlayType: () => string =
                 }
               : null,
             ms_per_character: 60,
-            ...(server.opus
-              ? { opus: { url: OPUS_URL, manifest_url: OPUS_MANIFEST } }
-              : {}),
+            ...(server.opus ? { opus: { url: OPUS_URL, manifest_url: OPUS_MANIFEST } } : {}),
             segments: ["intro", ...ids].map((key) => segment(key, server)),
           });
         }
@@ -168,7 +166,10 @@ describe("an episode stored as one Opus file", () => {
   });
 
   it("an episode without one plays its turns as before", async () => {
-    const { controller, server, element } = setup({ narrated: new Set(["intro", ...ids]) }, SUPPORTED);
+    const { controller, server, element } = setup(
+      { narrated: new Set(["intro", ...ids]) },
+      SUPPORTED,
+    );
     await controller.play(page);
     expect(element.src).toBe("https://store.test/intro.mp3");
     expect(server.manifestFetches).toBe(0);

@@ -7,7 +7,7 @@
  * briefing is loaded as one track and plays; the rest is made just ahead of the playhead.
  */
 import type { StreamStatus } from "../lib/liveStream";
-import { type CanPlayType, browserCanPlayType, M4A_OPUS } from "../player/core/audioSource";
+import { browserCanPlayType, type CanPlayType, M4A_OPUS } from "../player/core/audioSource";
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
 import {

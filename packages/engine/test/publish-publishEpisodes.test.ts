@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import { loadUsage } from "../src/audio/budget.js";
-import { durationFromMp3Bytes, DEFAULT_OUTPUT_FORMAT } from "../src/audio/speechify.js";
 import {
   episodeOpusAddress,
   planEpisodeNarration,
   segmentMarksPath,
 } from "../src/audio/segmentStore.js";
+import { DEFAULT_OUTPUT_FORMAT, durationFromMp3Bytes } from "../src/audio/speechify.js";
 import type { PublishAudioDeps } from "../src/publish/publishAudio.js";
 import { listEpisodeCandidates, publishEpisodeAudio } from "../src/publish/publishEpisodes.js";
 import type { FakeBlob, FakeSpeech, TempRoot } from "./audio-fixtures.js";
@@ -140,13 +140,19 @@ describe("episode pre-narration", () => {
       blob.seed(plan.segments[0]?.path ?? "", NOW);
       await publishEpisodeAudio(withOpus, ENV, [id]);
 
-      const { path, manifestPath } = episodeOpusAddress(id, plan.segments.map((s) => s.path));
+      const { path, manifestPath } = episodeOpusAddress(
+        id,
+        plan.segments.map((s) => s.path),
+      );
       const manifest = JSON.parse(new TextDecoder().decode(blob.store.get(manifestPath)?.body)) as {
         duration_ms: number;
         turns: { key: string; start_ms: number; end_ms: number }[];
       };
       const lengths = plan.segments.map((segment) =>
-        durationFromMp3Bytes(blob.store.get(segment.path)?.body.byteLength ?? 0, DEFAULT_OUTPUT_FORMAT),
+        durationFromMp3Bytes(
+          blob.store.get(segment.path)?.body.byteLength ?? 0,
+          DEFAULT_OUTPUT_FORMAT,
+        ),
       );
       expect(manifest.turns.map((turn) => turn.key)).toEqual(plan.segments.map((s) => s.key));
       expect(manifest.turns.map((turn) => turn.end_ms - turn.start_ms)).toEqual(lengths);
