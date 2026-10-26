@@ -176,6 +176,14 @@
   white-space: nowrap;
 }
 
+/* The cut value adds no width to the row's minimum (2026-10-26): a long one in a grid column, as the
+   Podcast pages' Structure link is, made the page wider than a phone, the mobile viewport zoomed out
+   and the toast sat out of reach below the fold. */
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-hint {
+  flex: 1 1 0;
+  contain: inline-size;
+}
+
 :is(.settings-view, .manage) .row-action .icon {
   /* The glyph sits inside its box; this pulls its ink out to the switch's and the segments' edge. */
   margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
