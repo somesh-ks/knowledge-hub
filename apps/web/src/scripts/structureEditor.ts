@@ -87,16 +87,14 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     }
   }
   profileSelect.value = profile;
-  /** The card shows the chosen profile: its picture, name and line (the select lies over its edit glyph). */
+  /** The card shows the chosen profile: its picture and line. */
   const paintCard = (): void => {
     const option = profileSelect.selectedOptions[0];
     const card = profileSelect.closest(".profile-card");
     if (!option || !card) return;
     for (const art of card.querySelectorAll<HTMLElement>("[data-profile-art]"))
       art.hidden = art.dataset.profileArt !== profileSelect.value;
-    const name = card.querySelector("[data-profile-name]");
     const note = card.querySelector("[data-profile-note]");
-    if (name) name.textContent = option.textContent;
     if (note) note.textContent = option.dataset.note ?? "";
   };
   paintCard();
