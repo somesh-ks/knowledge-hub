@@ -101,7 +101,17 @@ if (check) {
     .map((line) => resolve(line.slice("worktree ".length)))
     .filter((path) => path !== resolve(main));
   const held = registered
-    .map((path) => [path, homes.flatMap((home) => found(join(path, home, "node_modules")))])
+    .map((path) => {
+      // Main's folders and the worktree's own: main may have dropped a package a worktree still links.
+      const own = ["apps", "packages"].flatMap((group) => {
+        const dir = join(path, group);
+        return existsSync(dir) ? readdirSync(dir).map((name) => join(group, name)) : [];
+      });
+      return [
+        path,
+        [...new Set([...homes, ...own])].flatMap((home) => found(join(path, home, "node_modules"))),
+      ];
+    })
     .filter(([, list]) => list.length > 0);
   for (const [name, list] of held) console.log(`${name}: ${list.length} links`);
   if (held.length > 0) {
