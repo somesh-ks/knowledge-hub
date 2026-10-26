@@ -12,6 +12,12 @@
  */
 import type { PlayerDigestData } from "../../types/contracts";
 import { type AudioNoun, describeMediaError, describePlayRejection } from "./audioErrors";
+import {
+  type AudioSources,
+  browserCanPlayType,
+  type CanPlayType,
+  pickAudioUrl,
+} from "./audioSource";
 import { clamp, isFiniteNumber } from "./mathUtils";
 import {
   type AudioLike,
@@ -63,6 +69,8 @@ export interface PlayerStoreOptions {
   now?: () => number;
   isHidden?: () => boolean;
   isOnline?: () => boolean;
+  /** Whether the browser plays a media type (audioSource.ts); the page's own answer by default. */
+  canPlayType?: CanPlayType;
   /** Called when the page is about to be hidden or closed, so the position is saved in time. */
   onPageHide?: (callback: () => void) => () => void;
 }
@@ -110,6 +118,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     now = () => performance.now(),
     isHidden = () => typeof document !== "undefined" && document.hidden,
     isOnline = () => typeof navigator === "undefined" || navigator.onLine,
+    canPlayType = browserCanPlayType(),
     onPageHide,
   } = options;
 
@@ -449,6 +458,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   /* ---------------------------------------------------------------- loading */
 
+  /**
+   * The file of this track's narration the browser plays. Offline it is the MP3, the file a download
+   * saves (lib/downloads.ts); online, the smallest the browser can decode.
+   */
+  function sourceOf(audio: AudioSources): string {
+    return isOnline() ? pickAudioUrl(audio, canPlayType) : audio.url;
+  }
+
   function attachSource(url: string): void {
     const element = ensureAudio();
     if (attachedUrl === url) return;
@@ -495,7 +512,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     // Offline there is nothing to warm up: attaching now would only log a failed request, and the
     // play paths attach the source themselves when the listener taps.
-    if (digest.audio && isOnline()) attachSource(digest.audio.url);
+    if (digest.audio && isOnline()) attachSource(sourceOf(digest.audio));
     else releaseSource();
     applyRate();
 
@@ -543,8 +560,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function startPlayback(reason: PlayReason): void {
     const element = ensureAudio();
-    const url = track?.digest.audio?.url;
-    if (!url) return;
+    const audioFiles = track?.digest.audio;
+    if (!audioFiles) return;
+    const url = sourceOf(audioFiles);
     // Attaching a source can pause the element, but that is settled by now. A pause of our own
     // that is still on its way (K then Space in quick succession: the element delivers the event
     // after play() was called again) keeps its window; only the one attaching just opened closes.
@@ -609,7 +627,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   /** A retry is announced as what asked for it: a step or a row says its story, not "Playing.". */
   function retryAs(reason: PlayReason): void {
     if (!track?.digest.audio) return;
-    const url = track.digest.audio.url;
+    const url = sourceOf(track.digest.audio);
     // A failed element keeps its error until the source is set again.
     attachedUrl = null;
     pendingStart = time > 0 ? time : null;

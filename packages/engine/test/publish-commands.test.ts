@@ -55,6 +55,8 @@ function rig(speechOptions: FakeSpeechOptions = {}, monthlyChars = 500_000): Rig
       monthlyChars: () => monthlyChars,
       createSpeech: () => speech,
       createBlob: () => blob,
+      // The tests count uploads: no ffmpeg, no Opus files.
+      transcodeOpus: undefined,
     },
   };
 }

@@ -112,7 +112,12 @@ function toEntry(
     kind: digest.kind,
     audio:
       audioMode === "ready" && digest.audio
-        ? { url: resolve(digest.audio.url), duration_ms: digest.audio.duration_ms }
+        ? {
+            url: resolve(digest.audio.url),
+            duration_ms: digest.audio.duration_ms,
+            ...(digest.audio.webm_url ? { webm_url: resolve(digest.audio.webm_url) } : {}),
+            ...(digest.audio.m4a_url ? { m4a_url: resolve(digest.audio.m4a_url) } : {}),
+          }
         : null,
     timeline: audioMode === "ready" ? (timeline?.timeline ?? null) : null,
     items: playerItems(items, audioMode === "ready" ? timeline : null, leadIn(digest)),

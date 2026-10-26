@@ -71,7 +71,15 @@ export const Digest = z.object({
   window: z.object({ from: isoDateTime, to: isoDateTime }),
   read_minutes: z.number().int().positive(),
   listen_minutes: z.number().int().positive(),
-  audio: z.object({ url: z.string().url(), duration_ms: z.number().int().positive() }).nullable(),
+  audio: z
+    .object({
+      url: z.string().url(),
+      duration_ms: z.number().int().positive(),
+      /** The same narration as Opus in WebM and in MP4 (plan 19.1). Absent on an older record. */
+      webm_url: z.string().url().optional(),
+      m4a_url: z.string().url().optional(),
+    })
+    .nullable(),
   cover: CoverSpec,
   /**
    * Titles of the sections the items sit in, in digest order, written when the digest is rendered.
