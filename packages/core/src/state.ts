@@ -116,6 +116,7 @@ export const SourceHealthFile = z.object({
     z.object({
       failures: z.number().int().nonnegative(),
       last_ok: isoDateTime.optional(),
+      last_try: isoDateTime.optional(),
     }),
   ),
 });

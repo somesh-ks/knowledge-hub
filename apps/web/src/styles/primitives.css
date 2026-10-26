@@ -831,10 +831,8 @@
 .text-link::after {
   content: "";
   position: absolute;
-  /* A word under 44px wide ("Vercel") still gets a 44px target, centred on it. */
-  inset-inline-start: 50%;
-  inline-size: max(100%, var(--size-touch));
-  translate: -50% 0;
+  /* A word narrower than the touch size (Vercel, 40px) grows the layer sideways to 44px. */
+  inset-inline: min(0%, calc((var(--size-touch) - 100%) / -2));
   inset-block: calc((var(--size-touch) - 1lh) / -2);
 }
 

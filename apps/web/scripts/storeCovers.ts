@@ -2,7 +2,7 @@ import { del, head, put } from "@vercel/blob";
 import { loadSite } from "../src/lib/site";
 import { createVercelBlobStore } from "../src/server/blobStore";
 import { readBlobCredentials, readPublicBlobBase } from "../src/server/config";
-import { storeCovers } from "../src/server/storeCovers";
+import { COVERS_INDEX_KEY, storeCovers } from "../src/server/storeCovers";
 
 /**
  * Draws the covers the content store's briefings and episodes need (D173). content.yml runs it
@@ -23,7 +23,12 @@ const drawn = await storeCovers({
   base,
   fetch,
   put: async (pathname, body, contentType) => {
-    await store.put(pathname, body, { contentType, cacheSeconds: 86_400 });
+    // A cover address carries its record's version (?v=), so a cover never changes under it. The
+    // index does change.
+    await store.put(pathname, body, {
+      contentType,
+      cacheSeconds: pathname === COVERS_INDEX_KEY ? 60 : 31_536_000,
+    });
   },
   now: Date.now,
 });

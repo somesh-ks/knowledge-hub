@@ -5,6 +5,7 @@ import {
   COVER_SIZES,
   type CoverSource,
   coverPng,
+  coverVersion,
   coverWebp,
   episodeCover,
   themedCoverSrc,
@@ -26,6 +27,12 @@ export const COVERS_INDEX_KEY = "content/covers/index.json";
 interface CoversIndex {
   version: 1;
   ids: string[];
+  /**
+   * The cover version each id was drawn for (lib/covers.ts coverVersion). A regenerated record has
+   * a new version, so its cover is drawn again. An id listed without a version predates this field:
+   * it counts as current once and is given its version, without a redraw.
+   */
+  versions?: Record<string, string>;
 }
 
 /** Every cover file one id is served as, by its site path without the leading slash. */
@@ -56,12 +63,31 @@ export interface StoreCoversDeps {
 export async function storeCovers(deps: StoreCoversDeps): Promise<string[]> {
   const text = await readPublicText(`${deps.base}/${COVERS_INDEX_KEY}?t=${deps.now()}`, deps.fetch);
   const index = text === null ? null : (JSON.parse(text) as Partial<CoversIndex>);
-  const done = new Set(index?.version === 1 && Array.isArray(index.ids) ? index.ids : []);
-  const sources: CoverSource[] = [
-    ...deps.site.entries.map((entry) => entry.digest),
-    ...deps.site.episodes.map(episodeCover),
-  ].filter((source) => !done.has(source.id));
-  if (sources.length === 0) return [];
+  const listed = new Set(index?.version === 1 && Array.isArray(index.ids) ? index.ids : []);
+  const versions: Record<string, string> = { ...(index?.version === 1 ? index.versions : {}) };
+  const records = [
+    ...deps.site.entries.map((entry) => ({
+      source: entry.digest as CoverSource,
+      version: coverVersion(entry.digest.generated_at),
+    })),
+    ...deps.site.episodes.map((entry) => ({
+      source: episodeCover(entry),
+      version: coverVersion(entry.episode.generated_at),
+    })),
+  ];
+  let adopted = false;
+  const sources: CoverSource[] = [];
+  for (const { source, version } of records) {
+    if (versions[source.id] === version) continue;
+    if (versions[source.id] === undefined && listed.has(source.id)) {
+      // Drawn before versions were kept: current once, so no redraw; a regeneration differs later.
+      versions[source.id] = version;
+      adopted = true;
+      continue;
+    }
+    sources.push(source);
+  }
+  if (sources.length === 0 && !adopted) return [];
 
   const cache = { cacheDir: join(tmpdir(), "singularity-store-covers"), fingerprint: "store" };
   for (const source of sources) {
@@ -71,10 +97,11 @@ export async function storeCovers(deps: StoreCoversDeps): Promise<string[]> {
         : await coverWebp(file.source, file.size, cache);
       await deps.put(`content/${file.path}`, body, file.png ? "image/png" : "image/webp");
     }
-    done.add(source.id);
+    listed.add(source.id);
+    versions[source.id] = records.find((record) => record.source.id === source.id)?.version ?? "";
   }
   // Written last, so a run that dies half way draws the rest next time.
-  const next: CoversIndex = { version: 1, ids: [...done].sort() };
+  const next: CoversIndex = { version: 1, ids: [...listed].sort(), versions };
   await deps.put(
     COVERS_INDEX_KEY,
     new TextEncoder().encode(JSON.stringify(next)),

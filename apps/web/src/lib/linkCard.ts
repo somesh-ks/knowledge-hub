@@ -26,13 +26,15 @@ export function cardDescription(headlines: readonly string[]): string {
   return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[;,.:\s]+$/, "")}…`;
 }
 
-const coverPng = (id: string) => `/covers/${id}-1024.png`;
+/** The 1024 cover as a PNG, keeping its ?v= so a regenerated card shows its new cover. */
+const coverPng = (entry: { player: { cover: { src1024: string } } }) =>
+  entry.player.cover.src1024.replace(".webp", ".png");
 
 export function briefingCard(entry: DigestEntry): LinkCard {
   return {
     title: entry.player.title,
     description: cardDescription(entry.items.map((item) => item.headline)),
-    image: coverPng(entry.id),
+    image: coverPng(entry),
     imageAlt: `Cover of the Singularity briefing for ${entry.player.title}`,
   };
 }
@@ -41,7 +43,7 @@ export function episodeCard(entry: EpisodeEntry): LinkCard {
   return {
     title: entry.episode.title,
     description: cardDescription(entry.episode.sources.map((source) => source.headline)),
-    image: coverPng(entry.id),
+    image: coverPng(entry),
     imageAlt: `Cover of the Singularity episode ${entry.episode.title}`,
   };
 }

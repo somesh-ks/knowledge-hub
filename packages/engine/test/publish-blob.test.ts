@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AUDIO_PREFIX,
   audioKey,
+  audioVersion,
   DEFAULT_CACHE_MAX_AGE_SECONDS,
   pruneAudio,
   uploadAudio,
@@ -12,8 +13,8 @@ const NOW = new Date("2026-10-07T06:00:00Z");
 const daysAgo = (days: number): Date => new Date(NOW.getTime() - days * 86_400_000);
 
 describe("audioKey", () => {
-  it("is audio/<digest id>.mp3", () => {
-    expect(audioKey("2026-10-07")).toBe("audio/2026-10-07.mp3");
+  it("is audio/<digest id>.<version>.mp3, and the old audio/<digest id>.mp3 without a version", () => {
+    expect(audioKey("2026-10-07", "abc123")).toBe("audio/2026-10-07.abc123.mp3");
     expect(audioKey("2026-10-11-weekly")).toBe("audio/2026-10-11-weekly.mp3");
     expect(audioKey("2026-10-07-2")).toBe("audio/2026-10-07-2.mp3");
   });
@@ -26,35 +27,41 @@ describe("audioKey", () => {
   );
 });
 
+// A regenerated narration was rewritten at the same URL, so a browser, the CDN or the service worker
+// could play the old MP3 (plan section 20, criterion 6).
 describe("uploadAudio", () => {
   const audio = new Uint8Array([1, 2, 3, 4]);
 
-  it("uploads to audio/<id>.mp3 as audio/mpeg and returns the public URL", async () => {
+  it("uploads to a hashed key as audio/mpeg with the year-long cache and returns the public URL", async () => {
     const blob = makeFakeBlob();
     const url = await uploadAudio(blob, { digestId: "2026-10-07", audio });
-    expect(url).toBe("https://store.public.blob.vercel-storage.com/audio/2026-10-07.mp3");
-    expect(blob.puts).toEqual(["audio/2026-10-07.mp3"]);
-    const stored = must(blob.store.get("audio/2026-10-07.mp3"));
+    const key = `audio/2026-10-07.${audioVersion(audio)}.mp3`;
+    expect(url).toBe(`https://store.public.blob.vercel-storage.com/${key}`);
+    expect(blob.puts).toEqual([key]);
+    const stored = must(blob.store.get(key));
     expect(stored.body).toEqual(audio);
     expect(stored.options).toEqual({
       contentType: "audio/mpeg",
       cacheControlMaxAge: DEFAULT_CACHE_MAX_AGE_SECONDS,
     });
+    expect(DEFAULT_CACHE_MAX_AGE_SECONDS).toBe(31_536_000);
   });
 
   it("passes a custom cache lifetime through", async () => {
     const blob = makeFakeBlob();
     await uploadAudio(blob, { digestId: "2026-10-07", audio, cacheControlMaxAge: 3600 });
-    expect(must(blob.store.get("audio/2026-10-07.mp3")).options.cacheControlMaxAge).toBe(3600);
+    const [key] = blob.puts;
+    expect(must(blob.store.get(must(key))).options.cacheControlMaxAge).toBe(3600);
   });
 
-  it("overwrites on a second upload so the URL stays stable", async () => {
+  it("gives regenerated audio a new URL and the same bytes the same URL", async () => {
     const blob = makeFakeBlob();
     const first = await uploadAudio(blob, { digestId: "2026-10-07", audio });
+    const again = await uploadAudio(blob, { digestId: "2026-10-07", audio });
     const second = await uploadAudio(blob, { digestId: "2026-10-07", audio: new Uint8Array([9]) });
-    expect(second).toBe(first);
-    expect(blob.store.size).toBe(1);
-    expect(must(blob.store.get("audio/2026-10-07.mp3")).body).toEqual(new Uint8Array([9]));
+    expect(again).toBe(first);
+    expect(second).not.toBe(first);
+    expect(blob.store.size).toBe(2);
   });
 
   it("refuses empty audio before any request", async () => {

@@ -108,7 +108,12 @@ function inScheduleHour(at: Date, zone: string, hour: number): boolean {
 export function slotAt(schedule: ScheduleFile, now: Date): "daily" | "weekly" | null {
   const zone = scheduleZone(schedule.timezone);
   const start = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
-  const ends = [new Date(start), new Date(start + HOUR_MS - 1)];
+  // An end of the UTC hour on another local date than the call's is not this call's hour: the run
+  // is decided for the call's own date.
+  const today = zonedDate(now, zone);
+  const ends = [new Date(start), new Date(start + HOUR_MS - 1)].filter(
+    (at) => zonedDate(at, zone) === today,
+  );
   if (ends.some((at) => inScheduleHour(at, zone, schedule.hour))) return "daily";
   const { weekly } = schedule;
   const inWeekly = (at: Date) =>
