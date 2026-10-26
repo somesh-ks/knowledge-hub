@@ -84,12 +84,7 @@ describe("withStore", () => {
     ]);
     // Two writes 100 ms apart on the server, this device seeing its own answer later than that: the
     // server's date for this device's write decides, not this device's clock.
-    const close = addSaved(
-      [],
-      [{ op: "mix.set", format_mix: { blog: 0.5 } }],
-      T0 + 300,
-      T0 + 100,
-    );
+    const close = addSaved([], [{ op: "mix.set", format_mix: { blog: 0.5 } }], T0 + 300, T0 + 100);
     expect(withStore(close, { ops: [later], written_at: T0 + 200 }, T0 + 1000)).toEqual([later]);
   });
 });
@@ -201,7 +196,9 @@ describe("savedControl", () => {
       undefined,
     );
     expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.blog")).toBe("0.75");
-    expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.audio")).toBe(undefined);
+    expect(savedControl(ops, { op: "mix.set", format_mix: {} }, "format_mix.audio")).toBe(
+      undefined,
+    );
     const upsert = ops[3] as Extract<ConfigOp, { op: "topic.upsert" }>;
     expect(savedControl(ops, upsert, "topic.enabled")).toBe("false");
     expect(savedControl(ops, { op: "topic.scope", ids: ["ui"] }, "weekly")).toBe("false");

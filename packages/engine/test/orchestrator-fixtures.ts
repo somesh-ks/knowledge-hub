@@ -9,8 +9,8 @@ import {
   type JudgmentEntry,
   type LastRunFile,
   parseDigestFile,
-  seedTopicsFile,
   type Source,
+  seedTopicsFile,
   serializeDigestFile,
 } from "@singularity/core";
 import { pickCover } from "@singularity/cover";
@@ -21,13 +21,13 @@ import { createGitRunner } from "../src/git/runGit.js";
 import { createHttpClient } from "../src/http.js";
 import type { Judge } from "../src/judge/types.js";
 import { runPipeline } from "../src/run/pipeline.js";
-import { serializeTopics } from "../src/topics/store.js";
 import {
   DEFAULT_RUN_OPTIONS,
   type PipelineResult,
   type RunDeps,
   type RunOptions,
 } from "../src/run/types.js";
+import { serializeTopics } from "../src/topics/store.js";
 import type { Grounder } from "../src/validate/grounding.js";
 import { digestFor } from "./audio-fixtures.js";
 import { type FakeWriter, fakeWriter, keywordGrounder, longText } from "./curate-helpers.js";
