@@ -6,7 +6,7 @@ import Icon from "./Icon.astro";
 interface Props {
   /** Every source the filter covers: the page's own list, or all of them on the index. */
   sources: ManageSource[];
-  /** Chips for the formats the sources use (a topic's page). The index has none. */
+  /** Tabs for the formats the sources use, All first (a category's page). The index has none. */
   chips?: boolean;
 }
 
@@ -14,17 +14,17 @@ const { sources, chips = false } = Astro.props;
 const formats = Object.entries(FORMAT_LABEL)
   .filter(([format]) => sources.some((source) => source.format === format))
   .map(([format, label]) => ({ format, label }));
-// One format has nothing to tell apart: no chip would change the list.
+// One format has nothing to tell apart: no tab would change the list.
 const shownChips = chips && formats.length > 1;
 ---
 
-{/* One search field over a list of source rows and, on a topic's page, the formats as chips. Both are
-     the Library's (primitives.css: .search-field, .filter-chip), so a search and a chip look the same
-     on every page (2026-10-21). Any number of chips may be chosen and none means everything. The state
-     is read and written by sourceFilter.ts from the rows' data-text and data-format.
+{/* One search field over a list of source rows and, on a category's page, the formats as tabs: All,
+     then one per format the sources use, one chosen at a time (2026-10-25, replacing the chips; the
+     strip is primitives.css .tabs). The field is the Library's (.search-field). The state is read
+     and written by sourceFilter.ts from the rows' data-text and data-format.
      Whole static HTML without the script: the list simply stays unfiltered. */}
-{/* With chips the block sticks under the app bar (topics.css), so it pins the bar (SiteHeader.astro,
-     data-pins-bar): a bar that slid away and back moved the block by its height each time. */}
+{/* With tabs the block sticks under the app bar (topics.css) at every width, so it pins the bar
+     (SiteHeader.astro, data-pins-bar): a bar that slid away and back moved the block by its height. */}
 <div
   class="source-filter"
   data-filter
@@ -57,15 +57,16 @@ const shownChips = chips && formats.length > 1;
   </div>
   {
     shownChips && (
-      <fieldset class="filter-chips filter-chips-scroll" aria-label="Type">
-        {formats.map((chip) => (
-          <label class="filter-chip">
-            <input type="checkbox" name="type" value={chip.format} data-chip={chip.format} />
-            <Icon name="check" class="filter-chip-check" />
-            <span>{chip.label}</span>
-          </label>
+      <div class="tabs tabs-in-card scroll-fade-inline" role="tablist" aria-label="Type">
+        <button class="tab" type="button" role="tab" aria-selected="true" data-tab="">
+          All
+        </button>
+        {formats.map((tab) => (
+          <button class="tab" type="button" role="tab" aria-selected="false" data-tab={tab.format}>
+            {tab.label}
+          </button>
         ))}
-      </fieldset>
+      </div>
     )
   }
   <p class="filter-none" role="status" hidden data-filter-none>

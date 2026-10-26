@@ -173,17 +173,17 @@
   text-wrap: nowrap;
 }
 
-/* An open Listen in list rises over the search block that sticks under the app bar below 64rem
-   (.source-filter[data-chips], one under the header), so its last row, Catch up, is never drawn
-   under the search (2026-10-22). While the list is open the card takes the search's level and the
-   search steps one below it; both stay under the app bar, so a page scrolled with the list open
-   slides under the bar as before. */
-@media (width < 64rem) {
-  .topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
-    position: relative;
-    z-index: calc(var(--z-header) - 1);
-  }
+/* An open Listen in list rises over the search and tabs block that sticks under the app bar
+   (.source-filter[data-chips], one under the header, at every width since 2026-10-25), so its last
+   row, Catch up, is never drawn under the search (2026-10-22). While the list is open the card takes
+   the search's level and the search steps one below it; both stay under the app bar, so a page
+   scrolled with the list open slides under the bar as before. */
+.topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
+  position: relative;
+  z-index: calc(var(--z-header) - 1);
+}
 
+@media (width < 64rem) {
   /* On a phone the open list is a bottom sheet (multiselect.css) drawn inside the card's layer, so
      the card rises over the navigation bar while it is open; the scrim the sheet spreads covers the
      card and the bars alike (2026-10-23). */
@@ -192,11 +192,10 @@
       z-index: var(--z-sheet);
     }
   }
+}
 
-  .topic-page:has(.topic-card .multiselect-trigger[aria-expanded="true"])
-    .source-filter[data-chips] {
-    z-index: calc(var(--z-header) - 2);
-  }
+.topic-page:has(.topic-card .multiselect-trigger[aria-expanded="true"]) .source-filter[data-chips] {
+  z-index: calc(var(--z-header) - 2);
 }
 
 /* ------------------------------------------------------------------ Sources or Preferences */
@@ -222,8 +221,7 @@
    surface, so they read against the card. */
 .topic-panel > .topic-view,
 .topic-panel .search-field,
-.topic-panel .filter-row > .topic-add-source,
-.topic-panel .filter-chip:not(:has(input:checked)) {
+.topic-panel .filter-row > .topic-add-source {
   background: var(--color-surface);
 }
 
@@ -1481,8 +1479,9 @@
 
 /* ------------------------------------------------------------------ search and format tabs */
 
-/* The search field over a list of sources and, on a topic's page, a tab bar of its formats, All
-   first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20). */
+/* The search field over a list of sources and, on a category's page, a tab strip of its formats, All
+   first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20, again
+   2026-10-25 after the chips). */
 .source-filter {
   display: grid;
   /* One column that may shrink below its content: otherwise the tab strip's full width sets the
@@ -1534,32 +1533,32 @@
   inset-block: 0;
 }
 
-/* Below 64rem the field and the chips stick under the app bar as one block, so both stay in reach
-   down a long list. Inside the topic card the block takes the card's fill and runs to its edges. */
-@media (width < 64rem) {
-  .source-filter[data-chips] {
-    position: sticky;
-    inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
-    z-index: calc(var(--z-header) - 1);
-    margin-inline: calc(var(--space-4) * -1);
-    padding: var(--space-2) var(--space-4);
-    background: var(--color-surface-container);
-  }
+/* The field and the tabs stick under the app bar as one block at every width, so both stay in reach
+   down a long list. --sticky-top is the bar's height below 64rem (and none of it once the bar has
+   slid away) and the safe area above it, where the bar does not stick. Inside the topic card the
+   block takes the card's fill and runs to its edges. */
+.source-filter[data-chips] {
+  position: sticky;
+  inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
+  z-index: calc(var(--z-header) - 1);
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-container);
+}
 
-  .source-filter[data-chips] .filter-none {
-    padding-block: var(--space-2);
-  }
+.source-filter[data-chips] .filter-none {
+  padding-block: var(--space-2);
+}
 
-  /* An anchor or a focused row lands below the stuck block, not under it. The one root :has() kept
-     (D147): the chips are drawn by the server and never change, and only a topic's page has them. */
-  html:has(.source-filter[data-chips]) {
-    scroll-padding-block-start: calc(
-      var(--sticky-top) +
-      var(--field-height) +
-      var(--chip-height) +
-      var(--space-6)
-    );
-  }
+/* An anchor or a focused row lands below the stuck block, not under it. The one root :has() kept
+   (D147): the tabs are drawn by the server and never change, and only a category's page has them. */
+html:has(.source-filter[data-chips]) {
+  scroll-padding-block-start: calc(
+    var(--sticky-top) +
+    var(--field-height) +
+    var(--tabs-height) +
+    var(--space-6)
+  );
 }
 
 .filter-none {
