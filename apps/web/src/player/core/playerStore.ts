@@ -858,6 +858,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     // of range requests. The status stays "playing" so the controls do not flicker.
     stopFrameLoop();
     stopBufferTimer();
+    // The paused element would read as a stalled start: the monitor restarts when the scrub ends.
+    stopFallbackWatch();
     if (audio && wasPlayingBeforeScrub) {
       expectPause();
       audio.pause();
@@ -881,7 +883,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       // The status never left "playing", so the controls did not flicker. The element's own
       // playing event restarts the frame loop; a seek that needs data raises waiting.
       wantsPlay = true;
-      Promise.resolve(audio.play()).catch((rejection: unknown) => {
+      const started = Promise.resolve(audio.play());
+      watchPlayStart(audio, started);
+      started.catch((rejection: unknown) => {
         const error = describePlayRejection(rejection, isOnline(), audioNoun());
         if (!error || state.status === "error") return;
         fail(error);

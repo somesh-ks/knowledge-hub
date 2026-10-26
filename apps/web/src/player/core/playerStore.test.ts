@@ -712,6 +712,25 @@ describe("errors", () => {
     expect(harness.audio.src).toContain(".m4a");
   });
 
+  it("does not give up the Opus file mid-scrub while the start is still pending", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    harness.store.load(
+      makeDigest({
+        audio: {
+          url: "/audio/2026-10-07.mp3",
+          m4a_url: "/audio/2026-10-07.m4a",
+          duration_ms: 120_000,
+        },
+      }),
+    );
+    harness.audio.play = () => new Promise<void>(() => {});
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.store.beginScrub();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(harness.audio.src).toContain(".m4a");
+  });
+
   it("ignores a play rejected because a newer load won", async () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
