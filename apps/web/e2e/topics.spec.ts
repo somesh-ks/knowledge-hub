@@ -1496,7 +1496,7 @@ test.describe("the podcast structure", () => {
     await page.clock.install();
     const server = await routeConfigServer(page);
     await open(page, "/settings/preferences?view=structure");
-    await expect(page.getByRole("tab", { name: "Structure" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Podcast structure" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
