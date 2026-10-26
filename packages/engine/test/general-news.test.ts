@@ -223,7 +223,7 @@ describe("buildGeneralPool", () => {
       unjudged: [],
       counts: { pool: 1, over_ceiling: 0, reused: 0, requests: 1, judged: 1, unjudged: 0 },
     };
-    const counts = countGeneral({ pool, judged, topics: [{ id: "world", weight: 1 }] });
+    const counts = countGeneral({ pool, judged, topics: [{ id: "world", origin: "general" }] });
     expect(counts["npr-world"]).toMatchObject({ judged: 1, covered: 0 });
     expect(counts["bbc-world"]).toMatchObject({ judged: 1, covered: 1 });
   });
@@ -321,10 +321,10 @@ describe("countGeneral", () => {
     });
   });
 
-  it("holds a fit to the bar every topic is held to: weight times fit^1.5 against 0.4", () => {
-    expect(fitPasses({ weight: 1 }, 0.55)).toBe(true);
-    expect(fitPasses({ weight: 1 }, 0.5)).toBe(false);
-    expect(fitPasses({ weight: 0.6 }, 0.75)).toBe(false);
+  it("holds a fit to the bar every topic is held to: taste times fit^1.5 against 0.4", () => {
+    expect(fitPasses({ id: "world", origin: "general" }, 0.55)).toBe(true);
+    expect(fitPasses({ id: "world", origin: "general" }, 0.5)).toBe(false);
+    expect(fitPasses({ id: "mine", origin: "custom" }, 0.6)).toBe(false);
   });
 
   it("does not count a story the judge left out, and adds to a source's briefing counts", () => {

@@ -110,17 +110,6 @@ describe("prefilter", () => {
       "Our queue, sharded",
     ]);
     expect(report.dropped.not_relevant).toBe(1);
-    // With the category Off, its sources need a keyword like any other.
-    const off = prefilter({
-      items: [engineering, added],
-      preferences: {
-        ...preferences,
-        weights: { ...preferences.weights, software_engineering_depth: 0 },
-      },
-      sources,
-      now: NOW,
-    });
-    expect(off.items).toEqual([]);
   });
 
   it("keeps items from a preferred author without a keyword match", () => {

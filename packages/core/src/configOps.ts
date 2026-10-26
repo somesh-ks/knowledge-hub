@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IdString, SectionId, snapWeight } from "./categories.js";
+import { IdString, SectionId } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
 import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
 import { BlockPrompt, BlockPromptKey, StructureBlocks, StructureProfile } from "./structure.js";
@@ -37,9 +37,6 @@ export const MAX_VOTES_PER_OP = 50;
 export const OpenInput = VoteInput.omit({ value: true });
 export const MAX_OPENS_PER_OP = 50;
 
-/** Any number from 0 to 1 is read as the nearest of the five weight stops. */
-const weight = z.number().min(0).max(1).transform(snapWeight);
-
 /**
  * A topic as the app submits it. Only `name` and `description` are required: the id comes from
  * the name, a new topic gets a section of its own titled after it, and the rest take defaults.
@@ -50,7 +47,6 @@ export const TopicInput = z.object({
   id: IdString.optional(),
   name: z.string().trim().min(1).max(60),
   description: z.string().trim().min(1).max(400),
-  weight: weight.default(0.7),
   enabled: z.boolean().default(true),
   keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS).default([]),
   /** Defaults to the topic's own id. A section that does not exist yet is created. */
@@ -69,8 +65,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  * One change to the user-editable configuration. `singularity config apply --op '<json>'` takes
  * exactly one per call, and the config workflow passes it through unchanged.
  *
- * - topic.upsert: create a custom topic, or edit one. For a built-in topic only `weight` and
- *   `keywords` may change.
+ * - topic.upsert: create a custom topic, or edit one. For a built-in topic only `keywords`
+ *   may change.
  * - topic.remove: delete a custom topic and the discovery queries written for it.
  * - source.add: add a source by URL; its feed is discovered when the op runs. An `id` may be given
  *   (refused when taken); otherwise one is made from the address.
@@ -83,7 +79,6 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - topic.mix: set a general topic's perspective (-2 Left to 2 Right).
  * - mix.set: set the type mix, one stop per source format, for every topic alike, in
  *   config/preferences.json. Formats left out keep their stop; Normal removes one.
- * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set any of the time zone (one of SUPPORTED_TIMEZONES), the daily hour, cadence,
  *   topics left out (`skip_topics`), length and voices, the weekly podcast (`weekly`:
  *   on/off, day, hour, topics left out, type, length, voices) and the Create panel defaults
@@ -157,12 +152,6 @@ export const ConfigOp = z.discriminatedUnion("op", [
         z.union([MixStop, z.number().min(0).max(1.2).transform(mixStopOf)]),
       )
       .refine((value) => Object.keys(value).length > 0, "give at least one type"),
-  }),
-  z.object({
-    op: z.literal("weights.set"),
-    weights: z
-      .record(IdString, weight)
-      .refine((value) => Object.keys(value).length > 0, "give at least one weight"),
   }),
   z
     .object({ op: z.literal("schedule.set"), ...ScheduleChange.shape })

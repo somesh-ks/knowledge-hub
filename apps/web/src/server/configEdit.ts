@@ -37,7 +37,7 @@ import { describeError } from "./redact";
  * not name never reaches the workflow.
  */
 
-/** Edits are small. A weights map for a hundred topics is the largest valid body, near 6 KB. */
+/** Edits are small. */
 export const MAX_CONFIG_BODY_CHARS = 8192;
 /** Two edits closer together than this are refused, so one person cannot flood the repository. */
 export const CONFIG_COOLDOWN_MS = 10_000;
@@ -75,7 +75,6 @@ const MAX_KEYWORDS = 12;
 const MAX_KEYWORD = 40;
 const MAX_URL = 2048;
 const MAX_TOPIC_IDS = 12;
-const MAX_WEIGHTS = 100;
 const MAX_SKIPPED_TOPICS = 200;
 const CADENCES = [1, 2, 3, 7] as const;
 type PodcastLength = PodcastRequest["length_minutes"];
@@ -105,12 +104,6 @@ function text(value: unknown, max: number): string | null {
 
 function id(value: unknown): string | null {
   return typeof value === "string" && ID.test(value) ? value : null;
-}
-
-function weight(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1
-    ? value
-    : null;
 }
 
 /** An address a feed can be read from: http or https, with a host, and nothing in the userinfo slot. */
@@ -295,7 +288,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const topicId = id(topic.id);
       const name = text(topic.name, MAX_NAME);
       const description = text(topic.description, MAX_DESCRIPTION);
-      const amount = weight(topic.weight);
       const enabled = typeof topic.enabled === "boolean" ? topic.enabled : null;
       const words = keywords(topic.keywords);
       const sectionId = id(topic.section_id);
@@ -312,7 +304,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         topicId === null ||
         name === null ||
         description === null ||
-        amount === null ||
         enabled === null ||
         words === null ||
         sectionId === null
@@ -325,7 +316,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           id: topicId,
           name,
           description,
-          weight: amount,
           enabled,
           keywords: words,
           section_id: sectionId,
@@ -411,19 +401,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     case "source.remove": {
       const source = id(value.id);
       return source === null ? null : { op: "source.remove", id: source };
-    }
-    case "weights.set": {
-      if (!isRecord(value.weights)) return null;
-      const entries = Object.entries(value.weights);
-      if (entries.length === 0 || entries.length > MAX_WEIGHTS) return null;
-      const weights: Record<string, number> = {};
-      for (const [key, amount] of entries) {
-        const topic = id(key);
-        const checked = weight(amount);
-        if (topic === null || checked === null) return null;
-        weights[topic] = checked;
-      }
-      return { op: "weights.set", weights };
     }
     case "schedule.set":
       return parseScheduleSet(value);
