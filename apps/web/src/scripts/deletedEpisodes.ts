@@ -39,6 +39,8 @@ const cardId = (card: Element): string =>
 /** Remembers a delete the server accepted. */
 export function rememberDeleted(id: string): void {
   save(addDeleted(load(), id, Date.now()));
+  // install() ran before this delete (or on an earlier one), so the queue and download need it now.
+  dropFromDevice();
 }
 
 /** Drops from `doc` what the list hides, and tidies the list when `doc` is the Library. */
@@ -93,10 +95,26 @@ function dropFromDevice(): void {
   } catch {
     // Storage can be blocked; the queue then stays as it was.
   }
-  void import("./libraryDownloads").then(async ({ readDownloads, removeDownload }) => {
-    for (const { id } of await readDownloads()) if (gone.has(id)) await removeDownload(id);
+  // One run at a time: removeDownload rewrites the whole manifest, so overlapping runs could
+  // restore what the newer one removed. A failure on one item does not stop the others.
+  cleanup = cleanup.then(async () => {
+    try {
+      const { readDownloads, removeDownload } = await import("./libraryDownloads");
+      for (const { id } of await readDownloads()) {
+        if (!gone.has(id)) continue;
+        try {
+          await removeDownload(id);
+        } catch (error) {
+          console.error(`[deleted episodes] removing the download of ${id} failed`, error);
+        }
+      }
+    } catch (error) {
+      console.error("[deleted episodes] download cleanup failed", error);
+    }
   });
 }
+
+let cleanup: Promise<void> = Promise.resolve();
 
 let installed = false;
 

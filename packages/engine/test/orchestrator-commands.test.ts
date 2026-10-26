@@ -423,7 +423,7 @@ describe("singularity learn --commit", () => {
   const LONG = { timeout: 90_000 };
   const patch = {
     input: "more motion techniques",
-    weight_deltas: { css_canvas_motion_techniques: 0.05 },
+    add_keywords: ["shaders"],
   };
 
   async function patchFile(content: unknown = patch): Promise<string> {
@@ -457,7 +457,7 @@ describe("singularity learn --commit", () => {
     const { code } = await apply(["--commit"]);
     expect(code).toBe(0);
     expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
-      "chore(prefs): weight css_canvas_motion_techniques: 0.88 to 0.95",
+      'chore(prefs): keyword: added "shaders"',
     );
     expect(git(repo.root, "log", "-1", "--format=%b")).toContain("Input: more motion techniques");
     expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toBe(
@@ -546,8 +546,9 @@ describe("singularity learn --commit", () => {
         .result;
     };
     const weight = () =>
-      (JSON.parse(stored.content) as { weights: Record<string, number> }).weights
-        .css_canvas_motion_techniques;
+      (JSON.parse(stored.content) as { preferred_keywords: string[] }).preferred_keywords.includes(
+        "shaders",
+      );
 
     reachable = false;
     expect(await withStore([])).toBe(1);
@@ -566,7 +567,7 @@ describe("singularity learn --commit", () => {
     expect(weight()).toBe(before);
     git(repo.root, "push", "-q", "origin", "main");
     expect(await withStore(["--commit"])).toBe(0);
-    expect(weight()).toBe(0.95);
+    expect(weight()).toBe(true);
     expect(stored.version).toBe(2);
   });
 

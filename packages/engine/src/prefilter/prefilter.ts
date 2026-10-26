@@ -1,4 +1,10 @@
-import type { Item, Preferences, Source, SourceType } from "@singularity/core";
+import {
+  type Item,
+  NORMAL_TASTE,
+  type Preferences,
+  type Source,
+  type SourceType,
+} from "@singularity/core";
 import {
   categoryHint,
   isDesignHinted,
@@ -226,9 +232,7 @@ export function prefilter({
     // category is Off: their posts rarely name a design keyword.
     const designTagged = isDesignHinted(item, source);
     const hint = categoryHint(item, source);
-    const depthHinted =
-      preferences.weights[DEPTH_CATEGORY] > 0 &&
-      (hint === DEPTH_CATEGORY || isTopicTagged(item, source, DEPTH_CATEGORY));
+    const depthHinted = hint === DEPTH_CATEGORY || isTopicTagged(item, source, DEPTH_CATEGORY);
     if (
       titleHits + snippetHits === 0 &&
       !authorHit &&
@@ -241,7 +245,7 @@ export function prefilter({
       continue;
     }
 
-    const categoryWeight = hint ? preferences.weights[hint] : 0.5;
+    const categoryWeight = hint ? NORMAL_TASTE : 0.5;
     const votes =
       Math.min(3, Math.log10(1 + hnPoints)) +
       Math.min(2, Math.log10(1 + Math.max(0, item.signals.lobsters_score ?? 0)));

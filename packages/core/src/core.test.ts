@@ -3,6 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  AutoAdjust,
+  categoryIsOff,
   compareNewestFirst,
   type Digest,
   Digest as DigestSchema,
@@ -15,9 +17,11 @@ import {
   Preferences,
   parseDigestFile,
   SUPPORTED_TIMEZONES,
+  seedTopicsFile,
   serializeDigestFile,
   stockholmDate,
   stockholmHour,
+  Topic,
   VOICE_LIMITS,
   weekday,
   zonedDate,
@@ -146,14 +150,38 @@ describe("paths and sections", () => {
     // Off, not a missing home, keeps a category out of a briefing.
     expect(homeSection("venture_capital_and_gossip", "rss")).toBe("ai");
   });
-  // The config store's preferences row, seeded before D155, would have stopped every run.
-  it("reads a preferences file saved before a category existed, but not one missing an older one", () => {
+  // D194: topic weight is gone, but a stored preferences row, topics file or profile still carries it.
+  it("ignores the weights, weight and auto-adjust topics an older document still carries", () => {
     const fixture = "packages/engine/test/fixtures/config/preferences.json";
     const saved = JSON.parse(readFileSync(join(REPO_ROOT, fixture), "utf8"));
-    const { software_engineering_depth: _added, ...before } = saved.weights;
-    expect(Preferences.safeParse({ ...saved, weights: before }).success).toBe(true);
-    const { venture_capital_and_gossip: _off, ...dropped } = saved.weights;
-    expect(Preferences.safeParse({ ...saved, weights: dropped }).success).toBe(false);
+    expect(saved.weights).toBeDefined();
+    expect(Preferences.parse(saved)).not.toHaveProperty("weights");
+    const topic = seedTopicsFile().topics[0];
+    expect(Topic.parse({ ...topic, weight: 0.9 })).not.toHaveProperty("weight");
+    const adjust = AutoAdjust.parse({ topics: { design: { value: 0.1, at: "2026-10-01" } } });
+    expect(adjust).toEqual({ sources: {} });
+  });
+  // A topic the owner muted at weight 0 stays off once weight is gone.
+  it("keeps legacy muted topics off, including built-in categories that ignore enabled", () => {
+    for (const origin of ["builtin", "custom", "app", "general"] as const) {
+      const topic = { ...seedTopicsFile().topics[0], origin, never_publish: false };
+      for (const weight of [0, 0.05]) {
+        const muted = Topic.parse({ ...topic, enabled: true, weight });
+        expect(muted.enabled).toBe(false);
+        expect(muted.never_publish).toBe(origin === "builtin");
+        expect(muted).not.toHaveProperty("weight");
+        expect(categoryIsOff({ ...seedTopicsFile(), topics: [muted] }, muted.id)).toBe(
+          origin === "builtin",
+        );
+      }
+      for (const enabled of [true, false]) {
+        expect(Topic.parse({ ...topic, enabled, weight: 0.051 })).toMatchObject({
+          enabled,
+          never_publish: false,
+        });
+      }
+      expect(Topic.parse({ ...topic, never_publish: true, weight: 0 }).never_publish).toBe(true);
+    }
   });
 });
 

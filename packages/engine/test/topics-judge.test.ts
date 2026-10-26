@@ -28,7 +28,6 @@ function topic(id: string, overrides: Partial<Topic> = {}): Topic {
     id,
     name: `Topic ${id}`,
     description: `Everything about ${id}.`,
-    weight: 0.7,
     enabled: true,
     keywords: [id],
     section_id: id,
@@ -117,9 +116,9 @@ describe("the question", () => {
     expect([...topicByKey.values()]).toEqual(["a", "b"]);
   });
 
-  it("hashes the name and description only: keywords, weight and section do not matter", () => {
+  it("hashes the name and description only: keywords and section do not matter", () => {
     const base = topic("a");
-    const tuned: Topic = { ...base, keywords: ["x"], weight: 0.1, section_id: "other" };
+    const tuned: Topic = { ...base, keywords: ["x"], section_id: "other" };
     expect(topicHash(tuned)).toBe(topicHash(base));
     expect(topicHash({ ...base, name: "Renamed" })).not.toBe(topicHash(base));
     expect(topicHash({ ...base, description: "Changed." })).not.toBe(topicHash(base));

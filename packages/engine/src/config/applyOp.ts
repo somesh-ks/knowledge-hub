@@ -136,18 +136,14 @@ function upsertTopic(
   const existing = next.topics.topics.find((topic) => topic.id === id);
 
   if (existing?.origin === "builtin") {
-    // A built-in topic keeps its description, section and flags, as fixed questions judge it. Its
-    // weight lives in the preferences, where `singularity learn` also writes it; its name, which the
-    // judge never reads, and its keywords are free to edit.
+    // A built-in topic keeps its description, section and flags, as fixed questions judge it; its
+    // name, which the judge never reads, and its keywords are free to edit.
     const renamed = existing.name !== input.name;
     const summary = renamed
       ? `rename topic ${tidy(existing.name)} to ${tidy(input.name)}`
-      : `set weight of ${tidy(existing.name)}`;
+      : `set keywords of ${tidy(existing.name)}`;
     existing.name = input.name;
-    existing.weight = input.weight;
-    existing.never_publish = input.weight === 0;
     existing.keywords = input.keywords;
-    if (isBuiltinCategory(existing.id)) next.preferences.weights[existing.id] = input.weight;
     return { next, summary, topic_id: id, new_topic: false };
   }
   if (existing?.origin === "app" || existing?.origin === "general") {
@@ -163,7 +159,6 @@ function upsertTopic(
         : `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`;
     existing.name = input.name;
     existing.description = input.description;
-    existing.weight = input.weight;
     existing.keywords = [...new Set(input.keywords)];
     // A general topic is always on: the request's `enabled` is not read.
     existing.enabled = general ? true : input.enabled;
@@ -207,7 +202,6 @@ function upsertTopic(
     id,
     name: input.name,
     description: input.description,
-    weight: input.weight,
     enabled: input.enabled,
     keywords: [...new Set(input.keywords)],
     section_id: sectionId,
@@ -439,22 +433,6 @@ function removeSource(
     next.sourcesUser.overrides[op.id] = { ...next.sourcesUser.overrides[op.id], removed: true };
   }
   return { next, summary: `remove source ${tidy(source.name)}` };
-}
-
-function setWeights(
-  op: Extract<ParsedConfigOp, { op: "weights.set" }>,
-  bundle: ConfigBundle,
-): OpOutcome {
-  const next = clone(bundle);
-  for (const [id, weight] of Object.entries(op.weights)) {
-    const topic = next.topics.topics.find((t) => t.id === id);
-    if (!topic) throw new ConfigOpError(`There is no topic ${id}.`);
-    topic.weight = weight;
-    if (topic.origin === "builtin") topic.never_publish = weight === 0;
-    if (topic.origin === "builtin" && isBuiltinCategory(id)) next.preferences.weights[id] = weight;
-  }
-  const count = Object.keys(op.weights).length;
-  return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
 }
 
 function setMix(op: Extract<ParsedConfigOp, { op: "topic.mix" }>, bundle: ConfigBundle): OpOutcome {
@@ -724,8 +702,6 @@ export async function applyConfigOp(
       return updateSource(op, bundle);
     case "source.remove":
       return removeSource(op, bundle);
-    case "weights.set":
-      return setWeights(op, bundle);
     case "topic.mix":
       return setMix(op, bundle);
     case "mix.set":

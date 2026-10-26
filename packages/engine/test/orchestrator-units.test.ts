@@ -32,7 +32,7 @@ import {
   sourcesFile,
   WED,
 } from "./orchestrator-fixtures.js";
-import { FIXTURE_CONFIG, plainPreferences } from "./score-factories.js";
+import { FIXTURE_CONFIG } from "./score-factories.js";
 
 let root: string;
 beforeEach(async () => {
@@ -227,10 +227,14 @@ describe("digestFromSelection", () => {
   });
 
   it("fails clearly for a category that never publishes", () => {
+    const topics = seedTopicsFile();
+    const blocked = topics.topics.find((topic) => topic.id === "venture_capital_and_gossip");
+    if (!blocked) throw new Error("Missing seeded gossip topic");
+    blocked.never_publish = true;
     expect(() =>
       digestFromSelection({
         ...base,
-        topics: seedTopicsFile(plainPreferences().weights),
+        topics,
         selection: selection([entry(0), entry(1), entry(2, "venture_capital_and_gossip")]),
       }),
     ).toThrow(/never publishes/);

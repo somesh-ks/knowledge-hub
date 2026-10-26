@@ -75,6 +75,15 @@ export interface ScriptWriter {
    * listener can start while the rest is written. Optional; a writer without it has no opening.
    */
   writeOpening?(input: ScriptInput): Promise<unknown>;
+  /**
+   * One call that returns the whole script again, with the thinnest segments deepened from the
+   * material already in the story blocks. Optional; a writer without it is not asked to extend.
+   */
+  extendScript?(
+    input: ScriptInput,
+    turns: readonly ScriptTurn[],
+    problem: string,
+  ): Promise<unknown>;
   /** Rewrite one turn so it keeps to the facts. Null when the model could not. */
   rewriteTurn(input: TurnRewrite): Promise<string | null>;
 }
