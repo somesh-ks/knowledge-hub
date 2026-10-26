@@ -42,7 +42,8 @@ export const fetchYoutube: SourceFetcher = async (source, window, deps): Promise
     if (!uploads || !(error instanceof HttpError) || error.status !== 404) throw error;
     try {
       feed = await loadFeed(uploads, deps);
-    } catch {
+    } catch (fallbackError) {
+      if (deps.signal?.aborted) throw fallbackError;
       throw error;
     }
   }
