@@ -87,7 +87,7 @@ test.describe("the Settings index", () => {
     await expect(page).toHaveTitle("Daily Podcast, Singularity");
   });
 
-  test("no settings page has a breadcrumb or a way up above its title @desktop", async ({
+  test("a settings subpage has a Settings link above its title and the index has none @desktop", async ({
     page,
   }) => {
     const ROUTES = [
@@ -105,19 +105,15 @@ test.describe("the Settings index", () => {
     for (const path of ROUTES) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.getByRole("navigation", { name: "Breadcrumb" }), path).toHaveCount(0);
-      // A link in the page before its title, leading to a page above this one.
-      const up = await page.evaluate(() => {
-        const title = document.querySelector("main h1");
-        if (!title) return [];
-        const here = location.pathname.replace(/\/$/, "");
-        return [...document.querySelectorAll<HTMLAnchorElement>("main a[href]")]
-          .filter((link) => link.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING)
-          .filter((link) => link.checkVisibility())
-          .map((link) => new URL(link.href).pathname.replace(/\/$/, ""))
-          .filter((path) => path !== here && here.startsWith(`${path}/`));
-      });
-      expect(up, path).toEqual([]);
+      const crumb = page.getByRole("navigation", { name: "Breadcrumb" });
+      if (path === "/settings") {
+        await expect(crumb, path).toHaveCount(0);
+        continue;
+      }
+      await expect(crumb.getByRole("link", { name: "Settings" }), path).toHaveAttribute(
+        "href",
+        "/settings",
+      );
     }
   });
 

@@ -200,6 +200,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
+| D195 | Breadcrumb | amends D129 |
 | D194 | Topic weight removed | supersedes D190 |
 
 ---
@@ -2032,6 +2033,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: CodeRabbit reviews incrementally on each commit, supports threaded conversation, and avoids the single-run and re-label limits of the Claude action (learning 2026-10-11).
 - Rejected: keeping `claude-code-review.yml` in parallel (duplicate comments and Anthropic token spend); relying on manual review only.
 - Amends: D143.
+
+## D195: settings subpages show a Settings breadcrumb
+
+- Amends: D129.
+- Context changed: D129 dropped breadcrumbs as repeating the title and app bar; the owner found a subpage gave no quick way up to the Settings index.
+- Date: 2026-10-25 (the owner's ask).
+- Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
+- Why: one tap up beats the app bar's back, which can leave settings.
 
 ## D194: topic weight is removed
 
