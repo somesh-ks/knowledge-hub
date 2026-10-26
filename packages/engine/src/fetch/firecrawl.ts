@@ -9,6 +9,8 @@ export const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
 /** Cached copies up to this old are accepted; the default of two days would serve last run's page. */
 const MAX_AGE_MS = 60 * 60 * 1000;
 const SCRAPE_TIMEOUT_MS = 30_000;
+/** The failure reason of a listing that returned no items. */
+export const FIRECRAWL_NO_ITEMS = "no items";
 
 const ScrapeResponse = z.object({
   success: z.boolean(),
@@ -137,8 +139,12 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
     ...buildItems(headings, { source, window, fetchedAt, keepFragment: true }),
     ...buildItems(undated, { source, window, fetchedAt, undated: "keep" }),
   ];
-  if (items.length > 0 || dated.length > 0 || headings.length > 0) return items;
-  if (page.markdown.trim() === "") return [];
+  if (items.length > 0) return items;
+  // A listing that yields nothing is a failure, so a broken one shows in source health; it used
+  // to count as a quiet success (meta-ai-blog fetched 0 for weeks with no failure).
+  if (dated.length > 0 || headings.length > 0 || page.markdown.trim() === "") {
+    throw new Error(FIRECRAWL_NO_ITEMS);
+  }
 
   const whole: RawItem = {
     url: pageUrl,

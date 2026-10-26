@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { LastRunFile } from "@singularity/core";
+import { LastRunFile, type SourcesFile } from "@singularity/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { extractFullText, FEED_TEXT_ENOUGH_CHARS } from "../src/extract/extractText.js";
 import { createFirecrawlScrape } from "../src/extract/firecrawlScrape.js";
@@ -14,6 +14,7 @@ import {
   planFirecrawlListing,
 } from "../src/fetch/firecrawlBudget.js";
 import { SpendTracker, spendPath } from "../src/run/spend.js";
+import { applySourceResults } from "../src/state/sourceHealth.js";
 import { makeItem } from "./score-factories.js";
 
 describe("the Firecrawl ceiling", () => {
@@ -52,6 +53,38 @@ describe("the Firecrawl ceiling", () => {
     expect(second.run.slice(0, 2)).toEqual(["d", "e"]);
     expect(second.skipped).toHaveLength(2);
     expect(second.skipped.every((id) => first.run.includes(id))).toBe(true);
+  });
+
+  it("gives every listing source a turn within a bounded number of runs, a failing one included", () => {
+    // 6 sources, room for 2 per run, so each is due within 3 runs. "a" always fails (an empty
+    // listing): by last_ok alone it would keep the oldest key and take a slot every run.
+    const ids = ["a", "b", "c", "d", "e", "f"];
+    let file: SourcesFile = {
+      version: 1,
+      sources: ids.map((id) => ({
+        id,
+        name: id,
+        type: "firecrawl" as const,
+        url: `https://${id}.example`,
+        feed_url: null,
+        tier: "daily" as const,
+        high_signal: false,
+        enabled: true,
+        failures: 0,
+        options: {},
+      })),
+    };
+    const fetched = new Set<string>();
+    for (let run = 0; run < 3; run++) {
+      const { run: ran } = planFirecrawlListing(file.sources, 2);
+      for (const id of ran) fetched.add(id);
+      file = applySourceResults(
+        file,
+        ran.map((id) => ({ source_id: id, ok: id !== "a", count: 0, ms: 1 })),
+        new Date(Date.UTC(2026, 9, 6 + 2 * run, 6)),
+      );
+    }
+    expect([...fetched].sort()).toEqual(ids);
   });
 
   it("records skipped sources", () => {
