@@ -1767,7 +1767,7 @@ html:has(.source-filter[data-chips]) {
 
 .profile-card-title {
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-body);
 }
 
@@ -1776,8 +1776,11 @@ html:has(.source-filter[data-chips]) {
   height: var(--space-16);
 }
 
+/* The chevron's ink ends 4px in from the card's edge, where the rows' dots and pencil end
+   (--space-1, the same inset as `.structure-row .icon-btn-end`), measured 2026-10-26. */
 .structure-profile .profile-select {
   padding: 0;
+  padding-inline-end: var(--space-1);
   min-height: 0;
   min-inline-size: 10rem;
   justify-content: flex-end;
