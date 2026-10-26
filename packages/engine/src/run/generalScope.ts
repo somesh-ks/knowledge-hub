@@ -9,6 +9,7 @@ import {
   publishSection,
   type ScheduleFile,
   type Topic,
+  topicTaste,
 } from "@singularity/core";
 import { readJsonIfExists } from "../curate/inputs.js";
 import type { RunMode } from "../gate/decideRun.js";
@@ -92,7 +93,7 @@ export async function generalCandidates(input: {
       score: best.score,
       topCategory: "none",
       breakdown: {
-        taste: round4(best.topic.weight),
+        taste: round4(topicTaste(best.topic)),
         craftFactor: round4(clamp01(best.fit) ** 1.5 * best.depth),
         penaltyFactor: round4(best.penalty),
         bonus: 0,

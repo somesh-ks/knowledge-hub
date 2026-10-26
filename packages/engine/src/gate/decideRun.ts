@@ -113,7 +113,7 @@ function lastRegularDate(lastRun: LastRunFile, zone: string): string | undefined
  */
 function lastWeeklyDate(lastRun: LastRunFile, zone: string): string | undefined {
   const record = lastRun.weekly;
-  if (!record || record.outcome !== "published") return undefined;
+  if (record?.outcome !== "published") return undefined;
   const at = new Date(record.at);
   return Number.isNaN(at.getTime()) ? undefined : zonedDate(at, zone);
 }

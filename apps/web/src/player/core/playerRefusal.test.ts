@@ -48,6 +48,7 @@ async function refusedWhileLoading() {
   harness.store.load(makeDigest({ audio: { url: "narration:2026-10-07", duration_ms: 120_000 } }));
   await settle();
   harness.store.play();
+  await settle();
   real.loadMetadata(10);
   real.startPlaying();
   // The last frame before story 1 ends.

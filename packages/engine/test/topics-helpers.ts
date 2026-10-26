@@ -1,8 +1,8 @@
-import { activeCustomTopics, type Preferences, resolveTopics, type Topic } from "@singularity/core";
+import { activeCustomTopics, resolveTopics, type Topic } from "@singularity/core";
 
 /** The topics of a repository that has never had one added: the resolved seed. */
-export function loadTopicsFromSeed(preferences: Preferences): { custom: Topic[] } {
-  return { custom: activeCustomTopics(resolveTopics(null, preferences)) };
+export function loadTopicsFromSeed(): { custom: Topic[] } {
+  return { custom: activeCustomTopics(resolveTopics(null)) };
 }
 
 // --- repositories and feeds -----------------------------------------------------------------------

@@ -38,7 +38,7 @@ function fakeBlob(options: { slowFirst?: boolean; failPuts?: boolean } = {}) {
       if (options.failPuts) throw new Error("store down");
       if (options.slowFirst && mine < 2) await new Promise((resolve) => setTimeout(resolve, 20));
       const doc = JSON.parse(new TextDecoder().decode(body)) as StreamDoc;
-      order.push(doc.status + ":" + doc.turns.length);
+      order.push(`${doc.status}:${doc.turns.length}`);
       store.set(pathname, doc);
       return { url: `https://blob.example/${pathname}`, pathname };
     },

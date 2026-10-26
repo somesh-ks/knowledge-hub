@@ -86,15 +86,9 @@ describe("penaltyFactor", () => {
 });
 
 describe("taste", () => {
-  it("sums probability times weight and ignores the none option", () => {
+  it("sums probability times the normal taste and ignores the none option", () => {
     const entry = makeEntry("aaaaaaaaaaaa", { category: "design_engineering_craft", p: 0.5 });
-    expect(taste(entry.category_probs, prefs.weights)).toBeCloseTo(0.475, 6);
-  });
-
-  it("weights a split distribution across categories", () => {
-    const entry = makeEntry("aaaaaaaaaaaa", { category: "design_engineering_craft", p: 0.6 });
-    const probs = { ...entry.category_probs, none: 0, frontier_model_releases: 0.4 };
-    expect(taste(probs, prefs.weights)).toBeCloseTo(0.6 * 0.95 + 0.4 * 0.85, 6);
+    expect(taste(entry.category_probs)).toBeCloseTo(0.35, 6);
   });
 });
 
@@ -144,16 +138,16 @@ describe("scoreItem", () => {
   it("scores a certain, deep, clean craft item at its category weight", () => {
     const item = makeItem();
     const result = scoreItem(makeEntry(item, { depth: 1 }), prefs, item);
-    expect(result.score).toBe(0.95);
+    expect(result.score).toBe(0.7);
     expect(result.topCategory).toBe("design_engineering_craft");
-    expect(result.breakdown).toEqual({ taste: 0.95, craftFactor: 1, penaltyFactor: 1, bonus: 0 });
+    expect(result.breakdown).toEqual({ taste: 0.7, craftFactor: 1, penaltyFactor: 1, bonus: 0 });
   });
 
   it("lowers the score for an announcement with no technique", () => {
     const item = makeItem();
     const deep = scoreItem(makeEntry(item, { depth: 1 }), prefs, item).score;
     const shallow = scoreItem(makeEntry(item, { depth: 0 }), prefs, item).score;
-    expect(shallow).toBeCloseTo(0.95 * CRAFT_FLOOR, 3);
+    expect(shallow).toBeCloseTo(0.7 * CRAFT_FLOOR, 3);
     expect(shallow).toBeLessThan(deep);
   });
 
@@ -174,16 +168,6 @@ describe("scoreItem", () => {
   it("scores an unplaceable item at zero", () => {
     const item = makeItem();
     expect(scoreItem(makeEntry(item, { category: "none", p: 1 }), prefs, item).score).toBe(0);
-  });
-
-  it("puts venture and hype categories far below the bar", () => {
-    const item = makeItem();
-    expect(
-      scoreItem(makeEntry(item, { category: "venture_capital_and_gossip" }), prefs, item).score,
-    ).toBe(0.1);
-    expect(
-      scoreItem(makeEntry(item, { category: "generic_ai_hype_listicles" }), prefs, item).score,
-    ).toBe(0.02);
   });
 
   it("adds the author bonus only when the item has a preferred author", () => {
@@ -239,7 +223,7 @@ describe("scoreItem", () => {
     const item = makeItem({ author: "Emil Kowalski", title: "Spring physics" });
     const result = scoreItem(makeEntry(item, { depth: 1 }), real, item);
     expect(result.score).toBeLessThanOrEqual(1);
-    expect(result.score).toBeCloseTo(1, 6);
+    expect(result.score).toBeCloseTo(0.75, 6);
   });
 
   it("is deterministic and leaves its inputs untouched", () => {
@@ -281,16 +265,16 @@ describe("scoreItem for consumer tech", () => {
   };
 
   it.each([
-    [0, 0, 0.28],
-    [1, 0.25, 0.5075],
-    [2, 0.5, 0.67],
-    [3, 0.75, 0.7675],
-    [4, 1, 0.8],
+    [0, 0, 0.245],
+    [1, 0.25, 0.4441],
+    [2, 0.5, 0.5862],
+    [3, 0.75, 0.6716],
+    [4, 1, 0.7],
   ])("scores launch level %i (scale %d) at %d", (_level, scale, expected) => {
     const result = tech(scale);
     expect(result.topCategory).toBe(TECH);
     expect(result.score).toBe(expected);
-    expect(result.breakdown.taste).toBe(0.8);
+    expect(result.breakdown.taste).toBe(0.7);
   });
 
   it("ranks by launch scale and ignores craft depth, which a launch never has", () => {
@@ -302,7 +286,7 @@ describe("scoreItem for consumer tech", () => {
   it("counts an entry judged before the question existed as level 0", () => {
     const result = tech(undefined);
     expect(result.entry).not.toHaveProperty("launch_scale");
-    expect(result.score).toBe(0.28);
+    expect(result.score).toBe(0.245);
     expect(result.breakdown.craftFactor).toBe(0.35);
   });
 
@@ -314,33 +298,17 @@ describe("scoreItem for consumer tech", () => {
     if (refresh.eligible) expect(refresh.candidate.home).toBe("tech");
   });
 
-  it("crosses the threshold between a launch scale of 0.12 and 0.13", () => {
-    // 0.8 x (0.35 + 0.65 x (1 - (1 - d)^2)) = 0.4 at d of about 0.123.
-    expect(tech(0.12).score).toBe(0.3973);
-    expect(eligibility(tech(0.12)).eligible).toBe(false);
-    expect(tech(0.13).score).toBe(0.4064);
-    expect(eligibility(tech(0.13)).eligible).toBe(true);
-  });
-
-  it("keeps a level 0 item out even at the highest weight and with the full bonus", () => {
-    const real = { ...realPreferences(), weights: { ...prefs.weights, consumer_tech_releases: 1 } };
-    const item = makeItem({ author: "Emil Kowalski", title: "Spring physics phone case deal" });
-    const result = scoreItem(makeEntry(item, { category: TECH, launchScale: 0 }), real, item);
-    expect(result.breakdown.bonus).toBe(0.05);
-    expect(result.score).toBe(0.4);
-    // Exactly at the bar only with every lever at its maximum; at the shipped 0.8 it is 0.33.
-    const shipped = scoreItem(
-      makeEntry(item, { category: TECH, launchScale: 0 }),
-      realPreferences(),
-      item,
-    );
-    expect(shipped.score).toBe(0.33);
-    expect(eligibility(shipped).eligible).toBe(false);
+  it("crosses the threshold between a launch scale of 0.18 and 0.19", () => {
+    // 0.7 x (0.35 + 0.65 x (1 - (1 - d)^2)) = 0.4 at d of about 0.188.
+    expect(tech(0.18).score).toBeLessThan(0.4);
+    expect(eligibility(tech(0.18)).eligible).toBe(false);
+    expect(tech(0.19).score).toBeGreaterThanOrEqual(0.4);
+    expect(eligibility(tech(0.19)).eligible).toBe(true);
   });
 
   it("still applies the hype, sponsored and funding penalties", () => {
-    expect(tech(0.75, { sponsored: 1 }).score).toBeCloseTo(0.7675 * 0.5, 3);
-    expect(tech(0.75, { hype: 1 }).score).toBeCloseTo(0.7675 * 0.4, 3);
+    expect(tech(0.75, { sponsored: 1 }).score).toBeCloseTo(0.6716 * 0.5, 3);
+    expect(tech(0.75, { hype: 1 }).score).toBeCloseTo(0.6716 * 0.4, 3);
     expect(eligibility(tech(0.75, { hype: 1 })).eligible).toBe(false);
   });
 
@@ -367,8 +335,8 @@ describe("scoreItem for consumer tech", () => {
     const asTech = scoreItem(flipped, prefs, item);
     expect(asTech.topCategory).toBe(TECH);
     expect(asTech.breakdown.craftFactor).toBe(0.35);
-    // 0.45 x 0.82 for developer tools plus 0.55 x 0.8 for consumer tech.
-    expect(asTech.breakdown.taste).toBe(0.809);
+    // Every category counts at the normal taste.
+    expect(asTech.breakdown.taste).toBe(0.7);
   });
 
   it("loses a tie with an earlier category, since new categories go last", () => {
@@ -380,7 +348,7 @@ describe("scoreItem for consumer tech", () => {
   it("files a tech video in the tech section, not watch, while still scoring it by launch scale", () => {
     const item = makeItem({ source_type: "youtube" });
     const scored = scoreItem(makeEntry(item, { category: TECH, launchScale: 0.75 }), prefs, item);
-    expect(scored.score).toBe(0.7675);
+    expect(scored.score).toBe(0.6716);
     const verdict = eligibility(scored);
     expect(verdict.eligible && verdict.candidate.home).toBe("tech");
   });

@@ -1,10 +1,11 @@
-import type {
-  Item,
-  Source,
-  SourceCandidate,
-  SourceCandidatesFile,
-  Topic,
-  TopicJudgmentEntry,
+import {
+  type Item,
+  type Source,
+  type SourceCandidate,
+  type SourceCandidatesFile,
+  type Topic,
+  type TopicJudgmentEntry,
+  topicTaste,
 } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
@@ -343,7 +344,7 @@ export async function suggestForTopic(
           const fit = fits.length === 0 ? 0 : fits.reduce((sum, v) => sum + v, 0) / fits.length;
           const parts = {
             fit: round4(clamp01(fit)),
-            pass_rate: passRateOf(fits, topic.weight),
+            pass_rate: passRateOf(fits, topicTaste(topic)),
             freshness: freshnessOf(stats.newestAgeDays, stats.recentEntries),
             reliability: round4(
               clamp01(stats.wellFormed * (found.feedUrl.startsWith("https:") ? 1 : 0.9)),
