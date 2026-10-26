@@ -173,6 +173,24 @@ test.describe("playback on a briefing", () => {
     await expect.poll(() => time(page)).toBeCloseTo(stories[at - 1]?.start ?? -1, 0);
   });
 
+  test("fetches no audio until Play, even with a place kept from before", async ({
+    player,
+    page,
+  }) => {
+    // The weekly MP3 (7.6 MiB) downloaded on every page view and woke download managers (2026-10-26).
+    await page.addInitScript(() => localStorage.setItem("singularity:resume:2026-10-07", "42"));
+    const audioRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.resourceType() === "media" || /\.(mp3|wav|webm|m4a)(\?|$)/.test(request.url()))
+        audioRequests.push(request.url());
+    });
+    await player.open();
+    expect(audioRequests).toEqual([]);
+    await player.finger.press(player.cta);
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    expect(audioRequests.length).toBeGreaterThan(0);
+  });
+
   test("remembers the position and restores it after a reload", async ({ player, page }) => {
     await player.open();
     await player.play();

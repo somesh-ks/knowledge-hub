@@ -234,7 +234,7 @@ describe("countSample", () => {
             category: "design_engineering_craft",
             p: 0.95,
             depth: 0.9,
-            hype: 0.9,
+            hype: 0.6,
           }),
         ],
         unjudged: [],
@@ -248,10 +248,43 @@ describe("countSample", () => {
       flagged: 1,
       read_feed: true,
     });
-    // The hyped craft item still clears the bar (its discount leaves it at 0.41); "none" does not.
+    // The hyped craft item still clears the bar (its discount leaves it at 0.42); "none" does not.
     expect(counts.blog?.passed).toBe(2);
     // A read that found nothing still moves the source's sampled_at.
     expect(counts.quiet).toMatchObject({ judged: 0, read_feed: true });
+  });
+
+  it("does not count a muted category as passed while still counting its judgments", () => {
+    const item = makeItem({ source_id: "blog" });
+    const input = {
+      sample: {
+        version: 1 as const,
+        items: [item],
+        reads: ["blog"],
+        feed_posts: { blog: 1 },
+        general_reads: {},
+      },
+      judged: {
+        version: 1 as const,
+        entries: [makeEntry(item, { category: "design_engineering_craft", p: 0.95, depth: 0.9 })],
+        unjudged: [],
+      },
+      preferences: realPreferences(),
+    };
+    expect(countSample(input).blog?.passed).toBe(1);
+    expect(countSample({ ...input, offCategories: ["frontier_model_releases"] }).blog?.passed).toBe(
+      1,
+    );
+    expect(
+      countSample({ ...input, offCategories: ["design_engineering_craft"] }).blog,
+    ).toMatchObject({
+      judged: 1,
+      sampled: 1,
+      asked: 1,
+      passed: 0,
+      read_feed: true,
+      feed_posts: 1,
+    });
   });
 
   it("counts nothing, reads included, when the sample was not judged", () => {

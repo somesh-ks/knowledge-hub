@@ -83,6 +83,16 @@ describe("speed default", () => {
     expect(createSpeedDefault({ storage, preferences }).getPending()).toBeNull();
   });
 
+  it("drops an unanswered offer once Settings has saved that speed", () => {
+    const { speed, storage, preferences } = setup();
+    for (const id of ["a", "b", "c"]) speed.noteRate(id, 1.5);
+    speed.flush();
+    preferences.set({ rate: 1.5 });
+    const reopened = createSpeedDefault({ storage, preferences });
+    expect(reopened.getPending()).toBeNull();
+    expect(createSpeedDefault({ storage, preferences }).getPending()).toBeNull();
+  });
+
   it("offers when an episode ends off the default, and Make default saves it", () => {
     const { speed, preferences } = setup();
     speed.noteEnded(1);

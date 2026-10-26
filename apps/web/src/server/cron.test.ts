@@ -205,6 +205,8 @@ describe("GET /api/cron/run", () => {
   // The bug: a store that never answers held the call until Vercel killed it, so the hour's run was
   // never started, where main's schedule would have started it.
   it("with the config store hanging, starts at main's hour once it has waited long enough", async () => {
+    // The store module loads first and is not on the clock; load it so the timer is armed at once.
+    await import("./configStore");
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });

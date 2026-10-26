@@ -44,6 +44,8 @@ export interface CurateInput {
   /** Display names by source id. */
   sourceNames?: Readonly<Record<string, string>>;
   threshold?: number;
+  /** Built-in categories set never to publish. */
+  offCategories?: readonly string[];
 }
 
 export interface CurateCounts {
@@ -168,8 +170,8 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     kind: input.kind,
     floor: VOICE_LIMITS.items.floor,
     cap: capFor(input.kind),
-    weights: input.preferences.weights,
     threshold: input.threshold,
+    ...(input.offCategories ? { offCategories: input.offCategories } : {}),
   });
   counts.qualifying = selection.qualifying;
   counts.selected = selection.selected.length;

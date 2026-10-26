@@ -66,7 +66,13 @@ export function createSpeedDefault(options: {
   }
   if (record.pending !== undefined) {
     const restored = Number(record.pending);
-    if (isPlaybackRate(restored)) pending = restored;
+    // A rate already saved as the default (say, in Settings) is not offered again.
+    if (isPlaybackRate(restored) && restored !== preferences.get().rate) pending = restored;
+    else {
+      const { pending: _stale, ...rest } = record;
+      record = rest;
+      save();
+    }
   }
 
   function save(): void {

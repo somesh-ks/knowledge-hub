@@ -493,10 +493,12 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     track = { digest, timeline };
     rate = isPlaybackRate(getPreferredRate()) ? getPreferredRate() : 1;
 
-    // Offline there is nothing to warm up: attaching now would only log a failed request, and the
-    // play paths attach the source themselves when the listener taps.
-    if (digest.audio && isOnline()) attachSource(digest.audio.url);
-    else releaseSource();
+    // No audio is fetched until the listener presses play (2026-10-26: the weekly MP3, 7.6 MiB,
+    // downloaded on every page view and woke download managers). The duration comes from the
+    // timeline; the play paths attach the source themselves. A source of the track before this one
+    // is let go.
+    if (!digest.audio || attachedUrl !== digest.audio.url) releaseSource();
+    if (digest.audio) ensureAudio();
     applyRate();
 
     lastSecond = -1;
