@@ -40,6 +40,10 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
   });
 
   test("the open player, and when it has ended", async ({ player, page }) => {
+    // Autoplay off, so the ended player stays to be looked at.
+    await page.addInitScript(() =>
+      localStorage.setItem("singularity:preferences", '{"autoplay":false}'),
+    );
     await player.open();
     await player.play();
     await player.openPlayer();
@@ -47,9 +51,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await player.pageScrubber.focus();
     await page.keyboard.press("End");
     await expect(player.root).toHaveAttribute("data-player-state", "ended");
-    await expect(
-      player.dialog.getByRole("button", { name: /The previous briefing/ }),
-    ).toBeVisible();
+    await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
     await expectAccessible(page, "the ended player");
   });
 
