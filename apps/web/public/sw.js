@@ -353,6 +353,22 @@ function staleWhileRevalidate(event, cacheName, limit) {
     .then((cached) => cached || refresh.then((fresh) => fresh || offline(request)));
 }
 
+/**
+ * A cover's address carries its record's version (?v=), so a saved cover answers only its own
+ * version. When the network cannot answer, a copy saved before versions (a download) answers
+ * whatever the version, rather than leaving a blank square offline.
+ */
+function coverFetch(event) {
+  const stale = staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA);
+  return stale.then(async (response) => {
+    if (response && response.type !== "error") return response;
+    // Only the unversioned copy answers: another version of the cover is not this one.
+    const bare = new URL(event.request.url);
+    bare.search = "";
+    return (await caches.match(bare.href)) || response;
+  });
+}
+
 /** Requests for pages that are on their way, by address. */
 const inFlight = new Map();
 
@@ -379,6 +395,7 @@ function networkFirst(event, cacheName, limit, beforeStore, shared, key) {
   const request = event.request;
   const saveAs = key || request;
   const network = (shared ? sharedFetch(request) : pageFetch(event)).then(async (response) => {
+    if (response.status === 404) await evictRemoved(request.url);
     if (response.ok && beforeStore) await beforeStore(saveAs, response);
     await store(cacheName, saveAs, response, limit);
     if (response.ok) background(event, warmAssets(response.clone()));
@@ -408,10 +425,40 @@ async function inAppPage(event) {
   return saved;
 }
 
+/**
+ * A removed episode or briefing answers its page with a 404 (the "removed" page). Its saved page and
+ * its downloaded audio go with it, so neither plays or shows again, offline included (plan section
+ * 20, criterion 4). Audio lives at audio/<id>/seg/... (episodes) or audio/<id>.<version>.mp3.
+ */
+async function evictRemoved(url) {
+  // A copy saved under the slash form goes too: both forms are the same page.
+  const path = new URL(url).pathname.replace(/\/$/, "");
+  const id = /^\/[ed]\/([\w-]+)$/.exec(path)?.[1];
+  if (!id) return false;
+  const pages = await caches.open(PAGES_CACHE);
+  for (const key of await pages.keys()) {
+    if (new URL(key.url).pathname.replace(/\/$/, "") === path) await pages.delete(key);
+  }
+  const audio = await caches.open(AUDIO_CACHE);
+  for (const key of await audio.keys()) {
+    const file = new URL(key.url).pathname;
+    if (file.startsWith(`/audio/${id}/`) || file.startsWith(`/audio/${id}.`)) {
+      await audio.delete(key);
+    }
+  }
+  return true;
+}
+
 /** Fetches a page that was answered from its saved copy, and tells open pages when it has changed. */
 async function recheck(request, saved) {
   try {
     const fresh = await fetch(request.url);
+    if (fresh.status === 404 && (await evictRemoved(request.url))) {
+      for (const client of await self.clients.matchAll({ type: "window" })) {
+        client.postMessage({ type: "PAGE_CHANGED", path: new URL(request.url).pathname });
+      }
+      return;
+    }
     if (!fresh.ok) return;
     const [was, is] = await Promise.all([saved.text(), fresh.clone().text()]);
     await store(PAGES_CACHE, request, fresh, MAX_PAGES);
@@ -617,7 +664,7 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   } else if (url.pathname.startsWith("/covers/")) {
-    event.respondWith(healed(event, staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA)));
+    event.respondWith(healed(event, coverFetch(event)));
   } else if (SHELL_FILES.includes(url.pathname)) {
     event.respondWith(healed(event, staleWhileRevalidate(event, SHELL_CACHE)));
   }

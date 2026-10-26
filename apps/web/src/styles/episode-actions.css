@@ -61,9 +61,3 @@
 .confirm-delete:disabled {
   color: var(--color-on-surface-disabled);
 }
-
-@media (forced-colors: active) {
-  dialog.confirm-dialog {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
-}

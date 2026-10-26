@@ -19,8 +19,9 @@ export function applySourceResults(
     const result = byId.get(source.id);
     if (!result) return source;
     if (result.ok && result.note !== undefined) return source;
-    if (result.ok) return { ...source, failures: 0, last_ok: now.toISOString() };
-    return { ...source, failures: source.failures + 1 };
+    const tried = now.toISOString();
+    if (result.ok) return { ...source, failures: 0, last_ok: tried, last_try: tried };
+    return { ...source, failures: source.failures + 1, last_try: tried };
   });
   return { ...file, sources };
 }
@@ -34,6 +35,7 @@ export function overlayHealth(file: SourcesFile, health: SourceHealthFile): Sour
       ...source,
       failures: entry.failures,
       ...(entry.last_ok ? { last_ok: entry.last_ok } : {}),
+      ...(entry.last_try ? { last_try: entry.last_try } : {}),
     };
   });
   return { ...file, sources };
@@ -43,10 +45,11 @@ export function overlayHealth(file: SourcesFile, health: SourceHealthFile): Sour
 export function toHealthFile(file: SourcesFile): SourceHealthFile {
   const sources: SourceHealthFile["sources"] = {};
   for (const source of file.sources) {
-    if (source.failures === 0 && !source.last_ok) continue;
+    if (source.failures === 0 && !source.last_ok && !source.last_try) continue;
     sources[source.id] = {
       failures: source.failures,
       ...(source.last_ok ? { last_ok: source.last_ok } : {}),
+      ...(source.last_try ? { last_try: source.last_try } : {}),
     };
   }
   return { version: 1, sources };

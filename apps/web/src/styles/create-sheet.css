@@ -1164,6 +1164,12 @@ dialog.confirm-dialog:focus-visible {
   outline: none;
 }
 
+@media (forced-colors: active) {
+  dialog.confirm-dialog {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
+
 .confirm-form {
   display: grid;
   gap: var(--space-4);

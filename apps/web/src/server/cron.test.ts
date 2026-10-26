@@ -97,6 +97,13 @@ describe("the schedule's hours in its own time zone", () => {
   ])("counts a call in %s", (_name, at, slot) => {
     expect(slotAt(zoned("Asia/Kolkata"), new Date(at))).toBe(slot);
   });
+
+  // 23:40 on the 12th in India: the UTC hour ends in the 13th's hour 0, a different date to decide on.
+  it("does not start a run ahead on the next date's early hour", () => {
+    const early = { ...zoned("Asia/Kolkata"), hour: 1 };
+    expect(slotAt(early, new Date("2026-10-12T18:10:00Z"))).toBeNull();
+    expect(slotAt(early, new Date("2026-10-12T19:10:00Z"))).toBe("daily");
+  });
 });
 
 // RUN_CRON is in Stockholm time; a New York 07:00 written as 07 ran six hours early.

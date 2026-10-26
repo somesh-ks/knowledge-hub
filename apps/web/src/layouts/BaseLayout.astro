@@ -22,6 +22,7 @@ import storageRename from "../scripts/storageRename.js?raw";
 // The theme script runs inline in the head so a stored light or dark choice never flashes the other
 // theme before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
 import themeInit from "../scripts/themeInit.js?raw";
+import { isShowingSavedContent } from "../server/contentRepo";
 import SheetsRoot from "../sheets/SheetsRoot";
 import "../styles/tokens.css";
 import "../styles/foundations.css";
@@ -207,6 +208,7 @@ const back =
       />
     </template>
     <div class="banner-stack page" id="banners"><slot name="banners" /></div>
+    {isShowingSavedContent() && <p class="meta page" role="status">Showing saved content</p>}
     <script is:inline set:html={bannersInit.trim()} />
     <div class="shell page"><slot /></div>
     {/* After the shell, so the hero's Play it waits for (create-sheet.css) is already in the page
