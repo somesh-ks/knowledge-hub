@@ -18,6 +18,8 @@ import { resolveHostNames } from "./voices";
 /** `episodeIds` lists the episodes this build knows; delete and regenerate refuse any other id. */
 export type PodcastDeps = GenerateDeps & {
   episodeIds?: () => readonly string[] | Promise<readonly string[]>;
+  /** Marks a deleted episode in the content store at once (tombstones.ts), before the commit lands. */
+  tombstone?: (id: string) => Promise<void>;
 };
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
@@ -264,6 +266,12 @@ export async function handlePodcast(
       return unavailable;
     }
 
+    if ("action" in body && body.action === "delete") {
+      // The run is under way; a failed mark only means other devices wait for the sync.
+      await deps.tombstone?.(body.id).catch((error) => {
+        log(`tombstone failed: ${describeError(error, secretsOf(config))}`);
+      });
+    }
     return {
       status: 202,
       body: { status: 202, run_id: runId, started_at: new Date(startedAt).toISOString() },

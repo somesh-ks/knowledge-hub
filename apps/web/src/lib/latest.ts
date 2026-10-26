@@ -17,12 +17,14 @@ export interface LatestResponse {
 /**
  * What `/` shows: the most recently written item of any kind. Briefings sort by date and a catch-up
  * episode has no digest, so entries[0] alone kept Latest on the daily or weekly briefing.
+ * `skip` holds ids this device deleted before the content store caught up: they are never chosen.
  */
 export function newestItem(
   site: Pick<Site, "entries" | "episodes">,
+  skip: ReadonlySet<string> = new Set(),
 ): { kind: "digest" | "episode"; id: string } | null {
-  const digest = site.entries[0]?.digest;
-  const episode = site.episodes[0];
+  const digest = site.entries.find((entry) => !skip.has(entry.digest.id))?.digest;
+  const episode = site.episodes.find((entry) => !skip.has(entry.id));
   if (episode && (!digest || episode.episode.generated_at > digest.generated_at)) {
     return { kind: "episode", id: episode.id };
   }
