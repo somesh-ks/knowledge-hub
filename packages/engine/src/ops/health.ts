@@ -146,7 +146,11 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       fault("run_failed", "reliability", `The last ${label} run failed (${run.at}).`);
     }
   }
-  if (status.next_regular_due < status.today) {
+  // A briefing that is switched off is never due, so it is never overdue or missed.
+  const slotSchedule = await loadSchedule(root).catch(() => null);
+  if (slotSchedule?.enabled === false) {
+    passed.push("the daily briefing is switched off");
+  } else if (status.next_regular_due < status.today) {
     fault(
       "run_overdue",
       "reliability",
@@ -158,7 +162,6 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
 
   // The slot's own hour has passed with its briefing unpublished: said the same day, not the next
   // (D193; `run_overdue` waits for the date). A later cron call or health's heal can still publish.
-  const slotSchedule = await loadSchedule(root).catch(() => null);
   if (slotSchedule !== null) {
     const due = decideRun({
       now,
@@ -169,6 +172,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       weekly: slotSchedule.weekly,
       zone: scheduleZone(slotSchedule.timezone),
       hour: slotSchedule.hour,
+      dailyEnabled: slotSchedule.enabled,
     });
     if (
       (due.due || due.runWeekly) &&

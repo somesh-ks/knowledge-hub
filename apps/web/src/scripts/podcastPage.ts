@@ -127,10 +127,21 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (noTopics) noTopics.hidden = scopeBoxes.some((box) => box.checked);
   };
 
+  /** The switch: off, the rest of the page is disabled and dimmed, and the quiet line says so. */
+  const body = root.querySelector<HTMLFieldSetElement>("[data-body]");
+  const offNote = root.querySelector<HTMLElement>("[data-off-note]");
+  const power = root.querySelector<HTMLInputElement>("[data-f$=\".enabled\"]");
+  const showPower = (): void => {
+    if (!power) return;
+    if (body) body.disabled = !power.checked;
+    if (offNote) offNote.hidden = power.checked;
+  };
+
   /** Records what the controls now differ by. `save` is false while a typed id is still being typed. */
   const update = (save = true): void => {
     scopeChanges();
     showNoTopics();
+    showPower();
     const now = fields();
     const op = ops?.(JSON.parse(box.dataset.was ?? "{}") as FieldValues, now);
     if (op) changes.set("schedule", { op, el: box, now: JSON.stringify(now) });
@@ -147,6 +158,7 @@ export async function mount(root: HTMLElement): Promise<void> {
 
   box.dataset.was = JSON.stringify(startFields);
   showNoTopics();
+  showPower();
   if (typed) update();
   if (root.querySelector("[data-profile]")) {
     void import("./podcastProfiles").then((module) => {

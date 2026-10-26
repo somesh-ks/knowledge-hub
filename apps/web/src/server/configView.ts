@@ -197,6 +197,7 @@ function scheduleOps(
 ): ConfigOp[] {
   const set: ScheduleSet = { op: "schedule.set" };
   if (built.timezone !== stored.timezone) set.timezone = stored.timezone;
+  if (built.enabled !== stored.enabled) set.enabled = stored.enabled;
   if (built.hour !== stored.hour) set.hour = stored.hour;
   if (built.cadenceDays !== stored.cadenceDays)
     set.cadence_days = stored.cadenceDays as ScheduleSet["cadence_days"];

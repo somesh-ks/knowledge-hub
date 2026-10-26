@@ -36,6 +36,8 @@ export const LOOKBACKS: ReadonlyArray<{ value: string; label: string }> = [
 export interface ScheduleView {
   /** The schedule's clock: its stored zone, or Stockholm when that is not one of the list. */
   timezone: string;
+  /** False when the daily briefing is switched off. */
+  enabled: boolean;
   hour: number;
   cadenceDays: number;
   /** Topic ids the daily briefing leaves out. */
@@ -74,6 +76,7 @@ export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
   const file = schedule.success ? schedule.data : DEFAULT_SCHEDULE;
   const {
     timezone: storedZone,
+    enabled,
     hour,
     cadence_days: cadenceDays,
     length_minutes: lengthMinutes,
@@ -92,6 +95,7 @@ export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
   const timezone = scheduleZone(storedZone);
   return {
     timezone,
+    enabled,
     hour,
     cadenceDays,
     skipTopics,

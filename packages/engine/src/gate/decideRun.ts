@@ -33,6 +33,8 @@ export interface DecideRunInput {
    * (`publishAt`); left out, the daily one has no publish time.
    */
   hour?: number;
+  /** False when the daily briefing is switched off: a scheduled run makes none. Defaults to on. */
+  dailyEnabled?: boolean;
 }
 
 /** When the weekly pass is due: a day of the week and an hour, in the schedule's zone. */
@@ -142,6 +144,7 @@ export function decideRun({
   weekly = LEGACY_WEEKLY,
   zone = TIME_ZONE,
   hour,
+  dailyEnabled = true,
 }: DecideRunInput): RunDecision {
   const date = zonedDate(now, zone);
   const weeklyDay = weekly.enabled && weekday(date) === weekly.day;
@@ -181,6 +184,16 @@ export function decideRun({
       due: false,
       runWeekly: weeklyDue,
       reason: "today is the weekly podcast's day; no briefing",
+      date,
+      publishAt: weeklyDue ? weeklyAt : null,
+    };
+  }
+
+  if (!dailyEnabled) {
+    return {
+      due: false,
+      runWeekly: weeklyDue,
+      reason: "the daily briefing is switched off",
       date,
       publishAt: weeklyDue ? weeklyAt : null,
     };

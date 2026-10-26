@@ -494,6 +494,7 @@ function setSchedule(
   next.schedule = {
     version: 1,
     timezone: op.timezone ?? current.timezone ?? "Europe/Stockholm",
+    enabled: op.enabled ?? current.enabled,
     hour,
     cadence_days: cadence,
     skip_topics: skip,

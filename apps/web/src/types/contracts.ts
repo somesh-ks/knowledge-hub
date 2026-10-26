@@ -348,6 +348,8 @@ export type ConfigOp =
       /** Any subset of these; a field left out keeps what the file holds. At least one is required. */
       /** IANA name of the schedule's clock, one of SUPPORTED_TIMEZONES. */
       timezone?: string;
+      /** False turns the daily briefing off; true turns it on. */
+      enabled?: boolean;
       /** Whole hour in the schedule's time zone, 0 to 23. */
       hour?: number;
       /** Days between briefings: 1, 2, 3 or 7. */

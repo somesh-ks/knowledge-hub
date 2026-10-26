@@ -53,6 +53,20 @@ function setup(files: { schedule?: string; lastRun?: string } = {}) {
 const dispatches = (github: ReturnType<typeof createFakeGitHub>) =>
   github.requests.filter((request) => request.method === "POST");
 
+describe("a daily briefing that is switched off", () => {
+  it("is not the daily slot, and the call dispatches nothing at its hour", async () => {
+    const off = { ...DEFAULT_SCHEDULE, enabled: false };
+    expect(slotAt(off, new Date("2026-10-27T06:30:00Z"))).toBeNull();
+    const { github, run } = setup({
+      schedule: JSON.stringify(off),
+      lastRun: lastRun("2026-10-01T05:13:00Z"),
+    });
+    const result = await run(new Date("2026-10-27T06:30:00Z"));
+    expect(result.body).toMatchObject({ dispatched: false });
+    expect(dispatches(github)).toHaveLength(0);
+  });
+});
+
 describe("which of the schedule's hours this is", () => {
   it("is the daily hour first, in Stockholm time", () => {
     expect(slotAt(DEFAULT_SCHEDULE, SUNDAY_0730)).toBe("daily");
