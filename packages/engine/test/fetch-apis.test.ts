@@ -479,20 +479,23 @@ describe("fetchFirecrawl", () => {
     expect(items[0]?.snippet).toContain("Welcome to our studio");
   });
 
-  it("fails with 'no items' when nothing comes back, so a broken listing shows in source health", async () => {
-    const deps = (md: string) =>
-      makeDeps(fakeFetch({ "https://api.firecrawl.dev/v2/scrape": scrape(md) }), {
-        firecrawl: { apiKey: "fc-key-123456789" },
-      });
-    // Every dated entry older than the window, and a page that scraped empty.
+  it("succeeds with nothing new when every dated entry is older than the window", async () => {
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": scrape(fixture("fetch-firecrawl-blog-index.md")),
+    });
+    const items = await fetchFirecrawl(
+      source,
+      window("2026-10-05T00:00:00Z"),
+      makeDeps(fake, { firecrawl: { apiKey: "fc-key-123456789" } }),
+    );
+    expect(items).toEqual([]);
+  });
+
+  it("fails with 'no items' when the listing is empty, so a broken one shows in source health", async () => {
+    const fake = fakeFetch({ "https://api.firecrawl.dev/v2/scrape": scrape("") });
     await expect(
-      fetchFirecrawl(
-        source,
-        window("2026-10-05T00:00:00Z"),
-        deps(fixture("fetch-firecrawl-blog-index.md")),
-      ),
+      fetchFirecrawl(source, WIDE, makeDeps(fake, { firecrawl: { apiKey: "fc-key-123456789" } })),
     ).rejects.toThrow(/no items/);
-    await expect(fetchFirecrawl(source, WIDE, deps(""))).rejects.toThrow(/no items/);
   });
 
   it("fails when the scraped page itself returned an error status", async () => {

@@ -140,11 +140,10 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
     ...buildItems(undated, { source, window, fetchedAt, undated: "keep" }),
   ];
   if (items.length > 0) return items;
-  // A listing that yields nothing is a failure, so a broken one shows in source health; it used
-  // to count as a quiet success (meta-ai-blog fetched 0 for weeks with no failure).
-  if (dated.length > 0 || headings.length > 0 || page.markdown.trim() === "") {
-    throw new Error(FIRECRAWL_NO_ITEMS);
-  }
+  // Entries found but none in the window is a quiet source, not a broken one. Failing only when
+  // the listing yields no candidates at all (empty, blocked or restructured) keeps health honest.
+  if (dated.length + headings.length + undated.length > 0) return items;
+  if (page.markdown.trim() === "") throw new Error(FIRECRAWL_NO_ITEMS);
 
   const whole: RawItem = {
     url: pageUrl,
