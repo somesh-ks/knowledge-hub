@@ -49,10 +49,10 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
   },
   {
     name: "config",
-    summary: "Apply one topic, source or weight change from the app, and commit it",
+    summary: "Apply one topic or source change from the app, and commit it",
     help: `Usage:
   singularity config apply --op '<json>' [--dry-run]    One ConfigOp: topic.upsert, topic.remove,
-                                                      source.add, source.set, source.remove, weights.set,
+                                                      source.add, source.set, source.remove,
                                                       mix.set, topic.mix, schedule.set, topic.scope,
                                                       structure.set, profile.block, profile.unblock,
                                                       profile.vote
@@ -111,7 +111,7 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
     summary: "Apply a bounded preference patch",
     help: `Usage:
   singularity learn --schema                          Print the JSON Schema of a preferences patch
-  singularity learn --apply <patch.json> [--dry-run]  Apply a patch within the bounds (one stop per weight, three weights)
+  singularity learn --apply <patch.json> [--dry-run]  Apply a patch (keywords, authors, disliked patterns)
   singularity learn --apply <patch.json> --commit [--no-push]
                                                    Also commit config/preferences.json as
                                                    chore(prefs): <summary> and push. Refuses on a

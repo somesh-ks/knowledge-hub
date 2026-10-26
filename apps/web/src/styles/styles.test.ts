@@ -218,6 +218,15 @@ const rulesOf = (css: string) =>
     ([, selector = "", body = ""]) => [selector.trim(), body] as const,
   );
 
+/**
+ * The root class of a top-level view. Its inline edges come from the page gutter (`.page`,
+ * foundations.css) and the shell (shell.css), so no stylesheet gives a view root its own gutter or
+ * width: a page that did sat 24px further in than Latest and Library (2026-10-26).
+ */
+const VIEW_ROOTS = ["settings-view", "library", "manage", "create-page", "design-page"];
+const VIEW_EDGE =
+  /^(?:padding|margin)(?:-(?:inline|left|right)(?:-(?:start|end))?)?$|^max-(?:width|inline-size)$/;
+
 /** The declarations of a rule body, as [property, value]. */
 const declarationsOf = (body: string) =>
   [...body.matchAll(/(?:^|;)\s*([a-z-]+)\s*:\s*([^;]+)/g)].map(
@@ -708,6 +717,32 @@ const RULES: Rule[] = [
               .map((name) => `${file}: .${name}`),
           ),
         ),
+  },
+  {
+    // Prevents a page-specific gutter: Settings once pushed its title in by a card's padding and sat
+    // 24px off Latest and Library. A view root takes its inline edges from the shared layout.
+    name: "a view root class sets no inline padding, inline margin or max width of its own",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) => {
+          const subjects = selector
+            .replace(/:[a-z-]+\((?:[^()]|\([^()]*\))*\)/g, "")
+            .split(",")
+            .map((part) =>
+              part
+                .trim()
+                .split(/\s*[>+~]\s*|\s+/)
+                .pop(),
+            )
+            .filter((subject) =>
+              VIEW_ROOTS.some((root) => new RegExp(`\\.${root}(?![\\w-])`).test(subject ?? "")),
+            );
+          const edges = declarationsOf(body).filter(([property]) => VIEW_EDGE.test(property));
+          return subjects.length > 0
+            ? edges.map(([property]) => `${file}: ${selector} ${property}`)
+            : [];
+        }),
+      ),
   },
   {
     // Prevents an unstyled or one-off button in markup: every <button> carries a shared control

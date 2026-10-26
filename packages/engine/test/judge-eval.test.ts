@@ -44,6 +44,10 @@ function oracleScored(
       p: 0.9,
       depth: g.expected.keep ? 0.6 : 0.2,
       launchScale: g.expected.keep ? 0.75 : 0,
+      // No category is weighted down any more (D194), so what once sank on its weight sinks on
+      // the flag the judge raises for it: hype for a listicle, funding for a deal story.
+      hype: category === "generic_ai_hype_listicles" ? 0.9 : 0,
+      funding: category === "venture_capital_and_gossip" ? 0.9 : 0,
     });
     return scoreItem(entry, prefs, g);
   });
@@ -61,8 +65,8 @@ describe("scoring against the golden set", () => {
     const tech = golden.filter((g) => g.expected.category === "consumer_tech_releases");
     const scores = new Map(oracleScored(tech).map((s) => [s.item.id, s.score]));
     for (const g of tech) {
-      // 0.9 x 0.8 x the launch factor: 0.6908 at level 3 and 0.252 at level 0.
-      expect(scores.get(g.id), g.title).toBe(g.expected.keep ? 0.6908 : 0.252);
+      // 0.9 x 0.7 x the launch factor: 0.6044 at level 3 and 0.2205 at level 0.
+      expect(scores.get(g.id), g.title).toBe(g.expected.keep ? 0.6044 : 0.2205);
     }
     expect(keepMistakes(oracleScored(tech), tech, DEFAULT_SCORE_THRESHOLD)).toEqual([]);
   });

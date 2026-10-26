@@ -2,7 +2,7 @@ import type { CategoryOrNone, Item, JudgmentEntry } from "@singularity/core";
 
 /** Every term of a score, so a surprising ranking can be explained from the persisted run. */
 export interface ScoreBreakdown {
-  /** Sum over categories of probability times preference weight. */
+  /** Sum over categories of probability times the normal taste. */
   taste: number;
   /**
    * The depth multiplier. From craft depth, between CRAFT_FLOOR and 1; or, for an item whose
@@ -38,8 +38,6 @@ export interface ScoredItem {
    */
   topCategory: CategoryOrNone;
   breakdown: ScoreBreakdown;
-  /** The weight of `topCategory`, so a category at Off is refused even where no weights are passed. */
-  categoryWeight?: number | undefined;
   /** Set only when a custom topic scored higher than the built-in categories. */
   topic?: WinningTopic;
 }

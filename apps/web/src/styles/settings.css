@@ -624,23 +624,11 @@
 
 /* ------------------------------------------------------------------ cards (2026-10-21) */
 
-/* One left text edge (2026-10-22, the owner: "the text elements must be horizontally aligned to the
-   left"): on a page of cards the title, the group heads and the notes outside a card start the card's
-   padding in, where its rows' words start, so the cards hang out into the margin and the words read
-   as one column. A page without a card (New episode, Sources) keeps its words on the gutter. The
-   hints and empty notes outside a card take it too; a row's own words are the row's. */
-:is(.settings-view, .manage):has(.card-group, .changelog-entry) > h1,
-:is(.settings-view, .manage):has(.card-group, .changelog-entry)
-  :is(
-    .settings-head,
-    .section-head,
-    .settings-note,
-    .settings-hint,
-    .manage-quiet,
-    .manage-note
-  ):not(.card-group *, .changelog-entry *, .settings-head *, .settings-row *, .row-action *) {
-  padding-inline-start: var(--card-padding);
-}
+/* One page edge (2026-10-26, the owner: "Settings has more margin than Latest and Library"): the title,
+   the group heads and the notes outside a card start on the page gutter, as Latest's and Library's do, and
+   a card's outer edge is that edge. The card's own padding sets where its rows' words start; a page
+   takes no gutter of its own (design-check: no page-specific gutter). Reverses the 2026-10-22 rule that
+   pushed these in by the card's padding. */
 
 /* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps the air a
    head would give it under the page's note, 24px, so the card does not crowd the note (2026-10-22). */
