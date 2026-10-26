@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { AudioTimeline, type Digest, serializeDigestFile } from "@singularity/core";
 import { buildSpokenText, type SpokenSegment, spokenSegments } from "@singularity/engine/audio";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,6 +24,7 @@ import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
 import {
   audioKey,
+  audioPointerKey,
   type DigestSource,
   handleNarrate,
   handleNarrationLookup,
@@ -47,7 +49,11 @@ import { burstCap, createSharedLimiter } from "./rateLimit";
 const NOW = Date.parse("2026-10-07T12:00:00Z");
 const HOUR = 3_600_000;
 const ORIGIN = "https://news.someshks.work";
+const versionOf = (audio: Uint8Array): string =>
+  createHash("sha256").update(audio).digest("hex").slice(0, 12);
 const ID = "2026-10-07";
+// Where a narration of FAKE_AUDIO is stored: the key carries a hash of the bytes.
+const NARRATED = audioKey(ID, versionOf(FAKE_AUDIO));
 const MONTH = "2026-10";
 /** The Stockholm date at NOW, and how long that day has left (it is 14:00 there). */
 const TODAY = "2026-10-07";
@@ -946,7 +952,7 @@ describe("POST /api/narrate: the in-progress marker", () => {
     // One charge, one MP3, and the stale marker was deleted exactly once before the takeover.
     const changes = context.blob.changes();
     expect(changes.filter((change) => change === `put ${usageKey(MONTH)}`)).toHaveLength(1);
-    expect(changes.filter((change) => change === `put ${audioKey(ID)}`)).toHaveLength(1);
+    expect(changes.filter((change) => change === `put ${NARRATED}`)).toHaveLength(1);
     expect(changes.filter((change) => change === `create ${markerKey(ID)}`)).toHaveLength(1);
     expect(changes.slice(0, 2)).toEqual([`del ${markerKey(ID)}`, `create ${markerKey(ID)}`]);
   });
@@ -969,12 +975,13 @@ describe("POST /api/narrate: narrating the whole digest", () => {
       // The marker, then the charge before a character is synthesized, then what was paid for.
       `create ${markerKey(ID)}`,
       `put ${usageKey(MONTH)}`,
-      `put ${audioKey(ID)}`,
+      `put ${NARRATED}`,
+      `put ${audioPointerKey(ID)}`,
       `put ${timelineKey(ID)}`,
       `del ${markerKey(ID)}`,
     ]);
-    // Four advanced operations: the marker, the charge, the MP3, the timeline.
-    expect(context.blob.operations().advanced).toBe(4);
+    // Five advanced operations: the marker, the charge, the MP3, the pointer to it, the timeline.
+    expect(context.blob.operations().advanced).toBe(5);
 
     const durationMs = wordMarks(spoken.text).length * MS_PER_WORD;
     expect(result.status).toBe(200);
@@ -983,7 +990,7 @@ describe("POST /api/narrate: narrating the whole digest", () => {
     // Exactly the whole-digest body: no segment list and nothing else rides along.
     expect(Object.keys(narrated).sort()).toEqual(["audio", "status", "timeline"]);
     expect(narrated.audio).toEqual({
-      url: `${FAKE_BLOB_HOST}/audio/${ID}.mp3`,
+      url: `${FAKE_BLOB_HOST}/${NARRATED}`,
       duration_ms: durationMs,
     });
     expect(narrated.timeline.kind).toBe("marks");
@@ -996,10 +1003,10 @@ describe("POST /api/narrate: narrating the whole digest", () => {
     expect(narrated.timeline.items.at(-1)?.end_ms).toBe(durationMs);
 
     // What is stored is what a later GET returns.
-    expect(context.blob.bytes(audioKey(ID))).toEqual(FAKE_AUDIO);
-    expect(context.blob.written(audioKey(ID))).toEqual({
+    expect(context.blob.bytes(NARRATED)).toEqual(FAKE_AUDIO);
+    expect(context.blob.written(NARRATED)).toEqual({
       contentType: "audio/mpeg",
-      cacheSeconds: 3600,
+      cacheSeconds: 31_536_000,
       timeoutMs: BLOB_UPLOAD_TIMEOUT_MS,
     });
     expect(context.blob.written(timelineKey(ID))?.contentType).toBe("application/json");
@@ -1060,7 +1067,7 @@ describe("POST /api/narrate: narrating the whole digest", () => {
     const narrated = wholeBody(await post(context));
     expect(narrated.audio.duration_ms).toBe(4000);
     expect(narrated.timeline.kind).toBe("estimated");
-    expect(context.blob.bytes(audioKey(ID))).toEqual(FAKE_PLAIN_AUDIO);
+    expect(context.blob.bytes(audioKey(ID, versionOf(FAKE_PLAIN_AUDIO)))).toEqual(FAKE_PLAIN_AUDIO);
     expect(context.speech.calls.map((call) => call.url)).toEqual([
       "https://api.speechify.ai/v1/audio/stream/with-timestamps",
       "https://api.speechify.ai/v1/audio/stream",
@@ -1330,11 +1337,11 @@ describe("POST /api/narrate: when the upload fails", () => {
     expect(context.delays).toEqual([UPLOAD_RETRY_DELAY_MS, UPLOAD_RETRY_DELAY_MS * 2]);
     // The pauses took real time, and each attempt was given what was then left of its limit.
     expect(context.elapsed()).toBe(UPLOAD_RETRY_DELAY_MS * 3);
-    expect(context.blob.written(audioKey(ID))?.timeoutMs).toBe(BLOB_UPLOAD_TIMEOUT_MS);
+    expect(context.blob.written(NARRATED)?.timeoutMs).toBe(BLOB_UPLOAD_TIMEOUT_MS);
     // A success adds nothing to the charge.
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
     expect(
-      context.blob.calls.filter((call) => call.op === "put" && call.pathname === audioKey(ID)),
+      context.blob.calls.filter((call) => call.op === "put" && call.pathname === NARRATED),
     ).toHaveLength(UPLOAD_ATTEMPTS);
     // Paid for once: the retries re-send the same audio.
     expect(context.speech.calls).toHaveLength(1);
@@ -1371,7 +1378,7 @@ describe("POST /api/narrate: when the upload fails", () => {
     const context = setup();
     context.blob.failNext("put", UPLOAD_ATTEMPTS, { prefix: "timeline/" });
     expect((await post(context)).status).toBe(502);
-    expect(context.blob.has(audioKey(ID))).toBe(true);
+    expect(context.blob.has(NARRATED)).toBe(true);
     // The MP3 alone is not a narration: the next request finds nothing usable and starts again.
     expect((await post(context)).status).toBe(200);
     expect(context.speech.calls).toHaveLength(2);
@@ -2061,6 +2068,24 @@ describe("what narrating a digest story by story costs the store", () => {
   });
 });
 
+// A regenerated narration was rewritten at audio/<id>.mp3, so a browser or the CDN could play the old
+// MP3 (plan section 20, criterion 6). An old narration still resolves through its fixed key.
+describe("POST /api/narrate: a regenerated narration", () => {
+  it("lands at a new audio URL, and a narration stored at the old fixed key still resolves", async () => {
+    const first = setup();
+    const url = wholeBody(await post(first)).audio.url;
+    expect(url).toContain(`/audio/${ID}.${versionOf(FAKE_AUDIO)}.mp3`);
+    expect(first.blob.written(NARRATED)?.cacheSeconds).toBe(31_536_000);
+    expect(first.blob.has(audioKey(ID))).toBe(false);
+
+    // Narrated again with other bytes (the plain stream), the same digest has another URL.
+    const again = setup({ speech: { kind: "no_marks" } });
+    const regenerated = wholeBody(await post(again)).audio.url;
+    expect(regenerated).not.toBe(url);
+    expect(regenerated).toContain(`/audio/${ID}.${versionOf(FAKE_PLAIN_AUDIO)}.mp3`);
+  });
+});
+
 describe("POST /api/narrate: the whole digest beside segments", () => {
   it("is unchanged when segments exist: one file for the whole text, and the segments stay", async () => {
     const context = setup();
@@ -2069,7 +2094,7 @@ describe("POST /api/narrate: the whole digest beside segments", () => {
 
     expect(context.speech.calls).toHaveLength(1);
     expect(context.speech.calls[0]?.body.input).toBe(buildSpokenText(context.digest).text);
-    expect(narrated.audio.url).toBe(`${FAKE_BLOB_HOST}/audio/${ID}.mp3`);
+    expect(narrated.audio.url).toBe(`${FAKE_BLOB_HOST}/${NARRATED}`);
     expect(narrated.timeline.items).toHaveLength(context.digest.items.length);
 
     // The segment's file is still there, and still what a request for it returns.

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   AudioTimeline,
   type Digest,
@@ -123,15 +124,23 @@ import { describeError } from "./redact";
  * public URL: one SIMPLE operation when the CDN has not seen it, and never an advanced one.
  */
 
-export const audioKey = (id: string): string => `audio/${id}.mp3`;
+/**
+ * A whole-digest narration's blob key. With a version (a hash of the bytes) it is
+ * audio/<id>.<version>.mp3, a new URL for every regeneration; without one it is the old
+ * audio/<id>.mp3 that narrations made before versioning still live at.
+ */
+export const audioKey = (id: string, version?: string): string =>
+  version === undefined ? `audio/${id}.mp3` : `audio/${id}.${version}.mp3`;
+/** Names the current versioned narration of a digest, since its key is no longer fixed. */
+export const audioPointerKey = (id: string): string => `audio-url/${id}.json`;
 export const timelineKey = (id: string): string => `timeline/${id}.json`;
 export const markerKey = (id: string): string => `state/narrating-${id}.json`;
 
 /**
- * The lifetime the engine gives a narration. The URL is fixed per digest, so a long cache would let a
- * browser pair an old MP3 with a new timeline.
+ * A narration's key carries a hash of its bytes (audioKey), so its URL never changes content and a
+ * year is safe. Only a versioned key gets this: the unversioned audio/<id>.mp3 is never written now.
  */
-const AUDIO_CACHE_SECONDS = 60 * 60;
+const AUDIO_CACHE_SECONDS = 365 * 24 * 60 * 60;
 /** The timeline and the bookkeeping files must be current. 60 seconds is the shortest Blob allows. */
 const JSON_CACHE_SECONDS = 60;
 const JSON_FILE = { contentType: "application/json", cacheSeconds: JSON_CACHE_SECONDS } as const;
@@ -416,7 +425,14 @@ async function findNarration(
   digests: DigestSource,
   id: string,
 ): Promise<Narration | null> {
-  const audio = await blob.head(audioKey(id));
+  const pointed = parseJson((await readFresh(blob, audioPointerKey(id)))?.text);
+  const pointedUrl =
+    pointed !== null && typeof pointed === "object" && "url" in pointed ? pointed.url : null;
+  // A narration made before versioning has no pointer and sits at the fixed key.
+  const audio =
+    typeof pointedUrl === "string" && isHttps(pointedUrl)
+      ? { url: pointedUrl }
+      : await blob.head(audioKey(id));
   if (!audio || !isHttps(audio.url)) return null;
   const stored = await readFresh(blob, timelineKey(id));
   const timeline =
@@ -988,10 +1004,12 @@ async function synthesizeAndStore(session: Session, script: Script): Promise<Nar
   const uploadStartedAt = deps.now();
   let url: string;
   try {
-    url = await putWithRetry(session, audioKey(id), narration.audio, {
+    const version = createHash("sha256").update(narration.audio).digest("hex").slice(0, 12);
+    url = await putWithRetry(session, audioKey(id, version), narration.audio, {
       contentType: "audio/mpeg",
       cacheSeconds: AUDIO_CACHE_SECONDS,
     });
+    await putWithRetry(session, audioPointerKey(id), JSON.stringify({ url }), JSON_FILE);
     await putWithRetry(
       session,
       timelineKey(id),
