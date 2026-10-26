@@ -6,7 +6,13 @@ import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { defineConfig } from "astro/config";
 import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
-import { importGraph, withModulePreloads } from "./src/lib/bundleBudget.ts";
+import {
+  importGraph,
+  WAKE_STYLES_KEY,
+  wakeStylesheets,
+  withModulePreloads,
+  withoutStylesheets,
+} from "./src/lib/bundleBudget.ts";
 import { BUILT_CONFIG_PATHS } from "./src/lib/configHash.ts";
 import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
@@ -72,23 +78,34 @@ function preloadPageModules() {
     hooks: {
       "astro:build:generated": ({ dir }) => {
         const assets = join(fileURLToPath(dir), "_astro");
-        const urls = existsSync(assets)
-          ? readdirSync(assets)
-              .filter((name) => name.endsWith(".js"))
-              .map((name) => `/_astro/${name}`)
+        const files = existsSync(assets)
+          ? readdirSync(assets).map((name) => `/_astro/${name}`)
           : [];
+        const urls = files.filter((url) => url.endsWith(".js"));
+        const read = reader(dir);
         const target = fileURLToPath(new URL(MODULE_GRAPH_FILE, import.meta.url));
         mkdirSync(dirname(target), { recursive: true });
-        writeFileSync(target, JSON.stringify(importGraph(urls, reader(dir))));
+        writeFileSync(
+          target,
+          JSON.stringify({
+            ...importGraph(urls, read),
+            [WAKE_STYLES_KEY]: wakeStylesheets(files, read),
+          }),
+        );
       },
       "astro:build:done": ({ dir }) => {
         const root = fileURLToPath(dir);
         const read = reader(dir);
+        const assets = join(root, "_astro");
+        const wakeStyles = wakeStylesheets(
+          existsSync(assets) ? readdirSync(assets).map((name) => `/_astro/${name}`) : [],
+          read,
+        );
         for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
           if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
           const file = join(entry.parentPath, entry.name);
           const html = readFileSync(file, "utf8");
-          const hinted = withModulePreloads(html, read);
+          const hinted = withoutStylesheets(withModulePreloads(html, read), wakeStyles);
           if (hinted !== html) writeFileSync(file, hinted);
         }
       },
