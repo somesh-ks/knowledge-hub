@@ -391,6 +391,8 @@ describe("service worker: a move inside the app", () => {
     const audio = "https://abc.public.blob.vercel-storage.com/audio/ep-1/seg/t0.abc.mp3";
     const other = "https://abc.public.blob.vercel-storage.com/audio/ep-2/seg/t0.abc.mp3";
     await worker.dispatchFetch(request("/e/ep-1", { mode: "navigate" }));
+    const pages = await worker.caches.open(`singularity-pages-${CURRENT_VERSION}`);
+    await pages.put(request("/e/ep-1/").url, new Response("slash copy"));
     const downloads = await worker.caches.open("singularity-audio-v1");
     await downloads.put(audio, new Response("a"));
     await downloads.put(other, new Response("b"));
@@ -401,9 +403,27 @@ describe("service worker: a move inside the app", () => {
     expect(worker.posted).toEqual([{ type: "PAGE_CHANGED", path: "/e/ep-1" }]);
     expect(await downloads.match(audio)).toBeUndefined();
     expect(await downloads.match(other)).toBeDefined();
+    expect(await pages.match(request("/e/ep-1").url)).toBeUndefined();
+    expect(await pages.match(request("/e/ep-1/").url)).toBeUndefined();
     worker.clock.now += 5 * SECOND;
     const next = await worker.dispatchFetch(request("/e/ep-1", { mode: "navigate" }));
     expect(next.response?.status).toBe(404);
+  });
+
+  it("offline, a cover answers from its unversioned copy, never from another version", async () => {
+    let online = true;
+    const worker = load(() => {
+      if (!online) throw new TypeError("offline");
+      return new Response("fresh");
+    });
+    const media = await worker.caches.open(`singularity-media-${CURRENT_VERSION}`);
+    await media.put(request("/covers/a.jpg").url, new Response("legacy a"));
+    await media.put(request("/covers/b.jpg?v=old").url, new Response("old b"));
+    online = false;
+    const legacy = await worker.dispatchFetch(request("/covers/a.jpg?v=new"));
+    expect(await legacy.response?.text()).toBe("legacy a");
+    const other = await worker.dispatchFetch(request("/covers/b.jpg?v=new"));
+    expect(await other.response?.text()).not.toBe("old b");
   });
 
   it("waits for the network when the saved copy is old", async () => {

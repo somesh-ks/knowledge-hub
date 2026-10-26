@@ -84,10 +84,14 @@ it("keeps the last content and says so while the store cannot be reached", async
   await fillStore("2026-10-24T12:00:00Z");
   let now = 0;
   let down = false;
+  let failed = 0;
   const deps = {
     env: ENV,
     fetch: async (url: string) => {
-      if (down) throw new Error("network down");
+      if (down) {
+        failed += 1;
+        throw new Error("network down");
+      }
       return fakeFetch(url);
     },
     now: () => now,
@@ -99,6 +103,10 @@ it("keeps the last content and says so while the store cannot be reached", async
   now = MANIFEST_TTL_MS + 1;
   expect((await loadStoreSite(deps))?.entries.length).toBe(before);
   expect(isShowingSavedContent()).toBe(true);
+  // The next request in the window does not wait on the dead store again.
+  const attempts = failed;
+  await loadStoreSite(deps);
+  expect(failed).toBe(attempts);
 
   down = false;
   now = 2 * MANIFEST_TTL_MS + 2;

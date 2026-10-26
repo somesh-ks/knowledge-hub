@@ -109,6 +109,8 @@ async function currentManifest(
       throw error;
     }
     savedContent = true;
+    // The next read waits a window, so an outage does not make every request wait on the dead store.
+    heldManifest = { ...heldManifest, at: deps.now() };
     return heldManifest;
   }
 }

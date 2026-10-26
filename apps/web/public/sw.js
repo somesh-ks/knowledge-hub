@@ -362,7 +362,10 @@ function coverFetch(event) {
   const stale = staleWhileRevalidate(event, MEDIA_CACHE, MAX_MEDIA);
   return stale.then(async (response) => {
     if (response && response.type !== "error") return response;
-    return (await caches.match(event.request, { ignoreSearch: true })) || response;
+    // Only the unversioned copy answers: another version of the cover is not this one.
+    const bare = new URL(event.request.url);
+    bare.search = "";
+    return (await caches.match(bare.href)) || response;
   });
 }
 
@@ -428,12 +431,13 @@ async function inAppPage(event) {
  * 20, criterion 4). Audio lives at audio/<id>/seg/... (episodes) or audio/<id>.<version>.mp3.
  */
 async function evictRemoved(url) {
-  const path = new URL(url).pathname;
-  const id = /^\/[ed]\/([\w-]+)\/?$/.exec(path)?.[1];
+  // A copy saved under the slash form goes too: both forms are the same page.
+  const path = new URL(url).pathname.replace(/\/$/, "");
+  const id = /^\/[ed]\/([\w-]+)$/.exec(path)?.[1];
   if (!id) return false;
   const pages = await caches.open(PAGES_CACHE);
   for (const key of await pages.keys()) {
-    if (new URL(key.url).pathname === path) await pages.delete(key);
+    if (new URL(key.url).pathname.replace(/\/$/, "") === path) await pages.delete(key);
   }
   const audio = await caches.open(AUDIO_CACHE);
   for (const key of await audio.keys()) {
