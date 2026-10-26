@@ -827,9 +827,7 @@ test.describe("a topic's page", () => {
     await expect(page.locator("li.source-row")).toHaveCount(2);
   });
 
-  test("a general topic: always on, in podcasts, edit, scores and no remove", async ({
-    page,
-  }) => {
+  test("a general topic: always on, in podcasts, edit, scores and no remove", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/categories/world");
     await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeVisible();
