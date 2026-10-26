@@ -41,6 +41,15 @@ describe("dedupe", () => {
     expect(report).toMatchObject({ input: 2, already_seen: 1, output: 1 });
   });
 
+  it("keeps each story of a shared page when another source ranks first for its URL", () => {
+    const url = "https://example.com/changelog";
+    const other = makeItem({ url, title: "Changelog overview", source_id: "craft" });
+    const v1 = makeItem({ url, title: "Springs get retargeting", id: "id-v1" });
+    const v2 = makeItem({ url, title: "Gestures learn velocity", id: "id-v2" });
+    const { items } = dedupe({ items: [v1, other, v2], sources, seen: emptySeen });
+    expect(items.map((i) => i.id).sort()).toEqual([other.id, "id-v1", "id-v2"].sort());
+  });
+
   it("collapses the same canonical URL and keeps the higher-signal source", () => {
     const fromBlog = makeItem({
       url: "https://example.com/post",

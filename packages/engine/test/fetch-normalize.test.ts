@@ -216,6 +216,17 @@ describe("buildItems shared URLs", () => {
     expect(items[0]?.url).toBe("https://example.com/show");
     expect(items[2]?.id).toBe(itemId("https://example.com/other"));
   });
+
+  it("tells entries apart by title when their guid repeats", () => {
+    const items = buildItems(
+      [
+        { url: "https://example.com/show", title: "Ep 1", guid: "same", publishedAt: when },
+        { url: "https://example.com/show", title: "Ep 2", guid: "same", publishedAt: when },
+      ],
+      context,
+    );
+    expect(new Set(items.map((item) => item.id)).size).toBe(2);
+  });
 });
 
 describe("buildItem", () => {
