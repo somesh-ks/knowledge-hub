@@ -9,6 +9,7 @@ import {
   type JudgmentEntry,
   type LastRunFile,
   parseDigestFile,
+  seedTopicsFile,
   type Source,
   serializeDigestFile,
 } from "@singularity/core";
@@ -20,6 +21,7 @@ import { createGitRunner } from "../src/git/runGit.js";
 import { createHttpClient } from "../src/http.js";
 import type { Judge } from "../src/judge/types.js";
 import { runPipeline } from "../src/run/pipeline.js";
+import { serializeTopics } from "../src/topics/store.js";
 import {
   DEFAULT_RUN_OPTIONS,
   type PipelineResult,
@@ -358,6 +360,17 @@ export async function buildTemplate(): Promise<string> {
   for (const file of ["config/preferences.json", "config/voice.md"]) {
     await put(a, file, await readFile(join(FIXTURE_CONFIG, basename(file)), "utf8"));
   }
+  // Gossip and hype listicles are switched off, the way the owner mutes a category (D193).
+  const off = new Set(["venture_capital_and_gossip", "generic_ai_hype_listicles"]);
+  const topics = seedTopicsFile();
+  await put(
+    a,
+    "config/topics.json",
+    serializeTopics({
+      ...topics,
+      topics: topics.topics.map((t) => (off.has(t.id) ? { ...t, never_publish: true } : t)),
+    }),
+  );
   await put(a, "config/sources.json", `${JSON.stringify(sourcesFile(), null, 2)}\n`);
   await put(a, "config/queries.json", '{ "version": 1, "queries": [] }\n');
   await commitAll(a, "chore: seed");
