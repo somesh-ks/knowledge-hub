@@ -15,12 +15,14 @@ export const OPUS_BITRATE_KBPS = 32;
 export const OPUS_CONTENT_TYPE = "audio/mp4";
 
 /** The ffmpeg arguments for one MP3 to Opus transcode: mono, speech-tuned, no metadata. */
-export function opusTranscodeArgs(input: string, output: string): string[] {
+export function opusTranscodeArgs(input: string, output: string, concat = false): string[] {
   return [
     "-hide_banner",
     "-loglevel",
     "error",
     "-y",
+    // A list file of MP3s joined end to end, for an episode made of turns.
+    ...(concat ? ["-f", "concat", "-safe", "0"] : []),
     "-i",
     input,
     "-vn",
@@ -65,6 +67,33 @@ export async function transcodeToOpus(
     const output = join(dir, "out.m4a");
     await writeFile(input, mp3);
     await run(opusTranscodeArgs(input, output));
+    const bytes = await readFile(output);
+    if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
+    return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Transcode several MP3s, played one after another, to ONE Opus in MP4 file (an episode's turns).
+ * The joined file is the turns' sum, so the caller's offsets are the sum of their lengths.
+ */
+export async function transcodeSegmentsToOpus(
+  mp3s: readonly Uint8Array[],
+  run: RunFfmpeg = runFfmpeg,
+): Promise<Uint8Array> {
+  if (mp3s.length === 0 || mp3s.some((mp3) => mp3.byteLength === 0)) {
+    throw new Error("Refusing to transcode empty audio");
+  }
+  const dir = await mkdtemp(join(tmpdir(), "singularity-opus-"));
+  try {
+    const names = mp3s.map((_, index) => `in${index}.mp3`);
+    await Promise.all(mp3s.map((mp3, index) => writeFile(join(dir, names[index] ?? ""), mp3)));
+    const list = join(dir, "list.txt");
+    await writeFile(list, names.map((name) => `file '${name}'\n`).join(""));
+    const output = join(dir, "out.m4a");
+    await run(opusTranscodeArgs(list, output, true));
     const bytes = await readFile(output);
     if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
     return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);

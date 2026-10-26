@@ -25,6 +25,8 @@ export type LookupResult =
       msPerCharacter: number;
       /** A finished single file for the whole briefing, when one exists. */
       whole: { url: string; duration_ms: number; timeline: NarrationTimeline | null } | null;
+      /** A finished episode's single Opus file and its manifest of turn offsets, when the server names them. */
+      opus: { url: string; manifest_url: string } | null;
     }
   | { ok: false; reason: NarrationFailure };
 
@@ -96,6 +98,12 @@ function parseSegment(value: unknown): SegmentInfo | null {
   return { key, item_id, characters, audio: parseAudio(audio) };
 }
 
+function parseOpus(value: unknown): { url: string; manifest_url: string } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { url, manifest_url } = value as Json;
+  return isPlayableUrl(url) && isPlayableUrl(manifest_url) ? { url, manifest_url } : null;
+}
+
 function parseTimeline(value: unknown): NarrationTimeline | null {
   if (typeof value !== "object" || value === null) return null;
   const { kind, items, sections } = value as Json;
@@ -164,6 +172,7 @@ export async function lookupNarration(digestId: string, deps: ApiDeps): Promise<
     ok: true,
     segments,
     msPerCharacter: isDuration(body.ms_per_character) ? body.ms_per_character : 0,
+    opus: parseOpus(body.opus),
     whole: audio
       ? { url: audio.url, duration_ms: audio.duration_ms, timeline: parseTimeline(body.timeline) }
       : null,

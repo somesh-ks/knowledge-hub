@@ -137,6 +137,56 @@ export function deriveSegmentMarks(text: string, marks: readonly SpeechMark[]): 
   return sorted;
 }
 
+/**
+ * A finished episode also stored as ONE Opus-in-MP4 file (plan 21): the turns' MP3s joined in order
+ * and transcoded once, beside a small manifest of where each turn sits in it. The name carries a hash
+ * of the turn files' own names, so the file follows the script and the voices like the turns do and
+ * the site works out its address from the lookup alone. The manifest is written last: its presence
+ * means the m4a is complete. Live catch-up stays on the MP3 turns.
+ */
+export interface EpisodeOpusTurn {
+  key: string;
+  start_ms: number;
+  end_ms: number;
+}
+
+export interface EpisodeOpusManifest {
+  duration_ms: number;
+  turns: EpisodeOpusTurn[];
+}
+
+export interface EpisodeOpusAddress {
+  /** The m4a's pathname; the manifest sits beside it. */
+  path: string;
+  manifestPath: string;
+}
+
+/** Where an episode's Opus file would be for these turn files, in playing order. */
+export function episodeOpusAddress(
+  episode: string,
+  segmentPaths: readonly string[],
+): EpisodeOpusAddress {
+  const hash = createHash("sha256")
+    .update(segmentPaths.join("\n"))
+    .digest("hex")
+    .slice(0, SEGMENT_HASH_CHARS);
+  const path = `audio/${episode}/episode.${hash}.m4a`;
+  return { path, manifestPath: path.replace(/\.m4a$/, ".json") };
+}
+
+/** The manifest of turns of these lengths laid end to end. */
+export function episodeOpusManifest(
+  turns: readonly { key: string; duration_ms: number }[],
+): EpisodeOpusManifest {
+  let cursor = 0;
+  const laid = turns.map((turn) => {
+    const start_ms = cursor;
+    cursor += turn.duration_ms;
+    return { key: turn.key, start_ms, end_ms: cursor };
+  });
+  return { duration_ms: cursor, turns: laid };
+}
+
 /** The voices that read an episode's hosts, from the environment the site's narrate route has. */
 export interface EpisodeVoiceEnv {
   SPEECHIFY_VOICE_ID?: string | undefined;

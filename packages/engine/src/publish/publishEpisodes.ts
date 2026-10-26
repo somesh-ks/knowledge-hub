@@ -5,6 +5,8 @@ import { checkBudget, describeRefusal, loadUsage, recordUsage } from "../audio/b
 import {
   deriveSegmentMarks,
   type EpisodePlan,
+  episodeOpusAddress,
+  episodeOpusManifest,
   type EpisodeVoiceEnv,
   type PlannedSegment,
   planEpisodeNarration,
@@ -13,7 +15,13 @@ import {
   segmentPrefix,
 } from "../audio/segmentStore.js";
 import type { SpeechMark, SynthesisRequest } from "../audio/speechify.js";
-import { DEFAULT_MODEL, DEFAULT_OUTPUT_FORMAT, isMarksUnavailable } from "../audio/speechify.js";
+import {
+  DEFAULT_MODEL,
+  DEFAULT_OUTPUT_FORMAT,
+  durationFromMp3Bytes,
+  isMarksUnavailable,
+} from "../audio/speechify.js";
+import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 import type { BlobClient } from "./blob.js";
 import type { DigestAudioOutcome, PublishAudioDeps, PublishAudioResult } from "./publishAudio.js";
 import { recordPartialSpend } from "./publishAudio.js";
@@ -141,6 +149,66 @@ async function putWithRetry(
   }
 }
 
+/**
+ * Also store a finished episode as one Opus file with the turns' offsets (see EpisodeOpusManifest).
+ * Never fatal: the MP3 turns are the episode, and the site falls back to them. Idempotent: the
+ * manifest, written last, says the file is there. `made` holds the turns this run narrated, so
+ * they are not read back.
+ */
+export async function publishEpisodeOpus(
+  deps: PublishAudioDeps,
+  plan: EpisodePlan,
+  made: ReadonlyMap<string, Uint8Array>,
+): Promise<"published" | "present" | "skipped"> {
+  const { transcodeEpisodeOpus, fetchAudio } = deps;
+  if (!transcodeEpisodeOpus || !fetchAudio) return "skipped";
+  try {
+    const address = episodeOpusAddress(
+      plan.id,
+      plan.segments.map((segment) => segment.path),
+    );
+    const urls = new Map<string, string>();
+    let cursor: string | undefined;
+    do {
+      const page = await deps.blob.list({
+        prefix: `audio/${plan.id}/`,
+        ...(cursor ? { cursor } : {}),
+      });
+      for (const item of page.blobs) urls.set(item.pathname, item.url);
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor !== undefined);
+    if (urls.has(address.manifestPath)) return "present";
+
+    const mp3s: Uint8Array[] = [];
+    for (const segment of plan.segments) {
+      const url = urls.get(segment.path);
+      const bytes = made.get(segment.path) ?? (url ? await fetchAudio(url) : undefined);
+      if (!bytes) throw new Error(`${segment.key} is not stored`);
+      mp3s.push(bytes);
+    }
+    // The lengths the site works out from the same files' sizes, so the offsets here and the
+    // spans of the turn-by-turn fallback agree.
+    const manifest = episodeOpusManifest(
+      mp3s.map((mp3, index) => ({
+        key: plan.segments[index]?.key ?? "",
+        duration_ms: durationFromMp3Bytes(mp3.byteLength, DEFAULT_OUTPUT_FORMAT),
+      })),
+    );
+    const m4a = await transcodeEpisodeOpus(mp3s);
+    await putWithRetry(deps, address.path, m4a, OPUS_CONTENT_TYPE);
+    await putWithRetry(
+      deps,
+      address.manifestPath,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+      "application/json",
+    );
+    return "published";
+  } catch (error) {
+    deps.log.warn(`${plan.id}: Opus skipped, the MP3 turns play alone`, { reason: message(error) });
+    return "skipped";
+  }
+}
+
 type Outcome = DigestAudioOutcome;
 const failed =
   (id: string, stage: "read" | "budget" | "synthesis" | "upload" | "write") =>
@@ -152,17 +220,19 @@ async function processEpisode(
   id: string,
 ): Promise<Outcome> {
   let missing: PlannedSegment[];
+  let plan: EpisodePlan;
   try {
-    const plan = planEpisodeNarration(
-      await readFile(join(deps.root, episodeRelPath(id)), "utf8"),
-      env,
-    );
+    plan = planEpisodeNarration(await readFile(join(deps.root, episodeRelPath(id)), "utf8"), env);
     if (plan.id !== id) throw new Error(`${episodeRelPath(id)} holds episode ${plan.id}`);
     missing = await missingSegments(deps.blob, plan);
   } catch (error) {
     return failed(id, "read")(error);
   }
-  if (missing.length === 0) return { status: "skipped", digestId: id, reason: "complete" };
+  if (missing.length === 0) {
+    // Complete before this run: an episode made before Opus gets its file now.
+    await publishEpisodeOpus(deps, plan, new Map());
+    return { status: "skipped", digestId: id, reason: "complete" };
+  }
 
   const requested = missing.reduce((sum, segment) => sum + segment.text.length, 0);
   try {
@@ -182,6 +252,7 @@ async function processEpisode(
   let characters = 0;
   let durationMs = 0;
   let firstUrl = "";
+  const made = new Map<string, Uint8Array>();
   // In playing order, one at a time: a failure leaves the rest for the next run or for Play.
   for (const segment of missing) {
     let narration: Awaited<ReturnType<typeof narrateSegment>>;
@@ -206,6 +277,7 @@ async function processEpisode(
     try {
       const url = await putWithRetry(deps, segment.path, narration.audio, "audio/mpeg");
       firstUrl ||= url;
+      made.set(segment.path, narration.audio);
     } catch (error) {
       return failed(id, "upload")(error);
     }
@@ -220,6 +292,7 @@ async function processEpisode(
       }
     }
   }
+  await publishEpisodeOpus(deps, plan, made);
   return {
     status: "published",
     digestId: id,

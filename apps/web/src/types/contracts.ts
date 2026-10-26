@@ -266,6 +266,12 @@ export type NarrateLookupResponse =
       segments: NarrationSegment[];
       /** An estimate of the voice's pace, for laying out segments that have no audio yet. */
       ms_per_character: number;
+      /**
+       * A finished episode as one Opus in MP4 file, with a manifest of where each turn sits in it.
+       * Both are where the files WOULD be, not proof: the manifest is fetched first and the file
+       * is used only when it is there. Absent for a briefing and for an episode still being written.
+       */
+      opus?: { url: string; manifest_url: string };
     }
   | NarrateError;
 
