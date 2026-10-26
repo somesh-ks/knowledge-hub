@@ -450,8 +450,11 @@ async function findNarration(
     blob,
     typeof pointedVersion === "string" ? timelineKey(id, pointedVersion) : timelineKey(id),
   );
+  // The committed timeline next to a digest belongs to the audio workflow's recording, never to a
+  // versioned one.
   const timeline =
-    timelineFor(parseJson(stored?.text), id) ?? timelineFor(await digests.readTimeline(id), id);
+    timelineFor(parseJson(stored?.text), id) ??
+    (typeof pointedVersion === "string" ? null : timelineFor(await digests.readTimeline(id), id));
   return timeline ? { url: audio.url, timeline } : null;
 }
 

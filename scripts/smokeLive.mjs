@@ -88,13 +88,17 @@ let id = null;
 const buildBefore = await text("/build.json");
 try {
   // Read before the create request, so a fast episode cannot already be in the baseline.
-  const before = new Set((await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? []);
+  const library = await text("/library");
+  // Without a baseline an existing episode would look new, and the cleanup would delete it.
+  if (library.status !== 200) {
+    check("Library baseline available", false, `status ${library.status}`);
+    throw new Error("the Library could not be read, so nothing was created");
+  }
+  const before = new Set(library.body.match(/\/e\/ep-[\w-]+/g) ?? []);
   const created = await post(createBody);
-  check(
-    "create accepted",
-    created.status === 200 || created.status === 202,
-    `status ${created.status}`,
-  );
+  const accepted = created.status === 200 || created.status === 202;
+  check("create accepted", accepted, `status ${created.status}`);
+  if (!accepted) throw new Error("the create request was rejected, so nothing is polled");
   const fresh = await until("new episode reaches the Library", async () => {
     const found = ((await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? []).find(
       (href) => !before.has(href),
