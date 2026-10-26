@@ -172,6 +172,7 @@ describe("loadStore", () => {
   it("takes the store's answer after a save into the device's copy", async () => {
     vi.useFakeTimers();
     const { CACHE_KEY, afterOwnSave } = await fresh();
+    vi.stubGlobal("document", { querySelector: () => ({ content: "built-here" }) });
     const body = (written_at: number, name: string) => ({
       status: 200,
       built: "built-here",
@@ -183,7 +184,8 @@ describe("loadStore", () => {
     vi.stubGlobal("localStorage", storage);
     vi.stubGlobal("fetch", async () => Response.json(body(5, "New")));
     afterOwnSave();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null").ops[0].name).toBe("New");
+    await vi.waitFor(() =>
+      expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null").ops[0].name).toBe("New"),
+    );
   });
 });
