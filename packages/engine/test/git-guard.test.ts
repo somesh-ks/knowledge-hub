@@ -24,7 +24,7 @@ describe("ALLOWLISTS", () => {
         "state/costs-*.json",
       ],
       learn: ["config/preferences.json"],
-      podcast: ["Podcasts/", "state/costs-*.json"],
+      podcast: ["Podcasts/", "state/costs-*.json", "state/podcast-timings.json"],
       config: [
         "config/topics.json",
         "config/sources.user.json",

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { ConfigOp } from "../types/contracts";
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -119,6 +121,48 @@ describe("loadStore", () => {
     answers[0]?.(
       Response.json({ status: 200, built: "built-here", written_at: 1, ops, sources: [] }),
     );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
+  });
+
+  // The bug: the owner's own save left the device's kept copy stale, so the next page view read the
+  // store's answer (their own save) as "changed on another device". The revision a save produced is
+  // tracked: only a write newer than it comes from another device.
+  it("offers a reload only for a write newer than this device's own save", async () => {
+    vi.useFakeTimers();
+    const { CACHE_GRACE_MS, CACHE_KEY, loadStore } = await fresh();
+    const { remember } = await import("./managePageSave");
+    const { TOAST_EVENT } = await import("./toastEvent");
+    const toasts: unknown[] = [];
+    vi.stubGlobal("document", {
+      querySelector: (selector: string) =>
+        selector.startsWith("meta") ? { content: "built-here" } : null,
+      dispatchEvent: (event: CustomEvent) => {
+        if (event.type === TOAST_EVENT) toasts.push(event.detail);
+        return false;
+      },
+      addEventListener: () => {},
+    });
+    const kept = { status: 200, built: "built-here", written_at: 1, ops: [], sources: [] };
+    vi.stubGlobal("localStorage", fakeStorage({ [CACHE_KEY]: JSON.stringify(kept) }));
+    const answers: ((response: Response) => void)[] = [];
+    vi.stubGlobal("fetch", () => new Promise<Response>((resolve) => answers.push(resolve)));
+    const own = [{ op: "source.set", id: "a", enabled: false }];
+    const answer = (writtenAt: number, ops: unknown[]) =>
+      Response.json({ status: 200, built: "built-here", written_at: writtenAt, ops, sources: [] });
+
+    // This device saved an edit the store stamped 5; the next page view finds it in the store.
+    remember(own as unknown as ConfigOp[], 0, [], 5);
+    void loadStore(0);
+    await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
+    answers[0]?.(answer(5, own));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(toasts).toEqual([]);
+
+    // A write after it, from another device, is still offered.
+    void loadStore(5000);
+    await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
+    answers[1]?.(answer(9, []));
     await vi.advanceTimersByTimeAsync(0);
     expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
   });

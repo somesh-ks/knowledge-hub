@@ -1,4 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadModelRouting, type PodcastRequest } from "@singularity/core";
@@ -13,10 +14,17 @@ import { createModelRouter } from "../llm/modelRouter.js";
 import { RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js";
-import { generateEpisode } from "../podcast/generate.js";
+import { runEpisodeStages } from "../podcast/generate.js";
 import { LlmScriptWriter } from "../podcast/llmScriptWriter.js";
 import { planPodcast } from "../podcast/plan.js";
+import {
+  type ArtifactStore,
+  createArtifactStore,
+  EPISODE_STAGE_IDS,
+  type EpisodeStageId,
+} from "../podcast/stages.js";
 import { createStreamPublisher, pruneStreams, type StreamPublisher } from "../podcast/stream.js";
+import { recordTimings } from "../podcast/timings.js";
 import {
   InvalidRequestError,
   PodcastError,
@@ -28,7 +36,7 @@ import { publishEpisodeIndex } from "../publish/episodeIndex.js";
 import { loadScheduleZone } from "../schedule/store.js";
 
 export const PODCAST_USAGE =
-  'Usage: singularity podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] | [--dry-run [--save <path outside the repository>]]';
+  'Usage: singularity podcast --request \'<json: a new episode, {"action":"delete","id":...} or {"action":"regenerate","id":...,"feedback":...}>\' [--now <iso>] [--no-push] [--stage <select|cover|script|publish>] [--artifacts <dir>] | [--dry-run [--save <path outside the repository>]]';
 
 /** True when `path` is the repository root or anything under it. */
 function isInside(root: string, path: string): boolean {
@@ -43,6 +51,26 @@ export interface PodcastDeps {
   http?: HttpClient;
   /** Where the live copy of the script goes. Defaults to Vercel Blob when its token is set. */
   blob?: BlobClient;
+}
+
+/**
+ * `resume_from` is the id of the failed workflow run a rerun picks up from (the page's Try again). It
+ * rides in the request JSON but is not part of an episode or of the command schema, so it is taken
+ * out here: the request without it, and the id when it is a run id. Anything else is ignored.
+ */
+export function splitResumeFrom(raw: string): { request: string; resumeFrom?: string } {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || !("resume_from" in parsed)) {
+      return { request: raw };
+    }
+    const { resume_from: value, ...rest } = parsed as { resume_from?: unknown };
+    const id = typeof value === "number" ? String(value) : value;
+    const valid = typeof id === "string" && /^[1-9]\d{0,14}$/.test(id);
+    return { request: JSON.stringify(rest), ...(valid ? { resumeFrom: id } : {}) };
+  } catch {
+    return { request: raw };
+  }
 }
 
 function blobClientFrom(token: string | undefined): BlobClient | null {
@@ -121,6 +149,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       "no-push"?: boolean;
       "dry-run"?: boolean;
       save?: string;
+      stage?: string;
+      artifacts?: string;
     };
     try {
       values = parseArgs({
@@ -133,6 +163,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           "no-push": { type: "boolean" },
           "dry-run": { type: "boolean" },
           save: { type: "string" },
+          stage: { type: "string" },
+          artifacts: { type: "string" },
         },
       }).values;
     } catch (error) {
@@ -162,6 +194,14 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       }
     }
 
+    const only = EPISODE_STAGE_IDS.find((id) => id === values.stage);
+    if (values.stage !== undefined && (only === undefined || dryRun)) {
+      ctx.log.error(
+        `--stage is one of ${EPISODE_STAGE_IDS.join(", ")} and cannot be used with --dry-run. ${PODCAST_USAGE}`,
+      );
+      return 2;
+    }
+
     const meter = new RequestMeter();
     let now = ctx.now();
     if (values.now !== undefined) {
@@ -174,9 +214,15 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
 
     // The live copy of the script, once one has been made (a holder, so the handlers below see it).
     const live: { stream: StreamPublisher | null } = { stream: null };
+    // Set when the stages save their results (the workflow's steps, or a rerun), and the stage running.
+    let store: ArtifactStore | null = null;
+    let current: EpisodeStageId | undefined;
     try {
-      const command = parseCommand(values.request);
+      const { request: requestJson, resumeFrom } = splitResumeFrom(values.request);
+      const command = parseCommand(requestJson);
       if (command.action === "delete") {
+        // A delete is one action: the first step does it and the steps after it have nothing to do.
+        if (only !== undefined && only !== "select") return 0;
         const relPath = await episodeExists(ctx.root, command.id);
         if (dryRun) {
           process.stdout.write(
@@ -244,7 +290,18 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
               return live.stream;
             }
           : undefined;
-      const result = await generateEpisode({
+      // Each finished stage is saved, so a rerun with `resume_from` (the id of the failed run) skips
+      // it. Kept on the runner's disk for the later steps of this job, and mirrored to Blob.
+      if (only !== undefined || values.artifacts !== undefined || resumeFrom !== undefined) {
+        store = createArtifactStore({
+          dir: values.artifacts ?? join(process.env.RUNNER_TEMP ?? tmpdir(), "podcast-stages"),
+          blob: blobClient,
+          runId: runId ?? "local",
+          ...(resumeFrom ? { resumeFrom } : {}),
+          log: ctx.log,
+        });
+      }
+      const stages = await runEpisodeStages({
         ...(makeStream ? { makeStream } : {}),
         root: ctx.root,
         request,
@@ -253,9 +310,29 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         ...(deps.http ? { http: deps.http } : {}),
         log: ctx.log,
         dryRun,
+        store,
+        only,
+        onStage: (stage) => {
+          current = stage;
+        },
         ...(replaced ? { replaces: replaced.episode.id } : {}),
         ...(feedback ? { feedback } : {}),
       });
+      // The writer's tokens are the episode's cost: it belongs to whoever asked for it. Recorded by
+      // the step that ran the writer, in the working tree the publish step commits.
+      if (!dryRun && stages.ran.includes("script")) {
+        await recordRunCosts(
+          ctx.root,
+          { requests: {}, units: meter.peekUnits() },
+          { runId: stages.id, at: ctx.now().toISOString(), passKind: "on-demand" },
+          await loadScheduleZone(ctx.root),
+        );
+      }
+      const result = stages.result;
+      if (!result) {
+        emit(ctx, [`Stage ${only} done.`, stages.id], { stage: only, episode_id: stages.id });
+        return 0;
+      }
       const { episode, relPath } = result;
       if (dryRun) {
         if (values.save !== undefined && result.markdown !== undefined) {
@@ -289,13 +366,17 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         );
         return 0;
       }
-      // The writer's tokens are the episode's cost: it belongs to whoever asked for it.
-      await recordRunCosts(
-        ctx.root,
-        { requests: {}, units: meter.peekUnits() },
-        { runId: episode.id, at: ctx.now().toISOString(), passKind: "on-demand" },
-        await loadScheduleZone(ctx.root),
-      );
+      // How long each stage took, in the same commit, for the page's time left. Only a run that
+      // saves its stages (the workflow) records one.
+      if (store) {
+        await recordTimings(ctx.root, {
+          at: ctx.now().toISOString(),
+          run_id: runId ?? null,
+          format: request.format,
+          length_minutes: request.length_minutes,
+          stages: stages.durations,
+        });
+      }
       // The old file goes only now: generation has succeeded and the new file is written.
       if (replaced) await rm(join(ctx.root, replaced.relPath));
       const outcome = await commitAndPush({
@@ -348,6 +429,12 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       return 0;
     } catch (error) {
       await live.stream?.failed();
+      // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
+      if (store && current) {
+        await store
+          .write("failure", { failed_stage: current, kept: await store.names() })
+          .catch(() => {});
+      }
       if (error instanceof PodcastError) {
         // The request, the stories or the script is at fault; the message is already for the listener.
         ctx.log.error(error.message);

@@ -159,9 +159,16 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
   const byUrl = new Map<string, Item>();
   for (const item of [...fresh].sort((a, b) => compareQuality(a, b, sourceById))) {
     const existing = byUrl.get(item.canonical_url);
-    if (existing) {
+    // Same source, same URL, different ids: two stories that share a page (see buildItems).
+    if (existing && (existing.source_id !== item.source_id || existing.id === item.id)) {
       byUrl.set(item.canonical_url, merge(existing, item));
       report.same_url++;
+    } else if (existing) {
+      byUrl.set(
+        `${item.canonical_url}
+${item.id}`,
+        item,
+      );
     } else {
       byUrl.set(item.canonical_url, item);
     }

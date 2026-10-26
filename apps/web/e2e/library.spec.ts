@@ -5,16 +5,16 @@ const DISCUSSION = "Quiet interfaces and fast latency";
 const HEADLINES = "AI headlines";
 /** Every card, newest first: the day, then when each was written (the discussion came after the briefing). */
 const NEWEST_FIRST = [
-  DISCUSSION,
   "Wednesday 7 October",
+  DISCUSSION,
   HEADLINES,
   "Monday 5 October",
   "Sunday 4 October",
 ];
 /** What each card says under its title, in the same order. */
 const REST_FACTS = [
-  "Discussion · 5 min",
   "Daily · 12 stories · 1 min",
+  "Discussion · 5 min",
   "Readout · 3 min",
   "Daily · 8 stories · 3 min",
   "Weekly · 14 stories · 8 min",

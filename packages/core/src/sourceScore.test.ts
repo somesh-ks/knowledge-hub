@@ -7,6 +7,7 @@ import {
   SCORE_MAX,
   SCORE_THRESHOLDS,
   scoreLabel,
+  scoreReasons,
   sourceScore,
   WEAK_PART,
 } from "./index.js";
@@ -96,9 +97,9 @@ describe("sourceScore: the scoring sample (D70)", () => {
 
   it("moves smoothly when one item could have been published: no cliff at the first", () => {
     const stat = { judged: 13, passed: 6, published: 0, asked: 13, sampled: 12 };
-    // Pass share 6 of 13 against a half: 0.92. One in thirteen weighs the pooled reading (0.28,
-    // nothing published), the rest the pass share alone: 0.87, where the old rule gave 0.28.
-    expect(scoreOf(stat as Partial<Stat>).parts?.quality).toBe(0.87);
+    // Pass share 6 of 13 against a half: 0.92. One in thirteen weighs the pooled reading (0.56, nothing
+    // published, the pass share filling in for the thin count), the rest the pass share alone: 0.9.
+    expect(scoreOf(stat as Partial<Stat>).parts?.quality).toBe(0.9);
   });
 
   it(`scores a source whose feed held under ${MIN_JUDGED} posts on ${MIN_SPARSE} judged items`, () => {
@@ -139,8 +140,8 @@ describe("sourceScore: a general news feed", () => {
       parts: { health: 1, quality: 1, trust: 1 },
       reason: "No weak part: 10 of 40 judged stories also carried by another outlet, no failures.",
     });
-    // The same counters on a briefing source: nothing published, so quality is the pass share alone.
-    expect(sourceScore({ stat, health: fresh, now }).parts?.quality).toBe(0.3);
+    // The same counters on a briefing source: nothing published, so quality is the pass share only.
+    expect(sourceScore({ stat, health: fresh, now }).parts?.quality).toBe(0.4);
   });
 });
 
@@ -168,14 +169,21 @@ describe("sourceScore: the three parts", () => {
     expect(health(5, daysAgo(40))).toBe(0.08);
   });
 
-  it("reads quality as three quarters yield and one quarter volume", () => {
+  it("reads quality from the pass share and the publish share, volume only weighting the second", () => {
     const quality = (stat: Partial<Stat>) => scoreOf(stat).parts?.quality;
     expect(quality({})).toBe(1);
-    // A pass rate of 30 percent and a publish rate of 7.5 percent: yield 0.42, volume 0.75.
-    expect(quality({ passed: 12, published: 3 })).toBe(0.5);
-    // A thin source with the same rates as a busy one loses only the volume share.
-    expect(quality({ judged: 10, passed: 5, published: 1, asked: 10 })).toBe(0.54);
-    expect(quality({ judged: 100, passed: 50, published: 10, asked: 100 })).toBe(0.73);
+    // A pass rate of 30 percent and a publish rate of 7.5 percent: 0.4 * 0.6 + 0.6 * 0.3.
+    expect(quality({ passed: 12, published: 3 })).toBe(0.42);
+    // A thin source leans on its pass share where it has too little to judge its publishing by.
+    expect(quality({ judged: 10, passed: 5, published: 1, asked: 10 })).toBe(0.82);
+    expect(quality({ judged: 100, passed: 50, published: 10, asked: 100 })).toBe(0.64);
+  });
+
+  it("scores a careful source that rarely publishes at least Good, not on how little it sends", () => {
+    // 20 judged, every one passed, 1 published in the window: it was Fair (3.4) on the volume term.
+    const careful = scoreOf({ judged: 20, passed: 20, published: 1, asked: 0 });
+    expect(careful.score).toBeGreaterThanOrEqual(SCORE_THRESHOLDS.good);
+    expect(careful.label).not.toBe("Fair");
   });
 
   it("reads trust as the share of asked items flagged as hype or sponsored, against a half", () => {
@@ -204,8 +212,8 @@ describe("sourceScore: the geometric mean", () => {
 
   it("keeps a healthy, clean source with 1 of 40 published below Good", () => {
     const result = scoreOf({ passed: 5, published: 1 });
-    expect(result.parts).toEqual({ health: 1, quality: 0.18, trust: 1 });
-    expect(result).toMatchObject({ score: 2.8, label: "Fair" });
+    expect(result.parts).toEqual({ health: 1, quality: 0.16, trust: 1 });
+    expect(result).toMatchObject({ score: 2.7, label: "Fair" });
   });
 
   it("lets a weak part pull the score down more than a strong one lifts it", () => {
@@ -215,9 +223,9 @@ describe("sourceScore: the geometric mean", () => {
       { failures: 0, last_ok: daysAgo(10) },
     );
     const lopsided = scoreOf({ flagged: 12 });
-    expect(even.parts).toEqual({ health: 0.8, quality: 0.8, trust: 0.8 });
+    expect(even.parts).toEqual({ health: 0.8, quality: 0.73, trust: 0.8 });
     expect(lopsided.parts).toEqual({ health: 1, quality: 1, trust: 0.4 });
-    expect(even.score).toBe(4);
+    expect(even.score).toBe(3.9);
     expect(lopsided.score).toBe(3.7);
   });
 
@@ -288,8 +296,8 @@ describe("sourceScore: trust not measured", () => {
 
   it("scores the square root of health times quality, and names a weak measured part", () => {
     const weak = sourceScore({ stat: { ...legacy, published: 0 }, health: fresh, now });
-    expect(weak.parts).toEqual({ health: 1, quality: 0.3, trust: null });
-    expect(weak).toMatchObject({ score: 2.7, label: "Fair" });
+    expect(weak.parts).toEqual({ health: 1, quality: 0.4, trust: null });
+    expect(weak).toMatchObject({ score: 3.2, label: "Fair" });
     expect(weak.reason).toBe(
       "Quality is the weakest part: 0 of 40 judged items published; trust is not measured yet.",
     );
@@ -320,7 +328,7 @@ describe("sourceScore: the reason", () => {
 
   it("picks the lowest part, the earlier one on a tie", () => {
     const lowest = scoreOf({ passed: 2, published: 0, flagged: 5 }, { ...fresh, failures: 3 });
-    expect(lowest.parts).toEqual({ health: 0.55, quality: 0.03, trust: 0.75 });
+    expect(lowest.parts).toEqual({ health: 0.55, quality: 0.04, trust: 0.75 });
     expect(lowest.reason).toMatch(/^Quality is the weakest part/);
     const tie = scoreOf({ flagged: 9 }, { failures: 3, last_ok: fresh.last_ok });
     expect(tie.parts).toMatchObject({ health: 0.55, trust: 0.55 });
@@ -332,5 +340,31 @@ describe("sourceScore: the reason", () => {
     expect(result.parts).toEqual({ health: 0.92, quality: 1, trust: 1 });
     expect(result.score).toBe(4.9);
     expect(result.reason).toBe("No weak part: 10 of 40 judged items published, no failures.");
+  });
+});
+
+describe("scoreReasons", () => {
+  it("words the pass rate, then the hype share, for a source that fits few categories and is often flagged", () => {
+    const counters = { judged: 57, passed: 9, published: 0, asked: 51, flagged: 22, failures: 0 };
+    const rated = scoreOf({ ...counters, fetched: 84 });
+    expect(scoreReasons(rated.parts, counters)).toEqual([
+      "Most of its posts don't match your categories: 9 of 57 passed.",
+      "4 in 10 of its posts were flagged as hype or sponsored.",
+    ]);
+    expect(scoreReasons(scoreOf({}).parts, { ...counters, failures: 0 })).toEqual([]);
+  });
+
+  it("words the measure that scored quality: covered stories for a general feed, publishable items past the sampled", () => {
+    const parts = { health: 1, quality: 0.2, trust: null };
+    const base = { judged: 40, passed: 20, published: 0, asked: 0, flagged: 0, failures: 0 };
+    expect(scoreReasons(parts, { ...base, feedsGeneral: true, covered: 0 })).toEqual([
+      "None of its stories has been carried by another outlet yet.",
+    ]);
+    expect(scoreReasons(parts, { ...base, feedsGeneral: true, covered: 3 })).toEqual([
+      "Few of its stories are carried by another outlet: 3 of 40 judged.",
+    ]);
+    expect(scoreReasons(parts, { ...base, published: 2, sampled: 10 })).toEqual([
+      "Few of its posts reach a briefing: 2 of 30 published.",
+    ]);
   });
 });

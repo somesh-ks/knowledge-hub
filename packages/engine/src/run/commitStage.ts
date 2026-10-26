@@ -130,6 +130,20 @@ function failedReport(
   return { outcome: "failed", digests, deploy: false, items: 0, dry_run: dryRun, commit, reason };
 }
 
+/** The longest a run waits for its publish time: more than that and it publishes now. */
+export const MAX_HOLD_MS = 135 * 60_000;
+
+/** Waits until the plan's publish time when it is ahead, within MAX_HOLD_MS. */
+export async function holdUntilPublishTime(deps: RunDeps, plan: Plan): Promise<void> {
+  if (plan.publish_at === undefined) return;
+  const ms = Date.parse(plan.publish_at) - deps.now().getTime();
+  if (ms <= 0 || ms > MAX_HOLD_MS) return;
+  deps.log.info("Generated ahead; holding until the scheduled time", {
+    publish_at: plan.publish_at,
+  });
+  await (deps.wait ?? ((wait) => new Promise<void>((resolve) => setTimeout(resolve, wait))))(ms);
+}
+
 /**
  * Persist the run. Digests are built from each pass's validated selection, with the cover from
  * the cover package (avoiding the previous cover), and written without ever overwriting. Then
@@ -144,11 +158,16 @@ function failedReport(
  */
 export async function commitStage(deps: RunDeps, options: RunOptions): Promise<CommitReport> {
   const { root } = deps;
-  const now = deps.now();
   const { plan, adopted } = await resolveCommitPlan(deps, options);
   const dryRun = plan.dry_run || options.dryRun;
 
   if (plan.passes.length === 0) return commitGated(deps, options, plan, dryRun);
+
+  // Generation is done. A run that started ahead holds here until its scheduled time; one that
+  // started late publishes at once. The record keeps both instants (D193).
+  const generatedAt = deps.now().toISOString();
+  if (!dryRun && !adopted) await holdUntilPublishTime(deps, plan);
+  const now = deps.now();
 
   // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.
   if (!adopted) await deps.spend?.begin(root, plan.created_at, deps.log);
@@ -193,7 +212,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     if (selection.outcome === "nothing" || selection.items.length === 0) {
       lastRun = recordRun(lastRun, {
         kind: recordKind,
-        record: { at: nowIso, outcome: "nothing", items: 0 },
+        record: { at: nowIso, outcome: "nothing", items: 0, generated_at: generatedAt },
         fetchedThrough: recordWindow,
       });
       if (sourceCounts) {
@@ -250,6 +269,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
         outcome: "published",
         digest_id: digest.id,
         items: digest.items.length,
+        generated_at: generatedAt,
       },
       fetchedThrough: recordWindow,
     });

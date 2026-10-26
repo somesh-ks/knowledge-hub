@@ -18,6 +18,8 @@ import { resolveHostNames } from "./voices";
 /** `episodeIds` lists the episodes this build knows; delete and regenerate refuse any other id. */
 export type PodcastDeps = GenerateDeps & {
   episodeIds?: () => readonly string[] | Promise<readonly string[]>;
+  /** Marks a deleted episode in the content store at once (tombstones.ts), before the commit lands. */
+  tombstone?: (id: string) => Promise<void>;
 };
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
@@ -119,7 +121,15 @@ export type EpisodeAction =
   | { action: "delete"; id: string }
   | { action: "regenerate"; id: string; feedback?: string; topic_ids?: string[] };
 
-export type ParsedPodcastBody = { request: PodcastRequest } | EpisodeAction;
+/**
+ * `resume_from`: the id of an earlier run of this workflow whose finished stages this run reuses
+ * (Try again after a failure). It rides beside the request, and the engine takes it out.
+ */
+export type ParsedPodcastBody = ({ request: PodcastRequest } | EpisodeAction) & {
+  resume_from?: string;
+};
+
+const RUN_ID = /^[1-9]\d{0,14}$/;
 
 /** The feedback of a regenerate: control characters become spaces, 1 to 500 characters once trimmed. */
 export function cleanFeedback(value: unknown): string | null {
@@ -142,14 +152,19 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
     return null;
   }
   if (!isRecord(parsed)) return null;
+  // Absent is none; present, it must be a run id, as a number or a string.
+  const given = parsed.resume_from;
+  const resume = typeof given === "number" ? String(given) : given;
+  if (resume !== undefined && (typeof resume !== "string" || !RUN_ID.test(resume))) return null;
+  const resumeField = resume === undefined ? {} : { resume_from: resume };
   const { action } = parsed;
   if (action === undefined) {
     const request = parsePodcastRequest(parsed.request);
-    return request ? { request } : null;
+    return request ? { request, ...resumeField } : null;
   }
   const { id } = parsed;
   if (typeof id !== "string" || !EPISODE_ID.test(id)) return null;
-  if (action === "delete") return { action, id };
+  if (action === "delete") return { action, id, ...resumeField };
   if (action === "regenerate") {
     // Both are optional: blank comments mean none, and no topics keep the episode's own.
     const blank =
@@ -169,6 +184,7 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
       id,
       ...(feedback ? { feedback } : {}),
       ...(topicIds ? { topic_ids: topicIds } : {}),
+      ...resumeField,
     };
   }
   return null;
@@ -226,7 +242,13 @@ export async function handlePodcast(
     const names = await hostNames;
     const startedAt = deps.now();
     const command =
-      "request" in body ? { ...body.request, ...(names ? { host_names: names } : {}) } : body;
+      "request" in body
+        ? {
+            ...body.request,
+            ...(names ? { host_names: names } : {}),
+            ...(body.resume_from ? { resume_from: body.resume_from } : {}),
+          }
+        : body;
     const inputs = { request: JSON.stringify(command) };
     let runId = await github.dispatchWorkflowFile(PODCAST_WORKFLOW_FILE, inputs);
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
@@ -244,6 +266,12 @@ export async function handlePodcast(
       return unavailable;
     }
 
+    if ("action" in body && body.action === "delete") {
+      // The run is under way; a failed mark only means other devices wait for the sync.
+      await deps.tombstone?.(body.id).catch((error) => {
+        log(`tombstone failed: ${describeError(error, secretsOf(config))}`);
+      });
+    }
     return {
       status: 202,
       body: { status: 202, run_id: runId, started_at: new Date(startedAt).toISOString() },

@@ -121,7 +121,7 @@ test.describe("the Topics list", () => {
     await expect(page.getByRole("link", { name: /^Other/ })).toHaveCount(0);
   });
 
-  test("a search narrows every source to a flat list, a topic's format chip narrows its own, and a reload or Back keeps them", async ({
+  test("a search narrows every source to a flat list, a category's format tab narrows its own, and a reload or Back keeps them", async ({
     page,
   }) => {
     await setup(page);
@@ -151,36 +151,48 @@ test.describe("the Topics list", () => {
     await expect(page.getByText("No sources match.")).toBeVisible();
     await page.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(page.getByRole("link", { name: /^Design/ })).toBeVisible();
-    // A topic's page: a format chip narrows its list and is kept on a reload.
+    // A category's page: a format tab narrows its list and is kept on a reload.
     await page.goto(CRAFT_PAGE);
-    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
+    await page.getByRole("tab", { name: "Blog", exact: true }).click();
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveText([
       /Studio Notes/,
     ]);
     await page.reload();
-    await expect(page.getByRole("checkbox", { name: "Blog" })).toBeChecked();
+    await expect(page.getByRole("tab", { name: "Blog", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveCount(1);
   });
 
-  test("@desktop a topic's formats are chips with no All, any number at once, and Add source sits beside the search", async ({
+  test("@desktop a category's formats are tabs, All first and one at a time, and Add source sits beside the search", async ({
     page,
   }) => {
     await page.goto(CRAFT_PAGE);
-    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "All", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByRole("tab", { name: "Blocked" })).toHaveCount(0);
     await expect(
       page.locator(".filter-row").getByRole("button", { name: /^Add source to/ }),
     ).toBeVisible();
     const all = page.locator("ul[data-sources] li.source-row:visible");
     const every = await all.count();
-    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
+    await page.getByRole("tab", { name: "Blog", exact: true }).click();
     await expect(all).toHaveCount(1);
-    await page.locator("label.filter-chip", { hasText: "News" }).click();
-    await expect(page.getByRole("checkbox", { name: "Blog" })).toBeChecked();
-    await expect(all.count()).resolves.toBeGreaterThan(1);
+    await page.getByRole("tab", { name: "News", exact: true }).click();
+    await expect(page.getByRole("tab", { name: "Blog", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    await expect(all.count()).resolves.toBeLessThan(every);
     await page.reload();
-    await expect(page.getByRole("checkbox", { name: "News" })).toBeChecked();
-    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
-    await page.locator("label.filter-chip", { hasText: "News" }).click();
+    await expect(page.getByRole("tab", { name: "News", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await page.getByRole("tab", { name: "All", exact: true }).click();
     await expect(all).toHaveCount(every);
   });
 
@@ -1496,7 +1508,7 @@ test.describe("the podcast structure", () => {
     await page.clock.install();
     const server = await routeConfigServer(page);
     await open(page, "/settings/preferences?view=structure");
-    await expect(page.getByRole("tab", { name: "Structure" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Podcast structure" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
