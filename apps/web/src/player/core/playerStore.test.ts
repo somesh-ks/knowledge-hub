@@ -731,6 +731,27 @@ describe("errors", () => {
     expect(harness.audio.src).toContain(".m4a");
   });
 
+  it("arms no advance check when the pending start settles during a scrub", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    harness.store.load(
+      makeDigest({
+        audio: {
+          url: "/audio/2026-10-07.mp3",
+          m4a_url: "/audio/2026-10-07.m4a",
+          duration_ms: 120_000,
+        },
+      }),
+    );
+    let settle: () => void = () => {};
+    harness.audio.play = () => new Promise<void>((resolve) => (settle = resolve));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.store.beginScrub();
+    settle();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(harness.audio.src).toContain(".m4a");
+  });
+
   it("ignores a play rejected because a newer load won", async () => {
     const harness = createHarness();
     harness.store.load(makeDigest());

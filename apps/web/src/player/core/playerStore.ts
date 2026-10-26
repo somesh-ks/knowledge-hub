@@ -145,6 +145,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   /** Files of this track that errored or stalled, so the next source is tried (audioSource.ts). */
   const skippedUrls = new Set<string>();
   let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Bumped when the watch stops, so a play() promise that settles later arms nothing. */
+  let watchToken = 0;
   let frameHandle: number | null = null;
   let saveTimer: ReturnType<typeof setInterval> | null = null;
   let bufferTimer: ReturnType<typeof setTimeout> | null = null;
@@ -490,9 +492,14 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     );
   }
 
-  function stopFallbackWatch(): void {
+  function clearFallbackTimer(): void {
     if (fallbackTimer !== null) clearTimeout(fallbackTimer);
     fallbackTimer = null;
+  }
+
+  function stopFallbackWatch(): void {
+    watchToken += 1;
+    clearFallbackTimer();
   }
 
   /**
@@ -521,7 +528,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopFallbackWatch();
     const watched = attachedUrl;
     if (!nextSource()) return;
-    const stale = () => attachedUrl !== watched || !wantsPlay;
+    const token = watchToken;
+    const stale = () => attachedUrl !== watched || !wantsPlay || token !== watchToken;
     let resolved = false;
     fallbackTimer = setTimeout(() => {
       if (stale() || resolved) return;
@@ -540,7 +548,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       () => {
         if (stale()) return;
         resolved = true;
-        stopFallbackWatch();
+        clearFallbackTimer();
         const from = element.currentTime;
         const generation = seekGeneration;
         fallbackTimer = setTimeout(() => {
