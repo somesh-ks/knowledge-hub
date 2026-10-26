@@ -142,7 +142,10 @@ export async function loadSuggested(): Promise<string[] | null> {
  * Starts what comes next: the first queued item, or else, when `suggest` allows, the first
  * suggested one. Used when an item ends and by the lock screen's Next.
  */
-export async function playUpNext(suggest: boolean): Promise<void> {
+export async function playUpNext(
+  suggest: boolean,
+  stillSuggesting: () => boolean = () => true,
+): Promise<void> {
   const endedId = getPlayerStore().getState().track?.digest.id ?? null;
   const next = getPlayQueue().shift(endedId);
   if (next) return playQueueItem(next);
@@ -152,6 +155,8 @@ export async function playUpNext(suggest: boolean): Promise<void> {
   if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
   const queuedMeanwhile = getPlayQueue().shift(endedId);
   if (queuedMeanwhile) return playQueueItem(queuedMeanwhile);
+  // Autoplay may have been switched off while the list loaded (the lock screen's Next ignores it).
+  if (!stillSuggesting()) return;
   if (first) playQueueItem(first);
 }
 
@@ -279,7 +284,7 @@ export function startPlayerRuntime(): () => void {
     if (event.type !== "ended") return;
     // The listener chose what comes next, so it starts by itself. With nothing queued, Autoplay
     // (on unless turned off) starts the first suggested item.
-    void playUpNext(preferences.get().autoplay);
+    void playUpNext(preferences.get().autoplay, () => preferences.get().autoplay);
   });
   const offEvent = playerStore.onEvent((event) => {
     const message = announcementForEvent(event, playerStore.getState().track, {
