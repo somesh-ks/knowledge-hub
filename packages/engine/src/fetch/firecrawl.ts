@@ -2,6 +2,7 @@ import type { Item } from "@singularity/core";
 import { z } from "zod";
 import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
+import { fetchAlexandriaAnthropic, VIA_ALEXANDRIA_ANTHROPIC } from "./alexandriaSource.js";
 import { extractEntries } from "./firecrawlExtract.js";
 import { type SourceFetcher, SourceSkipped } from "./types.js";
 
@@ -101,6 +102,31 @@ export async function scrapeRaw(
   return data.rawHtml;
 }
 
+/** The Alexandria read of a source, or null when it is not available this run and the scrape should run. */
+async function viaAlexandria(
+  source: Parameters<SourceFetcher>[0],
+  window: Parameters<SourceFetcher>[1],
+  deps: Parameters<SourceFetcher>[2],
+  apiKey: string,
+  baseUrl: string | undefined,
+): Promise<Item[] | null> {
+  const guard = deps.firecrawl?.guard;
+  const fetchedAt = deps.now();
+  const load = (): Promise<Item[]> =>
+    fetchAlexandriaAnthropic(source, { source, window, fetchedAt }, deps, {
+      apiKey,
+      baseUrl: baseUrl ?? FIRECRAWL_BASE_URL,
+    });
+  try {
+    // One request from the listing budget; the call bills more credits than a scrape (5 against 1).
+    const items = guard ? await guard.listing(`alexandria:${source.id}`, load) : await load();
+    return items;
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 429) guard?.noteRateLimited();
+    return null;
+  }
+}
+
 /**
  * Feedless pages through Firecrawl. Recent entries are pulled out with simple heuristics; when a
  * page yields none, the page itself becomes one item so the judge can decide whether it matters.
@@ -111,6 +137,12 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
   const apiKey = config.apiKey;
   const pageUrl = source.feed_url ?? source.url;
+  if (source.options.via === VIA_ALEXANDRIA_ANTHROPIC) {
+    // Opt-in per source (D-record in the PR): typed posts with real dates. Any failure falls
+    // through to the page scrape below, so a provider outage costs one more listing, not the source.
+    const typed = await viaAlexandria(source, window, deps, apiKey, config.baseUrl);
+    if (typed) return typed;
+  }
   const load = (): Promise<ScrapedPage> =>
     scrapePage(pageUrl, { apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
   const guard = config.guard;
