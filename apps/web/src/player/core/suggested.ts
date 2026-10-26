@@ -43,15 +43,22 @@ export function skipper(
 }
 
 let known: string[] | null = null;
+let issued = 0;
+let accepted = 0;
 
 /** The site's items, newest first (/timeline.json). Offline, the last answer; none yet, null. */
 export async function loadTimeline(): Promise<readonly string[] | null> {
+  const request = ++issued;
   try {
     const response = await fetch("/timeline.json", { credentials: "same-origin" });
     if (!response.ok) return known;
     const body: unknown = await response.json();
     const ids = (body as { ids?: unknown } | null)?.ids;
-    if (Array.isArray(ids)) known = ids.filter(isQueueId);
+    // A slower, older answer never replaces a newer one: removed episodes stay removed.
+    if (Array.isArray(ids) && request > accepted) {
+      accepted = request;
+      known = ids.filter(isQueueId);
+    }
   } catch {
     // Offline: what was last read still orders the list.
   }

@@ -131,9 +131,9 @@ export function getPlayQueue(): PlayQueue {
 }
 
 /** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
-export async function loadSuggested(): Promise<string[]> {
+export async function loadSuggested(): Promise<string[] | null> {
   const ordered = await loadTimeline();
-  if (!ordered) return [];
+  if (!ordered) return null;
   const currentId = getPlayerStore().getState().track?.digest.id ?? null;
   return suggestNext(ordered, currentId, skipper(safeLocalStorage(), getPlayQueue().getIds()));
 }
@@ -143,10 +143,15 @@ export async function loadSuggested(): Promise<string[]> {
  * suggested one. Used when an item ends and by the lock screen's Next.
  */
 export async function playUpNext(suggest: boolean): Promise<void> {
-  const next = getPlayQueue().shift(getPlayerStore().getState().track?.digest.id ?? null);
+  const endedId = getPlayerStore().getState().track?.digest.id ?? null;
+  const next = getPlayQueue().shift(endedId);
   if (next) return playQueueItem(next);
   if (!suggest) return;
-  const [first] = await loadSuggested();
+  const [first] = (await loadSuggested()) ?? [];
+  // The listener may have queued something or moved on while the list loaded: the queue wins.
+  if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
+  const queuedMeanwhile = getPlayQueue().shift(endedId);
+  if (queuedMeanwhile) return playQueueItem(queuedMeanwhile);
   if (first) playQueueItem(first);
 }
 

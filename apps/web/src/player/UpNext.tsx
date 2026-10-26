@@ -11,10 +11,10 @@ import PlayerCover from "./ui/PlayerCover";
  * The suggested items after what is playing, the list Autoplay draws from (core/suggested.ts).
  * Null until the site's list has been read; read again when the playing item changes.
  */
-function useSuggested(): string[] | null {
+function useSuggested(queued: readonly string[]): string[] | null {
   const currentId = usePlayerState().track?.digest.id ?? null;
   const [ids, setIds] = useState<string[] | null>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the list is read again for each item
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the list is read again for each item and queue change
   useEffect(() => {
     let live = true;
     void loadSuggested().then((loaded) => {
@@ -23,7 +23,7 @@ function useSuggested(): string[] | null {
     return () => {
       live = false;
     };
-  }, [currentId]);
+  }, [currentId, queued]);
   return ids;
 }
 
@@ -64,7 +64,7 @@ function SuggestedRow({ id }: { id: string }) {
 export default function UpNext() {
   const { upNextId: previous } = usePlayerState();
   const queued = useQueue();
-  const suggested = useSuggested();
+  const suggested = useSuggested(queued);
   if (queued.length > 0) return <QueueList ids={queued} />;
   if (suggested && suggested.length > 0) {
     return (
@@ -80,7 +80,9 @@ export default function UpNext() {
       </section>
     );
   }
-  if (!previous) {
+  // A list that loaded but holds nothing eligible is empty; the previous briefing stands in only
+  // where the list could not be read.
+  if (suggested || !previous) {
     return <p className="player-empty">Nothing is queued.</p>;
   }
   // The new page's data arrives after the navigation; the store plays it then, on the same audio
