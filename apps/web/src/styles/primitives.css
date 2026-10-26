@@ -832,7 +832,7 @@
   content: "";
   position: absolute;
   /* A word narrower than the touch size (Vercel, 40px) grows the layer sideways to 44px. */
-  inset-inline: min(0px, calc((var(--size-touch) - 100%) / -2));
+  inset-inline: min(0%, calc((var(--size-touch) - 100%) / -2));
   inset-block: calc((var(--size-touch) - 1lh) / -2);
 }
 
