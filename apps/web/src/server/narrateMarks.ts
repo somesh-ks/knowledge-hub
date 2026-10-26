@@ -36,9 +36,9 @@ export type NarrateMarksResponse = ({ status: 200 } & SegmentMarks) | NarrateErr
 
 /**
  * Marks at an address named by a hash never change. A new deployment, which any change of voice
- * needs, empties Vercel's cache, so the edge may keep them for good; the browser keeps them a day.
+ * needs, empties Vercel's cache, so the edge and the browser may keep them for a year.
  */
-export const MARKS_CACHE_CONTROL = "public, max-age=86400, s-maxage=31536000";
+export const MARKS_CACHE_CONTROL = "public, max-age=31536000, s-maxage=31536000, immutable";
 
 /** A turn's marks are a few kilobytes. Anything near this is not a file this site wrote. */
 const MAX_MARKS_BYTES = 512_000;
