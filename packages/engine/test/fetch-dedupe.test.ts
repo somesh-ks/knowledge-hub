@@ -50,6 +50,27 @@ describe("dedupe", () => {
     expect(items.map((i) => i.id).sort()).toEqual([other.id, "id-v1", "id-v2"].sort());
   });
 
+  it("gives a repeat of a shared page's story to the story with its id, not to a similar title earlier", () => {
+    const url = "https://example.com/changelog";
+    const first = makeItem({
+      url,
+      title: "Springs get retargeting",
+      id: "id-a",
+      source_id: "craft",
+    });
+    const second = makeItem({ url, title: "Gestures learn velocity", id: "id-b" });
+    const repeat = makeItem({
+      url,
+      title: "Springs get retargeting",
+      id: "id-b",
+      source_id: "src-b",
+      author: "someone",
+    });
+    const { items } = dedupe({ items: [first, second, repeat], sources, seen: emptySeen });
+    expect(items.find((i) => i.id === "id-a")?.author).toBeUndefined();
+    expect(items.find((i) => i.id === "id-b")?.author).toBe("someone");
+  });
+
   it("collapses the same canonical URL and keeps the higher-signal source", () => {
     const fromBlog = makeItem({
       url: "https://example.com/post",

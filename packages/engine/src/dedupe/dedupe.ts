@@ -161,16 +161,17 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
   for (const item of [...fresh].sort((a, b) => compareQuality(a, b, sourceById))) {
     // Every report kept for this page (the first under the URL, the rest under URL and id).
     const keys = urlKeys.get(item.canonical_url) ?? [];
-    const matchKey = keys.find((key) => {
-      const candidate = byUrl.get(key);
-      return (
-        candidate !== undefined &&
-        (candidate.id === item.id ||
-          (candidate.source_id !== item.source_id &&
-            jaccard(titleTokens(candidate.title), titleTokens(item.title)) >=
-              NEAR_DUPLICATE_THRESHOLD))
-      );
-    });
+    // An exact id match wins over a title match, whatever the order of the page's reports.
+    const matchKey =
+      keys.find((key) => byUrl.get(key)?.id === item.id) ??
+      keys.find((key) => {
+        const candidate = byUrl.get(key);
+        return (
+          candidate !== undefined &&
+          candidate.source_id !== item.source_id &&
+          jaccard(titleTokens(candidate.title), titleTokens(item.title)) >= NEAR_DUPLICATE_THRESHOLD
+        );
+      });
     const existing = matchKey === undefined ? undefined : byUrl.get(matchKey);
     // Same URL, different ids: two stories that share a page (see buildItems). Another source's
     // item absorbs only the one it is about, never every entry of the page.
