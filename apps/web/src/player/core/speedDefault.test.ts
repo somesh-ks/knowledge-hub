@@ -60,6 +60,29 @@ describe("speed default", () => {
     expect(speed.getPending()).toBeNull();
   });
 
+  it("counts an episode once when the page hides and playback resumes at another speed", () => {
+    const { speed } = setup();
+    speed.noteRate("a", 1.5);
+    speed.noteRate("b", 1.5);
+    speed.flush();
+    // Back from the hide, b moves to 2: it no longer counts at 1.5.
+    speed.noteRate("b", 2);
+    speed.noteRate("c", 1.5);
+    speed.flush();
+    expect(speed.getPending()).toBeNull();
+  });
+
+  it("keeps an unanswered offer across a discarded page", () => {
+    const { speed, storage, preferences } = setup();
+    for (const id of ["a", "b", "c"]) speed.noteRate(id, 1.5);
+    speed.flush();
+    expect(speed.getPending()).toBe(1.5);
+    const reopened = createSpeedDefault({ storage, preferences });
+    expect(reopened.getPending()).toBe(1.5);
+    reopened.dismiss();
+    expect(createSpeedDefault({ storage, preferences }).getPending()).toBeNull();
+  });
+
   it("offers when an episode ends off the default, and Make default saves it", () => {
     const { speed, preferences } = setup();
     speed.noteEnded(1);

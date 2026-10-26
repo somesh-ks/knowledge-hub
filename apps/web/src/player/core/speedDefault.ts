@@ -14,6 +14,8 @@ const MAX_IDS_PER_SPEED = 8;
 interface OfferRecord {
   episodes: Record<string, string[]>;
   asked: string[];
+  /** The speed on offer, kept so a page discarded before the answer still shows it next time. */
+  pending?: string;
 }
 
 function parse(raw: string | null): OfferRecord {
@@ -24,7 +26,8 @@ function parse(raw: string | null): OfferRecord {
       if (Array.isArray(ids)) episodes[rate] = ids.filter((id) => typeof id === "string");
     }
     const asked = Array.isArray(value.asked) ? value.asked.map(String) : [];
-    return { episodes, asked };
+    const pending = typeof value.pending === "string" ? value.pending : undefined;
+    return { episodes, asked, ...(pending ? { pending } : {}) };
   } catch {
     return { episodes: {}, asked: [] };
   }
@@ -61,6 +64,10 @@ export function createSpeedDefault(options: {
   } catch {
     // Unreadable storage: the offer starts afresh for this session.
   }
+  if (record.pending !== undefined) {
+    const restored = Number(record.pending);
+    if (isPlaybackRate(restored)) pending = restored;
+  }
 
   function save(): void {
     try {
@@ -74,10 +81,18 @@ export function createSpeedDefault(options: {
     const key = String(rate);
     if (record.asked.includes(key)) return;
     // Asked once per speed: the offer counts as asked when shown, so Not now is final.
-    record = { ...record, asked: [...record.asked, key] };
+    record = { ...record, asked: [...record.asked, key], pending: key };
     save();
     pending = rate;
     for (const listener of listeners) listener();
+  }
+
+  function clearPending(): void {
+    pending = null;
+    if (record.pending === undefined) return;
+    const { pending: _gone, ...rest } = record;
+    record = rest;
+    save();
   }
 
   function isOffRate(rate: number): boolean {
@@ -87,9 +102,20 @@ export function createSpeedDefault(options: {
   // The slider reports every step. Only the speed an episode was left at counts, once.
   let chosen: { id: string; rate: number } | null = null;
 
-  function commit(): void {
+  function uncount(last: { id: string; rate: number }): void {
+    const key = String(last.rate);
+    const ids = record.episodes[key] ?? [];
+    if (!ids.includes(last.id)) return;
+    record = {
+      ...record,
+      episodes: { ...record.episodes, [key]: ids.filter((id) => id !== last.id) },
+    };
+    save();
+  }
+
+  function commit(keep = false): void {
     const last = chosen;
-    chosen = null;
+    if (!keep) chosen = null;
     if (!last || !isOffRate(last.rate)) return;
     const key = String(last.rate);
     const ids = record.episodes[key] ?? [];
@@ -105,22 +131,24 @@ export function createSpeedDefault(options: {
     noteRate(episodeId, rate) {
       if (!episodeId) return;
       if (chosen && chosen.id !== episodeId) commit();
+      if (chosen && chosen.rate !== rate) uncount(chosen);
       chosen = { id: episodeId, rate };
     },
     noteEnded(rate) {
       commit();
       if (isOffRate(rate)) offer(rate);
     },
-    flush: commit,
+    // A hide is not an end: the selection stays, and a later change of speed moves its count.
+    flush: () => commit(true),
     getPending: () => pending,
     accept() {
       if (pending === null) return;
       preferences.set({ rate: pending });
-      pending = null;
+      clearPending();
       for (const listener of listeners) listener();
     },
     dismiss() {
-      pending = null;
+      clearPending();
       for (const listener of listeners) listener();
     },
     subscribe(listener) {
