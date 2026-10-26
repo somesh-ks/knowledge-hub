@@ -34,6 +34,7 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 
 ### Cost limits
 - Firecrawl: 100 requests in any 7 days (cost ledger), 50 a run (D166); listings up to 55%. A cached scrape is billed (`maxAge` saves time only).
+- A firecrawl source on anthropic.com can read through Alexandria `list_posts` (typed posts with real dates, 5 credits, scrape on failure): send `source.update` with `fetch_via: "alexandria:anthropic-com"` (null puts back the scrape). It writes `options.via` and `category: news` through the config store, never by hand.
 - A finalist still thin after the feed text, the free page read and the Firecrawl scrape (under 600 characters) gets Alexandria facts (`alexandria/alexandria.ts`, `config/alexandria.json`): free discovery, then one text-only capability. Facts only enrich read text (a story with none is still dropped). Caps: 30 credits a run, 10 a story, 20 s a story; off without `FIRECRAWL_API_KEY`; a failure leaves the story as it was. Credits are in the cost ledger (firecrawl, alexandria).
 - Caps, cooldowns and the narration budget are the only limits (no passphrase, D160).
 - The site's GitHub token reaches the repository for Create, Generate and config saves. `config.yml` runs share the `singularity` group.

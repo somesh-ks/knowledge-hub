@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IdString, SectionId } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
-import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
+import { FetchViaValue, SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
 import { BlockPrompt, BlockPromptKey, StructureBlocks, StructureProfile } from "./structure.js";
 import {
   MAX_KEYWORDS,
@@ -72,6 +72,8 @@ export type TopicInput = z.input<typeof TopicInput>;
  *   (refused when taken); otherwise one is made from the address.
  * - source.set: switch a source on or off, or pin it. Works on seed and added sources.
  * - source.update: rename a source (1 to 80 characters, trimmed), set the topics it feeds, or both.
+ *   `fetch_via` opts a source in to a provider read ("alexandria:anthropic-com", only for an
+ *   anthropic.com source); null puts back the default scrape.
  *   An added source is changed in place; a seed source keeps the change in its override, which
  *   wins over the seed's own name and topics. An empty topic list leaves it feeding none of its
  *   own. Unknown source or topic ids are refused.
@@ -130,6 +132,8 @@ export const ConfigOp = z.discriminatedUnion("op", [
       lean: z.number().int().min(-2).max(2).nullable().optional(),
       /** A favorite: every post it brings goes to the judge, ranked up, with no keyword needed. */
       high_signal: z.boolean().optional(),
+      /** Opt in to a provider read of a firecrawl source; null puts back the default scrape. */
+      fetch_via: FetchViaValue.nullable().optional(),
     })
     .refine(
       (value) =>
@@ -137,8 +141,9 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.topic_ids !== undefined ||
         value.format !== undefined ||
         value.lean !== undefined ||
-        value.high_signal !== undefined,
-      { message: "set name, topic_ids, format, lean or any of them" },
+        value.high_signal !== undefined ||
+        value.fetch_via !== undefined,
+      { message: "set name, topic_ids, format, lean, fetch_via or any of them" },
     ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
   // A general topic's perspective (D124); 0 (Even) removes it.

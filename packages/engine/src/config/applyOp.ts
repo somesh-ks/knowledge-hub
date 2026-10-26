@@ -1,5 +1,6 @@
 import {
   applyVotes,
+  FETCH_VIA,
   GENERAL_TOPICS,
   isBuiltinCategory,
   isBuiltinSection,
@@ -384,6 +385,26 @@ function updateSource(
   const source = added ?? next.registry.sources.find((s) => s.id === op.id);
   if (!source) throw new ConfigOpError(`There is no source ${op.id}.`);
   const before = source.name;
+  const via = op.fetch_via;
+  if (via) {
+    const host = new URL(source.url).hostname;
+    if (host !== FETCH_VIA[via].host && !host.endsWith(`.${FETCH_VIA[via].host}`)) {
+      throw new ConfigOpError(`${via} reads ${FETCH_VIA[via].host} only, not ${source.name}.`);
+    }
+  }
+  if (via !== undefined) {
+    // The fetcher reads options.via and options.category (engine/fetch/firecrawl.ts).
+    const set = via === null ? {} : { via, category: FETCH_VIA[via].category };
+    if (added) {
+      const { via: _via, category: _category, ...rest } = added.options;
+      added.options = { ...rest, ...set };
+    } else if (via === null) {
+      const { options: _own, ...rest } = next.sourcesUser.overrides[op.id] ?? {};
+      next.sourcesUser.overrides[op.id] = rest;
+    } else {
+      next.sourcesUser.overrides[op.id] = { ...next.sourcesUser.overrides[op.id], options: set };
+    }
+  }
   if (added) {
     if (op.name !== undefined) added.name = op.name;
     if (topicIds !== undefined) {
@@ -408,7 +429,12 @@ function updateSource(
   let summary: string;
   if (rename === null && topicIds === undefined) {
     summary =
-      op.high_signal !== undefined && op.format === undefined && op.lean === undefined
+      via !== undefined &&
+      op.high_signal === undefined &&
+      op.format === undefined &&
+      op.lean === undefined
+        ? `set how source ${tidy(before)} is fetched`
+        : op.high_signal !== undefined && op.format === undefined && op.lean === undefined
         ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
         : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
   } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;

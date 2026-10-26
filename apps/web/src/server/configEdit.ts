@@ -1,6 +1,8 @@
 import {
   ConfigOp as CoreConfigOp,
   DEFAULT_SCHEDULE,
+  FETCH_VIA,
+  type FetchVia,
   isSupportedTimeZone,
   LOOKBACK_STOPS,
   SCHEDULE_LENGTHS,
@@ -379,12 +381,18 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           : undefined;
       const format = SOURCE_FORMATS.find((entry) => entry === value.format);
       const highSignal = typeof value.high_signal === "boolean" ? value.high_signal : undefined;
+      const fetchVia =
+        value.fetch_via === null ||
+        (typeof value.fetch_via === "string" && Object.hasOwn(FETCH_VIA, value.fetch_via))
+          ? (value.fetch_via as FetchVia | null)
+          : undefined;
       if (
         name === undefined &&
         ids === undefined &&
         lean === undefined &&
         format === undefined &&
-        highSignal === undefined
+        highSignal === undefined &&
+        fetchVia === undefined
       ) {
         return null;
       }
@@ -396,6 +404,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         ...(lean === undefined ? {} : { lean }),
         ...(format === undefined ? {} : { format }),
         ...(highSignal === undefined ? {} : { high_signal: highSignal }),
+        ...(fetchVia === undefined ? {} : { fetch_via: fetchVia }),
       };
     }
     case "source.remove": {
