@@ -150,9 +150,12 @@ export async function playUpNext(
   const next = getPlayQueue().shift(endedId);
   if (next) return playQueueItem(next);
   if (!suggest) return;
+  const wasEnded = getPlayerStore().getState().status === "ended";
   const [first] = (await loadSuggested()) ?? [];
   // The listener may have queued something or moved on while the list loaded: the queue wins.
   if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
+  // A replay of the same ended track keeps its id: leaving "ended" means the listener restarted it.
+  if (wasEnded && getPlayerStore().getState().status !== "ended") return;
   const queuedMeanwhile = getPlayQueue().shift(endedId);
   if (queuedMeanwhile) return playQueueItem(queuedMeanwhile);
   // Autoplay may have been switched off while the list loaded (the lock screen's Next ignores it).
