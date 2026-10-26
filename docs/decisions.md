@@ -6,7 +6,7 @@ From D124 on, an entry that supersedes another adds `- Context changed:` (one se
 
 The first build's plan and vision were retired on 2026-10-19: `git show 91bc533:docs/plan/build-plan.md` and `git show 91bc533:docs/plan/vision.md`.
 
-D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
+D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale; correct any the owner would state differently.
 
 ## Index
 
@@ -17,7 +17,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
-| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; the trigger is Vercel Cron since D61, the date gate stays; the weekly day has no briefing since D65 |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly since D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
@@ -42,7 +42,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
 | D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
-| D31 | The visual language follows Google Podcasts and YouTube Music | active; the outlined play chip is tonal since D72 |
+| D31 | The visual language follows Google Podcasts and YouTube Music | active; the play chip is tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
 | D34 | Stories are told in four beats; the why line is no longer written | active |
@@ -201,6 +201,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
 | D194 | Topic weight removed | supersedes D190 |
+| D196 | Save refreshes copy | amends D172 |
 
 ---
 
@@ -1873,7 +1874,6 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: `configStoreRead.ts` keeps the last answer `GET /api/config` gave in `localStorage` (`dispatch:store-read`, one build's edits). A page asks the store as before; when the store has not answered within 300 ms the page lays the device's copy over itself and the read goes on, so a late answer serves the next read and replaces the copy. A failed read leaves the copy standing. A copy from another build is ignored, as a read from another build is.
 - Why: with the store on, the built copy of the settings is a run old by design, so a store that is slow (Neon's free tier sleeps) or unreachable (a phone offline) showed old settings as if current, for up to 2.5 s or for good. The big apps keep the user's data on the device and refresh it from the network; the page then shows what this device last knew, at once, and the store corrects it. Nothing changes for the engine or the write path.
 - Rejected: reading the store on the server and rendering settings at request time (slower pages, Neon's cold start on every load, and the site stops being static); Vercel Edge Config as a cache (another store to write on every save); showing the copy first on every load and re-laying the store's answer later (a control can change under a hand that is already on it).
-- Amended 2026-10-26 (plan 20, criterion 7): a save that went through asks the store again at once (`afterOwnSave`, with its own query past the edge's second) and the copy takes the answer, so the device's next page, and another tab's, shows the edit; and a store answer whose `written_at` is this device's own newest write (`noteOwnWrite`, #329) is never offered as "changed on another device". The save says "Settings saved".
 - Revisit if: the copy is seen to hide a cross-device edit for a whole visit (the store answered late and the page was never re-read); then re-lay the late answer when no edit is pending.
 
 ## D173: content is data read through one repository; builds ship code only
@@ -2041,3 +2041,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: a topic has no weight. Scoring uses `NORMAL_TASTE` (0.7) for categories and custom topics, 1 for general and Trending topics, and 0.85 for Design; the weight sliders, `weights.set`, the learn patch `weight_deltas`, the vote-driven topic adjustment and the "Adjusted" mark are gone. Old configs that carry `weights`, `topic.weight` or `auto_adjust.topics` parse and the fields are stripped. Vote-driven source scores stay.
 - Why: fixed taste values remove per-topic tuning while preserving the shipped app and general topics' scoring strengths.
 - Supersedes: D190 for topics.
+
+## D196: a save refreshes the device's copy of the store and confirms
+
+- Date: 2026-10-26 (plan 20, criterion 7).
+- Decision: a save that went through asks the store again at once (`afterOwnSave`, with its own query past the edge's second) and the device's copy takes the answer, so the device's next page, and another tab's, shows the edit. A store answer whose `written_at` is this device's own newest write (`noteOwnWrite`, #329) is never offered as "changed on another device". The copy is never overwritten by an older answer (a read that began before the save and resolves after it). The save says "Settings saved".
+- Why: D172's copy left a saved edit a write behind on the device, so another tab showed the old setting until a reload.
+- Amends: D172.

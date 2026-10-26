@@ -104,6 +104,11 @@ function readCache(): ConfigReadBody | null {
 }
 
 function writeCache(body: ConfigReadBody): void {
+  // A read that started before a save can resolve after the post-save read: never write older over newer.
+  const held = readCache();
+  if (held?.written_at != null && (body.written_at == null || body.written_at < held.written_at)) {
+    return;
+  }
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(body));
   } catch {
