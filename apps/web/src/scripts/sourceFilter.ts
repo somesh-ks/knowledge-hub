@@ -127,7 +127,7 @@ export function mountFilter(root: HTMLElement): void {
   // A tablist's arrows, Home and End move the choice, as the page's view switch does.
   filter.addEventListener("keydown", (event) => {
     const tab = (event.target as Element).closest<HTMLButtonElement>("[data-tab]");
-    const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+    const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     const at = tab ? tabs.indexOf(tab) : -1;
     const to =
       event.key === "Home"
