@@ -85,15 +85,16 @@ async function until(label, probe) {
 }
 
 let id = null;
-const buildBefore = (await text("/build.json")).body;
+const buildBefore = await text("/build.json");
 try {
+  // Read before the create request, so a fast episode cannot already be in the baseline.
+  const before = new Set((await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? []);
   const created = await post(createBody);
   check(
     "create accepted",
     created.status === 200 || created.status === 202,
     `status ${created.status}`,
   );
-  const before = new Set((await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? []);
   const fresh = await until("new episode reaches the Library", async () => {
     const found = ((await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? []).find(
       (href) => !before.has(href),
@@ -133,7 +134,10 @@ try {
     check("removed episode page says so", (await text(`/e/${id}`)).status === 404);
     check("Library no longer lists it", !(await text("/library")).body.includes(`/e/${id}`));
   }
-  const buildAfter = (await text("/build.json")).body;
-  check("/build.json unchanged (no deploy)", buildAfter === buildBefore);
+  const buildAfter = await text("/build.json");
+  check(
+    "/build.json unchanged (no deploy)",
+    buildBefore.status === 200 && buildAfter.status === 200 && buildAfter.body === buildBefore.body,
+  );
 }
 process.exit(results.every(Boolean) ? 0 : 1);

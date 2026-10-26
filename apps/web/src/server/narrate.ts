@@ -133,7 +133,13 @@ export const audioKey = (id: string, version?: string): string =>
   version === undefined ? `audio/${id}.mp3` : `audio/${id}.${version}.mp3`;
 /** Names the current versioned narration of a digest, since its key is no longer fixed. */
 export const audioPointerKey = (id: string): string => `audio-url/${id}.json`;
-export const timelineKey = (id: string): string => `timeline/${id}.json`;
+/**
+ * A narration's timeline. With the audio's version it is its own file, written before the pointer
+ * names the audio, so a pointer never meets the timeline of another recording; without one it is
+ * the fixed key narrations made before versioning use.
+ */
+export const timelineKey = (id: string, version?: string): string =>
+  version === undefined ? `timeline/${id}.json` : `timeline/${id}.${version}.json`;
 export const markerKey = (id: string): string => `state/narrating-${id}.json`;
 
 /**
@@ -434,7 +440,16 @@ async function findNarration(
       ? { url: pointedUrl }
       : await blob.head(audioKey(id));
   if (!audio || !isHttps(audio.url)) return null;
-  const stored = await readFresh(blob, timelineKey(id));
+  const pointedVersion =
+    pointed !== null && typeof pointed === "object" && "version" in pointed
+      ? pointed.version
+      : null;
+  // A pointer that names a version is read with that version's timeline only; an older one with the
+  // fixed key.
+  const stored = await readFresh(
+    blob,
+    typeof pointedVersion === "string" ? timelineKey(id, pointedVersion) : timelineKey(id),
+  );
   const timeline =
     timelineFor(parseJson(stored?.text), id) ?? timelineFor(await digests.readTimeline(id), id);
   return timeline ? { url: audio.url, timeline } : null;
@@ -1009,13 +1024,15 @@ async function synthesizeAndStore(session: Session, script: Script): Promise<Nar
       contentType: "audio/mpeg",
       cacheSeconds: AUDIO_CACHE_SECONDS,
     });
-    await putWithRetry(session, audioPointerKey(id), JSON.stringify({ url }), JSON_FILE);
+    // The timeline goes before the pointer: a failed upload leaves the old pointer with its own
+    // timeline, and a retry repairs it.
     await putWithRetry(
       session,
-      timelineKey(id),
+      timelineKey(id, version),
       `${JSON.stringify(timeline, null, 2)}\n`,
       JSON_FILE,
     );
+    await putWithRetry(session, audioPointerKey(id), JSON.stringify({ url, version }), JSON_FILE);
   } catch (error) {
     log(
       `${label}: upload failed for good, ${characters} synthesized characters are lost: ` +

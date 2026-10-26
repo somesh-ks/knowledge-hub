@@ -976,11 +976,11 @@ describe("POST /api/narrate: narrating the whole digest", () => {
       `create ${markerKey(ID)}`,
       `put ${usageKey(MONTH)}`,
       `put ${NARRATED}`,
+      `put ${timelineKey(ID, versionOf(FAKE_AUDIO))}`,
       `put ${audioPointerKey(ID)}`,
-      `put ${timelineKey(ID)}`,
       `del ${markerKey(ID)}`,
     ]);
-    // Five advanced operations: the marker, the charge, the MP3, the pointer to it, the timeline.
+    // Five advanced operations: the marker, the charge, the MP3, its timeline, the pointer to both.
     expect(context.blob.operations().advanced).toBe(5);
 
     const durationMs = wordMarks(spoken.text).length * MS_PER_WORD;
@@ -1009,8 +1009,12 @@ describe("POST /api/narrate: narrating the whole digest", () => {
       cacheSeconds: 31_536_000,
       timeoutMs: BLOB_UPLOAD_TIMEOUT_MS,
     });
-    expect(context.blob.written(timelineKey(ID))?.contentType).toBe("application/json");
-    const stored = AudioTimeline.parse(JSON.parse(context.blob.text(timelineKey(ID)) ?? ""));
+    expect(context.blob.written(timelineKey(ID, versionOf(FAKE_AUDIO)))?.contentType).toBe(
+      "application/json",
+    );
+    const stored = AudioTimeline.parse(
+      JSON.parse(context.blob.text(timelineKey(ID, versionOf(FAKE_AUDIO))) ?? ""),
+    );
     expect(stored.digest).toBe(ID);
     expect(stored.text_chars).toBe(spoken.text.length);
     // Asking again returns the same narration from the store, and Speechify is not asked twice.
@@ -1354,6 +1358,15 @@ describe("POST /api/narrate: when the upload fails", () => {
     expect(context.delays).toEqual([UPLOAD_RETRY_DELAY_MS]);
   });
 
+  // A pointer moved to new audio while the timeline upload failed paired the new MP3 with the
+  // timeline of the old one, and a retry found the narration "ready" and never repaired it.
+  it("leaves the pointer where it was when the timeline cannot be stored", async () => {
+    const context = setup();
+    context.blob.failNext("put", UPLOAD_ATTEMPTS, { prefix: "timeline/" });
+    expect((await post(context)).status).toBe(502);
+    expect(context.blob.has(audioPointerKey(ID))).toBe(false);
+  });
+
   it("gives up after the last attempt: 502, marker cleared, digest still charged", async () => {
     const context = setup();
     context.blob.failNext("put", UPLOAD_ATTEMPTS, {
@@ -1363,7 +1376,7 @@ describe("POST /api/narrate: when the upload fails", () => {
     const result = await post(context);
     expect(result).toEqual({ status: 502, body: { status: 502, error: "storage_failed" } });
     expect(context.blob.has(audioKey(ID))).toBe(false);
-    expect(context.blob.has(timelineKey(ID))).toBe(false);
+    expect(context.blob.has(timelineKey(ID, versionOf(FAKE_AUDIO)))).toBe(false);
     expect(context.blob.has(markerKey(ID))).toBe(false);
     expect(context.blob.changes().at(-1)).toBe(`del ${markerKey(ID)}`);
     // Speechify was paid and the audio is lost: the retry will pay again, so it is counted now.
