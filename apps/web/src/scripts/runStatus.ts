@@ -113,8 +113,12 @@ export function readRun(local: Store, session: Store): Stored | null {
   if (run) return run;
   const old = parse(session.getItem(KEY));
   if (old) {
-    local.setItem(KEY, JSON.stringify(old));
-    session.removeItem(KEY);
+    try {
+      local.setItem(KEY, JSON.stringify(old));
+      session.removeItem(KEY);
+    } catch {
+      // Moving it is best effort: the session copy stays valid when localStorage refuses.
+    }
   }
   return old;
 }
@@ -480,6 +484,7 @@ async function follow(run: Stored, now: boolean): Promise<void> {
   following = run.id;
   let phase = run.phase;
   let stage = run.stage;
+  let estimated = Boolean(run.estimates?.length);
   let stageAt = run.stageAt;
   for (let turn = 0; turn < MAX_POLLS && following === run.id; turn += 1) {
     if (turn > 0 || !now) await new Promise((resolve) => setTimeout(resolve, POLL_MS));
@@ -516,10 +521,17 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       return;
     }
     const next = body.state === "queued" ? "queued" : "running";
-    if (next !== phase || body.stage !== stage) {
-      phase = next;
-      stage = body.stage;
-      stageAt = Date.now();
+    // Estimates that first arrive mid-stage (an older record, a first poll without them) are stored too.
+    const gotEstimates =
+      !estimated && Array.isArray(body.stage_estimates_ms) && body.stage_estimates_ms.length > 0;
+    const moved = next !== phase || body.stage !== stage;
+    if (moved || gotEstimates) {
+      if (moved) {
+        phase = next;
+        stage = body.stage;
+        stageAt = Date.now();
+      }
+      if (gotEstimates) estimated = true;
       set({ ...run, ...staged(body), phase, stageAt });
     }
   }

@@ -74,7 +74,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat (2026-10-07); delete the empty store `store_JmrDq8MB5Kwn3ejW`. Decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`91bc533:docs/state.md`).
+1. Owner: revoke the Vercel token pasted in chat (2026-10-07); delete the empty store `store_JmrDq8MB5Kwn3ejW`. Decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 2. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first narrated turn, a shallow checkout; the other first-load cuts (D141, D178).
 3. Workflows: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
 4. `SPEECHIFY_VOICE_ID_B` on GitHub.

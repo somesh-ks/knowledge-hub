@@ -68,6 +68,8 @@ export const Source = z.object({
   /** Consecutive failed fetches. A source failing five runs in a row is flagged. */
   failures: z.number().int().nonnegative().default(0),
   last_ok: isoDateTime.optional(),
+  /** When a run last tried this source, win or lose. Orders the Firecrawl listing turns so a failing source cannot keep the first slot. */
+  last_try: isoDateTime.optional(),
   /** Per-type options, such as GitHub `owner/repo` or a YouTube channel id. */
   options: z.record(z.string(), z.string()).default({}),
   /** True when a person fixed this source in the app; automatic cleanup leaves it alone. */
