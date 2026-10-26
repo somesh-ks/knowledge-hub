@@ -1,5 +1,6 @@
 import { DigestId } from "@singularity/core";
 import { del, list, put } from "@vercel/blob";
+import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 
 /** Prefix every narration lives under, so pruning can never touch other blobs in the store. */
 export const AUDIO_PREFIX = "audio/";
@@ -98,6 +99,11 @@ export function audioKey(digestId: string): string {
   return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.mp3`;
 }
 
+/** Blob key for a digest's Opus narration: audio/<digest id>.m4a */
+export function audioOpusKey(digestId: string): string {
+  return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.m4a`;
+}
+
 export interface UploadAudioInput {
   digestId: string;
   audio: Uint8Array;
@@ -106,9 +112,26 @@ export interface UploadAudioInput {
 
 /** Upload one narration and return its public URL. Re-uploading the same digest overwrites. */
 export async function uploadAudio(client: BlobClient, input: UploadAudioInput): Promise<string> {
+  return putNarration(client, audioKey(input.digestId), "audio/mpeg", input);
+}
+
+/** Upload a digest's Opus narration beside its MP3 and return its public URL. */
+export async function uploadOpusAudio(
+  client: BlobClient,
+  input: UploadAudioInput,
+): Promise<string> {
+  return putNarration(client, audioOpusKey(input.digestId), OPUS_CONTENT_TYPE, input);
+}
+
+async function putNarration(
+  client: BlobClient,
+  key: string,
+  contentType: string,
+  input: UploadAudioInput,
+): Promise<string> {
   if (input.audio.byteLength === 0) throw new Error("Refusing to upload empty audio");
-  const result = await client.put(audioKey(input.digestId), input.audio, {
-    contentType: "audio/mpeg",
+  const result = await client.put(key, input.audio, {
+    contentType,
     cacheControlMaxAge: input.cacheControlMaxAge ?? DEFAULT_CACHE_MAX_AGE_SECONDS,
   });
   let url: URL;
@@ -132,7 +155,7 @@ export interface PruneAudioInput {
 }
 
 /**
- * Delete narrations uploaded more than `olderThanDays` ago. Only audio/*.mp3 is considered. The
+ * Delete narrations uploaded more than `olderThanDays` ago. Only audio/*.mp3 and .m4a are considered. The
  * digests keep their audio fields, so a pruned digest plays as "audio unavailable" until rebuilt.
  */
 export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Promise<PruneResult> {
@@ -146,7 +169,9 @@ export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Pr
   do {
     const page = await client.list({ prefix: AUDIO_PREFIX, ...(cursor ? { cursor } : {}) });
     for (const blob of page.blobs) {
-      const isNarration = blob.pathname.startsWith(AUDIO_PREFIX) && blob.pathname.endsWith(".mp3");
+      const isNarration =
+        blob.pathname.startsWith(AUDIO_PREFIX) &&
+        (blob.pathname.endsWith(".mp3") || blob.pathname.endsWith(".m4a"));
       if (isNarration && blob.uploadedAt.getTime() < cutoff) stale.push(blob.pathname);
       else kept++;
     }
