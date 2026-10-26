@@ -243,7 +243,7 @@ describe("singularity audio", () => {
         ),
       ).toBe(0);
       const audio = await readAudio();
-      expect(audio?.url).toContain("audio/2026-10-07.mp3");
+      expect(audio?.url).toMatch(/audio\/2026-10-07\.\w+\.mp3$/);
       expect(audio?.m4a_url).toBeUndefined();
     });
 
