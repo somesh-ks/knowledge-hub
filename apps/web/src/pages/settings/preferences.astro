@@ -52,6 +52,16 @@ const offers = addOffers(structure.blocks, structure.sections);
         <p class="manage-note">Changing preferences needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
+      {/* Autoplay is kept in this browser, like Interface sounds: settingsPage.ts fills the switch in. */}
+      <div class="settings-view" data-settings>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="settings-autoplay">Autoplay</label>
+            <input class="settings-switch" id="settings-autoplay" name="autoplay" type="checkbox" role="switch" />
+          </div>
+        </div>
+      </div>
+
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">Preferences</legend>
         <div class="topic">
@@ -311,7 +321,9 @@ const offers = addOffers(structure.blocks, structure.sections);
 </BaseLayout>
 
 <script>
+  import { installSettingsPage } from "../../scripts/settingsPage";
   import { installTopicsPage } from "../../scripts/topicsPage";
 
   installTopicsPage();
+  installSettingsPage();
 </script>
