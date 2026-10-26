@@ -1435,8 +1435,8 @@ test.describe("Blocked sources", () => {
 
 test.describe("the podcast structure", () => {
   // The sheet used to keep an edit on any close, so a stray tap on the scrim saved what was typed.
-  // One shared guard (sheetGuard.ts) asks first: this is the journey for the scrim, then Escape.
-  test("a block sheet with an edit asks before it closes: the scrim then Discard saves nothing, Escape then Save sends it", async ({
+  // One shared guard (sheetGuard.ts) asks first: this is the journey for Close, then Escape.
+  test("a block sheet with an edit asks before it closes: Close then Discard saves nothing, Escape then Save sends it", async ({
     page,
   }) => {
     await page.clock.install();
@@ -1457,7 +1457,7 @@ test.describe("the podcast structure", () => {
       .filter({ has: page.locator(".settings-label", { hasText: /^Design$/ }) });
 
     let sheet = await edit();
-    await page.mouse.click(2, 2);
+    await sheet.getByRole("button", { name: "Close" }).click();
     await expect(guard).toBeVisible();
     await expect(sheet).toBeVisible();
     await guard.getByRole("button", { name: "Discard" }).click();
