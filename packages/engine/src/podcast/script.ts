@@ -336,7 +336,17 @@ const EXTEND_PASSES = 2;
  * the story blocks (no invention), at most twice; a pass that is not longer is dropped. The
  * planned, written and final lengths are logged so a run shows where the minutes went.
  */
-async function extendTurns(deps: ScriptDeps, written: ScriptTurn[]): Promise<ScriptTurn[]> {
+async function extendTurns(
+  deps: ScriptDeps,
+  written: ScriptTurn[],
+  opening: readonly ScriptTurn[] | null,
+): Promise<{
+  turns: ScriptTurn[];
+  passes: number;
+  planned: number;
+  reach: number;
+  written: number;
+}> {
   const reach = reachableChars(
     deps.budget_chars,
     deps.stories.length,
@@ -360,6 +370,8 @@ async function extendTurns(deps: ScriptDeps, written: ScriptTurn[]): Promise<Scr
               request: deps.request,
               stories: deps.stories,
               budget_chars: deps.budget_chars,
+              ...(deps.feedback ? { feedback: deps.feedback } : {}),
+              ...(deps.taste ? { taste: deps.taste } : {}),
               ...(deps.shape ? { shape: deps.shape } : {}),
             },
             turns,
@@ -368,21 +380,46 @@ async function extendTurns(deps: ScriptDeps, written: ScriptTurn[]): Promise<Scr
           deps.request,
           deps.stories,
         );
-        if (result.ok && charCount(result.turns) > charCount(turns)) turns = result.turns;
+        if (
+          result.ok &&
+          charCount(result.turns) > charCount(turns) &&
+          keepsScript(turns, result.turns, opening)
+        ) {
+          turns = result.turns;
+        }
       } catch (error) {
         if (error instanceof BudgetExceededError) throw error;
         deps.log?.warn("An extend pass failed", { reason: describeError(error) });
       }
     }
   }
-  deps.log?.info("Script length", {
-    planned_chars: target,
-    reachable_chars: reach,
-    written_chars: writtenChars,
-    final_chars: charCount(turns),
-    extend_passes: passes,
-  });
-  return turns;
+  return { turns, passes, planned: target, reach, written: writtenChars };
+}
+
+/**
+ * An extension only deepens: it keeps every story of the accepted script in its order, and the
+ * opening the listener may already be hearing word for word.
+ */
+function keepsScript(
+  current: readonly ScriptTurn[],
+  next: readonly ScriptTurn[],
+  opening: readonly ScriptTurn[] | null,
+): boolean {
+  if (opening?.some((turn, index) => next[index]?.text !== turn.text)) return false;
+  const order = (turns: readonly ScriptTurn[]): string[] => {
+    const ids: string[] = [];
+    for (const turn of turns) {
+      if (turn.item_id && ids[ids.length - 1] !== turn.item_id) ids.push(turn.item_id);
+    }
+    return ids;
+  };
+  const kept = order(next);
+  let at = 0;
+  for (const id of order(current)) {
+    at = kept.indexOf(id, at);
+    if (at < 0) return false;
+  }
+  return true;
 }
 
 /**
@@ -393,7 +430,8 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
   const opening = await requestOpening(deps);
   const requested = await requestTurns(deps, opening);
   const { calls, rejected } = requested;
-  const raw = await extendTurns(deps, requested.turns);
+  const extended = await extendTurns(deps, requested.turns, opening);
+  const raw = extended.turns;
   const checked = await checkTurns({
     request: deps.request,
     turns: raw,
@@ -407,6 +445,13 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
   }
   // A structured episode gives up its close before any story (D170): order there is priority.
   const fitted = fitToBudget(turns, deps.budget_chars, { closeFirst: deps.shape !== undefined });
+  deps.log?.info("Script length", {
+    planned_chars: extended.planned,
+    reachable_chars: extended.reach,
+    written_chars: extended.written,
+    final_chars: charCount(fitted.turns),
+    extend_passes: extended.passes,
+  });
   const shortBy = shortByChars(fitted.turns, deps.budget_chars);
   if (shortBy > 0) {
     deps.log?.warn("The script is shorter than the length asked for", {

@@ -331,6 +331,17 @@ describe("the length floor", () => {
     expect(chars).toBeGreaterThanOrEqual(Math.floor(reach * 0.9));
   });
 
+  it("drops an extension that leaves a story out of the accepted script", async () => {
+    const input = inputFor("readout", 5, 4);
+    const long = { ...input, budget_chars: Math.floor(input.budget_chars * 1.05) };
+    const fewer = { ...long, stories: long.stories.slice(0, 3) };
+    const writer = Object.assign(new FakeScriptWriter((i) => scriptOf(i, "short.")), {
+      extendScript: async () => scriptOf(fewer, padFor(fewer, false)),
+    });
+    const result = await run(input, writer);
+    expect(new Set(result.turns.map((turn) => turn.item_id).filter(Boolean)).size).toBe(4);
+  });
+
   it("plans 12 stories for 15 minutes at 90% of the length or more", () => {
     // Twelve stories reached 61% of 15 minutes: each is told longer, up to a cap, before the
     // episode is called short.
