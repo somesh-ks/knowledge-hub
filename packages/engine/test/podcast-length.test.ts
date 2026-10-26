@@ -15,7 +15,7 @@ import {
 import { scriptSystemPrompt } from "../src/podcast/prompt.js";
 import { closestId, generateScript } from "../src/podcast/script.js";
 import type { PodcastStory, ScriptInput } from "../src/podcast/types.js";
-import { FakeScriptWriter, itemId, REQUEST, scriptOf } from "./podcast-fixtures.js";
+import { FakeScriptWriter, itemId, padFor, REQUEST, scriptOf } from "./podcast-fixtures.js";
 
 const LENGTHS = [3, 5, 10, 15] as const;
 const FORMATS = ["readout", "discussion", "headlines"] as const;
@@ -66,12 +66,10 @@ describe("the length asked of the writer", () => {
       expect(scriptFloorChars(budget)).toBe(Math.floor(budget * 0.8));
       // The plan gives a format as many stories as its length carries, so the whole length is in reach.
       expect(reach).toBe(budget);
-      expect(prompt).toContain(
-        `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together, and no more than ${wordsFor(reach)}.`,
-      );
-      expect(prompt).toContain(
-        `A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short.`,
-      );
+      // The writer is told the target, the floor and the ceiling, in words (not the wording itself).
+      expect(prompt).toContain(`about ${wordsFor(scriptTargetChars(reach))} words in total`);
+      expect(prompt).toContain(`under ${wordsFor(scriptFloorChars(reach))} words is rejected`);
+      expect(prompt).toContain(`${wordsFor(reach)} words is the ceiling`);
       const parts = partChars(reach, stories, format, minutes);
       if (format === "headlines") {
         expect(prompt).toContain(`about ${wordsFor(parts.nugget)} words on each of the ${stories}`);
@@ -109,14 +107,28 @@ describe("the length asked of the writer", () => {
       full.budget_chars,
     );
     const prompt = scriptSystemPrompt(thin);
-    expect(prompt).toContain(`no more than ${wordsFor(reach)}.`);
+    expect(prompt).toContain(`${wordsFor(reach)} words is the ceiling`);
     expect(prompt).toContain("Never pad with filler and never repeat a fact.");
     // A discussion carries more per story than a readout, and headlines far less.
     expect(reachableChars(99_999, 4, "discussion", 15)).toBeGreaterThan(reach);
     expect(reachableChars(99_999, 4, "headlines", 15)).toBeLessThan(reach);
   });
 
-  it("asks a discussion for full turns, and lets a host give a view but not a fact", () => {
+  it("tells more stories at length when too few come to fill the length asked for", () => {
+    // ep-20261025-1746: seven stories for five minutes aired at 72% of the budget, because one deep
+    // dive and six nuggets can carry only 83% of it.
+    const budget = planPodcast({ ...REQUEST, format: "readout", length_minutes: 5 }).budget_chars;
+    expect(reachableChars(budget, 7, "readout", 5)).toBe(budget);
+    expect(structureFor(5, 7, "readout").deep_dives).toBeGreaterThan(1);
+    // Never more deep dives than stories, and no promotion once the stories fill the length.
+    expect(structureFor(15, 4, "readout").deep_dives).toBe(4);
+    const full = planPodcast({ ...REQUEST, format: "readout", length_minutes: 15 });
+    expect(structureFor(15, full.max_stories, "readout").deep_dives).toBe(
+      deepDiveCount(15, full.max_stories),
+    );
+  });
+
+  it("asks a discussion for full turns,and lets a host give a view but not a fact", () => {
     const prompt = scriptSystemPrompt(inputFor("discussion", 5));
     expect(prompt).toContain("Turns run one to four sentences each");
     expect(prompt).toContain("clearly as their own view");
@@ -198,9 +210,9 @@ describe("the prompt per length", () => {
 
   it("has no deep dives at 3 minutes and more of them as the length grows", () => {
     expect(prompts[3]).toContain("There are no deep dives in this episode");
-    expect(prompts[5]).toMatch(/The first 1 story is a deep dive/);
-    expect(prompts[10]).toMatch(/The first 2 stories are deep dives/);
-    expect(prompts[15]).toMatch(/The first 3 stories are deep dives/);
+    // Eight stories are too few to fill 5 minutes or more with nuggets, so more are told at length.
+    expect(prompts[5]).not.toContain("no deep dives");
+    expect(prompts[15]).not.toContain("no deep dives");
   });
 
   it("names fewer lead stories in the rundown than it tells in long episodes", () => {
@@ -272,7 +284,7 @@ describe("the length floor", () => {
     // accepted at once, and the shortfall against the 15 minutes is still recorded.
     const input = inputFor("readout", 15, 4);
     const reach = reachableChars(input.budget_chars, 4, "readout", input.request.length_minutes);
-    const filler = "A plain sentence about the milestone that says nothing new. ".repeat(12);
+    const filler = "A plain sentence about the milestone that says nothing new. ".repeat(30);
     const writer = new FakeScriptWriter((i) => scriptOf(i, filler.slice(0, Math.ceil(reach / 4))));
     const result = await run(input, writer);
     expect(writer.calls).toHaveLength(1);
@@ -298,6 +310,45 @@ describe("the length floor", () => {
     expect(result.short_by_chars).toBe(scriptFloorChars(input.budget_chars) - chars);
     expect(result.short_by_chars).toBeGreaterThan(0);
     expect(result.turns.length).toBeGreaterThan(3);
+  });
+
+  it("sends an under-delivered script back once to be extended, and keeps the longer one", async () => {
+    // ep-20261025-1746 aired at 72% of its length: the writer under-delivers and nothing asked again.
+    const input = inputFor("readout", 5, 4);
+    const reach = reachableChars(input.budget_chars, 4, "readout", 5);
+    const long = { ...input, budget_chars: Math.floor(input.budget_chars * 1.05) };
+    const extended = scriptOf(input, padFor(long, false));
+    let extendCalls = 0;
+    const writer = Object.assign(new FakeScriptWriter((i) => scriptOf(i, "short.")), {
+      extendScript: async () => {
+        extendCalls += 1;
+        return extended;
+      },
+    });
+    const result = await run(input, writer);
+    const chars = result.turns.reduce((sum, turn) => sum + turn.text.length, 0);
+    expect(extendCalls).toBe(1);
+    expect(chars).toBeGreaterThanOrEqual(Math.floor(reach * 0.9));
+  });
+
+  it("drops an extension that leaves a story out of the accepted script", async () => {
+    const input = inputFor("readout", 5, 4);
+    const long = { ...input, budget_chars: Math.floor(input.budget_chars * 1.05) };
+    const fewer = { ...long, stories: long.stories.slice(0, 3) };
+    const writer = Object.assign(new FakeScriptWriter((i) => scriptOf(i, "short.")), {
+      extendScript: async () => scriptOf(fewer, padFor(fewer, false)),
+    });
+    const result = await run(input, writer);
+    expect(new Set(result.turns.map((turn) => turn.item_id).filter(Boolean)).size).toBe(4);
+  });
+
+  it("plans 12 stories for 15 minutes at 90% of the length or more", () => {
+    // Twelve stories reached 61% of 15 minutes: each is told longer, up to a cap, before the
+    // episode is called short.
+    const budget = planPodcast({ ...REQUEST, format: "readout", length_minutes: 15 }).budget_chars;
+    expect(reachableChars(budget, 12, "readout", 15)).toBeGreaterThanOrEqual(
+      Math.floor(budget * 0.9),
+    );
   });
 
   it.each(FORMATS.flatMap((f) => LENGTHS.map((m) => [f, m] as const)))(

@@ -36,8 +36,8 @@ function shapeLines(structure: EpisodeStructure): string[] {
   const { deep_dives: deep, nuggets, teased } = structure;
   const stories =
     deep > 0
-      ? `Stories arrive ranked, most important first. The first ${deep} ${deep === 1 ? "story is a deep dive" : "stories are deep dives"}: what happened, why it matters, and one concrete detail from the block. The other ${nuggets} ${nuggets === 1 ? "is a news nugget" : "are news nuggets"}: the news in a sentence or two, nothing more, facts only.`
-      : "Stories arrive ranked, most important first. There are no deep dives in this episode: every story is a news nugget, the news in a sentence or two, facts only.";
+      ? `Stories arrive ranked, most important first. The first ${deep} ${deep === 1 ? "story is a deep dive" : "stories are deep dives"}: what happened, why it matters, and one concrete detail from the block. The other ${nuggets} ${nuggets === 1 ? "is a news nugget" : "are news nuggets"}: the news at the nugget length the word counts below give, facts only.`
+      : "Stories arrive ranked, most important first. There are no deep dives in this episode: every story is a news nugget, the news at the nugget length the word counts below give, facts only.";
   return [
     `STRUCTURE, in this order: 1) a one-line hello that says the show is Singularity; 2) the rundown: ${teased >= 1 ? `name the first ${teased} ${teased === 1 ? "story" : "stories"} in order, one short clause each, so the listener knows what is coming` : "one line on what is coming"}; no throat-clearing and no detail yet; 3) ${deep > 0 ? "the deep dives, then the nuggets" : "the nuggets"}, in the order given; 4) a short close; 5) a one-line sign-off.`,
     stories,
@@ -199,7 +199,7 @@ export function lengthLines(input: ScriptInput): string[] {
   const nugget = wordsFor(parts.nugget);
   const sentences = (words: number): number => Math.max(1, Math.round(words / WORDS_PER_SENTENCE));
   const lines = [
-    `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together, and no more than ${wordsFor(reach)}. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short.`,
+    `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together: reach that length, and use the detail in the story blocks to get there. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short; ${wordsFor(reach)} words is the ceiling.`,
   ];
   if (format === "headlines") {
     lines.push(
@@ -208,7 +208,7 @@ export function lengthLines(input: ScriptInput): string[] {
   } else {
     const deep = wordsFor(parts.deep_dive);
     lines.push(
-      `Word counts: the hello about ${wordsFor(HELLO_CHARS)} words; the rundown about ${wordsFor(TEASER_CLAUSE_CHARS)} words for each story it names, ${wordsFor(structure.teaser_chars)} in all; ${structure.deep_dives > 0 ? `each of the ${structure.deep_dives} deep dives about ${deep} words (${sentences(deep)} sentences); ` : ""}each of the ${structure.nuggets} nuggets about ${nugget} words (${sentences(nugget)} sentences at most); the close about ${wordsFor(structure.close_chars)} words; the sign-off a few words. A spoken sentence is about ${WORDS_PER_SENTENCE} words.`,
+      `Word counts: the hello about ${wordsFor(HELLO_CHARS)} words; the rundown about ${wordsFor(TEASER_CLAUSE_CHARS)} words for each story it names, ${wordsFor(structure.teaser_chars)} in all; ${structure.deep_dives > 0 ? `each of the ${structure.deep_dives} deep dives about ${deep} words (${sentences(deep)} sentences); ` : ""}each of the ${structure.nuggets} nuggets about ${nugget} words (about ${sentences(nugget)} sentences); the close about ${wordsFor(structure.close_chars)} words; the sign-off a few words. A spoken sentence is about ${WORDS_PER_SENTENCE} words.`,
     );
   }
   lines.push(

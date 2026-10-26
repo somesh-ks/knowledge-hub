@@ -70,8 +70,10 @@ export const NUGGET_CHARS: Record<PodcastFormat, number> = {
  * The deep dive figure was measured on real runs on 2026-10-08.
  */
 export const STORY_CAPACITY_CHARS: Record<PodcastFormat, number> = {
-  readout: 650,
-  discussion: 950,
+  // 2026-10-26: raised from 650 and 950 so that a few stories can fill a long episode (12 stories
+  // for 15 minutes reached 61%): a thin window tells each story longer, up to this cap.
+  readout: 1150,
+  discussion: 1500,
   // One sentence a story: real headlines ran 137 to 154 characters each, 140 on a thin day.
   headlines: 170,
 };
@@ -134,15 +136,23 @@ export function structureFor(
       close_chars: closeChars,
     };
   }
-  const deep = deepDiveCount(minutes, count);
   const teased = Math.min(count, TEASED[minutes]);
   const teaserChars = teased * TEASER_CLAUSE_CHARS;
   const closeChars = CLOSE_CHARS[minutes];
+  const frame = HELLO_CHARS + teaserChars + closeChars + SIGN_OFF_CHARS;
+  // With few stories the usual few deep dives cannot fill the length (a 5 minute readout of seven
+  // stories reached 83% of it, aired at 72%): tell more of them at length, as many as it takes.
+  const gap = Math.min(minutes * PODCAST_CHARS_PER_MINUTE, PODCAST_MAX_CHARS) - frame;
+  const needed = Math.ceil(
+    (gap - count * NUGGET_CAPACITY_CHARS[format]) /
+      Math.max(1, STORY_CAPACITY_CHARS[format] - NUGGET_CAPACITY_CHARS[format]),
+  );
+  const deep = Math.min(count, Math.max(deepDiveCount(minutes, count), needed));
   return {
     deep_dives: deep,
     nuggets: count - deep,
     teased,
-    frame_chars: HELLO_CHARS + teaserChars + closeChars + SIGN_OFF_CHARS,
+    frame_chars: frame,
     teaser_chars: teaserChars,
     close_chars: closeChars,
   };
