@@ -1,0 +1,64 @@
+name: browser
+
+# The two browser suites are the only checks that see CSS and layout. They run on every push to
+# main (a regression that skipped the pull request's filter reached main unseen: the 443px
+# overflow and the broken Retry button it caused, 2026-10-26), nightly as a backstop, and as a
+# job of ci.yml for a pull request that changes the site.
+# Digest, state and docs commits cannot change the site, so a push that only touches them skips
+# the run (they also arrive from a token that starts no workflow).
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "Digests/**"
+      - "state/**"
+      - "docs/**"
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: browser-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # One job per suite, in parallel: each takes about 6 minutes, so a run ends in the time of the
+  # slower one instead of the sum. Split a suite further with `--shard` if one passes 10 minutes.
+  suite:
+    name: ${{ matrix.suite }} suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [player, site]
+    env:
+      PORT: "4501"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Player suite
+        if: matrix.suite == 'player'
+        run: npm run e2e:player -w @singularity/web
+      - name: Site suite
+        if: matrix.suite == 'site'
+        run: npm run e2e -w @singularity/web
+      - name: Keep the traces of a failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-traces-${{ matrix.suite }}-${{ github.run_id }}
+          path: apps/web/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
