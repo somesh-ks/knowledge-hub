@@ -91,9 +91,17 @@ if (check) {
     if (!existsSync(path) || !lstatSync(path).isDirectory()) return [];
     return readdirSync(path).flatMap((name) => found(join(path, name)));
   };
-  const root = join(main, ".claude", "worktrees");
-  const held = (existsSync(root) ? readdirSync(root) : [])
-    .map((name) => [name, homes.flatMap((home) => found(join(root, name, home, "node_modules")))])
+  // Every worktree git has registered, wherever it lives, not only those under .claude/worktrees.
+  const registered = execFileSync("git", ["worktree", "list", "--porcelain"], {
+    cwd: main,
+    encoding: "utf8",
+  })
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("worktree "))
+    .map((line) => resolve(line.slice("worktree ".length)))
+    .filter((path) => path !== resolve(main));
+  const held = registered
+    .map((path) => [path, homes.flatMap((home) => found(join(path, home, "node_modules")))])
     .filter(([, list]) => list.length > 0);
   for (const [name, list] of held) console.log(`${name}: ${list.length} links`);
   if (held.length > 0) {

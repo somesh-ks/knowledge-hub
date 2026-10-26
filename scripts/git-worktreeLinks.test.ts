@@ -131,4 +131,27 @@ it("links a third-party scope package by package, so clearing it in the worktree
   expect(linksIn(worktree).length, "links after relinking").toBeGreaterThan(0);
   links(worktree, "--remove");
   expect(linksIn(worktree)).toEqual([]);
+  expect(existsSync(join(main, "node_modules/@rolldown/binding/index.node")), "main's package").toBe(
+    true,
+  );
+});
+
+// `--check` guards `git worktree remove`: a worktree kept anywhere but .claude/worktrees went
+// unlisted, and removing it with links in place deletes main's packages.
+it("--check lists a linked worktree wherever git registered it", () => {
+  const root = real(mkdtempSync(join(tmpdir(), "worktree-links-")));
+  roots.push(root);
+  const main = join(root, "main");
+  const worktree = join(root, "worktree");
+  put(join(main, "packages/core/package.json"), JSON.stringify({ name: "@new/core" }));
+  git(main, "init", "-q");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "init");
+  git(main, "worktree", "add", "-q", "--detach", worktree);
+  put(join(main, "node_modules/leftpad/package.json"), "{}");
+
+  links(worktree);
+  expect(() => links(main, "--check"), "a linked worktree outside .claude/worktrees").toThrow();
+  links(worktree, "--remove");
+  expect(() => links(main, "--check"), "no links left").not.toThrow();
 });
