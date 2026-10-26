@@ -27,7 +27,6 @@ const quantum: Topic = {
   id: "quantum_computing",
   name: "Quantum computing",
   description: "Hardware, algorithms and error correction.",
-  weight: 0.7,
   enabled: true,
   keywords: ["qubit", "error correction"],
   section_id: "quantum_computing",

@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { CONFIG_FILES, requireKey, type Source } from "@singularity/core";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
-import { loadPreferences } from "../curate/inputs.js";
 import { createLimiter } from "../fetch/limiter.js";
 import { QUERIES_PATH } from "../fetch/queries.js";
 import { createHttpClient, HttpError } from "../http.js";
@@ -228,8 +227,7 @@ async function runSuggest(
     print(USAGE);
     return 2;
   }
-  const preferences = await loadPreferences(ctx.root);
-  const topics = await loadTopics(ctx.root, preferences);
+  const topics = await loadTopics(ctx.root);
   const topic = topics.topics.find((candidate) => candidate.id === values.topic);
   if (!topic) {
     ctx.log.error(`There is no topic ${values.topic}.`);

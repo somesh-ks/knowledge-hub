@@ -112,8 +112,14 @@
   flex-wrap: nowrap;
 }
 
+/* The label is as wide as its words and the control takes the row's end (owner, 2026-10-25): a label
+   that filled the row made the empty middle a target, and hovering it lit the control it names. */
 .settings-row > .settings-label {
-  flex: 1 0 auto;
+  flex: 0 1 auto;
+}
+
+.settings-row > .settings-label + * {
+  margin-inline-start: auto;
 }
 
 /* Every quiet line in Settings is one size, the label size, a step under the 16px labels. */
@@ -491,11 +497,20 @@
   margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px)) * -1);
 }
 
-/* In a card the fill's box ends one inset from the card's edge, where a row's tile ends (2026-10-24,
-   the inset went to 4px); the select reaches further and pads by as much, so its value and chevron
-   stay where the link rows' values and chevrons end. */
+/* In a card the fill's box ends as far from the card's edge as it starts from the row's top and
+   bottom (owner, 2026-10-25: the right inset looked uneven): the card's inset plus the row's block
+   padding. The select pads by as much, so its value and chevron stay where the link rows' values and
+   chevrons end. */
 .card-group .settings-row .value-select {
-  --value-select-pull: calc(var(--card-padding) - var(--card-inset) - var(--space-2));
+  --value-select-pull: calc(
+    var(--card-padding) -
+    var(--card-inset) -
+    var(--space-2) -
+    var(--space-4)
+  );
+  /* The chevron's ink sits 12px inside the tile, not 4 (2026-10-26 audit), which is where the link
+     rows' chevrons end: the tile keeps its 12px inset, and the chevron and the value step in. */
+  --value-select-end: var(--space-2);
 }
 
 .settings-row .value-select > select.manage-input {
@@ -507,6 +522,7 @@
     calc(
       var(--space-2) +
       var(--value-select-pull, 0px) +
+      var(--value-select-end, 0px) +
       var(--size-icon) *
       (1 - var(--ink-end, 0)) +
       var(--field-chevron-gap)
@@ -523,7 +539,8 @@
 .settings-row .value-select > .icon {
   inset-inline-end: calc(
     var(--space-2) +
-    var(--value-select-pull, 0px) -
+    var(--value-select-pull, 0px) +
+    var(--value-select-end, 0px) -
     var(--size-icon) *
     var(--ink-end, 0)
   );
@@ -607,23 +624,11 @@
 
 /* ------------------------------------------------------------------ cards (2026-10-21) */
 
-/* One left text edge (2026-10-22, the owner: "the text elements must be horizontally aligned to the
-   left"): on a page of cards the title, the group heads and the notes outside a card start the card's
-   padding in, where its rows' words start, so the cards hang out into the margin and the words read
-   as one column. A page without a card (New episode, Sources) keeps its words on the gutter. The
-   hints and empty notes outside a card take it too; a row's own words are the row's. */
-:is(.settings-view, .manage):has(.card-group, .changelog-entry) > h1,
-:is(.settings-view, .manage):has(.card-group, .changelog-entry)
-  :is(
-    .settings-head,
-    .section-head,
-    .settings-note,
-    .settings-hint,
-    .manage-quiet,
-    .manage-note
-  ):not(.card-group *, .changelog-entry *, .settings-head *, .settings-row *, .row-action *) {
-  padding-inline-start: var(--card-padding);
-}
+/* One page edge (2026-10-26, the owner: "Settings has more margin than Latest and Library"): the title,
+   the group heads and the notes outside a card start on the page gutter, as Latest's and Library's do, and
+   a card's outer edge is that edge. The card's own padding sets where its rows' words start; a page
+   takes no gutter of its own (design-check: no page-specific gutter). Reverses the 2026-10-22 rule that
+   pushed these in by the card's padding. */
 
 /* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps the air a
    head would give it under the page's note, 24px, so the card does not crowd the note (2026-10-22). */

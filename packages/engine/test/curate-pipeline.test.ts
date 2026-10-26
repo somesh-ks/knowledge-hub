@@ -131,7 +131,8 @@ describe("curatePool: the nothing outcome", () => {
     const writer = fakeWriter();
     const result = await curatePool(
       makeDeps({ judge: new TableJudge(table), writer }),
-      input(items),
+      // Gossip is switched off in topics.json (never_publish), the way the owner mutes a category.
+      input(items, { offCategories: ["venture_capital_and_gossip"] }),
     );
     expect(result.outcome).toBe("nothing");
     expect(result.selection).toMatchObject({ outcome: "nothing", items: [], verified: false });

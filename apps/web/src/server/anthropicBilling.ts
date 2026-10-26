@@ -46,6 +46,8 @@ export async function anthropicBilledDays(
     if (page) params.set("page", page);
     const response = await fetchFn(`${COST_REPORT}?${params}`, {
       headers: { "x-api-key": adminKey, "anthropic-version": "2023-06-01" },
+      // The route gives each part 4 s; stopping the request frees its socket.
+      signal: AbortSignal.timeout(4_000),
     });
     if (!response.ok) throw new Error(`cost report answered ${response.status}`);
     const body = (await response.json()) as CostReportPage;

@@ -2,7 +2,6 @@
 import { MIX_STOPS, PROFILE_LABEL, SOURCE_FORMATS, STRUCTURE_PROFILES } from "@singularity/core";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
-import MenuSheet from "../../components/MenuSheet.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
@@ -88,7 +87,7 @@ const offers = addOffers(structure.blocks, structure.sections);
                 tabindex="-1"
                 data-value="structure"
               >
-                Structure
+                Podcast structure
               </button>
             </div>
 
@@ -159,24 +158,13 @@ const offers = addOffers(structure.blocks, structure.sections);
                 <button
                   class="btn-secondary"
                   type="button"
-                  aria-haspopup="menu"
-                  popovertarget="structure-add-menu"
-                  data-hero-more
+                  data-add-block
                   data-needs-js
                   disabled={offers.length === 0}
                 >
                   <Icon name="plus" />
                   <span>Add</span>
                 </button>
-                <MenuSheet id="structure-add-menu" title="Add a block" class="structure-menu-list">
-                  {
-                    offers.map((offer) => (
-                      <button class="hero-menu-item" type="button" role="menuitem" data-add={offer.key}>
-                        {offer.name}
-                      </button>
-                    ))
-                  }
-                </MenuSheet>
               </div>
             </section>
           </div>

@@ -3,7 +3,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CATEGORIES,
-  type Category,
   type CategoryOrNone,
   Item,
   itemId,
@@ -86,8 +85,4 @@ export function realPreferences(): Preferences {
 /** A copy of the real preferences with no keywords or authors, so bonuses never interfere. */
 export function plainPreferences(): Preferences {
   return { ...realPreferences(), preferred_authors: [], preferred_keywords: [] };
-}
-
-export function weightsOf(preferences: Preferences): Record<Category, number> {
-  return preferences.weights;
 }

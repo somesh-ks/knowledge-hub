@@ -1,12 +1,6 @@
 import { type Digest, type Item, VOICE_LIMITS } from "@singularity/core";
 import { buildSpokenText, SpokenTextTooLongError } from "../audio/spokenText.js";
-import {
-  linkSourceIds,
-  loadPreferences,
-  loadSources,
-  readJsonIfExists,
-  sourceNameMap,
-} from "../curate/inputs.js";
+import { linkSourceIds, loadSources, readJsonIfExists, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { describeError } from "../llm/errors.js";
@@ -67,7 +61,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
   const linter = createLinter(await loadVoice(deps.root));
   const [sources, lastRun] = await Promise.all([loadSources(deps.root), readLastRun(deps.root)]);
   const sourceNames = sourceNameMap(sources);
-  const topics = await loadTopics(deps.root, await loadPreferences(deps.root));
+  const topics = await loadTopics(deps.root);
   const coverPicker = makeCoverPicker(deps.pickCover, lastRun.last_cover);
   if (runtime.grounder === null) {
     deps.log.warn("No grounding check ran: the digest will be marked unverified");

@@ -76,6 +76,8 @@ export interface SourceFacts {
   high_signal?: boolean;
   /** Each part 0 to 1; trust is null until enough items were checked for hype and sponsorship. */
   parts: { health: number; quality: number; trust: number | null } | null;
+  /** Why the score is low, in plain sentences; empty at Good or better. */
+  why?: string[];
 }
 
 /** What a topic's page tells the panel about it. */
@@ -497,6 +499,9 @@ export function openPanel(
     if (!unscored)
       total.setAttribute("aria-label", `${edited.score?.toFixed(1)} out of 5, ${edited.label}`);
     one<HTMLElement>("[data-edit-empty]").hidden = !unscored;
+    const why = one<HTMLElement>("[data-edit-why]");
+    why.textContent = (edited.why ?? []).join(" ");
+    why.hidden = unscored || !why.textContent;
     const parts = one<HTMLElement>("[data-edit-parts]");
     parts.hidden = unscored || edited.parts === null;
     // Two decimals, as the engine rounds each part. A part not measured yet says so, with no bar.

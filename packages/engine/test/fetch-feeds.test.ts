@@ -255,6 +255,22 @@ describe("fetchYoutube", () => {
     const items = await fetchYoutube({ ...source, feed_url: null }, WIDE, makeDeps(fake));
     expect(items.map((i) => i.title)).toEqual(["Long"]);
   });
+
+  it("reads the uploads playlist feed when YouTube answers the channel feed with 404", async () => {
+    const fake = fakeFetch({
+      [source.feed_url as string]: { status: 404 },
+      "https://www.youtube.com/feeds/videos.xml?playlist_id=UULFsBjURrPoezykLs9EqgamOA":
+        fixture("fetch-youtube.xml"),
+    });
+    const items = await fetchYoutube(source, window("2026-10-01T00:00:00Z"), makeDeps(fake));
+    expect(items).toHaveLength(2);
+  });
+
+  it("keeps the channel feed's error when the playlist feed fails too", async () => {
+    const fake = fakeFetch({ "https://www.youtube.com/feeds/": { status: 404 } });
+    await expect(fetchYoutube(source, WIDE, makeDeps(fake))).rejects.toMatchObject({ status: 404 });
+    expect(fake.calls).toHaveLength(2);
+  });
 });
 
 describe("fetchProductHunt", () => {

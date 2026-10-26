@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   CONFIG_FILES,
-  type Preferences,
   resolveTopics,
   type TopicsFile,
   TopicsFile as TopicsSchema,
@@ -41,15 +40,11 @@ export async function loadTopicsFile(root: string): Promise<TopicsFile | null> {
 }
 
 /**
- * The topics a run works from: the file (or the seed, when it is missing) with built-in weights
- * taken from the preferences. With no custom topic in it, scoring behaves exactly as it did
- * before topics existed.
+ * The topics a run works from: the file, or the seed when it is missing. With no custom topic in
+ * it, scoring behaves exactly as it did before topics existed.
  */
-export async function loadTopics(
-  root: string,
-  preferences: Pick<Preferences, "weights">,
-): Promise<TopicsFile> {
-  return resolveTopics(await loadTopicsFile(root), preferences);
+export async function loadTopics(root: string): Promise<TopicsFile> {
+  return resolveTopics(await loadTopicsFile(root));
 }
 
 /** Stable text for the file: fields in schema order, two-space indent, trailing newline. */
@@ -61,7 +56,6 @@ export function serializeTopics(file: TopicsFile): string {
       id: t.id,
       name: t.name,
       description: t.description,
-      weight: t.weight,
       enabled: t.enabled,
       keywords: t.keywords,
       section_id: t.section_id,
