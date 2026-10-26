@@ -136,6 +136,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let rate = initialRate;
   /** The listener asked for playback and has not asked for a pause. */
   let wantsPlay = false;
+  // Bumped by a seek or scrub: the 2 s advance check compares positions, so it is void after one.
+  let seekGeneration = 0;
   let wasPlayingBeforeScrub = false;
   let expectedPauseUntil = 0;
   let pendingStart: number | null = null;
@@ -540,8 +542,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
         resolved = true;
         stopFallbackWatch();
         const from = element.currentTime;
+        const generation = seekGeneration;
         fallbackTimer = setTimeout(() => {
-          if (stale()) return;
+          if (stale() || generation !== seekGeneration) return;
           const advancedSec = element.currentTime - from;
           if (
             shouldFallBack({
@@ -671,6 +674,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     const started = Promise.resolve(element.play());
     watchPlayStart(element, started);
     started.catch((rejection: unknown) => {
+      // A fallback replaced the file: the old play() rejecting is not this one failing.
+      if (attachedUrl !== url) return;
       const error = describePlayRejection(rejection, isOnline(), audioNoun());
       // The element's own error event may have reported this failure already: once is enough.
       if (!error || state.status === "error") return;
@@ -740,6 +745,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     const duration = durationNow();
     const target = clamp(seconds, 0, duration > 0 ? duration : Math.max(0, seconds));
     time = target;
+    seekGeneration += 1;
     if (audio && hasAudio()) {
       if (audio.readyState === HAVE_NOTHING) {
         // Setting currentTime before metadata is unreliable on iOS. Apply it on loadedmetadata.
@@ -846,6 +852,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function beginScrub(): void {
     if (state.scrubbing || !hasAudio()) return;
+    seekGeneration += 1;
     wasPlayingBeforeScrub = state.status === "playing" || state.status === "loading";
     // Narration pauses while the thumb is down, so a drag never produces audio bursts or a storm
     // of range requests. The status stays "playing" so the controls do not flicker.

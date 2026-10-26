@@ -37,12 +37,12 @@ for (const target of await listDigestTargets(root)) {
   console.log(`${apply ? "transcode" : "would transcode"} ${target.id}`);
   if (!client) continue;
 
-  const response = await fetch(digest.audio.url);
-  if (!response.ok) {
-    console.error(`  skipped, the MP3 answered ${response.status}`);
-    continue;
-  }
   try {
+    const response = await fetch(digest.audio.url, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) {
+      console.error(`  skipped, the MP3 answered ${response.status}`);
+      continue;
+    }
     const m4aUrl = await uploadOpusAudio(client, {
       digestId: target.id,
       audio: await transcodeToOpus(new Uint8Array(await response.arrayBuffer())),

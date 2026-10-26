@@ -47,7 +47,7 @@ export type RunFfmpeg = (args: string[]) => Promise<void>;
 const execFileAsync = promisify(execFile);
 
 const runFfmpeg: RunFfmpeg = async (args) => {
-  await execFileAsync("ffmpeg", args, { maxBuffer: 1024 * 1024 });
+  await execFileAsync("ffmpeg", args, { maxBuffer: 1024 * 1024, timeout: 120_000 });
 };
 
 /**

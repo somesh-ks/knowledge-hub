@@ -695,6 +695,23 @@ describe("errors", () => {
     expect(harness.events.filter((event) => event.type === "error")).toHaveLength(1);
   });
 
+  it("keeps the Opus file when the listener seeks back during the advance check", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const m4a = "/audio/2026-10-07.m4a";
+    harness.store.load(
+      makeDigest({
+        audio: { url: "/audio/2026-10-07.mp3", m4a_url: m4a, duration_ms: 120_000 },
+      }),
+    );
+    harness.audio.currentTime = 30;
+    harness.store.play();
+    await vi.advanceTimersByTimeAsync(0);
+    harness.audio.loadMetadata(120);
+    harness.store.seekTo(10_000);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(harness.audio.src).toContain(".m4a");
+  });
+
   it("ignores a play rejected because a newer load won", async () => {
     const harness = createHarness();
     harness.store.load(makeDigest());

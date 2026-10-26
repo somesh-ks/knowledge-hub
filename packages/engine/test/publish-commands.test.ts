@@ -221,6 +221,32 @@ describe("singularity audio", () => {
       );
     });
 
+    it("records the Opus file when it transcodes, and publishes the MP3 alone when it fails", async () => {
+      const readAudio = async () =>
+        parseDigestFile(await readFile(join(temp.root, digestRelPath("2026-10-07")), "utf8")).audio;
+      await writeDigest(temp.root, makeDigest());
+      const ok = rig();
+      const transcodeOpus = async () => new Uint8Array([1, 2, 3]);
+      expect(
+        await createAudioCommand({ ...ok.deps, transcodeOpus })(["--digest", "2026-10-07"], ctx),
+      ).toBe(0);
+      expect((await readAudio())?.m4a_url).toContain("2026-10-07");
+
+      const broken = rig();
+      const failing = async (): Promise<Uint8Array> => {
+        throw new Error("ffmpeg died");
+      };
+      expect(
+        await createAudioCommand({ ...broken.deps, transcodeOpus: failing })(
+          ["--digest", "2026-10-07", "--force"],
+          ctx,
+        ),
+      ).toBe(0);
+      const audio = await readAudio();
+      expect(audio?.url).toContain("audio/2026-10-07.mp3");
+      expect(audio?.m4a_url).toBeUndefined();
+    });
+
     it("uses the voice from the environment", async () => {
       await writeDigest(temp.root, makeDigest());
       const r = rig();
