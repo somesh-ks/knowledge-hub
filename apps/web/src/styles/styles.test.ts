@@ -222,7 +222,8 @@ const rulesOf = (css: string) =>
  * width: a page that did sat 24px further in than Latest and Library (2026-10-26).
  */
 const VIEW_ROOTS = ["settings-view", "library", "manage", "create-page", "design-page"];
-const VIEW_EDGE = /^(?:padding|margin)-(?:inline|left|right)|^max-(?:width|inline-size)$/;
+const VIEW_EDGE =
+  /^(?:padding|margin)(?:-(?:inline|left|right)(?:-(?:start|end))?)?$|^max-(?:width|inline-size)$/;
 
 /** The declarations of a rule body, as [property, value]. */
 const declarationsOf = (body: string) =>
