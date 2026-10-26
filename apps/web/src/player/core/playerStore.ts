@@ -13,10 +13,13 @@
 import type { PlayerDigestData } from "../../types/contracts";
 import { type AudioNoun, describeMediaError, describePlayRejection } from "./audioErrors";
 import {
+  ADVANCE_CHECK_MS,
   type AudioSources,
+  audioCandidates,
   browserCanPlayType,
   type CanPlayType,
-  pickAudioUrl,
+  PLAY_RESOLVE_LIMIT_MS,
+  shouldFallBack,
 } from "./audioSource";
 import { clamp, isFiniteNumber } from "./mathUtils";
 import {
@@ -137,6 +140,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let expectedPauseUntil = 0;
   let pendingStart: number | null = null;
   let attachedUrl: string | null = null;
+  /** Files of this track that errored or stalled, so the next source is tried (audioSource.ts). */
+  const skippedUrls = new Set<string>();
+  let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
   let frameHandle: number | null = null;
   let saveTimer: ReturnType<typeof setInterval> | null = null;
   let bufferTimer: ReturnType<typeof setTimeout> | null = null;
@@ -254,6 +260,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();
+    stopFallbackWatch();
   }
 
   function stopBufferTimer(): void {
@@ -401,6 +408,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   function onError(): void {
     if (!audio) return;
+    if (state.status === "playing" || state.status === "loading") {
+      readAudioTime();
+      publishTime("auto", true);
+    }
+    if (fallBack()) return;
     const error = describeMediaError(audio.error?.code, isOnline(), audioNoun());
     if (!error) return;
     // A file the narration could not make says why; offline, the connection is the reason. The
@@ -463,7 +475,88 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
    * saves (lib/downloads.ts); online, the smallest the browser can decode.
    */
   function sourceOf(audio: AudioSources): string {
-    return isOnline() ? pickAudioUrl(audio, canPlayType) : audio.url;
+    if (!isOnline()) return audio.url;
+    return audioCandidates(audio, canPlayType).find((url) => !skippedUrls.has(url)) ?? audio.url;
+  }
+
+  /** The source after the one attached, or undefined when it is the last. */
+  function nextSource(): string | undefined {
+    const files = track?.digest.audio;
+    if (!files || !attachedUrl || !isOnline()) return undefined;
+    return audioCandidates(files, canPlayType).find(
+      (url) => url !== attachedUrl && !skippedUrls.has(url),
+    );
+  }
+
+  function stopFallbackWatch(): void {
+    if (fallbackTimer !== null) clearTimeout(fallbackTimer);
+    fallbackTimer = null;
+  }
+
+  /**
+   * Gives up the attached file for the next one at the same position: it errored, play() never
+   * resolved, or the clock never moved (shouldFallBack). The media session reads the store, so it
+   * follows. Returns false when this is the last file.
+   */
+  function fallBack(): boolean {
+    const next = nextSource();
+    if (!next || !attachedUrl) return false;
+    const wasWanted = wantsPlay;
+    skippedUrls.add(attachedUrl);
+    stopFallbackWatch();
+    if (!wasWanted) {
+      pendingStart = time > 0 ? time : null;
+      attachedUrl = null;
+      attachSource(next);
+      return true;
+    }
+    retryAs("resume");
+    return true;
+  }
+
+  /** Watches a started play() for the two silent failures: it never resolves, or it resolves and the clock stays. */
+  function watchPlayStart(element: AudioLike, started: Promise<unknown>): void {
+    stopFallbackWatch();
+    const watched = attachedUrl;
+    if (!nextSource()) return;
+    const stale = () => attachedUrl !== watched || !wantsPlay;
+    let resolved = false;
+    fallbackTimer = setTimeout(() => {
+      if (stale() || resolved) return;
+      if (
+        shouldFallBack({
+          errored: false,
+          playResolved: false,
+          sincePlayMs: PLAY_RESOLVE_LIMIT_MS,
+          sinceResolveMs: null,
+          advancedSec: 0,
+        })
+      )
+        fallBack();
+    }, PLAY_RESOLVE_LIMIT_MS);
+    started.then(
+      () => {
+        if (stale()) return;
+        resolved = true;
+        stopFallbackWatch();
+        const from = element.currentTime;
+        fallbackTimer = setTimeout(() => {
+          if (stale()) return;
+          const advancedSec = element.currentTime - from;
+          if (
+            shouldFallBack({
+              errored: false,
+              playResolved: true,
+              sincePlayMs: ADVANCE_CHECK_MS,
+              sinceResolveMs: ADVANCE_CHECK_MS,
+              advancedSec,
+            })
+          )
+            fallBack();
+        }, ADVANCE_CHECK_MS);
+      },
+      () => undefined,
+    );
   }
 
   function attachSource(url: string): void {
@@ -499,6 +592,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     if (track) saveResume();
     stopTimers();
+    skippedUrls.clear();
     wantsPlay = false;
     wasPlayingBeforeScrub = false;
 
@@ -574,7 +668,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     // The cue first, so it lands in silence; then the audio.
     emit({ type: "willPlay", reason });
     commit({ status: "loading", hasStarted: true, interrupted: false, error: null });
-    Promise.resolve(element.play()).catch((rejection: unknown) => {
+    const started = Promise.resolve(element.play());
+    watchPlayStart(element, started);
+    started.catch((rejection: unknown) => {
       const error = describePlayRejection(rejection, isOnline(), audioNoun());
       // The element's own error event may have reported this failure already: once is enough.
       if (!error || state.status === "error") return;

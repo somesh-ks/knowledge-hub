@@ -1,16 +1,13 @@
-// Adds the Opus narrations (WebM and MP4) beside the MP3 of every published digest that lacks them (plan 19.1).
+// Adds the Opus narration (MP4, .m4a) beside the MP3 of every published digest that lacks it (plan 19.1).
 // Usage: npm run backfill:opus [-- --apply]   Without --apply it lists what it would do and writes nothing.
 // Needs ffmpeg on the PATH and BLOB_READ_WRITE_TOKEN (or VERCEL_OIDC_TOKEN with BLOB_STORE_ID) in the environment.
-// MP3s are never deleted or changed; each record gains webm_url and m4a_url, nothing else.
+// MP3s are never deleted or changed; each record gains m4a_url, nothing else. Podcast episodes are narrated
+// per turn as MP3 segments and are not transcoded (see the PR).
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { parseDigestFile, serializeDigestFile } from "@singularity/core";
 import { writeTextAtomic } from "../packages/engine/src/audio/atomicFile.js";
-import {
-  OPUS_CONTAINERS,
-  type OpusContainer,
-  transcodeToOpus,
-} from "../packages/engine/src/audio/transcode.js";
+import { transcodeToOpus } from "../packages/engine/src/audio/transcode.js";
 import { createVercelBlobClient, uploadOpusAudio } from "../packages/engine/src/publish/blob.js";
 import { listDigestTargets } from "../packages/engine/src/publish/publishAudio.js";
 
@@ -35,13 +32,9 @@ let done = 0;
 for (const target of await listDigestTargets(root)) {
   const path = join(root, target.relPath);
   const digest = parseDigestFile(await readFile(path, "utf8"));
-  if (!digest.audio) continue;
-  const missing = OPUS_CONTAINERS.filter(
-    (container) => !digest.audio?.[container === "webm" ? "webm_url" : "m4a_url"],
-  );
-  if (missing.length === 0) continue;
+  if (!digest.audio || digest.audio.m4a_url) continue;
   todo++;
-  console.log(`${apply ? "transcode" : "would transcode"} ${target.id}: ${missing.join(", ")}`);
+  console.log(`${apply ? "transcode" : "would transcode"} ${target.id}`);
   if (!client) continue;
 
   const response = await fetch(digest.audio.url);
@@ -49,32 +42,19 @@ for (const target of await listDigestTargets(root)) {
     console.error(`  skipped, the MP3 answered ${response.status}`);
     continue;
   }
-  const mp3 = new Uint8Array(await response.arrayBuffer());
-  const urls: Partial<Record<OpusContainer, string>> = {};
-  for (const container of missing) {
-    try {
-      urls[container] = await uploadOpusAudio(client, {
-        digestId: target.id,
-        container,
-        audio: await transcodeToOpus(mp3, container),
-      });
-    } catch (error) {
-      console.error(`  ${container} failed: ${error instanceof Error ? error.message : error}`);
-    }
+  try {
+    const m4aUrl = await uploadOpusAudio(client, {
+      digestId: target.id,
+      audio: await transcodeToOpus(new Uint8Array(await response.arrayBuffer())),
+    });
+    await writeTextAtomic(
+      path,
+      serializeDigestFile({ ...digest, audio: { ...digest.audio, m4a_url: m4aUrl } }),
+    );
+    done++;
+  } catch (error) {
+    console.error(`  failed: ${error instanceof Error ? error.message : error}`);
   }
-  if (!urls.webm && !urls.m4a) continue;
-  await writeTextAtomic(
-    path,
-    serializeDigestFile({
-      ...digest,
-      audio: {
-        ...digest.audio,
-        ...(urls.webm ? { webm_url: urls.webm } : {}),
-        ...(urls.m4a ? { m4a_url: urls.m4a } : {}),
-      },
-    }),
-  );
-  done++;
 }
 
 console.log(

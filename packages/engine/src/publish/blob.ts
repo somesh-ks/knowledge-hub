@@ -1,6 +1,6 @@
 import { DigestId } from "@singularity/core";
 import { del, list, put } from "@vercel/blob";
-import { OPUS_CONTENT_TYPES, type OpusContainer } from "../audio/transcode.js";
+import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 
 /** Prefix every narration lives under, so pruning can never touch other blobs in the store. */
 export const AUDIO_PREFIX = "audio/";
@@ -99,9 +99,9 @@ export function audioKey(digestId: string): string {
   return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.mp3`;
 }
 
-/** Blob key for a digest's Opus narration: audio/<digest id>.webm or .m4a */
-export function audioOpusKey(digestId: string, container: OpusContainer): string {
-  return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.${container}`;
+/** Blob key for a digest's Opus narration: audio/<digest id>.m4a */
+export function audioOpusKey(digestId: string): string {
+  return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.m4a`;
 }
 
 export interface UploadAudioInput {
@@ -118,10 +118,9 @@ export async function uploadAudio(client: BlobClient, input: UploadAudioInput): 
 /** Upload a digest's Opus narration beside its MP3 and return its public URL. */
 export async function uploadOpusAudio(
   client: BlobClient,
-  input: UploadAudioInput & { container: OpusContainer },
+  input: UploadAudioInput,
 ): Promise<string> {
-  const key = audioOpusKey(input.digestId, input.container);
-  return putNarration(client, key, OPUS_CONTENT_TYPES[input.container], input);
+  return putNarration(client, audioOpusKey(input.digestId), OPUS_CONTENT_TYPE, input);
 }
 
 async function putNarration(
@@ -156,7 +155,7 @@ export interface PruneAudioInput {
 }
 
 /**
- * Delete narrations uploaded more than `olderThanDays` ago. Only audio/*.mp3, .webm and .m4a are considered. The
+ * Delete narrations uploaded more than `olderThanDays` ago. Only audio/*.mp3 and .m4a are considered. The
  * digests keep their audio fields, so a pruned digest plays as "audio unavailable" until rebuilt.
  */
 export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Promise<PruneResult> {
@@ -172,9 +171,7 @@ export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Pr
     for (const blob of page.blobs) {
       const isNarration =
         blob.pathname.startsWith(AUDIO_PREFIX) &&
-        (blob.pathname.endsWith(".mp3") ||
-          blob.pathname.endsWith(".webm") ||
-          blob.pathname.endsWith(".m4a"));
+        (blob.pathname.endsWith(".mp3") || blob.pathname.endsWith(".m4a"));
       if (isNarration && blob.uploadedAt.getTime() < cutoff) stale.push(blob.pathname);
       else kept++;
     }

@@ -6,7 +6,7 @@ import { checkBudget, describeRefusal, loadUsage, parseMonthlyChars } from "../a
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import { createSpeechifyClient } from "../audio/speechify.js";
 import { buildSpokenText } from "../audio/spokenText.js";
-import { type OpusContainer, transcodeToOpus } from "../audio/transcode.js";
+import { transcodeToOpus } from "../audio/transcode.js";
 import type { CommandContext, CommandRun } from "../context.js";
 import type { BlobClient } from "../publish/blob.js";
 import { createVercelBlobClient } from "../publish/blob.js";
@@ -20,8 +20,8 @@ export interface AudioCommandDeps {
   monthlyChars: () => number;
   createSpeech: (ctx: CommandContext) => SpeechSynthesizer;
   createBlob: (ctx: CommandContext) => BlobClient;
-  /** Also publish the narration as Opus in WebM. Left out, only the MP3 is published. */
-  transcodeOpus?: ((mp3: Uint8Array, container: OpusContainer) => Promise<Uint8Array>) | undefined;
+  /** Also publish the narration as Opus in MP4. Left out, only the MP3 is published. */
+  transcodeOpus?: ((mp3: Uint8Array) => Promise<Uint8Array>) | undefined;
 }
 
 export const defaultAudioDeps: AudioCommandDeps = {
@@ -30,7 +30,7 @@ export const defaultAudioDeps: AudioCommandDeps = {
   },
   // core's Env does not carry SPEECHIFY_MONTHLY_CHARS yet, so this is the one place it is read.
   monthlyChars: () => parseMonthlyChars(process.env.SPEECHIFY_MONTHLY_CHARS),
-  transcodeOpus: (mp3, container) => transcodeToOpus(mp3, container),
+  transcodeOpus: (mp3) => transcodeToOpus(mp3),
   createSpeech: (ctx) =>
     createSpeechifyClient({
       apiKey: requireKey(ctx.env, "SPEECHIFY_API_KEY"),

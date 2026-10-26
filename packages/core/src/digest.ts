@@ -75,8 +75,7 @@ export const Digest = z.object({
     .object({
       url: z.string().url(),
       duration_ms: z.number().int().positive(),
-      /** The same narration as Opus in WebM and in MP4 (plan 19.1). Absent on an older record. */
-      webm_url: z.string().url().optional(),
+      /** The same narration as Opus in MP4 (plan 19.1). Absent on an older record. */
       m4a_url: z.string().url().optional(),
     })
     .nullable(),

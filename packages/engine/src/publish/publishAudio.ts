@@ -31,7 +31,6 @@ import {
 import type { SpokenText } from "../audio/spokenText.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
-import { OPUS_CONTAINERS, type OpusContainer } from "../audio/transcode.js";
 import type { Logger } from "../context.js";
 import { costKindOf } from "../cost/ledger.js";
 import { loadSchedule } from "../schedule/store.js";
@@ -51,10 +50,10 @@ export interface PublishAudioDeps {
   outputFormat?: Mp3OutputFormat;
   cacheControlMaxAge?: number;
   /**
-   * MP3 bytes to Opus in WebM or MP4 (audio/transcode.ts). When set, the narration is
-   * published in all three; a failure here leaves the MP3 alone, so the briefing still has audio.
+   * MP3 bytes to Opus in MP4 (audio/transcode.ts). When set, the narration is also published
+   * as .m4a; a failure here leaves the MP3 alone, so the briefing still has audio.
    */
-  transcodeOpus?: (mp3: Uint8Array, container: OpusContainer) => Promise<Uint8Array>;
+  transcodeOpus?: (mp3: Uint8Array) => Promise<Uint8Array>;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -402,22 +401,19 @@ async function processDigest(
     return failed(digestId, "upload", error);
   }
 
-  const opusUrls: Partial<Record<OpusContainer, string>> = {};
+  let m4aUrl: string | undefined;
   const transcode = deps.transcodeOpus;
   if (transcode) {
-    for (const container of OPUS_CONTAINERS) {
-      try {
-        opusUrls[container] = await uploadOpusAudio(deps.blob, {
-          digestId,
-          container,
-          audio: await transcode(narration.audio, container),
-          ...(deps.cacheControlMaxAge !== undefined
-            ? { cacheControlMaxAge: deps.cacheControlMaxAge }
-            : {}),
-        });
-      } catch (error) {
-        deps.log.warn(`Opus ${container} skipped, the MP3 plays alone`, { reason: message(error) });
-      }
+    try {
+      m4aUrl = await uploadOpusAudio(deps.blob, {
+        digestId,
+        audio: await transcode(narration.audio),
+        ...(deps.cacheControlMaxAge !== undefined
+          ? { cacheControlMaxAge: deps.cacheControlMaxAge }
+          : {}),
+      });
+    } catch (error) {
+      deps.log.warn("Opus skipped, the MP3 plays alone", { reason: message(error) });
     }
   }
 
@@ -432,8 +428,7 @@ async function processDigest(
         audio: {
           url,
           duration_ms: resolved.timeline.duration_ms,
-          ...(opusUrls.webm ? { webm_url: opusUrls.webm } : {}),
-          ...(opusUrls.m4a ? { m4a_url: opusUrls.m4a } : {}),
+          ...(m4aUrl ? { m4a_url: m4aUrl } : {}),
         },
       }),
     );
