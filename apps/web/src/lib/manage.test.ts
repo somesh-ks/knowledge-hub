@@ -127,6 +127,21 @@ describe("parseTopicsFile", () => {
     expect(parsed?.sections.map((section) => section.id)).toEqual(["top", "tech"]);
   });
 
+  it("reads a legacy weight mute as off, and never published for a built-in", () => {
+    const legacy = parseTopicsFile({
+      topics: [
+        { id: "ai", name: "AI", weight: 0, origin: "builtin" },
+        { id: "mine", name: "Mine", weight: 0.05, origin: "custom" },
+        { id: "kept", name: "Kept", weight: 1, origin: "custom" },
+      ],
+    })?.topics;
+    expect(legacy?.map((topic) => [topic.enabled, topic.never_publish])).toEqual([
+      [false, true],
+      [false, false],
+      [true, false],
+    ]);
+  });
+
   it("fills in what a plain entry leaves out", () => {
     const plain = parseTopicsFile(file)?.topics[1];
     expect(plain).toMatchObject({

@@ -6,6 +6,7 @@ import {
   generalTopics,
   isGeneralTopicId,
   MIX_STOPS,
+  MUTED_WEIGHT,
   SECTION_TITLES,
   SECTIONS,
   SOURCE_FORMATS,
@@ -317,20 +318,23 @@ function parseTopic(value: unknown): ManageTopic | null {
   const keywords = Array.isArray(value.keywords)
     ? value.keywords.map(asString).filter((word): word is string => word !== null)
     : [];
+  const origin =
+    value.origin === "custom" || value.origin === "app" || value.origin === "general"
+      ? value.origin
+      : "builtin";
+  // A weight at or below the old mute is an off topic (D194), as the engine reads it.
+  const muted = typeof value.weight === "number" && value.weight <= MUTED_WEIGHT;
   return {
     id,
     name,
     description: asString(value.description) ?? "",
-    enabled: asBool(value.enabled, true),
+    enabled: muted ? false : asBool(value.enabled, true),
     keywords,
     section_id: asString(value.section_id) ?? "top",
-    never_publish: asBool(value.never_publish, false),
+    never_publish: muted && origin === "builtin" ? true : asBool(value.never_publish, false),
     ...(asString(value.emoji) ? { emoji: asString(value.emoji) as string } : {}),
     ...(asNumber(value.perspective) ? { perspective: asNumber(value.perspective) as number } : {}),
-    origin:
-      value.origin === "custom" || value.origin === "app" || value.origin === "general"
-        ? value.origin
-        : "builtin",
+    origin,
   };
 }
 
