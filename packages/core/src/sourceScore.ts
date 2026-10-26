@@ -317,6 +317,11 @@ export interface ScoreCounters {
   asked: number;
   flagged: number;
   failures: number;
+  /** Stories carried by another outlet; read instead of `published` for a general news feed. */
+  covered?: number;
+  /** Items sampled, which could never be published; the publish share is out of the rest. */
+  sampled?: number;
+  feedsGeneral?: boolean;
 }
 
 /**
@@ -336,12 +341,20 @@ export function scoreReasons(parts: SourceScoreParts | null, c: ScoreCounters): 
       c.failures > 0
         ? `Its feed failed the last ${c.failures} ${c.failures === 1 ? "fetch" : "fetches"}.`
         : "No fetch of its feed has worked lately.",
-    quality: () =>
-      c.judged > 0 && c.passed / c.judged < 0.25
-        ? `Most of its posts don't match your categories: ${c.passed} of ${c.judged} passed.`
-        : c.published === 0
-          ? "None of its posts has reached a briefing yet."
-          : `Few of its posts reach a briefing: ${c.published} of ${c.judged} published.`,
+    quality: () => {
+      if (c.judged > 0 && c.passed / c.judged < 0.25)
+        return `Most of its posts don't match your categories: ${c.passed} of ${c.judged} passed.`;
+      if (c.feedsGeneral) {
+        const covered = c.covered ?? 0;
+        return covered === 0
+          ? "None of its stories has been carried by another outlet yet."
+          : `Few of its stories are carried by another outlet: ${covered} of ${c.judged} judged.`;
+      }
+      const publishable = c.judged - Math.min(c.judged, c.sampled ?? 0);
+      return c.published === 0
+        ? "None of its posts has reached a briefing yet."
+        : `Few of its posts reach a briefing: ${c.published} of ${publishable} published.`;
+    },
     trust: () =>
       `${Math.round((c.flagged / Math.max(1, c.asked)) * 10)} in 10 of its posts were flagged as hype or sponsored.`,
   };

@@ -353,4 +353,18 @@ describe("scoreReasons", () => {
     ]);
     expect(scoreReasons(scoreOf({}).parts, { ...counters, failures: 0 })).toEqual([]);
   });
+
+  it("words the measure that scored quality: covered stories for a general feed, publishable items past the sampled", () => {
+    const parts = { health: 1, quality: 0.2, trust: null };
+    const base = { judged: 40, passed: 20, published: 0, asked: 0, flagged: 0, failures: 0 };
+    expect(scoreReasons(parts, { ...base, feedsGeneral: true, covered: 0 })).toEqual([
+      "None of its stories has been carried by another outlet yet.",
+    ]);
+    expect(scoreReasons(parts, { ...base, feedsGeneral: true, covered: 3 })).toEqual([
+      "Few of its stories are carried by another outlet: 3 of 40 judged.",
+    ]);
+    expect(scoreReasons(parts, { ...base, published: 2, sampled: 10 })).toEqual([
+      "Few of its posts reach a briefing: 2 of 30 published.",
+    ]);
+  });
 });
