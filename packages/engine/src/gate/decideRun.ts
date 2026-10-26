@@ -169,6 +169,17 @@ export function decideRun({
   }
 
   const weeklyDue = inWeeklySlot && !weeklyAlreadyRanOn(lastRun, date, zone);
+  // Force bypasses the cadence, never the switch: an off briefing is not generated.
+  if (!dailyEnabled) {
+    return {
+      due: false,
+      runWeekly: weeklyDue,
+      reason: "the daily briefing is switched off",
+      date,
+      publishAt: weeklyDue ? weeklyAt : null,
+    };
+  }
+
   if (force) {
     return {
       due: true,
@@ -184,16 +195,6 @@ export function decideRun({
       due: false,
       runWeekly: weeklyDue,
       reason: "today is the weekly podcast's day; no briefing",
-      date,
-      publishAt: weeklyDue ? weeklyAt : null,
-    };
-  }
-
-  if (!dailyEnabled) {
-    return {
-      due: false,
-      runWeekly: weeklyDue,
-      reason: "the daily briefing is switched off",
       date,
       publishAt: weeklyDue ? weeklyAt : null,
     };

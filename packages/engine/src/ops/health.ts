@@ -162,11 +162,13 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
 
   // The slot's own hour has passed with its briefing unpublished: said the same day, not the next
   // (D193; `run_overdue` waits for the date). A later cron call or health's heal can still publish.
-  if (slotSchedule !== null) {
+  // An unreadable last-run.json is already a state_invalid fault: the check has nothing to read.
+  const slotLastRun = await readLastRun(root).catch(() => undefined);
+  if (slotSchedule !== null && slotLastRun !== undefined) {
     const due = decideRun({
       now,
       mode: "scheduled",
-      lastRun: await readLastRun(root),
+      lastRun: slotLastRun,
       force: false,
       cadenceDays: slotSchedule.cadence_days,
       weekly: slotSchedule.weekly,

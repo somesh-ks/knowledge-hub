@@ -99,3 +99,60 @@ it("points the workspace's own packages at the worktree, under whichever name ma
   expect(linksIn(worktree), "links left after the second --remove").toEqual([]);
   expect(existsSync(join(main, "packages/core/package.json")), "main's own package").toBe(true);
 });
+
+// On 2026-10-26 the main checkout's @rolldown and @rollup were emptied: the script junctioned a whole
+// third-party scope, so a tool that cleared a folder inside the worktree's scope cleared main's.
+it("links a third-party scope package by package, so clearing it in the worktree leaves main whole", () => {
+  const root = real(mkdtempSync(join(tmpdir(), "worktree-links-")));
+  roots.push(root);
+  const main = join(root, "main");
+  const worktree = join(root, "worktree");
+  put(join(main, "packages/core/package.json"), JSON.stringify({ name: "@new/core" }));
+  git(main, "init", "-q");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "init");
+  git(main, "worktree", "add", "-q", "--detach", worktree);
+  put(join(main, "node_modules/@rolldown/binding/index.node"), "x");
+  put(join(main, "node_modules/@rolldown/other/index.js"), "x");
+
+  links(worktree);
+  links(worktree);
+  const scope = join(worktree, "node_modules/@rolldown");
+  expect(lstatSync(scope).isSymbolicLink(), "scope is a link").toBe(false);
+  expect(real(join(scope, "binding"))).toBe(real(join(main, "node_modules/@rolldown/binding")));
+
+  // A tool that clears what a scope holds (a prune, a cache sweep) removes links, not main's files.
+  rmSync(scope, { recursive: true, force: true });
+  expect(
+    existsSync(join(main, "node_modules/@rolldown/binding/index.node")),
+    "main's package",
+  ).toBe(true);
+  links(worktree);
+  expect(linksIn(worktree).length, "links after relinking").toBeGreaterThan(0);
+  links(worktree, "--remove");
+  expect(linksIn(worktree)).toEqual([]);
+  expect(
+    existsSync(join(main, "node_modules/@rolldown/binding/index.node")),
+    "main's package",
+  ).toBe(true);
+});
+
+// `--check` guards `git worktree remove`: a worktree kept anywhere but .claude/worktrees went
+// unlisted, and removing it with links in place deletes main's packages.
+it("--check lists a linked worktree wherever git registered it", () => {
+  const root = real(mkdtempSync(join(tmpdir(), "worktree-links-")));
+  roots.push(root);
+  const main = join(root, "main");
+  const worktree = join(root, "worktree");
+  put(join(main, "packages/core/package.json"), JSON.stringify({ name: "@new/core" }));
+  git(main, "init", "-q");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "init");
+  git(main, "worktree", "add", "-q", "--detach", worktree);
+  put(join(main, "node_modules/leftpad/package.json"), "{}");
+
+  links(worktree);
+  expect(() => links(main, "--check"), "a linked worktree outside .claude/worktrees").toThrow();
+  links(worktree, "--remove");
+  expect(() => links(main, "--check"), "no links left").not.toThrow();
+});

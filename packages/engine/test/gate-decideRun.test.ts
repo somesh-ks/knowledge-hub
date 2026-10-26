@@ -480,6 +480,19 @@ describe("decideRun: a daily briefing that is switched off", () => {
     expect(daily(false)).toMatchObject({ due: false, runWeekly: false, publishAt: null });
   });
 
+  it("stays off under a forced run, which bypasses the cadence only", () => {
+    const forced = decideRun({
+      now: new Date("2026-10-27T05:30:00Z"),
+      mode: "scheduled",
+      lastRun: lastWith(record("2026-10-26T06:00:00Z")),
+      force: true,
+      weekly: NO_WEEKLY,
+      hour: 7,
+      dailyEnabled: false,
+    });
+    expect(forced).toMatchObject({ due: false, publishAt: null });
+  });
+
   it("leaves the weekly pass and an on-demand episode alone", () => {
     const sunday = decideRun({
       now: new Date("2026-10-25T06:30:00Z"),

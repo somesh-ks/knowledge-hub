@@ -93,7 +93,7 @@ export function buildItem(raw: RawItem, context: BuildContext, shared?: SharedUr
     id: itemId(
       shared?.mode === "salt"
         ? `${canonical}
-${raw.guid?.trim() || title}`
+${shared.useTitle ? title : raw.guid?.trim() || title}`
         : canonical,
     ),
     url,
@@ -116,6 +116,8 @@ ${raw.guid?.trim() || title}`
 /** How an entry that shares its canonical URL with another story of the same fetch gets its own id. */
 interface SharedUrl {
   mode: "fragment" | "salt";
+  /** The guid is empty or repeats within the group, so the title tells the entries apart. */
+  useTitle: boolean;
 }
 
 /**
@@ -144,7 +146,15 @@ function sharedUrlModes(raws: readonly RawItem[], context: BuildContext): Map<Ra
       fragments.every((f) => f !== "" && f !== "#") && new Set(fragments).size === group.length
         ? "fragment"
         : "salt";
-    for (const entry of group) modes.set(entry.raw, { mode });
+    const guidCount = new Map<string, number>();
+    for (const entry of group) {
+      const guid = entry.raw.guid?.trim() ?? "";
+      guidCount.set(guid, (guidCount.get(guid) ?? 0) + 1);
+    }
+    for (const entry of group) {
+      const guid = entry.raw.guid?.trim() ?? "";
+      modes.set(entry.raw, { mode, useTitle: !guid || (guidCount.get(guid) ?? 0) > 1 });
+    }
   }
   return modes;
 }

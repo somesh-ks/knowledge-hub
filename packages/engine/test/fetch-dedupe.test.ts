@@ -41,6 +41,36 @@ describe("dedupe", () => {
     expect(report).toMatchObject({ input: 2, already_seen: 1, output: 1 });
   });
 
+  it("keeps each story of a shared page when another source ranks first for its URL", () => {
+    const url = "https://example.com/changelog";
+    const other = makeItem({ url, title: "Changelog overview", source_id: "craft" });
+    const v1 = makeItem({ url, title: "Springs get retargeting", id: "id-v1" });
+    const v2 = makeItem({ url, title: "Gestures learn velocity", id: "id-v2" });
+    const { items } = dedupe({ items: [v1, other, v2], sources, seen: emptySeen });
+    expect(items.map((i) => i.id).sort()).toEqual([other.id, "id-v1", "id-v2"].sort());
+  });
+
+  it("gives a repeat of a shared page's story to the story with its id, not to a similar title earlier", () => {
+    const url = "https://example.com/changelog";
+    const first = makeItem({
+      url,
+      title: "Springs get retargeting",
+      id: "id-a",
+      source_id: "craft",
+    });
+    const second = makeItem({ url, title: "Gestures learn velocity", id: "id-b" });
+    const repeat = makeItem({
+      url,
+      title: "Springs get retargeting",
+      id: "id-b",
+      source_id: "src-b",
+      author: "someone",
+    });
+    const { items } = dedupe({ items: [first, second, repeat], sources, seen: emptySeen });
+    expect(items.find((i) => i.id === "id-a")?.author).toBeUndefined();
+    expect(items.find((i) => i.id === "id-b")?.author).toBe("someone");
+  });
+
   it("collapses the same canonical URL and keeps the higher-signal source", () => {
     const fromBlog = makeItem({
       url: "https://example.com/post",

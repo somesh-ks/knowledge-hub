@@ -25,7 +25,11 @@ export function newestItem(
 ): { kind: "digest" | "episode"; id: string } | null {
   const digest = site.entries.find((entry) => !skip.has(entry.digest.id))?.digest;
   const episode = site.episodes.find((entry) => !skip.has(entry.id));
-  if (episode && (!digest || episode.episode.generated_at > digest.generated_at)) {
+  // Instants, not strings: a digest keeps the offset it was written with.
+  if (
+    episode &&
+    (!digest || Date.parse(episode.episode.generated_at) > Date.parse(digest.generated_at))
+  ) {
     return { kind: "episode", id: episode.id };
   }
   return digest ? { kind: "digest", id: digest.id } : null;
