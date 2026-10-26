@@ -113,8 +113,12 @@ export function readRun(local: Store, session: Store): Stored | null {
   if (run) return run;
   const old = parse(session.getItem(KEY));
   if (old) {
-    local.setItem(KEY, JSON.stringify(old));
-    session.removeItem(KEY);
+    try {
+      local.setItem(KEY, JSON.stringify(old));
+      session.removeItem(KEY);
+    } catch {
+      // Moving it is best effort: the session copy stays valid when localStorage refuses.
+    }
   }
   return old;
 }

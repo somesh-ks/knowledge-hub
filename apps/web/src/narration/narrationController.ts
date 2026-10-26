@@ -250,12 +250,12 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         continue;
       }
       const added = growth.sync(doc);
-      if (added === 0 && segments.length <= shown && doc.status === "writing") {
+      if (added === 0 && doc.turns.length <= shown && doc.status === "writing") {
         if (gaveUp()) return;
         continue;
       }
       lastGrowth = live.now();
-      shown = segments.length;
+      shown = doc.turns.length;
       const narrated = liveNarrated(doc, segments, new Date());
       const session = sessions.get(id);
       if (session) session.narrated = narrated;

@@ -157,27 +157,34 @@ export function dedupe({ items, sources, seen }: DedupeInput): DedupeResult {
 
   // 2. Same canonical URL.
   const byUrl = new Map<string, Item>();
+  const urlKeys = new Map<string, string[]>();
   for (const item of [...fresh].sort((a, b) => compareQuality(a, b, sourceById))) {
-    const existing = byUrl.get(item.canonical_url);
+    // Every report kept for this page (the first under the URL, the rest under URL and id).
+    const keys = urlKeys.get(item.canonical_url) ?? [];
+    const matchKey = keys.find((key) => {
+      const candidate = byUrl.get(key);
+      return (
+        candidate !== undefined &&
+        (candidate.id === item.id ||
+          (candidate.source_id !== item.source_id &&
+            jaccard(titleTokens(candidate.title), titleTokens(item.title)) >=
+              NEAR_DUPLICATE_THRESHOLD))
+      );
+    });
+    const existing = matchKey === undefined ? undefined : byUrl.get(matchKey);
     // Same URL, different ids: two stories that share a page (see buildItems). Another source's
     // item absorbs only the one it is about, never every entry of the page.
-    if (
-      existing &&
-      (existing.id === item.id ||
-        (existing.source_id !== item.source_id &&
-          jaccard(titleTokens(existing.title), titleTokens(item.title)) >=
-            NEAR_DUPLICATE_THRESHOLD))
-    ) {
-      byUrl.set(item.canonical_url, merge(existing, item));
+    if (existing && matchKey !== undefined) {
+      byUrl.set(matchKey, merge(existing, item));
       report.same_url++;
-    } else if (existing) {
-      byUrl.set(
-        `${item.canonical_url}
-${item.id}`,
-        item,
-      );
+    } else if (keys.length > 0) {
+      const key = `${item.canonical_url}
+${item.id}`;
+      byUrl.set(key, item);
+      urlKeys.set(item.canonical_url, [...keys, key]);
     } else {
       byUrl.set(item.canonical_url, item);
+      urlKeys.set(item.canonical_url, [item.canonical_url]);
     }
   }
   const unique = [...byUrl.values()];
