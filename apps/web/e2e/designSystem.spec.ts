@@ -175,3 +175,41 @@ test.describe("the 8pt spacing system", () => {
     expect(await offGrid(page), "the Add source panel").toEqual([]);
   });
 });
+
+test.describe("one page gutter", () => {
+  // The Settings title once sat 24px further in than Latest's and Library's (a rule gave titles a
+  // card's padding), so the page moved sideways between tabs. Compared page to page, never to a px.
+  test("every top-level page starts and ends its content on the same edges", {
+    tag: "@both",
+  }, async ({ page }) => {
+    test.setTimeout(120_000);
+    // Latest's desktop hero is centred in its own layout, so it joins on the phone only.
+    const wide = (page.viewportSize()?.width ?? 0) >= 1024;
+    const paths = [...(wide ? [] : ["/"]), "/library", "/settings", "/settings/preferences"];
+    const titles: number[] = [];
+    for (const path of paths) {
+      await page.goto(path);
+      await expect(page.locator("main h1").first()).toBeVisible();
+      const found = await page.evaluate(() => {
+        const title = document.querySelector("main h1");
+        if (!title) throw new Error("no title");
+        const range = document.createRange();
+        range.selectNodeContents(title);
+        const card = document.querySelector("main .card-group")?.getBoundingClientRect();
+        const main = document.querySelector("main")?.getBoundingClientRect();
+        return {
+          title: range.getBoundingClientRect().left,
+          card: card ? [card.left, card.right] : null,
+          main: main ? [main.left, main.right] : null,
+        };
+      });
+      titles.push(found.title);
+      // A card is the page's content edge, left and right.
+      if (path === "/settings") expect(found.card, `${path} renders a card group`).toBeTruthy();
+      if (found.card) expect(found.card, `${path} card against its page`).toEqual(found.main);
+    }
+    for (const [index, title] of titles.entries()) {
+      expect(title, `${paths[index]} title against ${paths[0]}`).toBeCloseTo(titles[0] ?? 0, 0);
+    }
+  });
+});

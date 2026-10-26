@@ -33,9 +33,11 @@ export const turnKey = (idx: number): string => `t${idx}`;
 
 /**
  * A segment's name holds the hash of its text and voice, so the words behind a URL never change and
- * the file can be kept for a month.
+ * the file can be kept for a year (Blob sets max-age only; `immutable` is not an option it offers).
+ * The briefing and episode files at a fixed key (audio/<id>.mp3, covers/<id>-<size>) are not
+ * named by their content, so they keep a short cache (2026-10-26).
  */
-export const SEGMENT_CACHE_SECONDS = 30 * 24 * 60 * 60;
+export const SEGMENT_CACHE_SECONDS = 365 * 24 * 60 * 60;
 
 /**
  * The second host's voice when SPEECHIFY_VOICE_ID_B is not set at all: a deeper male voice from the

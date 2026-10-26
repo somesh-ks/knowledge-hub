@@ -21,11 +21,10 @@ function startPlaying(harness: ReturnType<typeof createHarness>, digest = makeDi
 }
 
 describe("loading", () => {
-  it("attaches the source with preload metadata and waits for a tap", () => {
+  it("fetches no audio on load, attaches the source on the tap, and takes the duration from the timeline", () => {
     const { store, audio } = createHarness();
     store.load(makeDigest());
-    expect(audio.src).toBe("/audio/2026-10-07.mp3");
-    expect(audio.preload).toBe("metadata");
+    expect(audio.src).toBe("");
     expect(audio.playCalls).toBe(0);
     expect(store.getState()).toMatchObject({
       status: "idle",
@@ -69,6 +68,7 @@ describe("loading", () => {
   it("refreshes the track when the same digest loads again, without touching the source", () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
+    harness.store.play();
     const before = harness.audio.src;
     harness.audio.src = "kept";
     harness.store.load(makeDigest());
@@ -865,8 +865,11 @@ describe("one digest at a time", () => {
       audio: { url: "/audio/old.mp3", duration_ms: 90_000 },
     });
     harness.store.load(other);
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
     expect(harness.audio.src).toBe("/audio/old.mp3");
-    expect(harness.store.getState()).toMatchObject({ digestId: "2026-10-05", status: "idle" });
+    harness.store.pause();
+    expect(harness.store.getState()).toMatchObject({ digestId: "2026-10-05", status: "paused" });
     expect(harness.storage.getItem(resumeKey("2026-10-07"))).toBe("40");
     expect(harness.createdAudios).toHaveLength(1);
   });

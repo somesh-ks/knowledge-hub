@@ -10,6 +10,7 @@ import {
   type SourceFormat,
   sourceFormat,
   type Topic,
+  topicTaste,
 } from "@singularity/core";
 import type { TopicFits } from "../judge/topicJudge.js";
 import { clamp01, round4 } from "./numbers.js";
@@ -19,7 +20,7 @@ import type { ScoredItem } from "./types.js";
 /**
  * Custom-topic scoring, layered over the built-in score without touching it.
  *
- *   topic score = weight x curve(fit) x penaltyFactor [x depth factor, for craft and launch topics]
+ *   topic score = taste x curve(fit) x penaltyFactor [x depth factor, for craft and launch topics]
  *   final score = the larger of the built-in score and the best topic score
  *
  * curve(fit) = fit^1.5. The judge's expected level (0 to 4) is normalized to `fit` in 0..1, and the
@@ -136,7 +137,7 @@ export function topicScore(
   const lean =
     topic.origin === "general" ? perspectiveFactor(topic.perspective, story?.leans ?? []) : 1;
   return {
-    score: round4(clamp01(topic.weight * curve * depth * penalty * lean)),
+    score: round4(clamp01(topicTaste(topic) * curve * depth * penalty * lean)),
     curve,
     depth,
     penalty,
@@ -196,7 +197,7 @@ export function applyTopics(scored: ScoredItem, layer: TopicLayer | undefined): 
     ...scored,
     score: best.result.score,
     breakdown: {
-      taste: round4(best.topic.weight),
+      taste: round4(topicTaste(best.topic)),
       craftFactor: round4(best.result.curve * best.result.depth),
       penaltyFactor: round4(best.result.penalty),
       bonus: 0,

@@ -46,7 +46,6 @@ const topic = {
   id: "motion-craft",
   name: "Motion craft",
   description: "Springs, easing and the feel of interfaces in motion.",
-  weight: 0.75,
   enabled: true,
   keywords: ["spring", "easing"],
   section_id: "ui-craft",
@@ -73,7 +72,6 @@ describe("parseConfigOp", () => {
       { op: "source.set", id: "openai-blog", enabled: false },
       { op: "source.set", id: "openai-blog", pinned: true },
       { op: "source.remove", id: "openai-blog" },
-      { op: "weights.set", weights: { "motion-craft": 0, other_topic: 1 } },
     ];
     for (const op of ops) expect(parseConfigOp(op)).toEqual(op);
   });
@@ -129,12 +127,6 @@ describe("parseConfigOp", () => {
     expect(bad({ keywords: ["k".repeat(41)] })).toBeNull();
     expect(bad({ keywords: [""] })).toBeNull();
     expect(bad({ keywords: "spring" })).toBeNull();
-    expect(bad({ weight: -0.1 })).toBeNull();
-    expect(bad({ weight: 1.1 })).toBeNull();
-    expect(bad({ weight: Number.NaN })).toBeNull();
-    expect(bad({ weight: "0.5" })).toBeNull();
-    expect(bad({ weight: 0 })).not.toBeNull();
-    expect(bad({ weight: 1 })).not.toBeNull();
     expect(bad({ enabled: "yes" })).toBeNull();
     expect(bad({ section_id: "Top Picks" })).toBeNull();
   });
@@ -228,15 +220,6 @@ describe("parseConfigOp", () => {
     for (const id of ["A", "has space", "", 7, null, undefined]) {
       expect(parseConfigOp({ op: "source.update", id, name: "Fine" })).toBeNull();
     }
-  });
-
-  it("checks every weight", () => {
-    expect(parseConfigOp({ op: "weights.set", weights: {} })).toBeNull();
-    expect(parseConfigOp({ op: "weights.set", weights: { "bad id": 0.5 } })).toBeNull();
-    expect(parseConfigOp({ op: "weights.set", weights: { fine: 2 } })).toBeNull();
-    expect(parseConfigOp({ op: "weights.set", weights: [0.5] })).toBeNull();
-    const many = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`topic-${i}`, 0.5]));
-    expect(parseConfigOp({ op: "weights.set", weights: many })).toBeNull();
   });
 
   it("rejects an unknown operation and anything that is not an object", () => {

@@ -28,6 +28,34 @@ export const CACHE_GRACE_MS = 300;
 /** Where the device keeps the last answer: one build's edits, checked against the page on read. */
 export const CACHE_KEY = "singularity:store-read";
 
+/** Where the device keeps the newest revision its own saves produced (the store's clock). */
+export const OWN_KEY = "singularity:store-own-write";
+
+/**
+ * Keeps the revision a save of this device produced, so the store's answer holding it is not read as
+ * another device's change (offerReload): only a write after it is.
+ */
+export function noteOwnWrite(writtenAt: number): void {
+  try {
+    localStorage.setItem(OWN_KEY, String(Math.max(writtenAt, ownWrite())));
+  } catch {
+    // A full or blocked storage only costs a toast that is not needed.
+  }
+}
+
+function ownWrite(): number {
+  try {
+    const kept = Number(localStorage.getItem(OWN_KEY));
+    return Number.isFinite(kept) ? kept : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** True when the answer is no newer than this device's own latest save. */
+const isOwn = (body: ConfigReadBody): boolean =>
+  body.written_at !== null && body.written_at <= ownWrite();
+
 let last: { at: number; read: Promise<ConfigReadBody | null> } | undefined;
 let current: ConfigReadBody | null = null;
 
@@ -115,7 +143,8 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
     // The page keeps its built copy after the wait; a store that answers later is offered.
     let late = false;
     void asked.read.then((body) => {
-      if (late && body && (body.ops.length > 0 || body.sources.length > 0)) offerReload();
+      if (late && body && !isOwn(body) && (body.ops.length > 0 || body.sources.length > 0))
+        offerReload();
     });
     const wait = new Promise<null>((resolve) => {
       setTimeout(() => {
@@ -140,7 +169,7 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
     // The page shows the copy: a store that answers after it, with something else, is offered.
     if (!settled)
       void asked.read.then((later) => {
-        if (later && sameEdits(later, cached) === false) offerReload();
+        if (later && !isOwn(later) && sameEdits(later, cached) === false) offerReload();
       });
     return settled ? body : cached;
   });

@@ -121,7 +121,7 @@ test.describe("the Topics list", () => {
     await expect(page.getByRole("link", { name: /^Other/ })).toHaveCount(0);
   });
 
-  test("a search narrows every source to a flat list, a topic's format chip narrows its own, and a reload or Back keeps them", async ({
+  test("a search narrows every source to a flat list, a category's format tab narrows its own, and a reload or Back keeps them", async ({
     page,
   }) => {
     await setup(page);
@@ -151,36 +151,48 @@ test.describe("the Topics list", () => {
     await expect(page.getByText("No sources match.")).toBeVisible();
     await page.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(page.getByRole("link", { name: /^Design/ })).toBeVisible();
-    // A topic's page: a format chip narrows its list and is kept on a reload.
+    // A category's page: a format tab narrows its list and is kept on a reload.
     await page.goto(CRAFT_PAGE);
-    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
+    await page.getByRole("tab", { name: "Blog", exact: true }).click();
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveText([
       /Studio Notes/,
     ]);
     await page.reload();
-    await expect(page.getByRole("checkbox", { name: "Blog" })).toBeChecked();
+    await expect(page.getByRole("tab", { name: "Blog", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveCount(1);
   });
 
-  test("@desktop a topic's formats are chips with no All, any number at once, and Add source sits beside the search", async ({
+  test("@desktop a category's formats are tabs, All first and one at a time, and Add source sits beside the search", async ({
     page,
   }) => {
     await page.goto(CRAFT_PAGE);
-    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "All", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByRole("tab", { name: "Blocked" })).toHaveCount(0);
     await expect(
       page.locator(".filter-row").getByRole("button", { name: /^Add source to/ }),
     ).toBeVisible();
     const all = page.locator("ul[data-sources] li.source-row:visible");
     const every = await all.count();
-    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
+    await page.getByRole("tab", { name: "Blog", exact: true }).click();
     await expect(all).toHaveCount(1);
-    await page.locator("label.filter-chip", { hasText: "News" }).click();
-    await expect(page.getByRole("checkbox", { name: "Blog" })).toBeChecked();
-    await expect(all.count()).resolves.toBeGreaterThan(1);
+    await page.getByRole("tab", { name: "News", exact: true }).click();
+    await expect(page.getByRole("tab", { name: "Blog", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    await expect(all.count()).resolves.toBeLessThan(every);
     await page.reload();
-    await expect(page.getByRole("checkbox", { name: "News" })).toBeChecked();
-    await page.locator("label.filter-chip", { hasText: "Blog" }).click();
-    await page.locator("label.filter-chip", { hasText: "News" }).click();
+    await expect(page.getByRole("tab", { name: "News", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await page.getByRole("tab", { name: "All", exact: true }).click();
     await expect(all).toHaveCount(every);
   });
 
@@ -329,7 +341,6 @@ test.describe("the Topics list", () => {
           id: "motion-design",
           name: "Motion design",
           description: "Animation and motion in interfaces.",
-          weight: 0.7,
           enabled: true,
           keywords: [],
           section_id: "motion-design",
@@ -434,35 +445,6 @@ test.describe("a topic's page", () => {
   // Design gathers the fixture's Design engineering craft and Product design (D69).
   const CRAFT = "/settings/categories/design";
 
-  test("a weight change on Preferences saves itself as one weights.set, and a reload keeps the view", async ({
-    page,
-  }) => {
-    const { sent } = await setup(page);
-    await open(page, "/settings/categories/audio_interfaces");
-    await page.getByRole("tab", { name: "Preferences" }).click();
-    await expect(page).toHaveURL(/\?view=preferences$/);
-    const slider = page.locator("[data-weight]");
-    await slider.fill("3");
-    await expect(page.locator(".topic-weight:has([data-weight]) [data-word]")).toHaveText("More");
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { audio_interfaces: 0.85 } }]);
-    await page.reload();
-    await expect(page.getByRole("tab", { name: "Preferences" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page.locator("[data-weight]")).toHaveValue("3");
-    // The view is a tablist: Home goes back to Sources, and the address follows.
-    await page.getByRole("tab", { name: "Preferences" }).press("Home");
-    await expect(page.getByRole("tab", { name: "Sources" })).toBeFocused();
-    await expect(page.getByRole("tab", { name: "Sources" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page).not.toHaveURL(/view=/);
-    await expect(page.getByRole("tabpanel", { name: "Sources" })).toBeVisible();
-  });
-
   test("a type set on Preferences goes as one mix.set for every topic and holds after a reload", async ({
     page,
   }) => {
@@ -474,47 +456,6 @@ test.describe("a topic's page", () => {
     expect(ops(sent)).toEqual([{ op: "mix.set", format_mix: { video: 0 } }]);
     await page.reload();
     await expect(page.getByRole("slider", { name: "Video", exact: true })).toHaveValue("0");
-  });
-
-  test("Design weighs each topic it gathers by name; a group of one has a plain Weight row", async ({
-    page,
-  }) => {
-    const { sent } = await setup(page);
-    await open(page, CRAFT);
-    const weights = page.getByRole("region", { name: "Category weightage" });
-    // Shown on Preferences, not with the sources.
-    await expect(weights.getByRole("slider")).toHaveCount(0);
-    await page.getByRole("tab", { name: "Preferences" }).click();
-    await expect(weights.getByRole("slider")).toHaveCount(2);
-    await expect(weights.getByRole("slider").first()).toHaveAccessibleName(
-      "Design engineering craft",
-    );
-    await weights.getByRole("slider", { name: "Product design" }).fill("1");
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(ops(sent)).toEqual([{ op: "weights.set", weights: { product_design: 0.5 } }]);
-    // A Preferences load never shows the sources first: probed every frame from the first paint.
-    await page.addInitScript(() => {
-      const w = window as unknown as { sourcesFlashed?: boolean };
-      w.sourcesFlashed = false;
-      const shown = (selector: string) =>
-        document.querySelector(selector)?.checkVisibility({ visibilityProperty: true }) ?? false;
-      const probe = () => {
-        if (shown("[data-weight]")) return;
-        if (shown("[data-sources]")) w.sourcesFlashed = true;
-        requestAnimationFrame(probe);
-      };
-      new MutationObserver(() => {
-        if (!shown("[data-weight]") && shown("[data-sources]")) w.sourcesFlashed = true;
-      }).observe(document, { childList: true, subtree: true, attributes: true });
-      requestAnimationFrame(probe);
-    });
-    await open(page, "/settings/categories/ai?view=preferences");
-    await expect(page.locator("[data-weight]")).toBeVisible();
-    expect(
-      await page.evaluate(() => (window as unknown as { sourcesFlashed: boolean }).sourcesFlashed),
-    ).toBe(false);
-    const single = page.getByRole("region", { name: "Category weightage" });
-    await expect(single.getByRole("slider", { name: "Weight", exact: true })).toHaveCount(1);
   });
 
   test("Listen in is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
@@ -898,13 +839,10 @@ test.describe("a topic's page", () => {
     await expect(page.locator("li.source-row")).toHaveCount(2);
   });
 
-  test("a general topic: always on, in podcasts, edit, scores, no weight and no remove", async ({
-    page,
-  }) => {
+  test("a general topic: always on, in podcasts, edit, scores and no remove", async ({ page }) => {
     const { sent } = await setup(page);
     await open(page, "/settings/categories/world");
     await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeVisible();
-    await expect(page.locator("[data-weight]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Delete category/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add source to World" })).toBeVisible();
     await expect(source(page, "Meridian Wire").locator(".score")).toBeVisible();
@@ -1147,7 +1085,6 @@ test.describe("editing a topic", () => {
             description: "Interface work on players, voice and sound.",
             keywords: ["audio", "voice", "player"],
             enabled: true,
-            weight: 0.7,
           },
         },
       ]);
@@ -1496,7 +1433,7 @@ test.describe("the podcast structure", () => {
     await page.clock.install();
     const server = await routeConfigServer(page);
     await open(page, "/settings/preferences?view=structure");
-    await expect(page.getByRole("tab", { name: "Structure" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Podcast structure" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
