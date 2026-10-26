@@ -87,6 +87,19 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     }
   }
   profileSelect.value = profile;
+  /** The card shows the chosen profile: its picture, name and line (the select lies over its edit glyph). */
+  const paintCard = (): void => {
+    const option = profileSelect.selectedOptions[0];
+    const card = profileSelect.closest(".profile-card");
+    if (!option || !card) return;
+    for (const art of card.querySelectorAll<HTMLElement>("[data-profile-art]"))
+      art.hidden = art.dataset.profileArt !== profileSelect.value;
+    const name = card.querySelector("[data-profile-name]");
+    const note = card.querySelector("[data-profile-note]");
+    if (name) name.textContent = option.textContent;
+    if (note) note.textContent = option.dataset.note ?? "";
+  };
+  paintCard();
   const skip: SkipLists = skipAfter(data.skip, ops);
 
   // ------------------------------------------------------------------------------- recording
@@ -120,6 +133,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   const editedList = (): void => {
     profile = "custom";
     profileSelect.value = "custom";
+    paintCard();
     confirm.hidden = true;
     recordBlocks();
   };
@@ -237,6 +251,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     profile = next;
     if (next !== "custom") blocks = data.presets[next].map(normal);
     profileSelect.value = next;
+    paintCard();
     confirm.hidden = true;
     asked = null;
     recordBlocks();
@@ -253,6 +268,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     }
     asked = chosen;
     profileSelect.value = profile;
+    paintCard();
     const text = confirm.querySelector("[data-profile-confirm-text]");
     if (text) text.textContent = `Replace your list with the ${label(chosen)} profile?`;
     confirm.hidden = false;

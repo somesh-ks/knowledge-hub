@@ -334,7 +334,7 @@ export function rowsHtml(
         // A frame the app speaks has nothing to change, so it is not listed (owner, 2026-10-24:
         // "remove hello and closing"); one a model writes (Catch up's) stays for its prompt.
         if (builtinPrompt(data, block) === null) return "";
-        const edit = `<button class="icon-btn press icon-btn-end structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencil")}</button>`;
+        const edit = `<button class="icon-btn press icon-btn-end structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencilSimple")}</button>`;
         return `<li class="settings-row structure-row" data-index="${index}" data-frame data-quiet><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
       }
       const menu = `structure-menu-${Number(index)}`;
@@ -349,7 +349,7 @@ export function rowsHtml(
         `<div class="menu-sheet-items" role="menu" aria-label="${name}">`,
         item("up", "arrowUp", "Move up", index <= 1),
         item("down", "arrowDown", "Move down", index >= last),
-        item("edit", "pencil", "Edit"),
+        item("edit", "pencilSimple", "Edit"),
         item("remove", "trash", "Remove", alone, " hero-menu-delete"),
         `</div></div></div></li>`,
       ].join("");

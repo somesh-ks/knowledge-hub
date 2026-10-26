@@ -1748,13 +1748,51 @@ html:has(.source-filter[data-chips]) {
   align-self: flex-end;
 }
 
+/* The profile card is the category card (.topic-card) in one row at every width: a 64px picture at
+   the start, the name and its line, the edit glyph at the end. The select lies invisibly over the
+   glyph and takes its box, so a tap opens the native choice there; the control's radius is the
+   card's less its padding, as the picture's (2026-10-26). */
 .structure-profile {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "art text menu";
+  align-items: center;
+  column-gap: var(--space-4);
+  padding: var(--space-4);
   min-width: 0;
 }
 
-/* The value's chevron ends under the dots' glyphs, as the link rows' values do (D187). */
-.structure-profile .value-select {
-  --value-select-pull: var(--space-2);
+.structure-profile .topic-card-art {
+  grid-area: art;
+  width: var(--space-16);
+  height: var(--space-16);
+}
+
+.profile-card-name {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-body);
+}
+
+.profile-edit {
+  position: relative;
+}
+
+.profile-edit .icon-btn {
+  border-radius: var(--card-content-radius);
+}
+
+.profile-edit-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.profile-edit:has(.profile-edit-select:focus-visible) .icon-btn {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 /* The question before a named profile replaces the owner's own list, asked in the page. */
