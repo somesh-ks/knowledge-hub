@@ -19,6 +19,8 @@ interface CostResponse {
   prices_as_of: string;
   unconfirmed: string[];
   site: "ok" | "unavailable";
+  /** The engine's ledger: "unavailable" when the build's older copy stood in. */
+  engine?: "ok" | "unavailable";
   /** Anthropic's own bill: "off" until the owner sets an Admin key. */
   billing?: "ok" | "unavailable" | "off";
   report: {
@@ -582,6 +584,26 @@ function renderNote(data: CostResponse, period: Period): void {
   second.textContent =
     "This is a rough estimate of days following Swedish time zone. Please note spends on evals and code reviews are not counted yet.";
   note.replaceChildren(first, second);
+  // Each part the server gave up on is named, quietly, with a retry (the rest is on the page).
+  const missing = [
+    data.engine === "unavailable" ? "the latest runs" : "",
+    data.site === "unavailable" ? "narration spend" : "",
+    data.billing === "unavailable" ? "Anthropic's bill" : "",
+  ].filter(Boolean);
+  if (missing.length) note.append(failure(`Couldn't load ${missing.join(", ")}.`));
+}
+
+/** A quiet failure line with Try again, which asks for the same answer once more. */
+function failure(text: string): HTMLElement {
+  const line = document.createElement("p");
+  line.append(`${text} `);
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "btn";
+  retry.textContent = "Try again";
+  retry.addEventListener("click", () => void load());
+  line.append(retry);
+  return line;
 }
 
 function render(data: CostResponse, period: Period, days: number, by: string): void {
@@ -646,7 +668,10 @@ async function load(): Promise<void> {
   // A refetch keeps the last frame, dimmed, so nothing jumps while the numbers change.
   body?.setAttribute("data-loading", "");
   try {
-    const response = await fetch(`/api/costs?period=${period}&by=${by}&days=${days}`);
+    // The route answers within about 5 s; a call that never returns must not leave "Loading" up.
+    const response = await fetch(`/api/costs?period=${period}&by=${by}&days=${days}`, {
+      signal: AbortSignal.timeout(12_000),
+    });
     if (!response.ok) throw new Error(String(response.status));
     const data = (await response.json()) as CostResponse;
     if (ask === asked) render(data, period, days, by);
@@ -657,7 +682,8 @@ async function load(): Promise<void> {
     const stats = pick<HTMLElement>("[data-costs-stats]");
     if (stats) stats.hidden = true;
     const note = pick("[data-costs-note]");
-    if (note) note.textContent = "The costs could not be loaded right now.";
+    // Never a spinner without end: the fetch gives up (below) and this stands in.
+    note?.replaceChildren(failure("Couldn't load the costs."));
     // Nothing to draw, so the chart, the breakdown and the table step out: no blank plot, no stray
     // hairline, no empty table on offer, and no frame of the last range left under the failure
     // (audit, 2026-10-24). The next good answer shows them again (render).
