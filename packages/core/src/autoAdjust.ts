@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * Every number that decides how far story votes move a source's score, in one place. First guesses:
- * tune them against real votes. Votes no longer move a topic's weight (D193); a source's adjustment
+ * tune them against real votes. Votes no longer move a topic's weight (D194); a source's adjustment
  * is stored beside the source and added at scoring time.
  */
 export const AUTO_ADJUST = {

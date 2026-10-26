@@ -139,7 +139,7 @@ export function perspectiveFactor(
   return 1 + (PERSPECTIVE_REACH * perspective * mean) / 4;
 }
 
-/** Topic weight is gone (D193); an older file at weight 0.05 or less was muted, so it reads as disabled. */
+/** Topic weight is gone (D194); an older file at weight 0.05 or less was muted, so it reads as disabled. */
 export const MUTED_WEIGHT = 0.05;
 function muteOldWeight(raw: unknown): unknown {
   if (typeof raw !== "object" || raw === null || !("weight" in raw)) return raw;
@@ -147,28 +147,31 @@ function muteOldWeight(raw: unknown): unknown {
   return typeof weight === "number" && weight <= MUTED_WEIGHT ? { ...rest, enabled: false } : rest;
 }
 
-export const Topic = z.preprocess(muteOldWeight, z.object({
-  /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
-  id: IdString,
-  name: z.string().trim().min(1).max(60),
-  /** What belongs in the topic. Read by the judge for a custom topic, so it should be concrete. */
-  description: z.string().trim().min(1).max(400),
-  enabled: z.boolean(),
-  /** A candidate must contain one of these (or come from a tagged source) to be judged for a custom topic. */
-  keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS),
-  section_id: SectionId,
-  never_publish: z.boolean(),
-  origin: TopicOrigin,
-  depth: TopicDepth,
-  /** One emoji shown beside the topic on the Sources page. Built-in topics have theirs in the site's code. */
-  emoji: z.string().trim().min(1).max(16).optional(),
-  /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
-  perspective: Perspective.optional(),
-}));
+export const Topic = z.preprocess(
+  muteOldWeight,
+  z.object({
+    /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
+    id: IdString,
+    name: z.string().trim().min(1).max(60),
+    /** What belongs in the topic. Read by the judge for a custom topic, so it should be concrete. */
+    description: z.string().trim().min(1).max(400),
+    enabled: z.boolean(),
+    /** A candidate must contain one of these (or come from a tagged source) to be judged for a custom topic. */
+    keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS),
+    section_id: SectionId,
+    never_publish: z.boolean(),
+    origin: TopicOrigin,
+    depth: TopicDepth,
+    /** One emoji shown beside the topic on the Sources page. Built-in topics have theirs in the site's code. */
+    emoji: z.string().trim().min(1).max(16).optional(),
+    /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
+    perspective: Perspective.optional(),
+  }),
+);
 export type Topic = z.infer<typeof Topic>;
 
 /**
- * What a topic is scored at. Not set by the owner (D193): the topics that ship as app or general
+ * What a topic is scored at. Not set by the owner (D194): the topics that ship as app or general
  * topics keep the strength they always had, everything else competes on merit.
  */
 export function topicTaste(topic: Pick<Topic, "id" | "origin">): number {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { FormatMix } from "./topics.js";
 
-/** Shape of config/preferences.json. An older file's `weights` is stripped on parse and never read (D193). */
+/** Shape of config/preferences.json. An older file's `weights` is stripped on parse and never read (D194). */
 export const Preferences = z.object({
   profile: z.string(),
   focus: z.string(),

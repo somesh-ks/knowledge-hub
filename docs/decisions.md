@@ -200,7 +200,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D190 | Votes tune weights | amends D108, D118 |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
-| D193 | Topic weight removed | supersedes D190 |
+| D194 | Topic weight removed | supersedes D190 |
 
 ---
 
@@ -2008,7 +2008,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 ## D190: votes tune topic weights and source scores through a bounded, decaying adjustment
 
-- Amended by D193: the topic part (weight adjustment, the "Adjusted" mark) is removed; source score adjustment stays.
+- Amended by D194: the topic part (weight adjustment, the "Adjusted" mark) is removed; source score adjustment stays.
 
 - Date: 2026-10-25 (the owner: "make sure topics evolve as models generate new podcasts. This should be refined and intelligently managed").
 - Decision: a story vote moves an `auto_adjust` on its topic and its source in the owner's profile (`packages/core/src/autoAdjust.ts`, applied in `profile/autoAdjust.ts` by the same `profile.vote` op that stores the vote): 0.02 a vote, within plus or minus 0.2, halving over 30 days without votes, sources at a quarter of the step. Scoring reads the owner's weight plus the decayed adjustment (Off stays Off); the weight itself is never written. A weight row with a live adjustment says "Adjusted" (`lib/topicAdjust.ts`, WeightRow).
@@ -2032,7 +2032,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: keeping `claude-code-review.yml` in parallel (duplicate comments and Anthropic token spend); relying on manual review only.
 - Amends: D143.
 
-## D193: topic weight is removed
+## D194: topic weight is removed
 
 - Date: 2026-10-26 (implementation plan v2, section 5, D-f).
 - Decision: a topic has no weight. Scoring counts every category at one `NORMAL_TASTE` (0.7); the weight sliders, `weights.set`, the learn patch `weight_deltas`, the vote-driven topic adjustment and the "Adjusted" mark are gone. Old configs that carry `weights`, `topic.weight` or `auto_adjust.topics` parse and the fields are stripped. Vote-driven source scores stay.

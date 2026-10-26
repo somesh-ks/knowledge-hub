@@ -46,7 +46,7 @@ function applyList(
 
 /**
  * Apply a patch: keywords, authors and disliked patterns are added and removed. Weights are gone
- * (D193); an older patch that still carries `weight_deltas` parses and the field is ignored. Pure;
+ * (D194); an older patch that still carries `weight_deltas` parses and the field is ignored. Pure;
  * the caller writes.
  */
 export function applyPatch(

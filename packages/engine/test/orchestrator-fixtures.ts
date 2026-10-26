@@ -360,7 +360,7 @@ export async function buildTemplate(): Promise<string> {
   for (const file of ["config/preferences.json", "config/voice.md"]) {
     await put(a, file, await readFile(join(FIXTURE_CONFIG, basename(file)), "utf8"));
   }
-  // Gossip and hype listicles are switched off, the way the owner mutes a category (D193).
+  // Gossip and hype listicles are switched off, the way the owner mutes a category (D194).
   const off = new Set(["venture_capital_and_gossip", "generic_ai_hype_listicles"]);
   const topics = seedTopicsFile();
   await put(

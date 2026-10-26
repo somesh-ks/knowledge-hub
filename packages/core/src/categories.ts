@@ -28,7 +28,7 @@ export type CategoryOrNone = z.infer<typeof CategoryOrNone>;
 
 /**
  * What every category and topic is scored at: the old Normal stop, "competes on merit". The owner no
- * longer sets a weight per topic (D193), so this one number replaces the stored ones.
+ * longer sets a weight per topic (D194), so this one number replaces the stored ones.
  */
 export const NORMAL_TASTE = 0.7;
 

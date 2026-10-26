@@ -44,7 +44,7 @@ function oracleScored(
       p: 0.9,
       depth: g.expected.keep ? 0.6 : 0.2,
       launchScale: g.expected.keep ? 0.75 : 0,
-      // No category is weighted down any more (D193), so what once sank on its weight sinks on
+      // No category is weighted down any more (D194), so what once sank on its weight sinks on
       // the flag the judge raises for it: hype for a listicle, funding for a deal story.
       hype: category === "generic_ai_hype_listicles" ? 0.9 : 0,
       funding: category === "venture_capital_and_gossip" ? 0.9 : 0,

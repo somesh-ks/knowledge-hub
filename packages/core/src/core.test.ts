@@ -149,7 +149,7 @@ describe("paths and sections", () => {
     // Off, not a missing home, keeps a category out of a briefing.
     expect(homeSection("venture_capital_and_gossip", "rss")).toBe("ai");
   });
-  // D193: topic weight is gone, but a stored preferences row, topics file or profile still carries it.
+  // D194: topic weight is gone, but a stored preferences row, topics file or profile still carries it.
   it("ignores the weights, weight and auto-adjust topics an older document still carries", () => {
     const fixture = "packages/engine/test/fixtures/config/preferences.json";
     const saved = JSON.parse(readFileSync(join(REPO_ROOT, fixture), "utf8"));

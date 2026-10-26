@@ -34,7 +34,7 @@ export const Profile = z.object({
   blocked_domains: z.array(z.string().min(1)).default([]),
   votes: z.array(Vote).default([]),
   opens: z.array(Open).default([]),
-  /** What votes add to a source's score. An older file's `topics` is stripped on parse (D193). */
+  /** What votes add to a source's score. An older file's `topics` is stripped on parse (D194). */
   auto_adjust: AutoAdjust.default({ sources: {} }),
 });
 export type Profile = z.infer<typeof Profile>;
