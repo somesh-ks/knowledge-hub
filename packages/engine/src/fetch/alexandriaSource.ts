@@ -91,11 +91,10 @@ export async function fetchAlexandriaAnthropic(
   );
   const reply = Reply.safeParse(payload);
   if (!reply.success) throw new Error("unexpected Alexandria response shape");
+  if (reply.data.success === false) throw new Error("Alexandria reported success: false");
   const first = reply.data.data.alexandria[0];
   if (!first || first.error || !first.data) throw new Error("Alexandria list_posts failed");
-  const items = buildItems(postsToRaw(first.data.posts), context);
-  if (items.length === 0 && first.data.posts.length === 0) {
-    throw new Error("Alexandria list_posts returned no posts");
-  }
-  return items;
+  const raws = postsToRaw(first.data.posts);
+  if (raws.length === 0) throw new Error("Alexandria list_posts returned no usable posts");
+  return buildItems(raws, context);
 }

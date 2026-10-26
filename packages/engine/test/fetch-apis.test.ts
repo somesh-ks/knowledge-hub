@@ -599,6 +599,52 @@ describe("fetchFirecrawl via Alexandria (anthropic-com)", () => {
     expect(items.length).toBeGreaterThan(0);
   });
 
+  it.each([
+    [
+      "success is false although posts came back",
+      {
+        success: false,
+        data: {
+          alexandria: [
+            { data: { posts: [{ title: "T", url: "https://www.anthropic.com/news/t" }] } },
+          ],
+        },
+      },
+    ],
+    [
+      "no post maps to an item",
+      { success: true, data: { alexandria: [{ data: { posts: [{ nope: 1 }] } }] } },
+    ],
+  ])("falls back to the page scrape when %s", async (_name, reply) => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": (_url, init) => {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        bodies.push(body);
+        if (body.alexandria) return new Response(JSON.stringify(reply));
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              markdown: fixture("fetch-firecrawl-blog-index.md"),
+              metadata: { statusCode: 200 },
+            },
+          }),
+        );
+      },
+    });
+    const items = await fetchFirecrawl(
+      source,
+      window("2026-09-01T00:00:00Z"),
+      makeDeps(fake, keyed),
+    );
+    expect(bodies.map((b) => (b.alexandria ? "alexandria" : "scrape"))).toEqual([
+      "alexandria",
+      "scrape",
+    ]);
+    expect(items.length).toBeGreaterThan(0);
+  });
+
   it("does not call Alexandria for a source without the flag", async () => {
     const plain = makeSource({ ...source, options: {} });
     const bodies: Array<Record<string, unknown>> = [];
