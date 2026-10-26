@@ -82,6 +82,18 @@ describe("newestItem", () => {
     });
   });
 
+  it("compares instants, so a digest written with an offset is not misordered", () => {
+    const offsetDigest = { ...entries[0]?.digest, generated_at: "2026-10-25T20:00:00+02:00" };
+    const offsetEntries = [{ ...entries[0], digest: offsetDigest }] as unknown as Site["entries"];
+    // 19:00Z is later than 18:00Z (20:00+02:00) but sorts lower as a string.
+    expect(
+      newestItem({ entries: offsetEntries, episodes: episodeAt("2026-10-25T19:00:00.000Z") }),
+    ).toEqual({
+      kind: "episode",
+      id: "ep-1",
+    });
+  });
+
   it("stays the briefing when it is newer than every episode", () => {
     expect(newestItem({ entries, episodes: episodeAt("2000-01-01T00:00:00.000Z") })).toEqual({
       kind: "digest",

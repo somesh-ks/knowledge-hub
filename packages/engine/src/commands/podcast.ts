@@ -217,6 +217,14 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     // Set when the stages save their results (the workflow's steps, or a rerun), and the stage running.
     let store: ArtifactStore | null = null;
     let current: EpisodeStageId | undefined;
+    // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
+    const recordFailure = async (): Promise<void> => {
+      if (store && current) {
+        await store
+          .write("failure", { failed_stage: current, kept: await store.names() })
+          .catch(() => {});
+      }
+    };
     try {
       const { request: requestJson, resumeFrom } = splitResumeFrom(values.request);
       const command = parseCommand(requestJson);
@@ -240,6 +248,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         });
         const failure = commitFailure(outcome);
         if (failure !== null) {
+          await recordFailure();
           ctx.log.error(
             `${failure}. The episode file was removed from the working tree: ${relPath}.`,
           );
@@ -390,6 +399,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       const failure = commitFailure(outcome);
       if (failure !== null) {
         await live.stream?.failed();
+        await recordFailure();
         ctx.log.error(`${failure}. The episode file stays at ${relPath}.`);
         return 1;
       }
@@ -430,11 +440,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     } catch (error) {
       await live.stream?.failed();
       // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
-      if (store && current) {
-        await store
-          .write("failure", { failed_stage: current, kept: await store.names() })
-          .catch(() => {});
-      }
+      await recordFailure();
       if (error instanceof PodcastError) {
         // The request, the stories or the script is at fault; the message is already for the listener.
         ctx.log.error(error.message);

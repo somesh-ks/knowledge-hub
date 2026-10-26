@@ -46,15 +46,21 @@ export const EMPTY_FIRECRAWL_STATE: FirecrawlState = {
   skipped: [],
 };
 
+function turnKey(source: Pick<Source, "last_ok" | "last_try">): number {
+  const at = source.last_try ?? source.last_ok;
+  return at ? Date.parse(at) : Number.NEGATIVE_INFINITY;
+}
+
 /**
  * Pick which Firecrawl listing sources run. The ones fetched longest ago go first (never fetched
  * counts as longest), so a source skipped today leads tomorrow and the skipped set rotates
- * instead of always hitting the same sources. `last_ok` is only written for a successful fetch,
- * which a skipped source does not make. With `lean` (the owner's votes), liked sources run before
+ * instead of always hitting the same sources. The key is `last_try` (a run that tried, win or
+ * lose), else `last_ok`: a failing or empty source would otherwise keep the oldest `last_ok` and
+ * take the first slot every run. A skipped source is not tried, so it keeps its age. With `lean` (the owner's votes), liked sources run before
  * neutral ones and disliked sources go last, so the ceiling skips them first.
  */
 export function planFirecrawlListing(
-  sources: readonly Pick<Source, "id" | "last_ok">[],
+  sources: readonly Pick<Source, "id" | "last_ok" | "last_try">[],
   allowance: number,
   lean: (id: string) => number = () => 0,
 ): { run: string[]; skipped: string[] } {
@@ -62,8 +68,8 @@ export function planFirecrawlListing(
   const oldestFirst = [...sources].sort((a, b) => {
     const side = Math.sign(lean(b.id)) - Math.sign(lean(a.id));
     if (side !== 0) return side;
-    const left = a.last_ok ? Date.parse(a.last_ok) : Number.NEGATIVE_INFINITY;
-    const right = b.last_ok ? Date.parse(b.last_ok) : Number.NEGATIVE_INFINITY;
+    const left = turnKey(a);
+    const right = turnKey(b);
     return left === right ? a.id.localeCompare(b.id) : left - right;
   });
   return {

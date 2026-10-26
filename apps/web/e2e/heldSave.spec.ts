@@ -8,7 +8,7 @@ import { expect, test } from "./fixtures";
  * and says when it failed, with Retry: never a change shown as saved that is going nowhere.
  */
 
-const SAVED = "Saved.";
+const SAVED = "Settings saved";
 const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
 
 interface Sent {
