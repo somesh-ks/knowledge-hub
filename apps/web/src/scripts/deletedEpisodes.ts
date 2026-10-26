@@ -39,6 +39,8 @@ const cardId = (card: Element): string =>
 /** Remembers a delete the server accepted. */
 export function rememberDeleted(id: string): void {
   save(addDeleted(load(), id, Date.now()));
+  // install() ran before this delete (or on an earlier one), so the queue and download need it now.
+  dropFromDevice();
 }
 
 /** Drops from `doc` what the list hides, and tidies the list when `doc` is the Library. */
