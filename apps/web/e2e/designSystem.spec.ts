@@ -175,3 +175,45 @@ test.describe("the 8pt spacing system", () => {
     expect(await offGrid(page), "the Add source panel").toEqual([]);
   });
 });
+
+test.describe("one page gutter", () => {
+  // The Settings title once sat 24px further in than Latest's and Library's (a rule gave titles a
+  // card's padding), so the page moved sideways between tabs. Compared page to page, never to a px.
+  test("every top-level page starts and ends its content on the same edges", {
+    tag: "@both",
+  }, async ({ page }) => {
+    test.setTimeout(120_000);
+    const paths = [
+      "/",
+      "/library",
+      "/settings",
+      "/settings/preferences",
+      "/settings/categories/design",
+    ];
+    const edges: number[][] = [];
+    for (const path of paths) {
+      await page.goto(path);
+      await expect(page.locator("main h1").first()).toBeVisible();
+      edges.push(
+        await page.evaluate(() => {
+          const title = document.querySelector("main h1");
+          const root =
+            document.querySelector("main .settings-view") ?? document.querySelector("main");
+          if (!title || !root) throw new Error("no title or main");
+          const range = document.createRange();
+          range.selectNodeContents(title);
+          const box = root.getBoundingClientRect();
+          const style = getComputedStyle(root);
+          return [
+            range.getBoundingClientRect().left,
+            box.left + Number.parseFloat(style.paddingLeft),
+            box.right - Number.parseFloat(style.paddingRight),
+          ].map((edge) => Math.round(edge * 2) / 2);
+        }),
+      );
+    }
+    for (const [index, found] of edges.entries()) {
+      expect(found, `${paths[index]} against ${paths[0]}`).toEqual(edges[0]);
+    }
+  });
+});
