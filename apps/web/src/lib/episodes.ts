@@ -2,6 +2,7 @@ import { type CoverSpec, digestSections } from "@singularity/core";
 import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@singularity/cover";
 import type { PlayerDigestData } from "../types/contracts";
 import { type ContentFiles, diskFiles } from "./contentFiles";
+import { coverSrc } from "./covers";
 import type { DigestEntry } from "./digests";
 import { type Episode, parseEpisodeFile } from "./episodeFile";
 import { isWebUrl } from "./safeUrl";
@@ -118,8 +119,8 @@ function toEntry(episode: Episode): EpisodeEntry {
         ? [{ slug: EPISODE_SECTION.slug, title: EPISODE_SECTION.title, start_ms: null }]
         : [],
     cover: {
-      src512: `/covers/${episode.id}-512.webp`,
-      src1024: `/covers/${episode.id}-1024.webp`,
+      src512: coverSrc(episode.id, 512, episode.generated_at),
+      src1024: coverSrc(episode.id, 1024, episode.generated_at),
       key: paletteAccent(cover.palette).light,
     },
     prev_id: null,

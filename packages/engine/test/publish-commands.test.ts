@@ -213,7 +213,7 @@ describe("singularity audio", () => {
       expect(
         parseDigestFile(await readFile(join(temp.root, digestRelPath("2026-10-07")), "utf8")).audio
           ?.url,
-      ).toContain("audio/2026-10-07.mp3");
+      ).toMatch(/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/);
       expect(await readFile(join(temp.root, audioTimelineRelPath("2026-10-07")), "utf8")).toContain(
         '"timeline": "marks"',
       );
@@ -395,7 +395,7 @@ describe("singularity publish", () => {
         "singularity-bot|singularity-bot@users.noreply.github.com",
       );
       expect(remoteHead()).toBe(git(pair.a, "rev-parse", "HEAD"));
-      expect(audioOf("2026-10-07")?.url).toContain("audio/2026-10-07.mp3");
+      expect(audioOf("2026-10-07")?.url).toMatch(/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/);
       expect(git(pair.a, "status", "--porcelain")).toBe("");
       expect(r.out.join("")).toContain("2026-10-07  audio ready");
       expect(r.out.join("")).toContain("git: pushed");
@@ -633,7 +633,9 @@ describe("singularity publish", () => {
 
       expect(await createPublishCommand(r.deps)(["--prune", "30"], ctx)).toBe(0);
       expect(r.blob.store.has("audio/2025-01-01.mp3")).toBe(false);
-      expect(r.blob.store.has("audio/2026-10-07.mp3")).toBe(true);
+      expect(
+        [...r.blob.store.keys()].some((key) => /^audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/.test(key)),
+      ).toBe(true);
       expect(r.out.join("")).toContain("pruned 1 old narrations, kept 1");
       expect(remoteHead()).toBe(head);
     });

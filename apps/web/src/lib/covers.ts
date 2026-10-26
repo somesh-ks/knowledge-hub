@@ -34,6 +34,21 @@ export function themedCoverSrc(id: string, mode: CoverMode, size: CoverSize): st
   return `/covers/${mode}/${id}-${size}.webp`;
 }
 
+/**
+ * The `?v=` a cover address carries: when its record was generated, in base 36. A regenerated
+ * briefing or episode keeps its id and gets a new version, so the browser, the CDN and the service
+ * worker fetch the new cover. A record without a time gets no version and its old address.
+ */
+export function coverVersion(generatedAt: string | undefined): string {
+  const time = generatedAt === undefined ? Number.NaN : Date.parse(generatedAt);
+  return Number.isNaN(time) ? "" : `?v=${time.toString(36)}`;
+}
+
+/** The address a record's cover is shown at: `/covers/<id>-512.webp?v=<version>`. */
+export function coverSrc(id: string, size: CoverSize, generatedAt?: string): string {
+  return `/covers/${id}-${size}.webp${coverVersion(generatedAt)}`;
+}
+
 export type CoverSize = 512 | 1024;
 export const COVER_SIZES: readonly CoverSize[] = [512, 1024];
 
