@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makePodcastCommand } from "../src/commands/podcast.js";
@@ -115,6 +116,15 @@ describe("singularity podcast", () => {
     expect(git(root, "show", "--name-only", "--format=", "HEAD")).toContain(
       "state/podcast-timings.json",
     );
+  });
+
+  // A run that stopped between the select and cover saves left the script step failing on the cover.
+  it("resumes the script step when the cover was never saved", async () => {
+    const dir = join(root, "..", `no-cover-${Date.now()}`);
+    const step = (stage: string) => runPodcast([...args(), "--stage", stage, "--artifacts", dir]);
+    expect((await step("select")).code).toBe(0);
+    await rm(join(dir, "cover.json"));
+    expect((await step("script")).code).toBe(0);
   });
 
   it("prints one JSON line with --json", async () => {

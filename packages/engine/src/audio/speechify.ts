@@ -213,7 +213,10 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
 
   /** POST with 429 handling. Returns the first non-429 response; the caller checks `ok`. */
   async function post(path: string, body: unknown): Promise<Response> {
-    for (let attempt = 0; ; attempt++) {
+    // 429s and transient failures each keep their own budget and backoff step.
+    let rateRetries = 0;
+    let transientAttempts = 0;
+    for (;;) {
       let response: Response;
       try {
         response = await doFetch(`${baseUrl}${path}`, {
@@ -224,8 +227,8 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
         });
       } catch (error) {
         // A timeout or a dropped connection is transient: retried like a 5xx, up to the same cap.
-        if (attempt < transientRetries) {
-          await sleep(transientDelayMs(attempt));
+        if (transientAttempts < transientRetries) {
+          await sleep(transientDelayMs(transientAttempts++));
           continue;
         }
         const name = error instanceof Error ? error.name : "";
@@ -237,19 +240,21 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
       }
       if (response.status !== 429) {
         // A 5xx is retried (transientRetries times) with backoff and jitter; any other status (a 400, a 401) is the caller's.
-        if (response.status < 500 || attempt >= transientRetries) return response;
-        await sleep(
-          response.headers.has("retry-after")
-            ? retryDelayMs(response, attempt)
-            : transientDelayMs(attempt),
-        );
+        if (response.status < 500 || transientAttempts >= transientRetries) return response;
+        const waitMs = response.headers.has("retry-after")
+          ? retryDelayMs(response, transientAttempts)
+          : transientDelayMs(transientAttempts);
+        // A server asking for longer than a 429 may ask is not waited for: its failure is returned.
+        if (waitMs > maxRetryWaitMs) return response;
+        transientAttempts++;
+        await sleep(waitMs);
         continue;
       }
 
       const failure = await describeFailure(response);
-      const waitMs = retryDelayMs(response, attempt);
+      const waitMs = retryDelayMs(response, rateRetries);
       const retryAfterSeconds = Math.ceil(waitMs / 1000);
-      if (attempt >= maxRetries) {
+      if (rateRetries >= maxRetries) {
         throw fail(`${failure.message} after ${maxRetries} retries`, {
           status: 429,
           ...(failure.code ? { code: failure.code } : {}),
@@ -263,6 +268,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
           retryAfterSeconds,
         });
       }
+      rateRetries++;
       await sleep(waitMs);
     }
   }

@@ -324,6 +324,19 @@ describe("singularity health", () => {
     expect(sink.passed).toHaveLength(1);
   });
 
+  // An invalid last-run.json used to reject the whole report instead of being named in it.
+  it("reports an invalid last-run.json as a fault instead of failing", async () => {
+    await put("state/last-run.json", "{ not json");
+    const report = await collectHealth({
+      root,
+      now: NOW,
+      monthlyChars: 500_000,
+      ceilingUsd: 50,
+      site: null,
+    });
+    expect(codes(report.findings, "fault")).toContain("state_invalid");
+  });
+
   // A run that died in install or on a timeout wrote nothing, so the last record still read as the
   // run before it; an episode or a config file that stopped parsing was found only when used.
   it("faults a run that died before it recorded anything, a broken episode and an invalid config file", async () => {
