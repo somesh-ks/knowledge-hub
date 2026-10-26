@@ -729,8 +729,14 @@ test.describe("a topic's page", () => {
     const other = await context.newPage();
     await setup(other);
     await routeConfigStore(other, hold);
+    let releaseStore: () => void = () => {};
+    let storeHeld = false;
     await other.route(/\/api\/config(\?.*)?$/, async (route) => {
-      if (route.request().method() === "GET") await new Promise((done) => setTimeout(done, 800));
+      if (storeHeld && route.request().method() === "GET") {
+        await new Promise<void>((done) => {
+          releaseStore = done;
+        });
+      }
       await route.fallback();
     });
     await open(other);
@@ -755,8 +761,11 @@ test.describe("a topic's page", () => {
     const answered = other.waitForResponse(
       (response) => response.url().includes("/api/config") && response.request().method() === "GET",
     );
+    storeHeld = true;
     await other.goto(LIST);
+    // The store's answer is held, so this name can only be the device's copy.
     await expect(other.locator("[data-topics]")).toContainText("Audio and voice");
+    releaseStore();
     await answered;
     // The answer is read and acted on within a couple of frames.
     await other.evaluate(

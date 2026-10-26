@@ -103,6 +103,17 @@ function readCache(): ConfigReadBody | null {
   }
 }
 
+/** The page's store value takes an answer unless the one it holds was written later. */
+function adopt(body: ConfigReadBody): void {
+  if (
+    current?.written_at != null &&
+    (body.written_at == null || body.written_at < current.written_at)
+  ) {
+    return;
+  }
+  current = body;
+}
+
 function writeCache(body: ConfigReadBody): void {
   // A read that started before a save can resolve after the post-save read: never write older over newer.
   const held = readCache();
@@ -135,7 +146,7 @@ export function afterOwnSave(): void {
     .catch(() => null)
     .then((body) => {
       clearTimeout(timer);
-      if (body && last === asked) current = body;
+      if (body && last === asked) adopt(body);
       if (body) writeCache(body);
       return body;
     });
@@ -166,7 +177,7 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
       clearTimeout(timer);
       // Only the newest read speaks for the store: an older one that ends late, or fails, does not
       // replace what a newer one found. A failed read leaves the device's copy standing.
-      if (last === asked && body) current = body;
+      if (last === asked && body) adopt(body);
       if (body) writeCache(body);
       return body ?? (last === asked ? current : null);
     });
