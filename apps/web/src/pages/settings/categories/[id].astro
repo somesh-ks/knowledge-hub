@@ -119,7 +119,7 @@ const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
   return !scopeIds.every((id) => skipped.includes(id));
 };
-// The topic as Edit category sends it: a topic is always on, so it goes as enabled.
+// Edit category preserves a topic's enabled state; general topics are always on.
 const upsert =
   topic &&
   JSON.stringify({
@@ -128,7 +128,7 @@ const upsert =
       id: topic.id,
       name: topic.name,
       description: topic.description,
-      enabled: true,
+      enabled: topic.origin === "general" ? true : topic.enabled,
       keywords: topic.keywords,
       section_id: topic.section_id,
     },

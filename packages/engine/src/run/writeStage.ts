@@ -363,7 +363,12 @@ async function writePass(
   // Items judged for the score alone (D70) count for their sources too, marked as sampled.
   const sampleFiles = await readSampleFiles(file("sample.json"), file("sample-judged.json"));
   const sample = sampleFiles.sample
-    ? countSample({ sample: sampleFiles.sample, judged: sampleFiles.judged, preferences })
+    ? countSample({
+        sample: sampleFiles.sample,
+        judged: sampleFiles.judged,
+        preferences,
+        offCategories: off,
+      })
     : {};
   await writeJson(file("source-counts.json"), {
     version: 1,

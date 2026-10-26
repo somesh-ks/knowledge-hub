@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, parseDigestFile, type Source } from "@singularity/core";
+import { type Digest, parseDigestFile, type Source, seedTopicsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
 import { validateDigest } from "../src/validate/validateDigest.js";
@@ -247,6 +247,18 @@ describe("validateDigest", () => {
     expect(voice.map((i) => i.message)).toEqual([
       "summary: The summary has 5 sentences; the limit is 4.",
     ]);
+  });
+
+  it("rejects categories that never publish", () => {
+    const { digest } = buildFixtureDigest(5);
+    const bad = clone(digest);
+    (bad.items[4] as { category: string }).category = "venture_capital_and_gossip";
+    const topics = seedTopicsFile();
+    const blocked = topics.topics.find((topic) => topic.id === "venture_capital_and_gossip");
+    if (!blocked) throw new Error("Missing seeded gossip topic");
+    blocked.never_publish = true;
+    const issues = validateDigest(bad, { linter, topics }).issues;
+    expect(issues.map((i) => `${i.severity}:${i.code}`)).toContain("error:never_publish");
   });
 
   it("rejects a section that does not fit the category", () => {

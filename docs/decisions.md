@@ -197,7 +197,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
 | D189 | Catalogue route | active |
-| D190 | Votes tune weights | amends D108, D118 |
+| D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
 | D194 | Topic weight removed | supersedes D190 |
@@ -2008,6 +2008,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 ## D190: votes tune topic weights and source scores through a bounded, decaying adjustment
 
+- Amends: D108, D118.
 - Amended by D194: the topic part (weight adjustment, the "Adjusted" mark) is removed; source score adjustment stays.
 
 - Date: 2026-10-25 (the owner: "make sure topics evolve as models generate new podcasts. This should be refined and intelligently managed").
@@ -2035,5 +2036,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 ## D194: topic weight is removed
 
 - Date: 2026-10-26 (implementation plan v2, section 5, D-f).
-- Decision: a topic has no weight. Scoring counts every category at one `NORMAL_TASTE` (0.7); the weight sliders, `weights.set`, the learn patch `weight_deltas`, the vote-driven topic adjustment and the "Adjusted" mark are gone. Old configs that carry `weights`, `topic.weight` or `auto_adjust.topics` parse and the fields are stripped. Vote-driven source scores stay.
+- Context changed: topic weights were removed in implementation plan v2, so D190's per-topic vote adjustments no longer have an owner-set weight to adjust.
+- Decision: a topic has no weight. Scoring uses `NORMAL_TASTE` (0.7) for categories and custom topics, 1 for general and Trending topics, and 0.85 for Design; the weight sliders, `weights.set`, the learn patch `weight_deltas`, the vote-driven topic adjustment and the "Adjusted" mark are gone. Old configs that carry `weights`, `topic.weight` or `auto_adjust.topics` parse and the fields are stripped. Vote-driven source scores stay.
+- Why: fixed taste values remove per-topic tuning while preserving the shipped app and general topics' scoring strengths.
 - Supersedes: D190 for topics.

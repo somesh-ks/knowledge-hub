@@ -379,10 +379,14 @@ describe("singularity curate: agent mode", () => {
     }
   });
 
-  it("rejects ids outside the pool and banned vocabulary and leaves the file alone", async () => {
+  it("rejects ids outside the pool, banned vocabulary and never-publish categories, and leaves the file alone", async () => {
     const pool = await seedPool(5);
     await mkdir(join(tr.root, "config"), { recursive: true });
-    await writeFile(join(tr.root, "config", "topics.json"), JSON.stringify(seedTopicsFile()));
+    const topics = seedTopicsFile();
+    const blocked = topics.topics.find((topic) => topic.id === "venture_capital_and_gossip");
+    if (!blocked) throw new Error("Missing seeded gossip topic");
+    blocked.never_publish = true;
+    await writeFile(join(tr.root, "config", "topics.json"), JSON.stringify(topics));
     const items = agentItems(pool);
     items[0] = { ...items[0], id: "ffffffffffff" } as (typeof items)[number];
     items[1] = { ...items[1], headline: "An incredible release!" } as (typeof items)[number];
@@ -397,6 +401,7 @@ describe("singularity curate: agent mode", () => {
     const messages = body.issues.map((i) => i.message).join("\n");
     expect(messages).toContain("not in the pool");
     expect(messages).toContain("incredible");
+    expect(messages).toContain("never publishes");
     expect(await readFile(path, "utf8")).toBe(before);
   });
 

@@ -254,6 +254,39 @@ describe("countSample", () => {
     expect(counts.quiet).toMatchObject({ judged: 0, read_feed: true });
   });
 
+  it("does not count a muted category as passed while still counting its judgments", () => {
+    const item = makeItem({ source_id: "blog" });
+    const input = {
+      sample: {
+        version: 1 as const,
+        items: [item],
+        reads: ["blog"],
+        feed_posts: { blog: 1 },
+        general_reads: {},
+      },
+      judged: {
+        version: 1 as const,
+        entries: [makeEntry(item, { category: "design_engineering_craft", p: 0.95, depth: 0.9 })],
+        unjudged: [],
+      },
+      preferences: realPreferences(),
+    };
+    expect(countSample(input).blog?.passed).toBe(1);
+    expect(countSample({ ...input, offCategories: ["frontier_model_releases"] }).blog?.passed).toBe(
+      1,
+    );
+    expect(
+      countSample({ ...input, offCategories: ["design_engineering_craft"] }).blog,
+    ).toMatchObject({
+      judged: 1,
+      sampled: 1,
+      asked: 1,
+      passed: 0,
+      read_feed: true,
+      feed_posts: 1,
+    });
+  });
+
   it("counts nothing, reads included, when the sample was not judged", () => {
     const counts = countSample({
       sample: {

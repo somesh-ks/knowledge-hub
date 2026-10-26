@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { Category, Digest } from "@singularity/core";
+import { type Category, type Digest, seedTopicsFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Selection } from "../src/curate/selectionFile.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
@@ -224,6 +224,20 @@ describe("digestFromSelection", () => {
         selection: selection([entry(0), entry(1), { ...entry(2), id: "ffffffffffff" }]),
       }),
     ).toThrow(/ffffffffffff, which is not in the pool/);
+  });
+
+  it("fails clearly for a category that never publishes", () => {
+    const topics = seedTopicsFile();
+    const blocked = topics.topics.find((topic) => topic.id === "venture_capital_and_gossip");
+    if (!blocked) throw new Error("Missing seeded gossip topic");
+    blocked.never_publish = true;
+    expect(() =>
+      digestFromSelection({
+        ...base,
+        topics,
+        selection: selection([entry(0), entry(1), entry(2, "venture_capital_and_gossip")]),
+      }),
+    ).toThrow(/never publishes/);
   });
 });
 

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   AutoAdjust,
+  categoryIsOff,
   compareNewestFirst,
   type Digest,
   Digest as DigestSchema,
@@ -161,12 +162,26 @@ describe("paths and sections", () => {
     expect(adjust).toEqual({ sources: {} });
   });
   // A topic the owner muted at weight 0 stays off once weight is gone.
-  it("reads an older topic at weight 0.05 or less as disabled, and a higher one as enabled", () => {
-    const topic = seedTopicsFile().topics[0];
-    const muted = Topic.parse({ ...topic, enabled: true, weight: 0 });
-    expect(muted.enabled).toBe(false);
-    expect(muted).not.toHaveProperty("weight");
-    expect(Topic.parse({ ...topic, enabled: true, weight: 0.7 }).enabled).toBe(true);
+  it("keeps legacy muted topics off, including built-in categories that ignore enabled", () => {
+    for (const origin of ["builtin", "custom", "app", "general"] as const) {
+      const topic = { ...seedTopicsFile().topics[0], origin, never_publish: false };
+      for (const weight of [0, 0.05]) {
+        const muted = Topic.parse({ ...topic, enabled: true, weight });
+        expect(muted.enabled).toBe(false);
+        expect(muted.never_publish).toBe(origin === "builtin");
+        expect(muted).not.toHaveProperty("weight");
+        expect(categoryIsOff({ ...seedTopicsFile(), topics: [muted] }, muted.id)).toBe(
+          origin === "builtin",
+        );
+      }
+      for (const enabled of [true, false]) {
+        expect(Topic.parse({ ...topic, enabled, weight: 0.051 })).toMatchObject({
+          enabled,
+          never_publish: false,
+        });
+      }
+      expect(Topic.parse({ ...topic, never_publish: true, weight: 0 }).never_publish).toBe(true);
+    }
   });
 });
 

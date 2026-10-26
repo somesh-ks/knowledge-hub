@@ -139,12 +139,17 @@ export function perspectiveFactor(
   return 1 + (PERSPECTIVE_REACH * perspective * mean) / 4;
 }
 
-/** Topic weight is gone (D194); an older file at weight 0.05 or less was muted, so it reads as disabled. */
+/** Topic weight is gone (D194); preserve old mutes, including built-in categories that ignore enabled. */
 export const MUTED_WEIGHT = 0.05;
 function muteOldWeight(raw: unknown): unknown {
   if (typeof raw !== "object" || raw === null || !("weight" in raw)) return raw;
   const { weight, ...rest } = raw as Record<string, unknown>;
-  return typeof weight === "number" && weight <= MUTED_WEIGHT ? { ...rest, enabled: false } : rest;
+  if (!(typeof weight === "number" && weight <= MUTED_WEIGHT)) return rest;
+  return {
+    ...rest,
+    enabled: false,
+    ...(rest.origin === "builtin" ? { never_publish: true } : {}),
+  };
 }
 
 export const Topic = z.preprocess(

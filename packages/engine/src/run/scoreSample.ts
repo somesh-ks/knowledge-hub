@@ -300,7 +300,8 @@ export function countSample(input: {
   sample: SampleFile;
   judged: SampleJudgedFile | null;
   preferences: Preferences;
-  /** The pass's general counts (countGeneral), for the general feeds' checks. */
+  /** Built-in categories the pass has muted. */
+  offCategories?: readonly string[];
 }): Record<string, SourceCounts> {
   const out: Record<string, SourceCounts> = {};
   const row = (id: string): SourceCounts => {
@@ -318,7 +319,8 @@ export function countSample(input: {
     counts.sampled = (counts.sampled ?? 0) + 1;
     counts.asked = (counts.asked ?? 0) + 1;
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
-    if (eligibility(scoreItem(entry, input.preferences, item)).eligible) counts.passed += 1;
+    const scored = scoreItem(entry, input.preferences, item);
+    if (eligibility(scored, undefined, input.offCategories).eligible) counts.passed += 1;
   }
   const unanswered = new Set(input.judged.unjudged);
   const waiting = new Set(
