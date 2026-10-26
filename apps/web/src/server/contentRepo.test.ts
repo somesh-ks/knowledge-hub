@@ -4,7 +4,12 @@ import { join, relative, sep } from "node:path";
 import { beforeEach, expect, it } from "vitest";
 import { diskFiles } from "../lib/contentFiles";
 import { loadSite } from "../lib/site";
-import { loadStoreSite, MANIFEST_TTL_MS, resetContentRepo } from "./contentRepo";
+import {
+  isShowingSavedContent,
+  loadStoreSite,
+  MANIFEST_TTL_MS,
+  resetContentRepo,
+} from "./contentRepo";
 
 /**
  * A page rendered on request reads the content store (D173) through the same readers as the build.
@@ -71,6 +76,34 @@ it("lists the same briefings from the store as the build does from the checkout"
     fixtureSite.entries.map((entry) => entry.id),
   );
   expect(fromStore?.entries.length).toBeGreaterThan(0);
+});
+
+// An unreachable store answered 503, an empty page, though the instance had read the content a
+// minute before (plan section 20, criterion 9).
+it("keeps the last content and says so while the store cannot be reached", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let now = 0;
+  let down = false;
+  const deps = {
+    env: ENV,
+    fetch: async (url: string) => {
+      if (down) throw new Error("network down");
+      return fakeFetch(url);
+    },
+    now: () => now,
+  };
+  const before = (await loadStoreSite(deps))?.entries.length ?? 0;
+  expect(isShowingSavedContent()).toBe(false);
+
+  down = true;
+  now = MANIFEST_TTL_MS + 1;
+  expect((await loadStoreSite(deps))?.entries.length).toBe(before);
+  expect(isShowingSavedContent()).toBe(true);
+
+  down = false;
+  now = 2 * MANIFEST_TTL_MS + 2;
+  await loadStoreSite(deps);
+  expect(isShowingSavedContent()).toBe(false);
 });
 
 it("reads the manifest once per window and reloads when it changes", async () => {
