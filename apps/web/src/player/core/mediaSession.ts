@@ -40,7 +40,7 @@ export interface MediaSessionDeps {
 
 /** The PNG beside a cover's WebP. */
 export function asPng(src: string): string {
-  return src.replace(/\.webp$/, ".png");
+  return src.replace(/\.webp(\?v=\w+)?$/, ".png$1");
 }
 
 export function trackMetadata(track: Track): MediaMetadataInit {

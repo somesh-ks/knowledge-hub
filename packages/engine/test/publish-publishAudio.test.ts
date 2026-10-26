@@ -100,12 +100,16 @@ describe("publishAudio: one digest", () => {
       expect.objectContaining({
         status: "published",
         digestId: "2026-10-07",
-        url: "https://store.public.blob.vercel-storage.com/audio/2026-10-07.mp3",
+        url: expect.stringMatching(
+          /^https:\/\/store\.public\.blob\.vercel-storage\.com\/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/,
+        ),
         timeline: "marks",
       }),
     ]);
-    expect(harness.blob.puts).toEqual(["audio/2026-10-07.mp3"]);
-    expect(must(harness.blob.store.get("audio/2026-10-07.mp3")).options.contentType).toBe(
+    expect(harness.blob.puts).toEqual([
+      expect.stringMatching(/^audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/),
+    ]);
+    expect(must(harness.blob.store.get(must(harness.blob.puts[0]))).options.contentType).toBe(
       "audio/mpeg",
     );
   });
@@ -133,7 +137,7 @@ describe("publishAudio: one digest", () => {
       JSON.parse(await read(audioTimelineRelPath("2026-10-07"))),
     );
     expect(after.audio).toEqual({
-      url: "https://store.public.blob.vercel-storage.com/audio/2026-10-07.mp3",
+      url: expect.stringMatching(/\/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/),
       duration_ms: timeline.duration_ms,
     });
     expect({ ...after, audio: null }).toEqual({ ...digest, audio: null });
@@ -263,7 +267,9 @@ describe("publishAudio: idempotence", () => {
     );
     const result = await publishAudio(harness.deps);
     expect(must(result.outcomes[0]).status).toBe("published");
-    expect((await readDigest("2026-10-07")).audio?.url).toContain("/audio/2026-10-07.mp3");
+    expect((await readDigest("2026-10-07")).audio?.url).toMatch(
+      /\/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/,
+    );
   });
 
   it("regenerates when the timeline exists but audio is null", async () => {

@@ -8,6 +8,7 @@ import {
 import { paletteAccent } from "@singularity/cover";
 import { leadInWords } from "@singularity/engine/audio";
 import type { PlayerDigestData, PlayerItem, PlayerSection } from "../types/contracts";
+import { coverSrc } from "./covers";
 import type { DigestSource } from "./digestFiles";
 import { longDate } from "./format";
 import { isWebUrl } from "./safeUrl";
@@ -122,8 +123,8 @@ function toEntry(
     items: playerItems(items, audioMode === "ready" ? timeline : null, leadIn(digest)),
     sections: playerSections(digest, audioMode === "ready" ? timeline : null),
     cover: {
-      src512: `/covers/${digest.id}-512.webp`,
-      src1024: `/covers/${digest.id}-1024.webp`,
+      src512: coverSrc(digest.id, 512, digest.generated_at),
+      src1024: coverSrc(digest.id, 1024, digest.generated_at),
       key: paletteAccent(digest.cover.palette).light,
     },
     prev_id: prevId,

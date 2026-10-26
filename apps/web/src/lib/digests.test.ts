@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDigest, makeItem, makeTimeline } from "../testing/digestFactory";
+import { coverSrc } from "./covers";
 import { audioModeOf, buildEntries, orderItems } from "./digests";
 
 const noTimeline = { timeline: null } as const;
@@ -64,6 +65,16 @@ describe("buildEntries", () => {
     expect(entries[2]).toMatchObject({ prevId: null, nextId: "2026-10-05" });
   });
 
+  // A regenerated briefing keeps its id; its cover was served at the same URL, so a browser, the CDN
+  // or the service worker could show the old one (plan section 20, criterion 6).
+  it("gives a regenerated briefing a new cover address, and an unversioned record its old one", () => {
+    const at = (generated_at: string) =>
+      buildEntries([{ digest: makeDigest({ id: "2026-10-07", generated_at }), ...noTimeline }])[0]
+        ?.player.cover.src512;
+    expect(at("2026-10-07T05:20:00.000Z")).not.toBe(at("2026-10-07T09:00:00.000Z"));
+    expect(coverSrc("old-id", 512)).toBe("/covers/old-id-512.webp");
+  });
+
   it("derives the player data from the digest", () => {
     const [entry] = buildEntries([{ digest: makeDigest({ id: "2026-10-07" }), ...noTimeline }]);
     expect(entry?.player).toMatchObject({
@@ -73,7 +84,10 @@ describe("buildEntries", () => {
       kind: "regular",
       audio: null,
       timeline: null,
-      cover: { src512: "/covers/2026-10-07-512.webp", src1024: "/covers/2026-10-07-1024.webp" },
+      cover: {
+        src512: expect.stringMatching(/^\/covers\/2026-10-07-512\.webp\?v=\w+$/),
+        src1024: expect.stringMatching(/^\/covers\/2026-10-07-1024\.webp\?v=\w+$/),
+      },
       prev_id: null,
       next_id: null,
     });
