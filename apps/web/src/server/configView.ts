@@ -22,7 +22,7 @@ export type { StoreSource };
  * scripts/savedView.ts). The function is built from the same commit as the pages, so the files it
  * bundles are exactly what the pages were built from.
  *
- * Only what the built pages publish goes in: topics, sources, the schedule, the weights and type
+ * Only what the built pages publish goes in: topics, sources, the schedule, the type
  * mix, the blocked outlets, the podcast structure. Never votes, opens, the learning history, the writer or the queries.
  */
 
@@ -68,10 +68,9 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.str
 function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
   const ops: ConfigOp[] = [];
   const was = new Map(built.map((topic) => [topic.id, topic]));
-  const weights: Record<string, number> = {};
   for (const topic of stored) {
     const before = was.get(topic.id);
-    const { id, name, description, weight, enabled, keywords, section_id, emoji } = topic;
+    const { id, name, description, enabled, keywords, section_id, emoji } = topic;
     if (
       !before ||
       before.name !== name ||
@@ -86,7 +85,6 @@ function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
           id,
           name,
           description,
-          weight,
           enabled,
           keywords,
           section_id,
@@ -94,7 +92,6 @@ function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
         },
       });
     }
-    if (before && before.weight !== weight) weights[id] = weight;
     if (before && (before.perspective ?? 0) !== (topic.perspective ?? 0))
       ops.push({ op: "topic.mix", id, perspective: topic.perspective ?? 0 });
   }
@@ -102,7 +99,6 @@ function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
   for (const topic of built)
     if (!kept.has(topic.id) && topic.origin === "custom")
       ops.push({ op: "topic.remove", id: topic.id });
-  if (Object.keys(weights).length > 0) ops.push({ op: "weights.set", weights });
   return ops;
 }
 

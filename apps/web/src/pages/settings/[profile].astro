@@ -1,5 +1,4 @@
 ---
-import { PROFILE_LABEL, STRUCTURE_PROFILES } from "@singularity/core";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import PodcastProfile from "../../components/PodcastProfile.astro";
@@ -7,7 +6,6 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
-import { loadStructureProfile } from "../../lib/structurePage";
 import { byName, topicLayout } from "../../lib/topicPages";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
@@ -25,8 +23,6 @@ type Profile = "daily" | "weekly";
 const profile = Astro.params.profile as Profile;
 const [{ topics, sources }, schedule] = await Promise.all([loadManage(), loadScheduleView()]);
 const layout = topicLayout(topics, sources);
-// The structure is one for every podcast, chosen once in Preferences; shown here, not changed.
-const structureProfile = await loadStructureProfile();
 // Every topic can be put in or out of a scheduled podcast: the owner's four, their own and the
 // general news topics, by name as the Sources page lists them (2026-10-22).
 const scopeTopics = [
@@ -89,24 +85,13 @@ const { title, values } = PAGES[profile];
           <section class="podcast-section" aria-labelledby={`${profile}-structure-head`}>
             <h2 class="section-head" id={`${profile}-structure-head`}>Structure</h2>
             <div class="rows card-group">
-              <div class="settings-row">
-                <div class="settings-text">
-                  <label class="settings-label" for={`${profile}-structure-profile`}>Profile</label>
-                  <span class="settings-hint">
-                    Set once for every podcast in <a class="text-link" href="/settings/preferences?view=structure">Preferences</a>
-                  </span>
-                </div>
-                <span class="manage-select value-select">
-                  <select class="manage-input" id={`${profile}-structure-profile`} autocomplete="off" disabled>
-                    {
-                      STRUCTURE_PROFILES.map((id) => (
-                        <option value={id} selected={id === structureProfile}>{PROFILE_LABEL[id]}</option>
-                      ))
-                    }
-                  </select>
-                  <Icon name="chevronDown" />
+              <a class="row-action" href="/settings/preferences?view=structure">
+                <span class="settings-text">
+                  <span class="settings-label">Podcast structure</span>
+                  <span class="settings-hint">Setting to be changed in preferences</span>
                 </span>
-              </div>
+                <Icon name="chevronRight" />
+              </a>
             </div>
           </section>
         </div>

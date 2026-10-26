@@ -135,7 +135,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
-| D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
+| D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format with search and filters; a format mix per page, a Perspective slider on general topics, and two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
@@ -197,10 +197,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
 | D189 | Catalogue route | active |
-| D190 | Votes tune weights | amends D108, D118 |
+| D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
 | D195 | Breadcrumb | amends D129 |
+| D194 | Topic weight removed | supersedes D190 |
 
 ---
 
@@ -2008,6 +2009,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 ## D190: votes tune topic weights and source scores through a bounded, decaying adjustment
 
+- Amends: D108, D118.
+- Amended by D194: the topic part (weight adjustment, the "Adjusted" mark) is removed; source score adjustment stays.
+
 - Date: 2026-10-25 (the owner: "make sure topics evolve as models generate new podcasts. This should be refined and intelligently managed").
 - Decision: a story vote moves an `auto_adjust` on its topic and its source in the owner's profile (`packages/core/src/autoAdjust.ts`, applied in `profile/autoAdjust.ts` by the same `profile.vote` op that stores the vote): 0.02 a vote, within plus or minus 0.2, halving over 30 days without votes, sources at a quarter of the step. Scoring reads the owner's weight plus the decayed adjustment (Off stays Off); the weight itself is never written. A weight row with a live adjustment says "Adjusted" (`lib/topicAdjust.ts`, WeightRow).
 - Why: D108 kept votes out of weights so a bad week could not rewrite the owner's choices; a separate, bounded, decaying term keeps that guarantee and still lets the mix follow what the owner likes. The constants are first guesses, named in one place for tuning against real data.
@@ -2037,3 +2041,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-25 (the owner's ask).
 - Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
 - Why: one tap up beats the app bar's back, which can leave settings.
+
+## D194: topic weight is removed
+
+- Date: 2026-10-26 (implementation plan v2, section 5, D-f).
+- Context changed: topic weights were removed in implementation plan v2, so D190's per-topic vote adjustments no longer have an owner-set weight to adjust.
+- Decision: a topic has no weight. Scoring uses `NORMAL_TASTE` (0.7) for categories and custom topics, 1 for general and Trending topics, and 0.85 for Design; the weight sliders, `weights.set`, the learn patch `weight_deltas`, the vote-driven topic adjustment and the "Adjusted" mark are gone. Old configs that carry `weights`, `topic.weight` or `auto_adjust.topics` parse and the fields are stripped. Vote-driven source scores stay.
+- Why: fixed taste values remove per-topic tuning while preserving the shipped app and general topics' scoring strengths.
+- Supersedes: D190 for topics.

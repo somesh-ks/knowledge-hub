@@ -8,14 +8,13 @@ import {
   IdString,
   isBuiltinCategory,
   isBuiltinSection,
+  NORMAL_TASTE,
   SECTION_TITLES,
   SECTIONS,
   SectionId,
-  snapWeight,
   TRENDING_TOPIC_ID,
 } from "./categories.js";
 import { GENERAL_TOPICS, type GeneralTopicId, isGeneralTopicId } from "./generalTopics.js";
-import type { Preferences } from "./preferences.js";
 import { SourceFormat } from "./sources.js";
 import { TOPIC_GROUP_IDS } from "./topicGroups.js";
 
@@ -74,8 +73,6 @@ export const APP_TOPIC_IDS: readonly string[] = [DESIGN_TOPIC_ID, TRENDING_TOPIC
 /** Judging a custom topic costs a model call per candidate, so the number of them is bounded. */
 export const MAX_CUSTOM_TOPICS = 12;
 export const MAX_KEYWORDS = 30;
-
-const weight = z.number().min(0).max(1);
 
 export const TopicSection = z.object({
   id: SectionId,
@@ -142,27 +139,51 @@ export function perspectiveFactor(
   return 1 + (PERSPECTIVE_REACH * perspective * mean) / 4;
 }
 
-export const Topic = z.object({
-  /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
-  id: IdString,
-  name: z.string().trim().min(1).max(60),
-  /** What belongs in the topic. Read by the judge for a custom topic, so it should be concrete. */
-  description: z.string().trim().min(1).max(400),
-  /** 0 to 1. For a built-in topic the shipped value lives in config/preferences.json. */
-  weight,
-  enabled: z.boolean(),
-  /** A candidate must contain one of these (or come from a tagged source) to be judged for a custom topic. */
-  keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS),
-  section_id: SectionId,
-  never_publish: z.boolean(),
-  origin: TopicOrigin,
-  depth: TopicDepth,
-  /** One emoji shown beside the topic on the Sources page. Built-in topics have theirs in the site's code. */
-  emoji: z.string().trim().min(1).max(16).optional(),
-  /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
-  perspective: Perspective.optional(),
-});
+/** Topic weight is gone (D194); preserve old mutes, including built-in categories that ignore enabled. */
+export const MUTED_WEIGHT = 0.05;
+function muteOldWeight(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || !("weight" in raw)) return raw;
+  const { weight, ...rest } = raw as Record<string, unknown>;
+  if (!(typeof weight === "number" && weight <= MUTED_WEIGHT)) return rest;
+  return {
+    ...rest,
+    enabled: false,
+    ...(rest.origin === "builtin" ? { never_publish: true } : {}),
+  };
+}
+
+export const Topic = z.preprocess(
+  muteOldWeight,
+  z.object({
+    /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
+    id: IdString,
+    name: z.string().trim().min(1).max(60),
+    /** What belongs in the topic. Read by the judge for a custom topic, so it should be concrete. */
+    description: z.string().trim().min(1).max(400),
+    enabled: z.boolean(),
+    /** A candidate must contain one of these (or come from a tagged source) to be judged for a custom topic. */
+    keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS),
+    section_id: SectionId,
+    never_publish: z.boolean(),
+    origin: TopicOrigin,
+    depth: TopicDepth,
+    /** One emoji shown beside the topic on the Sources page. Built-in topics have theirs in the site's code. */
+    emoji: z.string().trim().min(1).max(16).optional(),
+    /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
+    perspective: Perspective.optional(),
+  }),
+);
 export type Topic = z.infer<typeof Topic>;
+
+/**
+ * What a topic is scored at. Not set by the owner (D194): the topics that ship as app or general
+ * topics keep the strength they always had, everything else competes on merit.
+ */
+export function topicTaste(topic: Pick<Topic, "id" | "origin">): number {
+  if (topic.origin === "general" || topic.id === TRENDING_TOPIC_ID) return 1;
+  if (topic.id === DESIGN_TOPIC_ID) return 0.85;
+  return NORMAL_TASTE;
+}
 
 /** Shape of config/topics.json. */
 export const TopicsFile = z
@@ -318,21 +339,19 @@ const BUILTIN_META: Record<Category, { name: string; description: string; depth:
   },
 };
 
-/** The built-in topics, in category order, with weights from the preferences. */
-export function builtinTopics(weights: Readonly<Record<Category, number>>): Topic[] {
+/** The built-in topics, in category order. */
+export function builtinTopics(): Topic[] {
   return CATEGORIES.map((id): Topic => {
     const meta = BUILTIN_META[id];
     const section = homeSection(id, "rss");
-    const weight = snapWeight(weights[id]);
     return {
       id,
       name: meta.name,
       description: meta.description,
-      weight,
       enabled: true,
       keywords: [],
       section_id: section ?? "top",
-      never_publish: weight === 0,
+      never_publish: false,
       origin: "builtin",
       depth: meta.depth,
     };
@@ -351,7 +370,6 @@ export function appTopics(): Topic[] {
       name: "Design",
       description:
         "Product, UI, UX and visual design news and essays for a designer: interface and interaction design, usability research, design systems, branding and the craft and practice of design. Not architecture, furniture or interiors.",
-      weight: 0.85,
       enabled: true,
       keywords: [],
       section_id: "design",
@@ -364,7 +382,6 @@ export function appTopics(): Topic[] {
       name: "Trending",
       description:
         "A news story that several major outlets are covering at once, in any field: politics, economy, science, health, technology, world events. Not sports results, celebrity gossip, obituaries of no wider interest, local crime, opinion columns or product reviews.",
-      weight: 1,
       enabled: true,
       keywords: [],
       section_id: "trending",
@@ -403,7 +420,6 @@ export function generalTopics(): Topic[] {
       id,
       name: title,
       description: GENERAL_DESCRIPTIONS[id],
-      weight: 1,
       enabled: true,
       keywords: [],
       section_id: GENERAL_SECTION_ID,
@@ -415,30 +431,22 @@ export function generalTopics(): Topic[] {
 }
 
 /** What config/topics.json holds before anyone adds a topic: the built-ins and today's sections. */
-export function seedTopicsFile(weights: Readonly<Record<Category, number>>): TopicsFile {
+export function seedTopicsFile(): TopicsFile {
   return {
     version: 1,
     sections: BUILTIN_SECTIONS.map((section) => ({ ...section })),
-    topics: [...builtinTopics(weights), ...appTopics(), ...generalTopics()],
+    topics: [...builtinTopics(), ...appTopics(), ...generalTopics()],
   };
 }
 
 /**
- * The topics a run works from. Built-in weights come from config/preferences.json, where
- * `singularity learn` and the weight sliders write them, so the two files can never disagree about
- * the taste the score is computed from. Built-in topics missing from the file are restored. A
- * missing file reads as the seed.
+ * The topics a run works from. Built-in topics missing from the file are restored. A missing
+ * file reads as the seed.
  */
-export function resolveTopics(
-  file: TopicsFile | null | undefined,
-  preferences: Pick<Preferences, "weights">,
-): TopicsFile {
-  const base = file ?? seedTopicsFile(preferences.weights);
+export function resolveTopics(file: TopicsFile | null | undefined): TopicsFile {
+  const base = file ?? seedTopicsFile();
   const seed = new Map(
-    [...builtinTopics(preferences.weights), ...appTopics(), ...generalTopics()].map((topic) => [
-      topic.id,
-      topic,
-    ]),
+    [...builtinTopics(), ...appTopics(), ...generalTopics()].map((topic) => [topic.id, topic]),
   );
   const present = new Set(base.topics.map((topic) => topic.id));
   const topics = base.topics.map((topic): Topic => {
@@ -446,12 +454,9 @@ export function resolveTopics(
     if (topic.origin === "general") return topic.enabled ? topic : { ...topic, enabled: true };
     if (topic.origin !== "builtin") return topic;
     if (!isBuiltinCategory(topic.id)) return topic;
-    // Weight is the owner's (preferences); the section follows the code, so a routing change
-    // (D39) reaches a topics.json written before it.
+    // The section follows the code, so a routing change (D39) reaches a topics.json written before it.
     return {
       ...topic,
-      weight: snapWeight(preferences.weights[topic.id]),
-      never_publish: snapWeight(preferences.weights[topic.id]) === 0,
       section_id: seed.get(topic.id)?.section_id ?? topic.section_id,
     };
   });
@@ -520,10 +525,17 @@ export function homeSectionFor(
   return publishSection(topic);
 }
 
-/** True when a built-in category sits at Off (weight 0) in the topics a run works from. */
+/** Ids of the built-in categories set never to publish in the topics a run works from. */
+export function offCategories(topics: TopicsFile | null | undefined): string[] {
+  return (topics?.topics ?? [])
+    .filter((topic) => topic.origin === "builtin" && topic.never_publish)
+    .map((topic) => topic.id);
+}
+
+/** True when a built-in category is set never to publish in the topics a run works from. */
 export function categoryIsOff(topics: TopicsFile | null | undefined, id: string): boolean {
   const topic = topics?.topics.find((candidate) => candidate.id === id);
-  return topic?.origin === "builtin" && (topic.weight <= 0 || topic.never_publish);
+  return topic?.origin === "builtin" && topic.never_publish;
 }
 
 /**

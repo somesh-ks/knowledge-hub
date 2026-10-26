@@ -40,6 +40,27 @@ describe("costsAnswer", () => {
     expect(body.site).toBe("ok");
     expect(body.engine).toBe("ok");
   });
+
+  // A hung price table fell back only when the site read's own timer also fired, so the site read was lost.
+  it("keeps the site read when the prices hang", async () => {
+    const fallback: PriceTable = { version: 1, as_of: "2026-01-01", prices: [] };
+    let priced: PriceTable | null = null;
+    const answer = costsAnswer(
+      query,
+      sources({
+        prices: never,
+        fallbackPrices: () => fallback,
+        site: async (table) => {
+          priced = table;
+          return [] as CostRecord[];
+        },
+      }),
+      now,
+    );
+    await vi.advanceTimersByTimeAsync(PART_TIMEOUT_MS);
+    expect((await answer)?.body.site).toBe("ok");
+    expect(priced).toBe(fallback);
+  });
 });
 
 describe("serveCosts", () => {

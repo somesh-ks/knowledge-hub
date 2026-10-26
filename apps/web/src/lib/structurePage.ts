@@ -106,10 +106,3 @@ export async function loadStructureData(
     skip: { daily: [...schedule.skipTopics], weekly: [...schedule.weekly.skip_topics] },
   };
 }
-
-/** The active listener profile, for the Daily and Weekly pages that show it and cannot change it. */
-export async function loadStructureProfile(
-  env: Record<string, string | undefined> = process.env,
-): Promise<StructureProfile> {
-  return (await readStructure(env))?.profile ?? "custom";
-}
