@@ -831,7 +831,10 @@
 .text-link::after {
   content: "";
   position: absolute;
-  inset-inline: 0;
+  /* A word under 44px wide ("Vercel") still gets a 44px target, centred on it. */
+  inset-inline-start: 50%;
+  inline-size: max(100%, var(--size-touch));
+  translate: -50% 0;
   inset-block: calc((var(--size-touch) - 1lh) / -2);
 }
 
