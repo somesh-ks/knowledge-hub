@@ -244,9 +244,9 @@ describe("wake stylesheets", () => {
 
   it("leaves the other stylesheets linked", () => {
     const html =
-      '<head><link rel="stylesheet" href="/_astro/Icon.h.css"><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>';
-    expect(withoutStylesheets(html, ["/_astro/Icon.h.css"])).toBe(
-      '<head><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>',
+      '<head><link rel="stylesheet" href="/_astro/Icon.h.css"><link rel="stylesheet" href="/_astro/player.h.css"><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>';
+    expect(withoutStylesheets(html, wakeStylesheets(Object.keys(files), read))).toBe(
+      '<head><link rel="stylesheet" href="/_astro/Icon.h.css"><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>',
     );
   });
 });
