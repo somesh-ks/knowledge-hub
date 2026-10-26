@@ -731,9 +731,14 @@ test.describe("a topic's page", () => {
     await routeConfigStore(other, hold);
     let releaseStore: () => void = () => {};
     let storeHeld = false;
+    let storeReached: () => void = () => {};
+    const storeRequestReady = new Promise<void>((done) => {
+      storeReached = done;
+    });
     await other.route(/\/api\/config(\?.*)?$/, async (route) => {
       if (storeHeld && route.request().method() === "GET") {
         await new Promise<void>((done) => {
+          storeReached();
           releaseStore = done;
         });
       }
@@ -765,6 +770,7 @@ test.describe("a topic's page", () => {
     await other.goto(LIST);
     // The store's answer is held, so this name can only be the device's copy.
     await expect(other.locator("[data-topics]")).toContainText("Audio and voice");
+    await storeRequestReady;
     releaseStore();
     await answered;
     // The answer is read and acted on within a couple of frames.

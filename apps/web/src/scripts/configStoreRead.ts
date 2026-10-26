@@ -146,7 +146,8 @@ export function afterOwnSave(): void {
     .catch(() => null)
     .then((body) => {
       clearTimeout(timer);
-      if (body && last === asked) adopt(body);
+      // adopt() keeps a newer value, so a save's answer counts even after a later read started.
+      if (body) adopt(body);
       if (body) writeCache(body);
       return body;
     });
