@@ -394,7 +394,8 @@ function updateSource(
   }
   if (via !== undefined) {
     // The fetcher reads options.via and options.category (engine/fetch/firecrawl.ts).
-    const set = via === null ? {} : { via, category: FETCH_VIA[via].category };
+    const set: Record<string, string> =
+      via === null ? {} : { via, category: FETCH_VIA[via].category };
     if (added) {
       const { via: _via, category: _category, ...rest } = added.options;
       added.options = { ...rest, ...set };
@@ -435,8 +436,8 @@ function updateSource(
       op.lean === undefined
         ? `set how source ${tidy(before)} is fetched`
         : op.high_signal !== undefined && op.format === undefined && op.lean === undefined
-        ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
-        : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
+          ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
+          : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
   } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
