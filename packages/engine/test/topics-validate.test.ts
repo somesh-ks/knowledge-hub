@@ -2,11 +2,10 @@ import { type Digest, resolveTopics, TopicsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { validateDigest } from "../src/validate/validateDigest.js";
 import { buildFixtureDigest } from "./render-factories.js";
-import { realPreferences } from "./score-factories.js";
 import { testLinter } from "./write-fakes.js";
 
 const linter = testLinter();
-const base = resolveTopics(null, realPreferences());
+const base = resolveTopics(null);
 const topics = TopicsFile.parse({
   ...base,
   sections: [...base.sections, { id: "quantum", title: "Quantum computing", order: 7 }],

@@ -26,15 +26,15 @@ import {
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-const preferences = Preferences.parse(
-  // A frozen copy, so a weight saved in Settings does not move these expectations.
+const _preferences = Preferences.parse(
+  // A frozen copy, so a preference saved in Settings does not move these expectations.
   JSON.parse(
     readFileSync(join(REPO_ROOT, "packages/engine/test/fixtures/config/preferences.json"), "utf8"),
   ),
 );
 
 function customTopics(): TopicsFile {
-  const seed = seedTopicsFile(preferences.weights);
+  const seed = seedTopicsFile();
   return TopicsFile.parse({
     ...seed,
     sections: [...seed.sections, { id: "quantum", title: "Quantum computing", order: 7 }],
@@ -44,7 +44,6 @@ function customTopics(): TopicsFile {
         id: "quantum_computing",
         name: "Quantum computing",
         description: "Hardware, algorithms and error correction.",
-        weight: 0.7,
         enabled: true,
         keywords: ["qubit"],
         section_id: "quantum",
@@ -62,14 +61,14 @@ describe("config/topics.json", () => {
   );
 
   it("resolves to every shipped topic, whatever the owner has renamed or added in the app", () => {
-    const resolved = resolveTopics(file, preferences);
+    const resolved = resolveTopics(file);
     const ids = new Set(resolved.topics.map((topic) => topic.id));
-    for (const topic of seedTopicsFile(preferences.weights).topics) expect(ids).toContain(topic.id);
+    for (const topic of seedTopicsFile().topics) expect(ids).toContain(topic.id);
     expect(TopicsFile.safeParse(resolved).success).toBe(true);
   });
 
   it("names every category with today's section, then the app's topics", () => {
-    // The owner adds topics and sets weights from Settings, and the general news topics ship with the
+    // The owner adds topics from Settings, and the general news topics ship with the
     // app, so only the built-in and app topics and their sections are pinned; anything else is
     // general or the owner's own.
     expect(file.topics.filter((t) => t.origin === "builtin").map((t) => t.id)).toEqual([
@@ -96,7 +95,7 @@ describe("config/topics.json", () => {
 
 describe("TopicsFile", () => {
   it("rejects a topic in a section that does not exist", () => {
-    const seed = seedTopicsFile(preferences.weights);
+    const seed = seedTopicsFile();
     const bad = {
       ...seed,
       topics: [...seed.topics, { ...customTopics().topics.at(-1), section_id: "missing" }],
@@ -113,31 +112,10 @@ describe("TopicsFile", () => {
     }
   });
 
-  it("takes built-in weights from the preferences, whatever the file says", () => {
-    const stale = seedTopicsFile({ ...preferences.weights, design_engineering_craft: 0.1 });
-    const resolved = resolveTopics(stale, preferences);
-    expect(resolved.topics.find((t) => t.id === "design_engineering_craft")?.weight).toBe(
-      preferences.weights.design_engineering_craft,
-    );
-  });
-
-  it("snaps a stored weight to its stop, and a topic at Off never publishes", () => {
-    const stored = { ...preferences, weights: { ...preferences.weights } };
-    stored.weights.css_canvas_motion_techniques = 0.88;
-    stored.weights.venture_capital_and_gossip = 0.1;
-    const byId = new Map(resolveTopics(null, stored).topics.map((t) => [t.id, t]));
-    expect(byId.get("css_canvas_motion_techniques")?.weight).toBe(0.85);
-    expect(byId.get("css_canvas_motion_techniques")?.never_publish).toBe(false);
-    expect(byId.get("venture_capital_and_gossip")).toMatchObject({
-      weight: 0,
-      never_publish: true,
-    });
-  });
-
   it("restores built-in topics and sections a file leaves out, and reads a missing file as the seed", () => {
-    expect(resolveTopics(null, preferences)).toEqual(seedTopicsFile(preferences.weights));
+    expect(resolveTopics(null)).toEqual(seedTopicsFile());
     const trimmed = { ...customTopics(), topics: customTopics().topics.slice(3) };
-    expect(resolveTopics(trimmed, preferences).topics.map((t) => t.id)).toEqual(
+    expect(resolveTopics(trimmed).topics.map((t) => t.id)).toEqual(
       expect.arrayContaining([...CATEGORIES, "quantum_computing"]),
     );
   });
@@ -286,7 +264,6 @@ describe("ConfigOp", () => {
       { op: "source.add", url: "https://example.com/blog", topic_ids: ["quantum"] },
       { op: "source.set", id: "blog", enabled: false },
       { op: "source.remove", id: "blog" },
-      { op: "weights.set", weights: { quantum: 0.5 } },
     ];
     for (const op of ops) expect(ConfigOp.safeParse(op).success, op.op).toBe(true);
   });
@@ -297,16 +274,14 @@ describe("ConfigOp", () => {
       topic: { name: "Quantum", description: "Qubits." },
     });
     expect(parsed).toMatchObject({
-      topic: { weight: 0.7, enabled: true, keywords: [], never_publish: false, depth: "fit_only" },
+      topic: { enabled: true, keywords: [], never_publish: false, depth: "fit_only" },
     });
   });
 
-  it("rejects unknown ops, empty changes, out-of-range weights and non-http URLs", () => {
+  it("rejects unknown ops, empty changes, and non-http URLs", () => {
     const bad = [
       { op: "topic.explode" },
       { op: "source.set", id: "blog" },
-      { op: "weights.set", weights: {} },
-      { op: "weights.set", weights: { quantum: 1.5 } },
       { op: "source.add", url: "ftp://example.com/feed" },
       { op: "source.add", url: "not a url" },
       { op: "topic.remove", id: "Has Capitals" },
