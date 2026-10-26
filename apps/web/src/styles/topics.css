@@ -1755,7 +1755,20 @@ html:has(.source-filter[data-chips]) {
   min-width: 0;
   /* The card's surface is the pane's, so its end padding is the pane's: the select's chevron ends in
      the rows' column. */
-  padding-inline: 0;
+  padding: 0;
+}
+
+/* One row: the category card's empty foot row would add a gap and 24px of padding under it. */
+@media (width >= 40rem) {
+  .structure-profile {
+    grid-template-areas: "art text menu";
+  }
+}
+
+.profile-card-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-body);
 }
 
 .structure-profile .topic-card-art {
