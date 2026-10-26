@@ -112,8 +112,14 @@
   flex-wrap: nowrap;
 }
 
+/* The label is as wide as its words and the control takes the row's end (owner, 2026-10-25): a label
+   that filled the row made the empty middle a target, and hovering it lit the control it names. */
 .settings-row > .settings-label {
-  flex: 1 0 auto;
+  flex: 0 1 auto;
+}
+
+.settings-row > .settings-label + * {
+  margin-inline-start: auto;
 }
 
 /* Every quiet line in Settings is one size, the label size, a step under the 16px labels. */
@@ -491,11 +497,20 @@
   margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px)) * -1);
 }
 
-/* In a card the fill's box ends one inset from the card's edge, where a row's tile ends (2026-10-24,
-   the inset went to 4px); the select reaches further and pads by as much, so its value and chevron
-   stay where the link rows' values and chevrons end. */
+/* In a card the fill's box ends as far from the card's edge as it starts from the row's top and
+   bottom (owner, 2026-10-25: the right inset looked uneven): the card's inset plus the row's block
+   padding. The select pads by as much, so its value and chevron stay where the link rows' values and
+   chevrons end. */
 .card-group .settings-row .value-select {
-  --value-select-pull: calc(var(--card-padding) - var(--card-inset) - var(--space-2));
+  --value-select-pull: calc(
+    var(--card-padding) -
+    var(--card-inset) -
+    var(--space-2) -
+    var(--space-4)
+  );
+  /* The chevron's ink sits 12px inside the tile, not 4 (2026-10-26 audit), which is where the link
+     rows' chevrons end: the tile keeps its 12px inset, and the chevron and the value step in. */
+  --value-select-end: var(--space-2);
 }
 
 .settings-row .value-select > select.manage-input {
@@ -507,6 +522,7 @@
     calc(
       var(--space-2) +
       var(--value-select-pull, 0px) +
+      var(--value-select-end, 0px) +
       var(--size-icon) *
       (1 - var(--ink-end, 0)) +
       var(--field-chevron-gap)
@@ -523,7 +539,8 @@
 .settings-row .value-select > .icon {
   inset-inline-end: calc(
     var(--space-2) +
-    var(--value-select-pull, 0px) -
+    var(--value-select-pull, 0px) +
+    var(--value-select-end, 0px) -
     var(--size-icon) *
     var(--ink-end, 0)
   );
