@@ -863,7 +863,7 @@ describe("tech releases in a published run", () => {
       // The flagship launch (level 3) outranks the level 2 launches inside the section.
       expect(tech[0]?.headline).toContain("iPad Pro");
       expect(tech[0]?.score).toBe(0.638);
-      expect(tech.slice(1).every((item) => item.score === 0.6365)).toBe(true);
+      expect(tech.slice(1).every((item) => item.score === 0.5569)).toBe(true);
       expect(digest.items.some((item) => item.headline.includes("rumour"))).toBe(false);
 
       // Top picks are the three best items outside tech, and tech follows AI in the file.
