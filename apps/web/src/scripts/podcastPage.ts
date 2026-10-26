@@ -130,7 +130,7 @@ export async function mount(root: HTMLElement): Promise<void> {
   /** The switch: off, the rest of the page is disabled and dimmed, and the quiet line says so. */
   const body = root.querySelector<HTMLFieldSetElement>("[data-body]");
   const offNote = root.querySelector<HTMLElement>("[data-off-note]");
-  const power = root.querySelector<HTMLInputElement>("[data-f$=\".enabled\"]");
+  const power = root.querySelector<HTMLInputElement>('[data-f$=".enabled"]');
   const showPower = (): void => {
     if (!power) return;
     if (body) body.disabled = !power.checked;

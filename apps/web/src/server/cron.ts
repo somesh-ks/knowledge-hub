@@ -107,7 +107,8 @@ export function slotAt(schedule: ScheduleFile, now: Date): "daily" | "weekly" | 
   const zone = scheduleZone(schedule.timezone);
   const start = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const ends = [new Date(start), new Date(start + HOUR_MS - 1)];
-  if (schedule.enabled && ends.some((at) => inScheduleHour(at, zone, schedule.hour))) return "daily";
+  if (schedule.enabled && ends.some((at) => inScheduleHour(at, zone, schedule.hour)))
+    return "daily";
   const { weekly } = schedule;
   const inWeekly = (at: Date) =>
     weekday(zonedDate(at, zone)) === weekly.day && inScheduleHour(at, zone, weekly.hour);
