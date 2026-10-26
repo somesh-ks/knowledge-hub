@@ -139,7 +139,15 @@ export function perspectiveFactor(
   return 1 + (PERSPECTIVE_REACH * perspective * mean) / 4;
 }
 
-export const Topic = z.object({
+/** Topic weight is gone (D193); an older file at weight 0.05 or less was muted, so it reads as disabled. */
+export const MUTED_WEIGHT = 0.05;
+function muteOldWeight(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || !("weight" in raw)) return raw;
+  const { weight, ...rest } = raw as Record<string, unknown>;
+  return typeof weight === "number" && weight <= MUTED_WEIGHT ? { ...rest, enabled: false } : rest;
+}
+
+export const Topic = z.preprocess(muteOldWeight, z.object({
   /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
   id: IdString,
   name: z.string().trim().min(1).max(60),
@@ -156,7 +164,7 @@ export const Topic = z.object({
   emoji: z.string().trim().min(1).max(16).optional(),
   /** General topics only: -2 (Left) to 2 (Right), leaning stories toward that side. Absent is Even. */
   perspective: Perspective.optional(),
-});
+}));
 export type Topic = z.infer<typeof Topic>;
 
 /**

@@ -160,6 +160,14 @@ describe("paths and sections", () => {
     const adjust = AutoAdjust.parse({ topics: { design: { value: 0.1, at: "2026-10-01" } } });
     expect(adjust).toEqual({ sources: {} });
   });
+  // A topic the owner muted at weight 0 stays off once weight is gone.
+  it("reads an older topic at weight 0.05 or less as disabled, and a higher one as enabled", () => {
+    const topic = seedTopicsFile().topics[0];
+    const muted = Topic.parse({ ...topic, enabled: true, weight: 0 });
+    expect(muted.enabled).toBe(false);
+    expect(muted).not.toHaveProperty("weight");
+    expect(Topic.parse({ ...topic, enabled: true, weight: 0.7 }).enabled).toBe(true);
+  });
 });
 
 describe("digest file", () => {
