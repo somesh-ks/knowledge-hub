@@ -103,12 +103,56 @@ function readCache(): ConfigReadBody | null {
   }
 }
 
+/** The page's store value takes an answer unless the one it holds was written later. */
+function adopt(body: ConfigReadBody): void {
+  if (
+    current?.written_at != null &&
+    (body.written_at == null || body.written_at < current.written_at)
+  ) {
+    return;
+  }
+  current = body;
+}
+
 function writeCache(body: ConfigReadBody): void {
+  // A read that started before a save can resolve after the post-save read: never write older over newer.
+  const held = readCache();
+  if (held?.written_at != null && (body.written_at == null || body.written_at < held.written_at)) {
+    return;
+  }
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(body));
   } catch {
     // A full or blocked storage only costs the next load its copy.
   }
+}
+
+/**
+ * A save made here went through (written_at is the store's clock for it): the device's copy is a
+ * write behind, so the store is asked again at once and the copy takes the answer. Another tab reads
+ * the same copy on its next navigation, so it shows the edit without a reload. The ask carries its
+ * own query so the edge's one-second cache cannot hand back the answer from before the save.
+ */
+export function afterOwnSave(): void {
+  const asked = { at: 0 } as { at: number; read: Promise<ConfigReadBody | null> };
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), STORE_READ_TIMEOUT_MS * 2);
+  asked.read = fetch(`/api/config?after=${Date.now()}`, {
+    signal: stop.signal,
+    headers: { Accept: "application/json" },
+  })
+    .then((response) => (response.ok ? response.json() : null))
+    .then(parseRead)
+    .catch(() => null)
+    .then((body) => {
+      clearTimeout(timer);
+      // adopt() keeps a newer value, so a save's answer counts even after a later read started.
+      if (body) adopt(body);
+      if (body) writeCache(body);
+      return body;
+    });
+  // Reads started before the save no longer speak for the store.
+  last = asked;
 }
 
 /**
@@ -134,7 +178,7 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
       clearTimeout(timer);
       // Only the newest read speaks for the store: an older one that ends late, or fails, does not
       // replace what a newer one found. A failed read leaves the device's copy standing.
-      if (last === asked && body) current = body;
+      if (last === asked && body) adopt(body);
       if (body) writeCache(body);
       return body ?? (last === asked ? current : null);
     });
