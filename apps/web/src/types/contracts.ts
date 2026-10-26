@@ -142,6 +142,15 @@ export interface StatusResponse {
   stage?: number;
   stages?: number;
   label?: string;
+  /**
+   * Usual length of each stage in milliseconds, matching the stages, when the engine knows them.
+   * The page turns it into "About N min left"; without it the page shows the stage name only.
+   */
+  stage_estimates_ms?: number[];
+  /** A failed episode run: the stage it stopped in ("gathering", "script", "cover", "voices", "publishing"). */
+  failed_stage?: string;
+  /** A failed episode run: the artifacts the earlier stages finished ("script", "cover", "voices"). */
+  kept?: string[];
   /** Present once state is "completed". Read from state/last-run.json. */
   outcome?: "published" | "nothing" | "gated" | "failed";
   digest_id?: string;

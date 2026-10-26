@@ -1,4 +1,6 @@
-import { expect, test } from "./helpers";
+import { expect, SITE, test } from "./helpers";
+
+const SITE_PAGE = `**${SITE.path}`;
 
 test("one surface: the page waits collapsed and out of reach, then opens as one modal dialog with the bar @desktop", async ({
   player,
@@ -42,4 +44,44 @@ test("one surface: the page waits collapsed and out of reach, then opens as one 
   await finger.press(player.openButton);
   await player.collapsed();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+// A catch-up episode that arrives with no script yet showed a page of empty room. With no transcript
+// and no queue the page is the cover and its controls alone (D-lean, 2026-10-25); a queued item
+// brings the list. The cover keeps its row, size and, below 64rem, its place when that happens.
+test("the cover holds still when a queue arrives on a page with nothing to read @desktop", async ({
+  player,
+  page,
+}) => {
+  await page.route(SITE_PAGE, async (route) => {
+    const response = await route.fetch();
+    const html = (await response.text()).replace(
+      /(<script[^>]*id="singularity-digest-data"[^>]*>)([\s\S]*?)(<\/script>)/,
+      (_all, open: string, json: string, close: string) => {
+        const data = JSON.parse(json);
+        return `${open}${JSON.stringify({ ...data, items: [], sections: [], turns: undefined })}${close}`;
+      },
+    );
+    await route.fulfill({ response, body: html });
+  });
+  await player.open();
+  await player.play();
+  await player.openPlayer();
+  const cover = player.dialog.locator(".player-cover-box");
+  await expect(player.dialog.locator(".player-page-inner")).toHaveAttribute("data-lean", "");
+  const before = await cover.boundingBox();
+  await page.evaluate(() => {
+    document.dispatchEvent(
+      new CustomEvent("singularity:queue-add", { detail: { id: "ep-20261007-1930" } }),
+    );
+  });
+  await expect(player.dialog.locator(".player-page-inner")).not.toHaveAttribute("data-lean", "");
+  await player.settled();
+  const after = await cover.boundingBox();
+  expect(after?.width).toBe(before?.width);
+  expect(after?.height).toBe(before?.height);
+  expect(after?.y).toBe(before?.y);
+  // Stacked, the cover is centred either way. Side by side it moves to the left column.
+  const stacked = await page.evaluate(() => matchMedia("(width < 64rem)").matches);
+  if (stacked) expect(after?.x).toBe(before?.x);
 });

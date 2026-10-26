@@ -31,6 +31,8 @@ export const defaultAudioDeps: AudioCommandDeps = {
     createSpeechifyClient({
       apiKey: requireKey(ctx.env, "SPEECHIFY_API_KEY"),
       defaultVoiceId: ctx.env.SPEECHIFY_VOICE_ID,
+      // A workflow run has no retry of its own above this, so a 5xx or a timeout gets two more tries.
+      transientRetries: 2,
     }),
   createBlob: (ctx) => {
     // A long-lived token wins; otherwise the OIDC pair pulled with `vercel env pull`.

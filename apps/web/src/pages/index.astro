@@ -2,10 +2,14 @@
 import Banner from "../components/Banner.astro";
 import DigestView from "../components/DigestView.astro";
 import EmptyState from "../components/EmptyState.astro";
+import EpisodeView from "../components/EpisodeView.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { hasSectionTabs, listenLength } from "../lib/digestView";
+import { episodeSections } from "../lib/episodeHighlights";
+import { episodeLength, storyLookups } from "../lib/episodes";
 import { longDate } from "../lib/format";
-import { briefingCard } from "../lib/linkCard";
+import { newestItem } from "../lib/latest";
+import { briefingCard, episodeCard } from "../lib/linkCard";
 import { getSite } from "../lib/site";
 import { CONTENT_CDN_CACHE, readFromContentRepo } from "../server/contentRepo";
 
@@ -19,10 +23,44 @@ if (!Astro.isPrerendered) {
 }
 
 const site = await getSite();
+// Latest is the newest item of any kind: a catch-up episode made after the briefing opens as itself.
+const newest = newestItem(site);
+const episode =
+  newest?.kind === "episode" ? site.episodes.find((e) => e.id === newest.id) : undefined;
+const lookups = episode ? storyLookups(site.entries) : undefined;
+const episodeTabs =
+  episode && lookups ? episodeSections(episode.episode, lookups).length > 1 : false;
+// Where a device that deleted this episode goes while the store still lists it (deletedEpisodes.ts).
+const fallback: string[] = [];
+if (episode) {
+  const skipped = new Set([episode.id]);
+  for (let i = 0; i < 3; i++) {
+    const next = newestItem(site, skipped);
+    if (!next) break;
+    skipped.add(next.id);
+    fallback.push(next.kind === "episode" ? `/e/${next.id}` : `/d/${next.id}`);
+  }
+}
 const latest = site.entries[0];
 const earlier = site.entries.slice(1, 4);
 ---
 
+{
+  episode && lookups ? (
+    <BaseLayout
+      title={episode.episode.title}
+      view="home"
+      digestId={episode.id}
+      latestFallback={fallback}
+      card={episodeCard(episode)}
+      audio={{ noun: "episode", length: episodeLength(episode.episode) }}
+      layout={episodeTabs ? "aside" : "single"}
+      tabs={episodeTabs}
+      skipLabel="Skip to the episode"
+    >
+      <EpisodeView entry={episode} {...lookups} />
+    </BaseLayout>
+  ) : (
 <BaseLayout
   title={latest?.player.title}
   view="home"
@@ -59,3 +97,5 @@ const earlier = site.entries.slice(1, 4);
     )
   }
 </BaseLayout>
+  )
+}

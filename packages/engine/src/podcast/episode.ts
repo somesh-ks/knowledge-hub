@@ -102,6 +102,8 @@ export interface BuildEpisodeInput {
   /** Set when the episode replaces an earlier one. */
   replaces?: string;
   feedback?: string;
+  /** Chosen by the cover stage; absent, it is chosen here. */
+  cover?: Episode["cover"];
 }
 
 export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
@@ -121,7 +123,6 @@ export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
       source: story.source,
     }));
   const charCount = input.turns.reduce((sum, turn) => sum + turn.text.length, 0);
-  const pick = createFallbackCoverPicker({ palettes: await loadCoverPalettes(input.root) });
   return {
     id: input.id,
     title: episodeTitle(input.request),
@@ -139,8 +140,14 @@ export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
       ...(turn.item_id ? { item_id: turn.item_id } : {}),
     })),
     char_count: charCount,
-    cover: pick({ digestId: input.id, date: input.id.slice(3, 11), kind: "on-demand", items: [] }),
+    cover: input.cover ?? (await pickEpisodeCover(input.root, input.id)),
   };
+}
+
+/** The cover an episode gets, from its id alone: no model is called, so it is ready at once. */
+export async function pickEpisodeCover(root: string, id: string): Promise<Episode["cover"]> {
+  const pick = createFallbackCoverPicker({ palettes: await loadCoverPalettes(root) });
+  return pick({ digestId: id, date: id.slice(3, 11), kind: "on-demand", items: [] });
 }
 
 /** Write `Podcasts/YYYY/MM/<id>.md`, never over an existing file. */

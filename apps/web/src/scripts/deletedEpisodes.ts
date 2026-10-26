@@ -5,6 +5,7 @@ import {
   parseDeleted,
   pruneDeleted,
 } from "../lib/deletedEpisodes";
+import { parseQueue, QUEUE_KEY } from "../player/core/playQueue";
 import { libraryAddress } from "./libraryAddress";
 
 /**
@@ -59,10 +60,42 @@ function hideIn(doc: Document): void {
     document.dispatchEvent(new Event("singularity:library-pruned"));
 }
 
-/** A page for a deleted episode has nothing to show: go to the Library as it was left. */
+/**
+ * A page for a deleted episode has nothing to show: go to the Library as it was left. Latest (/)
+ * is the exception: it shows the newest item, so it moves to the next newest one the server listed.
+ */
 function leaveIfDeleted(): void {
+  if (location.pathname === "/") {
+    const root = document.documentElement.dataset;
+    const gone = new Set(load().map((entry) => entry.id));
+    if (!root.digestId || !gone.has(root.digestId)) return;
+    const next = (root.latestFallback ?? "")
+      .split(" ")
+      .find((href) => href && !gone.has(ID_FROM_HREF.exec(href)?.[1] ?? ""));
+    location.replace(next ?? libraryAddress());
+    return;
+  }
   const id = ID_FROM_HREF.exec(location.pathname)?.[1];
   if (id && load().some((entry) => entry.id === id)) location.replace(libraryAddress());
+}
+
+/** A deleted episode leaves this device's queue and its offline copy: it must never play from either. */
+function dropFromDevice(): void {
+  const gone = new Set(load().map((entry) => entry.id));
+  if (!gone.size) return;
+  try {
+    const queued = parseQueue(localStorage.getItem(QUEUE_KEY));
+    const kept = queued.filter((id) => !gone.has(id));
+    if (kept.length !== queued.length) {
+      if (kept.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(kept));
+      else localStorage.removeItem(QUEUE_KEY);
+    }
+  } catch {
+    // Storage can be blocked; the queue then stays as it was.
+  }
+  void import("./libraryDownloads").then(async ({ readDownloads, removeDownload }) => {
+    for (const { id } of await readDownloads()) if (gone.has(id)) await removeDownload(id);
+  });
 }
 
 let installed = false;
@@ -74,6 +107,7 @@ function install(): void {
   document.addEventListener("astro:page-load", leaveIfDeleted);
   hideIn(document);
   leaveIfDeleted();
+  dropFromDevice();
 }
 
 install();

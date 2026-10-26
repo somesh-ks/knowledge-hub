@@ -20,7 +20,11 @@ function sync(): void {
 function syncRoot(root: HTMLElement): void {
   let busy = false;
   try {
-    const run = JSON.parse(sessionStorage.getItem("singularity:run") ?? "null");
+    const run = JSON.parse(
+      localStorage.getItem("singularity:run") ??
+        sessionStorage.getItem("singularity:run") ??
+        "null",
+    );
     // A briefing's root has no episode: its runs are followed by the Generate sheet.
     busy =
       root.dataset.episode !== undefined &&

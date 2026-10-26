@@ -417,7 +417,7 @@ test.describe("the Create page", () => {
     await expect(again).toBeHidden();
     // It survives a reload: the stored run still holds the request.
     const stored = await page.evaluate(() =>
-      JSON.parse(sessionStorage.getItem("singularity:run") ?? "{}"),
+      JSON.parse(localStorage.getItem("singularity:run") ?? "{}"),
     );
     expect(stored).toMatchObject({ id: 22, retry: { body: { request: mock.bodies[0]?.request } } });
   });
@@ -486,7 +486,7 @@ test.describe("the Create page", () => {
     await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
     await expect(page.locator("[data-run-card]")).toBeHidden();
     await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
-    expect(await page.evaluate(() => sessionStorage.getItem("singularity:run"))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
   });
 
   test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {

@@ -12,6 +12,7 @@ import {
   SECTIONS,
   SOURCE_FORMATS,
   type SourceFormat,
+  scoreReasons,
   sourceScore,
 } from "@singularity/core";
 import { findRepoRoot } from "./repoRoot";
@@ -87,6 +88,8 @@ export interface ManageSource {
    * Trust is null while it is not measured: fewer than 10 items were asked the flag questions.
    */
   score_parts: { health: number; quality: number; trust: number | null } | null;
+  /** Plain sentences on why the score is low; none at Good or better. */
+  score_why: string[];
   /** Lowercase text the search matches. */
   search: string;
   /** Blog, news, forum and so on: the source's own, else the one its type implies. */
@@ -590,6 +593,17 @@ export function buildSources(input: {
       score: rated.score,
       score_label: rated.label,
       score_parts: rated.parts,
+      score_why: scoreReasons(rated.parts, {
+        judged: sourceStats?.judged ?? 0,
+        passed: sourceStats?.passed ?? 0,
+        published: sourceStats?.published ?? 0,
+        asked: sourceStats?.asked ?? 0,
+        flagged: sourceStats?.flagged ?? 0,
+        failures,
+        covered: sourceStats?.covered ?? 0,
+        sampled: sourceStats?.sampled ?? 0,
+        feedsGeneral,
+      }),
       search: `${name} ${host} ${source.id}`.toLowerCase(),
       format: override.format ?? source.format,
       lean: override.lean === undefined ? source.lean : override.lean,

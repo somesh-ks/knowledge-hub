@@ -24,7 +24,7 @@ import {
 
 /** The controls: anything that can be activated, nearest first. */
 const CONTROL =
-  "[data-sound],a[href],button,input,select,summary,.picker-option,[role=button],[role=tab],[role=switch],[role=menuitem],[role=radio],[role=checkbox],[role=link]";
+  "[data-sound],a[href],button,input,select,summary,.picker-option,[role=button],[role=tab],[role=switch],[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option],[role=radio],[role=checkbox],[role=link]";
 
 /**
  * Controls whose action already plays its own cue (the sheet, the player's open page, play and pause,

@@ -11,7 +11,7 @@ import {
   zonedHour,
 } from "@singularity/core";
 import { configStoreUrl, type SqlClient } from "@singularity/engine/config-paths";
-import { decideRun } from "@singularity/engine/gate";
+import { decideRun, GENERATE_AHEAD_HOURS } from "@singularity/engine/gate";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
@@ -87,6 +87,16 @@ export const MIN_CRON_SECRET_CHARS = 16;
 const HOUR_MS = 3_600_000;
 
 /**
+ * True in the scheduled hour and the GENERATE_AHEAD_HOURS before it: a run starts ahead, generates, and publishes
+ * at the scheduled time (D193; the engine's gate holds the commit). Hour 0 has no hour before it
+ * on the same date, so it starts in its own hour.
+ */
+function inScheduleHour(at: Date, zone: string, hour: number): boolean {
+  const local = zonedHour(at, zone);
+  return local <= hour && local >= Math.max(0, hour - GENERATE_AHEAD_HOURS);
+}
+
+/**
  * Which of the schedule's hours this is, on the schedule's clock: the daily one first, then the
  * weekly one. Vercel calls once in each UTC hour, anywhere in it, so the call counts when its UTC
  * hour overlaps the schedule's hour. In a whole-hour zone that is the hour itself; in a half-hour
@@ -97,10 +107,10 @@ export function slotAt(schedule: ScheduleFile, now: Date): "daily" | "weekly" | 
   const zone = scheduleZone(schedule.timezone);
   const start = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const ends = [new Date(start), new Date(start + HOUR_MS - 1)];
-  if (ends.some((at) => zonedHour(at, zone) === schedule.hour)) return "daily";
+  if (ends.some((at) => inScheduleHour(at, zone, schedule.hour))) return "daily";
   const { weekly } = schedule;
   const inWeekly = (at: Date) =>
-    weekday(zonedDate(at, zone)) === weekly.day && zonedHour(at, zone) === weekly.hour;
+    weekday(zonedDate(at, zone)) === weekly.day && inScheduleHour(at, zone, weekly.hour);
   return weekly.enabled && ends.some(inWeekly) ? "weekly" : null;
 }
 

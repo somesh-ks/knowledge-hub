@@ -1,5 +1,5 @@
 /**
- * Search, and on a topic's page format chips, over the source rows of the Categories & Sources index
+ * Search, and on a category's page format tabs (All, then one per format), over the source rows of the Categories & Sources index
  * (every source) or a topic's page (its own). Loaded by topicsPage.ts after the page is ready; the
  * page is whole HTML without it. The state lives in the address (?q=&format=a&format=b), written with
  * replaceState so a reload, or Back to the page, finds it as it was.
@@ -26,7 +26,7 @@ export function mountFilter(root: HTMLElement): void {
   const field = filter.querySelector<HTMLInputElement>("[data-filter-q]");
   const none = filter.querySelector<HTMLElement>("[data-filter-none]");
   const clearText = filter.querySelector<HTMLButtonElement>("[data-filter-clear-text]");
-  const chips = [...filter.querySelectorAll<HTMLInputElement>("input[data-chip]")];
+  const tabs = [...filter.querySelectorAll<HTMLButtonElement>("[data-tab]")];
   // The index swaps its topic list for the flat list of sources while a search is set.
   const library = root.querySelector<HTMLElement>("[data-library]");
   const topicLists = [...root.querySelectorAll<HTMLElement>(".topics-index, .topics-more")];
@@ -45,10 +45,10 @@ export function mountFilter(root: HTMLElement): void {
   }));
 
   const state: FilterState = readFilter(location.search);
-  // A format with no chip here (an old address, or the index) narrows nothing.
-  state.formats = state.formats.filter((format) =>
-    chips.some((chip) => chip.dataset.chip === format),
-  );
+  // A format with no tab here (an old address, or the index) narrows nothing; one tab is chosen at a time.
+  state.formats = state.formats
+    .filter((format) => tabs.some((tab) => tab.dataset.tab === format))
+    .slice(0, 1);
   field.value = state.q;
 
   const apply = (): void => {
@@ -59,7 +59,11 @@ export function mountFilter(root: HTMLElement): void {
       el.hidden = !ok;
       if (ok) shown += 1;
     }
-    for (const chip of chips) chip.checked = state.formats.includes(chip.dataset.chip ?? "");
+    for (const tab of tabs) {
+      const chosen = (tab.dataset.tab ?? "") === (state.formats[0] ?? "");
+      tab.setAttribute("aria-selected", String(chosen));
+      tab.tabIndex = chosen ? 0 : -1;
+    }
     if (clearText) clearText.hidden = state.q === "";
     // The index shows its topics until something narrows the list; a topic's page lifts its fold.
     if (library) {
@@ -112,14 +116,31 @@ export function mountFilter(root: HTMLElement): void {
       return;
     }
   });
-  filter.addEventListener("change", (event) => {
-    const chip = event.target as HTMLInputElement;
-    if (!("chip" in chip.dataset)) return;
-    const format = chip.dataset.chip ?? "";
-    state.formats = chip.checked
-      ? [...state.formats.filter((chosen) => chosen !== format), format]
-      : state.formats.filter((chosen) => chosen !== format);
+  const choose = (tab: HTMLButtonElement): void => {
+    state.formats = tab.dataset.tab ? [tab.dataset.tab] : [];
     apply();
+  };
+  filter.addEventListener("click", (event) => {
+    const tab = (event.target as Element).closest<HTMLButtonElement>("[data-tab]");
+    if (tab) choose(tab);
+  });
+  // A tablist's arrows, Home and End move the choice, as the page's view switch does.
+  filter.addEventListener("keydown", (event) => {
+    const tab = (event.target as Element).closest<HTMLButtonElement>("[data-tab]");
+    const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+    const at = tab ? tabs.indexOf(tab) : -1;
+    const to =
+      event.key === "Home"
+        ? tabs[0]
+        : event.key === "End"
+          ? tabs[tabs.length - 1]
+          : step && at >= 0
+            ? tabs[(at + step + tabs.length) % tabs.length]
+            : undefined;
+    if (!to || at < 0) return;
+    event.preventDefault();
+    choose(to);
+    to.focus();
   });
   apply();
 }
