@@ -381,6 +381,31 @@ describe("service worker: a move inside the app", () => {
     expect(worker.posted).toEqual([]);
   });
 
+  // A deleted episode's saved page and downloaded audio kept answering offline and for 10 minutes
+  // online (plan section 20, criterion 4).
+  it("drops a removed episode's saved page and downloaded audio when its page turns 404", async () => {
+    let removed = false;
+    const worker = load(() =>
+      removed ? new Response("removed", { status: 404 }) : new Response("episode"),
+    );
+    const audio = "https://abc.public.blob.vercel-storage.com/audio/ep-1/seg/t0.abc.mp3";
+    const other = "https://abc.public.blob.vercel-storage.com/audio/ep-2/seg/t0.abc.mp3";
+    await worker.dispatchFetch(request("/e/ep-1", { mode: "navigate" }));
+    const downloads = await worker.caches.open("singularity-audio-v1");
+    await downloads.put(audio, new Response("a"));
+    await downloads.put(other, new Response("b"));
+    removed = true;
+    worker.clock.now += MINUTE;
+    const move = await worker.dispatchFetch(request("/e/ep-1"));
+    expect(await move.response?.text()).toBe("episode");
+    expect(worker.posted).toEqual([{ type: "PAGE_CHANGED", path: "/e/ep-1" }]);
+    expect(await downloads.match(audio)).toBeUndefined();
+    expect(await downloads.match(other)).toBeDefined();
+    worker.clock.now += 5 * SECOND;
+    const next = await worker.dispatchFetch(request("/e/ep-1", { mode: "navigate" }));
+    expect(next.response?.status).toBe(404);
+  });
+
   it("waits for the network when the saved copy is old", async () => {
     let version = 1;
     const worker = load(() => new Response(`home v${version}`));

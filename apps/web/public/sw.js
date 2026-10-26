@@ -379,6 +379,7 @@ function networkFirst(event, cacheName, limit, beforeStore, shared, key) {
   const request = event.request;
   const saveAs = key || request;
   const network = (shared ? sharedFetch(request) : pageFetch(event)).then(async (response) => {
+    if (response.status === 404) await evictRemoved(request.url);
     if (response.ok && beforeStore) await beforeStore(saveAs, response);
     await store(cacheName, saveAs, response, limit);
     if (response.ok) background(event, warmAssets(response.clone()));
@@ -408,10 +409,39 @@ async function inAppPage(event) {
   return saved;
 }
 
+/**
+ * A removed episode or briefing answers its page with a 404 (the "removed" page). Its saved page and
+ * its downloaded audio go with it, so neither plays or shows again, offline included (plan section
+ * 20, criterion 4). Audio lives at audio/<id>/seg/... (episodes) or audio/<id>.<version>.mp3.
+ */
+async function evictRemoved(url) {
+  const path = new URL(url).pathname;
+  const id = /^\/[ed]\/([\w-]+)\/?$/.exec(path)?.[1];
+  if (!id) return false;
+  const pages = await caches.open(PAGES_CACHE);
+  for (const key of await pages.keys()) {
+    if (new URL(key.url).pathname === path) await pages.delete(key);
+  }
+  const audio = await caches.open(AUDIO_CACHE);
+  for (const key of await audio.keys()) {
+    const file = new URL(key.url).pathname;
+    if (file.startsWith(`/audio/${id}/`) || file.startsWith(`/audio/${id}.`)) {
+      await audio.delete(key);
+    }
+  }
+  return true;
+}
+
 /** Fetches a page that was answered from its saved copy, and tells open pages when it has changed. */
 async function recheck(request, saved) {
   try {
     const fresh = await fetch(request.url);
+    if (fresh.status === 404 && (await evictRemoved(request.url))) {
+      for (const client of await self.clients.matchAll({ type: "window" })) {
+        client.postMessage({ type: "PAGE_CHANGED", path: new URL(request.url).pathname });
+      }
+      return;
+    }
     if (!fresh.ok) return;
     const [was, is] = await Promise.all([saved.text(), fresh.clone().text()]);
     await store(PAGES_CACHE, request, fresh, MAX_PAGES);
