@@ -138,6 +138,9 @@ export async function loadSuggested(): Promise<string[] | null> {
   return suggestNext(ordered, currentId, skipper(safeLocalStorage(), getPlayQueue().getIds()));
 }
 
+/** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */
+let playSelections = 0;
+
 /**
  * Starts what comes next: the first queued item, or else, when `suggest` allows, the first
  * suggested one. Used when an item ends and by the lock screen's Next.
@@ -151,8 +154,10 @@ export async function playUpNext(
   if (next) return playQueueItem(next);
   if (!suggest) return;
   const wasEnded = getPlayerStore().getState().status === "ended";
+  const selections = playSelections;
   const [first] = (await loadSuggested()) ?? [];
   // The listener may have queued something or moved on while the list loaded: the queue wins.
+  if (selections !== playSelections) return;
   if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
   // A replay of the same ended track keeps its id: leaving "ended" means the listener restarted it.
   if (wasEnded && getPlayerStore().getState().status !== "ended") return;
@@ -169,6 +174,7 @@ export async function playUpNext(
  * already trusts. The player goes down first, as before every navigation.
  */
 export function playQueueItem(id: string): void {
+  playSelections += 1;
   const current = getPlayerStore().getState().track?.digest.id ?? null;
   getPlayQueue().remove(id);
   playBriefingOnArrival(id);
