@@ -201,7 +201,16 @@ async function readTimings(github: ReturnType<typeof createGitHubClient>): Promi
     const file = JSON.parse(
       (await github.readFile("state/podcast-timings.json", "main")) ?? "null",
     );
-    if (Array.isArray(file?.runs)) runs = file.runs;
+    // A record that is not an object with stages would throw in the median: only sound ones count.
+    if (Array.isArray(file?.runs)) {
+      runs = file.runs.filter(
+        (run: unknown): run is TimedRun =>
+          typeof run === "object" &&
+          run !== null &&
+          typeof (run as { stages?: unknown }).stages === "object" &&
+          (run as { stages?: unknown }).stages !== null,
+      );
+    }
   } catch {
     // No file yet, or a bad one: no estimate.
   }

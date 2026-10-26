@@ -316,7 +316,8 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
       input.log?.info("Stage skipped: its saved result is used", { stage: id });
       return saved;
     }
-    if (only && EPISODE_STAGE_IDS.indexOf(id) < EPISODE_STAGE_IDS.indexOf(only)) {
+    // The cover needs only the selection id, so a resume that lacks it makes it here.
+    if (only && id !== "cover" && EPISODE_STAGE_IDS.indexOf(id) < EPISODE_STAGE_IDS.indexOf(only)) {
       throw new PodcastError(`The ${id} stage has not run, so ${only} has nothing to work from.`);
     }
     input.onStage?.(id);
