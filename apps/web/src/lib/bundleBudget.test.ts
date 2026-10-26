@@ -15,7 +15,9 @@ import {
   staticImports,
   unallowedInlineScripts,
   unhintedModules,
+  wakeStylesheets,
   withModulePreloads,
+  withoutStylesheets,
 } from "./bundleBudget";
 
 const hashOf = (text: string) => `sha256-${createHash("sha256").update(text).digest("base64")}`;
@@ -221,6 +223,31 @@ describe("module preload hints", () => {
     const built = withModulePreloads(waking, read);
     expect(entryScripts(built).sort()).toEqual(["/_astro/page.js", "/_astro/shared.js"]);
     expect(built).not.toContain('href="/_astro/react.js"');
+  });
+});
+
+describe("wake stylesheets", () => {
+  // Astro linked player.css in every head, twice (Icon.*.css and player.*.css, one file), and the
+  // second download blocked first paint.
+  const files: Record<string, string> = {
+    "/_astro/PlayerRoot.a.js": `["_astro/Icon.h.css","_astro/linkCard.h.css"]`,
+    "/_astro/SheetsRoot.a.js": `["_astro/Icon.h.css"]`,
+    "/_astro/Icon.h.css": ".player{}",
+    "/_astro/player.h.css": ".player{}",
+    "/_astro/linkCard.h.css": ".card{}",
+  };
+  const read = (url: string) => files[url] ?? null;
+
+  it("names the renamed copy of the stylesheet both islands list, not the listed one or another", () => {
+    expect(wakeStylesheets(Object.keys(files), read)).toEqual(["/_astro/player.h.css"]);
+  });
+
+  it("leaves the other stylesheets linked", () => {
+    const html =
+      '<head><link rel="stylesheet" href="/_astro/Icon.h.css"><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>';
+    expect(withoutStylesheets(html, ["/_astro/Icon.h.css"])).toBe(
+      '<head><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>',
+    );
   });
 });
 
