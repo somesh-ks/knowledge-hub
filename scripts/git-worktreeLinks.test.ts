@@ -131,9 +131,10 @@ it("links a third-party scope package by package, so clearing it in the worktree
   expect(linksIn(worktree).length, "links after relinking").toBeGreaterThan(0);
   links(worktree, "--remove");
   expect(linksIn(worktree)).toEqual([]);
-  expect(existsSync(join(main, "node_modules/@rolldown/binding/index.node")), "main's package").toBe(
-    true,
-  );
+  expect(
+    existsSync(join(main, "node_modules/@rolldown/binding/index.node")),
+    "main's package",
+  ).toBe(true);
 });
 
 // `--check` guards `git worktree remove`: a worktree kept anywhere but .claude/worktrees went
