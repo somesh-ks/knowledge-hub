@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import { loadUsage } from "../src/audio/budget.js";
-import { planEpisodeNarration, segmentMarksPath } from "../src/audio/segmentStore.js";
+import { durationFromMp3Bytes, DEFAULT_OUTPUT_FORMAT } from "../src/audio/speechify.js";
+import {
+  episodeOpusAddress,
+  planEpisodeNarration,
+  segmentMarksPath,
+} from "../src/audio/segmentStore.js";
 import type { PublishAudioDeps } from "../src/publish/publishAudio.js";
 import { listEpisodeCandidates, publishEpisodeAudio } from "../src/publish/publishEpisodes.js";
 import type { FakeBlob, FakeSpeech, TempRoot } from "./audio-fixtures.js";
@@ -107,5 +112,77 @@ describe("episode pre-narration", () => {
     expect(result.outcomes[0]?.status).toBe("refused");
     expect(speech.calls.marks).toHaveLength(0);
     expect(blob.puts).toEqual([]);
+  });
+
+  describe("as one Opus file", () => {
+    const id = "ep-20261019-1930";
+    let joined: number[][];
+    let withOpus: PublishAudioDeps;
+
+    beforeEach(async () => {
+      joined = [];
+      await writeRepoFile(temp.root, relPath(id), episodeFile(id));
+      withOpus = {
+        ...deps,
+        async transcodeEpisodeOpus(mp3s) {
+          joined.push(mp3s.map((mp3) => mp3.byteLength));
+          return new Uint8Array([9, 9]);
+        },
+        async fetchAudio(url) {
+          const pathname = url.split(".vercel-storage.com/")[1] ?? "";
+          return blob.store.get(pathname)?.body ?? new Uint8Array();
+        },
+      };
+    });
+
+    it("lays the turns end to end in the manifest, at the lengths the site reads from their sizes", async () => {
+      const plan = planEpisodeNarration(episodeFile(id), ENV);
+      blob.seed(plan.segments[0]?.path ?? "", NOW);
+      await publishEpisodeAudio(withOpus, ENV, [id]);
+
+      const { path, manifestPath } = episodeOpusAddress(id, plan.segments.map((s) => s.path));
+      const manifest = JSON.parse(new TextDecoder().decode(blob.store.get(manifestPath)?.body)) as {
+        duration_ms: number;
+        turns: { key: string; start_ms: number; end_ms: number }[];
+      };
+      const lengths = plan.segments.map((segment) =>
+        durationFromMp3Bytes(blob.store.get(segment.path)?.body.byteLength ?? 0, DEFAULT_OUTPUT_FORMAT),
+      );
+      expect(manifest.turns.map((turn) => turn.key)).toEqual(plan.segments.map((s) => s.key));
+      expect(manifest.turns.map((turn) => turn.end_ms - turn.start_ms)).toEqual(lengths);
+      expect(manifest.turns.map((turn) => turn.start_ms)).toEqual(
+        lengths.map((_, index) => lengths.slice(0, index).reduce((a, b) => a + b, 0)),
+      );
+      expect(manifest.duration_ms).toBe(lengths.reduce((a, b) => a + b, 0));
+      // The file is joined in playing order, the stored turn read back and the new one kept in memory.
+      expect(joined).toHaveLength(1);
+      expect(joined[0]).toHaveLength(plan.segments.length);
+      // The manifest comes last: it is what says the file is whole.
+      expect(blob.puts.indexOf(path)).toBeLessThan(blob.puts.indexOf(manifestPath));
+    });
+
+    it("gives an episode that was complete before Opus its file once, and not again", async () => {
+      await publishEpisodeAudio(deps, ENV, [id]);
+      expect([...blob.store.keys()].some((key) => key.includes("/episode."))).toBe(false);
+      await publishEpisodeAudio(withOpus, ENV, [id]);
+      expect([...blob.store.keys()].filter((key) => key.includes("/episode."))).toHaveLength(2);
+      await publishEpisodeAudio(withOpus, ENV, [id]);
+      expect(joined).toHaveLength(1);
+    });
+
+    it("leaves the turns alone when the transcode fails", async () => {
+      const result = await publishEpisodeAudio(
+        {
+          ...withOpus,
+          async transcodeEpisodeOpus() {
+            throw new Error("ffmpeg missing");
+          },
+        },
+        ENV,
+        [id],
+      );
+      expect(result.outcomes[0]?.status).toBe("published");
+      expect([...blob.store.keys()].some((key) => key.includes("/episode."))).toBe(false);
+    });
   });
 });

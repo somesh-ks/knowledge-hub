@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createHarness, FakeAudio, makeDigestWithoutAudio } from "../player/core/testing";
 import {
+  alignToManifest,
   digestIdOfSource,
   narratedDigest,
   narrationSource,
+  parseEpisodeOpusManifest,
   planNarration,
   type SegmentInfo,
 } from "./narrationPlan";
@@ -262,5 +264,47 @@ describe("the player store on a planned narration", () => {
     expect(state.status).toBe("ended");
     expect(state.upNextId).toBe(digest.prev_id);
     expect(harness.events.filter((event) => event.type === "ended")).toHaveLength(1);
+  });
+});
+
+describe("an episode stored as one Opus file", () => {
+  const turns = [
+    { key: "t0", start_ms: 0, end_ms: 4_000 },
+    { key: "t1", start_ms: 4_000, end_ms: 10_500 },
+  ];
+  const manifest = { duration_ms: 10_500, turns };
+  const listed: SegmentInfo[] = turns.map(({ key }) => ({
+    key,
+    item_id: null,
+    characters: 100,
+    audio: { url: `https://store.test/${key}.mp3`, duration_ms: 6_200, confirmed: false },
+  }));
+
+  it("puts every turn where the file has it, in the transcript and in the turn-by-turn fallback", () => {
+    const aligned = alignToManifest(listed, manifest);
+    if (!aligned) throw new Error("expected the manifest to fit");
+    const plan = planNarration(aligned, 62);
+    const narrated = narratedDigest(
+      { ...digest, turns: turns.map(({ key }) => ({ key })) } as unknown as typeof digest,
+      plan,
+      "https://store.test/ep.m4a",
+    );
+    expect(narrated.turns?.map((turn) => [turn.start_ms, turn.end_ms])).toEqual([
+      [0, 4_000],
+      [4_000, 10_500],
+    ]);
+    expect(narrated.audio).toEqual({
+      url: narrationSource(digest.id),
+      duration_ms: 10_500,
+      m4a_url: "https://store.test/ep.m4a",
+    });
+  });
+
+  it("is not used when its turns are not the lookup's, or do not run end to end", () => {
+    expect(alignToManifest(listed, { ...manifest, turns: turns.slice(0, 1) })).toBeNull();
+    expect(alignToManifest(listed, { ...manifest, turns: [turns[1], turns[0]] as never })).toBeNull();
+    const gap = { duration_ms: 11_000, turns: [turns[0], { ...turns[1], start_ms: 4_500, end_ms: 11_000 }] };
+    expect(parseEpisodeOpusManifest(gap)).toBeNull();
+    expect(parseEpisodeOpusManifest(manifest)).toEqual(manifest);
   });
 });
