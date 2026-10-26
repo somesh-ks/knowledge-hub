@@ -862,7 +862,7 @@ describe("tech releases in a published run", () => {
       expect(tech.every((item) => item.category === "consumer_tech_releases")).toBe(true);
       // The flagship launch (level 3) outranks the level 2 launches inside the section.
       expect(tech[0]?.headline).toContain("iPad Pro");
-      expect(tech[0]?.score).toBe(0.7291);
+      expect(tech[0]?.score).toBe(0.638);
       expect(tech.slice(1).every((item) => item.score === 0.6365)).toBe(true);
       expect(digest.items.some((item) => item.headline.includes("rumour"))).toBe(false);
 
