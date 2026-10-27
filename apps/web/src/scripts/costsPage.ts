@@ -423,7 +423,7 @@ function renderStats(data: CostResponse, period: Period): void {
       [usd(peak), `busiest ${PER[period]}`],
       report.users > 1
         ? [usd(report.per_user_usd), "a person"]
-        : [usd(report.total.usd / Math.max(1, spans.length)), `a ${PER[period]} with runs`],
+        : [usd(report.total.usd / Math.max(1, spans.length)), `active ${PER[period]}`],
     );
   }
   list.hidden = figures.length === 0;
