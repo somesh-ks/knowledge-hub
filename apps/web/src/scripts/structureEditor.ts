@@ -312,6 +312,8 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       next,
       preset,
     );
+    // A removal waiting to be undone belongs to the list it came from, not the profile's.
+    if (chosen.blocks && chosen.blocks !== blocks) removals = [];
     blocks = chosen.blocks ?? blocks;
     kept = chosen.custom_blocks ?? null;
     profile = next;
