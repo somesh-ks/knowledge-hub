@@ -102,11 +102,13 @@ jobs:
       - name: ffmpeg
         if: steps.diff.outputs.code == 'true'
         run: |
-          if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libopus; then
+          # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
+          encoders="$(ffmpeg -hide_banner -encoders 2>/dev/null || true)"
+          if ! grep -q libopus <<<"$encoders"; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq --no-install-recommends ffmpeg
           fi
-          ffmpeg -hide_banner -version | head -1
+          ffmpeg -hide_banner -version | sed -n 1p
       - name: Typecheck
         if: steps.diff.outputs.code == 'true'
         run: npm run typecheck
