@@ -50,8 +50,8 @@ jobs:
             echo "shared=false" >> "$GITHUB_OUTPUT"
           fi
           # The browser suites are the only checks that see CSS and layout: any change the site is
-          # built from may need them (the browser job decides which run them).
-          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|package(-lock)?\.json$|tsconfig)'; then
+          # built from may need them: the site, packages, tokens, build scripts, lockfile and workflows.
+          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|scripts/build|package(-lock)?\.json$|tsconfig|\.nvmrc$|\.github/workflows/(ci|browser)\.yml$)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
@@ -114,45 +114,12 @@ jobs:
 
   # A design fix (a sizer, a fixed width, a specificity bump) is invisible to the checks above: a
   # change that undoes one passes typecheck, lint, unit tests and the build. Both browser suites
-  # run here so it fails before it merges (AGENTS.md, 2026-10-18).
-  # The suites cost most of CI's minutes, so they run here only for a change to the tokens or a
-  # shared stylesheet, for Dependabot's pull requests (nobody runs those locally) and for one
-  # labelled `browser` (the label must be on before the push). Everyone runs both suites before
-  # opening a pull request (AGENTS.md, D148).
+  # (browser.yml, which also runs on every push to main and nightly) run for any change the site
+  # is built from. They used to run only for the tokens, a shared stylesheet, Dependabot or a
+  # `browser` label, so the service worker and BaseLayout change in #346 skipped them and a
+  # regression reached main (2026-10-26, D148).
   # After check: a run that fails it is blocked anyway, and the suites would only spend minutes.
   browser:
     needs: check
-    if: >-
-      needs.check.outputs.web == 'true' &&
-      (needs.check.outputs.shared == 'true' ||
-      github.event.pull_request.user.login == 'dependabot[bot]' ||
-      contains(github.event.pull_request.labels.*.name, 'browser'))
-    runs-on: ubuntu-latest
-    # Both suites in one job. 30 cut #213 off on 2026-10-22 with every test so far passing and
-    # about 30 left; a slow runner takes 18 to 32 minutes.
-    timeout-minutes: 45
-    env:
-      PORT: "4501"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-        working-directory: apps/web
-      - name: Player suite
-        run: npm run e2e:player -w @singularity/web
-      - name: Site suite
-        if: ${{ !cancelled() }}
-        run: npm run e2e -w @singularity/web
-      - name: Keep the traces of a failure
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: browser-traces-${{ github.run_id }}
-          path: apps/web/test-results/
-          retention-days: 14
-          if-no-files-found: ignore
+    if: needs.check.outputs.web == 'true'
+    uses: ./.github/workflows/browser.yml
