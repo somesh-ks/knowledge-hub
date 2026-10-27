@@ -127,6 +127,27 @@ function DockSeek({ duration }: { duration: number }) {
   );
 }
 
+/** Expands the player, or lowers it when open. Desktop only, because it lives in dock-tools. */
+function DockExpand() {
+  const open = useSyncExternalStore(
+    playerSheet.subscribe,
+    () => playerSheet.getSnapshot().open,
+    () => false,
+  );
+  return (
+    <button
+      className="icon-btn press dock-expand"
+      type="button"
+      aria-expanded={open}
+      aria-controls={PLAYER_PAGE_ID}
+      aria-label={open ? "Collapse player" : "Expand player"}
+      onClick={() => void playerSheet.toggle()}
+    >
+      <Icon name="chevronDown" />
+    </button>
+  );
+}
+
 /** Mute and a level. Shown only where a page can set the volume: screens with a pointer. */
 function DockVolume() {
   const [volume, setLevel] = useState(1);
@@ -334,6 +355,7 @@ export default function PlayerBar() {
       </div>
       <div className="dock-tools">
         <DockVolume />
+        <DockExpand />
       </div>
     </section>
   );
