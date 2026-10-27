@@ -1574,7 +1574,7 @@ test.describe("the podcast structure", () => {
       .poll(names)
       .toEqual([before[0], before[1], before[3], before[2], ...before.slice(4)]);
     // An edit of the order is the owner's own list: the profile says Custom.
-    await expect(page.getByLabel("Profile")).toHaveValue("custom");
+    await expect(page.getByLabel("Profile", { exact: true })).toHaveValue("custom");
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => server.applied.length).toBe(1);
     expect(server.applied[0]).toMatchObject({ op: "structure.set", profile: "custom" });
