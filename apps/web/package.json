@@ -14,7 +14,7 @@
     "e2e:player": "playwright test -c src/player/e2e/playwright.config.ts"
   },
   "dependencies": {
-    "@astrojs/react": "^7.0.0",
+    "@astrojs/react": "^7.1.1",
     "@astrojs/vercel": "11.0.15",
     "@base-ui/react": "^1.9.0",
     "@singularity/core": "*",
