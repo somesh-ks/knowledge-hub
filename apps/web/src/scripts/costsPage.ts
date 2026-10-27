@@ -407,7 +407,7 @@ function renderAnswer(data: CostResponse, period: Period): void {
   set("[data-costs-empty]", `No paid runs in ${WINDOW[period]}.`);
 }
 
-/** Runs, the average a run, the busiest period and the average a period or a person, as pills. */
+/** Runs, the average a run, the busiest period and the average a period or a person, as stat tiles. */
 function renderStats(data: CostResponse, period: Period): void {
   const list = pick<HTMLElement>("[data-costs-stats]");
   if (!list) return;
@@ -419,7 +419,8 @@ function renderStats(data: CostResponse, period: Period): void {
     figures.push(
       [String(report.total.runs), report.total.runs === 1 ? "run" : "runs"],
       [usd(report.per_run_usd), "a run"],
-      [usd(peak), `in the busiest ${PER[period]}`],
+      // A label under its tile's value, so one short line: "busiest day", not "in the busiest day".
+      [usd(peak), `busiest ${PER[period]}`],
       report.users > 1
         ? [usd(report.per_user_usd), "a person"]
         : [usd(report.total.usd / Math.max(1, spans.length)), `a ${PER[period]} with runs`],
@@ -429,10 +430,12 @@ function renderStats(data: CostResponse, period: Period): void {
   list.replaceChildren(
     ...figures.map(([value, label]) => {
       const item = document.createElement("li");
-      item.className = "costs-stat";
+      item.className = "stat-tile";
       const strong = document.createElement("strong");
+      strong.className = "stat-tile-value";
       strong.textContent = value;
       const text = document.createElement("span");
+      text.className = "stat-tile-label";
       text.textContent = label;
       item.append(strong, " ", text);
       return item;

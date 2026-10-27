@@ -1440,3 +1440,58 @@
 .card-group .settings-row[data-models] .value-select > select.manage-input {
   color: var(--color-on-surface);
 }
+
+/* ------------------------------------------------------------------ stat tiles (2026-10-27) */
+
+/* A figure on a dashboard: a tile per stat, its value large over its word in muted ink, two columns
+   on a phone and four from 40rem. The owner, 2026-10-27: the Costs page's stat pills became boxes,
+   no pill for a figure. In a card a tile sits the card's padding in, so its corner is the card's
+   less that padding (--card-content-radius, concentric), and it takes the overlay tone, as the
+   card's chips do. On the 8pt grid: 16px in, a 32px value line and a 24px label line, 88px a tile.
+   Put .stat-tiles on the list and .stat-tile on each item, with .stat-tile-value and
+   .stat-tile-label inside. Used by the Costs page (analytics.astro, costsPage.ts). */
+.stat-tiles {
+  --stat-tile-height: calc(var(--space-4) * 2 + var(--space-8) + var(--space-6));
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (width >= 40rem) {
+  .stat-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: var(--space-4);
+  border-radius: var(--card-content-radius);
+  background: var(--color-surface-overlay);
+}
+
+.stat-tile-value {
+  overflow: hidden;
+  color: var(--color-on-surface);
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--text-heading-tracking);
+  line-height: var(--space-8);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-tile-label {
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  letter-spacing: var(--text-meta-tracking);
+  line-height: var(--space-6);
+}
