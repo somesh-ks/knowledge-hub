@@ -7,6 +7,7 @@
 import { blockedDomainOf, customBlock, matchesQuery } from "../lib/blockedOutlets";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { sheetGestures } from "./pullDismiss";
+import { guardSheet } from "./sheetGuard";
 
 export interface BlockedSheet {
   /** The page's template of the sheet. */
@@ -155,16 +156,28 @@ export function openBlockedSheet(options: BlockedSheet): void {
     options.onBlock([...picked]);
     sheet.close();
   });
-  sheet.querySelector("[data-panel-close]")?.addEventListener("click", () => sheet.close());
-  sheetGestures(sheet);
+  // Only Block saves the picks; leaving any other way asks first when something is picked.
+  const guard = guardSheet(sheet, {
+    dirty: () => picked.size > 0,
+    save() {
+      go.click();
+      return !sheet.open;
+    },
+  });
+  sheet.querySelector("[data-panel-close]")?.addEventListener("click", guard.request);
+  sheetGestures(sheet, guard.request);
   const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(sheet) : () => {};
 
   // Browser Back closes the sheet and stays on the page; the sheet takes one history entry.
   let entry = true;
   const onBack = (event: Event): void => {
     if (!entry) return;
-    entry = false;
     event.preventDefault();
+    if (guard.holdBack()) {
+      history.pushState({ ...history.state, blockedSheet: true }, "");
+      return;
+    }
+    entry = false;
     removeEventListener("singularity:back", onBack);
     if (sheet.open) sheet.close();
   };
