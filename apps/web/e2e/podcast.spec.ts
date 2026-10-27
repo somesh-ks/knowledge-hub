@@ -58,7 +58,7 @@ const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 /** A save that went through shows no toast; a screen reader hears it. */
 const spoken = (page: Page) => page.locator("[data-live]");
-const SAVED = "Saved.";
+const SAVED = "Settings saved";
 
 test.describe("the Settings index", () => {
   test("lists one row per podcast page, each with what it holds now", async ({ page }) => {

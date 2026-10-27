@@ -91,8 +91,8 @@ describe("buildEpisodeEntries", () => {
       timeline: null,
       sections: [{ slug: "top", title: "Stories", start_ms: null }],
       cover: {
-        src512: "/covers/ep-20261009-1000-512.webp",
-        src1024: "/covers/ep-20261009-1000-1024.webp",
+        src512: expect.stringMatching(/^\/covers\/ep-20261009-1000-512\.webp\?v=\w+$/),
+        src1024: expect.stringMatching(/^\/covers\/ep-20261009-1000-1024\.webp\?v=\w+$/),
       },
       prev_id: null,
       next_id: null,
