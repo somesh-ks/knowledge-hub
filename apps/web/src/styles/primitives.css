@@ -833,7 +833,9 @@
   position: absolute;
   /* A word narrower than the touch size (Vercel, 40px) grows the layer sideways to 44px. */
   inset-inline: min(0%, calc((var(--size-touch) - 100%) / -2));
-  inset-block: calc((var(--size-touch) - 1lh) / -2);
+  /* From the link's own box, not its line height: an inline box is the font's content area, shorter
+     than 1lh, which left the layer at 42px in small text. A taller link keeps its box. */
+  inset-block: min(0%, calc((100% - var(--size-touch)) / 2));
 }
 
 /* The chip is 36px tall; its target is 44px, measured from the outside of its border. */

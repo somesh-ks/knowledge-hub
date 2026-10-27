@@ -71,6 +71,36 @@ test.describe("layout", () => {
     }
   });
 
+  // A text link in small text is an inline box shorter than its line, and its hit layer was sized
+  // from the line (42px, 2026-10-27). Probed at both sizes, a point 21.5px above and below the
+  // centre must still reach the link.
+  test("a text link answers a touch across 44px at both sizes", { tag: "@both" }, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const short: string[] = [];
+    for (const path of ["/settings/privacy", "/settings/about", "/settings/daily", ...PAGES]) {
+      await page.goto(path);
+      for (const link of await page.locator(".text-link").all()) {
+        if (!(await link.isVisible())) continue;
+        const reached = await link.evaluate((node) => {
+          node.scrollIntoView({ block: "center", inline: "center" });
+          const rects = [...node.getClientRects()];
+          // The first line's box: a link that wraps is probed on its first fragment.
+          const rect = rects[0] ?? node.getBoundingClientRect();
+          const x = rect.left + rect.width / 2;
+          const y = rect.top + rect.height / 2;
+          return [-21.5, 21.5].every((dy) => {
+            const found = document.elementFromPoint(x, y + dy);
+            return found !== null && (found === node || node.contains(found));
+          });
+        });
+        if (!reached) short.push(`${path} "${(await link.textContent())?.trim().slice(0, 30)}"`);
+      }
+    }
+    expect([...new Set(short)]).toEqual([]);
+  });
+
   test("the wide bottom bar's buttons and volume answer a touch across 44px", {
     tag: "@desktop",
   }, async ({ page }) => {
