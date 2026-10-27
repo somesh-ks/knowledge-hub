@@ -437,8 +437,9 @@
   display: none;
 }
 
-/* The Structure list's empty state shows only with no block between the hello and the sign-off. */
-.pref-view-structure:has(.structure-list > .structure-row:not([data-frame])) .structure-empty {
+/* The Structure list's empty state shows only with no block between the hello and the sign-off,
+   which are never listed. */
+.pref-view-structure:has(.structure-list > .structure-row) .structure-empty {
   display: none;
 }
 
@@ -1875,27 +1876,23 @@ html:has(.source-filter[data-chips]) {
  * The grip (2026-10-24, the owner: "there are no reordering mechanism I see"): a body row's handle at
  * its start, six dots in a 48px target, pulled with a finger or a mouse (pointer events, as no phone
  * drags an HTML5 draggable) or moved with Up and Down. It takes the row's start, pulled out by the
- * glyph's own air so the names still share one edge; a frame row keeps the same room empty.
+ * glyph's own air so the names still share one edge.
  * Markup: <button class="icon-btn structure-grip" data-grip aria-label="Move Design"><svg/></button>
  */
-/* Reorder mode (owner, 2026-10-24: "I'm worried about accidental reorders"): the grips and their
-   room show only once Reorder is pressed, and then the dots, the pencils and Add step aside, so the
-   list does one thing at a time. structureEditor.ts sets data-reordering on the pane. */
-.pref-view-structure:not([data-reordering]) :is(.structure-grip, .structure-grip-room),
-.pref-view-structure[data-reordering] :is(.structure-menu, .structure-edit, .structure-add) {
+/* Reorder mode (owner, 2026-10-24: "I'm worried about accidental reorders"): the grips show only
+   once Reorder is pressed, and then the dots and Add step aside, so the list does one thing at a
+   time. structureEditor.ts sets data-reordering on the pane. */
+.pref-view-structure:not([data-reordering]) .structure-grip,
+.pref-view-structure[data-reordering] :is(.structure-menu, .structure-add) {
   display: none;
 }
 
-.structure-grip,
-.structure-grip-room {
+.structure-grip {
   flex: none;
   width: var(--size-touch-comfortable);
   /* As tall as the dots it stands in for, so a row keeps its height in and out of Reorder. */
   min-height: var(--size-touch);
   margin-inline: calc(var(--space-4) * -1) calc(var(--space-4) * -1 + var(--space-2));
-}
-
-.structure-grip {
   color: var(--color-on-surface-muted);
   cursor: grab;
   /* The finger's pull is the row's move, never the page's scroll. */
@@ -1903,16 +1900,12 @@ html:has(.source-filter[data-chips]) {
 }
 
 /* Below 64rem the grip takes the row's end, where the dots were and the thumb is (owner, 2026-10-24:
-   "move this to the right side for mobile"), ending as the dots do; the names keep the card's edge,
-   so a frame row needs no room. From 64rem it stays at the start. */
+   "move this to the right side for mobile"), ending as the dots do; the names keep the card's edge.
+   From 64rem it stays at the start. */
 @media (width < 64rem) {
   .structure-grip {
     order: 1;
     margin-inline: var(--space-2) calc(var(--space-2) * -1);
-  }
-
-  .pref-view-structure .structure-grip-room {
-    display: none;
   }
 }
 

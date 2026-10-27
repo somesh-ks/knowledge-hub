@@ -313,10 +313,9 @@ const item = (act: string, glyph: IconName, label: string, disabled = false, ext
 /**
  * The rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
  * name and what it holds, its dots with Move up, Move down, Edit and Remove (the More menu,
- * MenuSheet.astro's markup through sheetHead.ts: a bottom sheet on a phone). The hello and sign-off
- * the app speaks are left out; a frame a model writes (Catch up's) is drawn quieter (`data-quiet`,
- * settings.css) with one pencil for its prompt. A section whose every topic is left out of the
- * briefing stays, quiet, and says so. The dots and the pencil end the row as every row's end glyph
+ * MenuSheet.astro's markup through sheetHead.ts: a bottom sheet on a phone). The hello and the
+ * sign-off are left out: they never move or leave, and their prompts stay the built-in ones (owner,
+ * 2026-10-27). A section whose every topic is left out of the briefing stays, quiet, and says so. The dots and the pencil end the row as every row's end glyph
  * does (`icon-btn-end`, D187).
  */
 export function rowsHtml(
@@ -333,13 +332,9 @@ export function rowsHtml(
         off ? `Off in daily and weekly · ${blockSummary(block)}` : blockSummary(block),
       );
       const text = `<div class="settings-text"><span class="settings-label">${name}</span><span class="settings-hint">${summary}</span></div>`;
-      if (isFrame(block)) {
-        // A frame the app speaks has nothing to change, so it is not listed (owner, 2026-10-24:
-        // "remove hello and closing"); one a model writes (Catch up's) stays for its prompt.
-        if (builtinPrompt(data, block) === null) return "";
-        const edit = `<button class="icon-btn press icon-btn-end structure-edit" type="button" aria-label="Edit ${name}" data-act="edit">${icon("pencilSimple")}</button>`;
-        return `<li class="settings-row structure-row" data-index="${index}" data-frame data-quiet><span class="structure-grip-room" aria-hidden="true"></span>${text}${edit}</li>`;
-      }
+      // The frames are not the owner's to shape (owner, 2026-10-24: "remove hello and closing";
+      // 2026-10-27: Catch up's model-written ones too).
+      if (isFrame(block)) return "";
       const menu = `structure-menu-${Number(index)}`;
       return [
         `<li class="settings-row structure-row" data-index="${index}"${off ? " data-off data-quiet" : ""}>`,
