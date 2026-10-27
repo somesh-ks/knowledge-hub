@@ -151,6 +151,8 @@ export interface StatusResponse {
   failed_stage?: string;
   /** A failed episode run: the artifacts the earlier stages finished ("script", "cover", "voices"). */
   kept?: string[];
+  /** A failed episode run: why, in one sentence for the listener, from the engine's failure record. */
+  reason?: string;
   /** Present once state is "completed". Read from state/last-run.json. */
   outcome?: "published" | "nothing" | "gated" | "failed";
   digest_id?: string;

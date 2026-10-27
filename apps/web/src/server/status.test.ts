@@ -266,6 +266,39 @@ describe("handleStatus for an episode run", () => {
   });
 });
 
+describe("a failed episode run's reason", () => {
+  // The 2026-10-27 Catch up said only "Stopped while publishing": the engine knew why (another run
+  // saved at the same moment) and the page was never told.
+  it("carries the engine's sentence from the failure record in Blob", async () => {
+    const github = setup(
+      { path: ".github/workflows/podcast.yml", status: "completed", conclusion: "failure" },
+      [
+        stepJson("Gathering stories", 4, "completed", "success"),
+        stepJson("Writing the script", 5, "completed", "success"),
+        stepJson("Publishing", 7, "completed", "failure"),
+      ],
+    );
+    const reason =
+      "Another run saved at the same moment, so the episode could not be added. Try again.";
+    const fetch = async (input: string, init?: RequestInit): Promise<Response> =>
+      input.endsWith("/podcast-runs/4242/failure.json")
+        ? new Response(JSON.stringify({ failed_stage: "publishing", kept: ["script"], reason }), {
+            status: 200,
+          })
+        : github.fetch(input, init);
+    const result = await handleStatus("4242", {
+      env: { ...env, BLOB_STORE_ID: "store_abcdefgh12345678" },
+      fetch,
+    });
+    expect(result.body).toMatchObject({
+      outcome: "failed",
+      failed_stage: "publishing",
+      kept: ["script"],
+      reason,
+    });
+  });
+});
+
 describe("handleStatus", () => {
   it("answers 503 when the site is not configured", async () => {
     const github = setup();

@@ -228,7 +228,12 @@ async function readFailure(deps: StatusDeps, runId: number) {
     const file = text ? JSON.parse(text) : null;
     if (typeof file?.failed_stage !== "string") return {};
     const kept = Array.isArray(file.kept) ? file.kept.map(String) : [];
-    return { failed_stage: file.failed_stage, kept };
+    // A sentence for the listener that the engine wrote (podcast/failureReason.ts); cut to a line.
+    const reason =
+      typeof file.reason === "string" && file.reason.trim()
+        ? file.reason.trim().slice(0, 280)
+        : undefined;
+    return { failed_stage: file.failed_stage, kept, ...(reason ? { reason } : {}) };
   } catch {
     return {};
   }

@@ -14,6 +14,7 @@ import { createModelRouter } from "../llm/modelRouter.js";
 import { RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js";
+import { commitFailureReason, errorFailureReason } from "../podcast/failureReason.js";
 import { runEpisodeStages } from "../podcast/generate.js";
 import { LlmScriptWriter } from "../podcast/llmScriptWriter.js";
 import { planPodcast } from "../podcast/plan.js";
@@ -218,10 +219,14 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     let store: ArtifactStore | null = null;
     let current: EpisodeStageId | undefined;
     // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
-    const recordFailure = async (): Promise<void> => {
+    const recordFailure = async (reason?: string): Promise<void> => {
       if (store && current) {
         await store
-          .write("failure", { failed_stage: current, kept: await store.names() })
+          .write("failure", {
+            failed_stage: current,
+            kept: await store.names(),
+            ...(reason ? { reason } : {}),
+          })
           .catch(() => {});
       }
     };
@@ -248,7 +253,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         });
         const failure = commitFailure(outcome);
         if (failure !== null) {
-          await recordFailure();
+          await recordFailure(commitFailureReason(outcome) ?? undefined);
           ctx.log.error(
             `${failure}. The episode file was removed from the working tree: ${relPath}.`,
           );
@@ -411,7 +416,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       const failure = commitFailure(outcome);
       if (failure !== null) {
         await live.stream?.failed();
-        await recordFailure();
+        await recordFailure(commitFailureReason(outcome) ?? undefined);
         ctx.log.error(`${failure}. The episode file stays at ${relPath}.`);
         return 1;
       }
@@ -452,7 +457,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     } catch (error) {
       await live.stream?.failed();
       // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
-      await recordFailure();
+      await recordFailure(errorFailureReason(error));
       if (error instanceof PodcastError) {
         // The request, the stories or the script is at fault; the message is already for the listener.
         ctx.log.error(error.message);
