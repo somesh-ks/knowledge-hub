@@ -18,6 +18,8 @@ export interface Preferences {
   /** 0 to 1, before the engine's quadratic taper. */
   volume: number;
   rate: PlaybackRate;
+  /** When an item ends with an empty queue, the next suggested one starts. On unless turned off. */
+  autoplay: boolean;
 }
 
 export const DEFAULT_VOLUME = 0.8;
@@ -27,6 +29,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   sounds: null,
   volume: DEFAULT_VOLUME,
   rate: 1,
+  autoplay: true,
 };
 
 function isTheme(value: unknown): value is ThemePreference {
@@ -51,6 +54,7 @@ export function parsePreferences(raw: string | null): Preferences {
       ? Math.min(1, Math.max(0, record.volume))
       : DEFAULT_PREFERENCES.volume,
     rate: isPlaybackRate(record.rate) ? record.rate : DEFAULT_PREFERENCES.rate,
+    autoplay: typeof record.autoplay === "boolean" ? record.autoplay : DEFAULT_PREFERENCES.autoplay,
   };
 }
 

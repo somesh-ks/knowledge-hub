@@ -42,6 +42,7 @@ import { getPreferences, rememberRate } from "./preferences";
 import { createReaderSync, type ReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
+import { loadTimeline, skipper, suggestNext } from "./suggested";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
 let store: PlayerStore | null = null;
@@ -129,12 +130,51 @@ export function getPlayQueue(): PlayQueue {
   return queue;
 }
 
+/** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
+export async function loadSuggested(): Promise<string[] | null> {
+  const ordered = await loadTimeline();
+  if (!ordered) return null;
+  const currentId = getPlayerStore().getState().track?.digest.id ?? null;
+  return suggestNext(ordered, currentId, skipper(safeLocalStorage(), getPlayQueue().getIds()));
+}
+
+/** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */
+let playSelections = 0;
+
+/**
+ * Starts what comes next: the first queued item, or else, when `suggest` allows, the first
+ * suggested one. Used when an item ends and by the lock screen's Next.
+ */
+export async function playUpNext(
+  suggest: boolean,
+  stillSuggesting: () => boolean = () => true,
+): Promise<void> {
+  const endedId = getPlayerStore().getState().track?.digest.id ?? null;
+  const next = getPlayQueue().shift(endedId);
+  if (next) return playQueueItem(next);
+  if (!suggest) return;
+  const wasEnded = getPlayerStore().getState().status === "ended";
+  const selections = playSelections;
+  const [first] = (await loadSuggested()) ?? [];
+  // The listener may have queued something or moved on while the list loaded: the queue wins.
+  if (selections !== playSelections) return;
+  if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
+  // A replay of the same ended track keeps its id: leaving "ended" means the listener restarted it.
+  if (wasEnded && getPlayerStore().getState().status !== "ended") return;
+  const queuedMeanwhile = getPlayQueue().shift(endedId);
+  if (queuedMeanwhile) return playQueueItem(queuedMeanwhile);
+  // Autoplay may have been switched off while the list loaded (the lock screen's Next ignores it).
+  if (!stillSuggesting()) return;
+  if (first) playQueueItem(first);
+}
+
 /**
  * Plays a queued item (or any briefing or episode) now: off the queue, then the road Up next takes.
  * The item's page brings its data; the store plays it on arrival, on the audio element the browser
  * already trusts. The player goes down first, as before every navigation.
  */
 export function playQueueItem(id: string): void {
+  playSelections += 1;
   const current = getPlayerStore().getState().track?.digest.id ?? null;
   getPlayQueue().remove(id);
   playBriefingOnArrival(id);
@@ -207,7 +247,9 @@ export function startPlayerRuntime(): () => void {
       .catch(() => undefined);
   });
 
-  const detachMediaSession = attachMediaSession(playerStore);
+  const detachMediaSession = attachMediaSession(playerStore, {
+    onNextPastEnd: () => void playUpNext(true),
+  });
   const reader = createReaderSync(playerStore, narrateFromTap);
   activeReader = reader;
   const stopSound = startSound({ store: playerStore, preferences });
@@ -249,10 +291,9 @@ export function startPlayerRuntime(): () => void {
   });
   const offQueueEnd = playerStore.onEvent((event) => {
     if (event.type !== "ended") return;
-    // The listener chose what comes next, so it starts by itself. With nothing queued, Up next only
-    // offers the previous briefing.
-    const next = playQueue.shift(playerStore.getState().track?.digest.id ?? null);
-    if (next) playQueueItem(next);
+    // The listener chose what comes next, so it starts by itself. With nothing queued, Autoplay
+    // (on unless turned off) starts the first suggested item.
+    void playUpNext(preferences.get().autoplay, () => preferences.get().autoplay);
   });
   const offEvent = playerStore.onEvent((event) => {
     const message = announcementForEvent(event, playerStore.getState().track, {

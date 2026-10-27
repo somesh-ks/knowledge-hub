@@ -111,6 +111,7 @@ function mountSettings(root: HTMLElement): () => void {
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
+  const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
   // The index's Interface sounds row: its line says whether they are on in this browser.
   const soundsHint = root.querySelector<HTMLElement>("[data-sounds-hint] [data-hint]");
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
@@ -127,6 +128,7 @@ function mountSettings(root: HTMLElement): () => void {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     if (theme) theme.value = state.theme;
     if (sounds) sounds.checked = state.sounds;
+    if (autoplay) autoplay.checked = preferences.get().autoplay;
     if (soundsHint) soundsHint.textContent = state.sounds ? "On" : "Off";
     if (volume) {
       volume.value = state.volume;
@@ -146,7 +148,9 @@ function mountSettings(root: HTMLElement): () => void {
       return;
     }
     if (!(input instanceof HTMLInputElement)) return;
-    if (input === sounds) {
+    if (input === autoplay) {
+      preferences.set({ autoplay: input.checked });
+    } else if (input === sounds) {
       changeSounds(input.checked, {
         setSounds: (enabled) => preferences.set({ sounds: enabled }),
         play: playUiCue,
