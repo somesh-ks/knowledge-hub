@@ -276,11 +276,6 @@ export async function checkConfigStore(
 }
 
 /**
- * `episode_broken`: every episode under Podcasts/ parses, and the site's reader narrates each of
- * its turns (a turn the reader drops plays as silence). Online, the newest episode older than a day
- * has its first segment's word marks readable once its audio is stored.
- */
-/**
  * The health numbers of generation (`singularity metrics`) as warnings: a metric off its target over
  * the newest ten runs, once three runs say so. Never a fault: each is a trend to act on, and a fault
  * must hold a day and be actionable (hardening.md).
@@ -316,6 +311,11 @@ export async function checkRunMetrics(root: string, sink: Sink): Promise<void> {
   if (judged > 0) sink.passed.push(`${judged} generation metrics were read against their targets`);
 }
 
+/**
+ * `episode_broken`: every episode under Podcasts/ parses, and the site's reader narrates each of
+ * its turns (a turn the reader drops plays as silence). Online, the newest episode older than a day
+ * has its first segment's word marks readable once its audio is stored.
+ */
 export async function checkEpisodes(
   root: string,
   env: EpisodeVoiceEnv,

@@ -32,8 +32,14 @@ export interface GroundingOutcome {
   verified: boolean;
 }
 
-/** Stories grounded at once. Each is independent, and Jev already checks eight sentences at once. */
+/**
+ * Stories grounded at once, and the sentences of one story checked at once. Each story is
+ * independent, so the stories overlap; the two numbers multiply into the Jev requests in flight (32,
+ * as when it was four stories of eight sentences), and a story has about five sentences, so four at
+ * once costs it little.
+ */
 const CONCURRENCY = 8;
+export const GROUNDING_SENTENCE_CONCURRENCY = 4;
 
 type StepResult = { keep: GroundedItem } | { drop: GroundingDrop };
 

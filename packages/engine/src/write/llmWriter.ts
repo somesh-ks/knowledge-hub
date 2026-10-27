@@ -2,7 +2,7 @@ import { VOICE_LIMITS } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
-import { BudgetExceededError, describeError } from "../llm/errors.js";
+import { BudgetExceededError, describeError, LlmOutputError } from "../llm/errors.js";
 import type { LlmClient } from "../llm/types.js";
 import { newBoundary } from "../llm/untrusted.js";
 import type { Taste } from "../profile/tasteNote.js";
@@ -186,10 +186,11 @@ export class LlmWriter implements Writer {
         items: batch.length,
         reason,
         ...(cause === undefined ? {} : { detail: describeError(cause, this.options.secrets) }),
-        retrying: error instanceof Error && error.name === "LlmOutputError" && split < MAX_SPLITS,
+        retrying: error instanceof LlmOutputError && split < MAX_SPLITS,
       });
-      if (error instanceof Error && error.name === "LlmOutputError" && split < MAX_SPLITS) {
-        // One long or odd source can sink the reply for all four: write the halves, then the rest.
+      if (error instanceof LlmOutputError && split < MAX_SPLITS) {
+        // One long or odd source can sink the reply for all four: write the halves, one after the
+        // other, so a provider that is struggling is never asked for more than WRITER_CONCURRENCY.
         const parts =
           batch.length > 1
             ? [
@@ -197,9 +198,10 @@ export class LlmWriter implements Writer {
                 batch.slice(Math.ceil(batch.length / 2)),
               ]
             : [batch];
-        const results = await Promise.all(
-          parts.map((part) => this.writeBatch(part, feedback, taste, others, split + 1)),
-        );
+        const results: WriteResult[] = [];
+        for (const part of parts) {
+          results.push(await this.writeBatch(part, feedback, taste, others, split + 1));
+        }
         return {
           written: results.flatMap((r) => r.written),
           failed: results.flatMap((r) => r.failed),

@@ -30,9 +30,9 @@ function report(reason: string, commit: CommitReport["commit"]): CommitReport {
  * before the gate) the gate is asked again. What the run's stages spent goes to the cost ledger
  * with it, so Firecrawl's weekly budget counts a failed run. Nothing is recorded for a dry run, a
  * replacement or an on-demand run (they leave the cadence alone, so `run_died` still reports
- * them), for a run that was not due, or once the commit stage has committed. A replacement or an
- * on-demand run still leaves its metrics entry and its spend, which is how a Regenerate that fails
- * shows in the failure rate; the cadence record stays as it was.
+ * them), for a run that was not due, or once the commit stage has committed. A run with a plan
+ * leaves its metrics entry, a replacement or an on-demand run also its spend, which is how a failed
+ * run shows in the failure rate; an on-demand run's cadence record stays as it was.
  */
 export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promise<CommitReport> {
   const now = deps.now();
@@ -58,6 +58,8 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
     await deps.spend.resume(deps.root, plan.created_at);
     await recordSpend(deps.root, deps.spend, plan, at);
   }
+  // A scheduled run's failure counts in the failure rate too; without a plan nothing is known of it.
+  if (plan) await recordFailedMetrics(deps, plan, at);
   await writeLastRun(deps.root, recordFailure(await readLastRun(deps.root), kinds, at));
   const message = `chore(state): run ${stockholmDate(now)} failed`;
   const committed = await commitAndPush({
@@ -90,6 +92,24 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
   }
 }
 
+/** The failed run's entry in the run metrics, so the failure rate counts it. */
+async function recordFailedMetrics(
+  deps: RunDeps,
+  plan: NonNullable<Awaited<ReturnType<typeof readPlan>>>,
+  at: string,
+): Promise<void> {
+  await recordRunMetrics(
+    deps.root,
+    await failedRunMetrics({
+      root: deps.root,
+      plan,
+      at,
+      stage: "unknown",
+      reason: "The job stopped before the commit stage.",
+    }),
+  );
+}
+
 /**
  * A failed Regenerate or Generate: nothing about the cadence changes, but the run's spend and its
  * failure go on record, so the failure rate and the cost of failed runs can be read.
@@ -104,16 +124,7 @@ async function recordFailedOnDemand(
     await deps.spend.resume(deps.root, plan.created_at);
     await recordSpend(deps.root, deps.spend, plan, at);
   }
-  await recordRunMetrics(
-    deps.root,
-    await failedRunMetrics({
-      root: deps.root,
-      plan,
-      at,
-      stage: "unknown",
-      reason: "The job stopped before the commit stage.",
-    }),
-  );
+  await recordFailedMetrics(deps, plan, at);
   const message = `chore(state): run ${stockholmDate(deps.now())} failed`;
   const committed = await commitAndPush({
     root: deps.root,

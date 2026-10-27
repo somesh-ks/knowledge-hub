@@ -96,12 +96,3 @@ export async function recordRunMetrics(root: string, entries: readonly RunMetric
     `${JSON.stringify({ version: 1, runs }, null, 2)}\n`,
   );
 }
-
-/** Per-stage wall time of the run in progress, kept on the runner between its workflow steps. */
-export const StageClock = z.object({
-  version: z.literal(1),
-  /** The plan's `created_at`; a file from another run is ignored. */
-  run: z.string(),
-  stages: z.record(z.string(), ms),
-});
-export type StageClock = z.infer<typeof StageClock>;

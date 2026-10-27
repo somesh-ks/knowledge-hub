@@ -224,6 +224,9 @@ describe("a run that died before the commit stage", () => {
       expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
         "chore(state): run 2026-10-07 failed",
       );
+      // The failure rate counts a scheduled run's failure too, not only a Regenerate's.
+      const metrics = await readJson<{ runs: RunMetric[] }>(repo.root, "state/run-metrics.json");
+      expect(metrics.runs[0]).toMatchObject({ outcome: "failed", mode: "scheduled" });
       const report = await collectHealth({
         root: repo.root,
         now: new Date(WED.getTime() + 3_600_000),

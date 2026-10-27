@@ -389,6 +389,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       // How long each stage took, in the same commit, for the page's time left. Only a run that
       // saves its stages (the workflow) records one.
       if (store) {
+        const budgetChars = planPodcast(request).budget_chars;
         await recordTimings(ctx.root, {
           at: ctx.now().toISOString(),
           run_id: runId ?? null,
@@ -399,12 +400,9 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
             stories: episode.sources.length,
             matched: result.matched,
             empty_topics: result.empty_topics.length,
-            budget_chars: planPodcast(request).budget_chars,
+            budget_chars: budgetChars,
             script_chars: episode.char_count,
-            share:
-              Math.round(
-                (episode.char_count / Math.max(1, planPodcast(request).budget_chars)) * 100,
-              ) / 100,
+            share: Math.round((episode.char_count / Math.max(1, budgetChars)) * 100) / 100,
             writer_calls: result.script.writer_calls,
           },
         });
