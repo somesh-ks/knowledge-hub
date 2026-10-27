@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { recordingFaults, toResponse } from "../../server/http";
+import { requireOwner } from "../../server/ownerAuth";
 import { handleShare } from "../../server/share";
 import { makeDeps } from "../../server/shareSite";
 
@@ -14,6 +15,7 @@ const OIDC_HEADER = "x-vercel-oidc-token";
 const answer =
   (method: "POST" | "DELETE"): APIRoute =>
   async ({ request, url }) =>
+    requireOwner(request) ??
     toResponse(
       await handleShare(
         {

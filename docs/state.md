@@ -67,10 +67,10 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 ## Known risks
 
 - Vercel showed storage near 10 GB (2026-10-24); narrations (4 MB a digest, pruned at 120 days) do not explain it. closed when: explained.
-- No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, inside the caps.
-- Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
+- Owner token unset (D197): anyone with the URL can write. closed when: set, devices trusted.
+- Budget counters can read below real spend (an edit that adds no length, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
 - `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
-- A save made while a briefing runs waits in the `singularity` queue; a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
+- A save made while a briefing runs waits in the `singularity` queue; a later save replaces a waiting one; closing the tab in the 10 s gap loses it (D79, D91).
 
 ## Next
 

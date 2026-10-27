@@ -49,6 +49,7 @@ const VERCEL_ENV = [
   // The topic emoji backup (Gemini Flash-Lite) runs on a site request.
   "GEMINI_API_KEY",
   "CRON_SECRET",
+  "SINGULARITY_OWNER_TOKEN",
   "DATABASE_URL",
 ];
 

@@ -7,6 +7,7 @@ import { MAX_BODY_CHARS } from "../../server/generate";
 import { recordingFaults, toResponse } from "../../server/http";
 import { readStreamForEpisode } from "../../server/liveStream";
 import { handleNarrate, handleNarrationLookup, startDeadline } from "../../server/narrate";
+import { requireOwner } from "../../server/ownerAuth";
 import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route runs on demand, as a Vercel Function.
@@ -46,6 +47,8 @@ const get: APIRoute = async ({ url }) =>
   );
 
 const post: APIRoute = async ({ request, url }) => {
+  const refused = requireOwner(request);
+  if (refused) return refused;
   // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
   const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
   const result = await handleNarrate(

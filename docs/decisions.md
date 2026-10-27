@@ -203,6 +203,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D195 | Breadcrumb | amends D129 |
 | D194 | Topic weight removed | supersedes D190 |
 | D196 | Save refreshes copy | amends D172 |
+| D197 | Owner token | amends D160 |
 
 ---
 
@@ -2057,3 +2058,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: a save that went through asks the store again at once (`afterOwnSave`, with its own query past the edge's second) and the device's copy takes the answer, so the device's next page, and another tab's, shows the edit. A store answer whose `written_at` is this device's own newest write (`noteOwnWrite`, #329) is never offered as "changed on another device". The copy is never overwritten by an older answer (a read that began before the save and resolves after it). The save says "Settings saved".
 - Why: D172's copy left a saved edit a write behind on the device, so another tab showed the old setting until a reload.
 - Amends: D172.
+
+## D197: write routes need the owner's token
+
+- Date: 2026-10-27.
+- Context: D160 dropped the passphrase and left actions open "until OAuth"; the only guard left was the Origin header, which a client outside a browser sets freely, and `isSameOrigin` accepts a request with none. Anyone who knew the URL could edit categories, sources, schedule and voices, start or delete episodes, spend narration budget and make share links.
+- Decision: `SINGULARITY_OWNER_TOKEN` (16 or more characters) is the owner's secret. `requireOwner` (`server/ownerAuth.ts`) runs first in `POST /api/config`, `/api/generate`, `/api/podcast`, `/api/narrate` and `/api/share` (POST, DELETE) and answers 401 `owner_required` without the `sg_owner` cookie or an `Authorization: Bearer` header; both compare SHA-256 digests with `timingSafeEqual`. A device gets the cookie (HttpOnly, Secure, SameSite=Strict, 400 days) from `/settings/device` through `POST /api/owner/device`, which is capped at 10 tries a minute. The Origin checks stay. Unset or short, nothing is enforced and each instance logs one warning, so the code can ship before the secret. Votes travel through `/api/config`, so they are covered. Left open: `/api/share-play` and `/api/report` (listeners and telemetry), `/api/cron/run` (its own bearer), and the reads.
+- Why: a shared secret in a cookie is the smallest check that a non-browser client cannot forge, and it needs no account system. OAuth (D160) stays the later, larger answer.
+- Rejected: a passphrase prompt on every action (D160's reason); gating reads (the site is public today); a signed session cookie (one owner, no expiry to manage).
+- Amends: D160.

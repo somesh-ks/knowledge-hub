@@ -1,0 +1,86 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+
+const title = "This device";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to this device's settings">
+  <main id="main" tabindex="-1">
+    <div class="settings-view" data-settings data-device>
+      <SettingsHead title={title} note="Only the owner's devices can change categories, sources, episodes and voices. Paste the owner token once to trust this device." />
+      <section>
+        <h2 class="section-head">Owner token</h2>
+        <div class="rows card-group">
+          <p class="settings-about" data-state aria-live="polite">Checking this device.</p>
+          <form class="blocked-add" method="dialog" novalidate data-form hidden>
+            <div class="filter-row">
+              <div class="search-wrap filter-field">
+                <label class="search-field">
+                  <input
+                    type="password"
+                    name="token"
+                    maxlength="512"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    placeholder="Owner token"
+                    aria-label="Owner token"
+                    data-token
+                  />
+                </label>
+              </div>
+              <button class="btn-primary" type="submit">Trust this device</button>
+            </div>
+          </form>
+          <button class="btn-secondary" type="button" hidden data-forget>Forget this device</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-device]");
+  if (root) {
+    const state = root.querySelector<HTMLElement>("[data-state]");
+    const form = root.querySelector<HTMLFormElement>("[data-form]");
+    const input = root.querySelector<HTMLInputElement>("[data-token]");
+    const forget = root.querySelector<HTMLButtonElement>("[data-forget]");
+    const show = (text: string, trusted: boolean, enforced: boolean) => {
+      if (state) state.textContent = text;
+      if (form) form.hidden = trusted || !enforced;
+      if (forget) forget.hidden = !trusted;
+    };
+    const refresh = async () => {
+      try {
+        const answer = await fetch("/api/owner/device", { cache: "no-store" });
+        const { enforced, trusted } = (await answer.json()) as { enforced: boolean; trusted: boolean };
+        if (!enforced) show("The site has no owner token set, so every device can edit.", false, false);
+        else if (trusted) show("This device is trusted: it can make changes.", true, true);
+        else show("This device is not trusted: edits are refused.", false, true);
+      } catch {
+        show("Could not check this device. Try again.", false, true);
+      }
+    };
+    form?.addEventListener("submit", async () => {
+      const response = await fetch("/api/owner/device", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: input?.value ?? "" }),
+      }).catch(() => null);
+      if (input) input.value = "";
+      if (response?.status === 204) await refresh();
+      else if (state) {
+        state.textContent =
+          response?.status === 429 ? "Too many tries. Wait a minute." : "That token was not accepted.";
+      }
+    });
+    forget?.addEventListener("click", async () => {
+      await fetch("/api/owner/device", { method: "DELETE" }).catch(() => null);
+      await refresh();
+    });
+    void refresh();
+  }
+</script>

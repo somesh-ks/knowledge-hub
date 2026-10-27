@@ -13,6 +13,7 @@ import builtTopics from "../../../../../config/topics.json?raw";
 import type { BuiltConfigFiles } from "../../lib/configHash";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
+import { requireOwner } from "../../server/ownerAuth";
 import { burstCap } from "../../server/rateLimit";
 
 // The podcast structure (D170) is absent until the owner first edits one, so it is globbed: a
@@ -33,6 +34,7 @@ export const prerender = false;
 const EDITS_PER_MINUTE = 12;
 
 export const POST: APIRoute = ({ request, url }) =>
+  requireOwner(request) ??
   answerWithRef("api/config", async (log) => {
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_CONFIG_BODY_CHARS + 1);

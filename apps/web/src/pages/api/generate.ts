@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { contentDigestIds, contentDigestKind } from "../../server/contentSources";
 import { handleGenerate, MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
+import { requireOwner } from "../../server/ownerAuth";
 import { burstCap } from "../../server/rateLimit";
 
 // The site is static; this route alone runs on demand, as a Vercel Function.
@@ -14,6 +15,7 @@ export const prerender = false;
 const STARTS_PER_MINUTE = 8;
 
 export const POST: APIRoute = ({ request, url }) =>
+  requireOwner(request) ??
   answerWithRef("api/generate", async (log) => {
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);

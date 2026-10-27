@@ -5,6 +5,7 @@ import { readBlobCredentials } from "../../server/config";
 import { contentEpisodeIds } from "../../server/contentSources";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
+import { requireOwner } from "../../server/ownerAuth";
 import { handlePodcast } from "../../server/podcast";
 import { burstCap } from "../../server/rateLimit";
 import { addTombstone } from "../../server/tombstones";
@@ -18,6 +19,7 @@ export const prerender = false;
 const REQUESTS_PER_MINUTE = 10;
 
 export const POST: APIRoute = ({ request, url }) =>
+  requireOwner(request) ??
   answerWithRef("api/podcast", async (log) => {
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);

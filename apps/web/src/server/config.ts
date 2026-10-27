@@ -28,6 +28,8 @@ export interface ServerEnv {
   ANTHROPIC_ADMIN_KEY?: string;
   /** What Vercel Cron sends as a bearer token to /api/cron/run. Unset, the route refuses every call. */
   CRON_SECRET?: string;
+  /** The owner's secret: a write route refuses a request without it as a cookie or bearer token (D197). Unset, nothing is enforced. */
+  SINGULARITY_OWNER_TOKEN?: string;
 }
 
 export interface ServerConfig {
