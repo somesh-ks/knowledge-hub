@@ -73,6 +73,10 @@ jobs:
           if ! grep -q libopus <<<"$encoders"; then
             sudo apt-get update -qq
             sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg
+            encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
+          fi
+          if ! grep -q libopus <<<"$encoders"; then
+            echo "::warning::ffmpeg has no libopus encoder; episodes fall back to MP3"
           fi
           ffmpeg -hide_banner -version </dev/null | sed -n 1p
 
