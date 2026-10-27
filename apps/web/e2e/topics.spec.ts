@@ -56,7 +56,7 @@ async function setup(
   await page.route("**/api/topic-emoji**", (route: Route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: '{"emoji":"🎨"}' }),
   );
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
     await hold;
@@ -76,6 +76,15 @@ async function setup(
     });
   });
   return { sent, previews };
+}
+
+/** Escape on a sheet with a changed field asks "Save changes?" (sheetGuard.ts); Discard leaves it. */
+async function abandon(page: Page): Promise<void> {
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("dialog", { name: "Save changes?" })
+    .getByRole("button", { name: "Discard" })
+    .click();
 }
 
 async function open(page: Page, path = LIST): Promise<void> {
@@ -1342,7 +1351,7 @@ test.describe("a refused lookup", () => {
     // No empty card stands in for the message.
     await expect(sheet.locator(".source-card")).toHaveCount(0);
     await expect(sheet.getByRole("button", { name: "Add source", exact: true })).toBeDisabled();
-    await page.keyboard.press("Escape");
+    await abandon(page);
     await expect(sheet).toBeHidden();
   });
 });
@@ -1407,7 +1416,7 @@ test("has no accessibility violations: the list, a topic, and the panel open", a
   await expect(sheet.getByText("Newsroom Example")).toBeVisible();
   await settled(sheet);
   expect(await scan()).toEqual([]);
-  await page.keyboard.press("Escape");
+  await abandon(page);
   await expect(sheet).toBeHidden();
   await source(page, "Studio Notes").getByRole("button", { name: "Edit Studio Notes" }).click();
   const edit = page.getByRole("dialog", { name: "Edit source" });
@@ -1498,6 +1507,49 @@ test.describe("Blocked sources", () => {
 });
 
 test.describe("the podcast structure", () => {
+  // The sheet used to keep an edit on any close, so a stray tap on the scrim saved what was typed.
+  // One shared guard (sheetGuard.ts) asks first: this is the journey for Close, then Escape.
+  test("a block sheet with an edit asks before it closes: Close then Discard saves nothing, Escape then Save sends it", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const server = await routeConfigServer(page);
+    await open(page, "/settings/preferences?view=structure");
+    const list = page.getByRole("list", { name: "Structure blocks" });
+    await expect(list).toBeVisible();
+    const edit = async () => {
+      await list.getByRole("button", { name: "More for Design", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Edit" }).click();
+      const sheet = page.getByRole("dialog", { name: "Design" });
+      await sheet.getByRole("combobox", { name: "Most from one source" }).selectOption("1");
+      return sheet;
+    };
+    const guard = page.getByRole("dialog", { name: "Save changes?" });
+    const design = list
+      .locator(".structure-row")
+      .filter({ has: page.locator(".settings-label", { hasText: /^Design$/ }) });
+
+    let sheet = await edit();
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(guard).toBeVisible();
+    await expect(sheet).toBeVisible();
+    await guard.getByRole("button", { name: "Discard" }).click();
+    await expect(sheet).toBeHidden();
+    await expect(design).not.toContainText("1 per source");
+    await page.clock.runFor(GAP_MS);
+    expect(server.applied).toEqual([]);
+
+    sheet = await edit();
+    await page.keyboard.press("Escape");
+    await expect(guard).toBeVisible();
+    await guard.getByRole("button", { name: "Save" }).click();
+    await expect(sheet).toBeHidden();
+    await expect(design).toContainText("1 per source");
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => server.applied.length).toBe(1);
+    expect(server.applied[0]).toMatchObject({ op: "structure.set" });
+  });
+
   // A reorder went out as the whole list, so a move that the server's own schema refused, or one
   // lost on a reload before the build, would leave the next episode in the old order unseen.
   test("a block moved by its menu goes as one structure.set and holds after a reload; its rules and prompt go as one structure.set and one structure.prompt", async ({
@@ -1542,7 +1594,7 @@ test.describe("the podcast structure", () => {
     const prompt = sheet.getByRole("textbox", { name: "Instructions for the model" });
     await expect(prompt).toHaveValue(/FIELDS/);
     await prompt.fill("Tell each design story in two plain sentences.");
-    await sheet.getByRole("button", { name: "Done" }).click();
+    await sheet.getByRole("button", { name: "Save" }).click();
     await expect(sheet).toBeHidden();
     const design = list
       .locator(".structure-row")
