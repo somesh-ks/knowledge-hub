@@ -84,6 +84,9 @@ describe("the listener profile", () => {
       custom_blocks: kept,
     });
     expect(withoutSection(file, "design").custom_blocks).toEqual([kept[0], kept[2], kept[3]]);
+    // A kept list whose only section goes is dropped, so Custom never brings it back.
+    const only = { ...file, custom_blocks: StructureBlocks.parse([hello, design, signOff]) };
+    expect(withoutSection(only, "design").custom_blocks).toBeUndefined();
   });
 
   it("Custom, then Student, then Custom again restores the owner's own list, and an edit on Student replaces it only once confirmed", () => {

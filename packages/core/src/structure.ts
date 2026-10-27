@@ -541,17 +541,20 @@ export function withSectionBlock(
 /** Drop a removed topic's section from the stored list; a list left with no body keeps it. */
 export function withoutSection(file: StructureFile, section: string): StructureFile {
   // The kept Custom list too: choosing Custom again must not bring back a section that is gone.
-  const without = (blocks: StructureFile["blocks"]): StructureFile["blocks"] => {
+  const without = (blocks: StructureFile["blocks"]): StructureFile["blocks"] | null => {
     if (blocks === undefined) return undefined;
     const next = blocks.filter((block) => block.type !== "section" || block.id !== section);
-    return structureProblems(next).length === 0 ? next : blocks;
+    return structureProblems(next).length === 0 ? next : null;
   };
-  const blocks = without(file.blocks);
+  // The running list keeps the section when it is its last (a list needs one); a kept list that
+  // would be left with none is dropped, so Custom starts from the running list instead.
+  const blocks = without(file.blocks) ?? file.blocks;
   const custom_blocks = without(file.custom_blocks);
+  const { custom_blocks: _kept, ...rest } = file;
   return {
-    ...file,
+    ...rest,
     ...(blocks === undefined ? {} : { blocks }),
-    ...(custom_blocks === undefined ? {} : { custom_blocks }),
+    ...(custom_blocks ? { custom_blocks } : {}),
   };
 }
 

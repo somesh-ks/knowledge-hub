@@ -342,6 +342,8 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       }
       render();
       autosave.changed();
+      // The control that opened the dialog went with the old rows: focus stays in the editor.
+      profileSelect.focus({ preventScroll: true });
       return;
     }
     const next = confirm.returnValue === "switch" ? asked : null;
