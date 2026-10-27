@@ -165,19 +165,26 @@ export function afterOwnSave(): void {
  * microtasks that follow, so the build's values never paint first (2026-10-27, Podcast voice).
  */
 export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
+  // The regions of the page that asked: a read that ends after a ClientRouter swap must not show
+  // the next page's regions before that page has laid its own answer over them.
+  const held = heldRegions();
   return askStore(now).then((body) => {
-    setTimeout(showHeld, 0);
+    setTimeout(() => showHeld(held), 0);
     return body;
   });
 }
 
-/** The held regions of the page now in the document, shown with whatever was laid over them. */
-function showHeld(): void {
-  if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return;
-  for (const region of document.querySelectorAll<HTMLElement>(
-    "[data-store-held]:not([data-store-held=editor])",
-  )) {
-    region.dataset.storeApplied = "";
+function heldRegions(): HTMLElement[] {
+  if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return [];
+  return [
+    ...document.querySelectorAll<HTMLElement>("[data-store-held]:not([data-store-held=editor])"),
+  ];
+}
+
+/** The asking page's held regions still in the document, shown with whatever was laid over them. */
+function showHeld(held: HTMLElement[]): void {
+  for (const region of held) {
+    if (region.isConnected) region.dataset.storeApplied = "";
   }
 }
 
