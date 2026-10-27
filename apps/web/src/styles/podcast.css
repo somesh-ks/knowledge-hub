@@ -13,6 +13,11 @@
   padding-block: 0;
 }
 
+/* The panel's first card starts on .settings-head's 24px too (Podcast voice's had 8px more). */
+.daily-panel > .podcast-profile:first-child > .rows:first-child {
+  margin-block-start: 0;
+}
+
 /* On a phone the selects stack under their label at full width, so "Every other day" and
    "Wednesday" are never cut, at any text size. From 40rem they sit side by side at the end of the
    row: the time takes two fifths beside the cadence, and three beside the weekday, which comes first.

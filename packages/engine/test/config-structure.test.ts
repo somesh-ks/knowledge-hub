@@ -61,7 +61,11 @@ it("choosing a named profile keeps the owner's own list aside, and choosing Cust
   expect(await apply({ op: "structure.set", profile: "designer" })).toBe(0);
   expect(await apply({ op: "structure.set", profile: "student" })).toBe(0);
   const student = await repo.readJson<StructureFile>("config/structure.json");
-  expect(names({ ...student, blocks: student.custom_blocks })).toEqual(["hello", "top_picks", "sign_off"]);
+  expect(names({ ...student, blocks: student.custom_blocks })).toEqual([
+    "hello",
+    "top_picks",
+    "sign_off",
+  ]);
   expect(await apply({ op: "structure.set", profile: "custom", blocks: SHORT })).toBe(0);
   const back = await repo.readJson<StructureFile>("config/structure.json");
   expect(names(back)).toEqual(["hello", "top_picks", "sign_off"]);
