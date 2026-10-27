@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";
 import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js";
-import { shapeStories } from "../src/podcast/structure.js";
+import { fitStories, shapeStories } from "../src/podcast/structure.js";
 import type { PodcastStory } from "../src/podcast/types.js";
 import { sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
@@ -120,6 +120,53 @@ it("a structure of Top picks and release news alone still airs both, though it l
     "top",
     "launches",
   ]);
+});
+
+// ep-20261027-2333: eight slots were filled by rank, the structure's scaled caps then cut the design
+// side to 6, and each story was asked to carry more than it had. More candidates stand in for the cut.
+describe("a Catch up fills its slots after the structure's caps", () => {
+  const story = (id: string, section: string): PodcastStory => ({
+    item_id: id,
+    headline: `Headline ${id}`,
+    summary: `Summary ${id}.`,
+    source: `Outlet ${id}`,
+    url: `https://example.com/${id}`,
+    section,
+    category: section,
+  });
+  const capped = blocks([
+    { type: "hello" },
+    { type: "section", id: "design", max_stories: 2 },
+    { type: "sign_off" },
+  ]);
+
+  it("keeps the slots full when a block's cap cuts the ranked stories", () => {
+    // Ranked: five design stories lead, then the rest. Eight slots hold design x5 and three others,
+    // and the cap leaves 2 + 3 = 5.
+    const candidates = [
+      ...["d1", "d2", "d3", "d4", "d5"].map((id) => story(id, "design")),
+      ...["w1", "w2", "w3", "w4", "w5", "w6", "w7"].map((id) => story(id, "world")),
+    ];
+    expect(shapeStories(candidates.slice(0, 8), capped).stories).toHaveLength(5);
+    const fitted = fitStories(candidates, capped, {}, 8);
+    expect(fitted.stories).toHaveLength(8);
+    expect(fitted.stories.filter((each) => each.section === "design")).toHaveLength(2);
+    // The lowest-ranked of the rest go, not the best.
+    expect(fitted.stories.map((each) => each.item_id)).toContain("w6");
+    expect(fitted.stories.map((each) => each.item_id)).not.toContain("w7");
+  });
+
+  it("is what shapeStories gives when nothing is cut, and holds the slot count", () => {
+    const few = [story("d1", "design"), story("w1", "world")];
+    expect(fitStories(few, capped, {}, 8)).toEqual(shapeStories(few, capped, {}));
+    const many = Array.from({ length: 6 }, (_, i) => story(`w${i}`, "world"));
+    expect(fitStories(many, capped, {}, 4).stories.map((each) => each.item_id)).toEqual([
+      "w0",
+      "w1",
+      "w2",
+      "w3",
+    ]);
+  });
 });
 
 describe("a structured Catch up script over its length", () => {

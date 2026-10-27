@@ -50,6 +50,8 @@ export interface GeneralDeps {
   sources?: readonly Source[] | undefined;
   /** The fewest stories that make a selection. Defaults to MIN_GENERAL_STORIES (fewer when the length is short). */
   minStories?: number | undefined;
+  /** Coverage leaders that open the episode before the topics are dealt; defaults to `topStoryCount`. */
+  leaders?: number | undefined;
 }
 
 /** A story as it came out of clustering: the kept item, who covered it and under which topics. */
@@ -115,11 +117,18 @@ export function pickStories(
   max: number,
   /** The owner's vote multiplier for a story, applied to its coverage; 1 when absent. */
   lean: (candidate: Candidate) => number = () => 1,
+  /**
+   * Stories that open ahead of the topic round-robin: the coverage leaders of every topic together.
+   * A mixed episode takes none (the briefing topics hold its opening, and each general topic gets its
+   * own slot): the 2026-10-27 Catch up spent two of its three general slots on the day's most
+   * syndicated stories, which were celebrity news.
+   */
+  leaders = topStoryCount(max),
 ): Candidate[] {
   const ranked = [...candidates].sort(
     (a, b) => b.coverage * lean(b) - a.coverage * lean(a) || byCoverageThenRecency(a, b),
   );
-  const top = ranked.slice(0, Math.min(topStoryCount(max), ranked.length));
+  const top = ranked.slice(0, Math.min(leaders, ranked.length));
   const taken = new Set(top.map((c) => c.item.id));
 
   // Each story belongs to the first chosen topic that carried it.
@@ -267,8 +276,12 @@ export async function selectGeneralStories(deps: GeneralDeps): Promise<GeneralSe
       `Only ${candidates.length} ${candidates.length === 1 ? "story" : "stories"} in the news feeds for ${joinNames(topicIds.map(generalTopicTitle))}; an episode needs at least ${needed}. Try more topics.`,
     );
   }
-  const picked = pickStories(candidates, topicIds, Math.max(2, plan.max_stories), (c) =>
-    voteMultiplier(votePrefs, c.item.source_id, c.item.url),
+  const picked = pickStories(
+    candidates,
+    topicIds,
+    Math.max(2, plan.max_stories),
+    (c) => voteMultiplier(votePrefs, c.item.source_id, c.item.url),
+    deps.leaders,
   );
   return {
     stories: picked.map((c) => toStory(c, topicIds)),

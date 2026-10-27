@@ -81,6 +81,37 @@ export function airsUnder(
 }
 
 /**
+ * `shapeStories` over more candidates than the episode has room for, cut back to `max` by rank. A
+ * block's count caps its stories after the ranking filled the slots, and an episode sized for 10
+ * minutes halves them at 5, so the 2026-10-27 Catch up aired 6 of its 8 slots and told each story
+ * longer than it could carry. Candidates beyond the slots stand in for what the caps cut; the
+ * lowest-ranked of the shaped list go first, and the rest is shaped again so its order, its deep
+ * dives and its owner blocks follow what stays.
+ */
+export function fitStories(
+  candidates: readonly PodcastStory[],
+  blocks: readonly StructureBlock[],
+  prompts: Readonly<Record<string, string>>,
+  max: number,
+): { stories: PodcastStory[]; shape: ScriptShape } {
+  const shaped = shapeStories(candidates, blocks, prompts);
+  if (shaped.stories.length <= max) return shaped;
+  const rank = new Map(candidates.map((story, index) => [story.item_id, index]));
+  const byRank = (story: PodcastStory): number => rank.get(story.item_id) ?? candidates.length;
+  const kept = new Set(
+    [...shaped.stories]
+      .sort((a, b) => byRank(a) - byRank(b))
+      .slice(0, max)
+      .map((story) => story.item_id),
+  );
+  return shapeStories(
+    candidates.filter((story) => kept.has(story.item_id)),
+    blocks,
+    prompts,
+  );
+}
+
+/**
  * Order ranked stories by the structure: each block's stories in rank order, blocks in the
  * structure's order, then stories of sections it does not name. A block's count caps its stories.
  * Owner blocks land where they stand among the story blocks.
