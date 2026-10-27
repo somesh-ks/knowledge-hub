@@ -1,6 +1,6 @@
 # Singularity: brief for the next session
 
-> **For the agent: delete this file when the work is done.** Once every item below is merged, moved into `docs/state.md`, or declined with a reason, remove `Next Session Brief.md` in the same PR that closes the session record (section 4). Don't leave it in the repo root. If you stop part-way, rewrite it to what is left rather than deleting it.
+> **For the agent: delete this file when the work is done.** Once every item below is merged, moved into `docs/state.md`, or declined with a reason, remove `next-session-brief.md` in the same PR that closes the session record (section 4). Don't leave it in the repo root. If you stop part-way, rewrite it to what is left rather than deleting it.
 
 Repo: `somesh-ks/knowledge-hub`. Site: news.someshks.work. Written on 2026-10-27, at the end of a two-day session that merged about 50 PRs (#315 to #377).
 
@@ -141,4 +141,4 @@ Owner decision: no elevation; a 16px rounded rectangle, recorded as an exception
   - the worktree junction failures.
 - `docs/history/`: a note for 2026-10-26 to 27.
 - **Cleanup:** remove merged branches and worktrees, and verify production (`/build.json` matches main).
-- **Delete this file** (`Next Session Brief.md`) in that final PR, once everything above is done or recorded in `docs/state.md`.
+- **Delete this file** (`next-session-brief.md`) in that final PR, once everything above is done or recorded in `docs/state.md`.
