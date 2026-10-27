@@ -47,7 +47,7 @@ const VOICES = [
                 VOICES.map((voice) => (
                   <div class="settings-row" data-voice-row={voice.key}>
                     <label class="settings-label" for={`podcast-${voice.key}`}>{voice.name}</label>
-                    <div class="podcast-voice">
+                    <div class="podcast-voice" data-store-held>
                       <span class="manage-select value-select">
                         <select
                           class="manage-input"

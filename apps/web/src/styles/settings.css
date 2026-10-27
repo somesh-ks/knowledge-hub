@@ -753,3 +753,26 @@
 .settings-view .card-group > .settings-row {
   margin-inline-end: calc(var(--row-padding-block) - var(--card-padding));
 }
+
+/* ------------------------------------------------------------------ held for the store */
+
+/* What the config store can change on a page built before it (D149, D172) waits, its box kept, until
+   the store's answer or the device's copy is laid over it, so the build's values never paint and then
+   change (the owner, 2026-10-27: Podcast voice showed the default pair, then the saved one). Mark a
+   region with data-store-held; loadStore (scripts/configStoreRead.ts) sets data-store-applied once
+   the page's overlay has run (a region marked "editor" waits for its editor's first draw instead). Only with the store on and scripts running; a page whose script never
+   gets there shows its built copy after 3 s, as it would have without the store. */
+@media (scripting: enabled) {
+  :root:has(meta[name="singularity-config-store"]) [data-store-held]:not([data-store-applied]) {
+    visibility: hidden;
+    animation-name: store-held-reveal;
+    animation-delay: 3s;
+    animation-fill-mode: forwards;
+  }
+}
+
+@keyframes store-held-reveal {
+  to {
+    visibility: visible;
+  }
+}

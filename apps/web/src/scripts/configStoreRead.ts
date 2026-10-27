@@ -159,8 +159,36 @@ export function afterOwnSave(): void {
  * Asks the store, once per page view: the store's answer when it comes within the grace, else the
  * device's copy at once while the store is still asked; null when it is off, down, slow or
  * unreadable and the device has no copy.
+ *
+ * The page's regions the store can change (`[data-store-held]`, settings.css) wait, hidden, until
+ * then: they show in the task after the answer, once the caller has laid it over them in the
+ * microtasks that follow, so the build's values never paint first (2026-10-27, Podcast voice).
  */
 export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
+  // The regions of the page that asked: a read that ends after a ClientRouter swap must not show
+  // the next page's regions before that page has laid its own answer over them.
+  const held = heldRegions();
+  return askStore(now).then((body) => {
+    setTimeout(() => showHeld(held), 0);
+    return body;
+  });
+}
+
+function heldRegions(): HTMLElement[] {
+  if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return [];
+  return [
+    ...document.querySelectorAll<HTMLElement>("[data-store-held]:not([data-store-held=editor])"),
+  ];
+}
+
+/** The asking page's held regions still in the document, shown with whatever was laid over them. */
+function showHeld(held: HTMLElement[]): void {
+  for (const region of held) {
+    if (region.isConnected) region.dataset.storeApplied = "";
+  }
+}
+
+function askStore(now: number): Promise<ConfigReadBody | null> {
   // A read reused within the second answers as storeRead does: for the page now in the document.
   if (last && now - last.at < REUSE_MS) return last.read.then(() => storeRead());
   const stop = new AbortController();
