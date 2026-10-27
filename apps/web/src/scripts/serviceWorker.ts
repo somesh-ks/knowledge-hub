@@ -32,16 +32,16 @@ const BUILD_CHECK_MS = 60 * 1000;
 const BUILD_POLL_MS = 10 * 60 * 1000;
 /** A newer build waiting for a safe moment is tried again this often. */
 const APPLY_RETRY_MS = 5 * 1000;
-/** The same build is not loaded twice within this time: a reload that still shows the old build must not loop. */
-export const APPLY_AGAIN_MS = 5 * 60 * 1000;
+/** One build is loaded for this many times in a tab: a reload that still shows the old build (a stale edge copy) must not loop. */
+export const APPLY_ATTEMPTS = 2;
 const APPLIED_KEY = "singularity:applied-build";
 
 /** What the page is doing when a reload is considered. */
 export interface Moment {
   playerState: string | undefined;
-  /** A dialog, sheet, menu or toast (an Undo waiting) is open. */
+  /** A dialog, sheet or popover (a menu, a toast with an Undo waiting) is open. */
   overlayOpen: boolean;
-  /** A text field has focus or holds something the reader typed. */
+  /** A text field has focus, or holds something the reader typed (not something the page filled in). */
   editing: boolean;
 }
 
@@ -52,6 +52,18 @@ export function canReloadNow(moment: Moment): boolean {
 
 const TEXT_FIELD =
   'textarea, input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"])';
+
+/** Fields the reader typed in, from trusted input events: a field the page filled in by script is not theirs to lose. */
+const typedIn = new WeakSet<EventTarget>();
+function trackTyping(): void {
+  document.addEventListener(
+    "input",
+    (event) => {
+      if (event.isTrusted && event.target) typedIn.add(event.target);
+    },
+    { capture: true, passive: true },
+  );
+}
 
 function readMoment(): Moment {
   let overlayOpen = false;
@@ -66,22 +78,19 @@ function readMoment(): Moment {
     (focused instanceof HTMLElement &&
       (focused.isContentEditable || focused.matches(TEXT_FIELD))) ||
     [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TEXT_FIELD)].some(
-      (field) => field.value !== field.defaultValue,
+      (field) => typedIn.has(field) && field.value !== field.defaultValue,
     );
   return { playerState: document.documentElement.dataset.playerState, overlayOpen, editing };
 }
 
-/** True when this build has not just been loaded for: records it, so a reload that changes nothing is not repeated. */
-export function claimApply(
-  build: string,
-  now: number,
-  store?: Pick<Storage, "getItem" | "setItem">,
-): boolean {
+/** True while this build has been loaded for fewer than APPLY_ATTEMPTS times in the tab; counts this one. */
+export function claimApply(build: string, store?: Pick<Storage, "getItem" | "setItem">): boolean {
   try {
     const kept = store ?? sessionStorage;
-    const [was, at] = (kept.getItem(APPLIED_KEY) ?? "").split("@");
-    if (was === build && now - Number(at) < APPLY_AGAIN_MS) return false;
-    kept.setItem(APPLIED_KEY, `${build}@${now}`);
+    const [was, count] = (kept.getItem(APPLIED_KEY) ?? "").split("@");
+    const tries = was === build ? Number(count) || 0 : 0;
+    if (tries >= APPLY_ATTEMPTS) return false;
+    kept.setItem(APPLIED_KEY, `${build}@${tries + 1}`);
   } catch {
     // No storage: load it anyway; the build check on the new page finds nothing newer.
   }
@@ -106,6 +115,7 @@ async function newerBuild(pageBuild: string | undefined): Promise<string | null 
 }
 
 function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: string): void {
+  trackTyping();
   activateWhenIdle(registration);
   registration.addEventListener("updatefound", () => {
     registration.installing?.addEventListener("statechange", () => activateWhenIdle(registration));
@@ -117,8 +127,7 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   let retry: ReturnType<typeof setInterval> | undefined;
   const applyBuild = (): void => {
     if (!newer || !navigator.onLine || !canReloadNow(readMoment())) return;
-    if (!claimApply(newer, Date.now())) return;
-    clearInterval(retry);
+    if (!claimApply(newer)) return;
     registration.update().catch(() => {});
     location.reload();
   };
@@ -137,7 +146,11 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
           return;
         }
         newer = answer ?? undefined;
-        if (!newer) return;
+        if (!newer) {
+          clearInterval(retry);
+          retry = undefined;
+          return;
+        }
         applyBuild();
         // Waiting for a listen to end, a sheet to close or typing to stop.
         retry ??= setInterval(applyBuild, APPLY_RETRY_MS);

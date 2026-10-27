@@ -197,11 +197,15 @@ test.describe("service worker", () => {
     // A reload would drop this mark with the page.
     await page.evaluate(() => {
       (window as unknown as { kept: boolean }).kept = true;
-      const field = document.createElement("textarea");
-      field.id = "draft";
-      field.value = "half a note";
-      document.body.append(field);
+      const draft = document.createElement("textarea");
+      draft.id = "draft";
+      // A field the page filled in itself (a restored filter) is not the reader's typing.
+      const restored = document.createElement("input");
+      restored.value = "filled by the page";
+      document.body.append(draft, restored);
     });
+    await page.locator("#draft").fill("half a note");
+    await page.locator("#draft").blur();
     await ship();
     const kept = () =>
       page.evaluate(() => (window as unknown as { kept?: boolean }).kept).catch(() => undefined);

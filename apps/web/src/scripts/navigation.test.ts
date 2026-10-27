@@ -8,7 +8,7 @@ import {
   navigationKind,
 } from "./navigation";
 import {
-  APPLY_AGAIN_MS,
+  APPLY_ATTEMPTS,
   canReloadNow,
   claimApply,
   shouldActivateUpdate,
@@ -179,16 +179,17 @@ describe("claimApply", () => {
   };
 
   // A reload that still shows the old build (a stale answer from the network's edge) must not loop.
-  it("loads a build once, and again only after the wait", () => {
+  it("loads a build a limited number of times", () => {
     const store = memory();
-    expect(claimApply("b2", 1000, store)).toBe(true);
-    expect(claimApply("b2", 2000, store)).toBe(false);
-    expect(claimApply("b2", 1000 + APPLY_AGAIN_MS, store)).toBe(true);
+    for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) {
+      expect(claimApply("b2", store)).toBe(true);
+    }
+    expect(claimApply("b2", store)).toBe(false);
   });
 
   it("loads a build newer than the one it loaded for at once", () => {
     const store = memory();
-    expect(claimApply("b2", 1000, store)).toBe(true);
-    expect(claimApply("b3", 2000, store)).toBe(true);
+    for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
+    expect(claimApply("b3", store)).toBe(true);
   });
 });
