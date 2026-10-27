@@ -459,6 +459,12 @@
   padding-block: var(--space-6) 0;
 }
 
+/* With no tabs above it, the head opens the card: the card's padding is its room above, not that
+   plus the head's own 32px (owner, 2026-10-27). */
+.topic .topic-panel:not(:has(> .topic-view)) .topic-sources-head:not([data-quiet]) {
+  padding-block-start: 0;
+}
+
 .topic .topic-sources-head > .section-head {
   padding-block: 0;
 }
@@ -1564,6 +1570,22 @@
   background: var(--color-surface-container);
 }
 
+/* Stuck, the block stops 16px under the bar and a strip of its own fill covers that gap, so the
+   field never touches the edge (owner, 2026-10-27). The strip is out of the flow: nothing moves at
+   rest, where it lies on the card's own fill. */
+.source-filter[data-chips] {
+  inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline) + var(--space-4));
+}
+
+.source-filter[data-chips]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 100%;
+  block-size: var(--space-4);
+  background: inherit;
+}
+
 .source-filter[data-chips] .filter-none {
   padding-block: var(--space-2);
 }
@@ -1990,39 +2012,5 @@ textarea.manage-input.structure-prompt {
   margin-inline-end: calc(var(--space-4) * -1);
 }
 
-/* A weight row, 2026-10-25 (owner): the stop's name starts where the slider's track starts, in the
-   slider's column, with the slider under it; the topic's name takes the rest of the row and the
-   whole height. The text wrapper dissolves so its label and output are the grid's own items. One
-   grid for the phone and the desktop, so the name never gives its line to the slider
-   (--slider-max-width, settings.css). The doubled class beats `.topic .topic-weight`, and the last
-   selector `.preferences-page`'s row gap. */
-.settings-row.topic-weight,
-.topic .settings-row.topic-weight,
-.preferences-page .topic .settings-row.topic-weight {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, var(--slider-max-width));
-  align-items: center;
-  column-gap: var(--space-4);
-  row-gap: 0;
-}
-
-.topic-weight > .settings-text {
-  display: contents;
-}
-
-.topic-weight > .settings-text > .settings-label {
-  grid-row: 1 / span 2;
-  grid-column: 1;
-}
-
-.topic-weight > .settings-text > .settings-hint {
-  grid-row: 1;
-  grid-column: 2;
-}
-
-.topic-weight > .settings-range {
-  grid-row: 2;
-  grid-column: 2;
-  inline-size: 100%;
-  margin: 0;
-}
+/* The 2026-10-25 grid that put the stop's name over the slider was reverted on 2026-10-27 at the
+   owner's request: a weight row is again the name with its stop, then the slider (.topic-weight). */
