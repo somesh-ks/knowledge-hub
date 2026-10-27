@@ -2075,7 +2075,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 ## D197: a scheduled briefing is generated ahead and published at its hour
 
 - Date: 2026-10-26 (#318, #349).
-- Decision: the run for a scheduled briefing starts up to two hours before its hour, generates, and holds the commit until `publish_at` (the hour in Stockholm), so it appears at 07:00 sharp. The cron's early slot keeps its own local date, and the store's timeout no longer counts the module load.
+- Decision: the run for a scheduled briefing starts up to two hours before its hour, generates, and commits at `publish_at`, three minutes (`DEPLOY_LEAD_MS`) before the hour in Stockholm, so the deploy lands at 07:00. The cron's early slot keeps its own local date, and the store's timeout no longer counts the module load.
 - Why: a run that starts at the hour published a quarter of an hour late, and a slow cold start could start it at the wrong hour.
 - Revisit if: a run's work outgrows the lead.
 - Amends: D61.
