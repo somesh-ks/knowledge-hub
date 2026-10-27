@@ -53,9 +53,7 @@ async function probeSeconds(file: string): Promise<number> {
 async function pcm(file: string): Promise<Int16Array> {
   const { stdout } = (await run(
     "ffmpeg",
-    [
-      ...["-v", "error", "-i", file, "-f", "s16le", "-ac", "1", "-ar", String(SAMPLE_RATE), "-"],
-    ],
+    [...["-v", "error", "-i", file, "-f", "s16le", "-ac", "1", "-ar", String(SAMPLE_RATE), "-"]],
     { encoding: "buffer", maxBuffer: 64 * 1024 * 1024 },
   )) as unknown as { stdout: Buffer };
   return new Int16Array(stdout.buffer, stdout.byteOffset, Math.floor(stdout.byteLength / 2));
@@ -82,7 +80,7 @@ function toneChangeMs(samples: Int16Array, hzBefore: number, hzAfter: number, ne
   for (let i = from; i + window < samples.length; i += window / 5) {
     let crossings = 0;
     for (let j = i + 1; j < i + window; j++) {
-      if (((samples[j - 1] ?? 0) < 0) !== ((samples[j] ?? 0) < 0)) crossings++;
+      if ((samples[j - 1] ?? 0) < 0 !== (samples[j] ?? 0) < 0) crossings++;
     }
     if ((crossings / 2) * 100 > mid) return ((i + window / 2) / SAMPLE_RATE) * 1000;
   }

@@ -118,7 +118,10 @@ export async function transcodeSegmentsToOpus(
     const bytes = await readFile(output);
     if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
     const durations_ms = await Promise.all(names.map((name) => probe(join(dir, name))));
-    return { audio: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), durations_ms };
+    return {
+      audio: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      durations_ms,
+    };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

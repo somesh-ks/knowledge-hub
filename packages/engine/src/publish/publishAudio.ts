@@ -29,9 +29,9 @@ import {
   SpeechifyError,
 } from "../audio/speechify.js";
 import type { SpokenText } from "../audio/spokenText.js";
-import type { EpisodeOpusFile } from "../audio/transcode.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
+import type { EpisodeOpusFile } from "../audio/transcode.js";
 import type { Logger } from "../context.js";
 import { costKindOf } from "../cost/ledger.js";
 import { loadSchedule } from "../schedule/store.js";
