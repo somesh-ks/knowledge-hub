@@ -39,7 +39,7 @@ export async function routeConfigServer(page: Page): Promise<ConfigServer> {
   // One request at a time, so the gap is checked against the edit before it as it would be on a
   // single function instance; the order is the order the requests arrived in.
   let queue: Promise<void> = Promise.resolve();
-  await page.route("**/api/config", (route) => {
+  await page.route(/\/api\/config(\?|$)/, (route) => {
     queue = queue.then(() => answer(route)).catch(() => {});
     return queue;
   });

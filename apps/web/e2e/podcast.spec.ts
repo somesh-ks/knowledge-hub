@@ -12,7 +12,7 @@ interface Sent {
 /** Answers /api/config and records what was sent. `answers` are used in order, then 202. */
 async function mockConfig(page: Page, answers: Array<{ status: number; body: object }> = []) {
   const sent: Sent[] = [];
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
     await route.fulfill({
@@ -285,7 +285,8 @@ test.describe("with the config store on", () => {
     const asked = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    await page.route("**/api/config", async (route: Route) => {
+    // Also the read a save makes after itself (`?after=`, #343), so it is answered, not a 501.
+    await page.route(/\/api\/config(\?.*)?$/, async (route: Route) => {
       if (route.request().method() !== "GET") return route.fallback();
       await asked;
       await route.fulfill({
@@ -646,7 +647,7 @@ test.describe("a change made offline", () => {
     // A mocked route answers even while the context is offline, so the mock goes offline with it.
     let online = true;
     const sent: Sent[] = [];
-    await page.route("**/api/config", async (route: Route) => {
+    await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
       if (!online) {
         await route.abort("internetdisconnected");
         return;
