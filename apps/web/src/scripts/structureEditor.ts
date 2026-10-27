@@ -240,7 +240,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   };
 
   /** Draws the rows and its Add list; focus goes to `focus`'s row. */
-  const render = (focus?: { index: number; part: "more" | "edit" | "grip" }): void => {
+  const render = (focus?: { index: number; part: "more" | "grip" }): void => {
     const rows = blocks;
     list.innerHTML = rowsHtml(rows, data, skip);
     const offers = addOffers(rows, data.sections);
@@ -249,13 +249,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     if (!focus) return;
     const row = list.querySelector<HTMLElement>(`[data-index="${focus.index}"]`);
     const target =
-      row?.querySelector<HTMLElement>(
-        focus.part === "edit"
-          ? ".structure-edit"
-          : focus.part === "grip"
-            ? "[data-grip]"
-            : ".structure-more",
-      ) ??
+      row?.querySelector<HTMLElement>(focus.part === "grip" ? "[data-grip]" : ".structure-more") ??
       row?.querySelector<HTMLElement>("button") ??
       addButton;
     target.focus({ preventScroll: true });
@@ -424,8 +418,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     if (act === "up") move(index, index - 1);
     else if (act === "down") move(index, index + 1);
     else if (act === "remove") remove(index);
-    else if (act === "edit")
-      openSheet(index, row.querySelector(".structure-more, .structure-edit"));
+    else if (act === "edit") openSheet(index, row.querySelector(".structure-more"));
   });
 
   // ------------------------------------------------------------------------------- the grip
@@ -504,7 +497,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     if (!grip || !row || !event.isPrimary || event.button !== 0 || drag) return;
     event.preventDefault();
     grip.setPointerCapture(event.pointerId);
-    const rows = [...list.querySelectorAll<HTMLElement>(".structure-row:not([data-frame])")];
+    const rows = [...list.querySelectorAll<HTMLElement>(".structure-row")];
     const box = row.getBoundingClientRect();
     drag = {
       pointerId: event.pointerId,
@@ -742,7 +735,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
         // onBack stays until the pop the entry give-back causes, so the sheet swallows it.
         const row = focusAt >= 0 ? list.querySelector(`[data-index="${focusAt}"]`) : null;
         const back =
-          row?.querySelector<HTMLElement>(".structure-more, .structure-edit") ??
+          row?.querySelector<HTMLElement>(".structure-more") ??
           (trigger?.isConnected ? trigger : addButton);
         back.focus({ preventScroll: true });
         const exits = sheet
