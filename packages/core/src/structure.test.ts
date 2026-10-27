@@ -10,6 +10,7 @@ import {
   scaleStructure,
   storedStructure,
 } from "./structure.js";
+import { chooseProfile, editStructure } from "./structureChoice.js";
 
 describe("the structure schema refuses a broken episode shape", () => {
   const hello = { type: "hello" };
@@ -69,6 +70,30 @@ describe("the listener profile", () => {
     for (const profile of NAMED_PROFILES) {
       expect(StructureBlocks.safeParse(profileBlocks(profile, ["quantum"])).success).toBe(true);
     }
+  });
+
+  it("Custom, then Student, then Custom again restores the owner's own list, and an edit on Student replaces it only once confirmed", () => {
+    const own = StructureBlocks.parse([hello, design, signOff]);
+    const student = chooseProfile(
+      { profile: "custom", blocks: own },
+      "student",
+      profileBlocks("student"),
+    );
+    expect(student.blocks).toEqual(profileBlocks("student"));
+    const edited = (student.blocks ?? []).filter((block) => block.type !== "trending");
+    expect(editStructure(student, edited, false)).toBeNull();
+    expect(
+      chooseProfile(
+        chooseProfile(student, "designer", profileBlocks("designer")),
+        "custom",
+        undefined,
+      ),
+    ).toEqual({
+      profile: "custom",
+      blocks: own,
+    });
+    expect(editStructure(student, edited, true)).toEqual({ profile: "custom", blocks: edited });
+    expect(editStructure({ profile: "custom", blocks: own }, edited, false)?.blocks).toBe(edited);
   });
 
   it("sizes every story count to the episode's length, and leaves a block with no count to the engine", () => {

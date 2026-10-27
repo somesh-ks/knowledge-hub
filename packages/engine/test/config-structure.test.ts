@@ -56,7 +56,7 @@ it("putting a general topic into the structure adds the section its stories are 
   ]);
 });
 
-it("choosing a named profile keeps the owner's own list aside, and choosing Custom again runs it and keeps none apart", async () => {
+it("choosing a named profile keeps the owner's own list aside, and choosing Custom again, with no list sent, restores it and keeps none apart", async () => {
   expect(await apply({ op: "structure.set", profile: "custom", blocks: SHORT })).toBe(0);
   expect(await apply({ op: "structure.set", profile: "designer" })).toBe(0);
   expect(await apply({ op: "structure.set", profile: "student" })).toBe(0);
@@ -66,7 +66,7 @@ it("choosing a named profile keeps the owner's own list aside, and choosing Cust
     "top_picks",
     "sign_off",
   ]);
-  expect(await apply({ op: "structure.set", profile: "custom", blocks: SHORT })).toBe(0);
+  expect(await apply({ op: "structure.set", profile: "custom" })).toBe(0);
   const back = await repo.readJson<StructureFile>("config/structure.json");
   expect(names(back)).toEqual(["hello", "top_picks", "sign_off"]);
   expect(back.custom_blocks).toBeUndefined();

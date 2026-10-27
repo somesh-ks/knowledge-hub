@@ -70,6 +70,18 @@ const offers = addOffers(structure.blocks, structure.sections);
             <label class="settings-label" for="settings-autoplay">Podcast autoplay</label>
             <input class="settings-switch" id="settings-autoplay" name="autoplay" type="checkbox" role="switch" />
           </div>
+          {/* Where every episode starts (2026-10-25), in the playback card under Autoplay (owner,
+               2026-10-27). A speed chosen in the player lasts one episode. Saved on this device with
+               the player's other preferences, not through the config store. */}
+          <div class="settings-row">
+            <label class="settings-label" for="default-speed">Default playback speed</label>
+            <span class="manage-select value-select">
+              <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+                {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
+          </div>
         </div>
       </div>
 
@@ -77,19 +89,6 @@ const offers = addOffers(structure.blocks, structure.sections);
         <legend class="sr-only">Preferences</legend>
         <div class="topic">
           <div class="topic-panel">
-            {/* Where every episode starts (2026-10-25). A speed chosen in the player lasts one episode.
-                 Saved on this device with the player's other preferences, not through the config store. */}
-            <div class="rows topic-controls">
-              <div class="settings-row">
-                <label class="settings-label" for="default-speed">Default playback speed</label>
-                <span class="manage-select value-select">
-                  <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
-                    {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
-              </div>
-            </div>
             <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
               <button
                 class="segmented-nav-tab"

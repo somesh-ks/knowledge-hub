@@ -13,6 +13,7 @@
  * have been read, so the list starts from what is saved, not from the build.
  */
 import type { NamedProfile, StructureBlock, StructureProfile } from "@singularity/core";
+import { chooseProfile as choose, editStructure } from "@singularity/core/structureChoice";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import {
   addOffers,
@@ -129,20 +130,44 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   };
   const stateOf = (): string => JSON.stringify({ profile, blocks, kept });
   const savedBlocks = stateOf();
-  const recordBlocks = (): void =>
+  /** The list as last applied, put back when the owner declines to make an edit Custom. */
+  let settled = structuredClone(blocks);
+  const recordBlocks = (): void => {
+    settled = structuredClone(blocks);
     record("structure", savedBlocks, stateOf(), {
       op: "structure.set",
       profile,
       blocks: structuredClone(blocks),
       ...(profile !== "custom" && kept ? { custom_blocks: structuredClone(kept) } : {}),
     });
-  /** An edit of the list, or of its order, is the owner's own list: the select says Custom. */
-  const editedList = (): void => {
+  };
+  const choice = () => ({ profile, blocks: settled, ...(kept ? { custom_blocks: kept } : {}) });
+  /** The edited list becomes Custom, replacing any kept list (editStructure). */
+  const takeEdit = (): void => {
     profile = "custom";
     kept = null;
     profileSelect.value = "custom";
     paintCard();
     recordBlocks();
+  };
+  /**
+   * An edit of the list, or of its order, is the owner's own list: the select says Custom. On a
+   * named profile that keeps a custom list, the shared confirm dialog asks first, so the kept list
+   * is never replaced silently (owner, 2026-10-27); declining puts the profile's list back.
+   */
+  let editing = false;
+  const editedList = (): void => {
+    if (editStructure(choice(), blocks, false) !== null) {
+      takeEdit();
+      return;
+    }
+    if (editing) return;
+    editing = true;
+    ask(
+      "Make this your Custom structure?",
+      "It replaces the custom structure you kept.",
+      "Make it Custom",
+    );
   };
   const savedPrompts = structuredClone(prompts);
   const recordPrompt = (key: string): void => {
@@ -254,16 +279,31 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   // keeps the owner's own list aside; Custom puts that list back. Leaving Custom asks first, in the
   // shared confirm dialog (confirm-dialog), saying the list is kept.
   let asked: NamedProfile | null = null;
+  /** The confirm dialog, worded for what it asks: leaving Custom, or making an edit Custom. */
+  const LEDE = confirm.querySelector("#profile-confirm-lede")?.textContent?.trim() ?? "";
+  function ask(title: string, lede: string, go: string): void {
+    const set = (selector: string, text: string): void => {
+      const el = confirm?.querySelector(selector);
+      if (el) el.textContent = text;
+    };
+    set("[data-profile-confirm-title]", title);
+    set("#profile-confirm-lede", lede);
+    set("[data-profile-replace]", go);
+    if (!confirm) return;
+    confirm.returnValue = "";
+    confirm.showModal();
+  }
   const label = (id: string): string =>
     profileSelect.querySelector(`option[value="${id}"]`)?.textContent ?? id;
   const chooseProfile = (next: StructureProfile): void => {
-    if (next === "custom") {
-      if (kept) blocks = kept;
-      kept = null;
-    } else {
-      if (profile === "custom") kept = blocks;
-      blocks = data.presets[next].map(normal);
-    }
+    const preset = next === "custom" ? undefined : data.presets[next].map(normal);
+    const chosen = choose(
+      { profile, blocks, ...(kept ? { custom_blocks: kept } : {}) },
+      next,
+      preset,
+    );
+    blocks = chosen.blocks ?? blocks;
+    kept = chosen.custom_blocks ?? null;
     profile = next;
     profileSelect.value = next;
     paintCard();
@@ -282,12 +322,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     }
     asked = chosen;
     profileSelect.value = profile;
-    const title = confirm.querySelector("[data-profile-confirm-title]");
-    if (title) title.textContent = `Switch to ${label(chosen)}?`;
-    const go = confirm.querySelector("[data-profile-replace]");
-    if (go) go.textContent = `Switch to ${label(chosen)}`;
-    confirm.returnValue = "";
-    confirm.showModal();
+    ask(`Switch to ${label(chosen)}?`, LEDE, `Switch to ${label(chosen)}`);
   });
   confirm.addEventListener("click", (event) => {
     const choice = (event.target as Element).closest<HTMLButtonElement>("button");
@@ -296,6 +331,17 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   });
   dismissOnScrim(confirm, () => confirm.close("keep"));
   confirm.addEventListener("close", () => {
+    if (editing) {
+      editing = false;
+      if (confirm.returnValue === "switch") takeEdit();
+      else {
+        blocks = structuredClone(settled);
+        removals = [];
+      }
+      render();
+      autosave.changed();
+      return;
+    }
     const next = confirm.returnValue === "switch" ? asked : null;
     asked = null;
     if (next !== null) chooseProfile(next);

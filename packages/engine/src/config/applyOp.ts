@@ -1,5 +1,6 @@
 import {
   applyVotes,
+  chooseProfile,
   FETCH_VIA,
   GENERAL_TOPICS,
   isBuiltinCategory,
@@ -627,25 +628,26 @@ function setStructure(
     }
   }
   const next = clone(bundle);
-  // A named profile sent alone runs its preset; the site sends the list with the owner's topics in it.
-  const blocks = op.blocks ?? (op.profile === "custom" ? undefined : profileBlocks(op.profile));
-  // A named profile keeps the owner's own list for a return to Custom: the one sent, or the list
-  // that ran until now if it was Custom. Custom runs its list, so it keeps none apart.
+  // A named profile keeps the owner's own list for a return to Custom (chooseProfile): the one
+  // sent, or the list that ran until now if it was Custom. Custom sent with a list runs it; Custom
+  // alone puts the kept list back. The site sends a preset with the owner's topics in it.
   const was = bundle.structure;
-  const kept =
-    op.profile === "custom"
-      ? undefined
-      : (op.custom_blocks ??
-        was?.custom_blocks ??
-        ((was?.profile ?? "custom") === "custom" ? was?.blocks : undefined));
+  const own = op.custom_blocks ?? was?.custom_blocks;
+  const chosen =
+    op.profile === "custom" && op.blocks !== undefined
+      ? { profile: op.profile, blocks: op.blocks }
+      : chooseProfile(
+          {
+            profile: was?.profile ?? "custom",
+            ...(was?.blocks === undefined ? {} : { blocks: was.blocks }),
+            ...(own === undefined ? {} : { custom_blocks: own }),
+          },
+          op.profile,
+          op.blocks ?? (op.profile === "custom" ? undefined : profileBlocks(op.profile)),
+        );
+  if (chosen.blocks === undefined) throw new ConfigOpError("Custom needs its blocks.");
   const { custom_blocks: _dropped, ...rest } = was ?? {};
-  next.structure = {
-    ...rest,
-    version: 1,
-    profile: op.profile,
-    ...(blocks === undefined ? {} : { blocks }),
-    ...(kept === undefined ? {} : { custom_blocks: kept }),
-  };
+  next.structure = { ...rest, version: 1, ...chosen };
   return { next, summary: `set the structure to ${PROFILE_LABEL[op.profile]}` };
 }
 
