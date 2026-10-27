@@ -198,7 +198,10 @@ describe("color contrast", () => {
         contrastRatio(colorOf("semantic.color.on-accent-action", mode), action),
         `on-accent-action on accent-action (${mode})`,
       ).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(action, page), `accent-action on the page (${mode})`).toBeGreaterThanOrEqual(3);
+      expect(
+        contrastRatio(action, page),
+        `accent-action on the page (${mode})`,
+      ).toBeGreaterThanOrEqual(3);
     },
   );
 
