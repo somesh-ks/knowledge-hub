@@ -9,7 +9,8 @@
   --settings-control-width: 22rem;
   display: grid;
   gap: var(--space-6);
-  padding-block: var(--space-4) 0;
+  /* No top air: .settings-head sets the 24px above the first block (2026-10-27). */
+  padding-block: 0;
 }
 
 /* On a phone the selects stack under their label at full width, so "Every other day" and

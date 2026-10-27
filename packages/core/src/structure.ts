@@ -384,6 +384,11 @@ const StructureShape = z.object({
   /** The list itself: written for Custom; a named profile may leave it out and is read as its preset. */
   blocks: StructureBlocks.optional(),
   /**
+   * The owner's own list, kept while a named profile runs, so choosing Custom again restores it
+   * (owner, 2026-10-27: "keep the custom blocks so a reset restores them").
+   */
+  custom_blocks: StructureBlocks.optional(),
+  /**
    * The owner's replacement prompts (D182), by block key. Kept apart from the blocks so a reorder
    * never carries several thousand characters, and so a block removed and put back keeps its
    * prompt. A prompt whose block is not in the structure is never read.

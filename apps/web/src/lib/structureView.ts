@@ -24,11 +24,16 @@ export interface SkipLists {
 }
 
 /** Everything the page is built with, handed to the editor in one data attribute. */
+/** The list's head: how many blocks it holds ("8 sections"). */
+export const blockCount = (n: number): string => `${n} ${n === 1 ? "section" : "sections"}`;
+
 export interface StructureData {
   /** The active listener profile as built (Custom until the owner chooses one). */
   profile: StructureProfile;
   /** The one list every podcast follows, as built: the stored one, or the defaults for the owner's topics. */
   blocks: StructureBlock[];
+  /** The owner's own list while a named profile runs, restored by choosing Custom again. */
+  custom?: StructureBlock[];
   /** Each named profile's preset, with the owner's topic sections placed in it. */
   presets: Record<NamedProfile, StructureBlock[]>;
   /** The owner's prompts as built, by key. */

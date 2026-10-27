@@ -394,6 +394,26 @@
     100% center;
 }
 
+/* Preferences keeps the settings rhythm (2026-10-27): the Podcast autoplay card 24px under the
+   title (.settings-head), the tabs' card one 24px step under it, as Daily's cards stand, and a card's
+   24px inset between the tabs and the first row. Its .settings-view is the switch's script hook, so
+   it gives up the page padding it has as a page. */
+.preferences-page > .settings-view {
+  padding-block: 0;
+}
+
+.preferences-page .topic {
+  padding-block-start: 0;
+}
+
+.preferences-page .topic-panel {
+  margin-block-start: var(--space-6);
+}
+
+.preferences-page .topic-panel > .topic-view {
+  margin-block-end: var(--card-padding);
+}
+
 /* On the Preferences page a row has more air: 16px above and below, and 8px between the name and
    its slider on a phone. */
 .preferences-page .topic .topic-weight {
@@ -1491,10 +1511,8 @@
   margin-block-end: var(--space-4);
 }
 
-/* The index starts with its search (2026-10-20), a group's step under the title. */
-.topics:not(.topic-page) .source-filter {
-  margin-block-start: var(--space-6);
-}
+/* The index starts with its search (2026-10-20), a group's step under the title: .settings-head's
+   24px since 2026-10-27, the same on every settings page. */
 
 /* The field and, from 64rem, the page's add action at its end. */
 .filter-row {
@@ -1740,12 +1758,6 @@ html:has(.source-filter[data-chips]) {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-4);
-  margin-block-start: var(--space-6);
-}
-
-.structure-kinds-bar > .structure-reorder {
-  align-self: flex-end;
 }
 
 /* The profile card is the category card (.topic-card) with a 64px picture, its one line, and the
@@ -1776,39 +1788,22 @@ html:has(.source-filter[data-chips]) {
   height: var(--space-16);
 }
 
-/* The chevron's ink ends 4px in from the card's edge, where the rows' dots and pencil end
-   (--space-1, the same inset as `.structure-row .icon-btn-end`), measured 2026-10-26. */
-.structure-profile .profile-select {
-  padding: 0;
-  padding-inline-end: var(--space-1);
-  min-height: 0;
-  min-inline-size: 10rem;
-  justify-content: flex-end;
-  --value-select-pull: var(--space-2);
+/* The list's head (2026-10-27): the shared hairline, full bleed as the card's other dividers
+   (`.topic .topic-panel .topic-suggested`), then the count at the start and Reorder and Add section
+   at the end, the Sources head's row (`.topic-sources-head`). */
+.topic .structure-list-head {
+  margin-block-start: var(--space-4);
+  margin-inline: calc(var(--card-padding) * -1);
+  padding-inline: var(--card-padding);
+  padding-block: var(--space-6) 0;
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
-/* The question before a named profile replaces the owner's own list, asked in the page. */
-.structure-confirm {
+.structure-list-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
-  margin-block-start: var(--space-4);
-  padding-inline: var(--card-padding);
-}
-
-.structure-confirm > p {
-  flex: 1 1 16rem;
-  margin: 0;
-}
-
-.structure-confirm-actions {
-  display: flex;
+  justify-content: flex-end;
   gap: var(--space-2);
-}
-
-.structure-confirm-actions > .btn-secondary {
-  width: auto;
 }
 
 /* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
@@ -1958,11 +1953,7 @@ html:has(.source-filter[data-chips]) {
   }
 }
 
-.structure-add {
-  margin-block-start: var(--space-4);
-}
-
-/* Tonal, as wide as its words: the one action under the list. */
+/* Tonal, as wide as its words, beside Reorder in the list's head. */
 .structure-add > .btn-secondary {
   width: auto;
 }

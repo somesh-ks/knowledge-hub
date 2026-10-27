@@ -16,6 +16,7 @@ import type { NamedProfile, StructureBlock, StructureProfile } from "@singularit
 import { hasSaved, storeOn } from "../lib/savedKey";
 import {
   addOffers,
+  blockCount,
   blockName,
   builtinPrompt,
   insertAt,
@@ -36,7 +37,7 @@ import type { ConfigOp } from "../types/contracts";
 import { mountAutosave } from "./autosave";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { MAX_BODY_CHARS, type Pending } from "./managePageSave";
-import { sheetGestures } from "./pullDismiss";
+import { dismissOnScrim, sheetGestures } from "./pullDismiss";
 import { fieldsDirty, guardSheet } from "./sheetGuard";
 
 /** A block as the page holds it, with the defaults a stored op may leave out filled in. */
@@ -63,10 +64,11 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   pane.dataset.mounted = "";
   const data = JSON.parse(pane.dataset.structure ?? "null") as StructureData | null;
   const list = pane.querySelector<HTMLOListElement>("[data-structure-list]");
-  const addButton = pane.querySelector<HTMLButtonElement>(".structure-add > .btn-secondary");
+  const addButton = pane.querySelector<HTMLButtonElement>("[data-add-block]");
   const profileSelect = pane.querySelector<HTMLSelectElement>("#structure-profile");
-  const confirm = pane.querySelector<HTMLElement>("[data-profile-confirm]");
+  const confirm = root.querySelector<HTMLDialogElement>("dialog[data-profile-confirm]");
   const live = root.querySelector<HTMLElement>("[data-live]");
+  const count = pane.querySelector<HTMLElement>("[data-block-count]");
   if (!data || !list || !addButton || !profileSelect || !confirm) return;
 
   // What the store holds and this device saved since the build, laid over what the page was built with.
@@ -76,11 +78,16 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       : [];
   let profile: StructureProfile = data.profile;
   let blocks = data.blocks.map(normal);
+  // The owner's own list while a named profile runs, so choosing Custom again restores it.
+  let kept: StructureBlock[] | null = data.custom?.map(normal) ?? null;
   const prompts: Record<string, string> = { ...data.prompts };
   for (const op of ops) {
     if (op.op === "structure.set") {
+      if (op.profile !== "custom" && profile === "custom") kept = blocks;
       profile = op.profile;
       blocks = (op.blocks as StructureBlock[]).map(normal);
+      if (op.profile === "custom") kept = null;
+      else if (op.custom_blocks) kept = (op.custom_blocks as StructureBlock[]).map(normal);
     }
     if (op.op === "structure.prompt") {
       if (op.prompt === null) delete prompts[op.key];
@@ -120,20 +127,21 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     if (now === el.dataset.was) changes.delete(key);
     else changes.set(key, { op, el, now });
   };
-  const stateOf = (): string => JSON.stringify({ profile, blocks });
+  const stateOf = (): string => JSON.stringify({ profile, blocks, kept });
   const savedBlocks = stateOf();
   const recordBlocks = (): void =>
     record("structure", savedBlocks, stateOf(), {
       op: "structure.set",
       profile,
       blocks: structuredClone(blocks),
+      ...(profile !== "custom" && kept ? { custom_blocks: structuredClone(kept) } : {}),
     });
   /** An edit of the list, or of its order, is the owner's own list: the select says Custom. */
   const editedList = (): void => {
     profile = "custom";
+    kept = null;
     profileSelect.value = "custom";
     paintCard();
-    confirm.hidden = true;
     recordBlocks();
   };
   const savedPrompts = structuredClone(prompts);
@@ -189,6 +197,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     list.innerHTML = rowsHtml(rows, data, skip);
     const offers = addOffers(rows, data.sections);
     addButton.disabled = offers.length === 0;
+    if (count) count.textContent = blockCount(rows.length);
     if (!focus) return;
     const row = list.querySelector<HTMLElement>(`[data-index="${focus.index}"]`);
     const target =
@@ -241,17 +250,23 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     return at;
   };
 
-  // A named profile replaces the list with its preset; the owner's own list is only given up after
-  // asking, in the page (no window.confirm). Custom keeps the list as it stands.
+  // Choosing a profile applies and saves it (owner, 2026-10-27). A named profile runs its preset and
+  // keeps the owner's own list aside; Custom puts that list back. Leaving Custom asks first, in the
+  // shared confirm dialog (confirm-dialog), saying the list is kept.
   let asked: NamedProfile | null = null;
   const label = (id: string): string =>
     profileSelect.querySelector(`option[value="${id}"]`)?.textContent ?? id;
   const chooseProfile = (next: StructureProfile): void => {
+    if (next === "custom") {
+      if (kept) blocks = kept;
+      kept = null;
+    } else {
+      if (profile === "custom") kept = blocks;
+      blocks = data.presets[next].map(normal);
+    }
     profile = next;
-    if (next !== "custom") blocks = data.presets[next].map(normal);
     profileSelect.value = next;
     paintCard();
-    confirm.hidden = true;
     asked = null;
     recordBlocks();
     render();
@@ -267,18 +282,23 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     }
     asked = chosen;
     profileSelect.value = profile;
-    paintCard();
-    const text = confirm.querySelector("[data-profile-confirm-text]");
-    if (text) text.textContent = `Replace your list with the ${label(chosen)} profile?`;
-    confirm.hidden = false;
-    confirm.querySelector<HTMLElement>("[data-profile-replace]")?.focus({ preventScroll: true });
+    const title = confirm.querySelector("[data-profile-confirm-title]");
+    if (title) title.textContent = `Switch to ${label(chosen)}?`;
+    const go = confirm.querySelector("[data-profile-replace]");
+    if (go) go.textContent = `Switch to ${label(chosen)}`;
+    confirm.returnValue = "";
+    confirm.showModal();
   });
-  confirm.querySelector("[data-profile-replace]")?.addEventListener("click", () => {
-    if (asked !== null) chooseProfile(asked);
+  confirm.addEventListener("click", (event) => {
+    const choice = (event.target as Element).closest<HTMLButtonElement>("button");
+    if (choice && "profileKeep" in choice.dataset) confirm.close("keep");
+    else if (choice && "profileReplace" in choice.dataset) confirm.close("switch");
   });
-  confirm.querySelector("[data-profile-keep]")?.addEventListener("click", () => {
+  dismissOnScrim(confirm, () => confirm.close("keep"));
+  confirm.addEventListener("close", () => {
+    const next = confirm.returnValue === "switch" ? asked : null;
     asked = null;
-    confirm.hidden = true;
+    if (next !== null) chooseProfile(next);
     profileSelect.focus({ preventScroll: true });
   });
 

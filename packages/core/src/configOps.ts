@@ -190,6 +190,8 @@ export const ConfigOp = z.discriminatedUnion("op", [
       op: z.literal("structure.set"),
       profile: StructureProfile,
       blocks: StructureBlocks.optional(),
+      /** The owner's own list, kept while a named profile runs; ignored for Custom. */
+      custom_blocks: StructureBlocks.optional(),
     })
     .refine((value) => value.profile !== "custom" || value.blocks !== undefined, {
       message: "Custom needs its blocks.",

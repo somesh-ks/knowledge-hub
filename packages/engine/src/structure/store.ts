@@ -44,6 +44,8 @@ export function serializeStructure(file: StructureFile): string {
     ...(checked.profile === undefined ? {} : { profile: checked.profile }),
     // The resolved list is kept for a named profile too: it holds the owner's topic sections.
     ...(checked.blocks === undefined ? {} : { blocks: checked.blocks }),
+    // The owner's own list while a named profile runs, for a return to Custom (2026-10-27).
+    ...(checked.custom_blocks === undefined ? {} : { custom_blocks: checked.custom_blocks }),
     ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
   };
   return `${JSON.stringify(body, null, 2)}
