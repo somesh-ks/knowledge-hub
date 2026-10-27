@@ -133,7 +133,9 @@ export async function transcodeSegmentsToOpus(
     await run(opusTranscodeArgs(list, output, true));
     const bytes = await readFile(output);
     if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
-    const durations_ms = await Promise.all(names.map((name) => probe(join(dir, name))));
+    // One decode at a time: an episode has dozens of turns, and each measure is a full decode.
+    const durations_ms: number[] = [];
+    for (const name of names) durations_ms.push(await probe(join(dir, name)));
     return {
       audio: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
       durations_ms,
