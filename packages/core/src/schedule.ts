@@ -101,6 +101,8 @@ export const ScheduleFile = z
   .object({
     version: z.literal(1),
     timezone: z.string().min(1).max(100).default("Europe/Stockholm"),
+    /** False turns the daily briefing off (never dispatched, generated or published); a file without it is on. */
+    enabled: z.boolean().default(true),
     hour: z.number().int().min(0).max(23),
     cadence_days: CadenceDays,
     skip_topics: SkipTopics.default([]),
@@ -135,6 +137,7 @@ function stripUndefined<T extends object>(value: T | undefined): Partial<T> {
 export const DEFAULT_SCHEDULE: ScheduleFile = {
   version: 1,
   timezone: "Europe/Stockholm",
+  enabled: true,
   hour: 7,
   cadence_days: 2,
   skip_topics: [],
@@ -196,6 +199,7 @@ export function podcastVoices(
 /** The complete settings of the schedule file, without its version. */
 export const ScheduleSettings = z.object({
   timezone: z.string().min(1).max(100),
+  enabled: z.boolean(),
   hour: z.number().int().min(0).max(23),
   cadence_days: CadenceDays,
   skip_topics: SkipTopics,
@@ -212,6 +216,7 @@ export type ScheduleSettings = z.infer<typeof ScheduleSettings>;
 export const ScheduleChange = z.object({
   /** A stored file may hold any zone name (it reads as Stockholm); an edit sets only a listed one. */
   timezone: z.string().refine(isSupportedTimeZone, "an unsupported time zone").optional(),
+  enabled: z.boolean().optional(),
   hour: ScheduleSettings.shape.hour.optional(),
   cadence_days: CadenceDays.optional(),
   skip_topics: ScheduleSettings.shape.skip_topics.optional(),

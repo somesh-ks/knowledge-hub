@@ -151,9 +151,9 @@ test.describe("the profile pages", () => {
     await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
   });
 
-  test("Weekly is always on: it has no switch and its schedule shows", async ({ page }) => {
+  test("Weekly starts on: its switch is on and its schedule shows", async ({ page }) => {
     await open(page, "weekly");
-    await expect(page.getByRole("switch")).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Weekly briefing" })).toBeChecked();
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
   });
@@ -517,6 +517,29 @@ test.describe("saved, before the build", () => {
     await expect(page.locator("#weekly-timezone-native")).toHaveValue("America/New_York");
     await open(page, "daily");
     await expect(page.locator("#daily-timezone")).toHaveText(/^New York \(GMT-[45]\)$/);
+  });
+
+  // Q16: the switch saves live, and a reload (before the next build) still finds the briefing off
+  // with the page's other controls disabled, not hidden.
+  test("turning Daily off is saved, and a reload finds it off with the controls disabled", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page);
+    await open(page, "daily");
+    await expect(page.locator("#daily-hour")).toBeEnabled();
+    await page.locator("label[for=daily-enabled]").click();
+    await expect(page.locator("#daily-hour")).toBeDisabled();
+    await expect(page.getByText("Off: no daily briefing is made")).toBeVisible();
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", enabled: false });
+    await expect(spoken(page)).toHaveText(SAVED);
+
+    await page.reload();
+    await open(page, "daily");
+    await expect(page.locator("#daily-enabled")).not.toBeChecked();
+    await expect(page.locator("#daily-hour")).toBeDisabled();
+    await expect(page.getByText("Off: no daily briefing is made")).toBeVisible();
   });
 
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({

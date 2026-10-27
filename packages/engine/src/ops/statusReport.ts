@@ -160,6 +160,7 @@ export async function collectStatus(
     cadenceDays: schedule.cadence_days,
     weekly: schedule.weekly,
     zone,
+    dailyEnabled: schedule.enabled,
   });
   const last = lastRegularDate(lastRun, zone);
 

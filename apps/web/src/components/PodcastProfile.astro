@@ -12,6 +12,8 @@ interface Props {
   values: {
     /** The schedule's time zone, one setting both profiles show. */
     timezone: string;
+    /** Whether the podcast is made at all; off, the rest of the page is disabled and dimmed. */
+    enabled: boolean;
     hour?: number;
     day?: number;
     cadenceDays?: number;
@@ -50,6 +52,29 @@ const inScope = (ids: readonly string[]): boolean =>
 ---
 
 <div class="podcast-profile" data-profile={id}>
+  {/* The on/off switch (2026-10-26, Q16). Off, the controls below are disabled and dimmed, not
+       hidden, and a quiet line says why; the page script keeps the fieldset in step (podcastPage.ts). */}
+  <section class="podcast-section" aria-label={`${label} briefing`}>
+    <div class="rows card-group">
+      <div class="settings-row">
+        <label class="settings-label" for={`${id}-enabled`}>{label} briefing</label>
+        <input
+          class="settings-switch"
+          id={`${id}-enabled`}
+          type="checkbox"
+          role="switch"
+          data-f={`${id}.enabled`}
+          checked={values.enabled}
+          autocomplete="off"
+        />
+      </div>
+    </div>
+    <p class="settings-hint podcast-hint" data-off-note hidden={values.enabled}>
+      Off: no {label.toLowerCase()} briefing is made
+    </p>
+  </section>
+
+  <fieldset class="manage-fields podcast-body" data-body disabled={!values.enabled}>
   <section class="podcast-section" aria-labelledby={`${id}-episode-head`}>
     <h2 class="section-head" id={`${id}-episode-head`}>Episode</h2>
     <div class="rows card-group">
@@ -216,4 +241,5 @@ const inScope = (ids: readonly string[]): boolean =>
       )
     }
   </section>
+  </fieldset>
 </div>

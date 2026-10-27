@@ -40,6 +40,7 @@ const PAGES = {
     title: "Daily Podcast",
     values: {
       timezone: schedule.timezone,
+      enabled: schedule.enabled,
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
       skipTopics: schedule.skipTopics,
@@ -51,6 +52,7 @@ const PAGES = {
     title: "Weekly Podcast",
     values: {
       timezone: schedule.timezone,
+      enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
       skipTopics: schedule.weekly.skip_topics,
