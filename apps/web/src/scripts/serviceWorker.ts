@@ -1,12 +1,9 @@
 /**
  * Registers the service worker after the page has loaded, so it never competes with first paint.
  * An update installs in the background and activates only while nothing is playing, so a new
- * version can never cut off narration. The page is not reloaded either: the next navigation simply
- * uses the new worker's caches. A page from an older deploy offers the current one in a toast, on
- * load and when the app comes back to the front; only the reader's Reload loads it (checkBuild).
+ * version can never cut off narration. A page from an older deploy loads the current one by itself
+ * (applyBuild), at the first moment nothing would be lost; there is no prompt to answer (D202).
  */
-
-import { sendToast } from "./toastEvent";
 
 /** A waiting worker may take over unless audio is playing or buffering. */
 export function shouldActivateUpdate(playerState: string | undefined): boolean {
@@ -29,74 +26,121 @@ export function shouldCheckForUpdate(now: number, lastCheck: number): boolean {
   return now - lastCheck >= UPDATE_CHECK_MS;
 }
 
-/**
- * The site's build is asked for at most this often, on load and on each return to the front. It is
- * the only limit on the offer: a dismissed one comes back at the next check that finds it newer.
- */
+/** The site's build is asked for at most this often, on load, on each return to the front and while the page stays open. */
 const BUILD_CHECK_MS = 60 * 1000;
+/** While the page stays in front, the site's build is asked for this often. */
+const BUILD_POLL_MS = 10 * 60 * 1000;
+/** A newer build waiting for a safe moment is tried again this often. */
+const APPLY_RETRY_MS = 5 * 1000;
+/** The same build is not loaded twice within this time: a reload that still shows the old build must not loop. */
+export const APPLY_AGAIN_MS = 5 * 60 * 1000;
+const APPLIED_KEY = "singularity:applied-build";
 
-/** A toast is up (an Undo waiting to be sent, a saved notice): a new one would replace it. */
-function toastIsUp(): boolean {
-  try {
-    return document.querySelector(".toast:popover-open") !== null;
-  } catch {
-    // No popovers (Safari before 17): the toast is never shown there, so none is up.
-    return false;
-  }
+/** What the page is doing when a reload is considered. */
+export interface Moment {
+  playerState: string | undefined;
+  /** A dialog, sheet, menu or toast (an Undo waiting) is open. */
+  overlayOpen: boolean;
+  /** A text field has focus or holds something the reader typed. */
+  editing: boolean;
 }
 
-/**
- * Asks the site which build it serves and, when the page on screen is older and no toast is up,
- * offers the current one with a Reload. It never reloads by itself: the reader may be typing,
- * listening or holding an Undo. Without the Popover API the toast cannot show, and nothing more is
- * done: the next navigation picks up the deploy, since page loads go to the network first.
- */
-async function checkBuild(registration: ServiceWorkerRegistration): Promise<boolean> {
-  if (!navigator.onLine) return false;
-  const pageBuild =
-    document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content || undefined;
-  const response = await fetch("/build.json", { cache: "no-store" });
-  if (!response.ok) return false;
-  const siteBuild = ((await response.json()) as { build?: unknown }).build;
-  if (!pageBuild || typeof siteBuild !== "string" || !siteBuild || siteBuild === pageBuild) {
-    return true;
+/** A reload throws away the page's state, so it waits until the reader has nothing on it to lose. */
+export function canReloadNow(moment: Moment): boolean {
+  return shouldActivateUpdate(moment.playerState) && !moment.overlayOpen && !moment.editing;
+}
+
+const TEXT_FIELD =
+  'textarea, input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"])';
+
+function readMoment(): Moment {
+  let overlayOpen = false;
+  try {
+    overlayOpen = document.querySelector("dialog[open], [popover]:popover-open") !== null;
+  } catch {
+    // No popovers (Safari before 17): only an open dialog counts there.
+    overlayOpen = document.querySelector("dialog[open]") !== null;
   }
-  // A toast up (an Undo, a lost save, or this offer itself) is left alone; a return after the
-  // minute asks again.
-  if (toastIsUp()) return true;
-  sendToast(
-    {
-      message: "New version available",
-      actionLabel: "Reload",
-      // The page load goes to the network first, so the reload shows the new build under either
-      // worker; a new worker, if the deploy has one, takes over at the next idle moment.
-      onAction: () => {
-        registration.update().catch(() => {});
-        location.reload();
-      },
-    },
-    document,
-    { key: "deploy", unless: toastIsUp },
-  );
+  const focused = document.activeElement;
+  const editing =
+    (focused instanceof HTMLElement &&
+      (focused.isContentEditable || focused.matches(TEXT_FIELD))) ||
+    [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TEXT_FIELD)].some(
+      (field) => field.value !== field.defaultValue,
+    );
+  return { playerState: document.documentElement.dataset.playerState, overlayOpen, editing };
+}
+
+/** True when this build has not just been loaded for: records it, so a reload that changes nothing is not repeated. */
+export function claimApply(
+  build: string,
+  now: number,
+  store?: Pick<Storage, "getItem" | "setItem">,
+): boolean {
+  try {
+    const kept = store ?? sessionStorage;
+    const [was, at] = (kept.getItem(APPLIED_KEY) ?? "").split("@");
+    if (was === build && now - Number(at) < APPLY_AGAIN_MS) return false;
+    kept.setItem(APPLIED_KEY, `${build}@${now}`);
+  } catch {
+    // No storage: load it anyway; the build check on the new page finds nothing newer.
+  }
   return true;
 }
 
-function watchForUpdates(registration: ServiceWorkerRegistration): void {
+/**
+ * Asks the site which build it serves. `pageBuild` is the build this bundle loaded with: the head's
+ * meta is swapped by every move inside the app, so it is read once at load and passed in. Returns
+ * the newer build's name, nothing when the page is current, and undefined when the question
+ * could not be answered.
+ */
+async function newerBuild(pageBuild: string | undefined): Promise<string | null | undefined> {
+  if (!navigator.onLine) return undefined;
+  const response = await fetch("/build.json", { cache: "no-store" });
+  if (!response.ok) return undefined;
+  const siteBuild = ((await response.json()) as { build?: unknown }).build;
+  if (!pageBuild || typeof siteBuild !== "string" || !siteBuild || siteBuild === pageBuild) {
+    return null;
+  }
+  return siteBuild;
+}
+
+function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: string): void {
   activateWhenIdle(registration);
   registration.addEventListener("updatefound", () => {
     registration.installing?.addEventListener("statechange", () => activateWhenIdle(registration));
   });
+  // The newer build, once known. The page loads it at the first safe moment: page loads go to the
+  // network first, so the reload shows the new build under either worker, and a new worker, if the
+  // deploy has one, takes over at the next idle moment.
+  let newer: string | undefined;
+  let retry: ReturnType<typeof setInterval> | undefined;
+  const applyBuild = (): void => {
+    if (!newer || !navigator.onLine || !canReloadNow(readMoment())) return;
+    if (!claimApply(newer, Date.now())) return;
+    clearInterval(retry);
+    registration.update().catch(() => {});
+    location.reload();
+  };
   // Try again whenever the page is hidden, so an update that waited out a long listen still lands.
   let lastCheck = Date.now();
   let lastBuildCheck = 0;
   const askBuild = (): void => {
     if (Date.now() - lastBuildCheck < BUILD_CHECK_MS) return;
     lastBuildCheck = Date.now();
-    // A check that could not answer (offline, a failed read, another toast up) does not count
-    // against the minute: the next return asks again.
-    checkBuild(registration).then(
-      (answered) => {
-        if (!answered) lastBuildCheck = 0;
+    // A check that could not answer (offline, a failed read) does not count against the minute:
+    // the next return asks again.
+    newerBuild(pageBuild).then(
+      (answer) => {
+        if (answer === undefined) {
+          lastBuildCheck = 0;
+          return;
+        }
+        newer = answer ?? undefined;
+        if (!newer) return;
+        applyBuild();
+        // Waiting for a listen to end, a sheet to close or typing to stop.
+        retry ??= setInterval(applyBuild, APPLY_RETRY_MS);
       },
       () => {
         lastBuildCheck = 0;
@@ -104,9 +148,17 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
     );
   };
   askBuild();
+  // A page left open in front is asked now and then; a hidden one is asked when it comes back.
+  setInterval(() => {
+    if (!document.hidden) askBuild();
+  }, BUILD_POLL_MS);
+  // A move inside the app is the reader's own act: a stale bundle that is still here loads the
+  // current one as soon as the new page is on screen.
+  document.addEventListener("astro:page-load", applyBuild);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       activateWhenIdle(registration);
+      applyBuild();
       return;
     }
     askBuild();
@@ -119,13 +171,14 @@ function watchForUpdates(registration: ServiceWorkerRegistration): void {
   });
 }
 
-export function registerServiceWorker(): void {
+/** `pageBuild` is the build the page loaded with (the head meta, read before any move swaps it). */
+export function registerServiceWorker(pageBuild?: string): void {
   // Development serves unhashed modules that a cache would keep stale.
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   const register = (): void => {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
-      .then(watchForUpdates)
+      .then((registration) => watchForUpdates(registration, pageBuild))
       .catch(() => {
         // Offline support is an enhancement. Reading works without it.
       });

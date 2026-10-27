@@ -164,8 +164,8 @@ test.describe("service worker", () => {
 
   // 2026-10-21: the owner's phone kept a saved briefing's old HTML, and the old stylesheets it names,
   // after a deploy had changed both. A deploy must show on the next visit; an installed app's return
-  // to the front offers it, and never reloads by itself (it threw away a reader's typing and Undo).
-  test("shows a deploy on the next visit, and offers it without reloading when the app comes back", async ({
+  // to the front loads it by itself (D202), with no prompt, but never over a reader's typing.
+  test("shows a deploy on the next visit, and loads it by itself when the app comes back", async ({
     page,
     context,
   }) => {
@@ -197,30 +197,33 @@ test.describe("service worker", () => {
     // A reload would drop this mark with the page.
     await page.evaluate(() => {
       (window as unknown as { kept: boolean }).kept = true;
+      const field = document.createElement("textarea");
+      field.id = "draft";
+      field.value = "half a note";
+      document.body.append(field);
     });
     await ship();
-    // The offer: a status message that gains an action (a labelled button beside its icon Dismiss).
-    const status = page.getByRole("status");
-    const offer = status.getByRole("button").filter({ hasText: /\S/ });
+    const kept = () =>
+      page.evaluate(() => (window as unknown as { kept?: boolean }).kept).catch(() => undefined);
     // A return to the front, a minute past the last check, told again until the page listens
     // (it does once the worker registers).
-    const comeBack = () =>
-      expect
-        .poll(async () => {
-          await page.clock.fastForward(61_000);
-          await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-          return offer.isVisible();
-        })
-        .toBe(true);
-    await comeBack();
-    // Dismissed, it comes back on the next return while the site is still newer.
-    await status.getByRole("button", { name: "Dismiss" }).click();
-    await expect(offer).toBeHidden();
-    await comeBack();
-    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    const comeBack = async () => {
+      await page.clock.fastForward(61_000);
+      await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    };
+    // Typed text is not thrown away: the page stays, and no prompt asks for a reload.
+    for (let attempt = 0; attempt < 5; attempt += 1) await comeBack();
+    await page.clock.fastForward(30_000);
+    expect(await kept()).toBe(true);
     expect(await build()).not.toBe(deploy);
-    await offer.click();
+    await expect(
+      page.getByRole("status").getByRole("button").filter({ hasText: /\S/ }),
+    ).toHaveCount(0);
+    // Once the text is gone nothing is left to lose, and the page loads the deploy by itself.
+    await page.evaluate(() => document.getElementById("draft")?.remove());
+    await page.clock.fastForward(10_000);
     await expect.poll(() => build().catch(() => "")).toBe(deploy);
+    expect(await kept()).toBeUndefined();
   });
 
   test("serves the manifest with its icons", async ({ page, request }) => {

@@ -7,7 +7,14 @@ import {
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
-import { shouldActivateUpdate, shouldCheckForUpdate, UPDATE_CHECK_MS } from "./serviceWorker";
+import {
+  APPLY_AGAIN_MS,
+  canReloadNow,
+  claimApply,
+  shouldActivateUpdate,
+  shouldCheckForUpdate,
+  UPDATE_CHECK_MS,
+} from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
 
@@ -141,5 +148,47 @@ describe("shouldCheckForUpdate", () => {
   it("asks for a new worker at most once per interval", () => {
     expect(shouldCheckForUpdate(UPDATE_CHECK_MS - 1, 0)).toBe(false);
     expect(shouldCheckForUpdate(UPDATE_CHECK_MS, 0)).toBe(true);
+  });
+});
+
+// A deploy loads itself (D202), so the reload must never cost the reader anything: a listen, an
+// Undo, an open sheet, text typed and not yet saved.
+describe("canReloadNow", () => {
+  const idle = { playerState: "paused", overlayOpen: false, editing: false };
+
+  it("loads the new build when nothing is in use", () => {
+    expect(canReloadNow(idle)).toBe(true);
+    expect(canReloadNow({ ...idle, playerState: undefined })).toBe(true);
+  });
+
+  it("waits for each thing a reload would throw away", () => {
+    expect(canReloadNow({ ...idle, playerState: "playing" })).toBe(false);
+    expect(canReloadNow({ ...idle, playerState: "loading" })).toBe(false);
+    expect(canReloadNow({ ...idle, overlayOpen: true })).toBe(false);
+    expect(canReloadNow({ ...idle, editing: true })).toBe(false);
+  });
+});
+
+describe("claimApply", () => {
+  const memory = () => {
+    const data = new Map<string, string>();
+    return {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => void data.set(key, value),
+    };
+  };
+
+  // A reload that still shows the old build (a stale answer from the network's edge) must not loop.
+  it("loads a build once, and again only after the wait", () => {
+    const store = memory();
+    expect(claimApply("b2", 1000, store)).toBe(true);
+    expect(claimApply("b2", 2000, store)).toBe(false);
+    expect(claimApply("b2", 1000 + APPLY_AGAIN_MS, store)).toBe(true);
+  });
+
+  it("loads a build newer than the one it loaded for at once", () => {
+    const store = memory();
+    expect(claimApply("b2", 1000, store)).toBe(true);
+    expect(claimApply("b3", 2000, store)).toBe(true);
   });
 });
