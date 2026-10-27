@@ -285,7 +285,8 @@ test.describe("with the config store on", () => {
     const asked = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    await page.route("**/api/config", async (route: Route) => {
+    // Also the read a save makes after itself (`?after=`, #343), so it is answered, not a 501.
+    await page.route(/\/api\/config(\?.*)?$/, async (route: Route) => {
       if (route.request().method() !== "GET") return route.fallback();
       await asked;
       await route.fulfill({
