@@ -43,11 +43,9 @@ async function tone(dir: string, seconds: number, hz: number): Promise<Uint8Arra
   return new Uint8Array(await readFile(out));
 }
 
+/** A file's length as decoded: ffprobe's duration counts an MP3's encoder padding on ffmpeg 6. */
 async function probeSeconds(file: string): Promise<number> {
-  const { stdout } = await run("ffprobe", [
-    ...["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file],
-  ]);
-  return Number(stdout.trim());
+  return (await pcm(file)).length / SAMPLE_RATE;
 }
 
 async function pcm(file: string): Promise<Int16Array> {

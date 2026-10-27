@@ -44,6 +44,23 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
+      # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
+      # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
+      - name: ffmpeg
+        timeout-minutes: 5
+        run: |
+          # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
+          encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
+          if ! grep -q libopus <<<"$encoders"; then
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg
+            encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
+          fi
+          if ! grep -q libopus <<<"$encoders"; then
+            echo "::warning::ffmpeg has no libopus encoder; episodes fall back to MP3"
+          fi
+          ffmpeg -hide_banner -version </dev/null | sed -n 1p
+
       # Audio failures leave audio null and never block the text digest.
       - name: ${{ inputs.step_name || 'Audio' }}
         shell: bash
