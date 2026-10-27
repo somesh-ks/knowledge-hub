@@ -560,6 +560,22 @@
       },
       "usd": 0.01079,
       "estimated": true
+    },
+    {
+      "id": "2026-10-27|daily|narration|speechify|simba-3.2|owner|ecf01dbb-5dea-406e-9de4-f3cadc0d1672",
+      "at": "2026-10-27T05:57:25.889Z",
+      "run_id": "2026-10-27",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 1406
+      },
+      "usd": 0.01406
     }
   ]
 }
