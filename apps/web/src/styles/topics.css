@@ -437,6 +437,11 @@
   display: none;
 }
 
+/* The Structure list's empty state shows only with no block between the hello and the sign-off. */
+.pref-view-structure:has(.structure-list > .structure-row:not([data-frame])) .structure-empty {
+  display: none;
+}
+
 /* The Sources head: the heading at the start and Add source, an outline button, at the end. The
    heading's own padding moves to the row so the two centre on one line. */
 .topic .topic-sources-head {

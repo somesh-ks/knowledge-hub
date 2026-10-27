@@ -134,6 +134,12 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   let settled = structuredClone(blocks);
   const recordBlocks = (): void => {
     settled = structuredClone(blocks);
+    // An episode needs a block between the hello and the sign-off (structureProblems): an emptied
+    // list sends nothing, and what is saved keeps running until a block is added.
+    if (blocks.length <= 2) {
+      changes.delete("structure");
+      return;
+    }
     record("structure", savedBlocks, stateOf(), {
       op: "structure.set",
       profile,
@@ -222,7 +228,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     list.innerHTML = rowsHtml(rows, data, skip);
     const offers = addOffers(rows, data.sections);
     addButton.disabled = offers.length === 0;
-    if (count) count.textContent = blockCount(rows.length);
+    if (count) count.textContent = blockCount(rows.length - 2);
     if (!focus) return;
     const row = list.querySelector<HTMLElement>(`[data-index="${focus.index}"]`);
     const target =
@@ -259,11 +265,13 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   const remove = (index: number): void => {
     const block = blocks[index];
-    if (!block || isFrame(block) || bodyCount() <= 1) return;
+    if (!block || isFrame(block)) return;
     removals.push({ block, index });
     blocks = blocks.filter((_, at) => at !== index);
     editedList();
+    // With none left, focus goes to Add section (render's fallback), beside the empty state.
     render({ index: Math.min(index, blocks.length - 2), part: "more" });
+    if (bodyCount() === 0) say("No blocks left. Nothing is saved until you add one.");
     autosave.changed();
   };
 

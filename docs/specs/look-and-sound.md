@@ -23,7 +23,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - A topic's picture is drawn from its name and id (`packages/cover/src/topicArt.ts`).
 
 ### Empty states
-- Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96): Latest with no briefing, an empty Library, a search or filter with no result (its line follows the search box in CSS), offline and back online, 404, and a topic with no sources (compact).
+- Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96): Latest with no briefing, an empty Library, a search or filter with no result (its line follows the search box in CSS), offline and back online, 404, and a topic or a Structure list with nothing (compact).
 - The art is inline SVG in `EmptyArt.astro`, coloured by classes in `empty.css` from the theme's roles, `aria-hidden`, hidden under forced colours.
 
 ### Interface sounds

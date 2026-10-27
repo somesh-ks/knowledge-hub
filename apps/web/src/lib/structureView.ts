@@ -325,8 +325,6 @@ export function rowsHtml(
   skip: SkipLists,
 ): string {
   const last = blocks.length - 2;
-  // A structure keeps one block between the hello and the sign-off (structureProblems).
-  const alone = last <= 1;
   return blocks
     .map((block, index) => {
       const name = escapeHtml(blockName(block, data.sections));
@@ -355,7 +353,9 @@ export function rowsHtml(
         item("up", "arrowUp", "Move up", index <= 1),
         item("down", "arrowDown", "Move down", index >= last),
         item("edit", "pencilSimple", "Edit"),
-        item("remove", "trash", "Remove", alone, " hero-menu-delete"),
+        // The last one goes too: the list then shows its empty state and saves nothing until a
+        // block is added (owner, 2026-10-27).
+        item("remove", "trash", "Remove", false, " hero-menu-delete"),
         `</div></div></div></li>`,
       ].join("");
     })

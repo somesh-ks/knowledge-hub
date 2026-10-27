@@ -1550,6 +1550,36 @@ test.describe("the podcast structure", () => {
     expect(server.applied[0]).toMatchObject({ op: "structure.set" });
   });
 
+  // An episode needs a block between the hello and the sign-off, so the last one could not be
+  // removed, and an emptied Custom list had nowhere to start from (owner, 2026-10-27). Now it empties
+  // to a prompt to add one, and sends nothing the server would refuse until a block is added.
+  test("removing every block shows the empty state and sends nothing until a block is added", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const server = await routeConfigServer(page);
+    await open(page, "/settings/preferences?view=structure");
+    const list = page.getByRole("list", { name: "Structure blocks" });
+    await expect(list).toBeVisible();
+    const empty = page.getByText("No blocks yet");
+    await expect(empty).toBeHidden();
+    const more = list.getByRole("button", { name: /^More for / });
+    while ((await more.count()) > 0) {
+      await more.first().click();
+      await page.getByRole("menuitem", { name: "Remove" }).click();
+    }
+    await expect(empty).toBeVisible();
+    await page.clock.runFor(GAP_MS);
+    expect(server.applied).toEqual([]);
+
+    await page.getByRole("button", { name: "Add section" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
+    await expect(empty).toBeHidden();
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => server.applied.length).toBe(1);
+    expect(server.applied[0]).toMatchObject({ op: "structure.set", profile: "custom" });
+  });
+
   // A reorder went out as the whole list, so a move that the server's own schema refused, or one
   // lost on a reload before the build, would leave the next episode in the old order unseen.
   test("a block moved by its menu goes as one structure.set and holds after a reload; its rules and prompt go as one structure.set and one structure.prompt", async ({
