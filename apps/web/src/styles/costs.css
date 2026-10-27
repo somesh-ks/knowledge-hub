@@ -116,6 +116,9 @@
    two rows on a phone, one from 40rem. */
 .costs-stats {
   grid-area: stats;
+  /* 32px under the total with the head's gap, so the tiles read as its breakdown, not its row
+     (owner, 2026-10-27: "a bit more padding above them"). */
+  margin-block-start: var(--space-4);
   min-block-size: calc(var(--stat-tile-height) * 2 + var(--space-2));
   /* Out of the head's column sizing: the tiles fit the card's width, never widen the grid. */
   min-inline-size: 0;
