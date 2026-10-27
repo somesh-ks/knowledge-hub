@@ -1,5 +1,12 @@
 ---
-import { MIX_STOPS, PROFILE_LABEL, SOURCE_FORMATS, STRUCTURE_PROFILES } from "@singularity/core";
+import {
+  MIX_STOPS,
+  PROFILE_LABEL,
+  PROFILE_NOTE,
+  SOURCE_FORMATS,
+  STRUCTURE_PROFILES,
+} from "@singularity/core";
+import { topicArt } from "@singularity/cover";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
@@ -37,6 +44,10 @@ const rows = formats.map((format) => ({
 // follows, drawn here and again by the editor (structureEditor.ts) from the same markup once the
 // store and this device's edits are read.
 const structure = await loadStructureData(topics, sections, await loadScheduleView());
+// Each profile's picture is the category card's generated art, seeded by the profile.
+const profileArt = Object.fromEntries(
+  STRUCTURE_PROFILES.map((id) => [id, topicArt(id, PROFILE_LABEL[id])]),
+);
 const offers = addOffers(structure.blocks, structure.sections);
 ---
 
@@ -117,14 +128,25 @@ const offers = addOffers(structure.blocks, structure.sections);
                    2026-10-25). Editing a block or the order switches it to Custom. Reorder sits at
                    the row's end, in reach above the list however long it is. */}
               <div class="structure-kinds-bar">
-                <div class="rows topic-controls structure-profile">
-                  <div class="settings-row">
-                    <label class="settings-label" for="structure-profile">Profile</label>
+                {/* The profile is a card as the category page's is (topic-card): its drawn picture, one line on
+                     what it changes, and the page's own select at the end. structureEditor.ts repaints the
+                     picture and the line from the chosen option (2026-10-26). */}
+                <div class="topic-card profile-card structure-profile">
+                  {
+                    STRUCTURE_PROFILES.map((id) => (
+                      <div class="topic-card-art" data-profile-art={id} hidden={id !== structure.profile} set:html={profileArt[id]} />
+                    ))
+                  }
+                  <div class="topic-card-text">
+                    <h2 class="profile-card-title">Listener profile</h2>
+                    <p class="settings-note" data-profile-note>{PROFILE_NOTE[structure.profile]}</p>
+                  </div>
+                  <div class="topic-card-menu settings-row profile-select">
                     <span class="manage-select value-select">
-                      <select class="manage-input" id="structure-profile" autocomplete="off" data-needs-js>
+                      <select class="manage-input" id="structure-profile" aria-label="Profile" autocomplete="off" data-needs-js>
                         {
                           STRUCTURE_PROFILES.map((id) => (
-                            <option value={id} selected={id === structure.profile}>{PROFILE_LABEL[id]}</option>
+                            <option value={id} data-note={PROFILE_NOTE[id]} selected={id === structure.profile}>{PROFILE_LABEL[id]}</option>
                           ))
                         }
                       </select>

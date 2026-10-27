@@ -1748,12 +1748,42 @@ html:has(.source-filter[data-chips]) {
   align-self: flex-end;
 }
 
+/* The profile card is the category card (.topic-card) with a 64px picture, its one line, and the
+   shared settings select (.value-select) at the end, so its value and chevron end in the rows'
+   column (D187). The row's own padding is dropped: the card pads (2026-10-26). */
 .structure-profile {
   min-width: 0;
+  /* The card's surface is the pane's, so its end padding is the pane's: the select's chevron ends in
+     the rows' column. */
+  padding: 0;
 }
 
-/* The value's chevron ends under the dots' glyphs, as the link rows' values do (D187). */
-.structure-profile .value-select {
+/* One row: the category card's empty foot row would add a gap and 24px of padding under it. */
+@media (width >= 40rem) {
+  .structure-profile {
+    grid-template-areas: "art text menu";
+  }
+}
+
+.profile-card-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-leading-body);
+}
+
+.structure-profile .topic-card-art {
+  width: var(--space-16);
+  height: var(--space-16);
+}
+
+/* The chevron's ink ends 4px in from the card's edge, where the rows' dots and pencil end
+   (--space-1, the same inset as `.structure-row .icon-btn-end`), measured 2026-10-26. */
+.structure-profile .profile-select {
+  padding: 0;
+  padding-inline-end: var(--space-1);
+  min-height: 0;
+  min-inline-size: 10rem;
+  justify-content: flex-end;
   --value-select-pull: var(--space-2);
 }
 
