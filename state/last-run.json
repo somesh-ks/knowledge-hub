@@ -1,14 +1,15 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "indigo-aqua",
-    "template": "dither"
+    "palette": "lichen",
+    "template": "contour"
   },
   "last_fetch_at": "2026-10-27T04:20:39.611Z",
   "on_demand": {
-    "at": "2026-10-24T12:52:42.746Z",
-    "digest_id": "2026-10-24",
-    "items": 8,
+    "at": "2026-10-27T22:35:54.042Z",
+    "digest_id": "2026-10-27",
+    "generated_at": "2026-10-27T22:35:54.042Z",
+    "items": 4,
     "outcome": "published"
   },
   "regular": {
@@ -19,7 +20,7 @@
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-10-27T05:57:00.089Z",
+    "at": "2026-10-27T22:35:54.042Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [
       "jhey-tompkins",
@@ -29,14 +30,23 @@
       "rauno-freiberg",
       "the-batch",
       "toools-newsletter",
-      "xai-blog"
+      "xai-blog",
+      "anthropic-blog",
+      "better-stack-blog",
+      "brutalist-report",
+      "bytes",
+      "codrops",
+      "darkroom-engineering",
+      "emil-kowalski"
     ],
     "requests": {
-      "anthropic": 11,
+      "anthropic": 18,
       "exa": 14,
-      "firecrawl_listing": 7,
-      "firecrawl_scrape": 6,
-      "jev": 484
+      "firecrawl_listing": 0,
+      "firecrawl_scrape": 0,
+      "gemini": 1,
+      "jev": 608,
+      "model_fallback": 1
     }
   },
   "weekly": {
