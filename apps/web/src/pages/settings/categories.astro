@@ -111,7 +111,7 @@ const choices = topicChoicesOf(layout);
 
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>
 
-        <div class="rows topics-index" data-spots={JSON.stringify(spots)}>
+        <div class="rows topics-index" data-store-held data-spots={JSON.stringify(spots)}>
           {
             rows.map((row) => (
               <a
