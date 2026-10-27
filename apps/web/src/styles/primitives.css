@@ -763,6 +763,7 @@
  * Settings). Tonal and quiet until chosen; chosen, it takes the accent container and a check, so the
  * choice is a shape and not only a colour. Markup: <fieldset class="filter-chips"> of
  *   <label class="filter-chip"><input type="checkbox"><svg class="filter-chip-check"/><span>Design</span></label>
+ * On a sheet (`.sheet-panel`) an unticked chip is the sheet's tone with a state layer, not the container's.
  */
 
 .filter-chips {
@@ -916,6 +917,20 @@
       var(--color-accent-container),
       var(--color-on-accent-container) var(--state-hover)
     );
+  }
+}
+
+/* On a sheet. A sheet's own tone is the container's in dark and white in light, and a chip's own is
+   the container's, so an unticked chip showed as loose words in one theme or the other. Its face is
+   the sheet's tone with a state layer of the ink mixed in, which separates in both (2026-10-27,
+   owner screenshot of Regenerate). */
+.sheet-panel .filter-chip:not(:has(input:checked)) {
+  background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-hover));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sheet-panel .filter-chip:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-press));
   }
 }
 

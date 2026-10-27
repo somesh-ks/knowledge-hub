@@ -304,20 +304,6 @@ textarea.sheet-input {
   margin-block-start: var(--space-4);
 }
 
-/* A sheet's own tone is the container's in dark and white in light, and a chip's own is the
-   container's, so on a sheet an unticked chip showed as loose words in one theme or the other. Its
-   face is the sheet's tone with a state layer of the ink mixed in, which separates in both
-   (2026-10-27, owner screenshot of Regenerate). */
-.sheet-panel .filter-chip:not(:has(input:checked)) {
-  background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-hover));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .sheet-panel .filter-chip:not(:has(input:checked, input:disabled)):hover {
-    background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-press));
-  }
-}
-
 /* One filled button for the action that commits (.btn-primary), text buttons for the rest (.btn). */
 .sheet-actions {
   display: grid;
