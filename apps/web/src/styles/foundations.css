@@ -616,7 +616,7 @@
 
   /* Reduced motion: it fades where it stands, its scrim with it, and it stays in the top layer until
      its fade is done. The sheet durations drop to nothing here, which snapped the scrim and cut the
-     closing fade; the state's duration keeps its time, as for the confirm (episode-actions.css). */
+     closing fade; the state's duration keeps its time, as for the confirm (create-sheet.css). */
   @media (prefers-reduced-motion: reduce) {
     dialog.sheet,
     dialog.sheet:not([open]) {
