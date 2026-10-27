@@ -204,6 +204,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D195 | Breadcrumb | amends D129 |
 | D194 | Topic weight removed | supersedes D190 |
 | D196 | Save refreshes copy | amends D172 |
+| D197 | Strict publish time | amends D61 |
+| D198 | Opus narration, MP3 fallback | active |
+| D199 | Live content and tombstones | amends D173 |
+| D200 | `fetch_via` through the store | active |
+| D201 | No write-route auth until OAuth | amends D160 |
 
 ---
 
@@ -2066,3 +2071,40 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: a save that went through asks the store again at once (`afterOwnSave`, with its own query past the edge's second) and the device's copy takes the answer, so the device's next page, and another tab's, shows the edit. A store answer whose `written_at` is this device's own newest write (`noteOwnWrite`, #329) is never offered as "changed on another device". The copy is never overwritten by an older answer (a read that began before the save and resolves after it). The save says "Settings saved".
 - Why: D172's copy left a saved edit a write behind on the device, so another tab showed the old setting until a reload.
 - Amends: D172.
+
+## D197: a scheduled briefing is generated ahead and published at its hour
+
+- Date: 2026-10-26 (#318, #349).
+- Decision: the run for a scheduled briefing starts up to two hours before its hour, generates, and commits at `publish_at`, three minutes (`DEPLOY_LEAD_MS`) before the hour in Stockholm, so the deploy lands at 07:00. The cron's early slot keeps its own local date, and the store's timeout no longer counts the module load.
+- Why: a run that starts at the hour published a quarter of an hour late, and a slow cold start could start it at the wrong hour.
+- Revisit if: a run's work outgrows the lead.
+- Amends: D61.
+
+## D198: narration ships as Opus in MP4 with the MP3 kept as fallback
+
+- Date: 2026-10-26 (#339, #357, #361, #381).
+- Decision: a briefing's narration and an episode's turns also publish one Opus-in-MP4 file (`m4a_url`, mono 32 kbps); the player picks it per browser and falls back to the MP3 on an error or a stall. WebM is not published. A failed transcode skips the Opus copy and the MP3 plays alone. The audio, podcast and ci workflows install ffmpeg (the runner image has no libopus). An episode's turn offsets are measured by decoding, not by ffprobe's duration, which counts MP3 padding on ffmpeg 6.
+- Why: about a third of the bytes for speech at the same quality.
+- Revisit if: an iPhone fails to play the Opus file; the backfilled MP3s stay until the owner plays one there.
+
+## D199: content changes show without a deploy; deletes are tombstones
+
+- Date: 2026-10-26 (#332, #346, #359; plan section 20).
+- Decision: pages rendered on request read the content store, which a sync fills from git on every push to main that changes `Digests/` or `Podcasts/`. A delete writes a tombstone the store's readers honour before the manifest catches up. Audio and cover addresses carry a version (a hash, `?v=<generated_at>`), so a regenerated item never serves the old file, and the service worker drops a removed episode's saved page and audio.
+- Why: a create, delete or regenerate must show on the site without a redeploy.
+- Amends: D173.
+
+## D200: a source opts in to the Alexandria read through the config store
+
+- Date: 2026-10-27 (#352, #360).
+- Decision: `source.update` takes `fetch_via` (`alexandria:anthropic-com`, for a Firecrawl source on anthropic.com only, or null to clear), so the owner switches a source's read without a commit. `anthropic-blog` reads through `alexandria:anthropic-com` from 2026-10-27, as a pilot.
+- Why: a provider gives dated posts where a scrape gives a page.
+- Revisit if: the pilot's run log shows no dated posts; revert with `fetch_via: null`.
+
+## D201: the write routes stay open until OAuth
+
+- Date: 2026-10-27 (#370 closed by the owner).
+- Decision: no interim auth on the write routes. The URL is shared with friends only; any same-origin request can change config, and friends share the owner's one config. OAuth replaces this, and Analytics and Costs become admin-only then.
+- Why: an interim secret would be thrown away by OAuth and adds a login step for friends.
+- Revisit if: the URL reaches anyone beyond friends, or a config change is made that the owner did not make.
+- Amends: D160.

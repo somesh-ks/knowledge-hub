@@ -4,7 +4,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Browser tests
 
-- 2026-10-22: the CI `browser` job (both suites) hit its 30-minute limit on #213 with every test passing and about 30 left; a cancel at the limit is not a failure. It is 45 minutes now.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
@@ -16,18 +15,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
 - 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press on it in the error state reset the page's scroll to the top in about one run in five (noticeInView.spec); no script wrote the scroll and nothing took focus. The disc keeps an instant press scale. Bisect a flaky browser test with `--repeat-each 10` per variant, not single runs.
-- 2026-10-16: `page.screenshot` in the middle of a view transition can show a blank page that never reaches the screen. Record real frames with CDP `Page.startScreencast` to judge a transition.
-- 2026-10-16: headless Chromium cannot emulate `display-mode: standalone` (CDP's setEmulatedMedia ignores it). To record a standalone-only rule, set the matching `CSSMediaRule`'s `media.mediaText` to `all` from an init script.
 - 2026-10-14: headless Chromium has no mobile address bar, so the bottom-stack drift cannot be reproduced in the browser suites or in screenshots. Reason from the anchors, and ask for a recording on a phone.
 - 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list, as the trace's last frame showed; `openPicker` (`e2e/picker.ts`) presses until it stays open. When a spec fails only in company, read its trace's last frame before touching the product.
-- 2026-10-13: Playwright's headless Chromium hides scrollbars, so the New episode panel's shake (a scrollbar narrowing the column by 10px when More options opened) could not be seen; launch with `ignoreDefaultArgs: ["--hide-scrollbars"]` to measure it.
-- 2026-10-12: Playwright's `click` on a tab of a stuck strip first scrolls the strip to where it sits in the flow, moving the page it was about to measure. Click from the page (`el.click()`) in a test that measures a landing.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot. A long-running `astro dev` answered 504 until restarted with `--force`.
 - 2026-10-12: a server or build left from an earlier step makes a suite test the wrong build: Playwright reuses a listening server and skips the build (use `taskkill`; Git Bash `kill $!` leaves a Windows `node`), a stale static server serves old stubs, another session's `dist` serves the real briefing. Stop old servers, one worktree per session, a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit. An audit builds into its own directory and port: a `dist` rebuilt mid-audit read as "page has no title".
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
-- 2026-10-10: `document.documentElement.clientWidth` returned the full window width with a stable 15px scrollbar gutter in headless Chromium; measure the gutter as `innerWidth - documentElement.offsetWidth`.
 - 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe with thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: A WebGL canvas made the player suite fail on every page: headless Chromium draws on the processor (SwiftShader) and logs "GPU stall due to ReadPixels" each frame, and that suite fails on any warning. `failIfMajorPerformanceCaveat` does not refuse that context. Read the renderer's name from a scratch canvas (`WEBGL_debug_renderer_info`) and skip WebGL on a software one.
 - 2026-10-09: The site suite cannot run with `--headed` on this machine: Kaspersky injects requests that the page's CSP blocks, and the fixture fails on any console error. Check GPU-only behaviour with a standalone script that ignores those lines and nothing else.
@@ -44,6 +38,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
+- 2026-10-27: the runner image has no ffmpeg with libopus, so the Opus copy was skipped in silence and the real-ffmpeg test skipped in CI; with ffmpeg 6, ffprobe's duration counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding (#381).
 - 2026-10-25: the config store silently undid a PR's config edit (D185).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment; a foreign name came back in another prosody, heard as a pitch shift. Pin `language` and hash it.
@@ -74,6 +70,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-27: a Playwright `**/api/config` route glob ignores query strings, so `/api/config?after=` slipped past the mock: match with a regex.
 - 2026-10-24: a chart panel hidden by CSS (`display: none`, the Costs table view) still gets its ResizeObserver callback, at zero height, and drew a rect of -40. Guard a draw on the box (`clientHeight === 0`), not on `hidden`.
 
 - 2026-10-24: an audit asked for `s-maxage` and one hourly cron: `no-cache` pages and `/api/site-icon` are already edge hits, and Hobby fails `0 * * * *`, so keep the 24 (D61).
@@ -89,6 +86,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-10-27: `docsCheck` budgets (a spec's 8 KB, read-first's 40 KB) fail every PR's check job once main sits at the limit: trim in the same PR that grows a doc.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
@@ -108,6 +106,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
+- 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
+- 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
 - 2026-10-22: two sessions took D157 at once, and D159 and D176 collided later the same way. Workers add no decision; the lead numbers them and checks `main`'s Index again right before merging.
 - 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
