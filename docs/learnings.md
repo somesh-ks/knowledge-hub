@@ -39,7 +39,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 ## Engine and workflows
 
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
-- 2026-10-27: the runner image has no ffmpeg with libopus, so the Opus copy was skipped in silence and the real-ffmpeg test skipped in CI; with ffmpeg 6, ffprobe's duration counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding (#381).
+- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped in silence; ffprobe counts MP3 padding (52 ms a turn). The workflows install it, turns are measured by decoding (#381). The install then hung 5 to 19 min, `-qq` hiding the stage, and a timeout would fail an episode: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
 - 2026-10-25: the config store silently undid a PR's config edit (D185).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment; a foreign name came back in another prosody, heard as a pitch shift. Pin `language` and hash it.
@@ -70,6 +70,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-27: moving a shared rule behind `:has()` raised its specificity over podcast.css's override, cutting voice names at 70% of 70% (#378): wrap the condition in `:where()` (#386).
 - 2026-10-27: a Playwright `**/api/config` route glob ignores query strings, so `/api/config?after=` slipped past the mock: match with a regex.
 - 2026-10-24: a chart panel hidden by CSS (`display: none`, the Costs table view) still gets its ResizeObserver callback, at zero height, and drew a rect of -40. Guard a draw on the box (`clientHeight === 0`), not on `hidden`.
 
@@ -86,7 +87,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
-- 2026-10-27: `docsCheck` budgets (a spec's 8 KB, read-first's 40 KB) fail every PR's check job once main sits at the limit: trim in the same PR that grows a doc.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.

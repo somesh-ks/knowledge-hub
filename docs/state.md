@@ -21,10 +21,10 @@ Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 ## Not working or unverified
 
 - Short briefings: 2026-10-27 shipped 3 of 8 stories (grounding dropped 5, empty reserve; #373, #375). closed when: a daily airs within 10% of its length and its drop log names the cause.
-- Opus on runners (D198, #381). closed when: the next audio run logs `ffmpeg version` and its digest has `m4a_url`; then the owner plays /d/2026-10-24 on an iPhone before the backfilled MP3s go.
+- Opus on runners (D198, #381, #388). closed when: the next audio run logs `ffmpeg version` and its digest has `m4a_url`; then the owner plays /d/2026-10-24 on an iPhone before the backfilled MP3s go.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
-- Owner's eye: the bar's centring (they saw more than 1px), Catch up (#379), Preferences (#378). closed when: signed off on a phone and a laptop.
+- Owner's eye: the bar's centring (they saw more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s (criterion 3); `smokeLive.mjs --apply` never ran on production (criterion 10, owner's command); offline copies of a removed episode and Listen now after a delete unaudited. closed when: each is built or checked.
 - Settings paint the device's copy after a 300 ms grace; at once, another device's edit waits for a reload toast (#382). closed when: the owner picks.
 - `topics.spec.ts` near 823 (Add source) failed 1 of 2 cloud runs and passed alone. closed when: a trace names the race or CI runs it clean for a week.
