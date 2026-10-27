@@ -272,6 +272,48 @@ test.describe("the profile pages", () => {
 });
 
 test.describe("with the config store on", () => {
+  // The bug (owner, 2026-10-27): Podcast voice painted the build's pair, then switched to the stored
+  // one when the store answered. While the store is asked the rows must show nothing, never the build.
+  test("Podcast voice never paints the build's voices while the stored pair is on its way", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    let answer: () => void = () => {};
+    const asked = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    await page.route(/\/api\/config(\?.*)?$/, async (route: Route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await asked;
+      await route.fulfill({
+        json: {
+          status: 200,
+          built: configHash(BUILT_FILES),
+          written_at: 1,
+          ops: [{ op: "schedule.set", voice_id: "voice-nora", voice_id_b: "voice-leo" }],
+          sources: [],
+        },
+      });
+    });
+    await context.addCookies([
+      { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+    ]);
+    const asking = page.waitForRequest(
+      (request) => request.url().endsWith("/api/config") && request.method() === "GET",
+    );
+    await page.goto("/settings/voice");
+    await asking;
+    // While the store is asked the rows hold their place and show no voice: not the build's pair.
+    const rows = page.locator(".podcast-voice");
+    await expect(rows).toHaveCount(2);
+    for (const row of await rows.all()) await expect(row).toBeHidden();
+    answer();
+    for (const row of await rows.all()) await expect(row).toBeVisible();
+    await expect(page.locator(`[data-f="daily.voice"]`)).toHaveValue("voice-nora");
+    await expect(page.locator(`[data-f="daily.voice_b"]`)).toHaveValue("voice-leo");
+  });
+
   // The bug (D149): Daily waited for the store before it read its starting point, and a change made
   // by key in that wait became the starting point itself, so it was never sent.
   test("a change made by key while the store is asked is still saved", async ({

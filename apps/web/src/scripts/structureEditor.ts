@@ -204,6 +204,8 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     target.focus({ preventScroll: true });
   };
   render();
+  // The Structure pane is held until its first draw (data-store-held="editor", settings.css).
+  pane.dataset.storeApplied = "";
 
   // ------------------------------------------------------------------------------- changes
 
