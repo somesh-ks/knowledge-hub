@@ -695,6 +695,27 @@ describe("errors", () => {
     expect(harness.events.filter((event) => event.type === "error")).toHaveLength(1);
   });
 
+  it("tries the MP3 when play() rejects an unsupported Opus file before the element's error", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    harness.store.load(
+      makeDigest({
+        audio: {
+          url: "/audio/2026-10-07.mp3",
+          m4a_url: "/audio/2026-10-07.m4a",
+          duration_ms: 120_000,
+        },
+      }),
+    );
+    harness.audio.playRejection = Object.assign(new Error("no source"), {
+      name: "NotSupportedError",
+    });
+    harness.store.play();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.audio.src).toContain(".mp3");
+    expect(harness.audio.playCalls).toBe(2);
+    expect(harness.store.getState().status).not.toBe("error");
+  });
+
   it("keeps the Opus file when the listener seeks back during the advance check", async () => {
     const harness = createHarness({ canPlayType: () => "probably" });
     const m4a = "/audio/2026-10-07.m4a";

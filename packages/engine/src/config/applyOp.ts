@@ -250,9 +250,7 @@ function removeTopic(
   const topic = next.topics.topics.find((candidate) => candidate.id === op.id);
   if (!topic) throw new ConfigOpError(`There is no topic ${op.id}.`);
   if (topic.origin === "builtin") {
-    throw new ConfigOpError(
-      "Built-in topics cannot be removed. Set the weight to 0 to silence one.",
-    );
+    throw new ConfigOpError("Built-in topics cannot be removed. Turn one off to silence it.");
   }
   if (topic.origin === "app" || topic.origin === "general") {
     throw new ConfigOpError(
