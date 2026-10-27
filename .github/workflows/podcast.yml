@@ -63,6 +63,16 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
+      # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
+      # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
+      - name: ffmpeg
+        run: |
+          if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libopus; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq --no-install-recommends ffmpeg
+          fi
+          ffmpeg -hide_banner -version | head -1
+
       # One step per stage, named as the page shows them (apps/web/src/lib/runStages.ts: the status
       # route reads the running step's name). Each saves its result in $RUNNER_TEMP and in Blob, and
       # skips itself when that result exists: a rerun with "resume_from": <failed run id> in the

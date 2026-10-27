@@ -97,6 +97,16 @@ jobs:
           cache: npm
       - if: steps.diff.outputs.code == 'true'
         run: npm ci --ignore-scripts
+      # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
+      # the runner image does not carry; without it audio-episodeOpus.test.ts skips.
+      - name: ffmpeg
+        if: steps.diff.outputs.code == 'true'
+        run: |
+          if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libopus; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq --no-install-recommends ffmpeg
+          fi
+          ffmpeg -hide_banner -version | head -1
       - name: Typecheck
         if: steps.diff.outputs.code == 'true'
         run: npm run typecheck

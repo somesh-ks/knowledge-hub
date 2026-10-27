@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -81,16 +81,32 @@ export interface EpisodeOpusFile {
   durations_ms: number[];
 }
 
-/** The length of an audio file as ffprobe reads it, which is what the concat joins end to end. */
-async function probeMs(file: string): Promise<number> {
-  const { stdout } = await execFileAsync(
-    "ffprobe",
-    ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file],
-    { timeout: 30_000 },
-  );
-  const ms = Math.round(Number(stdout.trim()) * 1000);
-  if (!Number.isFinite(ms) || ms <= 0) throw new Error(`ffprobe read no length from ${file}`);
-  return ms;
+/** The rate a length is measured at: decoded samples, counted, so the count is the length. */
+const MEASURE_RATE = 48_000;
+
+/**
+ * The length of an audio file as ffmpeg decodes it, which is what the concat joins end to end. Not
+ * ffprobe's duration: on ffmpeg 6 it counts an MP3's encoder padding (about 52 ms a turn), which the
+ * decoder trims, so the offsets drifted further off the voice with every turn.
+ */
+function probeMs(file: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      "ffmpeg",
+      ["-v", "error", "-i", file, "-f", "s16le", "-ac", "1", "-ar", String(MEASURE_RATE), "-"],
+      { stdio: ["ignore", "pipe", "ignore"], timeout: 30_000 },
+    );
+    let bytes = 0;
+    child.stdout.on("data", (chunk: Buffer) => {
+      bytes += chunk.byteLength;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      const ms = Math.round((bytes / 2 / MEASURE_RATE) * 1000);
+      if (code !== 0 || ms <= 0) reject(new Error(`ffmpeg read no length from ${file}`));
+      else resolve(ms);
+    });
+  });
 }
 
 /**
