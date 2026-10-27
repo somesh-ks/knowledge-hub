@@ -386,6 +386,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Owner pass of 2026-10-25: a story's source is a link, not a button: no filled hover, an underline that draws in on hover, a colour change on press (`primitives.css .source-link`; "this shouldn't be a button with hover state, rather a link button with underline animation"). The contents rail marks the section whose title has reached a reading line a third of the way down the space under the sticky chrome, where it lit late ("highlighted with a delay"; `briefingPage.ts`). A Library cover no longer scales on press, and the card link suppresses the tap highlight ("remove the black highlight when clicked"; `library.css`, `foundations.css`). "The whole stack shrinks by width" when a menu opens was not reproduced at 390 or 1280 with real scrollbars; a `@both` guard in `libraryMenu.spec.ts` holds the stack's box to itself. A phone has no sort, and the chips (16px side padding) share a line with the view switch, scrolling at 360px (2026-10-21).
 
 ### Settings and forms
+- **Edit sheets save on Save only (2026-10-25).** The block, category and source, and Block sources sheets have one primary button; the scrim, Close, Escape, a pull and Back ask "Save changes?" (Save, Discard, Keep editing) when a field changed, by `sheetGuard.ts` over the confirm dialog (`.confirm-actions.is-stacked`).
 - **Structure.**
   - Two levels, one job per page, a breadcrumb title, autosave (D51).
   - Rows hover as rounded tiles clear of the hairlines.
