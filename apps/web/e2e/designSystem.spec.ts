@@ -226,7 +226,9 @@ test("no settings card's corner reaches 40% of its height", {
       cards.flatMap((card) => {
         const height = card.getBoundingClientRect().height;
         const radius = Number.parseFloat(getComputedStyle(card).borderTopLeftRadius);
-        return height > 0 && radius >= height * 0.4 ? [`${card.className}: ${radius}/${height}`] : [];
+        return height > 0 && radius >= height * 0.4
+          ? [`${card.className}: ${radius}/${height}`]
+          : [];
       }),
     );
     expect(over, path).toEqual([]);
