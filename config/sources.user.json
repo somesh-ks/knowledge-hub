@@ -94,6 +94,12 @@
     "ahead-of-ai": {
       "removed": true
     },
+    "anthropic-blog": {
+      "options": {
+        "via": "alexandria:anthropic-com",
+        "category": "news"
+      }
+    },
     "assistant-ui": {
       "removed": true
     },
