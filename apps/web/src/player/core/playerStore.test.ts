@@ -712,6 +712,7 @@ describe("errors", () => {
     harness.store.play();
     await vi.advanceTimersByTimeAsync(0);
     expect(harness.audio.src).toContain(".mp3");
+    expect(harness.audio.playCalls).toBe(2);
     expect(harness.store.getState().status).not.toBe("error");
   });
 
