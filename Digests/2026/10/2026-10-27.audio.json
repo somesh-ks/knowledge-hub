@@ -1,0 +1,48 @@
+{
+  "digest": "2026-10-27",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 117931,
+  "text_chars": 2117,
+  "items": [
+    {
+      "id": "95d5916fd628",
+      "section": "top",
+      "start_ms": 6391,
+      "end_ms": 33356
+    },
+    {
+      "id": "2812ff85caf0",
+      "section": "top",
+      "start_ms": 33356,
+      "end_ms": 64426
+    },
+    {
+      "id": "ff08915e80d7",
+      "section": "tech",
+      "start_ms": 64426,
+      "end_ms": 90583
+    },
+    {
+      "id": "4eb69046d508",
+      "section": "launches",
+      "start_ms": 90583,
+      "end_ms": 117931
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 6391
+    },
+    {
+      "slug": "tech",
+      "start_ms": 62720
+    },
+    {
+      "slug": "launches",
+      "start_ms": 89431
+    }
+  ]
+}
