@@ -121,6 +121,15 @@ describe("validateDigest", () => {
     ]);
   });
 
+  // The refill wrote four Tech releases stories against a limit of one and the stage failed on
+  // the whole digest (2026-10-27). The issue names the items, so the stage can cut the lowest.
+  it("names the items of a section over its allowance, and by how many", () => {
+    const { digest } = buildFixtureDigest(6, {}, "regular", 6);
+    const issue = validateDigest(digest, { linter }).issues.find((i) => i.code === "item_count");
+    expect(issue?.overAllowance).toMatchObject({ section: "tech", excess: 1 });
+    expect(issue?.overAllowance?.itemIds).toHaveLength(6);
+  });
+
   it("does not let the tech allowance raise the cap for everything else", () => {
     const { digest } = buildFixtureDigest(13, {}, "regular", 2);
     const report = validateDigest(digest, { linter });
