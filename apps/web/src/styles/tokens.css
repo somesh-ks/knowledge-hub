@@ -33,7 +33,6 @@
   --color-blue-200: oklch(83.69% 0.0733 260);
   --color-blue-300: oklch(76.61% 0.1083 259.8);
   --color-blue-400: oklch(69.74% 0.1439 259.6);
-  --color-blue-475: oklch(64.5% 0.1 260);
   --color-blue-500: oklch(63.04% 0.18 260);
   --color-blue-600: oklch(57.37% 0.1946 257.9);
   --color-blue-650: oklch(54.5% 0.1 260);
@@ -206,9 +205,9 @@
   --color-on-accent-container: var(--color-blue-900);
   --color-accent-container-high: var(--color-blue-200);
   --color-on-accent-container-high: var(--color-blue-950);
-  --color-accent-action: var(--color-blue-475);
-  --color-on-accent-action: var(--color-blue-975);
-  --color-accent-action-state: var(--color-on-accent-action);
+  --color-accent-action: var(--color-blue-600);
+  --color-on-accent-action: var(--color-white);
+  --color-accent-action-state: var(--color-blue-975);
   --color-on-accent: var(--color-white);
   --color-cover-accent: var(--color-accent);
   --color-on-cover-accent: var(--color-on-accent);
