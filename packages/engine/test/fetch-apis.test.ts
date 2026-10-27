@@ -529,3 +529,147 @@ describe("fetchFirecrawl", () => {
     ).rejects.toThrow(/unexpected Firecrawl response/);
   });
 });
+
+describe("fetchFirecrawl via Alexandria (anthropic-com)", () => {
+  const source = makeSource({
+    id: "anthropic-blog",
+    type: "firecrawl",
+    url: "https://www.anthropic.com/news",
+    feed_url: null,
+    options: { via: "alexandria:anthropic-com", category: "news" },
+  });
+  const OPEN = { from: new Date("2025-01-01T00:00:00Z"), to: new Date("2026-12-01T00:00:00Z") };
+  const keyed = { firecrawl: { apiKey: "fc-key-123456789" } };
+
+  it("sends an alexandria body and maps typed posts to items with their real dates", async () => {
+    let body: Record<string, unknown> = {};
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": (_url, init) => {
+        body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(fixture("fetch-alexandria-anthropic.json"));
+      },
+    });
+    const items = await fetchFirecrawl(source, OPEN, makeDeps(fake, keyed));
+    expect(body).toEqual({
+      alexandria: [
+        {
+          provider: "anthropic-com",
+          capability: "company-blog/list_posts",
+          options: { category: "news" },
+        },
+      ],
+    });
+    expect(fake.calls).toHaveLength(1);
+    expect(items).toHaveLength(5);
+    expect(items[0]).toMatchObject({
+      title: "Redesigning source control at Anthropic",
+      canonical_url: "https://www.anthropic.com/research/redesigning-source-control",
+    });
+    expect(items[0]?.published_at?.startsWith("2026-10-13")).toBe(true);
+    expect(items[4]?.snippet).toContain("Topics: Claude Code, policy.");
+  });
+
+  it("falls back to the page scrape when the capability fails", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": (_url, init) => {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        bodies.push(body);
+        if (body.alexandria) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: { alexandria: [{ error: { code: "upstream" } }] },
+            }),
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              markdown: fixture("fetch-firecrawl-blog-index.md"),
+              metadata: { statusCode: 200 },
+            },
+          }),
+        );
+      },
+    });
+    const items = await fetchFirecrawl(
+      source,
+      window("2026-09-01T00:00:00Z"),
+      makeDeps(fake, keyed),
+    );
+    expect(bodies.map((b) => (b.alexandria ? "alexandria" : "scrape"))).toEqual([
+      "alexandria",
+      "scrape",
+    ]);
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    [
+      "success is false although posts came back",
+      {
+        success: false,
+        data: {
+          alexandria: [
+            { data: { posts: [{ title: "T", url: "https://www.anthropic.com/news/t" }] } },
+          ],
+        },
+      },
+    ],
+    [
+      "no post maps to an item",
+      { success: true, data: { alexandria: [{ data: { posts: [{ nope: 1 }] } }] } },
+    ],
+  ])("falls back to the page scrape when %s", async (_name, reply) => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": (_url, init) => {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        bodies.push(body);
+        if (body.alexandria) return new Response(JSON.stringify(reply));
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              markdown: fixture("fetch-firecrawl-blog-index.md"),
+              metadata: { statusCode: 200 },
+            },
+          }),
+        );
+      },
+    });
+    const items = await fetchFirecrawl(
+      source,
+      window("2026-09-01T00:00:00Z"),
+      makeDeps(fake, keyed),
+    );
+    expect(bodies.map((b) => (b.alexandria ? "alexandria" : "scrape"))).toEqual([
+      "alexandria",
+      "scrape",
+    ]);
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("does not call Alexandria for a source without the flag", async () => {
+    const plain = makeSource({ ...source, options: {} });
+    const bodies: Array<Record<string, unknown>> = [];
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": (_url, init) => {
+        bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              markdown: fixture("fetch-firecrawl-blog-index.md"),
+              metadata: { statusCode: 200 },
+            },
+          }),
+        );
+      },
+    });
+    await fetchFirecrawl(plain, window("2026-09-01T00:00:00Z"), makeDeps(fake, keyed));
+    expect(bodies.some((b) => "alexandria" in b)).toBe(false);
+  });
+});

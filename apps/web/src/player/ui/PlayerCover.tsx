@@ -4,13 +4,14 @@ import type { PlayerDigestData } from "../../types/contracts";
 const MODES = ["light", "dark"] as const;
 
 /** A cover the site drew: its path comes from page JSON, so anything else is not shown. */
-const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))$/;
+const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))(\?v=\w+)?$/;
 
 /** The cover drawn for one theme: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`. */
 function themedSrc(src: string, mode: (typeof MODES)[number]): string {
-  const file = COVER_FILE.exec(src)?.[1];
+  const match = COVER_FILE.exec(src);
+  const file = match?.[1];
   // encodeURIComponent changes nothing the pattern lets through; it marks the path safe for CodeQL.
-  return file ? `/covers/${mode}/${encodeURIComponent(file)}` : "";
+  return file ? `/covers/${mode}/${encodeURIComponent(file)}${match?.[2] ?? ""}` : "";
 }
 
 /** The theme the page is showing: an explicit data-theme wins, else the system's. */

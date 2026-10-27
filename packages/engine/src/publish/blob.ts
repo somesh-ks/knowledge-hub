@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { DigestId } from "@singularity/core";
 import { del, list, put } from "@vercel/blob";
 import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
@@ -6,12 +7,11 @@ import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 export const AUDIO_PREFIX = "audio/";
 
 /**
- * Edge and browser cache lifetime. The URL is stable (one fixed key per digest), so a regenerated
- * narration must not hide behind a long cache: browsers would pair the old MP3 with the new
- * timeline. An hour keeps a listening session cheap and bounds that mismatch; Vercel propagates an
- * overwrite to its CDN within a minute.
+ * Cache lifetime of a narration. Its key carries a hash of the bytes (audioKey), so a regenerated
+ * narration is a new URL and the old one never changes: a year is safe (D173, plan section 20,
+ * criterion 6).
  */
-export const DEFAULT_CACHE_MAX_AGE_SECONDS = 60 * 60;
+export const DEFAULT_CACHE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
 
 const DAY_MS = 86_400_000;
 const DELETE_BATCH = 50;
@@ -94,14 +94,27 @@ export function createVercelBlobClient(auth: BlobAuth): BlobClient {
   };
 }
 
-/** Blob key for a digest's narration: audio/<digest id>.mp3 */
-export function audioKey(digestId: string): string {
-  return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.mp3`;
+/** The short content hash that versions a narration's key. */
+export function audioVersion(audio: Uint8Array): string {
+  return createHash("sha256").update(audio).digest("hex").slice(0, 12);
 }
 
-/** Blob key for a digest's Opus narration: audio/<digest id>.m4a */
-export function audioOpusKey(digestId: string): string {
-  return `${AUDIO_PREFIX}${DigestId.parse(digestId)}.m4a`;
+/**
+ * Blob key for a digest's narration: audio/<digest id>.<version>.mp3. Without a version it is the
+ * unversioned audio/<digest id>.mp3 that records written before versioning still point at.
+ */
+export function audioKey(digestId: string, version?: string): string {
+  const id = DigestId.parse(digestId);
+  return version === undefined ? `${AUDIO_PREFIX}${id}.mp3` : `${AUDIO_PREFIX}${id}.${version}.mp3`;
+}
+
+/**
+ * Blob key for a digest's Opus narration: audio/<digest id>.<version>.m4a, a new URL for every
+ * recording like the MP3's; without a version, the audio/<digest id>.m4a of the first Opus uploads.
+ */
+export function audioOpusKey(digestId: string, version?: string): string {
+  const id = DigestId.parse(digestId);
+  return version === undefined ? `${AUDIO_PREFIX}${id}.m4a` : `${AUDIO_PREFIX}${id}.${version}.m4a`;
 }
 
 export interface UploadAudioInput {
@@ -112,7 +125,12 @@ export interface UploadAudioInput {
 
 /** Upload one narration and return its public URL. Re-uploading the same digest overwrites. */
 export async function uploadAudio(client: BlobClient, input: UploadAudioInput): Promise<string> {
-  return putNarration(client, audioKey(input.digestId), "audio/mpeg", input);
+  return putNarration(
+    client,
+    audioKey(input.digestId, audioVersion(input.audio)),
+    "audio/mpeg",
+    input,
+  );
 }
 
 /** Upload a digest's Opus narration beside its MP3 and return its public URL. */
@@ -120,7 +138,12 @@ export async function uploadOpusAudio(
   client: BlobClient,
   input: UploadAudioInput,
 ): Promise<string> {
-  return putNarration(client, audioOpusKey(input.digestId), OPUS_CONTENT_TYPE, input);
+  return putNarration(
+    client,
+    audioOpusKey(input.digestId, audioVersion(input.audio)),
+    OPUS_CONTENT_TYPE,
+    input,
+  );
 }
 
 async function putNarration(

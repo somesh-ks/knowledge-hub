@@ -5,15 +5,15 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { SAVED_KEY } from "../lib/savedKey";
+import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
-import { noteOwnWrite } from "./configStoreRead";
+import { afterOwnSave, noteOwnWrite } from "./configStoreRead";
 import { sendToast } from "./toastEvent";
 
 export const SAVING = "Saving";
 /** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
-export const SAVED = "Saved.";
+export const SAVED = "Settings saved";
 
 /** Shown when the edit went through but the site could not change the briefing time. */
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
@@ -600,6 +600,13 @@ export async function flush(context: SaveContext): Promise<void> {
         const body = answer.body as { written_at?: unknown } | undefined;
         const stored = typeof body?.written_at === "number" ? body.written_at : undefined;
         remember(batch.ops, lastSent, heldOps(), stored);
+        // With the store on, this device's copy of the store is a write behind: bring it up to date
+        // now, so the next page, and another tab's, shows the edit and never offers it as news.
+        try {
+          if (storeOn()) afterOwnSave();
+        } catch {
+          // No document or storage: nothing keeps a copy.
+        }
       }
       try {
         context.settled?.();
