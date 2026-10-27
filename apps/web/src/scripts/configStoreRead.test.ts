@@ -125,6 +125,32 @@ describe("loadStore", () => {
     expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
   });
 
+  // The owner's report (2026-10-27): Settings took about a second to show the chosen values. A page
+  // with a kept copy waited a fixed 300 ms for a store that nearly always takes longer.
+  it("shows the device's copy at once when the store has not answered, without waiting for it", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, loadStore } = await fresh();
+    vi.stubGlobal("document", {
+      querySelector: () => ({ content: "built-here" }),
+      querySelectorAll: () => [],
+    });
+    const kept = {
+      status: 200,
+      built: "built-here",
+      written_at: 1,
+      ops: [{ op: "kept" }],
+      sources: [],
+    };
+    vi.stubGlobal("localStorage", fakeStorage({ [CACHE_KEY]: JSON.stringify(kept) }));
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => {}));
+    let shown: unknown = null;
+    void loadStore(0).then((body) => {
+      shown = body;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(shown).toMatchObject({ ops: [{ op: "kept" }] });
+  });
+
   // The bug: the owner's own save left the device's kept copy stale, so the next page view read the
   // store's answer (their own save) as "changed on another device". The revision a save produced is
   // tracked: only a write newer than it comes from another device.

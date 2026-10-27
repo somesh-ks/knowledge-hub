@@ -8,6 +8,7 @@ import { loadScheduleView } from "../lib/schedule";
 import { dailySummary, sourcesSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
 import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
+import settingsInit from "../scripts/settingsInit.js?raw";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
@@ -154,6 +155,8 @@ const THEME_LABELS: Record<ThemePreference, string> = {
             </span>
           </div>
         </div>
+        {/* Runs before the row is first drawn and puts this device's theme in the select. */}
+        <script is:inline set:html={settingsInit.trim()} />
       </section>
 
       <section>

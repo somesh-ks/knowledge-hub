@@ -6,9 +6,9 @@
  * from what is stored, not from the build.
  *
  * Loaded only when the build says the store is on (storeOn, lib/savedKey.ts). The device keeps the
- * last answer it read (D172): a store that is slow (Neon waking), down or unreachable (offline)
- * answers from that copy after a short grace, so the page shows what this device last knew rather
- * than the build, which is a run old by design. A store that answers in time, or answers later, is
+ * last answer it read (D172): a page shows that copy at once, whether the store is fast, slow (Neon
+ * waking), down or unreachable (offline), so it shows what this device last knew rather than the
+ * build, which is a run old by design. A store that answers in time, or answers later, is
  * what the next read and the copy hold; one that answers after the page is drawn, with something
  * new, is offered in a toast as a reload (D173). With no copy, an outage costs freshness, never the
  * page.
@@ -23,8 +23,14 @@ const STORE_READ_LIMIT_MS = 20_000;
 
 /** One read serves the scripts of one page view; a page opened a second later asks again. */
 const REUSE_MS = 1000;
-/** How long a page waits for the store before it shows the device's copy instead, when it has one. */
-export const CACHE_GRACE_MS = 300;
+/**
+ * How long a page waits for the store before it shows the device's copy instead, when it has one.
+ * None: the copy is the store's last answer (D172), so showing it at once is the page the store would
+ * most likely give, and waiting 300 ms for a store that takes longer (a function and Neon, nearly
+ * always) put that wait in front of every settings page (D203). A store that then answers with
+ * something else is offered as a reload.
+ */
+export const CACHE_GRACE_MS = 0;
 /** Where the device keeps the last answer: one build's edits, checked against the page on read. */
 export const CACHE_KEY = "singularity:store-read";
 

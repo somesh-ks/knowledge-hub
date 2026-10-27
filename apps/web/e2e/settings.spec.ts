@@ -52,6 +52,23 @@ test.describe("settings page", () => {
     expect(main).toMatch(/<section[^>]*data-install-hint[^>]*hidden/);
   });
 
+  // The owner's report (2026-10-27): the Settings page took about a second to show the chosen theme.
+  // The select drew nothing until the page's script ran; the stored choice is now in it before the
+  // first paint, with that script not even loaded.
+  test("shows the stored theme before the page's script has run", async ({ page }) => {
+    await page.route(/\/_astro\/settings\.astro_astro_type_script[^/]*\.js$/, (route) =>
+      route.abort(),
+    );
+    await page.addInitScript(
+      ([key]) => localStorage.setItem(key as string, JSON.stringify({ theme: "dark" })),
+      [PREFERENCES_KEY],
+    );
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).not.toHaveAttribute("data-ready", /.*/);
+    await expect(theme(page)).toHaveValue("dark");
+    await expect(theme(page)).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
+  });
+
   test("each theme choice sets the theme on the root and survives a reload", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await openSettings(page);
