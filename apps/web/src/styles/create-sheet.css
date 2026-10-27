@@ -909,11 +909,13 @@ html[data-player="open"] .run-status {
     margin-block: var(--space-2);
   }
 
-  /* Try again shares the link's place (they never show together); its words line up with the
-     message above, its state layer reaching out into the column's margin. */
+  /* Try again and Check again take Listen now's row (they never show together: a failed or lost run
+     has no episode to play), so Details keeps the link's row under them (2026-10-27: the two drew
+     on top of each other). Their words line up with the message above, the state layer reaching
+     out into the column's margin. */
   .run-retry,
   .run-check {
-    grid-area: extra;
+    grid-area: play;
     justify-self: start;
     margin-inline-start: calc(-1 * var(--space-4));
   }
