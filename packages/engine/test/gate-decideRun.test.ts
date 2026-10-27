@@ -463,6 +463,57 @@ describe("decideRun: generate ahead, publish at the scheduled hour", () => {
   });
 });
 
+describe("decideRun: a daily briefing that is switched off", () => {
+  const daily = (dailyEnabled: boolean) =>
+    decideRun({
+      now: new Date("2026-10-27T05:30:00Z"),
+      mode: "scheduled",
+      lastRun: lastWith(record("2026-10-24T06:00:00Z")),
+      force: false,
+      weekly: NO_WEEKLY,
+      hour: 7,
+      dailyEnabled,
+    });
+
+  it("is not due at its hour, so it is never generated or published", () => {
+    expect(daily(true)).toMatchObject({ due: true });
+    expect(daily(false)).toMatchObject({ due: false, runWeekly: false, publishAt: null });
+  });
+
+  it("stays off under a forced run, which bypasses the cadence only", () => {
+    const forced = decideRun({
+      now: new Date("2026-10-27T05:30:00Z"),
+      mode: "scheduled",
+      lastRun: lastWith(record("2026-10-26T06:00:00Z")),
+      force: true,
+      weekly: NO_WEEKLY,
+      hour: 7,
+      dailyEnabled: false,
+    });
+    expect(forced).toMatchObject({ due: false, publishAt: null });
+  });
+
+  it("leaves the weekly pass and an on-demand episode alone", () => {
+    const sunday = decideRun({
+      now: new Date("2026-10-25T06:30:00Z"),
+      mode: "scheduled",
+      lastRun: lastWith(),
+      force: false,
+      weekly: { enabled: true, day: 0, hour: 7 },
+      dailyEnabled: false,
+    });
+    expect(sunday.runWeekly).toBe(true);
+    const onDemand = decideRun({
+      now: new Date("2026-10-27T05:30:00Z"),
+      mode: "on-demand",
+      lastRun: lastWith(),
+      force: false,
+      dailyEnabled: false,
+    });
+    expect(onDemand.due).toBe(true);
+  });
+});
+
 describe("decideRun: the commit time on a daylight saving day", () => {
   const slot = { enabled: true, day: 0, hour: 7 };
   const at = (now: string) =>

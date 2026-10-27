@@ -216,6 +216,10 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (typeof value.timezone !== "string" || !isSupportedTimeZone(value.timezone)) return null;
     op.timezone = value.timezone;
   }
+  if (value.enabled !== undefined) {
+    if (typeof value.enabled !== "boolean") return null;
+    op.enabled = value.enabled;
+  }
   if (value.hour !== undefined) {
     const hour = hourOf(value.hour);
     if (hour === null) return null;

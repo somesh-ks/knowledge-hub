@@ -35,6 +35,7 @@ export async function decideKinds(
     weekly: schedule.weekly,
     zone: scheduleZone(schedule.timezone),
     hour: schedule.hour,
+    dailyEnabled: schedule.enabled,
   });
   const kinds: DigestKind[] = [];
   if (decision.due) kinds.push(options.mode === "on-demand" ? "on-demand" : "regular");

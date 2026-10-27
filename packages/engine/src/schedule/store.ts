@@ -57,6 +57,8 @@ export function serializeSchedule(file: ScheduleFile): string {
     {
       version: checked.version,
       timezone: checked.timezone,
+      // Written only once off, so a file from before the switch reads and writes as it did.
+      ...(checked.enabled ? {} : { enabled: false }),
       hour: checked.hour,
       cadence_days: checked.cadence_days,
       skip_topics: checked.skip_topics,

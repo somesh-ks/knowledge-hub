@@ -65,6 +65,12 @@ describe("ScheduleFile", () => {
     expect(ScheduleChange.safeParse({}).success).toBe(true);
   });
 
+  it("reads an old schedule without `enabled` as on", () => {
+    const old = { version: 1, hour: 9, cadence_days: 3 };
+    expect(ScheduleFile.parse(old).enabled).toBe(true);
+    expect(ScheduleFile.parse({ ...old, enabled: false }).enabled).toBe(false);
+  });
+
   it("fills 10 minutes into a file written before length existed, and reads past an old daily format", () => {
     const old = { version: 1, hour: 9, cadence_days: 3 };
     expect(ScheduleFile.parse(old)).toMatchObject({ ...old, length_minutes: 10 });
