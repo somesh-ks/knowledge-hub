@@ -2097,7 +2097,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 ## D200: a source opts in to the Alexandria read through the config store
 
 - Date: 2026-10-27 (#352, #360).
-- Decision: `source.update` takes `fetch_via` (a provider capability, or null to clear) for a Firecrawl source, so the owner switches a source's read without a commit. `anthropic-blog` reads through `alexandria:anthropic-com` from 2026-10-27, as a pilot.
+- Decision: `source.update` takes `fetch_via` (`alexandria:anthropic-com`, for a Firecrawl source on anthropic.com only, or null to clear), so the owner switches a source's read without a commit. `anthropic-blog` reads through `alexandria:anthropic-com` from 2026-10-27, as a pilot.
 - Why: a provider gives dated posts where a scrape gives a page.
 - Revisit if: the pilot's run log shows no dated posts; revert with `fetch_via: null`.
 
@@ -2106,4 +2106,5 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Date: 2026-10-27 (#370 closed by the owner).
 - Decision: no interim auth on the write routes. The URL is shared with friends only; any same-origin request can change config, and friends share the owner's one config. OAuth replaces this, and Analytics and Costs become admin-only then.
 - Why: an interim secret would be thrown away by OAuth and adds a login step for friends.
+- Revisit if: the URL reaches anyone beyond friends, or a config change is made that the owner did not make.
 - Amends: D160.

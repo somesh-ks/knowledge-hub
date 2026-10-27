@@ -106,7 +106,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
-- 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search. Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: `--remove` before `git worktree remove`.
+- 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
+- 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
 - 2026-10-22: two sessions took D157 at once, and D159 and D176 collided later the same way. Workers add no decision; the lead numbers them and checks `main`'s Index again right before merging.
 - 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
