@@ -478,6 +478,10 @@ async function writePass(
           chosen.selected,
           selectItems({
             ...selectArgs,
+            // The structure's story counts shape what the first selection airs; they must not
+            // empty the reserve. The 2026-10-27 daily's counts held selection to 8 stories, the
+            // same counts held the reserve to none, and a briefing grounding cut to 3 stayed 79 s.
+            plan: { ...sectionPlan, limit: () => null },
             cap: withSpares(wanted) * 2,
             total: withSpares(wanted) * 2,
           }).selected,
