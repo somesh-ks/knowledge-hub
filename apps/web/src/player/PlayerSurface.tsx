@@ -17,6 +17,7 @@ import {
   subscribePageContent,
 } from "./pageContentLoader";
 import SourceLink from "./SourceLink";
+import SpeedOffer from "./SpeedOffer";
 import Icon from "./ui/Icon";
 import PlayerCover, { PlayerCoverGlow } from "./ui/PlayerCover";
 
@@ -228,6 +229,8 @@ export default function PlayerSurface() {
         {cover}
       </div>
       <PlayerBar />
+      {/* Outside the dock: the dock is hidden when the player is expanded, and a modal in it would be too. */}
+      <SpeedOffer />
     </div>
   );
 }

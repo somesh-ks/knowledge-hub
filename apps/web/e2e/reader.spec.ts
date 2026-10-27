@@ -760,6 +760,23 @@ test.describe("a tab's jump with the app bar", () => {
     await page.mouse.wheel(0, 200);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await stripRests(page);
+    // The wheel's scroll is animated: on a slow runner it was still running when the tab's jump
+    // landed and carried the page back past it (the heading ended 135px under the strip, CI only).
+    // Click once the page has stood still for a few frames.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          let last = -1;
+          let still = 0;
+          const frame = () => {
+            still = scrollY === last ? still + 1 : 0;
+            last = scrollY;
+            if (still >= 5) resolve();
+            else requestAnimationFrame(frame);
+          };
+          requestAnimationFrame(frame);
+        }),
+    );
     // A click from the page itself: Playwright's own would first scroll the stuck strip to where it
     // sits in the flow, moving the page it is about to measure.
     await page
