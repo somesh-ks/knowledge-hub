@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { copiedFromStore, syncedWithStore } from "../store/configDocs.js";
 import { CONFIG_DOCUMENT_PATHS, SNAPSHOT_TRAILER } from "../store/configPaths.js";
 import type { ChangedPath, GitCommand } from "./guard.js";
@@ -9,6 +11,7 @@ import {
 } from "./guard.js";
 import type { GitRunner } from "./runGit.js";
 import { createGitRunner, gitOutput } from "./runGit.js";
+import { stateMergerFor } from "./stateMerge.js";
 
 export interface BotIdentity {
   name: string;
@@ -164,6 +167,7 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   if (!input.push) return { status: "committed", sha, paths };
   return pushWithRebase({
     run,
+    root: input.root,
     identity,
     remote: "origin",
     maxRetries: DEFAULT_PUSH_RETRIES,
@@ -175,6 +179,7 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
 
 interface PushInput {
   run: GitRunner;
+  root: string;
   identity: BotIdentity;
   remote: string;
   maxRetries: number;
@@ -186,22 +191,65 @@ interface PushInput {
 
 const SNAPSHOT_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 
+async function unmergedPaths(run: GitRunner): Promise<string[]> {
+  const unmerged = await run(["diff", "--name-only", "--diff-filter=U"]);
+  return unmerged.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/** One side of a conflicted file from the index: 1 the ancestor, 2 the remote's, 3 this run's. */
+async function indexVersion(
+  run: GitRunner,
+  stage: 1 | 2 | 3,
+  path: string,
+): Promise<string | null> {
+  const shown = await run(["show", `:${stage}:${path}`]);
+  return shown.code === 0 ? shown.stdout : null;
+}
+
 /**
- * A rebase that stopped only on config files this run copied from the store: those files take what
- * the branch already holds (a `learn` push, say), and the rebase goes on. The store, not this copy,
- * is what the next run reads, so the snapshot loses nothing that matters. True when the rebase ended.
+ * Resolve what a rebase stopped on, when every conflicted file has a safe answer, and let it go on.
+ * Config files this run copied from the store take what the branch already holds (a `learn` push,
+ * say): the store, not this copy, is what the next run reads, so the snapshot loses nothing that
+ * matters. State files two workflows both append to (the cost ledger, the stage timings, the
+ * Speechify counter) are merged, so neither run's entries are lost (stateMerge.ts). Anything else
+ * stands as a conflict. True when the rebase ended.
  */
-async function keepUpstreamConfig(run: GitRunner, identity: BotIdentity): Promise<boolean> {
+async function resolveRebaseConflicts(
+  run: GitRunner,
+  root: string,
+  identity: BotIdentity,
+  snapshot: boolean,
+): Promise<boolean> {
   for (let step = 0; step < 4; step++) {
-    const unmerged = await run(["diff", "--name-only", "--diff-filter=U"]);
-    const conflicts = unmerged.stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (conflicts.length === 0 || !conflicts.every((path) => SNAPSHOT_PATHS.has(path)))
-      return false;
+    const conflicts = await unmergedPaths(run);
+    if (conflicts.length === 0) return false;
+    const upstreamConfig = snapshot ? conflicts.filter((path) => SNAPSHOT_PATHS.has(path)) : [];
+    const rest = conflicts.filter((path) => !upstreamConfig.includes(path));
+    const merged = new Map<string, string>();
+    for (const path of rest) {
+      const merge = stateMergerFor(path);
+      if (merge === undefined) return false;
+      const [base, upstream, mine] = await Promise.all([
+        indexVersion(run, 1, path),
+        indexVersion(run, 2, path),
+        indexVersion(run, 3, path),
+      ]);
+      // A side that deleted the file has nothing to merge into: leave that to a person.
+      if (upstream === null || mine === null) return false;
+      const text = merge({ base, upstream, mine });
+      if (text === null) return false;
+      merged.set(path, text);
+    }
     // In a rebase "ours" is the branch being rebased onto: the remote's copy.
-    if ((await run(["checkout", "--ours", "--", ...conflicts])).code !== 0) return false;
+    if (
+      upstreamConfig.length > 0 &&
+      (await run(["checkout", "--ours", "--", ...upstreamConfig])).code !== 0
+    )
+      return false;
+    for (const [path, text] of merged) await writeFile(join(root, path), text, "utf8");
     if ((await run(["add", "--", ...conflicts])).code !== 0) return false;
     const next = await run([
       ...identityFlags(identity),
@@ -261,7 +309,10 @@ async function pushWithRebase(input: PushInput): Promise<CommitOutcome> {
       remote,
       branch,
     ]);
-    if (pulled.code !== 0 && input.snapshot && (await keepUpstreamConfig(run, input.identity))) {
+    if (
+      pulled.code !== 0 &&
+      (await resolveRebaseConflicts(run, input.root, input.identity, input.snapshot))
+    ) {
       sha = (await gitOutput(run, ["rev-parse", "HEAD"])).trim();
       continue;
     }

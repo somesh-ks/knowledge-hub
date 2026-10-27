@@ -429,38 +429,136 @@ describe("commitAndPush: pushing", () => {
   });
 
   it("reports a conflicting state file, aborts the rebase and leaves the remote alone", async () => {
-    await put(
-      pair.b,
-      "state/usage.json",
-      '{ "version": 1, "speechify": { "month": "2026-10", "characters": 111 } }\n',
-    );
-    await commitAll(pair.b, "chore: other writer's usage");
+    await put(pair.b, "state/seen.json", '{ "version": 1, "items": { "b": "2026-10-07" } }\n');
+    await commitAll(pair.b, "chore: other writer's seen list");
     git(pair.b, "push", "-q", "origin", "main");
     const remoteAfterB = remoteHead();
 
-    await put(
-      pair.a,
-      "state/usage.json",
-      '{ "version": 1, "speechify": { "month": "2026-10", "characters": 999 } }\n',
-    );
+    await put(pair.a, "state/seen.json", '{ "version": 1, "items": { "a": "2026-10-07" } }\n');
     const outcome = await commitAndPush({
       root: pair.a,
-      message: "chore(audio): record speechify usage",
-      command: "publish",
+      message: MESSAGE,
+      command: "run",
       push: true,
     });
 
     expect(outcome).toMatchObject({
       status: "push_failed",
       reason: "rebase_conflict",
-      conflicts: ["state/usage.json"],
+      conflicts: ["state/seen.json"],
       retries: 0,
     });
     expect(remoteHead()).toBe(remoteAfterB);
     expect(await exists(join(pair.a, ".git", "rebase-merge"))).toBe(false);
     expect(await exists(join(pair.a, ".git", "rebase-apply"))).toBe(false);
-    expect(git(pair.a, "log", "-1", "--format=%s")).toBe("chore(audio): record speechify usage");
+    expect(git(pair.a, "log", "-1", "--format=%s")).toBe(MESSAGE);
     expect(git(pair.a, "status", "--porcelain")).toBe("");
+  });
+
+  // The bug (2026-10-27): a regenerated briefing and a Catch up episode each added cost records to
+  // the same month's ledger within a second; the episode's push died with rebase_conflict and the
+  // episode, already written, was lost. Both runs' records must land, whichever pushed first.
+  describe("state files two workflows append to", () => {
+    const record = (id: string, at: string): Record<string, unknown> => ({
+      id,
+      at,
+      run_id: id,
+      kind: "daily",
+      timezone: "Europe/Stockholm",
+      user: "owner",
+      scope: "shared",
+      stage: "write",
+      provider: "anthropic",
+      product: "claude-sonnet-5-5",
+      units: { input_tokens: 1 },
+      usd: 0.01,
+    });
+    const ledger = (...records: Record<string, unknown>[]): string =>
+      `${JSON.stringify({ version: 1, records }, null, 2)}\n`;
+    const idsOnRemote = (): string[] =>
+      (
+        JSON.parse(git(pair.remote, "show", "refs/heads/main:state/costs-2026-10.json")) as {
+          records: { id: string }[];
+        }
+      ).records.map((r) => r.id);
+
+    it("keeps both runs' cost records when each added the ledger", async () => {
+      await put(
+        pair.b,
+        "state/costs-2026-10.json",
+        ledger(record("digest", "2026-10-27T22:35:55Z")),
+      );
+      await commitAll(pair.b, "chore(digest): replace 2026-10-27");
+      git(pair.b, "push", "-q", "origin", "main");
+
+      await put(
+        pair.a,
+        "state/costs-2026-10.json",
+        ledger(record("episode", "2026-10-27T22:35:56Z")),
+      );
+      const outcome = await commitAndPush({
+        root: pair.a,
+        message: "feat(podcast): add ep-20261027-2333",
+        command: "podcast",
+        push: true,
+      });
+
+      expect(outcome.status).toBe("pushed");
+      expect(idsOnRemote()).toEqual(["digest", "episode"]);
+      expect(git(pair.a, "status", "--porcelain")).toBe("");
+    });
+
+    it("keeps both runs' records when each appended to an existing ledger", async () => {
+      await put(pair.a, "state/costs-2026-10.json", ledger(record("old", "2026-10-26T05:00:00Z")));
+      await commitAll(pair.a, "chore(digest): 2026-10-26");
+      git(pair.a, "push", "-q", "origin", "main");
+      git(pair.b, "pull", "-q", "--ff-only", "origin", "main");
+
+      await put(
+        pair.b,
+        "state/costs-2026-10.json",
+        ledger(record("old", "2026-10-26T05:00:00Z"), record("digest", "2026-10-27T22:35:55Z")),
+      );
+      await commitAll(pair.b, "chore(audio): add narration for 2026-10-27");
+      git(pair.b, "push", "-q", "origin", "main");
+
+      await put(
+        pair.a,
+        "state/costs-2026-10.json",
+        ledger(record("old", "2026-10-26T05:00:00Z"), record("episode", "2026-10-27T22:35:56Z")),
+      );
+      const outcome = await commitAndPush({
+        root: pair.a,
+        message: "feat(podcast): add ep-20261027-2333",
+        command: "podcast",
+        push: true,
+      });
+
+      expect(outcome.status).toBe("pushed");
+      expect(idsOnRemote()).toEqual(["old", "digest", "episode"]);
+    });
+
+    it("adds both runs' Speechify characters", async () => {
+      const usage = (characters: number): string =>
+        `${JSON.stringify({ version: 1, speechify: { month: "2026-10", characters } }, null, 2)}\n`;
+      await put(pair.b, "state/usage.json", usage(111));
+      await commitAll(pair.b, "chore(audio): record speechify usage");
+      git(pair.b, "push", "-q", "origin", "main");
+
+      await put(pair.a, "state/usage.json", usage(999));
+      const outcome = await commitAndPush({
+        root: pair.a,
+        message: "chore(audio): record speechify usage",
+        command: "publish",
+        push: true,
+      });
+
+      expect(outcome.status).toBe("pushed");
+      expect(
+        JSON.parse(git(pair.remote, "show", "refs/heads/main:state/usage.json")).speechify
+          .characters,
+      ).toBe(111 + 999);
+    });
   });
 
   // The bug (D149, review round 2): a run that copied the stored config at its gate committed it as
@@ -491,30 +589,22 @@ describe("commitAndPush: pushing", () => {
   });
 
   it("says so when a conflicted rebase cannot be aborted", async () => {
-    await put(
-      pair.b,
-      "state/usage.json",
-      '{ "version": 1, "speechify": { "month": "2026-10", "characters": 5 } }\n',
-    );
-    await commitAll(pair.b, "chore: other usage");
+    await put(pair.b, "state/seen.json", '{ "version": 1, "items": { "b": "2026-10-07" } }\n');
+    await commitAll(pair.b, "chore: other seen list");
     git(pair.b, "push", "-q", "origin", "main");
-    await put(
-      pair.a,
-      "state/usage.json",
-      '{ "version": 1, "speechify": { "month": "2026-10", "characters": 6 } }\n',
-    );
+    await put(pair.a, "state/seen.json", '{ "version": 1, "items": { "a": "2026-10-07" } }\n');
     const stuck = { code: 1, stdout: "", stderr: "error: could not read the index" };
     const spy = spyRunner(pair.a, (args) => (args.includes("--abort") ? stuck : undefined));
     const outcome = await commitAndPush({
       root: pair.a,
-      message: "chore(audio): record speechify usage",
-      command: "publish",
+      message: MESSAGE,
+      command: "run",
       push: true,
       git: spy.run,
     });
     expect(outcome).toMatchObject({ status: "push_failed", reason: "error" });
     expect(outcome.status === "push_failed" && outcome.detail).toContain("left mid-rebase");
-    expect(outcome.status === "push_failed" && outcome.conflicts).toEqual(["state/usage.json"]);
+    expect(outcome.status === "push_failed" && outcome.conflicts).toEqual(["state/seen.json"]);
   });
 
   it("treats 'no rebase in progress' as a clean abort", async () => {
