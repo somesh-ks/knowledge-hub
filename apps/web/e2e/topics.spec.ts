@@ -56,7 +56,7 @@ async function setup(
   await page.route("**/api/topic-emoji**", (route: Route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: '{"emoji":"🎨"}' }),
   );
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
     await hold;

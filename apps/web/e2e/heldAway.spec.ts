@@ -10,7 +10,7 @@ import { expect, test } from "./fixtures";
 /** Answers /api/config in order, then 202. */
 async function mockConfig(page: Page, answers: number[]): Promise<unknown[]> {
   const sent: unknown[] = [];
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON());
     const status = answers.shift() ?? 202;
     await route.fulfill({
