@@ -18,7 +18,7 @@ interface Sent {
 /** Answers /api/config in order (a status, or "abort" for a connection lost), then 202. */
 async function mockConfig(page: Page, answers: Array<number | "abort">) {
   const sent: Sent[] = [];
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? 202;
     if (answer === "abort") return route.abort("internetdisconnected");
