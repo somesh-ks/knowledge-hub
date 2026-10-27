@@ -184,17 +184,14 @@ export const ConfigOp = z.discriminatedUnion("op", [
       { message: "set at least one scope" },
     ),
   // The one structure every podcast follows (owner, 2026-10-25): a named profile alone, or Custom
-  // with its whole list of blocks.
-  z
-    .object({
-      op: z.literal("structure.set"),
-      profile: StructureProfile,
-      blocks: StructureBlocks.optional(),
-    })
-    .refine((value) => value.profile !== "custom" || value.blocks !== undefined, {
-      message: "Custom needs its blocks.",
-      path: ["blocks"],
-    }),
+  // with its whole list of blocks, or Custom alone to put back the owner's kept list (2026-10-27).
+  z.object({
+    op: z.literal("structure.set"),
+    profile: StructureProfile,
+    blocks: StructureBlocks.optional(),
+    /** The owner's own list, kept while a named profile runs; ignored for Custom. */
+    custom_blocks: StructureBlocks.optional(),
+  }),
   // One block's prompt (D182), apart from structure.set so a reorder never carries prompts and a
   // prompt of six thousand characters fits one request. null puts back the built-in prompt.
   z.object({

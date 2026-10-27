@@ -9,8 +9,9 @@
 /* The Library's field and the Add button, set where a row's tile is (2026-10-25): one card-inset in
    from the list card's edges, as .card-group > .row-action is (primitives.css). The glyph and the
    Block label start and end where the rows' words do, the card's padding in (2026-10-22). */
+/* No top air: .settings-head sets the 24px above the field, as on every settings page (2026-10-27). */
 .blocked-add {
-  padding-block-start: var(--space-6);
+  padding-block-start: 0;
 }
 
 .blocked-add .filter-row {

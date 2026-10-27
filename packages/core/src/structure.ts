@@ -384,6 +384,11 @@ const StructureShape = z.object({
   /** The list itself: written for Custom; a named profile may leave it out and is read as its preset. */
   blocks: StructureBlocks.optional(),
   /**
+   * The owner's own list, kept while a named profile runs, so choosing Custom again restores it
+   * (owner, 2026-10-27: "keep the custom blocks so a reset restores them").
+   */
+  custom_blocks: StructureBlocks.optional(),
+  /**
    * The owner's replacement prompts (D182), by block key. Kept apart from the blocks so a reorder
    * never carries several thousand characters, and so a block removed and put back keeps its
    * prompt. A prompt whose block is not in the structure is never read.
@@ -535,9 +540,22 @@ export function withSectionBlock(
 
 /** Drop a removed topic's section from the stored list; a list left with no body keeps it. */
 export function withoutSection(file: StructureFile, section: string): StructureFile {
-  if (file.blocks === undefined) return file;
-  const next = file.blocks.filter((block) => block.type !== "section" || block.id !== section);
-  return structureProblems(next).length === 0 ? { ...file, blocks: next } : file;
+  // The kept Custom list too: choosing Custom again must not bring back a section that is gone.
+  const without = (blocks: StructureFile["blocks"]): StructureFile["blocks"] | null => {
+    if (blocks === undefined) return undefined;
+    const next = blocks.filter((block) => block.type !== "section" || block.id !== section);
+    return structureProblems(next).length === 0 ? next : null;
+  };
+  // The running list keeps the section when it is its last (a list needs one); a kept list that
+  // would be left with none is dropped, so Custom starts from the running list instead.
+  const blocks = without(file.blocks) ?? file.blocks;
+  const custom_blocks = without(file.custom_blocks);
+  const { custom_blocks: _kept, ...rest } = file;
+  return {
+    ...rest,
+    ...(blocks === undefined ? {} : { blocks }),
+    ...(custom_blocks ? { custom_blocks } : {}),
+  };
 }
 
 /** The owner's prompt for a block, or null for the built-in one. */

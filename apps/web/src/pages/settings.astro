@@ -102,7 +102,13 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               >
                 <span class="settings-text">
                   <span class="settings-label">{row.label}</span>
-                  {row.hint !== undefined && <span class="settings-hint" data-hint>{row.hint}</span>}
+                  {/* A line the store can change waits for it, so the build's words never paint first
+                       (settings.css, held for the store). */}
+                  {row.hint !== undefined && (
+                    <span class="settings-hint" data-hint data-store-held={"summary" in row.data ? "" : undefined}>
+                      {row.hint}
+                    </span>
+                  )}
                 </span>
                 <Icon name="chevronRight" />
               </a>

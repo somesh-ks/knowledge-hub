@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "profile": "custom",
+  "profile": "designer",
   "blocks": [
     {
       "type": "hello"

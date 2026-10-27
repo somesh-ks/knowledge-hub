@@ -98,6 +98,7 @@ export async function loadStructureData(
   return {
     profile: file?.profile ?? "custom",
     blocks: storedStructure(file) ?? defaultStructure("daily", extra),
+    ...(file?.custom_blocks ? { custom: file.custom_blocks } : {}),
     presets,
     prompts: { ...(file?.prompts ?? {}) },
     texts,

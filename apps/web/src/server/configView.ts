@@ -257,14 +257,21 @@ function blockedOps(built: string[], stored: string[]): ConfigOp[] {
 }
 
 /** The one structure every podcast follows (D170): the profile and its stored blocks, or null on the defaults. */
-export type StructureView = { profile: StructureProfile; blocks: StructureBlock[] } | null;
+export type StructureView = {
+  profile: StructureProfile;
+  blocks: StructureBlock[];
+  /** The owner's own list, kept while a named profile runs. */
+  custom_blocks?: StructureBlock[];
+} | null;
 
 /** The structure file as its profile and blocks; a missing or malformed file is the defaults. */
 export function structureViewOf(json: unknown): StructureView {
   const parsed = StructureFile.safeParse(json);
   const file = parsed.success ? parsed.data : null;
   const blocks = storedStructure(file);
-  return blocks === null ? null : { profile: file?.profile ?? "custom", blocks };
+  if (blocks === null) return null;
+  const kept = file?.custom_blocks;
+  return { profile: file?.profile ?? "custom", blocks, ...(kept ? { custom_blocks: kept } : {}) };
 }
 
 /** The owner's block prompts (D182) by key; a missing or malformed file has none. */
@@ -290,9 +297,22 @@ function promptOps(built: PromptView, stored: PromptView): ConfigOp[] {
  */
 function structureOps(built: StructureView, stored: StructureView): ConfigOp[] {
   if (stored === null) return [];
-  if (built !== null && built.profile === stored.profile && same(built.blocks, stored.blocks))
+  if (
+    built !== null &&
+    built.profile === stored.profile &&
+    same(built.blocks, stored.blocks) &&
+    same(built.custom_blocks ?? [], stored.custom_blocks ?? [])
+  )
     return [];
-  return [{ op: "structure.set", profile: stored.profile, blocks: stored.blocks }];
+  const kept = stored.custom_blocks;
+  return [
+    {
+      op: "structure.set",
+      profile: stored.profile,
+      blocks: stored.blocks,
+      ...(kept ? { custom_blocks: kept } : {}),
+    },
+  ];
 }
 
 interface ConfigView {

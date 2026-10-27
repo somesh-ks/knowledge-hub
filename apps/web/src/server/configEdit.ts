@@ -447,7 +447,16 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const profile = StructureProfile.safeParse(value.profile);
       const blocks = StructureBlocks.safeParse(value.blocks);
       if (!profile.success || !blocks.success) return null;
-      return { op: "structure.set", profile: profile.data, blocks: blocks.data };
+      if (value.custom_blocks === undefined)
+        return { op: "structure.set", profile: profile.data, blocks: blocks.data };
+      const kept = StructureBlocks.safeParse(value.custom_blocks);
+      if (!kept.success) return null;
+      return {
+        op: "structure.set",
+        profile: profile.data,
+        blocks: blocks.data,
+        custom_blocks: kept.data,
+      };
     }
     case "structure.prompt": {
       // Core's schema (D182) bounds the key and the length.
