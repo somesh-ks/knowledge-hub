@@ -493,6 +493,61 @@ describe("grounding and validation", () => {
     expect((await readDigest(repo.root, DIGEST_PATH)).items.length).toBeGreaterThanOrEqual(3);
   });
 
+  // The 2026-10-27 daily (owner's structure, five minutes): section counts held selection to 8
+  // stories, grounding cut 5, and the reserve was empty because it was chosen under the same
+  // counts, so nothing replaced them and 3 stories aired (79 s).
+  it("refills from spares the structure's section counts would not have chosen", LONG, async () => {
+    const section = (id: string, max: number) => ({
+      type: "section",
+      id,
+      depth: "brief",
+      max_stories: max,
+    });
+    await seed(repo.root, {
+      "config/schedule.json": json({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        length_minutes: 5,
+        skip_topics: [],
+        weekly: { skip_topics: [] },
+      }),
+      "config/structure.json": json({
+        version: 1,
+        profile: "custom",
+        blocks: [
+          { type: "hello" },
+          { type: "top_picks", stories: 3, depth: "deep" },
+          section("design", 3),
+          section("ui-craft", 3),
+          section("ai", 2),
+          section("tech", 2),
+          { type: "trending", stories: 2 },
+          section("software", 2),
+          { type: "release_news", stories: 1 },
+          { type: "sign_off" },
+        ],
+      }),
+      "config/sources.json": json({
+        ...sourcesFile(),
+        sources: sourcesFile().sources.map((entry) => ({
+          ...entry,
+          options: { pool_cap: "20" },
+        })),
+      }),
+    });
+    const { writer, startRefill } = writerKeeping(3);
+    const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
+    const stages = await stagedWithRefill(world, () => startRefill("ok"));
+    const [pass] = (stages.write as { passes: Array<{ selected: number }> }).passes;
+    // Selection stays under the structure's counts, and grounding cuts all but three.
+    expect(pass?.selected).toBeLessThan(12);
+    const report = await validateReport();
+    expect(report.grounding_dropped).toBeGreaterThanOrEqual(3);
+    expect(report.refill_written).toBeGreaterThan(0);
+    expect((await readDigest(repo.root, DIGEST_PATH)).items.length).toBeGreaterThanOrEqual(10);
+  });
+
   it(
     "publishes what validates when the replacements are cut too, without a second round",
     LONG,

@@ -25,6 +25,9 @@ import { writeFinalists } from "./writeStage.js";
 
 type SelectionItem = Selection["items"][number];
 
+/** A briefing narrating under this share of the owner's length after the refill is flagged. */
+const UNDER_LENGTH_SHARE = 0.7;
+
 /** The stories a pass airs after validation and the length trim, and their narration's length. */
 interface Fitted {
   survivors: GroundedItem[];
@@ -306,6 +309,20 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     }
     const { survivors, spare } = fitted;
     for (const g of survivors) takenElsewhere.add(g.item.id);
+    // A briefing far under the owner's length is not a quiet day: say so where the run log, the
+    // report and the step summary show it (the 2026-10-27 daily aired 79 s of five minutes unnoticed).
+    const underLength =
+      lengthChars !== undefined && fitted.chars < lengthChars * UNDER_LENGTH_SHARE
+        ? { aired_chars: fitted.chars, length_chars: lengthChars }
+        : undefined;
+    if (underLength) {
+      deps.log.warn("The briefing airs far under the owner's length", {
+        pass: pass.id,
+        ...underLength,
+        grounding_dropped: grounding.dropped.length,
+        refill_written: refill.written,
+      });
+    }
 
     const outcome = survivors.length < VOICE_LIMITS.items.floor ? "nothing" : "selected";
     const finalists = outcome === "nothing" ? [] : survivors;
@@ -345,6 +362,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       refill_written: refill.written,
       refill_kept: refill.kept,
       ...(refill.error ? { refill_error: refill.error } : {}),
+      ...(underLength ? { under_length: underLength } : {}),
       warnings,
     });
     await markStage(deps.root, pass, "validate", {
@@ -366,6 +384,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       refill_written: refill.written,
       refill_kept: refill.kept,
       ...(refill.error ? { refill_error: refill.error } : {}),
+      ...(underLength ? { under_length: underLength } : {}),
     });
   }
   return { stage: "validate", ok: true, dry_run: plan.dry_run, passes };
