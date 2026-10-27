@@ -145,6 +145,7 @@ describe("published run", () => {
         DIGEST_PATH,
         "state/judgments.json",
         "state/last-run.json",
+        "state/run-metrics.json",
         "state/seen.json",
         "state/source-health.json",
         "state/source-stats.json",

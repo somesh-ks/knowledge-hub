@@ -1,4 +1,5 @@
 import { CostFile, mergeRecords, UsageFile } from "@singularity/core";
+import { RUN_METRICS_KEEP, RunMetricsFile } from "../metrics/runMetrics.js";
 
 /**
  * How a state file that two workflows both append to is reconciled after a rebase conflict. The
@@ -24,6 +25,7 @@ export type StateMerge = (versions: StateVersions) => string | null;
 const COSTS_PATH = /^state\/costs-\d{4}-\d{2}\.json$/;
 const TIMINGS_PATH = "state/podcast-timings.json";
 const USAGE_PATH = "state/usage.json";
+const RUN_METRICS_PATH = "state/run-metrics.json";
 
 /** The same cap `recordTimings` keeps; older runs say little about today's speed. */
 const TIMINGS_KEEP = 50;
@@ -98,10 +100,26 @@ const mergeUsage: StateMerge = ({ base, upstream, mine }) => {
   });
 };
 
+/** Run metrics: one entry per run and digest, oldest first, the newest 60. */
+const mergeRunMetrics: StateMerge = ({ upstream, mine }) => {
+  const theirs = RunMetricsFile.safeParse(parse(upstream));
+  const ours = RunMetricsFile.safeParse(parse(mine));
+  if (!theirs.success || !ours.success) return null;
+  const byKey = new Map<string, (typeof ours.data.runs)[number]>();
+  for (const run of [...theirs.data.runs, ...ours.data.runs]) {
+    byKey.set(`${run.run_id}|${run.digest_id}`, run);
+  }
+  const runs = [...byKey.values()]
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(-RUN_METRICS_KEEP);
+  return serialize({ version: 1, runs });
+};
+
 /** The merger for a state file, if its entries are independent enough to union. */
 export function stateMergerFor(path: string): StateMerge | undefined {
   if (COSTS_PATH.test(path)) return mergeCosts;
   if (path === TIMINGS_PATH) return mergeTimings;
   if (path === USAGE_PATH) return mergeUsage;
+  if (path === RUN_METRICS_PATH) return mergeRunMetrics;
   return undefined;
 }

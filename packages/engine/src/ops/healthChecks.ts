@@ -26,6 +26,9 @@ import {
 } from "../audio/segmentStore.js";
 import { redact } from "../context.js";
 import { parseQueries } from "../fetch/queries.js";
+import { readRunMetrics } from "../metrics/runMetrics.js";
+import { formatReading, summarize } from "../metrics/summary.js";
+import { readTimings } from "../podcast/timings.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { readConfigDocuments } from "../store/configDocs.js";
 import {
@@ -277,6 +280,42 @@ export async function checkConfigStore(
  * its turns (a turn the reader drops plays as silence). Online, the newest episode older than a day
  * has its first segment's word marks readable once its audio is stored.
  */
+/**
+ * The health numbers of generation (`singularity metrics`) as warnings: a metric off its target over
+ * the newest ten runs, once three runs say so. Never a fault: each is a trend to act on, and a fault
+ * must hold a day and be actionable (hardening.md).
+ */
+export async function checkRunMetrics(root: string, sink: Sink): Promise<void> {
+  const [runs, timings] = await Promise.all([readRunMetrics(root), readTimings(root)]);
+  const summary = summarize({ runs: runs.runs, timings: timings.runs });
+  const aspectOf: Record<string, HealthAspect> = {
+    failure_rate: "reliability",
+    model_fallbacks_per_run: "reliability",
+    length_share: "quality",
+    grounding_survival: "quality",
+    verified_share: "quality",
+    script_share: "quality",
+    generation_ms: "performance",
+  };
+  let judged = 0;
+  for (const [group, section] of [
+    ["briefing", summary.briefings],
+    ["episode", summary.episodes],
+  ] as const) {
+    for (const entry of section.readings) {
+      if (entry.verdict === "unmeasured") continue;
+      judged += 1;
+      if (entry.verdict === "ok") continue;
+      sink.warn(
+        `metric_${group}_${entry.metric}`,
+        aspectOf[entry.metric] ?? "quality",
+        `${group} ${formatReading(entry).replace(/\s+/g, " ")} (singularity metrics).`,
+      );
+    }
+  }
+  if (judged > 0) sink.passed.push(`${judged} generation metrics were read against their targets`);
+}
+
 export async function checkEpisodes(
   root: string,
   env: EpisodeVoiceEnv,

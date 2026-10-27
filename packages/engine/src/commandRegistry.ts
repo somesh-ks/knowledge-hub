@@ -182,6 +182,17 @@ next_regular_due, due_now, latest_digest, audio, sources, budget }.`,
     load: async () => (await import("./commands/status.js")).run,
   },
   {
+    name: "metrics",
+    summary:
+      "How healthy generation is: length, grounding, speed and failures against their targets",
+    help: `Usage: singularity metrics [--json]
+
+Reads state/run-metrics.json and state/podcast-timings.json (offline) and prints each metric of
+docs/engineering/metrics.md over the newest ten runs with its target and whether it is met. A
+metric needs three runs before it is judged. With --json prints the same as data.`,
+    load: async () => (await import("./commands/metrics.js")).run,
+  },
+  {
     name: "health",
     summary: "Faults in runs, narration, data, cost and the live site; exits 1 on a fault",
     help: `Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--json]

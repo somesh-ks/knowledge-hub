@@ -38,6 +38,40 @@ describe("state merges after a rebase conflict", () => {
     expect(JSON.parse(text ?? "{}").speechify).toEqual({ month: "2026-10", characters: 20 });
   });
 
+  it("keeps both runs' metrics, one per run and digest", () => {
+    const metric = (run_id: string, at: string): Record<string, unknown> => ({
+      run_id,
+      at,
+      digest_id: "2026-10-27",
+      kind: "regular",
+      mode: "on-demand",
+      replace: true,
+      outcome: "published",
+      stage_ms: {},
+      funnel: {
+        pool: 1,
+        written: 1,
+        grounding_dropped: 0,
+        grounding_pruned: 0,
+        validate_dropped: 0,
+        refill_written: 0,
+        refill_kept: 0,
+        aired: 1,
+      },
+      length: { asked_chars: null, aired_chars: null, share: null },
+      verified: true,
+      model_fallbacks: 0,
+    });
+    const text = stateMergerFor("state/run-metrics.json")?.({
+      base: null,
+      upstream: json({ version: 1, runs: [metric("a", "2026-10-27T10:00:00.000Z")] }),
+      mine: json({ version: 1, runs: [metric("b", "2026-10-27T11:00:00.000Z")] }),
+    });
+    expect(
+      (JSON.parse(text ?? "{}") as { runs: { run_id: string }[] }).runs.map((r) => r.run_id),
+    ).toEqual(["a", "b"]);
+  });
+
   it("declines a file it cannot read, so the conflict stands", () => {
     const text = stateMergerFor("state/costs-2026-10.json")?.({
       base: null,

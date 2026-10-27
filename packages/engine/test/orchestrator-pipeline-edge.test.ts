@@ -15,6 +15,7 @@ import { Selection, WrittenFile } from "../src/curate/selectionFile.js";
 import { PoolFile, writePool } from "../src/fetch/pool.js";
 import type { Judge } from "../src/judge/types.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
+import type { RunMetric } from "../src/metrics/runMetrics.js";
 import { collectHealth } from "../src/ops/health.js";
 import { readPlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
@@ -153,6 +154,58 @@ describe("concurrent writers and push handling", () => {
     expect(await readFile(join(repo.root, DIGEST_PATH), "utf8")).toBe("written by someone else\n");
     expect((await readDigest(repo.root, "Digests/2026/10/2026-10-07-2.md")).id).toBe(
       "2026-10-07-2",
+    );
+  });
+});
+
+// The numbers that say whether generation is healthy (docs/engineering/metrics.md) ride in the
+// run's own commit: the funnel, the length attained against the length asked, the stage times.
+describe("a run's health metrics", () => {
+  it(
+    "records a published briefing's funnel, length and stage times in its commit",
+    LONG,
+    async () => {
+      const world = makeWorld(repo.root, { now: WED });
+      const result = await runStage(world);
+      expect(result.report).toMatchObject({ outcome: "published" });
+      const file = await readJson<{ runs: RunMetric[] }>(repo.root, "state/run-metrics.json");
+      expect(file.runs).toHaveLength(1);
+      expect(file.runs[0]).toMatchObject({
+        digest_id: "2026-10-07",
+        kind: "regular",
+        outcome: "published",
+        replace: false,
+        funnel: {
+          aired: (await readDigest(repo.root, DIGEST_PATH)).items.length,
+          grounding_dropped: 0,
+        },
+      });
+      expect(file.runs[0]?.funnel.written).toBeGreaterThanOrEqual(5);
+      expect(file.runs[0]?.funnel.pool).toBeGreaterThan(0);
+      expect(Object.keys(file.runs[0]?.stage_ms ?? {})).toEqual(
+        expect.arrayContaining(["fetch", "judge", "write", "validate"]),
+      );
+      expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toContain(
+        "state/run-metrics.json",
+      );
+    },
+  );
+
+  // A failed Regenerate left no trace anywhere: the run record skips on-demand runs, so the failure
+  // rate of Regenerate and Catch up could not be read (2026-10-27).
+  it("records a failed on-demand run without touching the cadence", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    expect((await runStage(world, { stage: "gate", mode: "on-demand", force: true })).code).toBe(0);
+    const lastRun = (): Promise<unknown> =>
+      readJson(repo.root, "state/last-run.json").catch(() => null);
+    const before = await lastRun();
+    expect((await runStage(world, { recordFailed: true })).code).toBe(0);
+    const file = await readJson<{ runs: RunMetric[] }>(repo.root, "state/run-metrics.json");
+    expect(file.runs[0]).toMatchObject({ outcome: "failed", mode: "on-demand", replace: false });
+    expect(file.runs[0]?.failure?.reason).toBeTruthy();
+    expect(await lastRun()).toEqual(before);
+    expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
+      "chore(state): run 2026-10-07 failed",
     );
   });
 });

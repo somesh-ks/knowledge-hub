@@ -31,6 +31,7 @@ import {
   checkConfigStore,
   checkEpisodes,
   checkPerf,
+  checkRunMetrics,
   checkRunsDied,
   checkStore,
   type FieldReading,
@@ -363,6 +364,9 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
 
   // Quality: every episode parses and narrates whole; the newest one's word marks read.
   await checkEpisodes(root, options.voices ?? {}, now, { fault, warn, passed }, blob);
+
+  // Quality, reliability and speed of generation over the newest runs (docs/engineering/metrics.md).
+  await checkRunMetrics(root, { fault, warn, passed });
 
   if (options.perf !== undefined) checkPerf(options.perf, { fault, warn, passed });
   if (options.store !== undefined) {

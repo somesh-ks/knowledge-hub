@@ -384,6 +384,18 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           format: request.format,
           length_minutes: request.length_minutes,
           stages: stages.durations,
+          metrics: {
+            stories: episode.sources.length,
+            matched: result.matched,
+            empty_topics: result.empty_topics.length,
+            budget_chars: planPodcast(request).budget_chars,
+            script_chars: episode.char_count,
+            share:
+              Math.round(
+                (episode.char_count / Math.max(1, planPodcast(request).budget_chars)) * 100,
+              ) / 100,
+            writer_calls: result.script.writer_calls,
+          },
         });
       }
       // The old file goes only now: generation has succeeded and the new file is written.
