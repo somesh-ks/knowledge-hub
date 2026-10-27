@@ -1553,7 +1553,7 @@ test.describe("the podcast structure", () => {
   // An episode needs a block between the hello and the sign-off, so the last one could not be
   // removed, and an emptied Custom list had nowhere to start from (owner, 2026-10-27). Now it empties
   // to a prompt to add one, and sends nothing the server would refuse until a block is added.
-  test("removing every block shows the empty state and sends nothing until a block is added", async ({
+  test("removing every block shows the empty state and sends nothing; a profile chosen then keeps the saved list", async ({
     page,
   }) => {
     await page.clock.install();
@@ -1572,12 +1572,19 @@ test.describe("the podcast structure", () => {
     await page.clock.runFor(GAP_MS);
     expect(server.applied).toEqual([]);
 
-    await page.getByRole("button", { name: "Add section" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
-    await expect(empty).toBeHidden();
+    // A named profile chosen from the empty state keeps the list as it was last saved, not the
+    // empty one the server would refuse; Custom brings that list back.
+    const count = await list.locator(".structure-row").count();
+    await page.getByLabel("Profile", { exact: true }).selectOption("student");
+    await page.getByRole("dialog").getByRole("button", { name: /^Switch/ }).click();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => server.applied.length).toBe(1);
-    expect(server.applied[0]).toMatchObject({ op: "structure.set", profile: "custom" });
+    const sent = server.applied[0] as { profile: string; custom_blocks: unknown[] };
+    expect(sent.profile).toBe("student");
+    expect(sent.custom_blocks.length).toBeGreaterThan(2);
+    await page.getByLabel("Profile", { exact: true }).selectOption("custom");
+    await expect(empty).toBeHidden();
+    expect(await list.locator(".structure-row").count()).toBeGreaterThan(count);
   });
 
   // A reorder went out as the whole list, so a move that the server's own schema refused, or one

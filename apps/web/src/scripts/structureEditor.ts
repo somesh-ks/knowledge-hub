@@ -132,8 +132,11 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   const savedBlocks = stateOf();
   /** The list as last applied, put back when the owner declines to make an edit Custom. */
   let settled = structuredClone(blocks);
+  /** The list as last recorded with a block between the hello and the sign-off. */
+  let lastSound: StructureBlock[] | null = blocks.length > 2 ? structuredClone(blocks) : null;
   const recordBlocks = (): void => {
     settled = structuredClone(blocks);
+    if (blocks.length > 2) lastSound = structuredClone(blocks);
     // An episode needs a block between the hello and the sign-off (structureProblems): an emptied
     // list sends nothing, and what is saved keeps running until a block is added.
     if (blocks.length <= 2) {
@@ -307,11 +310,19 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     profileSelect.querySelector(`option[value="${id}"]`)?.textContent ?? id;
   const chooseProfile = (next: StructureProfile): void => {
     const preset = next === "custom" ? undefined : data.presets[next].map(normal);
+    // An emptied list cannot be kept (a structure needs a block between the hello and the
+    // sign-off): the list as last sent with a block stands in for it, else nothing is kept.
+    const current = blocks.length > 2 ? blocks : lastSound;
     const chosen = choose(
-      { profile, blocks, ...(kept ? { custom_blocks: kept } : {}) },
+      {
+        profile,
+        ...(current ? { blocks: current } : {}),
+        ...(kept ? { custom_blocks: kept } : {}),
+      },
       next,
       preset,
     );
+    if (chosen.custom_blocks && chosen.custom_blocks.length <= 2) delete chosen.custom_blocks;
     // A removal waiting to be undone belongs to the list it came from, not the profile's.
     if (chosen.blocks && chosen.blocks !== blocks) removals = [];
     blocks = chosen.blocks ?? blocks;
