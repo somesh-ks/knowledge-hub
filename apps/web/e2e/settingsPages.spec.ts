@@ -87,3 +87,16 @@ test("the listener profile select has the Theme select's height, radius and padd
     expect(await metrics("#structure-profile"), value).toEqual({ ...theme, clipped: false });
   }
 });
+
+// A voice select shows its whole name beside its label: a shared rule's higher specificity once
+// outranked podcast.css's uncapping and cut "Geffen, female" to "Geffen, fe..." (2026-10-27).
+test("a voice select shows a long voice name whole @desktop", async ({ page }) => {
+  await page.goto("/settings/voice");
+  const value = page.locator("[data-voice-row] .picker-value").first();
+  await expect(value).toBeVisible();
+  const clipped = await value.evaluate((element: HTMLElement) => {
+    element.textContent = "Geffen, female, American";
+    return element.scrollWidth > element.clientWidth;
+  });
+  expect(clipped).toBe(false);
+});
