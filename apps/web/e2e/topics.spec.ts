@@ -1576,7 +1576,10 @@ test.describe("the podcast structure", () => {
     // empty one the server would refuse; Custom brings that list back.
     const count = await list.locator(".structure-row").count();
     await page.getByLabel("Profile", { exact: true }).selectOption("student");
-    await page.getByRole("dialog").getByRole("button", { name: /^Switch/ }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^Switch/ })
+      .click();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => server.applied.length).toBe(1);
     const sent = server.applied[0] as { profile: string; custom_blocks: unknown[] };
