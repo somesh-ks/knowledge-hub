@@ -173,7 +173,10 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
 
 /** The held regions of the page now in the document, shown with whatever was laid over them. */
 function showHeld(): void {
-  for (const region of document.querySelectorAll<HTMLElement>("[data-store-held]")) {
+  if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return;
+  for (const region of document.querySelectorAll<HTMLElement>(
+    "[data-store-held]:not([data-store-held=editor])",
+  )) {
     region.dataset.storeApplied = "";
   }
 }
