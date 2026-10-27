@@ -191,14 +191,16 @@
 /* Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it
    to the action's own element, which keeps its size and layout. The owner found the neutral fill
    with accent words faded in both themes (2026-10-27), and the current row's accent-container must
-   keep meaning "you are here", so this is a third tone: the primary container, richer than the
-   current row and short of the full accent. Its fill reaches 3:1 on the page, so it reads as a
-   shape with no outline, and its words 4.5:1 in every state (buildTokens.test.ts).
+   keep meaning "you are here", so this is a third tone, richer than the current row: a saturated
+   blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues
+   before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches
+   3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest
+   (buildTokens.test.ts).
    - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape
      alone tells it from the pill-shaped current row beside it (--action-tonal-radius).
    - Flat: no elevation and no shadow (owner, 2026-10-27).
-   - Hover and press layer --action-tonal-state: the words' ink in light; in dark the page, as the
-     near-white words would take the label under 4.5:1 within one step. */
+   - Hover and press layer --action-tonal-state, which moves the fill away from its words (toward
+     the darkest blue in light, the palest in dark), so the label gains contrast in every state. */
 .btn-action-tonal {
   --color-focus-gap: var(--color-surface);
   border-radius: var(--action-tonal-radius);
