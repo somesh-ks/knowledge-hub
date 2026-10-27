@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^7.1.1",
-    "@astrojs/vercel": "11.0.15",
+    "@astrojs/vercel": "11.0.16",
     "@base-ui/react": "^1.9.0",
     "@singularity/core": "*",
     "@singularity/cover": "*",
