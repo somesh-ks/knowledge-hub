@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  CONFIG_FILES,
   compareNewestFirst,
   type Digest,
   parseDigestFile,
+  ScheduleFile,
   scheduleZone,
   stockholmDate,
   VOICE_LIMITS,
@@ -147,7 +149,23 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     }
   }
   // A briefing that is switched off is never due, so it is never overdue or missed.
-  const slotSchedule = await loadSchedule(root).catch(() => null);
+  // With the config store on, the stored schedule is the effective one: health does not hydrate
+  // config, so the committed file may still say enabled while the owner switched it off.
+  const storedDocuments =
+    options.store && "documents" in options.store ? options.store.documents : undefined;
+  const storedSchedule =
+    storedDocuments && !("error" in storedDocuments)
+      ? storedDocuments.find((document) => document.path === CONFIG_FILES.schedule)
+      : undefined;
+  let slotSchedule = await loadSchedule(root).catch(() => null);
+  if (storedSchedule !== undefined) {
+    try {
+      const parsed = ScheduleFile.safeParse(JSON.parse(storedSchedule.content));
+      if (parsed.success) slotSchedule = parsed.data;
+    } catch {
+      // An unreadable stored document is config_store_drift's to report.
+    }
+  }
   if (slotSchedule?.enabled === false) {
     passed.push("the daily briefing is switched off");
   } else if (status.next_regular_due < status.today) {

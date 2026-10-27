@@ -582,4 +582,33 @@ describe("singularity health", () => {
     // No record says when a run copied the store, so a stored edit git lacks only warns.
     expect(drift("warning")).toEqual(["config/schedule.json"]);
   });
+
+  // health does not hydrate config: a briefing switched off only in the store read as overdue.
+  it("does not call a briefing overdue that the stored schedule switched off", async () => {
+    const stored = JSON.stringify({
+      version: 1,
+      hour: 7,
+      cadence_days: 2,
+      length_minutes: 5,
+      skip_topics: [],
+      enabled: false,
+    });
+    const store: StoreReading = {
+      field: { summaries: [] },
+      rate_table: true,
+      documents: [
+        { path: "config/schedule.json", content: stored, version: 2, updatedAt: Date.now() },
+      ],
+    };
+    const report = await collectHealth({
+      root,
+      now: NOW,
+      monthlyChars: 500_000,
+      ceilingUsd: 50,
+      site: null,
+      store,
+    });
+    expect(codes(report.findings, "fault")).not.toContain("run_overdue");
+    expect(report.passed).toContain("the daily briefing is switched off");
+  });
 });

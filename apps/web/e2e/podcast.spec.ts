@@ -532,6 +532,7 @@ test.describe("saved, before the build", () => {
     await expect(page.getByText("Off: no daily briefing is made")).toBeVisible();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", enabled: false });
+    await expect(spoken(page)).toHaveText(SAVED);
 
     await page.reload();
     await open(page, "daily");
