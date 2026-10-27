@@ -322,6 +322,35 @@ describe("grounding and validation", () => {
     expect(written.items.every((entry) => entry.verified)).toBe(true);
   });
 
+  // The 2026-10-27 daily lost 5 of 8 stories to grounding and its cache was gone: nobody could say
+  // which sentences failed or how much source text the check had.
+  it(
+    "names a grounding-dropped story, its source text length and its failing sentence",
+    LONG,
+    async () => {
+      const { writer, unsupported } = writerUnsupportedFirst(1);
+      const world = makeWorld(repo.root, { now: WED, writer });
+      await runStage(world);
+      const [firstId] = unsupported as [string];
+      const report = (await readJson(repo.root, ".cache/run/2026-10-07/validate-report.json")) as {
+        grounding_drops: Array<{
+          id: string;
+          source_chars: number;
+          text_from: string;
+          sentences: string[];
+          repairs: number;
+        }>;
+      };
+      expect(report.grounding_drops).toHaveLength(1);
+      const [drop] = report.grounding_drops as [(typeof report.grounding_drops)[number]];
+      expect(drop.id).toBe(firstId);
+      expect(drop.source_chars).toBeGreaterThan(0);
+      expect(drop.text_from).not.toBe("missing");
+      expect(drop.sentences[0]).toContain("UNSUPPORTED claim about springs");
+      expect(drop.repairs).toBe(0);
+    },
+  );
+
   const SCHEDULE_3_MINUTES = json({
     version: 1,
     hour: 7,
