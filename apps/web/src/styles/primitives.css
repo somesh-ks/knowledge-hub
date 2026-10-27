@@ -1381,11 +1381,12 @@
    control keep their pill in a card as out of it: one control has one shape wherever it stands
    (owner, 2026-10-23, D167; buttons too since 2026-10-24, D186). */
 /* A card's corner follows its height (owner, 2026-10-27): a card of one row is about 72px tall, so
-   the 32px card radius read as a pill. It steps down to 16px (at most a quarter of its height) and
-   its tiles stay concentric, 12px. Taller cards keep the card radius. */
+   the 32px card radius read as a pill, and 16px then read as too sharp ("not smooth enough", the
+   same day). It steps down to 24px, a third of its height, and its tiles stay concentric, 16px.
+   Taller cards keep the card radius. */
 .card-group:not(:has(> * + *)) {
-  --card-radius: var(--radius-lg);
-  --card-inner-radius: var(--radius-md);
+  --card-radius: var(--radius-xl);
+  --card-inner-radius: var(--radius-lg);
 }
 
 .card-group > .row-action {

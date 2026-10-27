@@ -528,7 +528,10 @@
 /* Beside a label the value gives the label room. A row that is the select alone (the listener
    profile's, in its card's auto-sized column) sizes to its longest option: a cap there was 70% of
    the select's own width, and the words, set to the end, lost their start ("esigner", 2026-10-27). */
-.settings-row:has(> :is(.settings-label, .settings-text)) .value-select {
+/* :where keeps it at .settings-row .value-select's specificity, so podcast.css's uncapped voice
+   select still wins: at a higher one it capped the voice to 70% of its own 70% ("Geffen, fe...",
+   2026-10-27; settingsPages.spec). */
+.settings-row:where(:has(> :is(.settings-label, .settings-text))) .value-select {
   max-inline-size: 70%;
 }
 
