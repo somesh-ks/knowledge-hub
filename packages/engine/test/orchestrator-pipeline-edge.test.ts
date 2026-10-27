@@ -18,6 +18,7 @@ import { BudgetExceededError } from "../src/llm/errors.js";
 import { collectHealth } from "../src/ops/health.js";
 import { readPlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
+import { groundingDropRecords } from "../src/run/validateStage.js";
 import { markCopiedFromStore, SNAPSHOT_TRAILER } from "../src/store/configDocs.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
@@ -350,6 +351,34 @@ describe("grounding and validation", () => {
       expect(drop.repairs).toBe(0);
     },
   );
+
+  // A rewrite that breaks the voice rules drops the story, but the claim that triggered the repair
+  // is what the owner needs in the log, not only the lint messages.
+  it("keeps the unsupported sentence of a story dropped for its voice", () => {
+    const [record] = groundingDropRecords(
+      [
+        {
+          id: "a",
+          reason: "voice",
+          unsupported: [
+            {
+              field: "summary",
+              sentence: "The claim nobody supports.",
+              score: 0.1,
+              status: "unsupported",
+            },
+          ],
+          violations: [{ field: "summary", rule: "banned_word", message: "Avoid a banned word." }],
+          repairs: 1,
+        },
+      ],
+      new Map(),
+      new Map(),
+      () => "src",
+    );
+    expect(record?.sentences).toEqual(["The claim nobody supports."]);
+    expect(record?.voice_violations).toEqual(["Avoid a banned word."]);
+  });
 
   const SCHEDULE_3_MINUTES = json({
     version: 1,

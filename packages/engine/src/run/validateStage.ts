@@ -55,7 +55,10 @@ export interface GroundingDropRecord {
   source_chars: number;
   /** "feed" (feed content or summary), "page" (readability), "scrape", another method, or "missing". */
   text_from: string;
+  /** The unsupported sentences that triggered the repair. */
   sentences: string[];
+  /** The voice rules the rewrite broke, when the drop was for its voice. */
+  voice_violations: string[];
   repairs: number;
 }
 
@@ -69,10 +72,7 @@ export function groundingDropRecords(
   return dropped.slice(0, DROP_STORIES).map((d) => {
     const method = methods.get(d.id);
     const from = materials.has(d.id) ? (method ?? "unknown") : "missing";
-    const sentences =
-      d.reason === "voice"
-        ? d.violations.map((v) => v.message)
-        : d.unsupported.map((u) => u.sentence);
+    const sentences = d.unsupported.map((u) => u.sentence);
     return {
       id: d.id,
       source_id: sourceIdOf(d.id),
@@ -80,6 +80,9 @@ export function groundingDropRecords(
       text_from:
         from === "content" || from === "snippet" ? "feed" : from === "readability" ? "page" : from,
       sentences: sentences.slice(0, DROP_SENTENCES).map((t) => t.slice(0, DROP_SENTENCE_CHARS)),
+      voice_violations: d.violations
+        .slice(0, DROP_SENTENCES)
+        .map((v) => v.message.slice(0, DROP_SENTENCE_CHARS)),
       repairs: d.repairs,
     };
   });
