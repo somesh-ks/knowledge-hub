@@ -32,7 +32,8 @@ export interface GroundingOutcome {
   verified: boolean;
 }
 
-const CONCURRENCY = 4;
+/** Stories grounded at once. Each is independent, and Jev already checks eight sentences at once. */
+const CONCURRENCY = 8;
 
 type StepResult = { keep: GroundedItem } | { drop: GroundingDrop };
 

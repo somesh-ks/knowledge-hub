@@ -467,6 +467,35 @@ describe("enforceVoice", () => {
     expect(out.dropped).toEqual([]);
   });
 
+  // 25 rewrites ran one after another in the 2026-10-24 write stage; stories are independent.
+  it("rewrites several stories at once and still returns them in the order they came", async () => {
+    const mats = Array.from({ length: 6 }, () => material());
+    const all = new Map(mats.map((each) => [each.id, each]));
+    let inFlight = 0;
+    let peak = 0;
+    const writer: Writer = {
+      async write() {
+        return { written: [], failed: [] };
+      },
+      async rewrite(request) {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        return request.field === "headline" ? "Springlet 2.0 retargets springs" : null;
+      },
+    };
+    // The second and fifth fail their headline lint, so they are rewritten; the rest wait on nothing.
+    const written = mats.map((each, index) =>
+      index === 1 || index === 4 || index === 2
+        ? { ...good(each.id), headline: "An incredible release!" }
+        : good(each.id),
+    );
+    const out = await enforceVoice({ written, materials: all, writer, linter });
+    expect(peak).toBeGreaterThan(1);
+    expect(out.passed.map((p) => p.item.id)).toEqual(mats.map((each) => each.id));
+  });
+
   it("lints only the fields an item has: no why line, no why rewrite", async () => {
     const writer = scriptedWriter([]);
     const out = await enforceVoice({ written: [good(m.id)], materials, writer, linter });
