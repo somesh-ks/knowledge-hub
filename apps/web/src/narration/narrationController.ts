@@ -239,16 +239,23 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     segments: Parameters<typeof liveNarrated>[1],
   ): Promise<void> {
     let lastGrowth = live.now();
+    // Turns the transcript shows; the track's own wait for more can add some this poll never sees.
+    let shown = segments.length;
+    const gaveUp = () => live.now() - lastGrowth > (live.giveUpMs ?? GROWTH_GIVE_UP_MS);
     while (growth.pending() && sessions.has(id)) {
       await live.delay(live.pollMs ?? GROWTH_POLL_MS);
       const doc = await live.fetchDoc().catch(() => null);
-      if (!doc) continue;
+      if (!doc) {
+        if (gaveUp()) return;
+        continue;
+      }
       const added = growth.sync(doc);
-      if (added === 0 && doc.status === "writing") {
-        if (live.now() - lastGrowth > (live.giveUpMs ?? GROWTH_GIVE_UP_MS)) return;
+      if (added === 0 && doc.turns.length <= shown && doc.status === "writing") {
+        if (gaveUp()) return;
         continue;
       }
       lastGrowth = live.now();
+      shown = doc.turns.length;
       const narrated = liveNarrated(doc, segments, new Date());
       const session = sessions.get(id);
       if (session) session.narrated = narrated;

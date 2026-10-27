@@ -1,7 +1,12 @@
 import { defineMiddleware } from "astro:middleware";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { readFromGraph, withModulePreloads } from "./lib/bundleBudget";
+import {
+  readFromGraph,
+  WAKE_STYLES_KEY,
+  withModulePreloads,
+  withoutStylesheets,
+} from "./lib/bundleBudget";
 import { findRepoRoot } from "./lib/repoRoot";
 
 /**
@@ -34,7 +39,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const html = await response.text();
   let hinted = html;
   try {
-    hinted = withModulePreloads(html, readFromGraph(known));
+    hinted = withoutStylesheets(
+      withModulePreloads(html, readFromGraph(known)),
+      known[WAKE_STYLES_KEY] ?? [],
+    );
   } catch {
     // A script the graph does not know (a newer deploy's page, a public file): the page goes as built.
   }

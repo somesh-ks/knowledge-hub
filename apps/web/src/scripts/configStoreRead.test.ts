@@ -166,4 +166,56 @@ describe("loadStore", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
   });
+
+  // The bug: a save left the device's copy a write behind, so another tab, reading the same copy on
+  // its next navigation, showed the old name until it was reloaded.
+  it("takes the store's answer after a save into the device's copy", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, afterOwnSave } = await fresh();
+    vi.stubGlobal("document", { querySelector: () => ({ content: "built-here" }) });
+    const body = (written_at: number, name: string) => ({
+      status: 200,
+      built: "built-here",
+      written_at,
+      ops: [{ op: "topic.upsert", name }],
+      sources: [],
+    });
+    const storage = fakeStorage({ [CACHE_KEY]: JSON.stringify(body(1, "Old")) });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("fetch", async () => Response.json(body(5, "New")));
+    afterOwnSave();
+    await vi.waitFor(() =>
+      expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null").ops[0].name).toBe("New"),
+    );
+  });
+
+  // The bug: a read started before a save, resolving after the post-save read, wrote the older
+  // settings over the refreshed device copy.
+  it("keeps the post-save copy when an older read resolves after it", async () => {
+    const { CACHE_KEY, afterOwnSave, loadStore } = await fresh();
+    vi.stubGlobal("document", { querySelector: () => ({ content: "built-here" }) });
+    const body = (written_at: number, name: string) => ({
+      status: 200,
+      built: "built-here",
+      written_at,
+      ops: [{ op: "topic.upsert", name }],
+      sources: [],
+    });
+    const storage = fakeStorage();
+    vi.stubGlobal("localStorage", storage);
+    const answers: Array<(response: Response) => void> = [];
+    vi.stubGlobal(
+      "fetch",
+      () => new Promise<Response>((resolve) => answers.push((response) => resolve(response))),
+    );
+    void loadStore();
+    afterOwnSave();
+    answers[1]?.(Response.json(body(5, "New")));
+    await vi.waitFor(() =>
+      expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null")?.ops[0].name).toBe("New"),
+    );
+    answers[0]?.(Response.json(body(1, "Old")));
+    await new Promise((done) => setTimeout(done, 20));
+    expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null").ops[0].name).toBe("New");
+  });
 });

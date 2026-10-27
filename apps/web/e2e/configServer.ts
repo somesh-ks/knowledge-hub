@@ -87,7 +87,7 @@ export async function routeConfigStore(
   page: Page,
   holds: () => Record<string, string> | null,
 ): Promise<void> {
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?.*)?$/, async (route: Route) => {
     if (route.request().method() !== "GET") return route.fallback();
     const stored = holds();
     const result = await handleConfigRead({

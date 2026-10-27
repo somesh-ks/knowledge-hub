@@ -640,7 +640,7 @@ describe("failed run", () => {
     const result = await runStage(world);
     expect(result.report).toMatchObject({ outcome: "published" });
     const health = await readJson<SourceHealthFile>(repo.root, "state/source-health.json");
-    expect(health.sources["blog-b"]).toEqual({ failures: 1 });
+    expect(health.sources["blog-b"]).toMatchObject({ failures: 1, last_try: expect.any(String) });
     expect(health.sources["blog-a"]?.failures).toBe(0);
   });
 

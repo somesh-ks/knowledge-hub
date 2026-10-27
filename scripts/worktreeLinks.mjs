@@ -11,6 +11,8 @@
 // run `--remove` before `git worktree remove`.
 //
 // Usage: node scripts/worktreeLinks.mjs <worktree> [--remove]
+//        node scripts/worktreeLinks.mjs <any worktree or main> --check   (lists worktrees that still hold links)
+// Safe to run again: links that exist stay, and a stale scope link becomes a real folder of links.
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
@@ -26,14 +28,16 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-const worktree = resolve(process.argv[2] ?? ".");
+const worktree = resolve(process.argv.find((arg, i) => i >= 2 && !arg.startsWith("--")) ?? ".");
 const remove = process.argv.includes("--remove");
+const check = process.argv.includes("--check");
 const common = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
   cwd: worktree,
   encoding: "utf8",
 }).trim();
 const main = dirname(common);
-if (resolve(main) === worktree) throw new Error("That is the main checkout, not a worktree.");
+if (!check && resolve(main) === worktree)
+  throw new Error("That is the main checkout, not a worktree.");
 
 // lstat, so a link whose target is gone still counts as one.
 const isLink = (path) => {
@@ -46,12 +50,16 @@ const isLink = (path) => {
 // Takes off the link itself, never what it points at: rmdir takes a Windows junction, and refuses
 // (ENOTDIR) a Linux symlink or a Windows file link, which unlink takes.
 const unlink = (path) => {
+  if (!isLink(path)) throw new Error(`Refusing to unlink ${path}: it is not a link.`);
+  const target = real(path);
   try {
     rmdirSync(path);
   } catch (error) {
     if (error.code !== "ENOTDIR") throw error;
     unlinkSync(path);
   }
+  if (target && !existsSync(target))
+    throw new Error(`Unlinking ${path} removed its target ${target}.`);
 };
 const link = (target, path) => {
   if (existsSync(path) || isLink(path)) return;
@@ -74,6 +82,47 @@ const homes = [
     return existsSync(dir) ? readdirSync(dir).map((name) => join(group, name)) : [];
   }),
 ];
+
+if (check) {
+  // Lists each worktree under .claude/worktrees that holds a link, so the main session unlinks it
+  // before anything deletes it. Never follows a link.
+  const found = (path) => {
+    if (isLink(path)) return [path];
+    if (!existsSync(path) || !lstatSync(path).isDirectory()) return [];
+    return readdirSync(path).flatMap((name) => found(join(path, name)));
+  };
+  // Every worktree git has registered, wherever it lives, not only those under .claude/worktrees.
+  const registered = execFileSync("git", ["worktree", "list", "--porcelain"], {
+    cwd: main,
+    encoding: "utf8",
+  })
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("worktree "))
+    .map((line) => resolve(line.slice("worktree ".length)))
+    .filter((path) => path !== resolve(main));
+  const held = registered
+    .map((path) => {
+      // Main's folders and the worktree's own: main may have dropped a package a worktree still links.
+      const own = ["apps", "packages"].flatMap((group) => {
+        const dir = join(path, group);
+        return existsSync(dir) ? readdirSync(dir).map((name) => join(group, name)) : [];
+      });
+      return [
+        path,
+        [...new Set([...homes, ...own])].flatMap((home) => found(join(path, home, "node_modules"))),
+      ];
+    })
+    .filter(([, list]) => list.length > 0);
+  for (const [name, list] of held) console.log(`${name}: ${list.length} links`);
+  if (held.length > 0) {
+    console.log(
+      "Run `node scripts/worktreeLinks.mjs <path> --remove` for each before deleting it.",
+    );
+    process.exit(1);
+  }
+  console.log("No worktree holds links.");
+  process.exit(0);
+}
 
 if (remove) {
   // Only links are removed, and a walk never goes through one, so nothing of the main checkout is
@@ -102,9 +151,6 @@ const own = new Map(
     });
   }),
 );
-const scopes = new Set(
-  [...own.keys()].filter((name) => name.includes("/")).map((name) => name.split("/")[0]),
-);
 /** The main checkout's own packages as it installed them: links into its apps and packages. */
 const mainOwn = new Set(
   homes
@@ -128,17 +174,15 @@ const shared = (name) => !own.has(name) && !isMainOwn(join(modules, name));
 for (const name of readdirSync(modules)) {
   if (name === ".package-lock.json" || name === ".cache" || name === ".vite") continue;
   const path = join(modules, name);
-  const split =
-    name.startsWith("@") &&
-    existsSync(path) &&
-    statSync(path).isDirectory() &&
-    (scopes.has(name) || readdirSync(path).some((pkg) => isMainOwn(join(path, pkg))));
+  // Every scope is a real folder in the worktree with one junction per package, never one junction for
+  // the scope: a tool that writes or deletes inside a scope junction acts on the main checkout (it
+  // emptied @rolldown and @rollup there on 2026-10-26).
+  const split = name.startsWith("@") && existsSync(path) && statSync(path).isDirectory();
   if (!split) {
     if (shared(name)) link(path, join(linked, name));
     continue;
   }
-  // A scope that holds workspace packages, under either checkout's names, is linked package by
-  // package without them, never as one link an earlier run left.
+  // A scope link an earlier run left comes off first, so the scope becomes a real folder.
   if (isLink(join(linked, name))) unlink(join(linked, name));
   for (const pkg of readdirSync(path)) {
     if (shared(`${name}/${pkg}`)) link(join(path, pkg), join(linked, name, pkg));

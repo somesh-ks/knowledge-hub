@@ -13,7 +13,7 @@ const PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
 );
-const SAVED = "Saved.";
+const SAVED = "Settings saved";
 const ADDED = "Added. Read from the next update.";
 
 interface Sent {
@@ -716,6 +716,79 @@ test.describe("a topic's page", () => {
         page.getByRole("button", { name: "Add source to Audio UI" }).first(),
       ).toBeAttached();
     });
+  });
+
+  // The bug (plan 20, criterion 7): a rename saved in one tab left the device's copy of the store
+  // a write behind, so another tab's next page showed the old name from it, and then offered a
+  // reload as "changed on another device" for the owner's own edit.
+  test("a category renamed in one tab shows in another on its next navigation, with no reload offered", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: "test-config-store", value: configHash(BUILT_FILES), url: `${baseURL}/` },
+    ]);
+    const topics = JSON.parse(BUILT_FILES["config/topics.json"] as string);
+    let stored: Record<string, string> = {};
+    const hold = () => stored;
+    await setup(page);
+    await routeConfigStore(page, hold);
+    // The second tab's store is slow (Neon waking): past the grace, the page shows the device's copy.
+    const other = await context.newPage();
+    await setup(other);
+    await routeConfigStore(other, hold);
+    let releaseStore: () => void = () => {};
+    let storeHeld = false;
+    let storeReached: () => void = () => {};
+    const storeRequestReady = new Promise<void>((done) => {
+      storeReached = done;
+    });
+    await other.route(/\/api\/config(\?.*)?$/, async (route) => {
+      if (storeHeld && route.request().method() === "GET") {
+        await new Promise<void>((done) => {
+          storeReached();
+          releaseStore = done;
+        });
+      }
+      await route.fallback();
+    });
+    await open(other);
+    await expect(other.locator("[data-topics]")).toContainText("Audio interfaces");
+
+    // Tab A renames the category; the store holds the rename once the save has gone through.
+    await open(page, "/settings/categories/audio_interfaces");
+    await pick(page, "Audio interfaces", "Edit category Audio interfaces");
+    const sheet = page.getByRole("dialog", { name: "Edit category" });
+    await sheet
+      .getByRole("form", { name: "Edit category" })
+      .getByLabel("Name")
+      .fill("Audio and voice");
+    const audio = topics.topics.find((topic: { id: string }) => topic.id === "audio_interfaces");
+    audio.name = "Audio and voice";
+    stored = { "config/topics.json": JSON.stringify(topics) };
+    await sheet.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Audio and voice");
+    await expect(spoken(page)).toHaveText(SAVED);
+
+    // Tab B's next navigation: the new name at once, and nothing offers a reload.
+    const answered = other.waitForResponse(
+      (response) => response.url().includes("/api/config") && response.request().method() === "GET",
+    );
+    storeHeld = true;
+    await other.goto(LIST);
+    // The store's answer is held, so this name can only be the device's copy.
+    await expect(other.locator("[data-topics]")).toContainText("Audio and voice");
+    await storeRequestReady;
+    releaseStore();
+    await answered;
+    // The answer is read and acted on within a couple of frames.
+    await other.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+    );
+    await expect(other.locator("[data-topics]")).toContainText("Audio and voice");
+    await expect(other.getByText("Settings changed on another device")).toHaveCount(0);
+    await expect(page.getByText("Settings changed on another device")).toHaveCount(0);
   });
 
   test("the search block holds still and the app bar stays while the page scrolls down and back up", async ({

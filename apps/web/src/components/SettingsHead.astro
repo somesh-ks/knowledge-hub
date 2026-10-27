@@ -7,10 +7,22 @@ interface Props {
 }
 
 const { title, note } = Astro.props;
+// A settings subpage says where it sits (owner, 2026-10-25); Settings itself and the pages outside it do not.
+const crumb = Astro.url.pathname.startsWith("/settings/");
 ---
 
-{/* The page's name alone. Below 64rem the app bar's back arrow leads up to Settings. */}
+{/* A small "Settings /" line above the name of a settings subpage, linking up (.settings-crumb). */}
 <header class="settings-head">
+  {
+    crumb && (
+      <nav class="settings-crumb" aria-label="Breadcrumb">
+        <a class="text-link" href="/settings">
+          Settings
+        </a>
+        <span aria-hidden="true"> /</span>
+      </nav>
+    )
+  }
   <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
   {note && <p class="settings-note">{note}</p>}
 </header>
