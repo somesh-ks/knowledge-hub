@@ -391,6 +391,10 @@ function updateSource(
     if (host !== FETCH_VIA[via].host && !host.endsWith(`.${FETCH_VIA[via].host}`)) {
       throw new ConfigOpError(`${via} reads ${FETCH_VIA[via].host} only, not ${source.name}.`);
     }
+    // Only the Firecrawl fetcher reads options.via, so any other type would persist a dead route.
+    if (source.type !== "firecrawl") {
+      throw new ConfigOpError(`${via} applies to a Firecrawl source only, not ${source.name}.`);
+    }
   }
   if (via !== undefined) {
     // The fetcher reads options.via and options.category (engine/fetch/firecrawl.ts).
@@ -399,11 +403,12 @@ function updateSource(
     if (added) {
       const { via: _via, category: _category, ...rest } = added.options;
       added.options = { ...rest, ...set };
-    } else if (via === null) {
-      const { options: _own, ...rest } = next.sourcesUser.overrides[op.id] ?? {};
-      next.sourcesUser.overrides[op.id] = rest;
     } else {
-      next.sourcesUser.overrides[op.id] = { ...next.sourcesUser.overrides[op.id], options: set };
+      const { options: own, ...rest } = next.sourcesUser.overrides[op.id] ?? {};
+      const { via: _via, category: _category, ...kept } = own ?? {};
+      const options = { ...kept, ...set };
+      next.sourcesUser.overrides[op.id] =
+        Object.keys(options).length > 0 ? { ...rest, options } : rest;
     }
   }
   if (added) {

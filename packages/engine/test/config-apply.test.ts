@@ -762,6 +762,65 @@ describe("source ops", () => {
     expect((await merged())?.options).toEqual({});
   });
 
+  it("keeps a seed source's other override options when the route is set and cleared", async () => {
+    const blog = makeSource({
+      id: "anthropic-blog",
+      name: "Anthropic Blog",
+      type: "firecrawl",
+      url: "https://www.anthropic.com/news",
+    });
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({ version: 1, sources: [...SEED_SOURCES, blog] }),
+    );
+    await writeFileIn(
+      "config/sources.user.json",
+      JSON.stringify({
+        version: 1,
+        added: [],
+        overrides: { "anthropic-blog": { options: { limit: "5" } } },
+      }),
+    );
+    await apply({
+      op: "source.update",
+      id: "anthropic-blog",
+      fetch_via: "alexandria:anthropic-com",
+    });
+    const user = () => loadUserSources(repo.root);
+    expect((await user()).overrides["anthropic-blog"]?.options).toEqual({
+      limit: "5",
+      via: "alexandria:anthropic-com",
+      category: "news",
+    });
+    await apply({ op: "source.update", id: "anthropic-blog", fetch_via: null });
+    expect((await user()).overrides["anthropic-blog"]?.options).toEqual({ limit: "5" });
+  });
+
+  it("refuses an Alexandria read for a source the Firecrawl fetcher does not read", async () => {
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({
+        version: 1,
+        sources: [
+          ...SEED_SOURCES,
+          makeSource({
+            id: "anthropic-rss",
+            name: "Anthropic RSS",
+            type: "rss",
+            url: "https://www.anthropic.com/rss",
+          }),
+        ],
+      }),
+    );
+    const refused = await apply({
+      op: "source.update",
+      id: "anthropic-rss",
+      fetch_via: "alexandria:anthropic-com",
+    });
+    expect(refused.code).toBe(1);
+    expect(repo.dirty()).toEqual([]);
+  });
+
   it("refuses an Alexandria read for a source of another site", async () => {
     const refused = await apply({
       op: "source.update",
