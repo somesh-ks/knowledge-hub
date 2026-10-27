@@ -24,11 +24,16 @@ export interface SkipLists {
 }
 
 /** Everything the page is built with, handed to the editor in one data attribute. */
+/** The list's head: how many blocks it holds ("8 sections"). */
+export const blockCount = (n: number): string => `${n} ${n === 1 ? "section" : "sections"}`;
+
 export interface StructureData {
   /** The active listener profile as built (Custom until the owner chooses one). */
   profile: StructureProfile;
   /** The one list every podcast follows, as built: the stored one, or the defaults for the owner's topics. */
   blocks: StructureBlock[];
+  /** The owner's own list while a named profile runs, restored by choosing Custom again. */
+  custom?: StructureBlock[];
   /** Each named profile's preset, with the owner's topic sections placed in it. */
   presets: Record<NamedProfile, StructureBlock[]>;
   /** The owner's prompts as built, by key. */
@@ -320,8 +325,6 @@ export function rowsHtml(
   skip: SkipLists,
 ): string {
   const last = blocks.length - 2;
-  // A structure keeps one block between the hello and the sign-off (structureProblems).
-  const alone = last <= 1;
   return blocks
     .map((block, index) => {
       const name = escapeHtml(blockName(block, data.sections));
@@ -350,7 +353,9 @@ export function rowsHtml(
         item("up", "arrowUp", "Move up", index <= 1),
         item("down", "arrowDown", "Move down", index >= last),
         item("edit", "pencilSimple", "Edit"),
-        item("remove", "trash", "Remove", alone, " hero-menu-delete"),
+        // The last one goes too: the list then shows its empty state and saves nothing until a
+        // block is added (owner, 2026-10-27).
+        item("remove", "trash", "Remove", false, " hero-menu-delete"),
         `</div></div></div></li>`,
       ].join("");
     })

@@ -213,3 +213,22 @@ test.describe("one page gutter", () => {
     }
   });
 });
+
+// A one-row card took the 32px card radius and read as a pill (owner, 2026-10-27). Each card is
+// compared to its own height, never to a pinned radius.
+test("no settings card's corner is more than a quarter of its height", {
+  tag: "@both",
+}, async ({ page }) => {
+  for (const path of ["/settings", "/settings/preferences", "/settings/daily"]) {
+    await page.goto(path);
+    await expect(page.locator("main h1").first()).toBeVisible();
+    const over = await page.$$eval("main :is(.card-group, .topic-panel)", (cards) =>
+      cards.flatMap((card) => {
+        const height = card.getBoundingClientRect().height;
+        const radius = Number.parseFloat(getComputedStyle(card).borderTopLeftRadius);
+        return height > 0 && radius > height / 4 ? [`${card.className}: ${radius}/${height}`] : [];
+      }),
+    );
+    expect(over, path).toEqual([]);
+  }
+});

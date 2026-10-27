@@ -56,6 +56,22 @@ it("putting a general topic into the structure adds the section its stories are 
   ]);
 });
 
+it("choosing a named profile keeps the owner's own list aside, and choosing Custom again, with no list sent, restores it and keeps none apart", async () => {
+  expect(await apply({ op: "structure.set", profile: "custom", blocks: SHORT })).toBe(0);
+  expect(await apply({ op: "structure.set", profile: "designer" })).toBe(0);
+  expect(await apply({ op: "structure.set", profile: "student" })).toBe(0);
+  const student = await repo.readJson<StructureFile>("config/structure.json");
+  expect(names({ ...student, blocks: student.custom_blocks })).toEqual([
+    "hello",
+    "top_picks",
+    "sign_off",
+  ]);
+  expect(await apply({ op: "structure.set", profile: "custom" })).toBe(0);
+  const back = await repo.readJson<StructureFile>("config/structure.json");
+  expect(names(back)).toEqual(["hello", "top_picks", "sign_off"]);
+  expect(back.custom_blocks).toBeUndefined();
+});
+
 it("a named profile is saved by its id with the preset's blocks, and a file saved per podcast kind is read as Custom and rewritten in the new shape by the next save", async () => {
   expect(await apply({ op: "structure.set", profile: "designer" })).toBe(0);
   const designer = await repo.readJson<StructureFile>("config/structure.json");

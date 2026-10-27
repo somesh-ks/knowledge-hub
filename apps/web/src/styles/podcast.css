@@ -9,7 +9,13 @@
   --settings-control-width: 22rem;
   display: grid;
   gap: var(--space-6);
-  padding-block: var(--space-4) 0;
+  /* No top air: .settings-head sets the 24px above the first block (2026-10-27). */
+  padding-block: 0;
+}
+
+/* The panel's first card starts on .settings-head's 24px too (Podcast voice's had 8px more). */
+.daily-panel > .podcast-profile:first-child > .rows:first-child {
+  margin-block-start: 0;
 }
 
 /* On a phone the selects stack under their label at full width, so "Every other day" and

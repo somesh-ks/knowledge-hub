@@ -7,7 +7,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ### Visual language
 - The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons (but Catch up: `.btn-action-tonal`, flat, 16px), chips, selects and text fields (a multi-line field 24px, D186), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
-- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a hover and press tile clear of the hairlines (`.row-action`): fully round on the page, the card's inner radius in a card. Segmented controls have a sliding thumb that jumps when a key moves it (`data-input` on the root says key or pointer).
+- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off the hairlines (`.row-action`), round on the page, concentric in a card. A one-row card's radius is at most a quarter of its height. Segmented controls have a sliding thumb that moves at once when a key moves it.
 - Sideways scrollers (the section tabs, the Earlier shelf, the Costs table) fade their hidden edges by `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
 - Dropdowns share one chevron gap. A glyph that ends a row lands its ink, not its box, where the words end (`--ink-end`, D187).
 - A secondary action beside the hero's Play (Share) is `.btn-secondary.hero-share`: tonal, in Play's pill and height, as wide as its label, its touch area 44px (D153).
@@ -23,7 +23,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - A topic's picture is drawn from its name and id (`packages/cover/src/topicArt.ts`).
 
 ### Empty states
-- Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96): Latest with no briefing, an empty Library, a search or filter with no result (its line follows the search box in CSS), offline and back online, 404, and a topic with no sources (compact).
+- Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96): Latest with no briefing, an empty Library, a search or filter with no result (its line follows the search box in CSS), offline and back online, 404, and an empty topic or Structure list (compact).
 - The art is inline SVG in `EmptyArt.astro`, coloured by classes in `empty.css` from the theme's roles, `aria-hidden`, hidden under forced colours.
 
 ### Interface sounds

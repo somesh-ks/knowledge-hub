@@ -44,6 +44,17 @@
   line-height: var(--font-leading-caption);
 }
 
+/* One air under every settings page's title, crumb and note, 24px to the first block, set here alone
+   (owner, 2026-10-27: "the content is too close to the header, be consistent everywhere"); a page's
+   first block takes no top air of its own. A title inside a card (a category's) has the card's. */
+.settings-head {
+  margin-block-end: var(--space-6);
+}
+
+.topic-card .settings-head {
+  margin-block-end: 0;
+}
+
 .settings-head > h1 {
   font-family: var(--text-display-family);
   font-size: var(--text-display-size);
@@ -510,16 +521,24 @@
 .settings-row .value-select {
   flex: 0 1 auto;
   min-width: 0;
-  max-inline-size: 70%;
   /* The select reaches the chevron's side: the row's edge is where the chevron's ink ends. */
   margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px)) * -1);
+}
+
+/* Beside a label the value gives the label room. A row that is the select alone (the listener
+   profile's, in its card's auto-sized column) sizes to its longest option: a cap there was 70% of
+   the select's own width, and the words, set to the end, lost their start ("esigner", 2026-10-27). */
+.settings-row:has(> :is(.settings-label, .settings-text)) .value-select {
+  max-inline-size: 70%;
 }
 
 /* In a card the fill's box ends as far from the card's edge as it starts from the row's top and
    bottom (owner, 2026-10-25: the right inset looked uneven): the card's inset plus the row's block
    padding. The select pads by as much, so its value and chevron stay where the link rows' values and
    chevrons end. */
-.card-group .settings-row .value-select {
+/* The Preferences tabs' card (.topic-panel) is a card too: its select takes the same inset, so the
+   profile select's box is Theme's (designSystem.spec.ts compares them). */
+:is(.card-group, .topic-panel) .settings-row .value-select {
   --value-select-pull: calc(
     var(--card-padding) -
     var(--card-inset) -
@@ -648,10 +667,11 @@
    takes no gutter of its own (design-check: no page-specific gutter). Reverses the 2026-10-22 rule that
    pushed these in by the card's padding. */
 
-/* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps the air a
-   head would give it under the page's note, 24px, so the card does not crowd the note (2026-10-22). */
-.settings-view > .settings-head ~ section:first-of-type:not(:has(> .section-head)) {
-  margin-block-start: var(--space-6);
+/* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps 24px under
+   the page's note (2026-10-22): .settings-head's own margin gives it since 2026-10-27, and a first
+   group head drops its top air, so every page's first block starts the same 24px under the title. */
+.settings-head ~ section:first-of-type > .section-head:first-child {
+  padding-block-start: 0;
 }
 
 /* The groups are cards (.card-group, primitives.css): the head sits above its card, and the install
@@ -689,7 +709,8 @@
 .changelog {
   display: grid;
   gap: var(--space-4);
-  padding-block: var(--space-4) 0;
+  /* No top air: .settings-head sets the 24px above the first entry (2026-10-27). */
+  padding-block: 0;
 }
 
 .changelog-entry {

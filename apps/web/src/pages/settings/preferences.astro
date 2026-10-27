@@ -7,6 +7,7 @@ import {
   STRUCTURE_PROFILES,
 } from "@singularity/core";
 import { topicArt } from "@singularity/cover";
+import EmptyArt from "../../components/EmptyArt.astro";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
@@ -17,7 +18,7 @@ import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
-import { addOffers, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
+import { addOffers, blockCount, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
 import { PLAYBACK_RATES } from "../../player/core/playerTypes";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
@@ -67,8 +68,20 @@ const offers = addOffers(structure.blocks, structure.sections);
       <div class="settings-view" data-settings>
         <div class="rows card-group">
           <div class="settings-row">
-            <label class="settings-label" for="settings-autoplay">Autoplay</label>
+            <label class="settings-label" for="settings-autoplay">Podcast autoplay</label>
             <input class="settings-switch" id="settings-autoplay" name="autoplay" type="checkbox" role="switch" />
+          </div>
+          {/* Where every episode starts (2026-10-25), in the playback card under Autoplay (owner,
+               2026-10-27). A speed chosen in the player lasts one episode. Saved on this device with
+               the player's other preferences, not through the config store. */}
+          <div class="settings-row">
+            <label class="settings-label" for="default-speed">Default playback speed</label>
+            <span class="manage-select value-select">
+              <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+                {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </div>
         </div>
       </div>
@@ -77,19 +90,6 @@ const offers = addOffers(structure.blocks, structure.sections);
         <legend class="sr-only">Preferences</legend>
         <div class="topic">
           <div class="topic-panel">
-            {/* Where every episode starts (2026-10-25). A speed chosen in the player lasts one episode.
-                 Saved on this device with the player's other preferences, not through the config store. */}
-            <div class="rows topic-controls">
-              <div class="settings-row">
-                <label class="settings-label" for="default-speed">Default playback speed</label>
-                <span class="manage-select value-select">
-                  <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
-                    {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
-              </div>
-            </div>
             <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
               <button
                 class="segmented-nav-tab"
@@ -156,7 +156,8 @@ const offers = addOffers(structure.blocks, structure.sections);
                     <h2 class="profile-card-title">Listener profile</h2>
                     <p class="settings-note" data-profile-note>{PROFILE_NOTE[structure.profile]}</p>
                   </div>
-                  <div class="topic-card-menu settings-row profile-select">
+                  {/* The shared settings select, as Theme's on /settings: no rule of its own (2026-10-27). */}
+                  <div class="topic-card-menu settings-row">
                     <span class="manage-select value-select">
                       <select class="manage-input" id="structure-profile" aria-label="Profile" autocomplete="off" data-needs-js>
                         {
@@ -169,40 +170,46 @@ const offers = addOffers(structure.blocks, structure.sections);
                     </span>
                   </div>
                 </div>
-                {/* The grips show only after Reorder is pressed, so a stray drag down the page never
-                    moves a block (owner, 2026-10-24: "I'm worried about accidental reorders"). Here
-                    from 64rem; below it the floating button at the page's foot is Reorder (owner,
-                    same day: "a fab button on mobile, a normal secondary button on desktop"). */}
-                <button class="btn-secondary structure-reorder" type="button" data-reorder data-needs-js>
-                  <span data-reorder-label>Reorder</span>
-                </button>
               </div>
-              <p class="sr-only" id="structure-grip-hint">Drag to move, or press the up and down arrow keys.</p>
-              {/* Asked in the page, not with window.confirm: choosing a profile over the owner's own list. */}
-              <div class="structure-confirm" role="group" aria-label="Replace your list" data-profile-confirm hidden>
-                <p class="settings-hint" data-profile-confirm-text></p>
-                <div class="structure-confirm-actions">
-                  <button class="btn-secondary" type="button" data-profile-keep>Keep my list</button>
-                  <button class="btn-secondary" type="button" data-profile-replace>Replace</button>
+              {/* Under the card's hairline, the list's head: how many sections, and Reorder and Add at
+                   its end (owner, 2026-10-27). The grips show only after Reorder is pressed, so a stray
+                   drag never moves a block (owner, 2026-10-24); below 64rem the floating button at the
+                   page's foot is Reorder instead. */}
+              <div class="topic-sources-head structure-list-head">
+                <h2 class="section-head" data-block-count>{blockCount(structure.blocks.length - 2)}</h2>
+                <div class="structure-list-actions">
+                  <button class="btn-secondary structure-reorder" type="button" data-reorder data-needs-js>
+                    <span data-reorder-label>Reorder</span>
+                  </button>
+                  <span class="structure-add" style="--row-anchor: --structure-add">
+                    <button
+                      class="btn-secondary"
+                      type="button"
+                      data-add-block
+                      data-needs-js
+                      disabled={offers.length === 0}
+                    >
+                      <Icon name="plus" />
+                      <span>Add section</span>
+                    </button>
+                  </span>
                 </div>
               </div>
+              <p class="sr-only" id="structure-grip-hint">Drag to move, or press the up and down arrow keys.</p>
               <ol
                 class="rows topic-controls structure-list"
                 aria-label="Structure blocks"
                 data-structure-list
                 set:html={rowsHtml(structure.blocks, structure, structure.skip)}
               ></ol>
-              <div class="structure-add" style="--row-anchor: --structure-add">
-                <button
-                  class="btn-secondary"
-                  type="button"
-                  data-add-block
-                  data-needs-js
-                  disabled={offers.length === 0}
-                >
-                  <Icon name="plus" />
-                  <span>Add</span>
-                </button>
+              {/* Shown by topics.css while the list has no block between the hello and the sign-off
+                   (owner, 2026-10-27). Nothing is saved until one is added: an episode needs one. */}
+              <div class="structure-empty empty" data-compact>
+                <EmptyArt art="library" size="compact" />
+                <p class="empty-title">No blocks yet</p>
+                <p class="empty-body">
+                  Add a section to start your podcast. Until then, episodes keep the structure they had.
+                </p>
               </div>
             </section>
           </div>
@@ -222,6 +229,26 @@ const offers = addOffers(structure.blocks, structure.sections);
         <span class="structure-reorder-icon" data-reorder-icon="check"><Icon name="check" class="icon-lg" /></span>
         <span class="create-fab-label" aria-hidden="true" data-reorder-label>Reorder</span>
       </button>
+
+      {/* What leaving Custom asks (structureEditor.ts): the shared confirm dialog, saying the owner's
+           own list is kept and comes back with Custom (owner, 2026-10-27). */}
+      <dialog
+        class="confirm-dialog"
+        aria-labelledby="profile-confirm-title"
+        aria-describedby="profile-confirm-lede"
+        data-profile-confirm
+      >
+        <div class="confirm-form">
+          <h2 class="sheet-title" id="profile-confirm-title" data-profile-confirm-title>Switch profile?</h2>
+          <p class="create-hint confirm-lede" id="profile-confirm-lede">
+            Your custom structure is kept and you can switch back.
+          </p>
+          <div class="confirm-actions">
+            <button class="btn" type="button" data-profile-keep autofocus>Cancel</button>
+            <button class="btn-primary" type="button" data-profile-replace>Switch</button>
+          </div>
+        </div>
+      </dialog>
     </div>
 
     {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's
