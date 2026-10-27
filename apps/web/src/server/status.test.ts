@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson, stepJson } from "../testing/fakeGitHub";
 import { readServerConfig } from "./config";
-import { WORKFLOW_FILE } from "./github";
 import {
   currentStep,
   failedStep,

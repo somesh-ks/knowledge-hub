@@ -14,9 +14,10 @@
  * out again and the new run is followed. A finished run goes away once its episode has been opened.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { briefingFailureLine, failureLine, timeLeft } from "../lib/runStages";
 
-const KEY = "singularity:run";
+const KEY = RUN_STORAGE_KEY;
 const POLL_MS = 4000;
 const MAX_POLLS = 300;
 /**
@@ -435,7 +436,7 @@ function show(run: Stored | null): void {
     } else create.removeAttribute("aria-description");
   }
   // The episode page listens, so it can disable its actions while its own episode is being changed.
-  document.dispatchEvent(new Event("singularity:run"));
+  document.dispatchEvent(new Event(RUN_EVENT));
 }
 
 /** The bar: at the start of the stage at once, then slowly toward its end, and never back. */
@@ -695,12 +696,23 @@ function waitFor(seconds: number): string {
   return m < 60 ? `${m} minute${m === 1 ? "" : "s"}` : `${h} hour${h === 1 ? "" : "s"}`;
 }
 
-/** The line a refused Try again shows, from the element's data-retry-<reason> sentences. */
-function refusal(root: HTMLElement, res: Response | null, reply: Record<string, unknown>): string {
+/**
+ * The line a refused Try again shows, from the element's data-retry-<reason> sentences. A briefing
+ * has its own words for a wait (`briefing-<reason>`), and a wait of a kind nobody wrote words for
+ * still says something, so the button never answers with nothing.
+ */
+export function refusal(
+  root: Pick<HTMLElement, "getAttribute">,
+  res: Pick<Response, "status"> | null,
+  reply: Record<string, unknown>,
+  briefing = false,
+): string {
   const line = (reason: string) => root.getAttribute(`data-retry-${reason}`) ?? "";
   if (!res) return line("network");
   if (res.status === 429) {
-    return line(String(reply.error)).replace("{wait}", waitFor(Number(reply.retry_after_s) || 60));
+    const reason = String(reply.error);
+    const words = (briefing ? line(`briefing-${reason}`) : "") || line(reason) || line("429");
+    return words.replace("{wait}", waitFor(Number(reply.retry_after_s) || 60));
   }
   if (res.status === 400) return line("400");
   return isSiteAnswer(reply) ? withErrorRef(line("503"), reply) : line("crashed");
@@ -742,5 +754,5 @@ async function retry(): Promise<void> {
     focusCreate();
     return;
   }
-  set({ ...run, note: refusal(root, res, reply) || undefined });
+  set({ ...run, note: refusal(root, res, reply, run.what === "briefing") || undefined });
 }

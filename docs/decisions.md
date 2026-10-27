@@ -209,6 +209,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
+| D202 | Guards for a short or lost run, health metrics, one run card | active |
 
 ---
 
@@ -2108,3 +2109,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: an interim secret would be thrown away by OAuth and adds a login step for friends.
 - Revisit if: the URL reaches anyone beyond friends, or a config change is made that the owner did not make.
 - Amends: D160.
+
+## D202: a short or lost run is guarded against, measured, and followed in one run card
+
+- Date: 2026-10-27 (branch `ccr-d90138a8-9n397m`).
+- Decision: (1) a push that conflicts on the cost ledger, timings, usage counter or run metrics merges them by id (`git/stateMerge.ts`) instead of failing; (2) grounding cuts an unsupported sentence before it drops a story, a section over its allowance gives up its lowest stories, and a writer batch that fails is written again in halves; (3) every briefing and episode records its funnel, length share and stage times (`state/run-metrics.json`, `podcast-timings.json`), `singularity metrics` reads them against targets (`metrics/summary.ts`) and `health` warns; (4) a Regenerate is followed in the same run card as a Catch up (strip above the bottom bar on a phone, card in the side column from 64rem), and a failed run says why in a sentence; (5) a Catch up selects half again as many stories as it airs and fills its slots after the structure's caps; (6) the length options stay 3, 5, 10 and 15 minutes.
+- Why: the 2026-10-27 Regenerate aired 2 of 5 minutes (4 stories dropped, refill threw) and its Catch up lost a written episode to a rebase conflict on a ledger that both workflows append to; a stepper inside the Regenerate sheet duplicated the run card and could not show a failure. The 15-minute option already fills the 19,000-character request one narration takes, so a longer option needs chunked narration first.
+- Rejected: choosing one side of a conflicting state file (loses records); editing `config/` in Git to raise the daily length (the store owns it, D149, D185; the owner raises it in Preferences); a Length control in the Regenerate sheet (needs `run.yml`, the engine and the server contract to change together).
+- Revisit if: `singularity metrics` shows `length_share` under 0.9 or `failure_rate` over 0.1 across ten runs, or a longer option is wanted.

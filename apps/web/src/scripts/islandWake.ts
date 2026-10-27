@@ -1,3 +1,4 @@
+import { isBriefingGoing, readRunRecord } from "../lib/runRecord";
 import { isSheetName, type SheetName } from "../sheets/sheetEvents";
 import { whenIdle } from "./idle";
 import { TOAST_EVENT } from "./toastEvent";
@@ -64,14 +65,7 @@ export function installIslandWake(): void {
   document.addEventListener(TOAST_EVENT, wakeIslands);
   // A briefing run remembered from before a reload ends with a sound the sheets island plays, so the
   // sheets come now.
-  let remembered = false;
-  try {
-    const run = JSON.parse(localStorage.getItem("singularity:run") ?? "null");
-    remembered = run?.what === "briefing" && ["queued", "running"].includes(run.phase);
-  } catch {
-    remembered = false;
-  }
-  if (remembered) {
+  if (isBriefingGoing(readRunRecord(localStorage))) {
     wakeIslands();
     return;
   }

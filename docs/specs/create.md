@@ -26,11 +26,12 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 
 ### Run indicator
 - Making something shows live stages: seven for a briefing (one per workflow step, then "Updating the site"), three for an episode ("Getting ready", "Making the episode", "Adding it to your Library"; `podcast.yml` makes the whole episode in one step).
-- Scenario: WHEN a run fails THEN its request is kept and Try again is offered; the next run's bar starts from empty. A refusal names its own wait; a request that cannot go from the line reopens the form filled in.
+- A Regenerate shows in the same card as a Catch up (D202): the Regenerate sheet only starts it, and its words come from the briefing's stages. The card is a strip above the bottom bar on a phone and sits at the foot of the side column from 64rem; it reserves its room (`--run-room`) so the floating button rides above it.
+- Scenario: WHEN a run fails THEN its request is kept and Try again is offered; the next run's bar starts from empty. A failed card says what failed, why in a sentence (an episode's `reason`), and that nothing was changed. A refusal names its own wait; a request that cannot go from the line reopens the form filled in.
 - Opening the new episode, or having it on screen, clears "Episode ready".
 - Scenario: WHEN an episode is still being made THEN Catch up says so instead of sending a second request.
 - After a publish the indicator reads `/latest.json` every 2.5 s and, when an episode goes live, pre-narrates its first two turns (D82).
-- A new episode can be heard from a live copy in Blob while it is written (Listen now on the run card, about 35 to 45 s) (D105).
+- A new episode can be heard from a live copy in Blob while it is written (Listen now on the run card, about 35 to 45 s) (D105). Until its cover is deployed, the player's cover box takes the cover's colour from that copy.
 - Toasts share one quiet style with an icon for success and failure.
 
 ## Code

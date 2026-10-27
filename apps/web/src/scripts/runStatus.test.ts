@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { fill, focusCreate, forgetRunAbout, readRun, resumeRun, SITE_POLL_MS, statusLine } =
+const { fill, focusCreate, forgetRunAbout, readRun, refusal, resumeRun, SITE_POLL_MS, statusLine } =
   await import("./runStatus");
 
 describe("the progress bar", () => {
@@ -279,5 +279,24 @@ describe("what the card says for a run", () => {
     expect(statusLine(run({ phase: "failed", note: "Wait 2 minutes." }), words)).toBe(
       "Wait 2 minutes.",
     );
+  });
+});
+
+describe("a refused Try again", () => {
+  const words: Record<string, string> = {
+    "data-retry-cooldown": "You can make another episode in {wait}.",
+    "data-retry-briefing-cooldown": "You can make another briefing in {wait}.",
+    "data-retry-429": "Too many requests just now. Try again in {wait}.",
+  };
+  const root = { getAttribute: (name: string) => words[name] ?? null };
+
+  it("names a briefing, not an episode, when a Regenerate is retried too soon", () => {
+    const reply = { error: "cooldown", retry_after_s: 120 };
+    expect(refusal(root, { status: 429 }, reply, true)).not.toMatch(/episode/i);
+    expect(refusal(root, { status: 429 }, reply, false)).toMatch(/episode/i);
+  });
+
+  it("says something for a wait of a kind it has no words for, so the button is never silent", () => {
+    expect(refusal(root, { status: 429 }, { error: "burst", retry_after_s: 30 })).not.toBe("");
   });
 });

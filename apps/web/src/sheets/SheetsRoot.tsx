@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import "../styles/player.css";
 import "../styles/sheets.css";
+import { claimEndCue, RUN_EVENT, readRunRecord } from "../lib/runRecord";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate, cueForSheet } from "../player/sound/soundMap";
@@ -73,22 +74,12 @@ export default function SheetsRoot() {
   // A briefing run finishes in the run indicator, not in this island. Its sound is played here, once
   // for each outcome, so a Regenerate still ends with the cue it always had.
   useEffect(() => {
-    let cued = "";
     const onRun = (): void => {
-      let run: { id?: number; phase?: string; what?: string } | null = null;
-      try {
-        run = JSON.parse(localStorage.getItem("singularity:run") ?? "null");
-      } catch {
-        run = null;
-      }
-      if (run?.what !== "briefing" || (run.phase !== "done" && run.phase !== "failed")) return;
-      const key = `${run.id}:${run.phase}`;
-      if (cued === key) return;
-      cued = key;
-      playUiCue(cueForGenerate(run.phase === "done" ? "finished" : "failed"));
+      const cue = claimEndCue(readRunRecord(localStorage), sessionStorage);
+      if (cue) playUiCue(cueForGenerate(cue));
     };
-    document.addEventListener("singularity:run", onRun);
-    return () => document.removeEventListener("singularity:run", onRun);
+    document.addEventListener(RUN_EVENT, onRun);
+    return () => document.removeEventListener(RUN_EVENT, onRun);
   }, []);
 
   useEffect(() => whenIdle(() => void loadGenerate()), []);
