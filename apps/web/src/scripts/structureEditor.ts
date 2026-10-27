@@ -132,11 +132,24 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
   const savedBlocks = stateOf();
   /** The list as last applied, put back when the owner declines to make an edit Custom. */
   let settled = structuredClone(blocks);
-  /** The list as last recorded with a block between the hello and the sign-off. */
-  let lastSound: StructureBlock[] | null = blocks.length > 2 ? structuredClone(blocks) : null;
+  /**
+   * The owner's own list as last applied by the store: what an emptied list stands in for when a
+   * named profile is chosen (an emptied list cannot be kept). Moves only when a save goes through.
+   */
+  const ownOf = (state: {
+    profile: string;
+    blocks?: StructureBlock[];
+    kept?: StructureBlock[] | null;
+  }) => (state.profile === "custom" ? state.blocks : state.kept) ?? null;
+  let lastSound: StructureBlock[] | null = structuredClone(ownOf({ profile, blocks, kept }));
+  const applied = (): void => {
+    const was = markers.get("structure")?.dataset.was;
+    if (!was) return;
+    const own = ownOf(JSON.parse(was));
+    if (own && own.length > 2) lastSound = own;
+  };
   const recordBlocks = (): void => {
     settled = structuredClone(blocks);
-    if (blocks.length > 2) lastSound = structuredClone(blocks);
     // An episode needs a block between the hello and the sign-off (structureProblems): an emptied
     // list sends nothing, and what is saved keeps running until a block is added.
     if (blocks.length <= 2) {
@@ -193,6 +206,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
     root,
     changes,
     () => {
+      applied();
       // A removal sent is no longer one to undo.
       removals = removals.filter(() => changes.has("structure"));
     },

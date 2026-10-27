@@ -1563,6 +1563,7 @@ test.describe("the podcast structure", () => {
     await expect(list).toBeVisible();
     const empty = page.getByText("No blocks yet");
     await expect(empty).toBeHidden();
+    const saved = await list.locator(".structure-row").count();
     const more = list.getByRole("button", { name: /^More for / });
     while ((await more.count()) > 0) {
       await more.first().click();
@@ -1574,7 +1575,6 @@ test.describe("the podcast structure", () => {
 
     // A named profile chosen from the empty state keeps the list as it was last saved, not the
     // empty one the server would refuse; Custom brings that list back.
-    const count = await list.locator(".structure-row").count();
     await page.getByLabel("Profile", { exact: true }).selectOption("student");
     await page
       .getByRole("dialog")
@@ -1587,7 +1587,7 @@ test.describe("the podcast structure", () => {
     expect(sent.custom_blocks.length).toBeGreaterThan(2);
     await page.getByLabel("Profile", { exact: true }).selectOption("custom");
     await expect(empty).toBeHidden();
-    expect(await list.locator(".structure-row").count()).toBeGreaterThan(count);
+    await expect(list.locator(".structure-row")).toHaveCount(saved);
   });
 
   // A reorder went out as the whole list, so a move that the server's own schema refused, or one
