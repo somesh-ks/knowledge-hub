@@ -45,6 +45,52 @@ async function readReserve(path: string): Promise<ReserveFile> {
 /** What the write stage records of a story beside its text, kept for a replacement too. */
 type WrittenFacts = { extract_method?: string; rewritten_fields: string[] };
 
+/** A drop record stays small for the run log: a few stories and sentences, no article text. */
+const DROP_STORIES = 8;
+const DROP_SENTENCES = 3;
+const DROP_SENTENCE_CHARS = 160;
+
+/** Why one story failed the grounding check: enough to tell thin source text from a bad claim. */
+export interface GroundingDropRecord {
+  id: string;
+  source_id: string;
+  /** Characters of source text the check had; 0 when none was kept. */
+  source_chars: number;
+  /** "feed" (feed content or summary), "page" (readability), "scrape", another method, or "missing". */
+  text_from: string;
+  /** The unsupported sentences that triggered the repair. */
+  sentences: string[];
+  /** The voice rules the rewrite broke, when the drop was for its voice. */
+  voice_violations: string[];
+  repairs: number;
+}
+
+/** A compact record of the stories grounding dropped, bounded for the run log. */
+export function groundingDropRecords(
+  dropped: Awaited<ReturnType<typeof groundAndRepair>>["dropped"],
+  materials: ReadonlyMap<string, SourceMaterial>,
+  methods: ReadonlyMap<string, string | undefined>,
+  sourceIdOf: (id: string) => string,
+): GroundingDropRecord[] {
+  return dropped.slice(0, DROP_STORIES).map((d) => {
+    const method = methods.get(d.id);
+    const from = materials.has(d.id) ? (method ?? "unknown") : "missing";
+    const sentences = d.unsupported.map((u) => u.sentence);
+    return {
+      id: d.id,
+      source_id: sourceIdOf(d.id),
+      source_chars: materials.get(d.id)?.text.length ?? 0,
+      text_from:
+        from === "content" || from === "snippet" ? "feed" : from === "readability" ? "page" : from,
+      sentences: sentences.slice(0, DROP_SENTENCES).map((t) => t.slice(0, DROP_SENTENCE_CHARS)),
+      voice_violations: d.violations
+        .slice(0, DROP_SENTENCES)
+        .map((v) => v.message.slice(0, DROP_SENTENCE_CHARS)),
+      repairs: d.repairs,
+    };
+  });
+}
+
 interface ValidateDrop {
   id: string;
   reason: string;
@@ -118,6 +164,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     const pool = await loadPassPool(file("pool.json"), file("general.json"));
     const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
     const materials = new Map<string, SourceMaterial>(materialsFile.items.map((m) => [m.id, m]));
+    const poolSourceOf = new Map(pool.items.map((item) => [item.id, item.source_id]));
     const entryOf = new Map<string, SelectionItem>(selection.items.map((e) => [e.id, e]));
     const asSelection = (items: readonly GroundedItem[]): Selection => ({
       ...selection,
@@ -350,6 +397,13 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     // Marked used last, once the selection holds the replacements: one round, and a run stopped
     // before this point refills again on a re-run.
     if (refillDone) await writeJson(file("reserve.json"), { ...reserve, refilled: true });
+    const methodOf = new Map<string, string | undefined>([
+      ...written.items.map((w) => [w.id, w.extract_method] as const),
+      ...[...refillFacts].map(([id, f]) => [id, f.extract_method] as const),
+    ]);
+    const dropRecords = groundingDropRecords(grounding.dropped, materials, methodOf, (id) =>
+      String(poolSourceOf.get(id) ?? ""),
+    );
     await writeJson(file("validate-report.json"), {
       version: 1,
       id: pass.id,
@@ -357,6 +411,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       verified,
       kept: finalists.length,
       grounding_dropped: grounding.dropped.length,
+      grounding_drops: dropRecords,
       validate_dropped: validateDrops,
       spares_unaired: [...spare],
       refill_written: refill.written,
@@ -380,6 +435,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       verified,
       items: finalists.length,
       grounding_dropped: grounding.dropped.length,
+      grounding_drops: dropRecords,
       validate_dropped: validateDrops.length,
       refill_written: refill.written,
       refill_kept: refill.kept,

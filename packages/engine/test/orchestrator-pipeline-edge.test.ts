@@ -18,6 +18,7 @@ import { BudgetExceededError } from "../src/llm/errors.js";
 import { collectHealth } from "../src/ops/health.js";
 import { readPlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
+import { groundingDropRecords } from "../src/run/validateStage.js";
 import { markCopiedFromStore, SNAPSHOT_TRAILER } from "../src/store/configDocs.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
@@ -320,6 +321,63 @@ describe("grounding and validation", () => {
       expect.objectContaining({ id: firstId, stage: "grounding" }),
     );
     expect(written.items.every((entry) => entry.verified)).toBe(true);
+  });
+
+  // The 2026-10-27 daily lost 5 of 8 stories to grounding and its cache was gone: nobody could say
+  // which sentences failed or how much source text the check had.
+  it(
+    "names a grounding-dropped story, its source text length and its failing sentence",
+    LONG,
+    async () => {
+      const { writer, unsupported } = writerUnsupportedFirst(1);
+      const world = makeWorld(repo.root, { now: WED, writer });
+      await runStage(world);
+      const [firstId] = unsupported as [string];
+      const report = (await readJson(repo.root, ".cache/run/2026-10-07/validate-report.json")) as {
+        grounding_drops: Array<{
+          id: string;
+          source_chars: number;
+          text_from: string;
+          sentences: string[];
+          repairs: number;
+        }>;
+      };
+      expect(report.grounding_drops).toHaveLength(1);
+      const [drop] = report.grounding_drops as [(typeof report.grounding_drops)[number]];
+      expect(drop.id).toBe(firstId);
+      expect(drop.source_chars).toBeGreaterThan(0);
+      expect(drop.text_from).not.toBe("missing");
+      expect(drop.sentences[0]).toContain("UNSUPPORTED claim about springs");
+      expect(drop.repairs).toBe(0);
+    },
+  );
+
+  // A rewrite that breaks the voice rules drops the story, but the claim that triggered the repair
+  // is what the owner needs in the log, not only the lint messages.
+  it("keeps the unsupported sentence of a story dropped for its voice", () => {
+    const [record] = groundingDropRecords(
+      [
+        {
+          id: "a",
+          reason: "voice",
+          unsupported: [
+            {
+              field: "summary",
+              sentence: "The claim nobody supports.",
+              score: 0.1,
+              status: "unsupported",
+            },
+          ],
+          violations: [{ field: "summary", rule: "banned_word", message: "Avoid a banned word." }],
+          repairs: 1,
+        },
+      ],
+      new Map(),
+      new Map(),
+      () => "src",
+    );
+    expect(record?.sentences).toEqual(["The claim nobody supports."]);
+    expect(record?.voice_violations).toEqual(["Avoid a banned word."]);
   });
 
   const SCHEDULE_3_MINUTES = json({

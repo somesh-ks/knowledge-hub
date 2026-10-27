@@ -17,6 +17,8 @@ export interface GroundingDrop {
   reason: "unsupported" | "voice";
   unsupported: SentenceVerdict[];
   violations: Violation[];
+  /** Fields rewritten before the drop: the repair attempts made. */
+  repairs: number;
 }
 
 export interface GroundingOutcome {
@@ -70,7 +72,13 @@ export async function groundAndRepair(args: {
       const material = args.materials.get(original.id);
       if (!material) {
         return {
-          drop: { id: original.id, reason: "unsupported", unsupported: [], violations: [] },
+          drop: {
+            id: original.id,
+            reason: "unsupported",
+            unsupported: [],
+            violations: [],
+            repairs: 0,
+          },
         };
       }
       const check = (item: WrittenItem): Promise<GroundingVerdict> =>
@@ -113,7 +121,15 @@ export async function groundAndRepair(args: {
           }
         }
         if (violations.length > 0) {
-          return { drop: { id: item.id, reason: "voice", unsupported: bad, violations } };
+          return {
+            drop: {
+              id: item.id,
+              reason: "voice",
+              unsupported: bad,
+              violations,
+              repairs: rewrittenFields.length,
+            },
+          };
         }
         // The spoken telling was written from the summary that was just rewritten, so it goes with it.
         if (rewrittenFields.includes("summary")) delete next.spoken;
@@ -122,7 +138,13 @@ export async function groundAndRepair(args: {
         const stillBad = unsupportedOf(verdict);
         if (stillBad.length > 0) {
           return {
-            drop: { id: item.id, reason: "unsupported", unsupported: stillBad, violations: [] },
+            drop: {
+              id: item.id,
+              reason: "unsupported",
+              unsupported: stillBad,
+              violations: [],
+              repairs: rewrittenFields.length,
+            },
           };
         }
       }
