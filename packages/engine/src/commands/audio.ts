@@ -40,7 +40,7 @@ export const defaultAudioDeps: AudioCommandDeps = {
   transcodeOpus: (mp3) => transcodeToOpus(mp3),
   transcodeEpisodeOpus: (mp3s) => transcodeSegmentsToOpus(mp3s),
   fetchAudio: async (url) => {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
     if (!response.ok) throw new Error(`${url} answered ${response.status}`);
     return new Uint8Array(await response.arrayBuffer());
   },

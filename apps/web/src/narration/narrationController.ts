@@ -198,7 +198,10 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   ): Promise<{ url: string; segments: SegmentInfo[] } | null> {
     if (!found || (deps.canPlayType ?? browserCanPlayType())(M4A_OPUS) === "") return null;
     try {
-      const response = await deps.api.fetch(found.manifest_url);
+      // Bounded: a manifest that never answers must not hold Play off the MP3 turns.
+      const response = await deps.api.fetch(found.manifest_url, {
+        signal: AbortSignal.timeout(10_000),
+      });
       if (!response.ok) return null;
       const manifest = parseEpisodeOpusManifest(await response.json());
       const aligned = manifest ? alignToManifest(segments, manifest) : null;
