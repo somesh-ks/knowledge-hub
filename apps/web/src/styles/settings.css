@@ -34,25 +34,14 @@
 
 /* The page's name at the display size. A subpage has a small "Settings /" line above it (owner,
    2026-10-25, reversing 2026-10-20's "no breadcrumb"; the app bar's back arrow stays below 64rem).
+   The link's 44px hit area is the shared .text-link layer (primitives.css, #355); the line keeps
+   its height and the title does not move.
    Markup: <nav class="settings-crumb"><a class="text-link" href="/settings">Settings</a> /</nav> */
 .settings-crumb {
   margin-block-end: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-caption);
-}
-
-/* The link is the shared .text-link; only its target grows to 44px tall, with padding the negative
-   margin takes back, so the line keeps its height and the title does not move (2026-10-26). */
-.settings-crumb a {
-  display: inline-block;
-  padding-block: calc((var(--size-touch) - 1lh) / 2);
-  margin-block: calc((var(--size-touch) - 1lh) / -2);
-}
-
-/* .text-link's own hit layer would reach 12px past that padding: it takes the padding box. */
-.settings-crumb a::after {
-  inset-block: 0;
 }
 
 .settings-head > h1 {

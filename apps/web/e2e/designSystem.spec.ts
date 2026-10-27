@@ -55,9 +55,6 @@ const EXEMPT = [
   // Centred on the title's first line by the label's leading (banner.css); seen on /design, where a
   // banner is always shown.
   ".banner > .icon",
-  // The breadcrumb link's 44px target is padding that its negative margin takes back, each half
-  // the difference of 44px and the line's height (settings.css, 2026-10-26).
-  ".settings-crumb a",
 ];
 
 const PAGES = [
