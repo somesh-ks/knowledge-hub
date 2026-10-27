@@ -3229,3 +3229,24 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
 [hidden] {
   display: none;
 }
+
+/*
+ * The expand chevron, right of the volume in dock-tools (desktop only, as the tools are). The glyph
+ * is the chevron down; collapsed it is turned to point up, open it points down. The turn takes the
+ * state duration and is skipped for reduced motion. Uses the shared .icon-btn; only the turn is its own.
+ */
+.dock-expand .ui-icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  rotate: 180deg;
+}
+
+.dock-expand[aria-expanded="true"] .ui-icon {
+  rotate: 0deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dock-expand .ui-icon {
+    transition: rotate var(--duration-state) var(--ease-out);
+  }
+}

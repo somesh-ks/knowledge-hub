@@ -4,7 +4,7 @@ import { dismissOnScrim } from "./pullDismiss";
  * The unsaved-changes guard every edit sheet shares (2026-10-25). A sheet saves only with its own
  * Save button; nothing saves on an outside click. When the form differs from what it opened with,
  * the scrim, the Close button, Escape, a pull down and browser Back all ask "Save changes?" in the
- * confirm dialog (confirm-dialog, episode-actions.css) instead of closing: Save, Discard or Keep
+ * confirm dialog (confirm-dialog, create-sheet.css) instead of closing: Save, Discard or Keep
  * editing. A sheet with nothing changed closes at once.
  */
 

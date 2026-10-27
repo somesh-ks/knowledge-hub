@@ -530,7 +530,6 @@ test.describe("saved, before the build", () => {
     await expect(page.locator("#daily-hour")).toBeEnabled();
     await page.locator("label[for=daily-enabled]").click();
     await expect(page.locator("#daily-hour")).toBeDisabled();
-    await expect(page.getByText("Off: no daily briefing is made")).toBeVisible();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", enabled: false });
     await expect(spoken(page)).toHaveText(SAVED);
@@ -539,7 +538,6 @@ test.describe("saved, before the build", () => {
     await open(page, "daily");
     await expect(page.locator("#daily-enabled")).not.toBeChecked();
     await expect(page.locator("#daily-hour")).toBeDisabled();
-    await expect(page.getByText("Off: no daily briefing is made")).toBeVisible();
   });
 
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({

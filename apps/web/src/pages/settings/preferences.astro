@@ -18,11 +18,11 @@ import { loadScheduleView } from "../../lib/schedule";
 import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
 import { addOffers, blockCount, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
+import { PLAYBACK_RATES } from "../../player/core/playerTypes";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
 import "../../styles/create.css";
-import "../../styles/episode-actions.css";
 
 // The type mix (config/preferences.json): one for every topic, so one slider per source type here
 // rather than on each topic's page (2026-10-20). Normal is the default and is not in the file.
@@ -77,6 +77,19 @@ const offers = addOffers(structure.blocks, structure.sections);
         <legend class="sr-only">Preferences</legend>
         <div class="topic">
           <div class="topic-panel">
+            {/* Where every episode starts (2026-10-25). A speed chosen in the player lasts one episode.
+                 Saved on this device with the player's other preferences, not through the config store. */}
+            <div class="rows topic-controls">
+              <div class="settings-row">
+                <label class="settings-label" for="default-speed">Default playback speed</label>
+                <span class="manage-select value-select">
+                  <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+                    {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
+                  </select>
+                  <Icon name="chevronDown" />
+                </span>
+              </div>
+            </div>
             <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
               <button
                 class="segmented-nav-tab"
@@ -355,4 +368,28 @@ const offers = addOffers(structure.blocks, structure.sections);
 
   installTopicsPage();
   installSettingsPage();
+</script>
+
+<script>
+  import { isPlaybackRate } from "../../player/core/playerTypes";
+  import { getPreferences } from "../../player/core/preferences";
+
+  // Read on each page load, so the select shows what the player will start at.
+  function installDefaultSpeed(): void {
+    const select = document.querySelector<HTMLSelectElement>("[data-default-speed]");
+    if (!select) return;
+    const preferences = getPreferences();
+    const current = preferences.get().rate;
+    // A speed saved when the slider set the default is not a preset: it still shows, and stays chosen.
+    if (![...select.options].some((o) => Number(o.value) === current)) {
+      select.add(new Option(`${current}x`, String(current)), 0);
+    }
+    select.value = String(current);
+    select.addEventListener("change", () => {
+      const rate = Number(select.value);
+      if (isPlaybackRate(rate)) preferences.set({ rate });
+    });
+  }
+
+  document.addEventListener("astro:page-load", installDefaultSpeed);
 </script>
