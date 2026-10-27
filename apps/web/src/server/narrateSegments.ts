@@ -3,7 +3,7 @@ import {
   durationFromMp3Bytes,
   type SpokenSegment,
 } from "@singularity/engine/audio";
-import { segmentHash, segmentPath } from "@singularity/engine/segments";
+import { episodeOpusAddress, segmentHash, segmentPath } from "@singularity/engine/segments";
 import type { NarrationSegment } from "../types/contracts";
 import type { BlobEntry } from "./blobStore";
 import { MS_PER_CHARACTER } from "./config";
@@ -56,6 +56,32 @@ export function segmentAudio(
     url: entry.url,
     duration_ms: estimateDurationMs(entry.size, characters),
     confirmed: true,
+  };
+}
+
+/**
+ * Where a finished episode's single Opus file and its manifest of turn offsets would be (the
+ * engine's `publish` makes them once every turn is stored). Worked out like the turns' addresses,
+ * without asking the store; the page reads the manifest and takes the file only if it is there.
+ * Null without the store's public address.
+ */
+export function describeEpisodeOpus(
+  segments: readonly SpokenSegment[],
+  publicBase: string | null,
+  episode: string,
+  voice: (key: string) => string,
+  model: string,
+): { url: string; manifest_url: string } | null {
+  if (publicBase === null || segments.length === 0) return null;
+  const address = episodeOpusAddress(
+    episode,
+    segments.map((segment) =>
+      segmentPath(episode, segment.key, segmentHash(segment.text, voice(segment.key), model)),
+    ),
+  );
+  return {
+    url: `${publicBase}/${address.path}`,
+    manifest_url: `${publicBase}/${address.manifestPath}`,
   };
 }
 

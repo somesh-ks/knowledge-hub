@@ -31,6 +31,7 @@ import {
 import type { SpokenText } from "../audio/spokenText.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
+import type { EpisodeOpusFile } from "../audio/transcode.js";
 import type { Logger } from "../context.js";
 import { costKindOf } from "../cost/ledger.js";
 import { loadSchedule } from "../schedule/store.js";
@@ -54,6 +55,13 @@ export interface PublishAudioDeps {
    * as .m4a; a failure here leaves the MP3 alone, so the briefing still has audio.
    */
   transcodeOpus?: (mp3: Uint8Array) => Promise<Uint8Array>;
+  /**
+   * An episode's turns, in order, to ONE Opus in MP4 file (audio/transcode.ts), and a way to read a
+   * stored turn back. Both set, a finished episode is also published as one .m4a with the turns'
+   * offsets; a failure leaves the MP3 turns alone, so the episode still plays.
+   */
+  transcodeEpisodeOpus?: (mp3s: Uint8Array[]) => Promise<EpisodeOpusFile>;
+  fetchAudio?: (url: string) => Promise<Uint8Array>;
   sleep?: (ms: number) => Promise<void>;
 }
 

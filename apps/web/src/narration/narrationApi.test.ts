@@ -47,6 +47,7 @@ describe("lookupNarration", () => {
       ok: true,
       msPerCharacter: 62,
       whole: null,
+      opus: null,
       segments: [
         {
           key: "intro",
