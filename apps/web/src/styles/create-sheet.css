@@ -14,16 +14,16 @@
   display: none;
 }
 
-/* The column's one action. It is the navigation rows' size and shape: the column's full width, the
-   rows' height and their round ends, so the four read as one set. Its icon and words sit where the
-   rows' do. A press shows in the fill, never by scaling the label.
-   A neutral tonal fill with the accent on its icon and words: the accent container means "you are
-   here" alone, so beside the current row it no longer reads as a second selected item (owner,
-   2026-10-22; it was accent-container-high, D86). On /create it is the current place and takes the
-   rows' current fill. */
+/* The column's one action. It is the navigation rows' size: the column's full width and the rows'
+   height. Its icon and words sit where the rows' do. A press shows in the fill, never by scaling the
+   label.
+   Its fill, words, 16px corners and states are the tonal action's (.btn-action-tonal, buttons.css):
+   the accent container means "you are here" alone, so the action takes a richer tone of its own
+   and a rounded rectangle, not the rows' pill (owner, 2026-10-27; it was surface-container with
+   accent words, 2026-10-22, which read as faded, and accent-container-high before that, D86). On
+   /create it is the current place and takes the rows' current fill. */
 @media (width >= 64rem) {
   .app-nav-create {
-    --color-focus-gap: var(--color-surface);
     display: flex;
     align-items: center;
     align-self: stretch;
@@ -33,9 +33,6 @@
     height: var(--nav-side-item-height);
     padding-inline: calc(var(--space-4) - var(--stroke-hairline));
     border: var(--stroke-hairline) solid transparent;
-    border-radius: var(--button-radius);
-    background: var(--color-surface-container);
-    color: var(--color-accent);
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
@@ -52,25 +49,9 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .app-nav-create:hover {
-      background: color-mix(
-        in oklch,
-        var(--color-surface-container),
-        var(--color-accent) var(--state-hover)
-      );
-    }
-
     .app-nav-create[aria-current="page"]:hover {
       background: var(--nav-side-item-bg);
     }
-  }
-
-  .app-nav-create:active {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-accent) var(--state-press)
-    );
   }
 
   /* On the New episode page the button is the current place: nothing to press, so no state layer. */

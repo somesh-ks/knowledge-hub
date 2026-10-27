@@ -191,6 +191,14 @@ describe("color contrast", () => {
         contrastRatio(high, page),
         `the New episode button reads as an action, not a current place (${mode})`,
       ).toBeGreaterThan(chosen + 0.2);
+      // The rail's Catch up: a shape at 3:1 on the page with no outline, its words at 4.5:1, and
+      // further from the page than the current row, so it never reads as faded or as selected.
+      const action = colorOf("semantic.color.accent-action", mode);
+      expect(
+        contrastRatio(colorOf("semantic.color.on-accent-action", mode), action),
+        `on-accent-action on accent-action (${mode})`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(action, page), `accent-action on the page (${mode})`).toBeGreaterThanOrEqual(3);
     },
   );
 
