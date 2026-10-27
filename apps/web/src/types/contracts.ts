@@ -64,7 +64,7 @@ export interface PlayerDigestData {
   /** English long date, "Wednesday 7 October". */
   title: string;
   kind: DigestKind;
-  audio: { url: string; duration_ms: number } | null;
+  audio: { url: string; duration_ms: number; m4a_url?: string } | null;
   /** How the item times were derived, or null when there is no audio. */
   timeline: "marks" | "estimated" | null;
   items: PlayerItem[];
@@ -142,6 +142,15 @@ export interface StatusResponse {
   stage?: number;
   stages?: number;
   label?: string;
+  /**
+   * Usual length of each stage in milliseconds, matching the stages, when the engine knows them.
+   * The page turns it into "About N min left"; without it the page shows the stage name only.
+   */
+  stage_estimates_ms?: (number | null)[];
+  /** A failed episode run: the stage it stopped in ("gathering", "script", "cover", "voices", "publishing"). */
+  failed_stage?: string;
+  /** A failed episode run: the artifacts the earlier stages finished ("script", "cover", "voices"). */
+  kept?: string[];
   /** Present once state is "completed". Read from state/last-run.json. */
   outcome?: "published" | "nothing" | "gated" | "failed";
   digest_id?: string;
@@ -257,6 +266,12 @@ export type NarrateLookupResponse =
       segments: NarrationSegment[];
       /** An estimate of the voice's pace, for laying out segments that have no audio yet. */
       ms_per_character: number;
+      /**
+       * A finished episode as one Opus in MP4 file, with a manifest of where each turn sits in it.
+       * Both are where the files WOULD be, not proof: the manifest is fetched first and the file
+       * is used only when it is there. Absent for a briefing and for an episode still being written.
+       */
+      opus?: { url: string; manifest_url: string };
     }
   | NarrateError;
 
@@ -296,7 +311,6 @@ export type ConfigOp =
         id: string;
         name: string;
         description: string;
-        weight: number;
         enabled: boolean;
         keywords: string[];
         section_id: string;
@@ -322,9 +336,10 @@ export type ConfigOp =
       lean?: number | null;
       /** A favorite: every post goes to the judge, ranked up, with no keyword needed. */
       high_signal?: boolean;
+      /** Opt in to a provider read ("alexandria:anthropic-com", anthropic.com only); null is the default scrape. */
+      fetch_via?: "alexandria:anthropic-com" | null;
     }
   | { op: "source.remove"; id: string }
-  | { op: "weights.set"; weights: Record<string, number> }
   | {
       op: "topic.mix";
       id: string;
@@ -341,6 +356,8 @@ export type ConfigOp =
       /** Any subset of these; a field left out keeps what the file holds. At least one is required. */
       /** IANA name of the schedule's clock, one of SUPPORTED_TIMEZONES. */
       timezone?: string;
+      /** False turns the daily briefing off; true turns it on. */
+      enabled?: boolean;
       /** Whole hour in the schedule's time zone, 0 to 23. */
       hour?: number;
       /** Days between briefings: 1, 2, 3 or 7. */
@@ -352,6 +369,8 @@ export type ConfigOp =
       /** Speechify voice ids of the daily podcast; null means the engine's default. */
       voice_id?: string | null;
       voice_id_b?: string | null;
+      /** Hours the daily podcast looks back (core's LOOKBACK_STOPS); null is Auto. */
+      lookback_hours?: 12 | 24 | 48 | 72 | 168 | null;
       /** The weekly podcast. Fields left out keep what the file holds. */
       weekly?: {
         enabled?: boolean;
@@ -364,6 +383,7 @@ export type ConfigOp =
         length_minutes?: PodcastRequest["length_minutes"];
         voice_id?: string | null;
         voice_id_b?: string | null;
+        lookback_hours?: 12 | 24 | 48 | 72 | 168 | null;
       };
       /** What the Create panel starts from. */
       custom?: {
@@ -388,12 +408,20 @@ export type ConfigOp =
       custom?: boolean;
     }
   /**
-   * The profile ops (block, unblock, vote) and structure.set (one podcast kind's whole list of
-   * blocks, D170) are core's own definitions: one place for their shape.
+   * The profile ops (block, unblock, vote), structure.set (the profile and, for Custom, the whole list of
+   * blocks every podcast follows, D170) and structure.prompt (one block's prompt, D182) are core's own definitions: one
+   * place for their shape.
    */
   | Extract<
       CoreConfigOp,
-      { op: "profile.block" | "profile.unblock" | "profile.vote" | "structure.set" }
+      {
+        op:
+          | "profile.block"
+          | "profile.unblock"
+          | "profile.vote"
+          | "structure.set"
+          | "structure.prompt";
+      }
     >;
 
 /** One vote on a story, as profile.vote carries it (VoteInput in core). */

@@ -119,7 +119,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
           {page ? (
             <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-topics-label">
               <h3 className="sheet-field-label" id="regen-topics-label">
-                Topics
+                Categories
               </h3>
               <div className="filter-chips">
                 {page.chips.map((chip) => (
@@ -146,7 +146,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
               {topicError ? (
                 <p className="sheet-field-error" role="alert">
                   <Icon name="alert" />
-                  <span>Pick at least one topic.</span>
+                  <span>Pick at least one category.</span>
                 </p>
               ) : null}
             </fieldset>

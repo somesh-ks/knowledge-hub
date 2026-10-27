@@ -1,4 +1,5 @@
 ---
+import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import PodcastProfile from "../../components/PodcastProfile.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
@@ -39,21 +40,25 @@ const PAGES = {
     title: "Daily Podcast",
     values: {
       timezone: schedule.timezone,
+      enabled: schedule.enabled,
       hour: schedule.hour,
       cadenceDays: schedule.cadenceDays,
       skipTopics: schedule.skipTopics,
       lengthMinutes: schedule.lengthMinutes,
+      lookbackHours: schedule.lookbackHours,
     },
   },
   weekly: {
     title: "Weekly Podcast",
     values: {
       timezone: schedule.timezone,
+      enabled: schedule.weekly.enabled,
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
       skipTopics: schedule.weekly.skip_topics,
       format: schedule.weekly.format,
       lengthMinutes: schedule.weekly.length_minutes,
+      lookbackHours: schedule.weekly.lookback_hours ?? null,
     },
   },
 } as const;
@@ -79,6 +84,18 @@ const { title, values } = PAGES[profile];
             topics={scopeTopics}
             builtTopics={topics.map((topic) => topic.id)}
           />
+          <section class="podcast-section" aria-labelledby={`${profile}-structure-head`}>
+            <h2 class="section-head" id={`${profile}-structure-head`}>Structure</h2>
+            <div class="rows card-group">
+              <a class="row-action" href="/settings/preferences?view=structure">
+                <span class="settings-text">
+                  <span class="settings-label">Podcast structure</span>
+                  <span class="settings-hint">Setting to be changed in preferences</span>
+                </span>
+                <Icon name="chevronRight" />
+              </a>
+            </div>
+          </section>
         </div>
       </fieldset>
 

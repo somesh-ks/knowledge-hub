@@ -5,6 +5,7 @@
  * tooltip, not in stacked colours (2026-10-22). Plain DOM and inline SVG, no framework and no chart
  * library: the numbers are one fetch, and this page loads nothing else.
  */
+import { BRAND_MARKS } from "../lib/brandMarks";
 import { mountSegmentedNav } from "./segmentedNav";
 
 interface Rollup {
@@ -18,6 +19,8 @@ interface CostResponse {
   prices_as_of: string;
   unconfirmed: string[];
   site: "ok" | "unavailable";
+  /** The engine's ledger: "unavailable" when the build's older copy stood in. */
+  engine?: "ok" | "unavailable";
   /** Anthropic's own bill: "off" until the owner sets an Admin key. */
   billing?: "ok" | "unavailable" | "off";
   report: {
@@ -50,6 +53,7 @@ const NAMES: Record<string, string> = {
   exa: "Exa",
   firecrawl: "Firecrawl",
   gemini: "Gemini",
+  github: "GitHub",
   speechify: "Speechify",
   typesafe: "TypeSafe",
   daily: "Daily",
@@ -164,23 +168,6 @@ function partsOf(data: CostResponse, by: string): Part[] {
   return [...sums.values()].filter((part) => part.usd > 0).sort((a, b) => b.usd - a.usd);
 }
 
-/** The providers the price table has a price for that nobody has confirmed yet. */
-const unconfirmedProviders = (data: CostResponse): string[] => [
-  ...new Set(data.unconfirmed.map((entry) => entry.split("/")[0] ?? "").filter(Boolean)),
-];
-
-/**
- * True when the amounts rest on a price nobody has confirmed. The report is split by the chosen
- * breakdown, so which provider spent what is not always in it: any unconfirmed price counts, and
- * the label reads the same under every split.
- */
-const estimated = (data: CostResponse): boolean =>
-  data.report.total.usd > 0 && data.unconfirmed.length > 0;
-
-/** Names in prose: "Gemini", "Gemini and Exa", "Gemini, Exa and Speechify". */
-const listed = (names: string[]): string =>
-  names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-
 /** A clean axis: 0, step, 2 x step, with the top at or above the tallest column. */
 function niceScale(max: number): { top: number; step: number } {
   if (max <= 0) return { top: 1, step: 0.5 };
@@ -207,6 +194,8 @@ interface Drawn {
 }
 let drawn: Drawn | null = null;
 let active = -1;
+// The first paint of data grows the columns from the baseline (costs.css); a resize or a filter redraw does not.
+let growNext = true;
 
 function geometry(width: number, count: number): { band: number; barW: number } {
   const band = (width - PAD.left - PAD.right) / count;
@@ -273,6 +262,8 @@ function draw(): void {
     }
     columns.append(group);
   });
+  if (growNext && !empty) columns.classList.add("is-growing");
+  if (!empty) growNext = false;
   svg.append(columns);
 
   // A few dates under the axis, evenly spaced back from the newest, as many as fit 72px apart. The
@@ -412,16 +403,44 @@ function renderAnswer(data: CostResponse, period: Period): void {
     if (el) el.textContent = text;
   };
   set("[data-costs-total]", usd(report.total.usd));
-  // An amount resting on a price nobody has confirmed says so in its label, not in a badge.
-  set("[data-costs-label]", estimated(data) ? "Estimated spend" : "Total spend");
-  // With no runs the chart says so; the line keeps its height (a no-break space), so nothing moves.
-  const parts: string[] = [];
-  if (report.total.runs > 0) {
-    parts.push(plural(report.total.runs, "run"), `${usd(report.per_run_usd)} a run`);
-    if (report.users > 1) parts.push(`${usd(report.per_user_usd)} a person`);
-  }
-  set("[data-costs-detail]", parts.join(" · ") || " ");
+  renderStats(data, period);
   set("[data-costs-empty]", `No paid runs in ${WINDOW[period]}.`);
+}
+
+/** Runs, the average a run, the busiest period and the average a period or a person, as stat tiles. */
+function renderStats(data: CostResponse, period: Period): void {
+  const list = pick<HTMLElement>("[data-costs-stats]");
+  if (!list) return;
+  const { report } = data;
+  const figures: Array<[string, string]> = [];
+  if (report.total.runs > 0) {
+    const spans = report.buckets.filter((b) => b.total.usd > 0);
+    const peak = Math.max(0, ...spans.map((b) => b.total.usd));
+    figures.push(
+      [String(report.total.runs), report.total.runs === 1 ? "run" : "runs"],
+      [usd(report.per_run_usd), "a run"],
+      // A label under its tile's value, so one short line: "busiest day", not "in the busiest day".
+      [usd(peak), `busiest ${PER[period]}`],
+      report.users > 1
+        ? [usd(report.per_user_usd), "a person"]
+        : [usd(report.total.usd / Math.max(1, spans.length)), `active ${PER[period]}`],
+    );
+  }
+  list.hidden = figures.length === 0;
+  list.replaceChildren(
+    ...figures.map(([value, label]) => {
+      const item = document.createElement("li");
+      item.className = "stat-tile";
+      const strong = document.createElement("strong");
+      strong.className = "stat-tile-value";
+      strong.textContent = value;
+      const text = document.createElement("span");
+      text.className = "stat-tile-label";
+      text.textContent = label;
+      item.append(strong, " ", text);
+      return item;
+    }),
+  );
 }
 
 /** Where a column sits in a sentence: "on 20 Oct", "in the week of 13 Oct", "in August 2026". */
@@ -447,7 +466,26 @@ function renderBreakdown(data: CostResponse, by: string): void {
       item.className = "costs-rank-row";
       const name = document.createElement("span");
       name.className = "costs-rank-name";
-      name.textContent = part.unpriced ? `${part.label}, no price yet` : part.label;
+      const mark = by === "provider" ? BRAND_MARKS[part.key] : undefined;
+      if (mark) {
+        const logo = svgEl("svg", {
+          viewBox: mark.viewBox,
+          class: "costs-rank-mark",
+          "aria-hidden": "true",
+          focusable: "false",
+        });
+        if (mark.height) logo.style.setProperty("--mark-h", String(mark.height));
+        logo.append(
+          svgEl("path", { d: mark.d, ...(mark.evenodd ? { "fill-rule": "evenodd" } : {}) }),
+        );
+        const slot = document.createElement("span");
+        slot.className = "costs-rank-slot";
+        slot.append(logo);
+        name.append(slot);
+      }
+      const label = document.createElement("span");
+      label.textContent = part.unpriced ? `${part.label}, no price yet` : part.label;
+      name.append(label);
       const value = document.createElement("span");
       value.className = "costs-rank-value";
       value.textContent = usd(part.usd);
@@ -510,36 +548,65 @@ function renderTable(now: Drawn): void {
 /**
  * A table wider than its card scrolls sideways (a phone): then it is a tab stop, so a keyboard can
  * scroll it (WCAG 2.1.1; axe, 2026-10-24). A table that fits adds no dead stop. Run after each render
- * and on every resize of its box, which the table view's first showing is.
+ * and on every resize of its box, which the table view's first showing is. While it scrolls, its
+ * edge fade begins past the pinned period column (--scroll-fade-inset, primitives.css), so the dates
+ * stay whole.
  */
 function syncTableScroll(): void {
   const scroller = pick<HTMLElement>("[data-costs-table-scroll]");
   if (!scroller) return;
-  if (scroller.scrollWidth > scroller.clientWidth) scroller.tabIndex = 0;
+  const overflows = scroller.scrollWidth > scroller.clientWidth;
+  if (overflows) scroller.tabIndex = 0;
   else scroller.removeAttribute("tabindex");
+  const pinned = scroller.querySelector("table")?.rows[0]?.cells[0];
+  if (overflows && pinned)
+    scroller.style.setProperty(
+      "--scroll-fade-inset",
+      `${Math.round(pinned.getBoundingClientRect().width)}px`,
+    );
+  else scroller.style.removeProperty("--scroll-fade-inset");
 }
 
-/** What the numbers rest on, in a sentence or two. */
-function noteOf(data: CostResponse): string {
-  // Which prices are estimates matters only once something was spent.
-  const names = estimated(data)
-    ? unconfirmedProviders(data).map((key) => nameOf("provider", key))
-    : [];
-  const parts = [`Prices as of ${longDate(data.prices_as_of)}.`];
-  if (names.length > 3) parts.push("Most are not confirmed yet, so amounts are estimates.");
-  else if (names.length > 0)
-    parts.push(
-      `${listed(names)} ${names.length === 1 ? "is an estimate" : "are estimates"} until confirmed.`,
-    );
-  parts.push("Days follow Stockholm time.");
-  if (data.site === "unavailable")
-    parts.push("Narration on Play could not be read, so it is left out.");
-  if (data.billing === "ok")
-    parts.push("Anthropic is what it billed: Outside the app is the eval and runs off the site.");
-  else if (data.billing === "unavailable")
-    parts.push("Anthropic's bill could not be read, so spend outside the app is left out.");
-  else parts.push("Spend outside the app, such as the eval, is not counted yet.");
-  return parts.join(" ");
+/** The newest day with a run, kept from the daily view: a week or month bucket only names its start. */
+let lastDay = "";
+
+/** Two lines: when the newest run was, and what the figures leave out. */
+function renderNote(data: CostResponse, period: Period): void {
+  const note = pick("[data-costs-note]");
+  if (!note) return;
+  const newest = data.report.buckets
+    .filter((b) => b.total.usd > 0)
+    .map((b) => b.bucket)
+    .sort()
+    .at(-1);
+  if (newest && period === "day") lastDay = newest;
+  const day = period === "day" ? (newest ?? "") : lastDay || (newest?.length === 10 ? newest : "");
+  const first = document.createElement("p");
+  first.textContent = day ? `Last updated ${longDate(day)}` : "Nothing spent yet";
+  const second = document.createElement("p");
+  second.textContent =
+    "This is a rough estimate of days following Swedish time zone. Please note spends on evals and code reviews are not counted yet.";
+  note.replaceChildren(first, second);
+  // Each part the server gave up on is named, quietly, with a retry (the rest is on the page).
+  const missing = [
+    data.engine === "unavailable" ? "the latest runs" : "",
+    data.site === "unavailable" ? "narration spend" : "",
+    data.billing === "unavailable" ? "Anthropic's bill" : "",
+  ].filter(Boolean);
+  if (missing.length) note.append(failure(`Couldn't load ${missing.join(", ")}.`));
+}
+
+/** A quiet failure line with Try again, which asks for the same answer once more. */
+function failure(text: string): HTMLElement {
+  const line = document.createElement("p");
+  line.append(`${text} `);
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "btn";
+  retry.textContent = "Try again";
+  retry.addEventListener("click", () => void load());
+  line.append(retry);
+  return line;
 }
 
 function render(data: CostResponse, period: Period, days: number, by: string): void {
@@ -580,8 +647,7 @@ function render(data: CostResponse, period: Period, days: number, by: string): v
   renderTable(drawn);
   const table = pick<HTMLElement>("[data-costs-table]");
   if (table) table.hidden = empty;
-  const note = pick("[data-costs-note]");
-  if (note) note.textContent = noteOf(data);
+  renderNote(data, period);
   // By person means something only once two people share the app.
   const person = pick<HTMLOptionElement>('#costs-by option[value="user"]');
   if (person) person.hidden = data.report.users < 2;
@@ -605,7 +671,10 @@ async function load(): Promise<void> {
   // A refetch keeps the last frame, dimmed, so nothing jumps while the numbers change.
   body?.setAttribute("data-loading", "");
   try {
-    const response = await fetch(`/api/costs?period=${period}&by=${by}&days=${days}`);
+    // The route answers within about 5 s; a call that never returns must not leave "Loading" up.
+    const response = await fetch(`/api/costs?period=${period}&by=${by}&days=${days}`, {
+      signal: AbortSignal.timeout(12_000),
+    });
     if (!response.ok) throw new Error(String(response.status));
     const data = (await response.json()) as CostResponse;
     if (ask === asked) render(data, period, days, by);
@@ -613,8 +682,11 @@ async function load(): Promise<void> {
     if (ask !== asked) return;
     const total = pick("[data-costs-total]");
     if (total) total.textContent = "Unavailable";
-    const detail = pick("[data-costs-detail]");
-    if (detail) detail.textContent = "The costs could not be loaded right now.";
+    const stats = pick<HTMLElement>("[data-costs-stats]");
+    if (stats) stats.hidden = true;
+    const note = pick("[data-costs-note]");
+    // Never a spinner without end: the fetch gives up (below) and this stands in.
+    note?.replaceChildren(failure("Couldn't load the costs."));
     // Nothing to draw, so the chart, the breakdown and the table step out: no blank plot, no stray
     // hairline, no empty table on offer, and no frame of the last range left under the failure
     // (audit, 2026-10-24). The next good answer shows them again (render).

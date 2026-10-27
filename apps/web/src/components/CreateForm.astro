@@ -34,16 +34,16 @@ const VOICES = [
     name: "voice",
     saved: custom.voice_id,
     label: "Voice",
-    caption: "First host",
-    hostLabel: "First host's voice",
+    caption: "Primary voice",
+    hostLabel: "Primary voice",
     index: "a",
   },
   {
     name: "voice_b",
     saved: custom.voice_id_b,
-    label: "Second host's voice",
-    caption: "Second host",
-    hostLabel: "Second host's voice",
+    label: "Secondary voice",
+    caption: "Secondary voice",
+    hostLabel: "Secondary voice",
     index: "b",
   },
 ] as const;
@@ -60,7 +60,7 @@ const moreSummary = moreOptionsSummary(
 // Every sentence the form's script can show lives here, in the markup, not in the script. The
 // script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
 const COPY = {
-  topics: "Pick at least one topic.",
+  topics: "Pick at least one category.",
   "400": "The server turned that request down. Reload the page and try again.",
   cooldown: "You can make another episode in",
   daily_cap: "That's today's limit. Try again in",
@@ -102,7 +102,7 @@ const COPY = {
          to look follow; the rest has a default and waits under More options, whose line says what
          those defaults are. */}
     <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
-      <h2 class="section-head" id="create-topics-label">Topics</h2>
+      <h2 class="section-head" id="create-topics-label">Categories</h2>
       <fieldset class="filter-chips" aria-labelledby="create-topics-label" data-built-topics={allTopics.map((topic) => topic.id).join(" ")}>
         {
           topics.map((topic) => (
@@ -126,12 +126,12 @@ const COPY = {
     </section>
 
     <section class="create-group" aria-labelledby="create-length-label">
-      <h2 class="section-head" id="create-length-label">Length</h2>
+      <h2 class="section-head" id="create-length-label">Max length</h2>
       <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-length-label">
         {
           LENGTHS.map((length) => (
             <label class="segmented-choice-item">
-              <input type="radio" name="length" value={length.value} data-submit-label={submitLabel(length.value)} checked={length.value === startLength} />
+              <input type="radio" name="length" value={length.value} checked={length.value === startLength} />
               <span>{length.label}</span>
             </label>
           ))
@@ -164,11 +164,9 @@ const COPY = {
         <Icon name="chevronDown" class="create-more-chevron" />
       </summary>
       <div class="create-more-body">
-        {/* The line under the format says who will be heard: one voice, or two hosts and which voices
-             they have. The script fills in the names once the voices have loaded. */}
         <section class="create-group" aria-labelledby="create-format-label">
           <h2 class="section-head" id="create-format-label">Format</h2>
-          <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-format-label" aria-describedby="create-format-hint">
+          <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-format-label">
             {
               FORMATS.map((format) => (
                 <label class="segmented-choice-item">
@@ -178,14 +176,6 @@ const COPY = {
               ))
             }
           </fieldset>
-          <p
-            class="create-hint create-format-hint"
-            id="create-format-hint"
-            data-format-hint
-            data-readout-named="Read by {a}"
-            data-discussion-named="{a} and {b}"
-            hidden
-          ></p>
         </section>
 
         {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come from
@@ -258,7 +248,7 @@ const COPY = {
     <div class="create-submit">
       <button class="btn-primary" type="submit" data-submit>
         <span class="spinner" aria-hidden="true"></span>
-        <span data-submit-text>{submitLabel(startLength)}</span>
+        <span data-submit-text>{submitLabel()}</span>
       </button>
       <p class="create-error" role="alert" data-error="form" hidden>
         <Icon name="alert" /><span></span>

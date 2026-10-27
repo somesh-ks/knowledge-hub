@@ -2,23 +2,23 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   builtinTopics,
-  CATEGORIES,
-  type Category,
   deriveSourceFormat,
   generalTopics,
   isGeneralTopicId,
   MIX_STOPS,
+  MUTED_WEIGHT,
   SECTION_TITLES,
   SECTIONS,
   SOURCE_FORMATS,
   type SourceFormat,
+  scoreReasons,
   sourceScore,
 } from "@singularity/core";
 import { findRepoRoot } from "./repoRoot";
 import { usesFixtures } from "./site";
 
 /**
- * What the Topics and Sources pages show, read from the repository at build time. The engine writes
+ * What the Categories and Sources pages show, read from the repository at build time. The engine writes
  * these files and some may not exist yet, so every read is defensive: a missing or malformed file
  * falls back to what the site can know without it, and a malformed entry is skipped, never guessed.
  *
@@ -40,8 +40,6 @@ export interface ManageTopic {
   id: string;
   name: string;
   description: string;
-  /** 0 to 1, as stored. */
-  weight: number;
   enabled: boolean;
   keywords: string[];
   section_id: string;
@@ -87,6 +85,8 @@ export interface ManageSource {
    * Trust is null while it is not measured: fewer than 10 items were asked the flag questions.
    */
   score_parts: { health: number; quality: number; trust: number | null } | null;
+  /** Plain sentences on why the score is low; none at Good or better. */
+  score_why: string[];
   /** Lowercase text the search matches. */
   search: string;
   /** Blog, news, forum and so on: the source's own, else the one its type implies. */
@@ -248,26 +248,13 @@ export function humanize(id: string): string {
 
 // ------------------------------------------------------------------------------------------ topics
 
-function readWeights(preferences: unknown): Record<string, number> {
-  const weights = isRecord(preferences) && isRecord(preferences.weights) ? preferences.weights : {};
-  const result: Record<string, number> = {};
-  for (const [key, value] of Object.entries(weights)) {
-    const weight = asNumber(value);
-    if (weight !== null) result[key] = weight;
-  }
-  return result;
-}
-
-/** The built-in topics, from the categories the engine already judges by and the stored weights. */
-export function fallbackTopics(preferences: unknown): ManageTopic[] {
-  const stored = readWeights(preferences);
-  const weights = Object.fromEntries(CATEGORIES.map((id) => [id, stored[id] ?? 0.7]));
-  return builtinTopics(weights as Record<Category, number>).map(
-    ({ id, name, description, weight, enabled, section_id, never_publish }): ManageTopic => ({
+/** The built-in topics, from the categories the engine already judges by. */
+export function fallbackTopics(): ManageTopic[] {
+  return builtinTopics().map(
+    ({ id, name, description, enabled, section_id, never_publish }): ManageTopic => ({
       id,
       name,
       description,
-      weight,
       enabled,
       keywords: [],
       section_id,
@@ -290,7 +277,6 @@ export function withGeneralTopics(topics: readonly ManageTopic[]): ManageTopic[]
         id: topic.id,
         name: topic.name,
         description: topic.description,
-        weight: topic.weight,
         enabled: topic.enabled,
         keywords: [...topic.keywords],
         section_id: topic.section_id,
@@ -329,25 +315,26 @@ function parseTopic(value: unknown): ManageTopic | null {
   const id = asString(value.id);
   const name = asString(value.name);
   if (!id || !name) return null;
-  const weight = Math.min(1, Math.max(0, asNumber(value.weight) ?? 0.5));
   const keywords = Array.isArray(value.keywords)
     ? value.keywords.map(asString).filter((word): word is string => word !== null)
     : [];
+  const origin =
+    value.origin === "custom" || value.origin === "app" || value.origin === "general"
+      ? value.origin
+      : "builtin";
+  // A weight at or below the old mute is an off topic (D194), as the engine reads it.
+  const muted = typeof value.weight === "number" && value.weight <= MUTED_WEIGHT;
   return {
     id,
     name,
     description: asString(value.description) ?? "",
-    weight,
-    enabled: asBool(value.enabled, true),
+    enabled: muted ? false : asBool(value.enabled, true),
     keywords,
     section_id: asString(value.section_id) ?? "top",
-    never_publish: asBool(value.never_publish, false),
+    never_publish: muted && origin === "builtin" ? true : asBool(value.never_publish, false),
     ...(asString(value.emoji) ? { emoji: asString(value.emoji) as string } : {}),
     ...(asNumber(value.perspective) ? { perspective: asNumber(value.perspective) as number } : {}),
-    origin:
-      value.origin === "custom" || value.origin === "app" || value.origin === "general"
-        ? value.origin
-        : "builtin",
+    origin,
   };
 }
 
@@ -590,6 +577,17 @@ export function buildSources(input: {
       score: rated.score,
       score_label: rated.label,
       score_parts: rated.parts,
+      score_why: scoreReasons(rated.parts, {
+        judged: sourceStats?.judged ?? 0,
+        passed: sourceStats?.passed ?? 0,
+        published: sourceStats?.published ?? 0,
+        asked: sourceStats?.asked ?? 0,
+        flagged: sourceStats?.flagged ?? 0,
+        failures,
+        covered: sourceStats?.covered ?? 0,
+        sampled: sourceStats?.sampled ?? 0,
+        feedsGeneral,
+      }),
       search: `${name} ${host} ${source.id}`.toLowerCase(),
       format: override.format ?? source.format,
       lean: override.lean === undefined ? source.lean : override.lean,
@@ -706,7 +704,7 @@ export interface ManageFiles {
 export function buildManage(files: ManageFiles): ManageData {
   const { topicsFile, preferences, registry, user, stats, health, candidates } = files;
   const parsed = parseTopicsFile(topicsFile);
-  const topics = withGeneralTopics(parsed?.topics ?? fallbackTopics(preferences));
+  const topics = withGeneralTopics(parsed?.topics ?? fallbackTopics());
   const sections = parsed?.sections ?? fallbackSections();
   const sources = buildSources({ registry, user, stats, health, topics });
 

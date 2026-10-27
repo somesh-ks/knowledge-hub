@@ -147,6 +147,7 @@ export type FieldValues = Record<string, string>;
 const CONTROL_NAMES: Record<string, string> = {
   cadence_days: "cadence",
   length_minutes: "length",
+  lookback_hours: "lookback",
   voice_id: "voice",
   voice_id_b: "voice_b",
 };
@@ -222,9 +223,6 @@ export function savedControl(
     if (op.op === "source.set" && saved.op === "source.set" && saved.id === op.id) {
       const value = (saved as Record<string, unknown>)[field];
       if (typeof value === "boolean") found = String(value);
-    } else if (op.op === "weights.set" && saved.op === "weights.set" && outer === "weights") {
-      const value = saved.weights[inner];
-      if (typeof value === "number") found = String(value);
     } else if (op.op === "mix.set" && saved.op === "mix.set" && outer === "format_mix") {
       // A type slider takes the last saved factor for its format.
       const value = saved.format_mix[inner];

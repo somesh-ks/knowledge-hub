@@ -52,14 +52,17 @@ export function weeklySummary(input: { day: number; hour: number; timezone?: str
 }
 
 /**
- * What a topic's row says about its sources, counting the ones that are read: "3 sources" when all
- * are on, "2 of 3 sources on" when some are off, "No sources yet" with none, and "Never in a
- * briefing" for a topic that never publishes. The Settings index's Sources row passes the total
- * alone: "11 sources".
+ * What a topic's row says about its sources: "3 sources" (the total, whether or not each is on),
+ * "No sources yet" with none, and "Never in a briefing" for a topic that never publishes.
  */
-export function sourcesSummary(input: { total: number; on?: number; never?: boolean }): string {
-  const { total, on = total } = input;
+export function sourcesSummary(input: { total: number; never?: boolean }): string {
   if (input.never) return "Never in a briefing";
-  if (total === 0) return "No sources yet";
-  return on === total ? plural(total, "source") : `${on} of ${plural(total, "source")} on`;
+  if (input.total === 0) return "No sources yet";
+  return plural(input.total, "source");
+}
+
+/** The line over a topic's sources: "3 sources active" when all are on, "2 of 3 sources active" otherwise. */
+export function activeSummary(total: number, on: number): string {
+  const count = plural(total, "source");
+  return on === total ? `${count} active` : `${on} of ${count} active`;
 }

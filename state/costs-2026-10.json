@@ -166,6 +166,416 @@
         "characters": 3747
       },
       "usd": 0.03747
+    },
+    {
+      "id": "2026-10-25T06:52:24.264Z|weekly|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-25T06:58:01.541Z",
+      "run_id": "2026-10-25T06:52:24.264Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 267944,
+        "output_tokens": 70679
+      },
+      "usd": 1.864017
+    },
+    {
+      "id": "2026-10-25T06:52:24.264Z|weekly|judge|typesafe|jev|owner",
+      "at": "2026-10-25T06:58:01.541Z",
+      "run_id": "2026-10-25T06:52:24.264Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 632
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-25T06:52:24.264Z|weekly|fetch|exa|search|owner",
+      "at": "2026-10-25T06:58:01.541Z",
+      "run_id": "2026-10-25T06:52:24.264Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 12
+      },
+      "usd": 0.06,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-25T06:52:24.264Z|weekly|fetch|firecrawl|scrape|owner",
+      "at": "2026-10-25T06:58:01.541Z",
+      "run_id": "2026-10-25T06:52:24.264Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 27
+      },
+      "usd": 0.02241,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-25T08:47:38.193Z|weekly|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-25T08:52:38.590Z",
+      "run_id": "2026-10-25T08:47:38.193Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 324638,
+        "output_tokens": 78381
+      },
+      "usd": 2.149629
+    },
+    {
+      "id": "2026-10-25T08:47:38.193Z|weekly|judge|typesafe|jev|owner",
+      "at": "2026-10-25T08:52:38.590Z",
+      "run_id": "2026-10-25T08:47:38.193Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 688
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-25T08:47:38.193Z|weekly|fetch|exa|search|owner",
+      "at": "2026-10-25T08:52:38.590Z",
+      "run_id": "2026-10-25T08:47:38.193Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-25T08:47:38.193Z|weekly|fetch|firecrawl|scrape|owner",
+      "at": "2026-10-25T08:52:38.590Z",
+      "run_id": "2026-10-25T08:47:38.193Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 22
+      },
+      "usd": 0.01826,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-25-weekly|weekly|narration|speechify|simba-3.2|owner|dee7623f-c285-47ff-99b6-b89c8e4261d5",
+      "at": "2026-10-25T08:53:20.710Z",
+      "run_id": "2026-10-25-weekly",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 8248
+      },
+      "usd": 0.08248
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-25T16:46:27.149Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 7780,
+        "output_tokens": 2376
+      },
+      "usd": 0.05898
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|cd15af5d-3288-400e-8f1c-847dcbeff7c6",
+      "at": "2026-10-25T16:46:46.581Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 454
+      },
+      "usd": 0.00454
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|e801da99-d542-430b-8ab1-7973d22d6f5d",
+      "at": "2026-10-25T16:46:48.427Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 426
+      },
+      "usd": 0.00426
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|02637c63-0f51-4159-8438-d7441eee29df",
+      "at": "2026-10-25T16:46:49.892Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 466
+      },
+      "usd": 0.00466
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|7a3e654e-6ac3-4657-9c87-d750391a183a",
+      "at": "2026-10-25T16:46:51.242Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 394
+      },
+      "usd": 0.00394
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|533e8966-dc4e-4418-84f4-3bb641e47e45",
+      "at": "2026-10-25T16:46:52.936Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 441
+      },
+      "usd": 0.00441
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|83889e40-f684-478b-9cef-8d8764f77c8d",
+      "at": "2026-10-25T16:46:54.008Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 287
+      },
+      "usd": 0.00287
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|4ffa7e90-7fa0-4428-922c-01bafec34b97",
+      "at": "2026-10-25T16:46:54.857Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 188
+      },
+      "usd": 0.00188
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|7a61f480-4015-4509-8980-1352ec32da5f",
+      "at": "2026-10-25T16:46:56.098Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 225
+      },
+      "usd": 0.00225
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|147982c5-f4e3-4be6-b0db-7679d63032d4",
+      "at": "2026-10-25T16:46:57.361Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 261
+      },
+      "usd": 0.00261
+    },
+    {
+      "id": "ep-20261025-1746|on_demand|narration|speechify|simba-3.2|owner|862cd79d-a471-4bc6-a9f1-6fd48a019b64",
+      "at": "2026-10-25T16:46:58.028Z",
+      "run_id": "ep-20261025-1746",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 37
+      },
+      "usd": 0.00037
+    },
+    {
+      "id": "2026-10-27T04:20:39.611Z|daily|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-27T05:57:00.089Z",
+      "run_id": "2026-10-27T04:20:39.611Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 75026,
+        "output_tokens": 19058
+      },
+      "usd": 0.510948
+    },
+    {
+      "id": "2026-10-27T04:20:39.611Z|daily|judge|typesafe|jev|owner",
+      "at": "2026-10-27T05:57:00.089Z",
+      "run_id": "2026-10-27T04:20:39.611Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 484
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-27T04:20:39.611Z|daily|fetch|exa|search|owner",
+      "at": "2026-10-27T05:57:00.089Z",
+      "run_id": "2026-10-27T04:20:39.611Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-27T04:20:39.611Z|daily|fetch|firecrawl|scrape|owner",
+      "at": "2026-10-27T05:57:00.089Z",
+      "run_id": "2026-10-27T04:20:39.611Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 13
+      },
+      "usd": 0.01079,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-27|daily|narration|speechify|simba-3.2|owner|ecf01dbb-5dea-406e-9de4-f3cadc0d1672",
+      "at": "2026-10-27T05:57:25.889Z",
+      "run_id": "2026-10-27",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 1406
+      },
+      "usd": 0.01406
     }
   ]
 }

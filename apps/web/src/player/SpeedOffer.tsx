@@ -1,0 +1,58 @@
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { getSpeedDefault } from "./core/speedDefaultRuntime";
+import { rateLabel } from "./SpeedControl";
+
+function subscribe(onChange: () => void): () => void {
+  return getSpeedDefault().subscribe(onChange);
+}
+
+/**
+ * "Make 1.5x your default speed?": the shared confirm dialog (create-sheet.css), asked once per
+ * speed (core/speedDefault.ts). Not now, Escape and a press outside all decline.
+ */
+export default function SpeedOffer() {
+  const rate = useSyncExternalStore(
+    subscribe,
+    () => getSpeedDefault().getPending(),
+    () => null,
+  );
+  const ref = useRef<HTMLDialogElement>(null);
+
+  // Mounted only while an offer stands, so no second confirm dialog sits in the page for Delete's
+  // `dialog.confirm-dialog` lookup to find.
+  useEffect(() => {
+    if (rate !== null && ref.current && !ref.current.open) ref.current.showModal();
+  }, [rate]);
+
+  if (rate === null) return null;
+  const label = rateLabel(rate);
+  return (
+    <dialog
+      ref={ref}
+      className="confirm-dialog"
+      aria-labelledby="speed-offer-title"
+      onClose={() => getSpeedDefault().dismiss()}
+    >
+      <div className="confirm-form">
+        <h2 className="sheet-title" id="speed-offer-title">
+          Make {label} your default speed?
+        </h2>
+        <div className="confirm-actions">
+          <button className="btn" type="button" onClick={() => ref.current?.close()}>
+            Not now
+          </button>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              getSpeedDefault().accept();
+              ref.current?.close();
+            }}
+          >
+            Make default
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}

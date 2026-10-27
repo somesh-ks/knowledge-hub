@@ -1,16 +1,13 @@
 import {
-  CATEGORIES,
-  type Category,
   type DigestKind,
   hasOwnAllowance,
   homeSection,
   type Item,
-  isBuiltinCategory,
   isBuiltinSection,
   isGeneralTopicId,
   SECTIONS,
-  snapWeight,
   TECH_SECTION,
+  TOP_PICKS_SECTION,
   VOICE_LIMITS,
 } from "@singularity/core";
 import {
@@ -57,7 +54,9 @@ export type DropReason =
   | "never_publish"
   | "below_threshold"
   | "over_cap"
-  /** A third story or later from one outlet (OUTLET_CAP). */
+  /** Older than the podcast's lookback (`lookback_hours` in config/schedule.json). */
+  | "too_old"
+  /** A third story or later from one outlet (OUTLET_CAP), or past its block's own count. */
   | "over_outlet"
   /** A Tech releases candidate beyond that section's own allowance. */
   | "over_tech_cap"
@@ -96,21 +95,21 @@ export interface SelectInput {
    * briefing's length in stories. Absent means the digest's hard cap.
    */
   total?: number;
-  /**
-   * Preference weights. Only the weekly kind needs them, to find the category median for the
-   * reserved off-taste slot. Without them no slot is reserved.
-   */
-  weights?: Record<Category, number>;
   threshold?: number;
   /**
    * Topic ids this briefing leaves out, from config/schedule.json: a story whose winning topic is
    * one of them is dropped before anything is picked, so it reaches Top picks neither.
    */
   skipTopics?: readonly string[];
+  /** Built-in categories set never to publish (topics.json `never_publish`); their stories are dropped. */
+  offCategories?: readonly string[];
   /** Regenerate: keep only these categories, on top of skipTopics. Absent keeps every category. */
   onlyTopics?: readonly string[];
   /** The briefing's structure: section order, Top picks and allowances. Absent is the default. */
   plan?: SectionPlan;
+  /** The podcast's lookback in hours and the run's clock; either absent looks back without a limit. */
+  lookbackHours?: number | null;
+  now?: Date;
 }
 
 export interface SelectResult {
@@ -159,18 +158,6 @@ export function hasOwnSection(candidate: Pick<Candidate, "home">): boolean {
   return hasOwnAllowance(candidate.home);
 }
 
-/**
- * Median of the preference weights. With an even number of categories (twelve since D155) it is
- * the mean of the middle two.
- */
-export function medianWeight(weights: Record<Category, number>): number {
-  const sorted = CATEGORIES.map((c) => weights[c]).sort((a, b) => a - b);
-  const mid = sorted.length / 2;
-  return sorted.length % 2 === 0
-    ? ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2
-    : (sorted[Math.floor(mid)] as number);
-}
-
 function publishedMs(item: Item): number {
   if (!item.published_at) return Number.NEGATIVE_INFINITY;
   const ms = Date.parse(item.published_at);
@@ -198,20 +185,44 @@ export function compareCandidates(
  * so with fewer than three other items there are fewer than three picks. Also used after later
  * stages drop items, so top picks always stay the best three that remain.
  */
+/**
+ * The Top picks among ranked candidates (none with a section of its own or release news): the
+ * best, up to the plan's count, with no more from one outlet than the block's `per_source`.
+ */
+export function choosePicks(ranked: readonly Candidate[], plan: SectionPlan): Candidate[] {
+  const most = plan.rules(TOP_PICKS_SECTION).per_source;
+  const outlets = new Map<string, number>();
+  const picks: Candidate[] = [];
+  for (const candidate of ranked) {
+    if (picks.length >= plan.topPicks) break;
+    if (most !== undefined) {
+      const outlet = outletOf(candidate.item);
+      const count = outlets.get(outlet) ?? 0;
+      if (count >= most) continue;
+      outlets.set(outlet, count + 1);
+    }
+    picks.push(candidate);
+  }
+  return picks;
+}
+
 export function assignSections(
   chosen: readonly Candidate[],
   plan: SectionPlan = DEFAULT_SECTION_PLAN,
 ): SelectedItem[] {
   const ranked = [...chosen].sort(compareCandidates);
-  let picks = 0;
+  const picks = new Set(
+    choosePicks(
+      ranked.filter((candidate) => !hasOwnSection(candidate) && !isReleaseStory(candidate)),
+      plan,
+    ),
+  );
   const withSection: SelectedItem[] = ranked.map((candidate) => {
     // Library, framework and changelog news is never a Top pick and closes the episode.
     if (!hasOwnSection(candidate) && isReleaseStory(candidate)) {
       return { ...candidate, section: RELEASE_SECTION };
     }
-    const pick = !hasOwnSection(candidate) && picks < plan.topPicks;
-    if (pick) picks += 1;
-    return { ...candidate, section: pick ? "top" : candidate.home };
+    return { ...candidate, section: picks.has(candidate) ? "top" : candidate.home };
   });
   // Built-in sections keep their fixed order. A custom section follows them, in order of its best
   // story, so the digest reads the same whatever order the topics were added in.
@@ -323,7 +334,7 @@ export type Eligibility =
 export function eligibility(
   scored: ScoredItem,
   threshold: number = DEFAULT_SCORE_THRESHOLD,
-  weights?: Readonly<Partial<Record<Category, number>>>,
+  offCategories?: readonly string[],
 ): Eligibility {
   if (scored.topic) {
     // A custom topic won: it names the category, the section and whether the story may publish.
@@ -338,9 +349,7 @@ export function eligibility(
   }
   const category = scored.topCategory;
   if (category === "none") return { eligible: false, reason: "no_category" };
-  if (snapWeight(weights?.[category] ?? scored.categoryWeight ?? 1) === 0) {
-    return { eligible: false, reason: "never_publish" };
-  }
+  if (offCategories?.includes(category)) return { eligible: false, reason: "never_publish" };
   const home = homeSection(category, scored.item.source_type);
   if (home === null) return { eligible: false, reason: "never_publish" };
   if (scored.score < threshold) return { eligible: false, reason: "below_threshold" };
@@ -358,8 +367,6 @@ export function eligibility(
  *     cap (at least one). Within that, take the best item of each category first, then walk by rank taking at
  *     most 3 per home section up to the cap, then let overflow fill any remaining room, so a thin
  *     section never leaves slots empty.
- *  5. Weekly only: guarantee one of those slots for the best item whose category weight is below
- *     the median of preferences, so taste does not narrow week over week.
  *  6. Sections with an allowance of their own (Tech releases, and each section a custom topic
  *     defines, and each general news section): take the best of each by rank up to its allowance
  *     (5, or 2 for a general section), on top of the cap. The per-section target does not apply,
@@ -376,8 +383,19 @@ export function selectItems(input: SelectInput): SelectResult {
   const dropped: DroppedItem[] = [];
   const candidates: Candidate[] = [];
 
+  const lookback = input.lookbackHours ?? null;
+  const oldest =
+    lookback === null || input.now === undefined
+      ? Number.NEGATIVE_INFINITY
+      : input.now.getTime() - lookback * 3_600_000;
   for (const scored of input.scored) {
-    const verdict = eligibility(scored, threshold, input.weights);
+    // A story is as old as its publication, or its fetch when the source gave no date.
+    const at = Date.parse(scored.item.published_at ?? scored.item.fetched_at);
+    if (at < oldest) {
+      dropped.push({ id: scored.item.id, reason: "too_old", score: scored.score });
+      continue;
+    }
+    const verdict = eligibility(scored, threshold, input.offCategories);
     if (verdict.eligible) {
       if (
         input.skipTopics?.includes(verdict.candidate.category) ||
@@ -412,16 +430,23 @@ export function selectItems(input: SelectInput): SelectResult {
   // One outlet cannot fill a briefing: its best OUTLET_CAP stories stay, the rest give way. The outlet
   // is the story's host, so one publisher's several feeds count once; a story bound for its own
   // section (a general topic's) is outside the cap, since those sections draw on a few outlets.
+  // A block that sets its own count per outlet (D170, the owner's "deterministic parameters")
+  // counts within that block instead.
   const perOutlet = new Map<string, number>();
+  const blockOf = (candidate: Candidate): string =>
+    isReleaseStory(candidate) ? RELEASE_SECTION : candidate.home;
   const withinCap = ranked.filter((candidate) => {
-    if (hasOwnSection(candidate)) return true;
+    const block = blockOf(candidate);
+    const rules = plan.rules(block);
+    if (hasOwnSection(candidate) && rules.per_source === undefined) return true;
     const outlet = outletOf(candidate.item);
-    const count = perOutlet.get(outlet) ?? 0;
-    if (count >= OUTLET_CAP) {
+    const key = rules.per_source === undefined ? outlet : `${block}\u0000${outlet}`;
+    const count = perOutlet.get(key) ?? 0;
+    if (count >= (rules.per_source ?? OUTLET_CAP)) {
       dropped.push({ id: candidate.item.id, reason: "over_outlet", score: candidate.score });
       return false;
     }
-    perOutlet.set(outlet, count + 1);
+    perOutlet.set(key, count + 1);
     return true;
   });
   ranked.splice(0, ranked.length, ...withinCap);
@@ -430,7 +455,7 @@ export function selectItems(input: SelectInput): SelectResult {
   const pickable = ranked.filter(
     (candidate) => !hasOwnSection(candidate) && !isReleaseStory(candidate),
   );
-  const picks = new Set(pickable.slice(0, plan.topPicks));
+  const picks = new Set(choosePicks(pickable, plan));
   const main: Candidate[] = [];
   for (const candidate of ranked) {
     if (hasOwnSection(candidate)) continue;
@@ -489,27 +514,6 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const candidate of main) {
     if (chosen.size >= limit) break;
     if (!chosen.has(candidate) && fits(candidate)) take(candidate);
-  }
-
-  // The reserved slot is one of the capped slots, so it is filled from the same pool. Tech
-  // releases has an allowance of its own and never needs it.
-  if (input.kind === "weekly" && input.weights && limit > 0) {
-    const median = medianWeight(input.weights);
-    // A custom topic has no preference weight, so it never fills the off-taste slot.
-    const reserve = main.find(
-      (c) =>
-        input.weights !== undefined &&
-        (chosen.has(c) || fits(c)) &&
-        isBuiltinCategory(c.category) &&
-        input.weights[c.category] < median,
-    );
-    if (reserve && !chosen.has(reserve)) {
-      if (chosen.size >= limit) {
-        const lowest = [...chosen].sort(compareCandidates).pop();
-        if (lowest) chosen.delete(lowest);
-      }
-      chosen.add(reserve);
-    }
   }
 
   const ownTaken = takeOwnSections(own, total - chosen.size, plan);

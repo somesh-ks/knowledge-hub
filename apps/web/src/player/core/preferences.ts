@@ -17,7 +17,10 @@ export interface Preferences {
   sounds: boolean | null;
   /** 0 to 1, before the engine's quadratic taper. */
   volume: number;
+  /** The default speed: where every episode starts. A change in the player lasts one episode. */
   rate: PlaybackRate;
+  /** When an item ends with an empty queue, the next suggested one starts. On unless turned off. */
+  autoplay: boolean;
 }
 
 export const DEFAULT_VOLUME = 0.8;
@@ -27,6 +30,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   sounds: null,
   volume: DEFAULT_VOLUME,
   rate: 1,
+  autoplay: true,
 };
 
 function isTheme(value: unknown): value is ThemePreference {
@@ -51,6 +55,7 @@ export function parsePreferences(raw: string | null): Preferences {
       ? Math.min(1, Math.max(0, record.volume))
       : DEFAULT_PREFERENCES.volume,
     rate: isPlaybackRate(record.rate) ? record.rate : DEFAULT_PREFERENCES.rate,
+    autoplay: typeof record.autoplay === "boolean" ? record.autoplay : DEFAULT_PREFERENCES.autoplay,
   };
 }
 
@@ -105,11 +110,6 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
       return () => listeners.delete(listener);
     },
   };
-}
-
-/** Keeps the speed the player moved to for next time: any step the slider reaches, not only a preset. */
-export function rememberRate(preferences: Pick<PreferencesStore, "set">, rate: number): void {
-  if (isPlaybackRate(rate)) preferences.set({ rate });
 }
 
 /** Matches defaultSoundsEnabled() in @singularity/sound; used before that module has loaded. */

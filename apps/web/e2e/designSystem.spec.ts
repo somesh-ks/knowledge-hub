@@ -42,20 +42,27 @@ const EXEMPT = [
   ".hero-more",
   ".scrubber-track",
   ".player-dock",
-  // An optical nudge sized by the glyph's own side bearing, so its edge meets the switches'.
+  // An optical nudge sized by the glyph's own side bearing (--ink-end, D187), so its ink meets the
+  // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
+  // an icon button that ends a row.
   ".row-action .icon",
-  // The same nudge inside a select on the index (Theme), so its value ends where the link rows' do.
-  ".settings-view .value-select > select.manage-input",
+  ".settings-row .value-select > select.manage-input",
+  ".settings-row .multiselect-trigger",
+  ".create-more-chevron",
+  ".icon-btn-end",
   // An optical pad sized by the font's metrics, so the emoji's ink sits in its cell's centre.
   ".emoji-cell",
+  // Centred on the title's first line by the label's leading (banner.css); seen on /design, where a
+  // banner is always shown.
+  ".banner > .icon",
 ];
 
 const PAGES = [
   ...new Set([
     ...ROUTES.map((route) => route.path),
     ...SITE_PAGES,
-    "/settings/topics/design",
-    "/settings/topics/design?view=preferences",
+    "/settings/categories/design",
+    "/settings/categories/design?view=preferences",
   ]),
 ];
 
@@ -157,7 +164,7 @@ test.describe("the 8pt spacing system", () => {
     expect.soft(await offGrid(page), "a Library row's menu").toEqual([]);
 
     // The Add source panel with the topic's suggested sources.
-    await page.goto("/settings/topics/design");
+    await page.goto("/settings/categories/design");
     await expect(page.locator("[data-topics]")).toHaveAttribute("data-ready", "");
     await page
       .getByRole("button", { name: /^Add source to / })
@@ -166,5 +173,43 @@ test.describe("the 8pt spacing system", () => {
     const panel = page.getByRole("dialog", { name: "Add a source" });
     await expect(panel).toBeVisible();
     expect(await offGrid(page), "the Add source panel").toEqual([]);
+  });
+});
+
+test.describe("one page gutter", () => {
+  // The Settings title once sat 24px further in than Latest's and Library's (a rule gave titles a
+  // card's padding), so the page moved sideways between tabs. Compared page to page, never to a px.
+  test("every top-level page starts and ends its content on the same edges", {
+    tag: "@both",
+  }, async ({ page }) => {
+    test.setTimeout(120_000);
+    // Latest's desktop hero is centred in its own layout, so it joins on the phone only.
+    const wide = (page.viewportSize()?.width ?? 0) >= 1024;
+    const paths = [...(wide ? [] : ["/"]), "/library", "/settings", "/settings/preferences"];
+    const titles: number[] = [];
+    for (const path of paths) {
+      await page.goto(path);
+      await expect(page.locator("main h1").first()).toBeVisible();
+      const found = await page.evaluate(() => {
+        const title = document.querySelector("main h1");
+        if (!title) throw new Error("no title");
+        const range = document.createRange();
+        range.selectNodeContents(title);
+        const card = document.querySelector("main .card-group")?.getBoundingClientRect();
+        const main = document.querySelector("main")?.getBoundingClientRect();
+        return {
+          title: range.getBoundingClientRect().left,
+          card: card ? [card.left, card.right] : null,
+          main: main ? [main.left, main.right] : null,
+        };
+      });
+      titles.push(found.title);
+      // A card is the page's content edge, left and right.
+      if (path === "/settings") expect(found.card, `${path} renders a card group`).toBeTruthy();
+      if (found.card) expect(found.card, `${path} card against its page`).toEqual(found.main);
+    }
+    for (const [index, title] of titles.entries()) {
+      expect(title, `${paths[index]} title against ${paths[0]}`).toBeCloseTo(titles[0] ?? 0, 0);
+    }
   });
 });

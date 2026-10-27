@@ -501,6 +501,12 @@
   padding-block-start: 0;
 }
 
+/* Lean page (2026-10-25): nothing to read and nothing queued, so there is no list to show. The
+   cover and its controls stay where they are on a phone and centre in one column from 64rem. */
+.player-page-inner[data-lean] .player-list {
+  display: none;
+}
+
 .player-list {
   padding-block-start: var(--space-2);
 }
@@ -653,7 +659,7 @@
   display: none;
 }
 
-@media (max-width: 63.9375rem) and (prefers-reduced-motion: no-preference) {
+@media (width < 64rem) and (prefers-reduced-motion: no-preference) {
   /* One box at the page cover's size, placed and scaled by its transform alone between two ends
      measured as the page leaves rest: the bar's thumbnail at p = 0, the page's cover at p = 1. It
      is only ever scaled down from the large image, so it stays sharp, and its size never changes
@@ -1209,7 +1215,7 @@
 
 /* ------------------------------------------------------------------ phones: the bar rides the page */
 
-@media (max-width: 39.9375rem) {
+@media (width < 40rem) {
   .player-dock {
     /* The same travel as the page, so the bar stays on the page's top edge while it fades. */
     transform: translate3d(0, calc(var(--p) * -1 * (100cqb - var(--player-rest-inset))), 0);
@@ -1230,7 +1236,7 @@
 
 /* ------------------------------------------------------------------ wide: the page rises from behind the bar */
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .player {
     /* How far the bar goes down as the player opens. Where there is a bottom navigation it slides
        away, and the bar follows it to the window's edge, less the safe area. Nothing from 64rem. */
@@ -1264,7 +1270,7 @@
 
 /* On the page's grid: the bar's contents line up with the centred column above it and the
    navigation's pills below it, instead of running to the window's edges. */
-@media (min-width: 40rem) and (max-width: 63.9375rem) {
+@media (40rem <= width < 64rem) {
   .player-dock {
     --dock-inset: max(var(--page-gutter), (100% - var(--layout-column)) / 2 + var(--page-gutter));
     padding-inline: max(var(--dock-inset), var(--safe-left))
@@ -1274,7 +1280,7 @@
 
 /* Here the bar stays while its cover is away on the page, so its text closes the gap the cover left
    and opens it again as the cover comes home. */
-@media (min-width: 40rem) and (max-width: 63.9375rem) and (prefers-reduced-motion: no-preference) {
+@media (40rem <= width < 64rem) and (prefers-reduced-motion: no-preference) {
   .player-dock {
     /* The same number under a name the bar's own children can read: --p does not inherit. */
     --dock-p: var(--p);
@@ -1291,7 +1297,7 @@
 
 /* From 64rem: what is playing on the left, the transport and the clock in the middle, the volume on
    the right. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   :root {
     --player-dock-row: 4.5rem;
   }
@@ -1348,7 +1354,7 @@
    speed (below). Elsewhere, where the bar stays under the open page, the page keeps its own transport,
    so the bar shows only what is playing: nothing said twice, and one filled play control. Hidden in
    place, so the middle group holds still. */
-@media (min-width: 40rem) and (not ((min-width: 64rem) and (hover: hover) and (pointer: fine))) {
+@media (width >= 40rem) and (not ((width >= 64rem) and (hover: hover) and (pointer: fine))) {
   /* With its buttons gone the transport keeps their height, so the bar keeps its height. */
   .player[data-open="true"] .dock-transport {
     min-height: var(--mini-player-control-size);
@@ -1362,7 +1368,7 @@
   }
 }
 
-@media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
+@media (hover: hover) and (pointer: fine) and (width >= 64rem) {
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover {
     background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
   }
@@ -1382,13 +1388,13 @@
   }
 }
 
-@media (hover: hover) and (pointer: fine) and (min-width: 64rem) {
+@media (hover: hover) and (pointer: fine) and (width >= 64rem) {
   .dock-volume:hover .dock-volume-level {
     opacity: 1;
   }
 }
 
-@media (hover: hover) and (pointer: fine) and (min-width: 64rem) and (
+@media (hover: hover) and (pointer: fine) and (width >= 64rem) and (
     prefers-reduced-motion: no-preference
   ) {
   .dock-volume {
@@ -1405,7 +1411,7 @@
   }
 }
 
-@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+@media (width >= 64rem) and (hover: hover) and (pointer: fine) {
   .dock-tools {
     display: flex;
     grid-column: 3;
@@ -1457,7 +1463,7 @@
   }
 }
 
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   /* Two columns: the cover, the story being read and its controls, kept together as one group in the
      middle of the window's height; and the list of what is in the recording, which scrolls on its
      own. The spare rows above and below the group take whatever height is left over, so the cover
@@ -1493,6 +1499,13 @@
 
   .player-body {
     display: contents;
+  }
+
+  /* D-lean (2026-10-25): with no transcript and no queue the list is empty, so the cover and its
+     controls take one centred column. The cover moves sideways only when a list arrives; its row,
+     size and height hold (the lean spec in surface.spec.ts). */
+  .player-page-inner[data-lean] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .player-controls,
@@ -2226,7 +2239,7 @@
   flex: 1 1 auto;
 }
 
-@media (max-width: 63.9375rem) {
+@media (width < 64rem) {
   /* One column: the list is never shorter than the player, so choosing the shorter view cannot shrink
      the page and move the tabs from under the finger. Only one column: from 64rem the list is a
      column exactly as tall as the page, and this would push its end under the bar, past its fade. */
@@ -2351,7 +2364,7 @@
   }
 }
 
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .list-scroll {
     flex: 1 1 auto;
     min-height: 0;
@@ -2833,7 +2846,7 @@
    a 44px icon button whose glyph lines up with the page's left edge, centred in the room above the
    art that the handle once took (D111), so the art does not move. The rule above still hides it
    from 64rem until the keyboard reaches it. */
-@media (max-width: 63.9375rem) {
+@media (width < 64rem) {
   .player .player-collapse {
     inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
     inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
@@ -2849,7 +2862,7 @@
   }
 }
 
-@media (hover: hover) and (pointer: fine) and (max-width: 63.9375rem) {
+@media (hover: hover) and (pointer: fine) and (width < 64rem) {
   .player .player-collapse:hover:not(:active) {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
@@ -2937,8 +2950,16 @@
   box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
 }
 
-.player-queue-more {
+.player-queue-more,
+.player-queue-add {
   flex: none;
+}
+
+/* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the
+   queue's own rows; the plus at a row's end queues it. */
+.player-suggested-head {
+  margin: 0 0 var(--space-2);
+  padding-inline: var(--space-2);
 }
 
 /* The menu hangs under its own dots: the last --hero-more before it in the page (hero.css). */
@@ -2972,20 +2993,20 @@
    column, so it fits by construction in a short window (a tablet held sideways, 1024x600 to
    1280x720) and nothing is cut below the edge. A mouse's column holds less (no scrubber, no story
    line) and keeps the plain share. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   :root {
     --player-cover-share: min(40cqb, 100cqb - var(--player-column-rest));
   }
 }
 
-@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+@media (width >= 64rem) and (hover: hover) and (pointer: fine) {
   :root {
     --player-cover-share: 40cqb;
   }
 }
 
 /* After the rules it changes, so it wins at equal weight. */
-@media (min-width: 64rem) and (hover: hover) and (pointer: fine) {
+@media (width >= 64rem) and (hover: hover) and (pointer: fine) {
   /* The bar stays under the page here, with previous, play, next, the clock and the volume, as it
      does when the page is closed. The page does not say them twice: it keeps what the bar has not,
      the two skips and the speed between them. */
@@ -3040,7 +3061,7 @@
 }
 
 /* A very wide window gives the cover more of its half, so the left side is not mostly empty. */
-@media (min-width: 100rem) {
+@media (width >= 100rem) {
   /* A wider page and a wider left column, or the cover stops at the column's 28rem. */
   :root {
     --player-page-max: 84rem;
@@ -3207,4 +3228,25 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
 /* Component rules that set display must not defeat the hidden attribute. Keep this rule last. */
 [hidden] {
   display: none;
+}
+
+/*
+ * The expand chevron, right of the volume in dock-tools (desktop only, as the tools are). The glyph
+ * is the chevron down; collapsed it is turned to point up, open it points down. The turn takes the
+ * state duration and is skipped for reduced motion. Uses the shared .icon-btn; only the turn is its own.
+ */
+.dock-expand .ui-icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  rotate: 180deg;
+}
+
+.dock-expand[aria-expanded="true"] .ui-icon {
+  rotate: 0deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dock-expand .ui-icon {
+    transition: rotate var(--duration-state) var(--ease-out);
+  }
 }

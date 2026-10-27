@@ -381,11 +381,11 @@ export function overlayTopics(
   const saved = savedTopics(ops);
   for (const id of saved.removedTopics) {
     const topic = byId(root, "[data-topic]", id);
-    const row = root.querySelector<HTMLElement>(`a.row-action[href="/settings/topics/${id}"]`);
+    const row = root.querySelector<HTMLElement>(`a.row-action[href="/settings/categories/${id}"]`);
     if (topic) {
       // A removed topic's own page has nothing to show: the list takes its place, in history too.
       topic.setAttribute("data-gone", "");
-      globalThis.location?.replace("/settings/topics");
+      globalThis.location?.replace("/settings/categories");
     }
     if (row) row.hidden = true;
     shown ||= Boolean(topic || row);
@@ -426,8 +426,8 @@ export function fillShell(root: HTMLElement, ops = readSaved()): boolean {
   if (!topic || (root.dataset.taken ?? "").split(" ").includes(id)) {
     location.replace(
       saved.removedTopics.has(id) || !id
-        ? "/settings/topics"
-        : `/settings/topics/${encodeURIComponent(id)}`,
+        ? "/settings/categories"
+        : `/settings/categories/${encodeURIComponent(id)}`,
     );
     return false;
   }
@@ -451,7 +451,7 @@ export function fillShell(root: HTMLElement, ops = readSaved()): boolean {
     } else if (node.nodeValue?.includes("__shell_")) node.nodeValue = swap(node.nodeValue, false);
   }
   document.title = swap(document.title, false);
-  // Edit topic starts from the saved topic, and sends it whole, emoji and keywords included.
+  // Edit category starts from the saved topic, and sends it whole, emoji and keywords included.
   const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
   if (trigger) {
     const { name, description, keywords } = topic;
@@ -512,8 +512,8 @@ function recount(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
   let shown = false;
   for (const row of rows) {
     const page = row.dataset.page ?? "";
-    const { total, on } = sourceCounts(spots, page);
-    const text = sourcesSummary({ total, on, never: row.dataset.never !== undefined });
+    const { total } = sourceCounts(spots, page);
+    const text = sourcesSummary({ total, never: row.dataset.never !== undefined });
     const hint = row.querySelector("[data-hint]");
     // The built line may carry the template's own spaces: a line that reads the same is no change.
     if (!hint || hint.textContent?.trim() === text) continue;
@@ -528,14 +528,14 @@ type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>["topic"];
 /** A topic's new name and what counts, on its page and on its row in the list. */
 function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   let shown = false;
-  const row = root.querySelector(`a.row-action[href="/settings/topics/${id}"] .settings-label`);
+  const row = root.querySelector(`a.row-action[href="/settings/categories/${id}"] .settings-label`);
   if (row && row.textContent !== topic.name) {
     row.textContent = topic.name;
     shown = true;
   }
   // A saved emoji, or none (reset to the default), as the build would draw it.
   const emoji = topic.emoji ?? topicEmoji({ id, name: topic.name });
-  const mark = root.querySelector(`a.row-action[href="/settings/topics/${id}"] .topic-emoji`);
+  const mark = root.querySelector(`a.row-action[href="/settings/categories/${id}"] .topic-emoji`);
   if (mark && mark.textContent !== emoji) {
     mark.textContent = emoji;
     shown = true;
@@ -560,7 +560,7 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   const { name, description, keywords } = topic;
   trigger.dataset.editTopic = JSON.stringify({ ...facts, name, description, keywords });
   if (facts.name && facts.name !== name) renameLabels(facts.name, name);
-  trigger.setAttribute("aria-label", `Edit topic ${name}`);
+  trigger.setAttribute("aria-label", `Edit category ${name}`);
   const title = document.getElementById("page-title");
   if (title) title.textContent = name;
   pick?.setAttribute("aria-label", `Change emoji for ${name}`);
@@ -581,9 +581,9 @@ const NAMED = [
   "Skip to {}",
   "Change emoji for {}",
   "More actions for {}",
-  "Edit topic {}",
-  "Delete topic {}",
-  "Keep topic {}",
+  "Edit category {}",
+  "Delete category {}",
+  "Keep category {}",
   "Add source to {}",
   "{} sources",
   "Delete {}?",

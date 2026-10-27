@@ -161,6 +161,9 @@ export function mergeUserSources(file: SourcesFile, user: SourcesUserFile): Sour
         ...(override.format === undefined ? {} : { format: override.format }),
         ...(override.lean === undefined ? {} : { lean: override.lean }),
         ...(override.high_signal === undefined ? {} : { high_signal: override.high_signal }),
+        ...(override.options === undefined
+          ? {}
+          : { options: { ...source.options, ...override.options } }),
       };
       if (override.topic_ids !== undefined) {
         if (override.topic_ids.length > 0) next.topic_ids = [...override.topic_ids];

@@ -1,16 +1,24 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import type { PlayerDigestData } from "../../types/contracts";
 
 const MODES = ["light", "dark"] as const;
 
 /** A cover the site drew: its path comes from page JSON, so anything else is not shown. */
-const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))$/;
+const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))(\?v=\w+)?$/;
 
 /** The cover drawn for one theme: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`. */
 function themedSrc(src: string, mode: (typeof MODES)[number]): string {
-  const file = COVER_FILE.exec(src)?.[1];
+  const match = COVER_FILE.exec(src);
+  const file = match?.[1];
   // encodeURIComponent changes nothing the pattern lets through; it marks the path safe for CodeQL.
-  return file ? `/covers/${mode}/${encodeURIComponent(file)}` : "";
+  return file ? `/covers/${mode}/${encodeURIComponent(file)}${match?.[2] ?? ""}` : "";
+}
+
+/** The theme the page is showing: an explicit data-theme wins, else the system's. */
+function shownMode(): (typeof MODES)[number] {
+  const theme = document.documentElement.dataset.theme;
+  if (theme === "light" || theme === "dark") return theme;
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 interface PlayerCoverProps {
@@ -29,11 +37,38 @@ interface PlayerCoverProps {
  */
 export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
   const style = { "--cover-key": cover.key } as CSSProperties;
+  // Pending (no drawn path), missing or failed to load: the branded fallback (cover.css), never a
+  // broken or empty box. A new cover path gets a new try. A failure counts for its own theme only:
+  // the other theme's image may be fine, and the page can switch to it.
+  const [failed, setFailed] = useState<{ src: string; modes: readonly string[] }>({
+    src: "",
+    modes: [],
+  });
+  const [shown, setShown] = useState<(typeof MODES)[number]>("light");
+  useEffect(() => {
+    const sync = () => setShown(shownMode());
+    sync();
+    const query = matchMedia("(prefers-color-scheme: dark)");
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    query.addEventListener("change", sync);
+    return () => {
+      observer.disconnect();
+      query.removeEventListener("change", sync);
+    };
+  }, []);
+  const fallback =
+    !themedSrc(cover.src512, "light") ||
+    (failed.src === cover.src512 && failed.modes.includes(shown));
   return (
     <span
       className="player-cover-frame"
       data-size={size}
       data-weekly={weekly ? "" : undefined}
+      data-fallback={fallback ? "" : undefined}
       style={style}
     >
       {MODES.map((mode) => {
@@ -57,6 +92,12 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
             // The other theme's image is display: none, so a lazy one is never fetched.
             loading="lazy"
             draggable={false}
+            onError={() =>
+              setFailed((prev) => ({
+                src: cover.src512,
+                modes: [...(prev.src === cover.src512 ? prev.modes : []), mode],
+              }))
+            }
           />
         );
       })}

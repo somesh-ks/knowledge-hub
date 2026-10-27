@@ -107,7 +107,7 @@ main > .empty {
 
 /* The canvas keeps a margin round each scene, so the box is wider than the drawing: 20rem draws a
    scene about 250px across beside a 22px title. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .empty-art {
     inline-size: 20rem;
   }

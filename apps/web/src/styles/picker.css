@@ -319,6 +319,50 @@
   user-select: none;
 }
 
+/* .flag: an accent's flag before a voice's name, in the button and in each option. An <svg> that uses
+   a symbol of /flags.svg (Flagpack art, the same on every system since Windows has no flag emoji),
+   16 by 12 with small rounded corners; a region with no symbol is a .flag-badge, its two
+   letters (data-code) small and muted. Never alone: the name follows it. */
+.flag {
+  display: inline-block;
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: calc(var(--space-4) * 0.75);
+  margin-inline-end: var(--space-2);
+  border-radius: var(--radius-xs);
+  vertical-align: middle;
+}
+
+.flag-badge {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: auto;
+  min-inline-size: var(--space-4);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: calc(var(--space-4) * 0.75);
+}
+
+.flag-badge::before {
+  content: attr(data-code);
+}
+
+/* In a list row the grid's gap spaces the flag, and the check moves to the third column. */
+.picker-option:has(> .flag) {
+  grid-template-columns: auto minmax(0, 1fr) var(--size-icon);
+}
+
+.picker-option > .flag {
+  margin-inline-end: 0;
+}
+
+.picker-option[aria-selected="true"]:has(> .flag)::after {
+  grid-column: 3;
+}
+
 .picker-option-name {
   min-inline-size: 0;
   font-size: var(--font-size-body);
@@ -389,6 +433,8 @@
   /* The target stays 48px; the disc drawn in it is 40px (2026-10-21: the button was too big). */
   inline-size: var(--size-touch-comfortable);
   block-size: var(--size-touch-comfortable);
+  /* It ends a row: the disc, its ink, meets the row's end, and the target hangs out past it (D187). */
+  margin-inline-end: calc((var(--size-touch-comfortable) - var(--space-8) - var(--space-2)) / -2);
   color: var(--color-on-accent-container);
 }
 

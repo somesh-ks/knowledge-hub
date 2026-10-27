@@ -12,7 +12,7 @@ interface Sent {
 /** Answers /api/config and records what was sent. `answers` are used in order, then 202. */
 async function mockConfig(page: Page, answers: Array<{ status: number; body: object }> = []) {
   const sent: Sent[] = [];
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON() as Sent);
     const answer = answers.shift() ?? { status: 202, body: { status: 202, run_id: 1 } };
     await route.fulfill({
@@ -58,7 +58,7 @@ const toast = (page: Page) => page.locator("[data-bar]");
 const toastText = (page: Page) => toast(page).locator("[data-bar-text]");
 /** A save that went through shows no toast; a screen reader hears it. */
 const spoken = (page: Page) => page.locator("[data-live]");
-const SAVED = "Saved.";
+const SAVED = "Settings saved";
 
 test.describe("the Settings index", () => {
   test("lists one row per podcast page, each with what it holds now", async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe("the Settings index", () => {
     const rows = [
       ["Daily", "Every other day at 7", "/settings/daily"],
       ["Weekly", "Sundays at 7", "/settings/weekly"],
-      ["Sources", "", "/settings/topics"],
+      ["Sources", "", "/settings/categories"],
       ["Preferences", "", "/settings/preferences"],
       ["Podcast voice", "", "/settings/voice"],
       ["Interface sounds", "On", "/settings/sounds"],
@@ -87,7 +87,7 @@ test.describe("the Settings index", () => {
     await expect(page).toHaveTitle("Daily Podcast, Singularity");
   });
 
-  test("no settings page has a breadcrumb or a way up above its title @desktop", async ({
+  test("a settings subpage has a Settings link above its title and the index has none @desktop", async ({
     page,
   }) => {
     const ROUTES = [
@@ -97,27 +97,23 @@ test.describe("the Settings index", () => {
       "/settings/voice",
       "/settings/sounds",
       "/settings/preferences",
-      "/settings/topics",
-      "/settings/topics/design",
-      "/settings/topics/design?view=preferences",
+      "/settings/categories",
+      "/settings/categories/design",
+      "/settings/categories/design?view=preferences",
       "/settings/blocked-outlets",
     ];
     for (const path of ROUTES) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.getByRole("navigation", { name: "Breadcrumb" }), path).toHaveCount(0);
-      // A link in the page before its title, leading to a page above this one.
-      const up = await page.evaluate(() => {
-        const title = document.querySelector("main h1");
-        if (!title) return [];
-        const here = location.pathname.replace(/\/$/, "");
-        return [...document.querySelectorAll<HTMLAnchorElement>("main a[href]")]
-          .filter((link) => link.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING)
-          .filter((link) => link.checkVisibility())
-          .map((link) => new URL(link.href).pathname.replace(/\/$/, ""))
-          .filter((path) => path !== here && here.startsWith(`${path}/`));
-      });
-      expect(up, path).toEqual([]);
+      const crumb = page.getByRole("navigation", { name: "Breadcrumb" });
+      if (path === "/settings") {
+        await expect(crumb, path).toHaveCount(0);
+        continue;
+      }
+      await expect(crumb.getByRole("link", { name: "Settings" }), path).toHaveAttribute(
+        "href",
+        "/settings",
+      );
     }
   });
 
@@ -125,8 +121,9 @@ test.describe("the Settings index", () => {
     const moves = [
       ["/settings/podcast", /\/settings$/],
       ["/settings/schedule", /\/settings\/daily$/],
-      ["/settings/podcast/topics", /\/settings\/topics$/],
-      ["/settings/sources", /\/settings\/topics$/],
+      ["/settings/podcast/topics", /\/settings\/categories$/],
+      ["/settings/sources", /\/settings\/categories$/],
+      ["/settings/topics/design", /\/settings\/categories\/design$/],
       // An episode on request is set up in the Create panel.
       ["/settings/custom", /\/create$/],
     ] as const;
@@ -154,9 +151,9 @@ test.describe("the profile pages", () => {
     await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
   });
 
-  test("Weekly is always on: it has no switch and its schedule shows", async ({ page }) => {
+  test("Weekly starts on: its switch is on and its schedule shows", async ({ page }) => {
     await open(page, "weekly");
-    await expect(page.getByRole("switch")).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Weekly briefing" })).toBeChecked();
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
   });
@@ -164,7 +161,7 @@ test.describe("the profile pages", () => {
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
     await mockConfig(page);
     await open(page, "daily");
-    const hint = page.getByText("No topics chosen, so Daily episodes have nothing to cover.");
+    const hint = page.getByText("No categories chosen, so Daily episodes have nothing to cover.");
     await expect(hint).toBeHidden();
     const chips = page.locator("input[data-scope]");
     for (let i = 0; i < (await chips.count()); i += 1) await chips.nth(i).uncheck({ force: true });
@@ -186,10 +183,10 @@ test.describe("the profile pages", () => {
       await openPicker(page, field);
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
-        // Each voice leads with the flag of its accent: en-US, en-US, en-GB.
-        "\u{1F1FA}\u{1F1F8} Ada, female",
-        "\u{1F1FA}\u{1F1F8} Leo, male",
-        "\u{1F1EC}\u{1F1E7} Nora, female",
+        // Each voice's accent flag is an SVG beside the text (2026-10-25), not part of it.
+        "Ada, female",
+        "Leo, male",
+        "Nora, female",
       ]);
       // The search narrows the list by name, and by accent in words.
       await pickerList(page).getByRole("combobox").fill("british");
@@ -288,7 +285,8 @@ test.describe("with the config store on", () => {
     const asked = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    await page.route("**/api/config", async (route: Route) => {
+    // Also the read a save makes after itself (`?after=`, #343), so it is answered, not a 501.
+    await page.route(/\/api\/config(\?.*)?$/, async (route: Route) => {
       if (route.request().method() !== "GET") return route.fallback();
       await asked;
       await route.fulfill({
@@ -521,6 +519,27 @@ test.describe("saved, before the build", () => {
     await expect(page.locator("#daily-timezone")).toHaveText(/^New York \(GMT-[45]\)$/);
   });
 
+  // Q16: the switch saves live, and a reload (before the next build) still finds the briefing off
+  // with the page's other controls disabled, not hidden.
+  test("turning Daily off is saved, and a reload finds it off with the controls disabled", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page);
+    await open(page, "daily");
+    await expect(page.locator("#daily-hour")).toBeEnabled();
+    await page.locator("label[for=daily-enabled]").click();
+    await expect(page.locator("#daily-hour")).toBeDisabled();
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", enabled: false });
+    await expect(spoken(page)).toHaveText(SAVED);
+
+    await page.reload();
+    await open(page, "daily");
+    await expect(page.locator("#daily-enabled")).not.toBeChecked();
+    await expect(page.locator("#daily-hour")).toBeDisabled();
+  });
+
   test("the index, the Topics list and Daily say what was saved on the other pages", async ({
     page,
   }) => {
@@ -542,7 +561,7 @@ test.describe("saved, before the build", () => {
     await expect(hint("Weekly")).toHaveText("Mondays at 7");
     await expect(hint("Sources")).toHaveText("12 sources");
 
-    await page.goto("/settings/topics");
+    await page.goto("/settings/categories");
     await expect(page.locator('a[data-page="design"] [data-hint]')).toHaveText("3 sources");
     await expect(page.locator('a[data-page="audio_interfaces"]')).toBeHidden();
 
@@ -626,7 +645,7 @@ test.describe("a change made offline", () => {
     // A mocked route answers even while the context is offline, so the mock goes offline with it.
     let online = true;
     const sent: Sent[] = [];
-    await page.route("**/api/config", async (route: Route) => {
+    await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
       if (!online) {
         await route.abort("internetdisconnected");
         return;

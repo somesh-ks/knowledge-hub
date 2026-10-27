@@ -18,6 +18,8 @@ import { BudgetExceededError } from "../src/llm/errors.js";
 import { collectHealth } from "../src/ops/health.js";
 import { readPlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
+import { groundingDropRecords } from "../src/run/validateStage.js";
+import { markCopiedFromStore, SNAPSHOT_TRAILER } from "../src/store/configDocs.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
 import {
@@ -122,6 +124,23 @@ describe("concurrent writers and push handling", () => {
     expect(await exists(repo.root, DIGEST_PATH)).toBe(false);
     expect(await exists(repo.root, "state/last-run.json")).toBe(false);
     expect(head(repo.root)).toBe(before);
+  });
+
+  // The bug (2026-10-25 weekly): the gate copied the store's config over the files, and the commit
+  // stage's early check, unlike the guard, never allowed them, so the run failed after its spend.
+  it("commits the config the gate copied from the store, marked as a snapshot", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    await throughValidate(world);
+    await markCopiedFromStore(repo.root, true, true);
+    await writeFile(join(repo.root, "config/queries.json"), '{"queries":[]}\n', "utf8");
+    const commit = await runStage(world, { stage: "commit" });
+    expect(commit.code).toBe(0);
+    expect(git(repo.root, "show", "--name-only", "--format=%B", "HEAD")).toContain(
+      SNAPSHOT_TRAILER,
+    );
+    expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toContain(
+      "config/queries.json",
+    );
   });
 
   it("takes the next free id when the planned one appeared meanwhile", LONG, async () => {
@@ -254,8 +273,6 @@ describe("a run that died before the commit stage", () => {
 });
 
 describe("grounding and validation", () => {
-  const firstId = (): string => (goodFeeds(8)["blog-a"] as Item[])[0]?.id as string;
-
   function writerUnsupportedFor(ids: readonly string[]) {
     return fakeWriter({
       write: (material) =>
@@ -268,21 +285,99 @@ describe("grounding and validation", () => {
     });
   }
 
+  /**
+   * A writer whose first `count` stories carry a claim the source does not support. Which stories
+   * those are follows selection, so the test reads them back from `unsupported`.
+   */
+  function writerUnsupportedFirst(count: number) {
+    const unsupported: string[] = [];
+    const writer = fakeWriter({
+      write: (material) => {
+        if (unsupported.length >= count) return okWritten(material);
+        unsupported.push(material.id);
+        return {
+          ...okWritten(material),
+          summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+        };
+      },
+    });
+    return { writer, unsupported };
+  }
+
   it("drops an item whose sentence the source does not support", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED, writer: writerUnsupportedFor([firstId()]) });
+    const { writer, unsupported } = writerUnsupportedFirst(1);
+    const world = makeWorld(repo.root, { now: WED, writer });
     const result = await runStage(world);
+    const [firstId] = unsupported as [string];
     expect(result.report).toMatchObject({ outcome: "published", items: 5 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
-    expect(digest.items.map((item) => item.id)).not.toContain(firstId());
+    expect(digest.items.map((item) => item.id)).not.toContain(firstId);
     expect(digest.verified).toBe(true);
 
     const written = WrittenFile.parse(
       await readJson(repo.root, ".cache/run/2026-10-07/written.json"),
     );
     expect(written.dropped).toContainEqual(
-      expect.objectContaining({ id: firstId(), stage: "grounding" }),
+      expect.objectContaining({ id: firstId, stage: "grounding" }),
     );
     expect(written.items.every((entry) => entry.verified)).toBe(true);
+  });
+
+  // The 2026-10-27 daily lost 5 of 8 stories to grounding and its cache was gone: nobody could say
+  // which sentences failed or how much source text the check had.
+  it(
+    "names a grounding-dropped story, its source text length and its failing sentence",
+    LONG,
+    async () => {
+      const { writer, unsupported } = writerUnsupportedFirst(1);
+      const world = makeWorld(repo.root, { now: WED, writer });
+      await runStage(world);
+      const [firstId] = unsupported as [string];
+      const report = (await readJson(repo.root, ".cache/run/2026-10-07/validate-report.json")) as {
+        grounding_drops: Array<{
+          id: string;
+          source_chars: number;
+          text_from: string;
+          sentences: string[];
+          repairs: number;
+        }>;
+      };
+      expect(report.grounding_drops).toHaveLength(1);
+      const [drop] = report.grounding_drops as [(typeof report.grounding_drops)[number]];
+      expect(drop.id).toBe(firstId);
+      expect(drop.source_chars).toBeGreaterThan(0);
+      expect(drop.text_from).not.toBe("missing");
+      expect(drop.sentences[0]).toContain("UNSUPPORTED claim about springs");
+      expect(drop.repairs).toBe(0);
+    },
+  );
+
+  // A rewrite that breaks the voice rules drops the story, but the claim that triggered the repair
+  // is what the owner needs in the log, not only the lint messages.
+  it("keeps the unsupported sentence of a story dropped for its voice", () => {
+    const [record] = groundingDropRecords(
+      [
+        {
+          id: "a",
+          reason: "voice",
+          unsupported: [
+            {
+              field: "summary",
+              sentence: "The claim nobody supports.",
+              score: 0.1,
+              status: "unsupported",
+            },
+          ],
+          violations: [{ field: "summary", rule: "banned_word", message: "Avoid a banned word." }],
+          repairs: 1,
+        },
+      ],
+      new Map(),
+      new Map(),
+      () => "src",
+    );
+    expect(record?.sentences).toEqual(["The claim nobody supports."]);
+    expect(record?.voice_violations).toEqual(["Avoid a banned word."]);
   });
 
   const SCHEDULE_3_MINUTES = json({
@@ -302,16 +397,12 @@ describe("grounding and validation", () => {
   // selection came off the owner's length.
   it("fills the owner's length with a spare when grounding drops a story", LONG, async () => {
     await seed(repo.root, { "config/schedule.json": SCHEDULE_3_MINUTES });
-    const feeds = goodFeeds(12);
-    const unsupported = Object.values(feeds).map((items) => items[0]?.id as string);
-    const world = makeWorld(repo.root, {
-      now: WED,
-      feeds,
-      writer: writerUnsupportedFor(unsupported),
-    });
+    const feeds = manyOutlets(45);
+    const { writer, unsupported } = writerUnsupportedFirst(3);
+    const world = makeWorld(repo.root, { now: WED, feeds, writer });
     const result = await runStage(world);
     // Three minutes is eight stories at the narration's pace.
-    expect(result.report).toMatchObject({ outcome: "published", items: 4 });
+    expect(result.report).toMatchObject({ outcome: "published", items: 12 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
     expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
     // The spares filled it, so no replacement was written.
@@ -458,6 +549,61 @@ describe("grounding and validation", () => {
     expect(stages.validate).toMatchObject({ passes: [{ outcome: "selected" }] });
     expect(calls.write).toBe(1);
     expect((await readDigest(repo.root, DIGEST_PATH)).items.length).toBeGreaterThanOrEqual(3);
+  });
+
+  // The 2026-10-27 daily (owner's structure, five minutes): section counts held selection to 8
+  // stories, grounding cut 5, and the reserve was empty because it was chosen under the same
+  // counts, so nothing replaced them and 3 stories aired (79 s).
+  it("refills from spares the structure's section counts would not have chosen", LONG, async () => {
+    const section = (id: string, max: number) => ({
+      type: "section",
+      id,
+      depth: "brief",
+      max_stories: max,
+    });
+    await seed(repo.root, {
+      "config/schedule.json": json({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        length_minutes: 5,
+        skip_topics: [],
+        weekly: { skip_topics: [] },
+      }),
+      "config/structure.json": json({
+        version: 1,
+        profile: "custom",
+        blocks: [
+          { type: "hello" },
+          { type: "top_picks", stories: 3, depth: "deep" },
+          section("design", 3),
+          section("ui-craft", 3),
+          section("ai", 2),
+          section("tech", 2),
+          { type: "trending", stories: 2 },
+          section("software", 2),
+          { type: "release_news", stories: 1 },
+          { type: "sign_off" },
+        ],
+      }),
+      "config/sources.json": json({
+        ...sourcesFile(),
+        sources: sourcesFile().sources.map((entry) => ({
+          ...entry,
+          options: { pool_cap: "20" },
+        })),
+      }),
+    });
+    const { writer, startRefill } = writerKeeping(3);
+    const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
+    const stages = await stagedWithRefill(world, () => startRefill("ok"));
+    const [pass] = (stages.write as { passes: Array<{ selected: number }> }).passes;
+    // Selection stays under the structure's counts, and grounding cuts all but three.
+    expect(pass?.selected).toBeLessThan(12);
+    const report = await validateReport();
+    expect(report.grounding_dropped).toBeGreaterThanOrEqual(3);
+    expect(report.refill_written).toBeGreaterThan(0);
+    expect((await readDigest(repo.root, DIGEST_PATH)).items.length).toBeGreaterThanOrEqual(10);
   });
 
   it(

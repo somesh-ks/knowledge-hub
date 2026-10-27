@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { EpisodeId, readEpisodeScript } from "@singularity/core";
-import { DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
+import { audioVersion, episodeOpusKey } from "../publish/blob.js";
+import { DEFAULT_LANGUAGE, DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
 
 /**
  * Where a narrated segment lives, shared by the site's /api/narrate (which narrates a segment on
@@ -33,9 +34,11 @@ export const turnKey = (idx: number): string => `t${idx}`;
 
 /**
  * A segment's name holds the hash of its text and voice, so the words behind a URL never change and
- * the file can be kept for a month.
+ * the file can be kept for a year (Blob sets max-age only; `immutable` is not an option it offers).
+ * The briefing and episode files at a fixed key (audio/<id>.mp3, covers/<id>-<size>) are not
+ * named by their content, so they keep a short cache (2026-10-26).
  */
-export const SEGMENT_CACHE_SECONDS = 30 * 24 * 60 * 60;
+export const SEGMENT_CACHE_SECONDS = 365 * 24 * 60 * 60;
 
 /**
  * The second host's voice when SPEECHIFY_VOICE_ID_B is not set at all: a deeper male voice from the
@@ -52,10 +55,13 @@ export const SEGMENT_KEY = /^[a-z0-9]{1,32}$/;
 export const segmentPrefix = (digest: string): string => `audio/${digest}/seg/`;
 
 export function segmentHash(text: string, voice: string, model: string): string {
-  return createHash("sha256")
-    .update(`${voice}\n${model}\n${text}`)
-    .digest("hex")
-    .slice(0, SEGMENT_HASH_CHARS);
+  return (
+    createHash("sha256")
+      // The language is in the key so a segment made before it was pinned is never stitched in.
+      .update(`${voice}\n${model}\n${DEFAULT_LANGUAGE}\n${text}`)
+      .digest("hex")
+      .slice(0, SEGMENT_HASH_CHARS)
+  );
 }
 
 export function segmentPath(digest: string, key: string, hash: string): string {
@@ -130,6 +136,53 @@ export function deriveSegmentMarks(text: string, marks: readonly SpeechMark[]): 
     latest = mark.start_ms;
   }
   return sorted;
+}
+
+/**
+ * A finished episode also stored as ONE Opus-in-MP4 file (plan 21): the turns' MP3s joined in order
+ * and transcoded once, beside a small manifest of where each turn sits in it. The name carries a hash
+ * of the turn files' own names, so the file follows the script and the voices like the turns do and
+ * the site works out its address from the lookup alone. The manifest is written last: its presence
+ * means the m4a is complete. Live catch-up stays on the MP3 turns.
+ */
+export interface EpisodeOpusTurn {
+  key: string;
+  start_ms: number;
+  end_ms: number;
+}
+
+export interface EpisodeOpusManifest {
+  duration_ms: number;
+  turns: EpisodeOpusTurn[];
+}
+
+export interface EpisodeOpusAddress {
+  /** The m4a's pathname; the manifest sits beside it. */
+  path: string;
+  manifestPath: string;
+}
+
+/** Where an episode's Opus file would be for these turn files, in playing order. */
+export function episodeOpusAddress(
+  episode: string,
+  segmentPaths: readonly string[],
+): EpisodeOpusAddress {
+  const version = audioVersion(new TextEncoder().encode(segmentPaths.join("\n")));
+  const path = episodeOpusKey(episode, version);
+  return { path, manifestPath: path.replace(/\.m4a$/, ".json") };
+}
+
+/** The manifest of turns of these lengths laid end to end. */
+export function episodeOpusManifest(
+  turns: readonly { key: string; duration_ms: number }[],
+): EpisodeOpusManifest {
+  let cursor = 0;
+  const laid = turns.map((turn) => {
+    const start_ms = cursor;
+    cursor += turn.duration_ms;
+    return { key: turn.key, start_ms, end_ms: cursor };
+  });
+  return { duration_ms: cursor, turns: laid };
 }
 
 /** The voices that read an episode's hosts, from the environment the site's narrate route has. */

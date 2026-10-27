@@ -1,11 +1,14 @@
 import {
+  type AutoAdjust,
   activeFitTopics,
+  adjustmentAt,
   type Category,
   type Item,
+  offCategories,
   type Preferences,
   type ScheduleFile,
   type SourceStatsFile,
-  type Topic,
+  sourceShift,
   VOICE_LIMITS,
 } from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
@@ -33,6 +36,7 @@ import {
   voteReportLine,
 } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
+import { isReleaseStory, RELEASE_SECTION } from "../score/releaseNotes.js";
 import { scoreItem } from "../score/scoreItem.js";
 import {
   applyFormatMix,
@@ -69,6 +73,7 @@ import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./p
 import {
   charsForMinutes,
   lengthMinutesFor,
+  lookbackHoursFor,
   overNarrationLimit,
   storiesForMinutes,
   WRITE_MAX,
@@ -91,6 +96,8 @@ interface PassContext {
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
+  /** Built-in categories set never to publish. */
+  offCategories: readonly string[];
   /** Topics the scheduled daily briefing leaves out. */
   skipTopics: readonly string[];
   /** Regenerate: the topics chosen for this run alone. Every other topic is left out of every pass. */
@@ -100,6 +107,8 @@ interface PassContext {
   weeklySkipTopics: readonly string[];
   /** 30-day per-source counters, for the small score adjustment from each source's pass rate. */
   sourceStats: SourceStatsFile;
+  /** What votes added to sources (core/autoAdjust.ts). */
+  autoAdjust: AutoAdjust;
   /** The owner's votes as source and domain preferences, and the headlines the writer is told of. */
   votePrefs: VotePreferences;
   taste: Taste;
@@ -133,8 +142,8 @@ export async function writeStage(
     loadPreferences(deps.root),
     loadSources(deps.root),
   ]);
-  const topics = await loadTopics(deps.root, preferences);
   const profile = await createFileProfileStore(deps.root).read(OWNER_ID);
+  const topics = await loadTopics(deps.root);
   const votePrefs = votePreferences(profile.votes, deps.now());
   const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
@@ -147,11 +156,13 @@ export async function writeStage(
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
     customTopics: activeFitTopics(topics),
+    offCategories: offCategories(topics),
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
     sourceStats: await readSourceStats(deps.root),
     votePrefs,
+    autoAdjust: profile.auto_adjust,
     taste,
     tasteProfile: tasteProfile(profile),
     generalTopics: activeGeneralFrom(topics),
@@ -207,11 +218,13 @@ async function writePass(
     preferences,
     sourceNames,
     customTopics,
+    offCategories: off,
     skipTopics,
     onlyTopics,
     weeklySkipTopics,
     sourceStats,
     votePrefs,
+    autoAdjust,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
   const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
@@ -246,6 +259,7 @@ async function writePass(
           context.sourceFacts,
         ),
         sourceStats,
+        sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now())),
       ),
     );
   }
@@ -306,7 +320,7 @@ async function writePass(
     scored: [...scored, ...generalScored],
     kind: pass.kind,
     floor: VOICE_LIMITS.items.floor,
-    weights: preferences.weights,
+    offCategories: off,
     // The scheduled regular briefing leaves out the daily podcast's skipped topics and the weekly
     // pass its own; an episode made on request covers everything it was asked for.
     skipTopics:
@@ -314,6 +328,9 @@ async function writePass(
     // Regenerate with chosen topics: a candidate stays only when its category is one of them.
     ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
     plan: sectionPlan,
+    // The owner's lookback for this podcast (Daily or Weekly settings); Auto has none.
+    lookbackHours: lookbackHoursFor(context.schedule, pass.kind, context.mode),
+    now: deps.now(),
   };
   const chosen = selectItems({
     ...selectArgs,
@@ -346,7 +363,12 @@ async function writePass(
   // Items judged for the score alone (D70) count for their sources too, marked as sampled.
   const sampleFiles = await readSampleFiles(file("sample.json"), file("sample-judged.json"));
   const sample = sampleFiles.sample
-    ? countSample({ sample: sampleFiles.sample, judged: sampleFiles.judged, preferences })
+    ? countSample({
+        sample: sampleFiles.sample,
+        judged: sampleFiles.judged,
+        preferences,
+        offCategories: off,
+      })
     : {};
   await writeJson(file("source-counts.json"), {
     version: 1,
@@ -428,10 +450,19 @@ async function writePass(
   const topCategoryOf = new Map(scored.map((s) => [s.item.id, s.topCategory]));
   const writerCategoryOf = (sel: { item: Item; category: string }): Category =>
     writerCategory(sel.category, topCategoryOf.get(sel.item.id));
+  // The section each story would air in, for the owner's prompt of that block (D182). Writing can
+  // drop a Top pick and promote the next story, which then keeps the prompt of its own section.
+  const sectionOf = new Map(
+    assignSections(chosen.selected, sectionPlan).map((sel) => [sel.item.id, sel.section]),
+  );
   const { materials, methods, writeResult, voice } = await writeFinalists({
     runtime,
     linter,
-    finalists: chosen.selected.map((sel) => ({ item: sel.item, category: writerCategoryOf(sel) })),
+    finalists: chosen.selected.map((sel) => ({
+      item: sel.item,
+      category: writerCategoryOf(sel),
+      prompt: sectionPlan.prompt(sectionOf.get(sel.item.id) ?? sel.home),
+    })),
     sourceNames,
     feedback: context.feedback,
     taste: context.taste,
@@ -447,6 +478,10 @@ async function writePass(
           chosen.selected,
           selectItems({
             ...selectArgs,
+            // The structure's story counts shape what the first selection airs; they must not
+            // empty the reserve. The 2026-10-27 daily's counts held selection to 8 stories, the
+            // same counts held the reserve to none, and a briefing grounding cut to 3 stayed 79 s.
+            plan: { ...sectionPlan, limit: () => null },
             cap: withSpares(wanted) * 2,
             total: withSpares(wanted) * 2,
           }).selected,
@@ -455,6 +490,8 @@ async function writePass(
           category: sel.category,
           score: sel.score,
           writer_category: writerCategoryOf(sel),
+          // A replacement comes after the Top picks, so it airs in its own section.
+          section: isReleaseStory(sel) ? RELEASE_SECTION : sel.home,
         }));
   await writeJson(file("reserve.json"), {
     version: 1,
@@ -536,10 +573,14 @@ async function readGeneralCounts(
   }
 }
 
-/** A finalist to write: the item and the built-in category its writer prompt is told. */
+/**
+ * A finalist to write: the item, the built-in category its writer prompt is told, and the owner's
+ * prompt for its block when there is one (D182).
+ */
 export interface Finalist {
   item: Item;
   category: Category;
+  prompt?: string | undefined;
 }
 
 /**
@@ -583,6 +624,7 @@ export async function writeFinalists(args: {
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: sel.category,
       text: text.text,
+      ...(sel.prompt === undefined ? {} : { prompt: sel.prompt }),
     });
   }
 

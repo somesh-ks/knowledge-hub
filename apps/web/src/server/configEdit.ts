@@ -1,12 +1,15 @@
 import {
   ConfigOp as CoreConfigOp,
   DEFAULT_SCHEDULE,
+  FETCH_VIA,
+  type FetchVia,
   isSupportedTimeZone,
+  LOOKBACK_STOPS,
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
   StructureBlocks,
-  StructureKind,
+  StructureProfile,
   scheduleZone,
 } from "@singularity/core";
 
@@ -36,7 +39,7 @@ import { describeError } from "./redact";
  * not name never reaches the workflow.
  */
 
-/** Edits are small. A weights map for a hundred topics is the largest valid body, near 6 KB. */
+/** Edits are small. */
 export const MAX_CONFIG_BODY_CHARS = 8192;
 /** Two edits closer together than this are refused, so one person cannot flood the repository. */
 export const CONFIG_COOLDOWN_MS = 10_000;
@@ -74,7 +77,6 @@ const MAX_KEYWORDS = 12;
 const MAX_KEYWORD = 40;
 const MAX_URL = 2048;
 const MAX_TOPIC_IDS = 12;
-const MAX_WEIGHTS = 100;
 const MAX_SKIPPED_TOPICS = 200;
 const CADENCES = [1, 2, 3, 7] as const;
 type PodcastLength = PodcastRequest["length_minutes"];
@@ -104,12 +106,6 @@ function text(value: unknown, max: number): string | null {
 
 function id(value: unknown): string | null {
   return typeof value === "string" && ID.test(value) ? value : null;
-}
-
-function weight(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1
-    ? value
-    : null;
 }
 
 /** An address a feed can be read from: http or https, with a host, and nothing in the userinfo slot. */
@@ -172,6 +168,14 @@ function lengthOf(value: unknown): PodcastLength | null {
   return SCHEDULE_LENGTHS.find((minutes) => minutes === value) ?? null;
 }
 
+type Lookback = (typeof LOOKBACK_STOPS)[number];
+
+/** A lookback: one of the stops, null for Auto, undefined when absent, false when invalid. */
+function lookbackOf(value: unknown): Lookback | null | undefined | false {
+  if (value === undefined || value === null) return value;
+  return LOOKBACK_STOPS.find((hours) => hours === value) ?? false;
+}
+
 /** The part `weekly` and `custom` share: type, length and the two voices. False when one is invalid. */
 function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp): boolean {
   if (value.format !== undefined) {
@@ -212,6 +216,10 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (typeof value.timezone !== "string" || !isSupportedTimeZone(value.timezone)) return null;
     op.timezone = value.timezone;
   }
+  if (value.enabled !== undefined) {
+    if (typeof value.enabled !== "boolean") return null;
+    op.enabled = value.enabled;
+  }
   if (value.hour !== undefined) {
     const hour = hourOf(value.hour);
     if (hour === null) return null;
@@ -235,6 +243,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (checked === false) return null;
     if (checked !== undefined) op[key] = checked;
   }
+  const lookback = lookbackOf(value.lookback_hours);
+  if (lookback === false) return null;
+  if (lookback !== undefined) op.lookback_hours = lookback;
   if (value.weekly !== undefined) {
     if (!isRecord(value.weekly)) return null;
     const weekly: WeeklyOp = {};
@@ -256,6 +267,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (weeklySkip === false) return null;
     if (weeklySkip !== undefined) weekly.skip_topics = weeklySkip;
     if (!podcastParts(value.weekly, weekly)) return null;
+    const weeklyLookback = lookbackOf(value.weekly.lookback_hours);
+    if (weeklyLookback === false) return null;
+    if (weeklyLookback !== undefined) weekly.lookback_hours = weeklyLookback;
     op.weekly = weekly;
   }
   if (value.custom !== undefined) {
@@ -280,7 +294,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       const topicId = id(topic.id);
       const name = text(topic.name, MAX_NAME);
       const description = text(topic.description, MAX_DESCRIPTION);
-      const amount = weight(topic.weight);
       const enabled = typeof topic.enabled === "boolean" ? topic.enabled : null;
       const words = keywords(topic.keywords);
       const sectionId = id(topic.section_id);
@@ -297,7 +310,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         topicId === null ||
         name === null ||
         description === null ||
-        amount === null ||
         enabled === null ||
         words === null ||
         sectionId === null
@@ -310,7 +322,6 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           id: topicId,
           name,
           description,
-          weight: amount,
           enabled,
           keywords: words,
           section_id: sectionId,
@@ -374,12 +385,18 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
           : undefined;
       const format = SOURCE_FORMATS.find((entry) => entry === value.format);
       const highSignal = typeof value.high_signal === "boolean" ? value.high_signal : undefined;
+      const fetchVia =
+        value.fetch_via === null ||
+        (typeof value.fetch_via === "string" && Object.hasOwn(FETCH_VIA, value.fetch_via))
+          ? (value.fetch_via as FetchVia | null)
+          : undefined;
       if (
         name === undefined &&
         ids === undefined &&
         lean === undefined &&
         format === undefined &&
-        highSignal === undefined
+        highSignal === undefined &&
+        fetchVia === undefined
       ) {
         return null;
       }
@@ -391,24 +408,12 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
         ...(lean === undefined ? {} : { lean }),
         ...(format === undefined ? {} : { format }),
         ...(highSignal === undefined ? {} : { high_signal: highSignal }),
+        ...(fetchVia === undefined ? {} : { fetch_via: fetchVia }),
       };
     }
     case "source.remove": {
       const source = id(value.id);
       return source === null ? null : { op: "source.remove", id: source };
-    }
-    case "weights.set": {
-      if (!isRecord(value.weights)) return null;
-      const entries = Object.entries(value.weights);
-      if (entries.length === 0 || entries.length > MAX_WEIGHTS) return null;
-      const weights: Record<string, number> = {};
-      for (const [key, amount] of entries) {
-        const topic = id(key);
-        const checked = weight(amount);
-        if (topic === null || checked === null) return null;
-        weights[topic] = checked;
-      }
-      return { op: "weights.set", weights };
     }
     case "schedule.set":
       return parseScheduleSet(value);
@@ -439,10 +444,17 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     case "structure.set": {
       // The blocks are core's (StructureBlocks, D170), the schema the engine applies the op with.
       // Its parse keeps only the fields a block names, so an unknown key never reaches the store.
-      const kind = StructureKind.safeParse(value.kind);
+      const profile = StructureProfile.safeParse(value.profile);
       const blocks = StructureBlocks.safeParse(value.blocks);
-      if (!kind.success || !blocks.success) return null;
-      return { op: "structure.set", kind: kind.data, blocks: blocks.data };
+      if (!profile.success || !blocks.success) return null;
+      return { op: "structure.set", profile: profile.data, blocks: blocks.data };
+    }
+    case "structure.prompt": {
+      // Core's schema (D182) bounds the key and the length.
+      const parsed = CoreConfigOp.safeParse(value);
+      if (!parsed.success || parsed.data.op !== "structure.prompt") return null;
+      const { key, prompt } = parsed.data;
+      return { op: "structure.prompt", key, prompt };
     }
     case "profile.vote": {
       // The vote shape is core's (VoteInput), the same schema the engine applies the op with.

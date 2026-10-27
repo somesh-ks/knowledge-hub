@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { IdString, SectionId, snapWeight } from "./categories.js";
+import { IdString, SectionId } from "./categories.js";
 import { ScheduleChange } from "./schedule.js";
-import { SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
-import { kindProblems, StructureBlocks, StructureKind } from "./structure.js";
+import { FetchViaValue, SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
+import { BlockPrompt, BlockPromptKey, StructureBlocks, StructureProfile } from "./structure.js";
 import {
   MAX_KEYWORDS,
   MixStop,
@@ -37,9 +37,6 @@ export const MAX_VOTES_PER_OP = 50;
 export const OpenInput = VoteInput.omit({ value: true });
 export const MAX_OPENS_PER_OP = 50;
 
-/** Any number from 0 to 1 is read as the nearest of the five weight stops. */
-const weight = z.number().min(0).max(1).transform(snapWeight);
-
 /**
  * A topic as the app submits it. Only `name` and `description` are required: the id comes from
  * the name, a new topic gets a section of its own titled after it, and the rest take defaults.
@@ -50,7 +47,6 @@ export const TopicInput = z.object({
   id: IdString.optional(),
   name: z.string().trim().min(1).max(60),
   description: z.string().trim().min(1).max(400),
-  weight: weight.default(0.7),
   enabled: z.boolean().default(true),
   keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS).default([]),
   /** Defaults to the topic's own id. A section that does not exist yet is created. */
@@ -69,13 +65,15 @@ export type TopicInput = z.input<typeof TopicInput>;
  * One change to the user-editable configuration. `singularity config apply --op '<json>'` takes
  * exactly one per call, and the config workflow passes it through unchanged.
  *
- * - topic.upsert: create a custom topic, or edit one. For a built-in topic only `weight` and
- *   `keywords` may change.
+ * - topic.upsert: create a custom topic, or edit one. For a built-in topic only `keywords`
+ *   may change.
  * - topic.remove: delete a custom topic and the discovery queries written for it.
  * - source.add: add a source by URL; its feed is discovered when the op runs. An `id` may be given
  *   (refused when taken); otherwise one is made from the address.
  * - source.set: switch a source on or off, or pin it. Works on seed and added sources.
  * - source.update: rename a source (1 to 80 characters, trimmed), set the topics it feeds, or both.
+ *   `fetch_via` opts a source in to a provider read ("alexandria:anthropic-com", only for an
+ *   anthropic.com source); null puts back the default scrape.
  *   An added source is changed in place; a seed source keeps the change in its override, which
  *   wins over the seed's own name and topics. An empty topic list leaves it feeding none of its
  *   own. Unknown source or topic ids are refused.
@@ -83,7 +81,6 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - topic.mix: set a general topic's perspective (-2 Left to 2 Right).
  * - mix.set: set the type mix, one stop per source format, for every topic alike, in
  *   config/preferences.json. Formats left out keep their stop; Normal removes one.
- * - weights.set: set weights by topic id. Built-in weights are written to config/preferences.json.
  * - schedule.set: set any of the time zone (one of SUPPORTED_TIMEZONES), the daily hour, cadence,
  *   topics left out (`skip_topics`), length and voices, the weekly podcast (`weekly`:
  *   on/off, day, hour, topics left out, type, length, voices) and the Create panel defaults
@@ -95,8 +92,9 @@ export type TopicInput = z.input<typeof TopicInput>;
  * - profile.vote: store 1 to 50 likes or dislikes of stories in the owner's profile, one per story
  *   (a later one replaces an earlier one; "clear" removes it). The engine derives the domain from
  *   the URL. Votes shape later source choice, ranking and what the writer leads with.
- * - structure.set: replace one podcast kind's whole list of blocks (D170) in config/structure.json,
- *   as weights.set replaces weights: idempotent, no index arithmetic on the wire.
+ * - structure.set: choose the listener profile and, for Custom, replace the whole list of
+ *   blocks in config/structure.json that every podcast follows, idempotent, no index arithmetic.
+ * - structure.prompt: replace one block's prompt (D182), or put back the built-in prompt with null.
  */
 export const ConfigOp = z.discriminatedUnion("op", [
   z.object({ op: z.literal("topic.upsert"), topic: TopicInput }),
@@ -134,6 +132,8 @@ export const ConfigOp = z.discriminatedUnion("op", [
       lean: z.number().int().min(-2).max(2).nullable().optional(),
       /** A favorite: every post it brings goes to the judge, ranked up, with no keyword needed. */
       high_signal: z.boolean().optional(),
+      /** Opt in to a provider read of a firecrawl source; null puts back the default scrape. */
+      fetch_via: FetchViaValue.nullable().optional(),
     })
     .refine(
       (value) =>
@@ -141,8 +141,9 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.topic_ids !== undefined ||
         value.format !== undefined ||
         value.lean !== undefined ||
-        value.high_signal !== undefined,
-      { message: "set name, topic_ids, format, lean or any of them" },
+        value.high_signal !== undefined ||
+        value.fetch_via !== undefined,
+      { message: "set name, topic_ids, format, lean, fetch_via or any of them" },
     ),
   z.object({ op: z.literal("source.remove"), id: z.string().min(1) }),
   // A general topic's perspective (D124); 0 (Even) removes it.
@@ -156,12 +157,6 @@ export const ConfigOp = z.discriminatedUnion("op", [
         z.union([MixStop, z.number().min(0).max(1.2).transform(mixStopOf)]),
       )
       .refine((value) => Object.keys(value).length > 0, "give at least one type"),
-  }),
-  z.object({
-    op: z.literal("weights.set"),
-    weights: z
-      .record(IdString, weight)
-      .refine((value) => Object.keys(value).length > 0, "give at least one weight"),
   }),
   z
     .object({ op: z.literal("schedule.set"), ...ScheduleChange.shape })
@@ -188,13 +183,25 @@ export const ConfigOp = z.discriminatedUnion("op", [
         value.daily !== undefined || value.weekly !== undefined || value.custom !== undefined,
       { message: "set at least one scope" },
     ),
+  // The one structure every podcast follows (owner, 2026-10-25): a named profile alone, or Custom
+  // with its whole list of blocks.
   z
-    .object({ op: z.literal("structure.set"), kind: StructureKind, blocks: StructureBlocks })
-    .superRefine((value, ctx) => {
-      for (const message of kindProblems(value.kind, value.blocks)) {
-        ctx.addIssue({ code: "custom", message, path: ["blocks"] });
-      }
+    .object({
+      op: z.literal("structure.set"),
+      profile: StructureProfile,
+      blocks: StructureBlocks.optional(),
+    })
+    .refine((value) => value.profile !== "custom" || value.blocks !== undefined, {
+      message: "Custom needs its blocks.",
+      path: ["blocks"],
     }),
+  // One block's prompt (D182), apart from structure.set so a reorder never carries prompts and a
+  // prompt of six thousand characters fits one request. null puts back the built-in prompt.
+  z.object({
+    op: z.literal("structure.prompt"),
+    key: BlockPromptKey,
+    prompt: BlockPrompt.nullable(),
+  }),
   // The domain is normalised and checked by the engine, which refuses what is not a host name.
   z.object({ op: z.literal("profile.block"), domain: z.string().trim().min(1).max(300) }),
   z.object({ op: z.literal("profile.unblock"), domain: z.string().trim().min(1).max(300) }),

@@ -6,6 +6,7 @@
  */
 
 import { hasSaved, storeOn } from "../lib/savedKey";
+import { activeSummary } from "../lib/settingsSummary";
 import { drawStop } from "../lib/weightStops";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
@@ -57,15 +58,40 @@ function mount(root: HTMLElement): void {
     if (image.complete) loaded(image);
   }
 
-  // Sources or Preferences on a topic's page (2026-10-20), read from the address and kept in it, so
-  // a reload or Back finds the same view (data-param, segmentedNav.ts).
+  // The Preferences page's Structure view (D170) has an editor of its own, loaded when it shows.
+  const pane = root.querySelector<HTMLElement>("[data-structure]");
+  let structureLoaded = false;
+  const loadStructure = (): void => {
+    if (!pane || structureLoaded) return;
+    structureLoaded = true;
+    void saved
+      .then(() => import("./structureEditor"))
+      .then((module) => module.mountStructure(root, pane))
+      .catch(() => {});
+  };
+  if (pane) warmWhenIdle(() => import("./structureEditor"));
+  /** An event the Structure view's own editor answers, not the topics editor (its Reorder too). */
+  const structural = (event: Event): boolean =>
+    (pane?.contains(event.target as Node | null) ?? false) ||
+    (event.target instanceof Element && event.target.closest("[data-reorder]") !== null);
+
+  // Sources or Preferences on a topic's page (2026-10-20), and Source types or Structure on the
+  // Preferences page, read from the address and kept in it, so a reload or Back finds the same view
+  // (data-param, segmentedNav.ts). The first tab is the default.
   const tabs = root.querySelector<HTMLElement>("[data-topic-view]");
   if (tabs) {
-    const view =
-      new URLSearchParams(location.search).get("view") === "preferences"
-        ? "preferences"
-        : "sources";
-    root.dataset.view = view;
+    const values = [...tabs.querySelectorAll<HTMLElement>("[data-value]")].map(
+      (tab) => tab.dataset.value ?? "",
+    );
+    const asked = new URLSearchParams(location.search).get(tabs.dataset.param ?? "view") ?? "";
+    const view = values.includes(asked) ? asked : (values[0] ?? "");
+    // The floating Reorder is the Structure view's alone, so the room kept for it (data-fab) is too.
+    const show = (chosen: string): void => {
+      root.dataset.view = chosen;
+      if (pane) document.documentElement.toggleAttribute("data-fab", chosen === "structure");
+    };
+    show(view);
+    if (view === "structure") loadStructure();
     // The tabs show the view at once; their keys and presses (segmentedNav.ts) follow in a moment,
     // outside the first load's budget.
     for (const tab of tabs.children)
@@ -73,12 +99,35 @@ function mount(root: HTMLElement): void {
     void import("./segmentedNav").then((module) => {
       module.selectTab(tabs, view);
       module.mountSegmentedNav(tabs, (chosen) => {
-        root.dataset.view = chosen;
+        show(chosen);
+        if (chosen === "structure") loadStructure();
       });
     });
   }
 
+  // The line over the sources counts the rows that are on, so it follows a switch, an added row and
+  // a removed one.
+  const status = root.querySelector<HTMLElement>("[data-sources-status]");
+  const sources = root.querySelector<HTMLElement>("ul[data-sources]:not([data-added])");
+  if (status && sources) {
+    const count = (): void => {
+      const rows = [...sources.querySelectorAll<HTMLElement>("li.source-row:not([data-gone])")];
+      const on = rows.filter(
+        (row) => row.querySelector<HTMLInputElement>("input[data-field=enabled]")?.checked,
+      );
+      status.textContent = activeSummary(rows.length, on.length);
+    };
+    root.addEventListener("change", count);
+    new MutationObserver(count).observe(sources, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-gone"],
+    });
+  }
+
   root.addEventListener("input", (event) => {
+    if (structural(event)) return;
     const target = event.target as HTMLInputElement;
     if (target.matches("[data-weight], [data-mix]")) {
       // The fill and the stop's name follow the thumb; recording the change waits for the editor.
@@ -91,7 +140,7 @@ function mount(root: HTMLElement): void {
   root.addEventListener("click", (event) => {
     const button = (event.target as Element).closest("button");
     // The view's tabs are the page's own (mountSegmentedNav); the editor has nothing to do for them.
-    if (!button || button.getAttribute("role") === "tab") return;
+    if (!button || button.getAttribute("role") === "tab" || structural(event)) return;
     if ("showAll" in button.dataset) {
       button.previousElementSibling?.setAttribute("data-all", "");
       button.hidden = true;

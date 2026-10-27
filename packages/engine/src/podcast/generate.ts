@@ -1,10 +1,12 @@
 import {
+  defaultStructure,
   type Episode,
   episodeRelPath,
   isGeneralTopicId,
   normalizeTopicIds,
   type PodcastRequest,
   type StructureBlock,
+  scaleStructure,
   serializeEpisodeFile,
   storedStructure,
 } from "@singularity/core";
@@ -13,12 +15,19 @@ import { createHttpClient, type HttpClient } from "../http.js";
 import { createFileProfileStore, OWNER_ID } from "../profile/profile.js";
 import { tasteHeadlines } from "../profile/votes.js";
 import { loadStructureFile } from "../structure/store.js";
-import { allocateEpisodeId, buildEpisode, topicLabel, writeEpisodeFile } from "./episode.js";
+import {
+  allocateEpisodeId,
+  buildEpisode,
+  pickEpisodeCover,
+  topicLabel,
+  writeEpisodeFile,
+} from "./episode.js";
 import { type GeneralSelection, selectGeneralStories } from "./general.js";
 import { planPodcast } from "./plan.js";
 import { discussionHostNames } from "./prompt.js";
 import { generateScript, type ScriptResult } from "./script.js";
 import { joinNames, type Selection, selectStories } from "./select.js";
+import { type ArtifactStore, EPISODE_STAGE_IDS, type EpisodeStageId } from "./stages.js";
 import type { StreamPublisher } from "./stream.js";
 import { airsUnder, type ScriptShape, shapeStories } from "./structure.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
@@ -37,6 +46,12 @@ export interface GenerateInput {
   /** Regeneration: the episode being replaced and what the listener wants changed. */
   replaces?: string;
   feedback?: string;
+  /** Where each finished stage is saved and looked for first; absent, every stage runs in memory. */
+  store?: ArtifactStore | null;
+  /** Run one stage and stop (its steps before it must have saved theirs). Absent: all of them. */
+  only?: EpisodeStageId | undefined;
+  /** Called as a stage starts, so a failure can name it. */
+  onStage?: (stage: EpisodeStageId) => void;
   /**
    * Called once the stories are chosen and the episode id is known, before the script is written.
    * The publisher it returns is given the opening and then the whole script as they are ready.
@@ -245,8 +260,42 @@ function planningShape(blocks: readonly StructureBlock[]): ScriptShape {
   return { ...shape, deep: anyDeep ? Array.from({ length: 99 }, (_, i) => String(i)) : [] };
 }
 
-/** Plan, select, script, check and write one episode file. It does not commit. */
-export async function generateEpisode(raw: GenerateInput): Promise<GenerateResult> {
+/** What the select stage leaves for the later ones. */
+export interface SelectArtifact extends Selected {
+  id: string;
+  budget_chars: number;
+  shape: ScriptShape | null;
+}
+
+/** What the script stage leaves. */
+export interface ScriptArtifact {
+  turns: ScriptTurn[];
+  script: Omit<ScriptResult, "turns">;
+}
+
+/** What the cover stage leaves. */
+export interface CoverArtifact {
+  cover: Episode["cover"];
+}
+
+export interface StageOutcome {
+  /** The episode id, fixed by the select stage. */
+  id: string;
+  /** The stages this call ran; one a saved artifact stood in for is not listed. */
+  ran: EpisodeStageId[];
+  /** Milliseconds per stage, those of earlier steps of the run included. */
+  durations: Record<string, number>;
+  /** Set once the publish stage has run. */
+  result?: GenerateResult;
+}
+
+/**
+ * Plan, select, cover, script and write one episode file, one stage at a time. Each finished stage
+ * is saved in `input.store` and skipped when its artifact is already there (a rerun, `resume_from`).
+ * With `only`, the stages before it must have artifacts, and the call stops after it: that is how
+ * each step of podcast.yml runs its own stage. It does not commit.
+ */
+export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome> {
   // A stored request may name a topic that has since been renamed: `technology` reads `tech`. The
   // hosts' names are settled here too, so the writer and the episode file see the same ones.
   const input: GenerateInput = {
@@ -256,58 +305,150 @@ export async function generateEpisode(raw: GenerateInput): Promise<GenerateResul
       topic_ids: normalizeTopicIds(raw.request.topic_ids),
     }),
   };
-  // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
-  const blocks = storedStructure(await loadStructureFile(input.root), "catch_up");
-  const plan = planPodcast(input.request, blocks ? planningShape(blocks) : null);
-  const picked = await select(input, plan, blocks);
-  const shaped = blocks ? shapeStories(picked.stories, blocks) : null;
-  const selection = shaped ? { ...picked, stories: shaped.stories } : picked;
-  input.log?.info("Selected stories", {
-    stories: selection.stories.length,
-    matched: selection.matched,
-    budget_chars: plan.budget_chars,
-    ...(selection.empty_topics.length > 0 ? { empty_topics: selection.empty_topics } : {}),
-  });
-  // The id is settled before the script, so a listener can be told what to wait for.
-  const id = await allocateEpisodeId(input.root, input.now);
-  const stream = input.dryRun
-    ? null
-    : (input.makeStream?.({ id, request: input.request, stories: selection.stories }) ?? null);
-  const { turns, ...script } = await generateScript({
-    writer: input.makeWriter(),
-    request: input.request,
-    stories: selection.stories,
-    budget_chars: plan.budget_chars,
-    ...(input.feedback ? { feedback: input.feedback } : {}),
-    ...(shaped ? { shape: shaped.shape } : {}),
-    taste: tasteHeadlines((await createFileProfileStore(input.root).read(OWNER_ID)).votes),
-    ...(input.log ? { log: input.log } : {}),
-    ...(stream ? { onOpening: (opening: readonly ScriptTurn[]) => stream.opening(opening) } : {}),
-  });
-  // The whole script goes out now, not after the commit: the listener hears it while it is pushed.
-  // Not awaited; the publisher writes in order, and a failure to write is its own to report.
-  void stream?.script(turns);
-  const episode = await buildEpisode({
-    root: input.root,
-    id,
-    now: input.now,
-    request: input.request,
-    stories: selection.stories,
-    turns,
-    ...(input.replaces ? { replaces: input.replaces } : {}),
-    ...(input.feedback ? { feedback: input.feedback } : {}),
-  });
-  const relPath = input.dryRun
-    ? episodeRelPath(id)
-    : (await writeEpisodeFile(input.root, episode)).relPath;
-  return {
-    episode,
-    relPath,
-    ...(input.dryRun ? { markdown: serializeEpisodeFile(episode) } : {}),
-    matched: selection.matched,
-    digests: selection.digests,
-    empty_topics: selection.empty_topics,
-    ...(selection.feeds ? { feeds: selection.feeds } : {}),
-    script,
+  const { store, only } = input;
+  const durations: Record<string, number> = {};
+  const ran: EpisodeStageId[] = [];
+  if (store) Object.assign(durations, (await store.read("timings")) ?? {});
+
+  const run = async <T>(id: EpisodeStageId, fn: () => Promise<T>, keep = true): Promise<T> => {
+    const saved = keep && store ? ((await store.read(id)) as T | null) : null;
+    if (saved !== null) {
+      input.log?.info("Stage skipped: its saved result is used", { stage: id });
+      return saved;
+    }
+    // The cover needs only the selection id, so a resume that lacks it makes it here.
+    if (only && id !== "cover" && EPISODE_STAGE_IDS.indexOf(id) < EPISODE_STAGE_IDS.indexOf(only)) {
+      throw new PodcastError(`The ${id} stage has not run, so ${only} has nothing to work from.`);
+    }
+    input.onStage?.(id);
+    const started = Date.now();
+    const value = await fn();
+    durations[id] = Date.now() - started;
+    ran.push(id);
+    if (store) {
+      if (keep) await store.write(id, value);
+      await store.write("timings", durations);
+    }
+    return value;
   };
+  const outcome = (id: string, result?: GenerateResult): StageOutcome => ({
+    id,
+    ran,
+    durations,
+    ...(result ? { result } : {}),
+  });
+
+  // The Catch up structure (D170), or null while the owner never edited it: today's shape exactly.
+  // A block prompt (D182) set on the defaults runs the defaults as a structure, so it is read.
+  const file = await loadStructureFile(input.root);
+  const prompts = file?.prompts ?? {};
+  const stored = storedStructure(file);
+  // One structure serves every podcast; its counts are sized to this episode's length.
+  const blocks = stored
+    ? scaleStructure(stored, input.request.length_minutes)
+    : Object.keys(prompts).length > 0
+      ? defaultStructure("catch_up")
+      : null;
+
+  const selection = await run<SelectArtifact>("select", async () => {
+    const plan = planPodcast(input.request, blocks ? planningShape(blocks) : null);
+    const picked = await select(input, plan, blocks);
+    const shaped = blocks ? shapeStories(picked.stories, blocks, prompts) : null;
+    const chosen = shaped ? { ...picked, stories: shaped.stories } : picked;
+    input.log?.info("Selected stories", {
+      stories: chosen.stories.length,
+      matched: chosen.matched,
+      budget_chars: plan.budget_chars,
+      ...(chosen.empty_topics.length > 0 ? { empty_topics: chosen.empty_topics } : {}),
+    });
+    // The id is settled before the script, so a listener can be told what to wait for.
+    return {
+      ...chosen,
+      id: await allocateEpisodeId(input.root, input.now),
+      budget_chars: plan.budget_chars,
+      shape: shaped ? shaped.shape : null,
+    };
+  });
+
+  // Chosen from the id alone, in the select step itself: ready before the script is written, and it
+  // never waits on the voices. The Cover art step then finds it saved (or makes it on a resume).
+  const { cover } = await run<CoverArtifact>("cover", async () => ({
+    cover: await pickEpisodeCover(input.root, selection.id),
+  }));
+  if (only === "select" || only === "cover") return outcome(selection.id);
+
+  // The live copy of the script: made once per process, by the first stage that needs it.
+  let stream: StreamPublisher | null | undefined;
+  const streamFor = (): StreamPublisher | null => {
+    if (stream === undefined) {
+      stream = input.dryRun
+        ? null
+        : (input.makeStream?.({
+            id: selection.id,
+            request: input.request,
+            stories: selection.stories,
+          }) ?? null);
+    }
+    return stream;
+  };
+  const scripted = await run<ScriptArtifact>("script", async () => {
+    const live = streamFor();
+    const { turns, ...script } = await generateScript({
+      writer: input.makeWriter(),
+      request: input.request,
+      stories: selection.stories,
+      budget_chars: selection.budget_chars,
+      ...(input.feedback ? { feedback: input.feedback } : {}),
+      ...(selection.shape ? { shape: selection.shape } : {}),
+      taste: tasteHeadlines((await createFileProfileStore(input.root).read(OWNER_ID)).votes),
+      ...(input.log ? { log: input.log } : {}),
+      ...(live ? { onOpening: (opening: readonly ScriptTurn[]) => live.opening(opening) } : {}),
+    });
+    // The whole script goes out now, not after the commit: the listener hears it while it is pushed.
+    // Not awaited; the publisher writes in order, and a failure to write is its own to report.
+    void live?.script(turns);
+    return { turns, script };
+  });
+  if (only === "script") return outcome(selection.id);
+
+  const result = await run(
+    "publish",
+    async () => {
+      // A script made by an earlier step or run has not reached this process's live copy yet.
+      if (stream === undefined) void streamFor()?.script(scripted.turns);
+      const episode = await buildEpisode({
+        root: input.root,
+        id: selection.id,
+        now: input.now,
+        request: input.request,
+        stories: selection.stories,
+        turns: scripted.turns,
+        cover,
+        ...(input.replaces ? { replaces: input.replaces } : {}),
+        ...(input.feedback ? { feedback: input.feedback } : {}),
+      });
+      const relPath = input.dryRun
+        ? episodeRelPath(selection.id)
+        : (await writeEpisodeFile(input.root, episode)).relPath;
+      return {
+        episode,
+        relPath,
+        ...(input.dryRun ? { markdown: serializeEpisodeFile(episode) } : {}),
+        matched: selection.matched,
+        digests: selection.digests,
+        empty_topics: selection.empty_topics,
+        ...(selection.feeds ? { feeds: selection.feeds } : {}),
+        script: scripted.script,
+      } satisfies GenerateResult;
+    },
+    false,
+  );
+  return outcome(selection.id, result);
+}
+
+/** Plan, select, script, check and write one episode file, all in this process. It does not commit. */
+export async function generateEpisode(raw: GenerateInput): Promise<GenerateResult> {
+  const { result } = await runEpisodeStages({ ...raw, only: undefined });
+  if (!result) throw new PodcastError("The episode was not written.");
+  return result;
 }

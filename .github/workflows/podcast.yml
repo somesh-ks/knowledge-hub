@@ -34,6 +34,19 @@ jobs:
   podcast:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Given to every stage's step, so each reads the same request and config.
+    env:
+      REQUEST: ${{ inputs.request }}
+      # Where each stage's result is mirrored (podcast-runs/ in Blob, for a resume) and where the
+      # live copy of the script goes (streams/), so the site can play the opening while the rest is
+      # written. Without it the episode is made as before, with no copy and no resume.
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
+      SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
+      # The config store (D149), as in run.yml's Gate step: the episode reads the topics the app
+      # saved, not a run-old copy. Either one unset leaves it on the committed files.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,22 +63,31 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
-      # The request reaches the command through an environment variable and is expanded inside
-      # double quotes, so its text is never parsed as shell. The command validates it again.
-      - name: Podcast
+      # One step per stage, named as the page shows them (apps/web/src/lib/runStages.ts: the status
+      # route reads the running step's name). Each saves its result in $RUNNER_TEMP and in Blob, and
+      # skips itself when that result exists: a rerun with "resume_from": <failed run id> in the
+      # request starts where the failed one stopped. The request reaches the command through
+      # an environment variable and is expanded inside double quotes, so its text is never parsed as
+      # shell. The command validates it again.
+      - name: Gathering stories
         shell: bash
-        env:
-          REQUEST: ${{ inputs.request }}
-          # The live copy of the script (streams/ in Blob), so the site can play the opening while the
-          # rest is written. Without it the episode is made as before and there is no live copy.
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
-          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
-          # The config store (D149), as in run.yml's Gate step: the episode reads the topics the app
-          # saved, not a run-old copy. Either one unset leaves it on the committed files.
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
-        run: npm run --silent singularity -- podcast --request "$REQUEST"
+        run: npm run --silent singularity -- podcast --request "$REQUEST" --stage select --artifacts "$RUNNER_TEMP/podcast-stages"
+
+      - name: Writing the script
+        shell: bash
+        run: npm run --silent singularity -- podcast --request "$REQUEST" --stage script --artifacts "$RUNNER_TEMP/podcast-stages"
+
+      # The cover is chosen from the selection alone and is saved by the first step already, so it
+      # never waits on the script; this step only makes it if a resume finds it missing.
+      - name: Cover art
+        shell: bash
+        run: npm run --silent singularity -- podcast --request "$REQUEST" --stage cover --artifacts "$RUNNER_TEMP/podcast-stages"
+
+      # Writes the episode file, commits it with the stage timings and pushes. The voices follow in
+      # the audio job below, whose step is named "Recording voices" through audio.yml's step_name.
+      - name: Publishing
+        shell: bash
+        run: npm run --silent singularity -- podcast --request "$REQUEST" --stage publish --artifacts "$RUNNER_TEMP/podcast-stages"
 
   # Narrates the new episode turn by turn into the files the site plays from, so its first Play
   # starts from stored audio. A separate job: the episode is already committed, so a failure here
@@ -73,4 +95,7 @@ jobs:
   audio:
     needs: podcast
     uses: ./.github/workflows/audio.yml
+    with:
+      # The page names this stage by the step's name (apps/web/src/lib/runStages.ts).
+      step_name: Recording voices
     secrets: inherit

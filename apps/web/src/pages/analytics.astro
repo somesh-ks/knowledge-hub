@@ -28,9 +28,9 @@ const SPLITS = [
          page costs nothing at start. One card answers it all (2026-10-22, the owner): the range and
          breakdown chips at its top, the total, the chart, then the breakdown. */}
     <div class="settings-view costs" data-settings data-costs>
-      <SettingsHead title={title} note="What the app spends on paid services." />
+      <SettingsHead title={title} note="Summary of all underlying paid services." />
 
-      <section class="card-group costs-card" aria-labelledby="costs-total-label">
+      <section class="card-group costs-card" aria-label="Spend">
         <div class="costs-head">
           <div class="costs-filters">
             <label class="sort-field">
@@ -49,10 +49,10 @@ const SPLITS = [
             </label>
           </div>
           <div class="costs-answer costs-data" aria-live="polite">
-            <h2 class="costs-label" id="costs-total-label" data-costs-label>Total spend</h2>
-            <p class="costs-total" data-costs-total>Loading</p>
-            <p class="costs-detail" data-costs-detail>&nbsp;</p>
+            <p class="costs-total"><span class="sr-only">Total spend </span><span data-costs-total>Loading</span></p>
           </div>
+          {/* Runs, the average a run and the next most useful figures, as stat tiles (costsPage.ts). */}
+          <ul class="stat-tiles costs-stats costs-data" role="list" aria-label="Spend figures" data-costs-stats></ul>
           {/* Chart or table (owner, 2026-10-23): the segmented navigation as two glyph tabs, compact
                (costs.css). The card's data-view shows one panel and hides the other (costsPage.ts).
                After the answer in the reading order, just before the panels it switches; placed at
@@ -103,7 +103,7 @@ const SPLITS = [
           </div>
         </div>
       </section>
-      <p class="settings-note costs-note" data-costs-note></p>
+      <div class="settings-note costs-note" data-costs-note></div>
     </div>
   </main>
 </BaseLayout>

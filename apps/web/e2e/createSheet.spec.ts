@@ -140,7 +140,7 @@ test.describe("Create as the primary action", () => {
     expect(bodies[0]).toEqual({
       request: {
         audience: "custom",
-        topic_ids: ["design", "ui-craft", "ai", "tech", "software"],
+        topic_ids: ["ai", "design", "ui-craft", "software", "tech"],
         length_minutes: 5,
         format: "readout",
         window_days: 7,

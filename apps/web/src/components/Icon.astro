@@ -10,4 +10,4 @@ const { name, class: className = "" } = Astro.props;
 const classes = ["icon", className].filter(Boolean).join(" ");
 ---
 
-<svg class={classes} viewBox={ICON_VIEW_BOX} aria-hidden="true" focusable="false"><path d={ICON_PATHS[name]}></path></svg>
+<svg class={classes} data-icon={name} viewBox={ICON_VIEW_BOX} aria-hidden="true" focusable="false"><path d={ICON_PATHS[name]}></path></svg>

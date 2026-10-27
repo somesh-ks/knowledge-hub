@@ -39,7 +39,7 @@ import { loadTopics, serializeTopics } from "../topics/store.js";
 
 const USAGE = `Usage: singularity config <command>
 
-  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries, weights, schedule
+  apply --op '<json>' [--dry-run]    Apply a change to the topics, sources, queries, schedule
                                      or podcast structure.
                                      The op is one object or an array of 1 to 8; an array is checked
                                      whole, applied in order and lands all or nothing. Network only
@@ -62,11 +62,10 @@ Ops (see ConfigOp in @singularity/core):
   {"op":"source.set","id":"...","enabled":false,"pinned":true}
   {"op":"source.update","id":"...","name":"...","topic_ids":["..."]}
   {"op":"source.remove","id":"..."}
-  {"op":"weights.set","weights":{"topic_id":0.8}}
   {"op":"mix.set","format_mix":{"video":"Less","forum":1.1}}
   {"op":"topic.mix","id":"world","perspective":-1}
   {"op":"schedule.set","hour":7,"cadence_days":2,"sections":null}
-  {"op":"structure.set","kind":"daily","blocks":[{"type":"hello"},{"type":"top_picks"},{"type":"sign_off"}]}
+  {"op":"structure.set","profile":"custom","blocks":[{"type":"hello"},{"type":"top_picks"},{"type":"sign_off"}]}
   {"op":"profile.block","domain":"example.com"}
   {"op":"profile.unblock","domain":"example.com"}`;
 
@@ -103,7 +102,7 @@ export async function readBundle(root: string): Promise<ConfigBundle> {
   const preferences = await loadPreferences(root);
   const [topics, schedule, sourcesUser, registry, queries, candidates, profile, structure] =
     await Promise.all([
-      loadTopics(root, preferences),
+      loadTopics(root),
       loadSchedule(root),
       loadUserSources(root),
       loadSources(root),

@@ -20,7 +20,7 @@ type Connect = (databaseUrl: string) => Promise<SqlClient>;
 
 /**
  * The store and the stored preferences; null when the store is off, "unreachable" when it is on and
- * cannot be read. Learning then stops: a weight written to the file alone would be undone by the next
+ * cannot be read. Learning then stops: a change written to the file alone would be undone by the next
  * run, which copies the store over the file (D149).
  */
 async function openPreferencesStore(
@@ -35,7 +35,7 @@ async function openPreferencesStore(
     return { sql, stored: documents.find((d) => d.path === CONFIG_FILES.preferences) };
   } catch (error) {
     ctx.log.error(
-      `Config store unreachable, so nothing was learned (a file-only weight would be undone by the next run). Run learn again: ${error instanceof Error ? error.message : String(error)}`,
+      `Config store unreachable, so nothing was learned (a file-only change would be undone by the next run). Run learn again: ${error instanceof Error ? error.message : String(error)}`,
     );
     return "unreachable";
   }
@@ -84,7 +84,7 @@ async function writeStored(
 
 const USAGE = `Usage:
   singularity learn --schema                 Print the JSON Schema of a preferences patch
-  singularity learn --apply <patch.json>     Apply a patch within the bounds (one stop per weight, three weights)
+  singularity learn --apply <patch.json>     Apply a patch (keywords, authors, disliked patterns)
     [--dry-run]                           Show the diff without writing
     [--commit] [--no-push]                Commit config/preferences.json as chore(prefs): <summary>
                                           and push (--no-push keeps it local). Refuses on a dirty
@@ -238,13 +238,12 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
   }
   const patch = parsed.data;
 
-  const { next, changes, clamped } = applyPatch(current, patch, stockholmDate(ctx.now()));
+  const { next, changes } = applyPatch(current, patch, stockholmDate(ctx.now()));
   if (changes.length === 0) {
     ctx.log.info("No changes: the patch matched the current preferences.");
     return 0;
   }
   for (const line of changes) console.log(`+ ${line}`);
-  for (const line of clamped) ctx.log.warn(`Clamped: ${line}`);
 
   if (argv.includes("--dry-run")) return 0;
   if (commit) {
@@ -268,7 +267,7 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
     const { ok, line } = describeCommit(outcome);
     if (!ok) {
       // The store is written only once the commit is in: a rerun after a failed push then starts
-      // from the same stored weights and moves each one stop, not two.
+      // from the same stored preferences and applies the patch once, not twice.
       ctx.log.error(line);
       return 1;
     }

@@ -53,6 +53,20 @@ function setup(files: { schedule?: string; lastRun?: string } = {}) {
 const dispatches = (github: ReturnType<typeof createFakeGitHub>) =>
   github.requests.filter((request) => request.method === "POST");
 
+describe("a daily briefing that is switched off", () => {
+  it("is not the daily slot, and the call dispatches nothing at its hour", async () => {
+    const off = { ...DEFAULT_SCHEDULE, enabled: false };
+    expect(slotAt(off, new Date("2026-10-27T06:30:00Z"))).toBeNull();
+    const { github, run } = setup({
+      schedule: JSON.stringify(off),
+      lastRun: lastRun("2026-10-01T05:13:00Z"),
+    });
+    const result = await run(new Date("2026-10-27T06:30:00Z"));
+    expect(result.body).toMatchObject({ dispatched: false });
+    expect(dispatches(github)).toHaveLength(0);
+  });
+});
+
 describe("which of the schedule's hours this is", () => {
   it("is the daily hour first, in Stockholm time", () => {
     expect(slotAt(DEFAULT_SCHEDULE, SUNDAY_0730)).toBe("daily");
@@ -90,10 +104,19 @@ describe("the schedule's hours in its own time zone", () => {
   it.each([
     ["the UTC hour that ends inside 07:00 to 08:00 in India", "2026-10-12T01:10:00Z", "daily"],
     ["the UTC hour that starts inside it", "2026-10-12T02:50:00Z", "daily"],
-    ["the hour before", "2026-10-12T00:50:00Z", null],
+    ["the hour before, where a run starts ahead", "2026-10-12T00:50:00Z", "daily"],
+    ["two hours before", "2026-10-11T23:50:00Z", "daily"],
+    ["three hours before", "2026-10-11T22:50:00Z", null],
     ["the hour after", "2026-10-12T03:10:00Z", null],
   ])("counts a call in %s", (_name, at, slot) => {
     expect(slotAt(zoned("Asia/Kolkata"), new Date(at))).toBe(slot);
+  });
+
+  // 23:40 on the 12th in India: the UTC hour ends in the 13th's hour 0, a different date to decide on.
+  it("does not start a run ahead on the next date's early hour", () => {
+    const early = { ...zoned("Asia/Kolkata"), hour: 1 };
+    expect(slotAt(early, new Date("2026-10-12T18:10:00Z"))).toBeNull();
+    expect(slotAt(early, new Date("2026-10-12T19:10:00Z"))).toBe("daily");
   });
 });
 
@@ -194,15 +217,17 @@ describe("GET /api/cron/run", () => {
           },
         }),
       });
-    // Saturday 07:30 and 09:30 in Stockholm.
-    expect((await call("2026-10-10T05:30:00Z", true)).body).toMatchObject({ dispatched: false });
+    // Saturday 05:30 and 09:30 in Stockholm: the stored hour 9 opens at 07:00, main's hour 7 at 05:00.
+    expect((await call("2026-10-10T03:30:00Z", true)).body).toMatchObject({ dispatched: false });
     expect((await call("2026-10-10T07:30:00Z", true)).body).toMatchObject({ dispatched: true });
-    expect((await call("2026-10-10T05:30:00Z", false)).body).toMatchObject({ dispatched: true });
+    expect((await call("2026-10-10T03:30:00Z", false)).body).toMatchObject({ dispatched: true });
   });
 
   // The bug: a store that never answers held the call until Vercel killed it, so the hour's run was
   // never started, where main's schedule would have started it.
   it("with the config store hanging, starts at main's hour once it has waited long enough", async () => {
+    // The store module loads first and is not on the clock; load it so the timer is armed at once.
+    await import("./configStore");
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });

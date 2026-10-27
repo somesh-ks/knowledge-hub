@@ -154,10 +154,25 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
     });
   });
   const copied = () => page.evaluate(() => (window as unknown as { copied: string[] }).copied);
+  // The link is asked for before the press: iOS opens no share sheet after an awaited request, so a
+  // first tap that had to wait for it did nothing.
+  const prepared = page.waitForRequest((request) => request.url().endsWith("/api/share"));
   await page.goto(AUDIO_DIGEST);
   await hydrated(page);
+  await prepared;
   await page.getByRole("button", { name: "Share", exact: true }).click();
+  // The dialog shows the link and copies it on request, then says so.
+  const dialog = page.getByRole("dialog", { name: "Share link" });
+  await expect(dialog.getByLabel("Link")).toHaveValue(/\/s\//);
+  await dialog.getByRole("button", { name: "Copy link" }).click();
+  await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
   await expect.poll(async () => (await copied()).length).toBe(1);
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(dialog).toBeHidden();
+  // Stop sharing is not in the briefing page's menu: it lives in the Library's.
+  await page.getByRole("button", { name: "More actions" }).click();
+  await expect(page.getByRole("menuitem", { name: "Stop sharing" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
   const link = (await copied())[0] ?? "";
   const token = tokenOf(link);
   expect(token, link).not.toBe("");
@@ -191,8 +206,11 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   const stopped = page.waitForResponse(
     (response) => response.url().endsWith("/api/share") && response.request().method() === "DELETE",
   );
-  await page.getByRole("button", { name: "More actions" }).click();
-  await page.getByRole("menuitem", { name: "Stop sharing" }).click();
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const row = page.locator(`[data-card][data-id="${ID}"]`);
+  await row.locator("[data-hero-more]").click();
+  await row.getByRole("menuitem", { name: "Stop sharing" }).click();
   expect((await stopped).status()).toBe(200);
   const play = await listener.evaluate(
     (body) =>

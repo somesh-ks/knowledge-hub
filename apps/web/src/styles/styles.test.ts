@@ -72,6 +72,11 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside-rail", "the rail's track padding, around its own segments"],
   [".banner > .btn", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
+  [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
+  [
+    ".structure-profile .profile-select",
+    "the chevron in the rows column: its ink 28px in, as the dots and pencil",
+  ],
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".create-sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
@@ -150,6 +155,11 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ],
 ];
 
+/** The widths a media query may name, in rem: --breakpoint-wide, -side and -aside (tokens.css), the
+ * narrowest phone (22.5rem, where a four-way control loses its labels) and the widest player page
+ * (100rem). */
+const BREAKPOINTS = ["22.5", "40", "64", "80", "100"];
+
 const SHARED_CONTROL_SHEETS = ["buttons.css", "primitives.css"];
 
 /** The shared control classes, defined in buttons.css and primitives.css. */
@@ -210,6 +220,15 @@ const rulesOf = (css: string) =>
   [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
     ([, selector = "", body = ""]) => [selector.trim(), body] as const,
   );
+
+/**
+ * The root class of a top-level view. Its inline edges come from the page gutter (`.page`,
+ * foundations.css) and the shell (shell.css), so no stylesheet gives a view root its own gutter or
+ * width: a page that did sat 24px further in than Latest and Library (2026-10-26).
+ */
+const VIEW_ROOTS = ["settings-view", "library", "manage", "create-page", "design-page"];
+const VIEW_EDGE =
+  /^(?:padding|margin)(?:-(?:inline|left|right)(?:-(?:start|end))?)?$|^max-(?:width|inline-size)$/;
 
 /** The declarations of a rule body, as [property, value]. */
 const declarationsOf = (body: string) =>
@@ -453,6 +472,25 @@ const RULES: Rule[] = [
       ),
   },
   {
+    // The same two breakpoints were spelled five ways (min-width, max-width: 63.9375rem, "not all
+    // and", width <, range syntax; the design-system audit, 2026-10-25), so a search for a breakpoint
+    // missed rules that use it. One spelling, range syntax, at the widths the breakpoint tokens name.
+    name: "writes a width media query in range syntax at a breakpoint's width",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        [...css.matchAll(/@media\s+([^{]+)\{/g)].flatMap(([, query = ""]) => {
+          const q = query.replace(/\s+/g, " ").trim();
+          if (/\b(?:min|max)-width\b|not all and/.test(q)) return [`${file}: @media ${q}`];
+          const widths = [
+            ...q.matchAll(/([\d.]+)rem\s*<=?\s*width|width\s*[<>]=?\s*([\d.]+)rem/g),
+          ].map(([, low, high]) => low ?? high ?? "");
+          return widths.every((width) => BREAKPOINTS.includes(width))
+            ? []
+            : [`${file}: @media ${q}`];
+        }),
+      ),
+  },
+  {
     // A style attribute is out of reach of every rule above: a raw padding or colour there would
     // ship unnoticed. Markup may only hand values to the stylesheet through custom properties.
     name: "no inline styling bypasses the tokens",
@@ -682,6 +720,32 @@ const RULES: Rule[] = [
               .map((name) => `${file}: .${name}`),
           ),
         ),
+  },
+  {
+    // Prevents a page-specific gutter: Settings once pushed its title in by a card's padding and sat
+    // 24px off Latest and Library. A view root takes its inline edges from the shared layout.
+    name: "a view root class sets no inline padding, inline margin or max width of its own",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) => {
+          const subjects = selector
+            .replace(/:[a-z-]+\((?:[^()]|\([^()]*\))*\)/g, "")
+            .split(",")
+            .map((part) =>
+              part
+                .trim()
+                .split(/\s*[>+~]\s*|\s+/)
+                .pop(),
+            )
+            .filter((subject) =>
+              VIEW_ROOTS.some((root) => new RegExp(`\\.${root}(?![\\w-])`).test(subject ?? "")),
+            );
+          const edges = declarationsOf(body).filter(([property]) => VIEW_EDGE.test(property));
+          return subjects.length > 0
+            ? edges.map(([property]) => `${file}: ${selector} ${property}`)
+            : [];
+        }),
+      ),
   },
   {
     // Prevents an unstyled or one-off button in markup: every <button> carries a shared control

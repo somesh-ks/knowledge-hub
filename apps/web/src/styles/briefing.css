@@ -104,7 +104,7 @@ html[data-has-tabs] {
 
 /* From 80rem the contents list beside the column does the tabs' job, and nothing sticks but the
    top chrome. */
-@media (min-width: 80rem) {
+@media (width >= 80rem) {
   .briefing > .tabs-bar {
     display: none;
   }
@@ -231,7 +231,7 @@ html[data-has-tabs] {
 }
 
 /* The publisher is attribution, not a second call to act: muted words at the label size, so the
-   chip is the one accent in a story. Its hover layer is the muted ink's, like any quiet control.
+   chip is the one accent in a story. It takes the full ink on hover and press, with the underline drawn in by .source-link.
    Above the headline, as Google News sets it: one line of its own, so a name reads whole and shortens
    only when wider than the column (owner, 2026-10-23). Its 44px target hangs 8px into the story's
    top padding and 8px over the headline's, so its words sit about 8px above the headline's. Stacked
@@ -255,13 +255,11 @@ html[data-has-tabs] {
 
 @media (hover: hover) and (pointer: fine) {
   .story-source:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
     color: var(--color-on-surface);
   }
 }
 
 .story-source:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   color: var(--color-on-surface);
 }
 

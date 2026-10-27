@@ -1,5 +1,5 @@
 /**
- * What the editor and the Topics and sources panel both draw: a site's tile, and a score. The markup
+ * What the editor and the Categories and sources panel both draw: a site's tile, and a score. The markup
  * matches components/ScoreMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded
  * with the editor, never with the page.
  */
@@ -89,7 +89,7 @@ export function scoreNode(label: string): HTMLElement {
 export { element };
 
 /** Where a topic not built yet opens: one page the build makes for every such topic (D142). */
-export const NEW_TOPIC_PAGE = "/settings/topics/new";
+export const NEW_TOPIC_PAGE = "/settings/categories/new";
 
 /**
  * A topic not built yet as a row of the Sources list, drawn as a built row is (it copies one), in its

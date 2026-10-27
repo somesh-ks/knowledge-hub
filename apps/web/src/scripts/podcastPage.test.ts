@@ -55,4 +55,14 @@ describe("scheduleOp", () => {
       cadence_days: 7,
     });
   });
+
+  // Auto is the empty choice: sent as "" or NaN, the server would refuse the whole edit.
+  it("sends a lookback in hours, and Auto as null, in its own profile", () => {
+    expect(
+      scheduleOp(
+        { "daily.lookback": "", "weekly.lookback": "168" },
+        { "daily.lookback": "24", "weekly.lookback": "" },
+      ),
+    ).toEqual({ op: "schedule.set", lookback_hours: 24, weekly: { lookback_hours: null } });
+  });
 });

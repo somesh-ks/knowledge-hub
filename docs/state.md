@@ -1,36 +1,36 @@
 # State
 
-Last updated 2026-10-24. Rewrite; do not append. Behaviour: [specs/](specs/README.md). Why: [decisions.md](decisions.md). Sessions: [history/](history/README.md).
+Updated 2026-10-25. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions.md). Sessions: [history](history/README.md).
 
 ## Working
 
-- Engine end to end on live services (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
-- Reader: Latest, Library (row menu, downloads), Catch up, Settings, in a tonal Material 3 look: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface, transcript with word light, chapters in the bar, a play queue with Up next (D126): [player](specs/player.md).
-- Narration on Play, story by story; `audio.yml` pre-narrates briefings after each run, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
-- Saved-copy navigation, offline shell, downloads for offline listening and the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Schedule (D61): Vercel Cron's 07:00 call dispatches `run.yml`.
-- Deploy: Vercel deploys `main`. CI (PRs only): checks, gitleaks, audit; browser suites by path (D148). Dependabot PRs auto-merge; others by hand (D143).
-- Tooling (D38, [roster](history/2026-10-08-subagent-roster.md)): ten subagents, `/close-session`, a read-only Bash hook.
+- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
+- Reader: Latest, Library, Catch up, Settings, tonal Material 3, `/design` catalogue: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
+- Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
+- Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes: [narration](specs/narration.md), [create](specs/create.md).
+- Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
+- Schedule (D61): Vercel Cron 07:00 runs `run.yml`.
+- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
+- Tooling (D38 [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
 
 ## Tests
 
-Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 minutes. Player e2e: 71 runs, 3 minutes.
+Unit (CI): 256 files, 4,748 tests (10-19), 85 s. Site e2e: 372 runs (2026-10-23), 10 min. Player e2e: 71 runs, 3 min.
 
 ## Not working or unverified
 
-- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or the outlet cap. closed when: an added source's format comes from Jev in production and a digest follows a mix change.
+- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or outlet cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
-- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast; health shows perf and `field` lines; a Monday opens or closes the `health-warnings` issue.
+- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast, health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` (#183); `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - `?view=preferences` (D129) may flash Sources on load. closed when: a reload on a phone shows no Sources frame first.
 - Topic emoji from Jev (D133) never asked live. closed when: a topic added on production shows Jev's emoji.
 - D125: pull to close, sticky tabs, keyboard fit. closed when: each works on phone.
-- Live runs of the 2026-10-18 changes (chapters seen): release news last, the sized weekly. closed when: a daily files Launches last; a Sunday weekly airs within 10% of 15 minutes.
+- Live runs of the 2026-10-18 changes: release news last, the sized weekly. closed when: a daily files Launches last; a Sunday weekly airs within 10% of 15 minutes.
 - Episode quality (D119, D120) and the refill (#237, #197): a live run with spares, a refill and a one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length, and one has a Science story from one outlet.
 - Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
 - PWA (D123) on a device: Android bars after a reinstall, splash to launch-screen hand-off. closed when: both match the theme after an Android reinstall.
@@ -41,18 +41,18 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 - General topics (D66 to D69, D102): no run judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge stage reports the feeds.
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
-- Config store (D149): on since 2026-10-24 (`/api/config` answers 200, rows seeded from `main` that day). closed when: a phone's edit shows on a laptop and a run names the store.
+- Config store (D149, D185): on since 2026-10-24; the 2026-10-25 weekly copied it. closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
 - Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on production.
-- Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the history note.
+- Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the note.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - The first press on a cold audio device blocks about 200 ms (`new AudioContext()` in `packages/sound`). closed when: the owner decides on that package's first rule.
 - The daily Type is saved but not applied (narration reads the digest in one voice). closed when: the owner decides on a podcast step in `audio.yml` or drops the field.
 - With a mouse a story chip grows 11px from idle to played (it reserves "Play again"). closed when: the chip keeps one width in a browser assertion.
 - On a 360x740 phone the sticky Generate bar covers More options on `/create` at rest. closed when: axe reports no obscured target there.
 - An aggregator's or redirect's link to a blocked outlet is not caught. closed when: matching resolves the final URL, or the owner accepts it.
-- Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source scores (D55), the vote numbers. closed when: each is checked against the golden set or two weeks of real data.
-- Settings logic gaps (D102): a partial `skip_topics` without `general_scoped` un-skips general topics (the site never sends it); `topic.enabled` is never set false (dead branches); Edit topic sends the build's weight, not a pending edit. closed when: each is fixed or removed with a test.
+- Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source scores (D55), the vote numbers, `auto_adjust` (D190). closed when: each is checked against the golden set or two weeks of real data.
+- Settings logic gaps (D102): a partial `skip_topics` without `general_scoped` un-skips general topics (the site never sends it); `topic.enabled` is never set false (dead branches). closed when: each is fixed or removed with a test.
 - Unverified (D106 to D109): the volume slider's linger and hold while dragged, the highlight's pause on a live briefing, a vote batch sent on unload, a briefing regenerated with a topic its run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
@@ -61,6 +61,7 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 - Link cards (D153 stage 0). closed when: a briefing link pasted in WhatsApp, iMessage and Slack shows its card.
 - `serviceWorker.spec.ts:140` failed 1 of 373 local runs (an icon stylesheet preload as the page went offline), never in CI. closed when: a trace names the cause or 500 runs pass.
 - No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
+- Not reproduced (10-25): Library stack shrink, a lost video. closed when: the owner sees neither.
 - Five older items are [parked](history/2026-10-21-owner-backlog-in-parallel.md#parked). closed when: each closes.
 
 ## Known risks
@@ -73,7 +74,9 @@ Unit (`npm test`, CI): 256 files, 4,748 tests (2026-10-19), 85 s. Site e2e: 372 
 
 ## Next
 
-1. Owner: revoke the Vercel token pasted in chat on 2026-10-07; delete the empty store `store_JmrDq8MB5Kwn3ejW`; decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md) and the cost note (`git show 91bc533:docs/state.md`).
-2. Performance: one fetch for both briefing passes, rewriting only a thin story, splitting a long first narrated turn, a shallow workflow checkout; the other first-load cuts (D141, D178).
-3. Workflow changes: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
-4. Set `SPEECHIFY_VOICE_ID_B` on GitHub (or `npm run secrets:push`).
+1. Owner: revoke the Vercel token pasted in chat (2026-10-07); delete the empty store `store_JmrDq8MB5Kwn3ejW`. Decide: general topics ticked by default? a topic photograph? a group override? briefings as discussions? the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
+2. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first narrated turn, a shallow checkout; the other first-load cuts (D141, D178).
+3. Workflows: finer episode stages (the podcast command in phases); Firecrawl filling a gap in an owner topic for an episode (`podcast.yml` has no Firecrawl key).
+4. `SPEECHIFY_VOICE_ID_B` on GitHub.
+5. Design system: the switch and segmented duplicates.
+6. `topic` to `category` in code, migration first, and what 2026-10-25 left out: [the pass](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session).

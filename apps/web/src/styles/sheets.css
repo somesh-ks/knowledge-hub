@@ -122,7 +122,7 @@
 }
 
 /* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .sheet-viewport {
     align-items: center;
   }
@@ -243,9 +243,11 @@ fieldset.sheet-field {
   transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
-/* A multi-line field has the same room above and below as at its sides. */
+/* A multi-line field has the same room above and below as at its sides, and the one-line field's
+   corner arc where a pill would clip its lines. */
 textarea.sheet-input {
   padding-block: var(--field-padding);
+  border-radius: var(--field-radius-multiline);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -699,7 +701,7 @@ html[data-mini="visible"] .toast {
 /* From 80rem every page but the Library keeps a track at its end for a contents list (shell.css), so
    the reading column sits left of the window's middle: a toast centres on the column instead.
    data-library-page marks the Library page (BaseLayout.astro). */
-@media (min-width: 80rem) {
+@media (width >= 80rem) {
   html:not([data-player="open"]):not([data-library-page]) .toast {
     inset-inline-end: calc(var(--space-12) + var(--layout-aside));
   }

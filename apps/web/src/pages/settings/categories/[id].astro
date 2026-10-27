@@ -27,6 +27,7 @@ import {
 } from "../../../lib/topicPages";
 import { NEW_TOPIC_ID, SHELL } from "../../../lib/topicText";
 import "../../../styles/settings.css";
+import { activeSummary } from "../../../lib/settingsSummary";
 import "../../../styles/manage.css";
 import "../../../styles/topics.css";
 import "../../../styles/episode-actions.css";
@@ -46,7 +47,6 @@ export async function getStaticPaths() {
     id: SHELL.id,
     name: SHELL.name,
     description: SHELL.about,
-    weight: 0.7,
     enabled: true,
     keywords: [],
     section_id: SHELL.id,
@@ -97,7 +97,7 @@ const { group, topic, list, choices, taken, shell = false } = Astro.props;
 const names = choices.map((choice) => choice.name);
 const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = group?.name ?? topic?.name ?? "Other";
-const note = group?.note ?? topic?.description ?? "Sources not filed under a topic.";
+const note = group?.note ?? topic?.description ?? "Sources not filed under a category.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
 // another topic is chosen.
 const shown = group ? { id: group.home, name: group.name } : undefined;
@@ -119,23 +119,7 @@ const inScope = (key: (typeof SCOPES)[number]["key"]): boolean => {
   const skipped = SCOPES.find((scope) => scope.key === key)?.skipped ?? [];
   return !scopeIds.every((id) => skipped.includes(id));
 };
-// How much each judge topic a group gathers counts (D69), by name. A group of one shows a plain
-// Weight row, as a topic of the owner's does; the member that shares the group's name reads as
-// the group in general, so Design's own row is not "Design" under Design.
-const memberRows = (group?.members ?? [])
-  .map((member) => ({
-    id: member.id,
-    label:
-      group && group.members.length === 1
-        ? "Weight"
-        : member.name === group?.name
-          ? `${member.name} in general`
-          : member.name,
-    name: member.name,
-    weight: member.weight,
-  }))
-  .sort((a, b) => a.label.localeCompare(b.label));
-// The topic as Edit topic sends it: a topic is always on, so it goes as enabled.
+// Edit category preserves a topic's enabled state; general topics are always on.
 const upsert =
   topic &&
   JSON.stringify({
@@ -144,22 +128,15 @@ const upsert =
       id: topic.id,
       name: topic.name,
       description: topic.description,
-      weight: topic.weight,
-      enabled: true,
+      enabled: topic.origin === "general" ? true : topic.enabled,
       keywords: topic.keywords,
       section_id: topic.section_id,
     },
   });
 // Every page takes a new source, filed under the topic (a group's under its home topic).
 const addTo = group?.home ?? topic?.id ?? "";
-// A general news topic feeds General episodes by how many outlets carry a story, so it has no weight.
+// A general news topic feeds General episodes by how many outlets carry a story.
 const general = topic?.origin === "general";
-// Every weight the page sets, in one Topic weightage group on every topic that has one (2026-10-20):
-// a group's per member, or a topic's own.
-const weightRows =
-  topic && !general
-    ? [{ id: topic.id, label: "Weight", name: topic.name, weight: topic.weight }]
-    : memberRows;
 // Left to right is a question for political coverage: world affairs and business, not sport, science
 // or culture (2026-10-20).
 const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
@@ -169,13 +146,13 @@ const perspective =
 const perspectiveStops = PERSPECTIVE_STOPS.map((s) => ({ name: s.name, value: s.value }));
 // The type mix is one for every topic, on the Preferences page. A page with sliders splits into
 // Sources and Preferences (2026-10-20); one with none (Other, most general topics) is its sources.
-const hasPreferences = weightRows.length > 0 || perspective;
+const hasPreferences = perspective;
 // A long list shows its first SHOWN sources and a button for the rest (D103).
 const SHOWN = 7;
 const hidden = Math.max(0, list.length - SHOWN);
 // The topic's picture: a pure function of its id and name, drawn here at build time like the page.
 const art = topicArt(group?.id ?? topic?.id ?? OTHER_ID, name);
-// What Edit topic hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
+// What Edit category hands the panel (topicsPanel.ts, TopicFacts). Every topic can change its name; a
 // built-in one keeps what counts, as fixed questions judge it.
 const facts = topic && {
   id: topic.id,
@@ -197,7 +174,7 @@ const facts = topic && {
          D149). */}
     <div class="manage topics topic-page" data-topics data-page={group?.id ?? topic?.id ?? OTHER_ID} data-members={scopeIds.join(" ")} data-shell={shell ? "" : undefined} data-taken={[...taken, OTHER_ID].join(" ")} data-names={JSON.stringify(names)}>
       <noscript>
-        <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Changing categories and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
@@ -234,7 +211,7 @@ const facts = topic && {
               topic && (
                 <div class="topic-card-menu">
                   <button
-                    class="icon-btn topic-more press"
+                    class="icon-btn icon-btn-end topic-more press"
                     type="button"
                     aria-label={`More actions for ${name}`}
                     aria-haspopup="menu"
@@ -250,11 +227,11 @@ const facts = topic && {
                       type="button"
                       role="menuitem"
                       aria-haspopup="dialog"
-                      aria-label={`Edit topic ${name}`}
+                      aria-label={`Edit category ${name}`}
                       data-edit-topic={JSON.stringify(facts)}
                       data-topic-base={upsert}
                     >
-                      <Icon name="pencil" />Edit
+                      <Icon name="pencilSimple" />Edit
                     </button>
                     {topic.origin === "custom" && (
                       <button
@@ -262,16 +239,16 @@ const facts = topic && {
                         type="button"
                         role="menuitem"
                         data-pressed="false"
-                        aria-label={`Delete topic ${name}`}
+                        aria-label={`Delete category ${name}`}
                         data-name={name}
-                        data-label={`Delete topic ${name}`}
-                        data-label-undo={`Keep topic ${name}`}
+                        data-label={`Delete category ${name}`}
+                        data-label-undo={`Keep category ${name}`}
                         data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
                         data-remove
                         data-confirm
                       >
                         <Icon name="trash" /><span class="topic-delete-do">Delete</span>
-                        <span class="topic-delete-undo">Keep topic</span>
+                        <span class="topic-delete-undo">Keep category</span>
                       </button>
                     )}
                   </MenuSheet>
@@ -344,16 +321,6 @@ const facts = topic && {
                 aria-labelledby="topic-tab-preferences"
               >
                 {
-                  weightRows.length > 0 && (
-                    <section class="topic-weights" aria-labelledby="weights-head">
-                      <h2 class="section-head" id="weights-head">Topic weightage</h2>
-                      <div class="rows topic-controls">
-                        {weightRows.map((row) => <WeightRow {...row} />)}
-                      </div>
-                    </section>
-                  )
-                }
-                {
                   perspective && topic && (
                     <section class="topic-weights" aria-labelledby="perspective-head">
                       <h2 class="section-head" id="perspective-head">Perspective</h2>
@@ -421,6 +388,13 @@ const facts = topic && {
                     <span>Add source</span>
                   </button>
                 </SourceFilter>
+              )
+            }
+            {
+              list.length > 0 && (
+                <p class="settings-hint topic-status" data-sources-status>
+                  {activeSummary(list.length, list.filter((source) => source.enabled).length)}
+                </p>
               )
             }
             <ul class="topic-sources" role="list" data-sources aria-label={`${name} sources`}>

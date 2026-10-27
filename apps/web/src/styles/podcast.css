@@ -24,7 +24,7 @@
   min-width: 0;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .daily-selects {
     flex: 0 0 calc(var(--settings-control-width) * 1.7);
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.8fr);
@@ -45,6 +45,18 @@
    the air a head gives a card elsewhere (2026-10-22). */
 .podcast-profile[data-profile="voice"] > .card-group:first-child {
   margin-block-start: var(--space-2);
+}
+
+/* The page below the on/off switch (2026-10-26, Q16): no box of its own, so the sections keep the
+   profile's grid. Off, the fieldset is disabled and manage.css dims its controls; the chips, which
+   are not in that list, are dimmed here. */
+.podcast-body {
+  display: contents;
+}
+
+.podcast-body:disabled .filter-chip {
+  opacity: var(--opacity-disabled);
+  cursor: default;
 }
 
 /* A quiet line under a group's name or its rows. */
@@ -133,7 +145,7 @@
 
 /* From 40rem one list keeps one row height: a segmented row (Format, Length) takes a select row's
    padding, so its 48px control sits in a 56px row as the selects do. */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .podcast-profile .rows > .settings-row[data-layout="choice"] {
     padding-block: var(--space-2);
   }

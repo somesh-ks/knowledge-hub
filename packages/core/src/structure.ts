@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BLOCK_PROMPT_MAX } from "./blockPrompts.js";
 import { type SECTIONS, SectionId } from "./categories.js";
 
 /**
@@ -40,6 +41,17 @@ const Depth = z.enum(["deep", "brief"]);
 export type BlockDepth = z.infer<typeof Depth>;
 
 /**
+ * Settings a story block holds that code enforces exactly, whatever model writes (the owner,
+ * 2026-10-24: "deterministic parameters ... we've gotta stay robust"). `per_source` is the most
+ * stories one outlet may bring to the block; absent means the engine's own (two per outlet across
+ * the briefing). How far back a podcast looks is the kind's, not a block's (owner, 2026-10-24).
+ */
+export const PER_SOURCE_MAX = 4;
+const StoryRules = {
+  per_source: z.number().int().min(1).max(PER_SOURCE_MAX).optional(),
+};
+
+/**
  * Counts are optional on purpose: absent means the engine's own allowance (three Top picks, five
  * stories for a section with an allowance of its own, the length's rundown), which is how the
  * defaults reproduce today's episodes without copying today's constants into the file.
@@ -55,19 +67,23 @@ const SectionBlock = z.object({
   id: SectionId,
   depth: Depth.default("brief"),
   max_stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const TopPicksBlock = z.object({
   type: z.literal("top_picks"),
   stories: z.number().int().min(1).max(6).optional(),
   depth: Depth.default("deep"),
+  ...StoryRules,
 });
 const TrendingBlock = z.object({
   type: z.literal("trending"),
   stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const ReleaseNewsBlock = z.object({
   type: z.literal("release_news"),
   stories: z.number().int().min(1).max(8).optional(),
+  ...StoryRules,
 });
 const CustomBlock = z.object({
   type: z.literal("custom"),
@@ -160,41 +176,251 @@ export const StructureBlocks = z
     for (const message of structureProblems(blocks)) ctx.addIssue({ code: "custom", message });
   });
 
-/** Shape of config/structure.json. A kind left out runs on its defaults. */
 /**
- * Blocks only a kind written by the script writer can follow. Daily and weekly are narrated by
- * code around stories written one by one, so a close or an owner's brief has nobody to write it
- * there (the owner chose Catch up only, 2026-10-24, D176); their rundown is read from the chapters.
+ * The name a block's prompt is kept under (blockPromptKey): a block type a model writes, or
+ * `section:<id>`. Which blocks a model writes in which podcast is the engine's to know.
  */
-export const SCRIPT_ONLY_BLOCKS: readonly StructureBlockType[] = ["close", "custom"];
+export const BlockPromptKey = z
+  .string()
+  .regex(
+    /^(hello|rundown|top_picks|trending|release_news|close|sign_off|section:[a-z0-9][a-z0-9-]*)$/,
+  );
+export const BlockPrompt = z.string().trim().min(1).max(BLOCK_PROMPT_MAX);
 
-/** What a kind refuses beyond the shared rules; empty when the blocks fit the kind. */
-export function kindProblems(
-  kind: StructureKind,
-  blocks: readonly StructureBlockInput[],
-): string[] {
-  if (kind === "catch_up") return [];
-  const refused = blocks.find((block) => SCRIPT_ONLY_BLOCKS.includes(block.type));
-  return refused === undefined
-    ? []
-    : [
-        `A ${kind} episode has no ${refused.type === "custom" ? "block of your own" : "close"}; only Catch up does.`,
-      ];
+/**
+ * The listener profiles (owner, 2026-10-25): the structure does not vary by podcast type but by who
+ * listens. A named profile is a preset list of blocks; Custom is the owner's own list.
+ */
+export const NAMED_PROFILES = [
+  "artist",
+  "designer",
+  "founder",
+  "general",
+  "journalist",
+  "product_manager",
+  "researcher",
+  "software_engineer",
+  "student",
+] as const;
+export const STRUCTURE_PROFILES = [...NAMED_PROFILES, "custom"] as const;
+export const StructureProfile = z.enum(STRUCTURE_PROFILES);
+export type StructureProfile = z.infer<typeof StructureProfile>;
+export type NamedProfile = (typeof NAMED_PROFILES)[number];
+
+/** What a profile is called, in the order the select lists them (alphabetical, Custom last). */
+export const PROFILE_LABEL: Record<StructureProfile, string> = {
+  artist: "Artist",
+  designer: "Designer",
+  founder: "Founder",
+  general: "General",
+  journalist: "Journalist",
+  product_manager: "Product Manager",
+  researcher: "Researcher",
+  software_engineer: "Software Engineer",
+  student: "Student",
+  custom: "Custom",
+};
+
+/** One plain line on what a profile changes in an episode: the card on Preferences shows it. */
+export const PROFILE_NOTE: Record<StructureProfile, string> = {
+  artist: "Leans on design and visual craft, with a little AI and tech.",
+  designer: "Design and interface craft first, then AI, tech and launches.",
+  founder: "Tech, AI and what is trending, with a nod to design and launches.",
+  general: "A balanced mix of design, software, AI and tech.",
+  journalist: "More top stories and trending news, fewer deep dives.",
+  product_manager: "AI and tech first, then design, with launches and software.",
+  researcher: "Heavy on AI, with software, tech and launches.",
+  software_engineer: "Software and launches first, then AI and tech.",
+  student: "AI, software and tech, to build a broad footing.",
+  custom: "Your own list of blocks, kept as you edited it.",
+};
+
+/** Minutes the presets' counts are written for; an episode of another length scales them. */
+export const REFERENCE_MINUTES = 10;
+
+type Recipe = readonly (readonly [string, number])[];
+
+/**
+ * Each preset's body at the reference length: a block key (the Top picks, Trending and release
+ * news section ids, or a section id) and its story count. Top picks run in depth, the rest short.
+ */
+const PRESETS: Record<NamedProfile, Recipe> = {
+  artist: [
+    ["top", 3],
+    ["design", 3],
+    ["ui-craft", 2],
+    ["ai", 2],
+    ["trending", 2],
+    ["tech", 1],
+  ],
+  designer: [
+    ["top", 3],
+    ["design", 3],
+    ["ui-craft", 3],
+    ["ai", 2],
+    ["tech", 2],
+    ["trending", 2],
+    ["launches", 1],
+  ],
+  founder: [
+    ["top", 3],
+    ["tech", 3],
+    ["ai", 3],
+    ["trending", 3],
+    ["design", 1],
+    ["launches", 1],
+  ],
+  general: [
+    ["top", 3],
+    ["design", 2],
+    ["ui-craft", 1],
+    ["software", 2],
+    ["ai", 2],
+    ["tech", 2],
+    ["trending", 2],
+    ["launches", 1],
+  ],
+  journalist: [
+    ["top", 4],
+    ["trending", 4],
+    ["tech", 2],
+    ["ai", 2],
+    ["design", 1],
+  ],
+  product_manager: [
+    ["top", 3],
+    ["ai", 3],
+    ["tech", 3],
+    ["design", 2],
+    ["trending", 2],
+    ["software", 1],
+    ["launches", 1],
+  ],
+  researcher: [
+    ["top", 3],
+    ["ai", 4],
+    ["software", 2],
+    ["tech", 2],
+    ["trending", 1],
+    ["launches", 2],
+  ],
+  software_engineer: [
+    ["top", 3],
+    ["software", 4],
+    ["ai", 3],
+    ["tech", 2],
+    ["trending", 2],
+    ["ui-craft", 1],
+    ["launches", 3],
+  ],
+  student: [
+    ["top", 3],
+    ["ai", 3],
+    ["software", 2],
+    ["tech", 2],
+    ["trending", 2],
+    ["design", 1],
+  ],
+};
+
+/**
+ * A named profile's blocks. The owner's topic sections (`extra`) follow the built-in ones, before
+ * release news, so a topic still plays under a preset.
+ */
+export function profileBlocks(
+  profile: NamedProfile,
+  extra: readonly string[] = [],
+): StructureBlock[] {
+  const body = PRESETS[profile].map(([key, stories]): StructureBlock => {
+    if (key === TOP_PICKS_SECTION) return { type: "top_picks", stories, depth: "deep" };
+    if (key === TRENDING_BLOCK_SECTION) return { type: "trending", stories };
+    if (key === RELEASE_NEWS_SECTION) return { type: "release_news", stories };
+    return {
+      type: "section",
+      id: key as (typeof STRUCTURE_SECTIONS)[number],
+      depth: "brief",
+      max_stories: stories,
+    };
+  });
+  const blocks: StructureBlock[] = [{ type: "hello" }, ...body, { type: "sign_off" }];
+  return extra.reduce((all, id) => withSectionBlock(all, id), blocks);
 }
 
-export const StructureFile = z
-  .object({
-    version: z.literal(1),
-    kinds: z.partialRecord(StructureKind, StructureBlocks),
-  })
-  .superRefine((file, ctx) => {
-    for (const kind of STRUCTURE_KINDS) {
-      for (const message of kindProblems(kind, file.kinds[kind] ?? [])) {
-        ctx.addIssue({ code: "custom", message, path: ["kinds", kind] });
-      }
+const scaled = (count: number | undefined, minutes: number, max: number): number | undefined =>
+  count === undefined
+    ? undefined
+    : Math.min(max, Math.max(1, Math.round((count * minutes) / REFERENCE_MINUTES)));
+
+/**
+ * The structure sized to an episode: every explicit story count grows or shrinks with the episode's
+ * length against the reference, so a 5 minute daily brings fewer stories per block than a 15 minute
+ * weekly from the same list. A block that leaves its count to the engine stays so.
+ */
+export function scaleStructure(
+  blocks: readonly StructureBlock[],
+  minutes: number,
+): StructureBlock[] {
+  return blocks.map((block) => {
+    if (block.type === "section") {
+      const count = scaled(block.max_stories, minutes, 8);
+      return count === undefined ? block : { ...block, max_stories: count };
     }
+    if (block.type === "top_picks" || block.type === "rundown") {
+      const count = scaled(block.stories, minutes, 6);
+      return count === undefined ? block : { ...block, stories: count };
+    }
+    if (block.type === "trending" || block.type === "release_news") {
+      const count = scaled(block.stories, minutes, 8);
+      return count === undefined ? block : { ...block, stories: count };
+    }
+    return block;
   });
-export type StructureFile = z.infer<typeof StructureFile>;
+}
+
+const StructureShape = z.object({
+  version: z.literal(1),
+  /** The active listener profile. Absent (an owner who never chose) is the defaults. */
+  profile: StructureProfile.optional(),
+  /** The list itself: written for Custom; a named profile may leave it out and is read as its preset. */
+  blocks: StructureBlocks.optional(),
+  /**
+   * The owner's replacement prompts (D182), by block key. Kept apart from the blocks so a reorder
+   * never carries several thousand characters, and so a block removed and put back keeps its
+   * prompt. A prompt whose block is not in the structure is never read.
+   */
+  prompts: z.record(BlockPromptKey, BlockPrompt).optional(),
+});
+
+/**
+ * The shape before the profiles: one list and one set of prompts per podcast kind. Read for
+ * backward compatibility as Custom, taking the daily list or else the first present, and the
+ * kinds' prompts merged (daily's winning); the next save writes the new shape.
+ */
+function fromKinds(input: unknown): unknown {
+  if (typeof input !== "object" || input === null || !("kinds" in input)) return input;
+  const old = input as {
+    version?: unknown;
+    kinds?: Partial<Record<StructureKind, unknown>>;
+    prompts?: Partial<Record<StructureKind, Record<string, unknown>>>;
+  };
+  const kinds = old.kinds ?? {};
+  const blocks = kinds.daily ?? kinds.weekly ?? kinds.catch_up;
+  const prompts = Object.assign({}, old.prompts?.catch_up, old.prompts?.weekly, old.prompts?.daily);
+  return {
+    version: old.version,
+    ...(blocks === undefined ? {} : { profile: "custom", blocks }),
+    ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
+  };
+}
+
+/** Shape of config/structure.json; a named profile without a list reads as its preset's blocks. */
+export const StructureFile = z.preprocess(fromKinds, StructureShape).transform((file) => ({
+  ...file,
+  ...(file.blocks === undefined && file.profile !== undefined && file.profile !== "custom"
+    ? { blocks: profileBlocks(file.profile) }
+    : {}),
+}));
+export type StructureFile = z.output<typeof StructureShape>;
 
 /**
  * What a kind runs on today, the defaults: Top picks, the filed built-in sections in their fixed
@@ -237,12 +463,9 @@ export function isBlockSection(id: string): boolean {
   return id === TOP_PICKS_SECTION || id === TRENDING_BLOCK_SECTION || id === RELEASE_NEWS_SECTION;
 }
 
-/** The kind's stored blocks, or null when the owner never edited it and the defaults apply. */
-export function storedStructure(
-  file: StructureFile | null,
-  kind: StructureKind,
-): StructureBlock[] | null {
-  return file?.kinds[kind] ?? null;
+/** The active structure's blocks, for every podcast kind, or null while the defaults apply. */
+export function storedStructure(file: StructureFile | null): StructureBlock[] | null {
+  return file?.blocks ?? null;
 }
 
 /**
@@ -287,14 +510,8 @@ export function sectionLimit(blocks: readonly StructureBlock[], section: string)
  * on its defaults is left alone: the defaults list every topic already.
  */
 export function withSection(file: StructureFile, section: string): StructureFile {
-  if (isBlockSection(section)) return file;
-  const kinds: StructureFile["kinds"] = {};
-  for (const kind of STRUCTURE_KINDS) {
-    const blocks = file.kinds[kind];
-    if (blocks === undefined) continue;
-    kinds[kind] = withSectionBlock(blocks, section);
-  }
-  return { ...file, kinds };
+  if (isBlockSection(section) || file.blocks === undefined) return file;
+  return { ...file, blocks: withSectionBlock(file.blocks, section) };
 }
 
 export function withSectionBlock(
@@ -316,14 +533,38 @@ export function withSectionBlock(
   ];
 }
 
-/** Drop a removed topic's section from every stored kind; a kind left with no body keeps it. */
+/** Drop a removed topic's section from the stored list; a list left with no body keeps it. */
 export function withoutSection(file: StructureFile, section: string): StructureFile {
-  const kinds: StructureFile["kinds"] = {};
-  for (const kind of STRUCTURE_KINDS) {
-    const blocks = file.kinds[kind];
-    if (blocks === undefined) continue;
-    const next = blocks.filter((block) => block.type !== "section" || block.id !== section);
-    kinds[kind] = structureProblems(next).length === 0 ? next : blocks;
+  if (file.blocks === undefined) return file;
+  const next = file.blocks.filter((block) => block.type !== "section" || block.id !== section);
+  return structureProblems(next).length === 0 ? { ...file, blocks: next } : file;
+}
+
+/** The owner's prompt for a block, or null for the built-in one. */
+export function storedBlockPrompt(file: StructureFile | null, key: string): string | null {
+  return file?.prompts?.[key] ?? null;
+}
+
+/** A story block's own rules for a section, or none when no block names it or it sets none. */
+export function blockStoryRules(
+  blocks: readonly StructureBlock[],
+  section: string,
+): { per_source?: number } {
+  for (const block of blocks) {
+    const named =
+      (block.type === "section" && block.id === section) ||
+      (block.type === "top_picks" && section === TOP_PICKS_SECTION) ||
+      (block.type === "trending" && section === TRENDING_BLOCK_SECTION) ||
+      (block.type === "release_news" && section === RELEASE_NEWS_SECTION);
+    if (!named) continue;
+    if (
+      block.type === "section" ||
+      block.type === "top_picks" ||
+      block.type === "trending" ||
+      block.type === "release_news"
+    ) {
+      return block.per_source === undefined ? {} : { per_source: block.per_source };
+    }
   }
-  return { ...file, kinds };
+  return {};
 }

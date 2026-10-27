@@ -1,7 +1,7 @@
 /**
- * The Topics and sources panel: one native modal dialog, cloned from the page's template each time it
+ * The Categories and sources panel: one native modal dialog, cloned from the page's template each time it
  * opens, for four jobs. Add opens it on Topic: a new topic's name, what counts and where it plays,
- * added in one press (D71); its sources are suggested on its page. A topic's Edit topic opens the
+ * added in one press (D71); its sources are suggested on its page. A topic's Edit category opens the
  * same details filled in. Its Source segment, and a topic's Add source, take an address, look it up
  * after a pause (GET /api/source-preview) and file the source under a topic. A source's row opens
  * it to edit that source: its name, its topic, where it lives and what its score is made of. A
@@ -21,6 +21,7 @@ import {
 import { fitAboveKeyboard } from "./keyboardFit";
 import { sheetGestures } from "./pullDismiss";
 import { mountSegmentedNav, selectTab } from "./segmentedNav";
+import { fieldsDirty, guardSheet } from "./sheetGuard";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";
 
 export const PREVIEW_DELAY_MS = 400;
@@ -76,6 +77,8 @@ export interface SourceFacts {
   high_signal?: boolean;
   /** Each part 0 to 1; trust is null until enough items were checked for hype and sponsorship. */
   parts: { health: number; quality: number; trust: number | null } | null;
+  /** Why the score is low, in plain sentences; empty at Good or better. */
+  why?: string[];
 }
 
 /** What a topic's page tells the panel about it. */
@@ -307,7 +310,7 @@ export function openPanel(
     scope: { daily: scoped("daily"), weekly: scoped("weekly"), custom: scoped("custom") },
   });
   if (editedTopic) {
-    topicPane.setAttribute("aria-label", "Edit topic");
+    topicPane.setAttribute("aria-label", "Edit category");
     one<HTMLElement>("[data-scope]").hidden = true;
     topicField("name").value = editedTopic.name;
     topicField("description").value = editedTopic.description;
@@ -497,6 +500,9 @@ export function openPanel(
     if (!unscored)
       total.setAttribute("aria-label", `${edited.score?.toFixed(1)} out of 5, ${edited.label}`);
     one<HTMLElement>("[data-edit-empty]").hidden = !unscored;
+    const why = one<HTMLElement>("[data-edit-why]");
+    why.textContent = (edited.why ?? []).join(" ");
+    why.hidden = unscored || !why.textContent;
     const parts = one<HTMLElement>("[data-edit-parts]");
     parts.hidden = unscored || edited.parts === null;
     // Two decimals, as the engine rounds each part. A part not measured yet says so, with no bar.
@@ -546,13 +552,13 @@ export function openPanel(
     editPane.hidden = mode !== "edit";
     remove.hidden = mode !== "edit";
     title.textContent = {
-      topic: "Add a topic",
-      "topic-edit": "Edit topic",
+      topic: "Add a category",
+      "topic-edit": "Edit category",
       source: "Add a source",
       edit: "Edit source",
     }[mode];
     if (mode === "topic") {
-      go.textContent = "Add topic";
+      go.textContent = "Add category";
       go.disabled = false;
     } else if (mode === "topic-edit") {
       go.textContent = "Save";
@@ -637,9 +643,17 @@ export function openPanel(
     });
   });
 
-  panel.querySelector("[data-panel-close]")?.addEventListener("click", () => panel.close());
+  // Only the main button saves; Close, the scrim, a pull, Escape and Back ask first when a field changed.
+  const guard = guardSheet(panel, {
+    dirty: fieldsDirty(panel),
+    save() {
+      go.click();
+      return !panel.open;
+    },
+  });
+  panel.querySelector("[data-panel-close]")?.addEventListener("click", guard.request);
   // On a phone the full-screen panel also closes when pulled down; a tap on the scrim closes it.
-  sheetGestures(panel);
+  sheetGestures(panel, guard.request);
   // On a phone the full-screen panel ends where the keyboard begins, so the screen never pans.
   const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(panel) : () => {};
 
@@ -647,8 +661,12 @@ export function openPanel(
   let entry = true;
   const onBack = (event: Event): void => {
     if (!entry) return;
-    entry = false;
     event.preventDefault();
+    if (guard.holdBack()) {
+      history.pushState({ ...history.state, topicsPanel: true }, "");
+      return;
+    }
+    entry = false;
     removeEventListener("singularity:back", onBack);
     if (panel.open) panel.close();
   };

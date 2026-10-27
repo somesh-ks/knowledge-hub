@@ -1,14 +1,20 @@
 import {
+  blockStoryRules,
   type DigestKind,
   isBuiltinSection,
+  RELEASE_NEWS_SECTION,
   SECTIONS,
   type StructureBlock,
+  type StructureFile,
   type StructureKind,
+  scaleStructure,
   sectionLimit,
   storedStructure,
   structureSectionOrder,
   TOP_PICKS_SECTION,
+  TRENDING_BLOCK_SECTION,
 } from "@singularity/core";
+import { loadSchedule } from "../schedule/store.js";
 import { loadStructureFile } from "../structure/store.js";
 
 /** Top picks a briefing carries when its structure leaves the count to the engine. */
@@ -29,6 +35,10 @@ export interface SectionPlan {
   limit(section: string): number | null;
   /** Stories the narration's rundown names, or null for no rundown. */
   rundown: number | null;
+  /** The owner's prompt for the section's stories (D182), or undefined for the built-in one. */
+  prompt(section: string): string | undefined;
+  /** The block's own rules for its stories: most per outlet and how old they may be. */
+  rules(section: string): { per_source?: number };
 }
 
 /** Stories a briefing's rundown names when its block leaves the count to the engine. */
@@ -40,14 +50,33 @@ export const DEFAULT_SECTION_PLAN: SectionPlan = {
   includes: () => true,
   limit: () => null,
   rundown: null,
+  prompt: () => undefined,
+  rules: () => ({}),
 };
 
-/** The plan for a kind's stored blocks; null blocks (the kind was never edited) give the default. */
-export function sectionPlanFor(blocks: readonly StructureBlock[] | null): SectionPlan {
-  if (blocks === null) return DEFAULT_SECTION_PLAN;
+/** The key a section's block prompt is kept under (blockPromptKey in core). */
+export function sectionPromptKey(section: string): string {
+  if (section === TOP_PICKS_SECTION) return "top_picks";
+  if (section === TRENDING_BLOCK_SECTION) return "trending";
+  if (section === RELEASE_NEWS_SECTION) return "release_news";
+  return `section:${section}`;
+}
+
+/**
+ * The plan for a kind's stored blocks; null blocks (the kind was never edited) give the default
+ * order and counts. `prompts` are the kind's block prompts, which apply either way.
+ */
+export function sectionPlanFor(
+  blocks: readonly StructureBlock[] | null,
+  prompts: Readonly<Record<string, string>> = {},
+): SectionPlan {
+  const prompt = (section: string): string | undefined => prompts[sectionPromptKey(section)];
+  if (blocks === null) return { ...DEFAULT_SECTION_PLAN, prompt };
   const order = structureSectionOrder(blocks);
   const listed = new Set(order);
   return {
+    prompt,
+    rules: (section) => blockStoryRules(blocks, section),
     order,
     topPicks: listed.has(TOP_PICKS_SECTION)
       ? (sectionLimit(blocks, TOP_PICKS_SECTION) ?? DEFAULT_TOP_PICKS)
@@ -70,11 +99,22 @@ export function structureKindOf(kind: DigestKind): StructureKind | null {
   return null;
 }
 
-/** The plan config/structure.json gives a digest kind, or the default when it has none. */
+/**
+ * The plan config/structure.json gives a digest kind, or the default when it has none. The one
+ * structure serves every kind; its story counts are sized to the kind's configured length.
+ */
 export async function loadSectionPlan(root: string, kind: DigestKind): Promise<SectionPlan> {
   const structureKind = structureKindOf(kind);
   if (structureKind === null) return DEFAULT_SECTION_PLAN;
-  return sectionPlanFor(storedStructure(await loadStructureFile(root), structureKind));
+  const file: StructureFile | null = await loadStructureFile(root);
+  const stored = storedStructure(file);
+  const minutes = stored === null ? 0 : await lengthMinutes(root, structureKind);
+  return sectionPlanFor(stored && scaleStructure(stored, minutes), file?.prompts);
+}
+
+async function lengthMinutes(root: string, kind: StructureKind): Promise<number> {
+  const schedule = await loadSchedule(root);
+  return kind === "weekly" ? schedule.weekly.length_minutes : schedule.length_minutes;
 }
 
 /**

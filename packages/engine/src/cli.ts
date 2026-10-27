@@ -12,7 +12,10 @@ import {
   redact,
   secretsFromEnv,
 } from "./context.js";
+import { configBase } from "./git/configBase.js";
+import { createGitRunner } from "./git/runGit.js";
 import {
+  ConfigConflict,
   configStoreUrl,
   connectConfigStore,
   hydrateConfig,
@@ -242,9 +245,18 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     if (storeUrl !== null && noted) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
-        const changed = await hydrateConfig(root, sql, log);
+        const base = await configBase(createGitRunner(root)).catch(() => null);
+        const changed = await hydrateConfig(root, sql, log, base ?? undefined);
         log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
+        await markCopiedFromStore(root, true, true);
       } catch (error) {
+        // Either copy would lose an edit, so the run stops here, before it spends anything, and its
+        // failure record must not carry the unsynced files as a snapshot.
+        if (error instanceof ConfigConflict) {
+          await markCopiedFromStore(root, false).catch(() => {});
+          err(`singularity: ${error.message}\n`);
+          return 1;
+        }
         log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
       }
     }

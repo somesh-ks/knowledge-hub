@@ -29,12 +29,14 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review before every merge, no exceptions (D143). Open every PR with the `review` label: `claude-code-review.yml` reviews it and `automerge.yml` skips it, so it merges by hand once the review lands and its blocking findings are fixed (re-add the label to re-review). For a large change, also run `/code-review` on the branch first.
+- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Large changes: run `/code-review` first.
 - TypeScript stays on 6.x.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR. Screenshot open states first.
 - A component changes in the design system, never on one page only: in its shared class, component or token, and its record in the same PR (the usage comment over its class, its ledger line, a new variant in `docs/specs/look-and-sound.md`).
-- Design fixes are load-bearing. A CSS rule or markup whose comment says why it exists (a date, a D-number, a sizer, "so ... stays put", a specificity bump) is never removed or rewritten to make another task work: extend it, or stop and ask. Before changing a selector in a shared stylesheet (`player.css`, `primitives.css`, `buttons.css`, the tokens), read its history (`git log -L '/<selector>/,+20:<file>'`) and search the [ledger](docs/design-engineering-ledger.md) for it. Unit tests never see CSS: only the browser suites do.
+- Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
 - Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
+- State authority: the config store owns runtime preferences. Never edit `config/` in Git during active workflow runs or from parallel branches without store synchronization (D149, D185).
+- Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 
 ## Tests
 
@@ -44,13 +46,13 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 - A test names the bug it prevents: no sentence, no test. Search the unit, `apps/web/e2e` and `apps/web/src/player/e2e` suites for the behaviour first, and extend or replace a test instead of adding one.
 - Test journeys across pages, reload, offline and time, not states. Never pin copy, CSS, class names, markup, geometry or constants: screenshots and critics judge those.
 - Fake the clock, crypto and network; freeze fixtures; never sleep or read live config. Test the product page, not a lab.
-- Delete or rewrite the tests of behaviour you change or remove, in the same commit. Each time you add or remove a feature or a function, streamline its tests in the same PR: drop what pins the old behaviour, fold overlapping specs together, and leave the suite no larger than the change needs. Do not add a test for every fix: add one for a logic bug, show it red without the fix, and put it where the logic lives.
+- Delete or rewrite tests of changed/removed behaviour in the same commit. Streamline tests in the PR: drop old assertions, fold overlaps, keep the suite lean. Only add a test for a logic bug: show it red first, test where logic lives.
 - A browser test runs once: on the phone unless it is tagged `@desktop` (desktop only) or `@both`. Counts and run times are in `docs/state.md`; a change that breaks the budget cuts first.
 
 ## Keeping the record
 
 Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
-After a large piece of work (several PRs, or one that touches the player, a page or the build): clean up (scratch files, servers, stashes, local branches, leftover remote branches), review the merged diff (the `code-review` skill on the commit range, or the `review` label on a PR) and fix what it finds, then confirm production serves it (Vercel deploys `main`; check the deployment and the live site).
+After a large piece of work: clean up scratch files, servers, stashes, and local branches. Review merged diff (CodeRabbit or code-review skill), fix findings, and verify Vercel production deployment.
 
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.

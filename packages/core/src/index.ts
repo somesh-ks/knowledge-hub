@@ -1,4 +1,6 @@
 export * from "./audio.js";
+export * from "./autoAdjust.js";
+export * from "./blockPrompts.js";
 export * from "./categories.js";
 export * from "./configOps.js";
 export * from "./costs.js";

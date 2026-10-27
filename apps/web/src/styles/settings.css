@@ -32,8 +32,18 @@
 
 /* ------------------------------------------------------------------ a settings page's title */
 
-/* The page's name stands alone, at the display size (2026-10-20: no "Settings >" before it at any
-   width; below 64rem the app bar's back arrow is the way up). */
+/* The page's name at the display size. A subpage has a small "Settings /" line above it (owner,
+   2026-10-25, reversing 2026-10-20's "no breadcrumb"; the app bar's back arrow stays below 64rem).
+   The link's 44px hit area is the shared .text-link layer (primitives.css, #355); the line keeps
+   its height and the title does not move.
+   Markup: <nav class="settings-crumb"><a class="text-link" href="/settings">Settings</a> /</nav> */
+.settings-crumb {
+  margin-block-end: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
 .settings-head > h1 {
   font-family: var(--text-display-family);
   font-size: var(--text-display-size);
@@ -42,8 +52,11 @@
   line-height: var(--text-display-leading);
 }
 
-/* With Sounds off, Volume is unused: its label goes quiet with its slider. */
-.settings-row:has(.settings-range:disabled) > .settings-label {
+/* A quiet row: its label in the muted colour, the row where it is (D100: a control that cannot act
+   stays on its row, dimmed and named). With Sounds off, Volume is one; a row says `data-quiet` for
+   the rest (the Structure's frames, and a block whose topics are off, 2026-10-25).
+   Markup: <li class="settings-row" data-quiet>...</li> */
+.settings-row:is([data-quiet], :has(.settings-range:disabled)) .settings-label {
   color: var(--color-on-surface-muted);
 }
 
@@ -109,8 +122,14 @@
   flex-wrap: nowrap;
 }
 
+/* The label is as wide as its words and the control takes the row's end (owner, 2026-10-25): a label
+   that filled the row made the empty middle a target, and hovering it lit the control it names. */
 .settings-row > .settings-label {
-  flex: 1 0 auto;
+  flex: 0 1 auto;
+}
+
+.settings-row > .settings-label + * {
+  margin-inline-start: auto;
 }
 
 /* Every quiet line in Settings is one size, the label size, a step under the 16px labels. */
@@ -167,9 +186,17 @@
   white-space: nowrap;
 }
 
+/* The cut value adds no width to the row's minimum (2026-10-26): a long one in a grid column, as the
+   Podcast pages' Structure link is, made the page wider than a phone, the mobile viewport zoomed out
+   and the toast sat out of reach below the fold. */
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-hint {
+  flex: 1 1 0;
+  contain: inline-size;
+}
+
 :is(.settings-view, .manage) .row-action .icon {
-  /* The glyph sits inside its box; this pulls its right edge out to the switch's and the segments'. */
-  margin-inline-end: calc(var(--size-icon) * -0.28);
+  /* The glyph sits inside its box; this pulls its ink out to the switch's and the segments' edge. */
+  margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
   color: var(--color-on-surface-subtle);
 }
 
@@ -179,7 +206,7 @@
   flex-basis: 100%;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .settings-row[data-layout="choice"] > .settings-text {
     flex-basis: 0;
   }
@@ -488,11 +515,20 @@
   margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px)) * -1);
 }
 
-/* In a card the fill's box ends one inset from the card's edge, where a row's tile ends (2026-10-24,
-   the inset went to 4px); the select reaches further and pads by as much, so its value and chevron
-   stay where the link rows' values and chevrons end. */
+/* In a card the fill's box ends as far from the card's edge as it starts from the row's top and
+   bottom (owner, 2026-10-25: the right inset looked uneven): the card's inset plus the row's block
+   padding. The select pads by as much, so its value and chevron stay where the link rows' values and
+   chevrons end. */
 .card-group .settings-row .value-select {
-  --value-select-pull: calc(var(--card-padding) - var(--card-inset) - var(--space-2));
+  --value-select-pull: calc(
+    var(--card-padding) -
+    var(--card-inset) -
+    var(--space-2) -
+    var(--space-4)
+  );
+  /* The chevron's ink sits 12px inside the tile, not 4 (2026-10-26 audit), which is where the link
+     rows' chevrons end: the tile keeps its 12px inset, and the chevron and the value step in. */
+  --value-select-end: var(--space-2);
 }
 
 .settings-row .value-select > select.manage-input {
@@ -504,7 +540,9 @@
     calc(
       var(--space-2) +
       var(--value-select-pull, 0px) +
-      var(--size-icon) +
+      var(--value-select-end, 0px) +
+      var(--size-icon) *
+      (1 - var(--ink-end, 0)) +
       var(--field-chevron-gap)
     );
   border-color: transparent;
@@ -515,8 +553,15 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */
 .settings-row .value-select > .icon {
-  inset-inline-end: calc(var(--space-2) + var(--value-select-pull, 0px));
+  inset-inline-end: calc(
+    var(--space-2) +
+    var(--value-select-pull, 0px) +
+    var(--value-select-end, 0px) -
+    var(--size-icon) *
+    var(--ink-end, 0)
+  );
 }
 
 /* On Settings the model is a row's current value, as every other row's hint is: the muted colour at
@@ -530,22 +575,8 @@
    values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
    the stored value is set, which comes later and so still wins. */
 .settings-view .value-select > select.manage-input {
-  padding-inline-end: calc(
-    var(--space-2) +
-    var(--value-select-pull, 0px) +
-    var(--size-icon) *
-    0.72 +
-    var(--field-chevron-gap)
-  );
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
-}
-
-/* Its value and chevron end where the link rows' do: their glyph is pulled out by 0.28 of the icon
-   (`.row-action .icon` above), so this one moves the same way inside the select's fill, whose box
-   stays one inset from the card's edge (the design audit, 2026-10-22: 5.6px apart). */
-.settings-view .value-select > .icon {
-  inset-inline-end: calc(var(--space-2) + var(--value-select-pull, 0px) - var(--size-icon) * 0.28);
 }
 
 .settings-row .value-select > select.manage-input:focus-visible {
@@ -611,23 +642,11 @@
 
 /* ------------------------------------------------------------------ cards (2026-10-21) */
 
-/* One left text edge (2026-10-22, the owner: "the text elements must be horizontally aligned to the
-   left"): on a page of cards the title, the group heads and the notes outside a card start the card's
-   padding in, where its rows' words start, so the cards hang out into the margin and the words read
-   as one column. A page without a card (New episode, Sources) keeps its words on the gutter. The
-   hints and empty notes outside a card take it too; a row's own words are the row's. */
-:is(.settings-view, .manage):has(.card-group, .changelog-entry) > h1,
-:is(.settings-view, .manage):has(.card-group, .changelog-entry)
-  :is(
-    .settings-head,
-    .section-head,
-    .settings-note,
-    .settings-hint,
-    .manage-quiet,
-    .manage-note
-  ):not(.card-group *, .changelog-entry *, .settings-head *, .settings-row *, .row-action *) {
-  padding-inline-start: var(--card-padding);
-}
+/* One page edge (2026-10-26, the owner: "Settings has more margin than Latest and Library"): the title,
+   the group heads and the notes outside a card start on the page gutter, as Latest's and Library's do, and
+   a card's outer edge is that edge. The card's own padding sets where its rows' words start; a page
+   takes no gutter of its own (design-check: no page-specific gutter). Reverses the 2026-10-22 rule that
+   pushed these in by the card's padding. */
 
 /* A page whose only card has no head of its own (Interface sounds, Podcast voice) keeps the air a
    head would give it under the page's note, 24px, so the card does not crowd the note (2026-10-22). */
@@ -659,7 +678,7 @@
 }
 
 /* From 64rem "Last updated" lives at the foot of the side column (AppNav); a phone keeps it here. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .settings-updated {
     display: none;
   }
@@ -698,4 +717,18 @@
 
 .changelog-entry > .settings-about {
   padding: 0;
+}
+
+/* A slider in a row is at most --slider-max-width, so the name beside it keeps the focus (owner,
+   2026-10-25). It overrides the control column's width (--settings-control-width) and every
+   topics.css flex basis, which only set how it grows. */
+.settings-row input[type="range"] {
+  max-inline-size: var(--slider-max-width);
+}
+
+/* A control on the card's end sits 16px from the card's edge, the row's own block padding, where the
+   card's 24px pushed a select further in than the card's top and bottom (owner, 2026-10-25). The row
+   reaches into the card's padding on its end side only, so the labels keep their edge. */
+.settings-view .card-group > .settings-row {
+  margin-inline-end: calc(var(--row-padding-block) - var(--card-padding));
 }

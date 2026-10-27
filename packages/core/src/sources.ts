@@ -68,6 +68,8 @@ export const Source = z.object({
   /** Consecutive failed fetches. A source failing five runs in a row is flagged. */
   failures: z.number().int().nonnegative().default(0),
   last_ok: isoDateTime.optional(),
+  /** When a run last tried this source, win or lose. Orders the Firecrawl listing turns so a failing source cannot keep the first slot. */
+  last_try: isoDateTime.optional(),
   /** Per-type options, such as GitHub `owner/repo` or a YouTube channel id. */
   options: z.record(z.string(), z.string()).default({}),
   /** True when a person fixed this source in the app; automatic cleanup leaves it alone. */
@@ -86,6 +88,16 @@ export const SourcesFile = z.object({
   sources: z.array(Source),
 });
 export type SourcesFile = z.infer<typeof SourcesFile>;
+
+/**
+ * Opt-in ways to fetch a firecrawl source, each with the site it reads. The key is stored as the
+ * source's `options.via`; `category` is the provider listing the engine narrows to.
+ */
+export const FETCH_VIA = {
+  "alexandria:anthropic-com": { host: "anthropic.com", category: "news" },
+} as const;
+export type FetchVia = keyof typeof FETCH_VIA;
+export const FetchViaValue = z.enum(Object.keys(FETCH_VIA) as [FetchVia, ...FetchVia[]]);
 
 /** Longest name the app can give a source. */
 export const SOURCE_NAME_MAX = 80;
@@ -109,6 +121,8 @@ export const SourceOverride = z.object({
   lean: z.number().int().min(-2).max(2).nullable().optional(),
   /** Replaces the source's own high_signal: a favorite in the app. */
   high_signal: z.boolean().optional(),
+  /** Options laid over the source's own (`source.update` fetch_via sets `via` and `category`). */
+  options: z.record(z.string(), z.string()).optional(),
 });
 export type SourceOverride = z.infer<typeof SourceOverride>;
 

@@ -43,104 +43,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------------------------------------------ the confirm */
-
-dialog.confirm-dialog {
-  --color-focus-gap: var(--sheet-bg);
-  /* Placed and stacked by itself, not by the modal state: Safari ends that as the exit begins, and
-     the fade plays outside the top layer (dialog.sheet, foundations.css). */
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-sheet);
-  width: min(24rem, calc(100% - var(--space-8)));
-  margin: auto;
-  padding: var(--space-6);
-  border: 0;
-  border-radius: var(--radius-lg);
-  background: var(--sheet-bg);
-  box-shadow: var(--sheet-shadow);
-  color: var(--color-on-surface);
-  /* Closed it is display: none; it fades and scales out, then goes. */
-  opacity: 0;
-  transform: scale(var(--scale-enter));
-  transition:
-    opacity var(--duration-exit) var(--ease-out),
-    transform var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
-}
-
-dialog.confirm-dialog[open] {
-  opacity: 1;
-  transform: none;
-  transition-duration: var(--duration-enter);
-}
-
-@starting-style {
-  dialog.confirm-dialog[open] {
-    opacity: 0;
-    transform: scale(var(--scale-enter));
-  }
-}
-
-/* The scrim only fades. */
-dialog.confirm-dialog::backdrop {
-  background: var(--color-scrim);
-  opacity: 0;
-  transition:
-    opacity var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
-}
-
-dialog.confirm-dialog[open]::backdrop {
-  opacity: 1;
-  transition-duration: var(--duration-enter);
-}
-
-@starting-style {
-  dialog.confirm-dialog[open]::backdrop {
-    opacity: 0;
-  }
-}
-
-/* Reduced motion: it fades where it stands. The durations are the state's, which reduced motion does
-   not collapse, so the fade stays. */
-@media (prefers-reduced-motion: reduce) {
-  dialog.confirm-dialog,
-  dialog.confirm-dialog[open] {
-    transform: none;
-    transition-duration: var(--duration-state);
-  }
-
-  dialog.confirm-dialog::backdrop,
-  dialog.confirm-dialog[open]::backdrop {
-    transition-duration: var(--duration-state);
-  }
-
-  @starting-style {
-    dialog.confirm-dialog[open] {
-      transform: none;
-    }
-  }
-}
-
-dialog.confirm-dialog:focus-visible {
-  outline: none;
-}
-
-.confirm-form {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  margin-block-start: var(--space-4);
-}
-
 /* Red only here, once the person has asked to delete. */
 .confirm-delete {
   color: var(--color-danger);
@@ -158,10 +60,4 @@ dialog.confirm-dialog:focus-visible {
 
 .confirm-delete:disabled {
   color: var(--color-on-surface-disabled);
-}
-
-@media (forced-colors: active) {
-  dialog.confirm-dialog {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
 }

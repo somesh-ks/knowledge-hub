@@ -21,7 +21,7 @@
    here" alone, so beside the current row it no longer reads as a second selected item (owner,
    2026-10-22; it was accent-container-high, D86). On /create it is the current place and takes the
    rows' current fill. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .app-nav-create {
     --color-focus-gap: var(--color-surface);
     display: flex;
@@ -115,7 +115,8 @@
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
   /* Flat: a hairline and a tonal step lift it off the page, no shadow (owner, 2026-10-21). */
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--radius-lg);
+  /* A pill, as every control is (D186): folded, a circle. */
+  border-radius: var(--radius-round);
   background: var(--color-accent-container-high);
   color: var(--color-on-accent-container-high);
   text-decoration: none;
@@ -232,7 +233,7 @@ html[data-dialog-open] .create-fab {
   }
 }
 
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .create-fab {
     display: none;
   }
@@ -394,9 +395,11 @@ dialog.create-sheet[open]::backdrop {
   align-items: center;
   gap: var(--space-2);
   min-height: var(--app-bar-height);
-  padding-block: max(var(--space-1), var(--safe-top)) var(--space-1);
+  /* More room round a full-screen phone sheet's edges (owner, 2026-10-24: "more padding in all
+     fullscreen phone modals"): the title a step down from the top and on the body's 24px gutter. */
+  padding-block: max(var(--space-4), var(--safe-top)) var(--space-1);
   /* The title at the start, on the body's gutter; Close at the end, its 44px reaching the edge. */
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-1), var(--safe-right));
+  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-2), var(--safe-right));
   background: var(--sheet-bg);
   transition: background-color var(--duration-state) var(--ease-out);
 }
@@ -420,9 +423,9 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
    it outranks the shared .icon-btn sizing wherever that loads. A full-screen sheet (dialog.create-sheet:
    New episode, the topic and source panel, Regenerate) is the exception and keeps its Close at the
    row's end, as on a desktop (owner, 2026-10-22): with no page left showing, there is nothing to tap
-   away to (D152). The partial sheets (the menu sheets, the emoji picker) still hide it. */
+   away to (D152), as is the small share dialog (2026-10-25), which has no sheet to pull. The partial sheets (the menu sheets, the emoji picker) still hide it. */
 @media (width < 40rem) {
-  :not(dialog.create-sheet) > .create-sheet-head > .icon-btn.icon-btn {
+  :not(dialog.create-sheet, dialog.share-dialog) > .create-sheet-head > .icon-btn.icon-btn {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -437,8 +440,9 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
 }
 
 .create-sheet-body {
-  /* The hairline between groups runs to the edges of the scrolling area, as it does on the page. */
-  --sheet-gutter: var(--space-4);
+  /* The hairline between groups runs to the edges of the scrolling area, as it does on the page.
+     24px on a phone (owner, 2026-10-24: more padding in full-screen phone sheets). */
+  --sheet-gutter: var(--space-6);
   --page-gutter-start: max(var(--sheet-gutter), var(--safe-left));
   --page-gutter-end: max(var(--sheet-gutter), var(--safe-right));
   flex: 1 1 auto;
@@ -470,7 +474,7 @@ dialog.create-sheet[data-scrolled] .create-sheet-head {
   --sheet-foot: calc(
     var(--button-height) +
     var(--space-4) +
-    max(var(--space-4), var(--safe-bottom))
+    max(var(--space-6), var(--safe-bottom))
   );
   mask-image: linear-gradient(
     to top,
@@ -524,7 +528,7 @@ dialog.create-sheet .create-submit {
   position: sticky;
   inset-block-end: 0;
   z-index: var(--z-raised);
-  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
+  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
   background: var(--sheet-bg);
   box-shadow: 0 0 0 100vmax var(--sheet-bg);
   clip-path: inset(0 -100vmax);
@@ -556,7 +560,7 @@ dialog.create-sheet .create-submit > .btn-primary {
   justify-self: stretch;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   /* A side panel docked to the right edge, full height, on top of everything including the player
      bar, so its button at the foot is always reachable. The scrim covers the rest. */
   dialog.create-sheet {
@@ -676,6 +680,20 @@ dialog.create-sheet .create-submit > .btn-primary {
   gap: var(--space-2);
 }
 
+/* Usage: .run-lines holds .run-message (the stage) over .run-eta (time left), inside .run-text. The expand chevron is .run-expand, below 64rem only. */
+/* The stage name over the time left (2026-10-25). The time left is the status route's estimate, so it
+   shows only when there is one; a strip below 64rem keeps it for when it is opened. */
+.run-lines {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.run-eta {
+  color: var(--color-on-surface-muted);
+  font-weight: var(--font-weight-regular);
+}
+
 .run-message {
   min-width: 0;
   display: -webkit-box;
@@ -710,7 +728,12 @@ dialog.create-sheet .create-submit > .btn-primary {
   color: var(--color-danger);
 }
 
-.run-link {
+/* Two components in two slots (2026-10-25 owner report: Listen now read as a link). Open Library and
+   Details are text links: Details is the shared .text-link, .run-details only places and colours it.
+   Listen now is the shared .btn-primary, .run-play only sizes it to the card; neither carries the
+   other's classes. */
+.run-link,
+.run-details {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -722,19 +745,60 @@ dialog.create-sheet .create-submit > .btn-primary {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .run-link:hover {
+  .run-link:hover,
+  .run-details:hover {
     text-decoration: underline;
   }
 }
 
-.run-link:active {
+.run-link:active,
+.run-details:active {
   color: var(--color-accent-pressed);
   text-decoration: underline;
 }
 
 .run-dismiss,
-.run-retry {
+.run-retry,
+.run-check {
   flex: none;
+}
+
+/* Below 64rem the card is one slim line; the chevron (or a press on the line) opens the whole status:
+   the message unclamped, the time left, and the buttons on a row of their own. It grows upward from
+   the foot it is fixed to. */
+.run-expand {
+  flex: none;
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
+@media (width < 64rem) {
+  .run-card:not([data-expanded]) .run-expand {
+    transform: rotate(180deg);
+  }
+
+  .run-card:not([data-expanded]) .run-eta {
+    display: none;
+  }
+
+  .run-card[data-expanded] {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--run-height);
+    padding-block: var(--space-2);
+  }
+
+  .run-card[data-expanded] .run-message {
+    display: block;
+    overflow: visible;
+  }
+}
+
+/* The filled button at its own width: the block button's full width would fill the card. */
+.run-play {
+  flex: none;
+  width: auto;
+  /* Inside the card's fixed 3rem line, with room left for the bar along its edge. */
+  min-height: var(--size-touch);
 }
 
 /* The bar: a track and a fill that is a share of it. runStatus.ts sets --run-to (0 to 1) and
@@ -775,7 +839,7 @@ html[data-player="open"] .run-status {
 
 /* Below 64rem the line runs to the window's right edge, which an open dialog moves out by the
    scrollbar's width (foundations.css): it keeps that room, so its link and button hold still. */
-@media not all and (min-width: 64rem) {
+@media (width < 64rem) {
   html[data-dialog-open] .run-card {
     padding-inline-end: calc(max(var(--space-2), var(--safe-right)) + var(--gutter, 0px));
   }
@@ -784,7 +848,7 @@ html[data-player="open"] .run-status {
 /* From 64rem: at the foot of the side column, over the column's own surface. The line starts where
    the navigation's icons do and has the column's whole width; the link and the close button share
    the row under it, and the bar takes that row's whole width when there is no close button. */
-@media (min-width: 64rem) {
+@media (width >= 64rem) {
   .run-status {
     inset-inline: 0 auto;
     inset-block-end: var(--dock-room);
@@ -796,6 +860,7 @@ html[data-player="open"] .run-status {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "text text"
+      "play play"
       "extra close";
     align-items: center;
     gap: 0 var(--space-2);
@@ -820,14 +885,28 @@ html[data-player="open"] .run-status {
     grid-area: close;
   }
 
-  .run-link {
+  .run-link,
+  .run-details {
     grid-area: extra;
     justify-self: start;
   }
 
+  /* Its own row above the link, so the button and the Details link never share a slot. */
+  /* One slot for the whole status above 64rem: the column has the room, so nothing is opened. */
+  .run-card .run-expand {
+    display: none;
+  }
+
+  .run-play {
+    grid-area: play;
+    justify-self: start;
+    margin-block: var(--space-2);
+  }
+
   /* Try again shares the link's place (they never show together); its words line up with the
      message above, its state layer reaching out into the column's margin. */
-  .run-retry {
+  .run-retry,
+  .run-check {
     grid-area: extra;
     justify-self: start;
     margin-inline-start: calc(-1 * var(--space-4));
@@ -849,7 +928,8 @@ html[data-player="open"] .run-status {
 
 /* The bar still fills, stage by stage; it just does not glide. */
 @media (prefers-reduced-motion: reduce) {
-  .run-fill {
+  .run-fill,
+  .run-card .run-expand {
     transition: none;
   }
 }
@@ -863,4 +943,247 @@ html[data-player="open"] .run-status {
   .run-fill {
     background: Highlight;
   }
+}
+
+/* ------------------------------------------------------------------ the share dialog */
+
+/*
+ * Share (scripts/shareDialog.ts, 2026-10-25): a small centred dialog at every width, with the shared
+ * SheetHeader row, the page's name, the link in a read-only field and one Copy link button that
+ * says "Copied" for a moment. Placed and stacked by itself, not by the modal state (as
+ * dialog.confirm-dialog, below); it fades and scales in and only fades the scrim.
+ */
+dialog.share-dialog {
+  --color-focus-gap: var(--sheet-bg);
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  width: min(26rem, calc(100% - var(--space-8)));
+  margin: auto;
+  padding: 0 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+  color: var(--color-on-surface);
+  opacity: 0;
+  transform: scale(var(--scale-enter));
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.share-dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.share-dialog[open] {
+    opacity: 0;
+    transform: scale(var(--scale-enter));
+  }
+}
+
+dialog.share-dialog::backdrop {
+  background: var(--color-scrim);
+  opacity: 0;
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.share-dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.share-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+dialog.share-dialog:focus-visible {
+  outline: none;
+}
+
+.share-dialog > .create-sheet-head {
+  padding-block: var(--space-1);
+  padding-inline: var(--space-4) var(--space-1);
+}
+
+.share-about {
+  margin-block: var(--space-2) var(--space-4);
+  padding-inline: var(--space-4);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+}
+
+.share-url {
+  display: block;
+  width: calc(100% - var(--space-4) * 2);
+  height: var(--field-height);
+  margin-inline: var(--space-4);
+  padding-inline: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  text-overflow: ellipsis;
+}
+
+.share-url:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.share-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-start: var(--space-4);
+  padding-inline: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.share-dialog,
+  dialog.share-dialog[open] {
+    transform: none;
+    transition-duration: var(--duration-state);
+  }
+
+  dialog.share-dialog::backdrop,
+  dialog.share-dialog[open]::backdrop {
+    transition-duration: var(--duration-state);
+  }
+
+  @starting-style {
+    dialog.share-dialog[open] {
+      transform: none;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  dialog.share-dialog {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
+
+/* The confirm: the small yes or no dialog. Used by Delete (EpisodeActions.astro) and the speed offer (player/SpeedOffer.tsx). */
+/* ------------------------------------------------------------------ the confirm */
+
+dialog.confirm-dialog {
+  --color-focus-gap: var(--sheet-bg);
+  /* Placed and stacked by itself, not by the modal state: Safari ends that as the exit begins, and
+     the fade plays outside the top layer (dialog.sheet, foundations.css). */
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  width: min(24rem, calc(100% - var(--space-8)));
+  margin: auto;
+  padding: var(--space-6);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+  color: var(--color-on-surface);
+  /* Closed it is display: none; it fades and scales out, then goes. */
+  opacity: 0;
+  transform: scale(var(--scale-enter));
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.confirm-dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.confirm-dialog[open] {
+    opacity: 0;
+    transform: scale(var(--scale-enter));
+  }
+}
+
+/* The scrim only fades. */
+dialog.confirm-dialog::backdrop {
+  background: var(--color-scrim);
+  opacity: 0;
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.confirm-dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.confirm-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: it fades where it stands. The durations are the state's, which reduced motion does
+   not collapse, so the fade stays. */
+@media (prefers-reduced-motion: reduce) {
+  dialog.confirm-dialog,
+  dialog.confirm-dialog[open] {
+    transform: none;
+    transition-duration: var(--duration-state);
+  }
+
+  dialog.confirm-dialog::backdrop,
+  dialog.confirm-dialog[open]::backdrop {
+    transition-duration: var(--duration-state);
+  }
+
+  @starting-style {
+    dialog.confirm-dialog[open] {
+      transform: none;
+    }
+  }
+}
+
+dialog.confirm-dialog:focus-visible {
+  outline: none;
+}
+
+@media (forced-colors: active) {
+  dialog.confirm-dialog {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
+
+.confirm-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+/* Three choices stacked, the committing one first: the unsaved-changes guard (sheetGuard.ts). */
+.confirm-actions.is-stacked {
+  flex-direction: column;
+  align-items: stretch;
 }

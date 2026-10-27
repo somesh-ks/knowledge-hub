@@ -125,7 +125,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     // A discussion has two hosts, so it takes a second voice as well as the first.
     const discussion = data.get("format") === "discussion";
     // The voices, and the hosts' names once the voices are known (D76): a discussion's captions
-    // and labels say "Ada's voice", "Leo's voice"; before that, "First host", "Second host".
+    // and labels say "Ada's voice", "Leo's voice"; before that, "Primary voice", "Secondary voice".
     const first = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice"]'));
     const second = voiceOf(form.querySelector<HTMLSelectElement>('select[name="voice_b"]'));
     const hosts = discussion && hostNames && first && second ? hostNames(first, second) : null;
@@ -151,19 +151,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const heading = root.querySelector<HTMLElement>("[data-voice-heading]");
     const headingText = discussion ? heading?.dataset.two : heading?.dataset.one;
     if (heading && headingText) heading.textContent = headingText;
-    // Under the format: who will be heard, by name, once the voices are known; nothing before
-    // that (the format's own name says the rest). A readout is read by the voice under its own
-    // name; a discussion's two hosts take the names the episode will be written with.
-    const hint = root.querySelector<HTMLElement>("[data-format-hint]");
-    if (hint) {
-      const named = discussion ? hosts !== null : Boolean(first);
-      const a = hosts ? hosts.a : (first?.name ?? "");
-      const b = hosts ? hosts.b : "";
-      const key = discussion ? "discussionNamed" : "readoutNamed";
-      const text = named ? (hint.dataset[key] ?? "").replace("{a}", a).replace("{b}", b) : "";
-      if (hint.textContent !== text) hint.textContent = text;
-      hint.hidden = !named;
-    }
     // The More options line names what it holds.
     const values = root.querySelector<HTMLElement>("[data-more-values]");
     if (values?.dataset.template) {
@@ -173,10 +160,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
         .replace("{format}", chosen("format"))
         .replace("{tone}", chosen("tone"));
     }
-    // The button says how long the episode will run; each length carries its own label.
-    const length = form.querySelector<HTMLInputElement>('input[name="length"]:checked');
-    if (length?.dataset.submitLabel)
-      $("[data-submit-text]").textContent = length.dataset.submitLabel;
     rememberVoices();
   }
 
@@ -221,8 +204,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       else button.removeAttribute(name);
     }
     const words = button.querySelector("[data-submit-text]");
-    if (words && on) words.textContent = copy("starting");
-    else if (words) sync();
+    // The button's own words come back when the request ends: they no longer follow the length.
+    if (words && on) {
+      words.setAttribute("data-rest", words.textContent ?? "");
+      words.textContent = copy("starting");
+    } else if (words) words.textContent = words.getAttribute("data-rest") ?? words.textContent;
   }
 
   /**

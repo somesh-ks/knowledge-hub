@@ -55,6 +55,10 @@ function rig(speechOptions: FakeSpeechOptions = {}, monthlyChars = 500_000): Rig
       monthlyChars: () => monthlyChars,
       createSpeech: () => speech,
       createBlob: () => blob,
+      // The tests count uploads: no ffmpeg, no Opus files.
+      transcodeOpus: undefined,
+      transcodeEpisodeOpus: undefined,
+      fetchAudio: undefined,
     },
   };
 }
@@ -213,10 +217,36 @@ describe("singularity audio", () => {
       expect(
         parseDigestFile(await readFile(join(temp.root, digestRelPath("2026-10-07")), "utf8")).audio
           ?.url,
-      ).toContain("audio/2026-10-07.mp3");
+      ).toMatch(/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/);
       expect(await readFile(join(temp.root, audioTimelineRelPath("2026-10-07")), "utf8")).toContain(
         '"timeline": "marks"',
       );
+    });
+
+    it("records the Opus file when it transcodes, and publishes the MP3 alone when it fails", async () => {
+      const readAudio = async () =>
+        parseDigestFile(await readFile(join(temp.root, digestRelPath("2026-10-07")), "utf8")).audio;
+      await writeDigest(temp.root, makeDigest());
+      const ok = rig();
+      const transcodeOpus = async () => new Uint8Array([1, 2, 3]);
+      expect(
+        await createAudioCommand({ ...ok.deps, transcodeOpus })(["--digest", "2026-10-07"], ctx),
+      ).toBe(0);
+      expect((await readAudio())?.m4a_url).toContain("2026-10-07");
+
+      const broken = rig();
+      const failing = async (): Promise<Uint8Array> => {
+        throw new Error("ffmpeg died");
+      };
+      expect(
+        await createAudioCommand({ ...broken.deps, transcodeOpus: failing })(
+          ["--digest", "2026-10-07", "--force"],
+          ctx,
+        ),
+      ).toBe(0);
+      const audio = await readAudio();
+      expect(audio?.url).toMatch(/audio\/2026-10-07\.\w+\.mp3$/);
+      expect(audio?.m4a_url).toBeUndefined();
     });
 
     it("uses the voice from the environment", async () => {
@@ -395,7 +425,7 @@ describe("singularity publish", () => {
         "singularity-bot|singularity-bot@users.noreply.github.com",
       );
       expect(remoteHead()).toBe(git(pair.a, "rev-parse", "HEAD"));
-      expect(audioOf("2026-10-07")?.url).toContain("audio/2026-10-07.mp3");
+      expect(audioOf("2026-10-07")?.url).toMatch(/audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/);
       expect(git(pair.a, "status", "--porcelain")).toBe("");
       expect(r.out.join("")).toContain("2026-10-07  audio ready");
       expect(r.out.join("")).toContain("git: pushed");
@@ -633,7 +663,9 @@ describe("singularity publish", () => {
 
       expect(await createPublishCommand(r.deps)(["--prune", "30"], ctx)).toBe(0);
       expect(r.blob.store.has("audio/2025-01-01.mp3")).toBe(false);
-      expect(r.blob.store.has("audio/2026-10-07.mp3")).toBe(true);
+      expect(
+        [...r.blob.store.keys()].some((key) => /^audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/.test(key)),
+      ).toBe(true);
       expect(r.out.join("")).toContain("pruned 1 old narrations, kept 1");
       expect(remoteHead()).toBe(head);
     });

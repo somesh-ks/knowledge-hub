@@ -1,10 +1,14 @@
 import {
+  applyVotes,
+  FETCH_VIA,
   GENERAL_TOPICS,
   isBuiltinCategory,
   isBuiltinSection,
   MAX_CUSTOM_TOPICS,
   type ParsedConfigOp,
+  PROFILE_LABEL,
   type Preferences,
+  profileBlocks,
   publishSection,
   RESERVED_TOPIC_IDS,
   type ScheduleFile,
@@ -14,7 +18,6 @@ import {
   type SourcesUserFile,
   STRUCTURE_SECTIONS,
   type StructureFile,
-  type StructureKind,
   type Topic,
   type TopicsFile,
   TopicsFile as TopicsSchema,
@@ -134,18 +137,14 @@ function upsertTopic(
   const existing = next.topics.topics.find((topic) => topic.id === id);
 
   if (existing?.origin === "builtin") {
-    // A built-in topic keeps its description, section and flags, as fixed questions judge it. Its
-    // weight lives in the preferences, where `singularity learn` also writes it; its name, which the
-    // judge never reads, and its keywords are free to edit.
+    // A built-in topic keeps its description, section and flags, as fixed questions judge it; its
+    // name, which the judge never reads, and its keywords are free to edit.
     const renamed = existing.name !== input.name;
     const summary = renamed
       ? `rename topic ${tidy(existing.name)} to ${tidy(input.name)}`
-      : `set weight of ${tidy(existing.name)}`;
+      : `set keywords of ${tidy(existing.name)}`;
     existing.name = input.name;
-    existing.weight = input.weight;
-    existing.never_publish = input.weight === 0;
     existing.keywords = input.keywords;
-    if (isBuiltinCategory(existing.id)) next.preferences.weights[existing.id] = input.weight;
     return { next, summary, topic_id: id, new_topic: false };
   }
   if (existing?.origin === "app" || existing?.origin === "general") {
@@ -161,7 +160,6 @@ function upsertTopic(
         : `${input.enabled ? "turn on" : "turn off"} ${tidy(existing.name)}`;
     existing.name = input.name;
     existing.description = input.description;
-    existing.weight = input.weight;
     existing.keywords = [...new Set(input.keywords)];
     // A general topic is always on: the request's `enabled` is not read.
     existing.enabled = general ? true : input.enabled;
@@ -205,7 +203,6 @@ function upsertTopic(
     id,
     name: input.name,
     description: input.description,
-    weight: input.weight,
     enabled: input.enabled,
     keywords: [...new Set(input.keywords)],
     section_id: sectionId,
@@ -254,9 +251,7 @@ function removeTopic(
   const topic = next.topics.topics.find((candidate) => candidate.id === op.id);
   if (!topic) throw new ConfigOpError(`There is no topic ${op.id}.`);
   if (topic.origin === "builtin") {
-    throw new ConfigOpError(
-      "Built-in topics cannot be removed. Set the weight to 0 to silence one.",
-    );
+    throw new ConfigOpError("Built-in topics cannot be removed. Turn one off to silence it.");
   }
   if (topic.origin === "app" || topic.origin === "general") {
     throw new ConfigOpError(
@@ -388,6 +383,40 @@ function updateSource(
   const source = added ?? next.registry.sources.find((s) => s.id === op.id);
   if (!source) throw new ConfigOpError(`There is no source ${op.id}.`);
   const before = source.name;
+  const via = op.fetch_via;
+  if (via) {
+    const host = new URL(source.url).hostname;
+    if (host !== FETCH_VIA[via].host && !host.endsWith(`.${FETCH_VIA[via].host}`)) {
+      throw new ConfigOpError(`${via} reads ${FETCH_VIA[via].host} only, not ${source.name}.`);
+    }
+    // Only the Firecrawl fetcher reads options.via, so any other type would persist a dead route.
+    if (source.type !== "firecrawl") {
+      throw new ConfigOpError(`${via} applies to a Firecrawl source only, not ${source.name}.`);
+    }
+  }
+  if (via !== undefined) {
+    // The fetcher reads options.via and options.category (engine/fetch/firecrawl.ts).
+    const set: Record<string, string> =
+      via === null ? {} : { via, category: FETCH_VIA[via].category };
+    if (added) {
+      const { via: _via, category: _category, ...rest } = added.options;
+      added.options = { ...rest, ...set };
+    } else {
+      const { options: own, ...rest } = next.sourcesUser.overrides[op.id] ?? {};
+      const { via: _via, category: _category, ...kept } = own ?? {};
+      const options: Record<string, string> = { ...kept, ...set };
+      // mergeUserSources keeps a seed's own options under an override, so a clear must mask them:
+      // an empty value is no route to the fetcher, which compares options.via to a provider name.
+      if (via === null) {
+        for (const key of ["via", "category"]) {
+          // `source` is the merged source: a key the override never set came from the seed file.
+          if (source.options?.[key] !== undefined && own?.[key] === undefined) options[key] = "";
+        }
+      }
+      next.sourcesUser.overrides[op.id] =
+        Object.keys(options).length > 0 ? { ...rest, options } : rest;
+    }
+  }
   if (added) {
     if (op.name !== undefined) added.name = op.name;
     if (topicIds !== undefined) {
@@ -412,9 +441,14 @@ function updateSource(
   let summary: string;
   if (rename === null && topicIds === undefined) {
     summary =
-      op.high_signal !== undefined && op.format === undefined && op.lean === undefined
-        ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
-        : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
+      via !== undefined &&
+      op.high_signal === undefined &&
+      op.format === undefined &&
+      op.lean === undefined
+        ? `set how source ${tidy(before)} is fetched`
+        : op.high_signal !== undefined && op.format === undefined && op.lean === undefined
+          ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
+          : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
   } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
@@ -437,22 +471,6 @@ function removeSource(
     next.sourcesUser.overrides[op.id] = { ...next.sourcesUser.overrides[op.id], removed: true };
   }
   return { next, summary: `remove source ${tidy(source.name)}` };
-}
-
-function setWeights(
-  op: Extract<ParsedConfigOp, { op: "weights.set" }>,
-  bundle: ConfigBundle,
-): OpOutcome {
-  const next = clone(bundle);
-  for (const [id, weight] of Object.entries(op.weights)) {
-    const topic = next.topics.topics.find((t) => t.id === id);
-    if (!topic) throw new ConfigOpError(`There is no topic ${id}.`);
-    topic.weight = weight;
-    if (topic.origin === "builtin") topic.never_publish = weight === 0;
-    if (topic.origin === "builtin" && isBuiltinCategory(id)) next.preferences.weights[id] = weight;
-  }
-  const count = Object.keys(op.weights).length;
-  return { next, summary: `set ${count} topic weight${count === 1 ? "" : "s"}` };
 }
 
 function setMix(op: Extract<ParsedConfigOp, { op: "topic.mix" }>, bundle: ConfigBundle): OpOutcome {
@@ -514,12 +532,14 @@ function setSchedule(
   next.schedule = {
     version: 1,
     timezone: op.timezone ?? current.timezone ?? "Europe/Stockholm",
+    enabled: op.enabled ?? current.enabled,
     hour,
     cadence_days: cadence,
     skip_topics: skip,
     length_minutes: op.length_minutes ?? current.length_minutes,
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
+    lookback_hours: op.lookback_hours !== undefined ? op.lookback_hours : current.lookback_hours,
     weekly,
     custom: { ...current.custom, ...definedOnly(op.custom) },
     ...(current.general_scoped === true ? { general_scoped: true } : {}),
@@ -577,30 +597,21 @@ function setScope(
   };
   // A topic put into a stored kind gets its section block (D170, gap 2). Taking one out leaves the
   // block: the skip list leaves the topic out, and putting it back keeps its place.
-  if (next.structure !== null) {
-    const into: StructureKind[] = [];
-    if (op.daily === true) into.push("daily");
-    if (op.weekly === true) into.push("weekly");
-    if (op.custom === true) into.push("catch_up");
-    const kinds = { ...next.structure.kinds };
-    for (const kind of into) {
-      let blocks = kinds[kind];
-      if (blocks === undefined) continue;
-      for (const id of ids) {
-        // The section its stories are filed under: a general topic publishes under its own id.
-        const topic = next.topics.topics.find((entry) => entry.id === id);
-        const section = topic ? publishSection(topic) : undefined;
-        if (section !== undefined) blocks = withSectionBlock(blocks, section);
-      }
-      kinds[kind] = blocks;
+  if (next.structure?.blocks !== undefined && (op.daily || op.weekly || op.custom)) {
+    let blocks = next.structure.blocks;
+    for (const id of ids) {
+      // The section its stories are filed under: a general topic publishes under its own id.
+      const topic = next.topics.topics.find((entry) => entry.id === id);
+      const section = topic ? publishSection(topic) : undefined;
+      if (section !== undefined) blocks = withSectionBlock(blocks, section);
     }
-    next.structure = { ...next.structure, kinds };
+    next.structure = { ...next.structure, blocks };
   }
   const first = next.topics.topics.find((topic) => topic.id === ids[0]);
   return { next, summary: `set where ${tidy(first?.name ?? ids[0] ?? "a topic")} plays` };
 }
 
-/** Replace one kind's blocks; every section block must name a section that exists. */
+/** Choose the profile and replace the blocks; every section block must name a section that exists. */
 function setStructure(
   op: Extract<ParsedConfigOp, { op: "structure.set" }>,
   bundle: ConfigBundle,
@@ -610,18 +621,39 @@ function setStructure(
     ...bundle.topics.topics.map((topic) => publishSection(topic)),
     ...GENERAL_TOPICS.map((topic) => topic.id),
   ]);
-  for (const block of op.blocks) {
+  for (const block of op.blocks ?? []) {
     if (block.type === "section" && !known.has(block.id)) {
       throw new ConfigOpError(`There is no section ${block.id}.`);
     }
   }
   const next = clone(bundle);
+  // A named profile sent alone runs its preset; the site sends the list with the owner's topics in it.
+  const blocks = op.blocks ?? (op.profile === "custom" ? undefined : profileBlocks(op.profile));
   next.structure = {
+    ...(bundle.structure ?? {}),
     version: 1,
-    kinds: { ...(bundle.structure?.kinds ?? {}), [op.kind]: op.blocks },
+    profile: op.profile,
+    ...(blocks === undefined ? {} : { blocks }),
   };
-  const name = op.kind === "catch_up" ? "Catch up" : op.kind;
-  return { next, summary: `set the ${name} structure` };
+  return { next, summary: `set the structure to ${PROFILE_LABEL[op.profile]}` };
+}
+
+/** Replace one block's prompt in a kind (D182), or drop it so the built-in prompt applies. */
+function setBlockPrompt(
+  op: Extract<ParsedConfigOp, { op: "structure.prompt" }>,
+  bundle: ConfigBundle,
+): OpOutcome {
+  const next = clone(bundle);
+  const prompts = { ...(bundle.structure?.prompts ?? {}) };
+  if (op.prompt === null) delete prompts[op.key];
+  else prompts[op.key] = op.prompt;
+  const { prompts: _old, ...rest } = bundle.structure ?? { version: 1 as const };
+  next.structure = { ...rest, ...(Object.keys(prompts).length > 0 ? { prompts } : {}) };
+  const block = op.key.replace(/^section:/, "").replace("_", " ");
+  return {
+    next,
+    summary: `${op.prompt === null ? "reset" : "set"} the prompt for ${block}`,
+  };
 }
 
 function definedOnly<T extends object>(value: T | undefined): Partial<T> {
@@ -673,6 +705,7 @@ function castVotes(
     return { ...open, domain };
   });
   const next = clone(bundle);
+  next.profile.auto_adjust = applyVotes(next.profile.auto_adjust, next.profile.votes, incoming);
   next.profile.votes = mergeVotes(next.profile.votes, incoming);
   next.profile.opens = mergeOpens(next.profile.opens, opens);
   const cleared = incoming.filter((vote) => vote.value === "clear").length;
@@ -708,8 +741,6 @@ export async function applyConfigOp(
       return updateSource(op, bundle);
     case "source.remove":
       return removeSource(op, bundle);
-    case "weights.set":
-      return setWeights(op, bundle);
     case "topic.mix":
       return setMix(op, bundle);
     case "mix.set":
@@ -720,6 +751,8 @@ export async function applyConfigOp(
       return setScope(op, bundle);
     case "structure.set":
       return setStructure(op, bundle);
+    case "structure.prompt":
+      return setBlockPrompt(op, bundle);
     case "profile.block":
       return blockDomain(op, bundle);
     case "profile.vote":

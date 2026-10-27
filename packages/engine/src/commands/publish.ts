@@ -227,6 +227,8 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         now: ctx.now,
         monthlyChars: keys.monthlyChars,
         voiceId: ctx.env.SPEECHIFY_VOICE_ID,
+        ...(deps.transcodeEpisodeOpus ? { transcodeEpisodeOpus: deps.transcodeEpisodeOpus } : {}),
+        ...(deps.fetchAudio ? { fetchAudio: deps.fetchAudio } : {}),
       };
       const digests: PublishAudioResult =
         episodeId === undefined

@@ -99,11 +99,8 @@ async function onPick(item: HTMLElement): Promise<void> {
         path,
         kind: root.dataset.episode ? "episode" : "briefing",
       });
+      // The share dialog says its own "Copied" (shareDialog.ts).
       if (typeof outcome === "object") toast(outcome.refused);
-      else if (outcome === "copied") {
-        toast("Link copied", "success");
-        document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
-      }
       return;
     }
     case "unshare":

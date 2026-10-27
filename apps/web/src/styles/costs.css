@@ -39,7 +39,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "filters filters"
-    "answer view";
+    "answer view"
+    "stats stats";
   align-items: start;
   gap: var(--space-4);
 }
@@ -50,10 +51,12 @@
    them stay shorter than the answer, so the band keeps its height whatever is chosen. On a phone
    the breakdown reads "Shared or own", not "Shared or personal", so the two chips hold one row
    from 390px with every choice (owner, 2026-10-24). */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .costs-head {
     grid-template-columns: minmax(max-content, 1fr) minmax(min-content, max-content) auto;
-    grid-template-areas: "answer filters view";
+    grid-template-areas:
+      "answer filters view"
+      "stats stats stats";
     column-gap: var(--space-2);
   }
 
@@ -97,15 +100,6 @@
   min-width: 0;
 }
 
-/* The label, the one figure and the supporting line: told apart by size and ink, at two weights. */
-.costs-label {
-  margin: 0;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--font-leading-label);
-}
-
 /* The figure the page leads with: the same sans, proportional figures, the display step. */
 .costs-total {
   margin: 0;
@@ -116,11 +110,22 @@
   line-height: var(--text-display-leading);
 }
 
-.costs-detail {
-  margin: 0;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  line-height: var(--font-leading-label);
+/* Under the total: a tile per figure it is made of (the shared .stat-tiles, primitives.css), which
+   follow the filters. Pills from 2026-10-25, tiles from 2026-10-27 (the owner: dashboard boxes, no
+   pills). Their rows' height is held while they load, so the chart does not drop when they arrive:
+   two rows on a phone, one from 40rem. */
+.costs-stats {
+  grid-area: stats;
+  min-block-size: calc(var(--stat-tile-height) * 2 + var(--space-2));
+  /* Out of the head's column sizing: the tiles fit the card's width, never widen the grid. */
+  min-inline-size: 0;
+  contain: inline-size;
+}
+
+@media (width >= 40rem) {
+  .costs-stats {
+    min-block-size: var(--stat-tile-height);
+  }
 }
 
 /* ------------------------------------------------------------------ the chart */
@@ -133,7 +138,7 @@
   block-size: calc(var(--space-24) * 2);
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .costs-plot {
     block-size: calc(var(--space-24) * 2 + var(--space-12));
   }
@@ -165,6 +170,34 @@
 
 .costs-mark {
   fill: var(--color-accent);
+}
+
+/* The first paint of data grows the columns from the baseline over the enter timing, the settle
+   easing (2026-10-25, the owner). Later draws (a filter, a resize) carry no class, so they hold
+   still. */
+.costs-columns.is-growing .costs-mark {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: costs-grow var(--duration-press-in) var(--ease-out) both;
+}
+
+@keyframes costs-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* Reduced motion: no travel, the columns fade in. */
+@media (prefers-reduced-motion: reduce) {
+  .costs-columns.is-growing .costs-mark {
+    animation-name: costs-fade;
+  }
+
+  @keyframes costs-fade {
+    from {
+      opacity: 0;
+    }
+  }
 }
 
 .costs-columns > .is-active .costs-mark {
@@ -250,14 +283,31 @@
   grid-template-columns: minmax(0, 1fr) auto var(--space-12);
   column-gap: var(--space-4);
   row-gap: var(--space-2);
-  align-items: baseline;
+  align-items: center;
   font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
 }
 
 .costs-rank-name {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
   min-inline-size: 0;
   overflow-wrap: anywhere;
+}
+
+/* A provider's mark, one line tall, in the text's ink. */
+.costs-rank-slot {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  inline-size: var(--space-6);
+}
+
+.costs-rank-mark {
+  inline-size: auto;
+  block-size: calc(var(--space-4) * var(--mark-h, 1));
+  fill: currentColor;
 }
 
 .costs-rank-value {
@@ -333,7 +383,14 @@
   white-space: nowrap;
 }
 
+/* The period stays put while the rest scrolls under it (design audit, 2026-10-24: scrolled to its
+   end, a phone read "$0.04" with its day off screen). Opaque in the card's tone, so what passes
+   under it is hidden; the edge fade starts past it (--scroll-fade-inset, costsPage.ts). */
 .costs-table :is(th, td):first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: var(--z-raised);
+  background: var(--color-surface-container);
   text-align: start;
 }
 
@@ -352,6 +409,10 @@
 
 .costs-note {
   margin-block-start: var(--space-2);
+}
+
+.costs-note p {
+  margin: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

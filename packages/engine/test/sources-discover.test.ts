@@ -566,3 +566,38 @@ describe("a social media page", () => {
     ).rejects.toThrow(/Social media pages cannot be read/);
   });
 });
+
+describe("adding a YouTube channel", () => {
+  const feed = (id: string) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
+  const other = `UC${"a".repeat(22)}`;
+  const mine = `UC${"b".repeat(22)}`;
+  const add = (url: string, existing: Parameters<typeof buildSourceFromUrl>[0]["existing"]) =>
+    buildSourceFromUrl({ url, origin: "manual", takenIds: new Set(), existing }, http({}).deps);
+  const followed = (id: string) => [
+    {
+      id: "friday",
+      name: "Friday Checkout",
+      url: "https://www.youtube.com/@fc",
+      feed_url: feed(id),
+    },
+  ];
+
+  // "Already a source: Friday Checkout" was shown for a different channel: every channel feed
+  // shared one key (host and path), so any stored YouTube feed blocked all later channels.
+  it("is not refused because another channel is already followed", async () => {
+    const source = await add(`https://www.youtube.com/channel/${mine}`, followed(other));
+    expect(source).toMatchObject({ type: "youtube", feed_url: feed(mine) });
+  });
+
+  it("still refuses the channel already followed", async () => {
+    await expect(add(`https://www.youtube.com/channel/${mine}`, followed(mine))).rejects.toThrow(
+      /Already a source: Friday Checkout/,
+    );
+  });
+
+  // The stored form of an added channel is its feed address, which the config store replays.
+  it("reads the channel from its feed address", async () => {
+    const source = await add(feed(mine), []);
+    expect(source).toMatchObject({ type: "youtube", options: { channel_id: mine } });
+  });
+});

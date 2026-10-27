@@ -8,7 +8,7 @@
   display: none;
 }
 
-@media (min-width: 80rem) {
+@media (width >= 80rem) {
   /* The list is always on the middle line of the window, between the top chrome and the player bar.
      The nav is the whole height of the page's column; the rail in it is as tall as the room the
      window has and sticks under the top chrome from the first screen, whatever the page's length,

@@ -10,9 +10,13 @@ import {
 import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";
+import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js";
+import { shapeStories } from "../src/podcast/structure.js";
+import type { PodcastStory } from "../src/podcast/types.js";
 import { sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
+import { REQUEST } from "./podcast-fixtures.js";
 import { buildFixtureDigest } from "./render-factories.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 
@@ -137,4 +141,70 @@ describe("a structured Catch up script over its length", () => {
       "Bye.",
     ]);
   });
+});
+
+it("a Catch up block's own prompt reaches the script delimited, once, before its stories, and the rest keep the built-in prompt (D182)", () => {
+  const story = (id: string, section: string): PodcastStory => ({
+    item_id: id,
+    headline: `Headline ${id}`,
+    summary: `Summary ${id}.`,
+    source: "Example",
+    url: `https://example.com/${id}`,
+    section,
+    category: section,
+  });
+  const stories = [story("d1", "design"), story("d2", "design"), story("a1", "ai")];
+  const design = "Tell each design story through what a designer would try first.";
+  const close = "End on one question a designer could take into tomorrow.";
+  const { stories: ordered, shape } = shapeStories(stories, defaultStructure("catch_up"), {
+    "section:design": design,
+    close,
+  });
+  const input = { request: REQUEST, stories: ordered, budget_chars: 4000, shape };
+  const user = scriptUserMessage(input, "BND", []);
+  expect(user.split(design)).toHaveLength(2);
+  expect(user.split(close)).toHaveLength(2);
+  // Delimited as the owner's typed text, before the first design story.
+  expect(user.indexOf(design)).toBeGreaterThan(user.indexOf("BND"));
+  expect(user.indexOf(design)).toBeLessThan(user.indexOf("item_id: d1"));
+  const tellings = [...user.matchAll(/item_id: (\w+)\nTelling: (.+)/g)].map((m) => [m[1], m[2]]);
+  expect(tellings.filter(([, telling]) => telling?.endsWith("as the owner instructs"))).toEqual([
+    ["d1", expect.any(String)],
+    ["d2", expect.any(String)],
+  ]);
+  const system = scriptSystemPrompt(input);
+  expect(system).toContain("the close, as the OWNER INSTRUCTIONS");
+  expect(system).not.toContain("the hello, as the OWNER INSTRUCTIONS");
+});
+
+it("a block's own count per source decides what it carries, whatever the model wrote (D170)", () => {
+  const story = (url: string, score: number, published_at: string): ScoredItem => {
+    const item = makeItem({ url, canonical_url: url, published_at });
+    const entry = makeEntry(item, { category: "design_engineering_craft" });
+    const breakdown = { taste: score, craftFactor: 1, penaltyFactor: 1, bonus: 0 };
+    return { item, entry, score, topCategory: "design_engineering_craft", breakdown };
+  };
+  const first = story("https://same.example/a", 0.9, "2026-10-24T02:00:00Z");
+  const second = story("https://same.example/b", 0.85, "2026-10-24T03:00:00Z");
+  const other = story("https://other.example/c", 0.8, "2026-10-23T12:00:00Z");
+  const plan = sectionPlanFor(
+    blocks([
+      { type: "hello" },
+      { type: "section", id: "ui-craft", per_source: 1 },
+      { type: "sign_off" },
+    ]),
+  );
+  const result = selectItems({
+    scored: [first, second, other],
+    kind: "regular",
+    floor: 1,
+    cap: 12,
+    plan,
+  });
+  expect(result.selected.map((selected) => selected.item.id)).toEqual([
+    first.item.id,
+    other.item.id,
+  ]);
+  const reasons = new Map(result.dropped.map((d) => [d.id, d.reason]));
+  expect(reasons.get(second.item.id)).toBe("over_outlet");
 });

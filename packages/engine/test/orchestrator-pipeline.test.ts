@@ -124,6 +124,7 @@ describe("published run", () => {
         at: WED.toISOString(),
         outcome: "published",
         digest_id: "2026-10-07",
+        generated_at: WED.toISOString(),
         items: 6,
       });
       expect(lastRun.last_fetch_at).toBe(WED.toISOString());
@@ -343,7 +344,12 @@ describe("nothing outcome", () => {
     );
     // The fetch window advances and judged items stay unseen, for the next run to reconsider.
     const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
-    expect(lastRun.regular).toEqual({ at: WED.toISOString(), outcome: "nothing", items: 0 });
+    expect(lastRun.regular).toEqual({
+      at: WED.toISOString(),
+      outcome: "nothing",
+      items: 0,
+      generated_at: WED.toISOString(),
+    });
     expect(lastRun.last_fetch_at).toBe(WED.toISOString());
     expect(lastRun.last_cover).toBeUndefined();
     const seen = await readJson<SeenFile>(repo.root, "state/seen.json");
@@ -634,7 +640,7 @@ describe("failed run", () => {
     const result = await runStage(world);
     expect(result.report).toMatchObject({ outcome: "published" });
     const health = await readJson<SourceHealthFile>(repo.root, "state/source-health.json");
-    expect(health.sources["blog-b"]).toEqual({ failures: 1 });
+    expect(health.sources["blog-b"]).toMatchObject({ failures: 1, last_try: expect.any(String) });
     expect(health.sources["blog-a"]?.failures).toBe(0);
   });
 
@@ -862,8 +868,8 @@ describe("tech releases in a published run", () => {
       expect(tech.every((item) => item.category === "consumer_tech_releases")).toBe(true);
       // The flagship launch (level 3) outranks the level 2 launches inside the section.
       expect(tech[0]?.headline).toContain("iPad Pro");
-      expect(tech[0]?.score).toBe(0.7291);
-      expect(tech.slice(1).every((item) => item.score === 0.6365)).toBe(true);
+      expect(tech[0]?.score).toBe(0.638);
+      expect(tech.slice(1).every((item) => item.score === 0.5569)).toBe(true);
       expect(digest.items.some((item) => item.headline.includes("rumour"))).toBe(false);
 
       // Top picks are the three best items outside tech, and tech follows AI in the file.

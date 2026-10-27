@@ -66,7 +66,7 @@ test.describe("playback on a briefing", () => {
     expect(widths.size, JSON.stringify(seen)).toBe(1);
   });
 
-  test("speed: from the keyboard, then a common speed in one press, kept over a reload @desktop", async ({
+  test("speed: from the keyboard, then a common speed in one press, back at the default after a reload @desktop", async ({
     player,
     audio,
     page,
@@ -144,7 +144,7 @@ test.describe("playback on a briefing", () => {
     await expect(speed).toBeFocused();
     await expect(player.root).toHaveAttribute("data-player", "open");
     await page.reload({ waitUntil: "networkidle" });
-    await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
+    await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1);
   });
 
   test("moves by story, back ten seconds and forward ten from the transport controls", async ({
@@ -171,6 +171,24 @@ test.describe("playback on a briefing", () => {
     const at = stories.findIndex((story) => second + 10 >= story.start && second + 10 < story.end);
     await press("Previous story");
     await expect.poll(() => time(page)).toBeCloseTo(stories[at - 1]?.start ?? -1, 0);
+  });
+
+  test("fetches no audio until Play, even with a place kept from before", async ({
+    player,
+    page,
+  }) => {
+    // The weekly MP3 (7.6 MiB) downloaded on every page view and woke download managers (2026-10-26).
+    await page.addInitScript(() => localStorage.setItem("singularity:resume:2026-10-07", "42"));
+    const audioRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.resourceType() === "media" || /\.(mp3|wav|webm|m4a)(\?|$)/.test(request.url()))
+        audioRequests.push(request.url());
+    });
+    await player.open();
+    expect(audioRequests).toEqual([]);
+    await player.finger.press(player.cta);
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    expect(audioRequests.length).toBeGreaterThan(0);
   });
 
   test("remembers the position and restores it after a reload", async ({ player, page }) => {

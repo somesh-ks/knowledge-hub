@@ -1,10 +1,9 @@
 import {
   isGeneralTopicId,
   MIX_STOPS,
-  STRUCTURE_KINDS,
   type StructureBlock,
   StructureFile,
-  type StructureKind,
+  type StructureProfile,
   storedStructure,
 } from "@singularity/core";
 import { blockedDomainsIn } from "../lib/blockedProfile";
@@ -23,7 +22,7 @@ export type { StoreSource };
  * scripts/savedView.ts). The function is built from the same commit as the pages, so the files it
  * bundles are exactly what the pages were built from.
  *
- * Only what the built pages publish goes in: topics, sources, the schedule, the weights and type
+ * Only what the built pages publish goes in: topics, sources, the schedule, the type
  * mix, the blocked outlets, the podcast structure. Never votes, opens, the learning history, the writer or the queries.
  */
 
@@ -69,10 +68,9 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.str
 function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
   const ops: ConfigOp[] = [];
   const was = new Map(built.map((topic) => [topic.id, topic]));
-  const weights: Record<string, number> = {};
   for (const topic of stored) {
     const before = was.get(topic.id);
-    const { id, name, description, weight, enabled, keywords, section_id, emoji } = topic;
+    const { id, name, description, enabled, keywords, section_id, emoji } = topic;
     if (
       !before ||
       before.name !== name ||
@@ -87,7 +85,6 @@ function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
           id,
           name,
           description,
-          weight,
           enabled,
           keywords,
           section_id,
@@ -95,7 +92,6 @@ function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
         },
       });
     }
-    if (before && before.weight !== weight) weights[id] = weight;
     if (before && (before.perspective ?? 0) !== (topic.perspective ?? 0))
       ops.push({ op: "topic.mix", id, perspective: topic.perspective ?? 0 });
   }
@@ -103,7 +99,6 @@ function topicOps(built: ManageTopic[], stored: ManageTopic[]): ConfigOp[] {
   for (const topic of built)
     if (!kept.has(topic.id) && topic.origin === "custom")
       ops.push({ op: "topic.remove", id: topic.id });
-  if (Object.keys(weights).length > 0) ops.push({ op: "weights.set", weights });
   return ops;
 }
 
@@ -202,6 +197,7 @@ function scheduleOps(
 ): ConfigOp[] {
   const set: ScheduleSet = { op: "schedule.set" };
   if (built.timezone !== stored.timezone) set.timezone = stored.timezone;
+  if (built.enabled !== stored.enabled) set.enabled = stored.enabled;
   if (built.hour !== stored.hour) set.hour = stored.hour;
   if (built.cadenceDays !== stored.cadenceDays)
     set.cadence_days = stored.cadenceDays as ScheduleSet["cadence_days"];
@@ -209,6 +205,8 @@ function scheduleOps(
     set.length_minutes = stored.lengthMinutes as ScheduleSet["length_minutes"];
   if (built.voiceId !== stored.voiceId) set.voice_id = stored.voiceId;
   if (built.voiceIdB !== stored.voiceIdB) set.voice_id_b = stored.voiceIdB;
+  if (built.lookbackHours !== stored.lookbackHours)
+    set.lookback_hours = stored.lookbackHours as ScheduleSet["lookback_hours"];
   const weekly: NonNullable<ScheduleSet["weekly"]> = {};
   for (const key of [
     "enabled",
@@ -218,6 +216,7 @@ function scheduleOps(
     "length_minutes",
     "voice_id",
     "voice_id_b",
+    "lookback_hours",
   ] as const)
     if (built.weekly[key] !== stored.weekly[key])
       Object.assign(weekly, { [key]: stored.weekly[key] });
@@ -257,31 +256,43 @@ function blockedOps(built: string[], stored: string[]): ConfigOp[] {
   ];
 }
 
-/** Each podcast kind's stored blocks (D170), or null where it runs on its defaults. */
-export type StructureView = Record<StructureKind, StructureBlock[] | null>;
+/** The one structure every podcast follows (D170): the profile and its stored blocks, or null on the defaults. */
+export type StructureView = { profile: StructureProfile; blocks: StructureBlock[] } | null;
 
-/** The structure file as each kind's blocks; a missing or malformed file is all defaults. */
+/** The structure file as its profile and blocks; a missing or malformed file is the defaults. */
 export function structureViewOf(json: unknown): StructureView {
   const parsed = StructureFile.safeParse(json);
   const file = parsed.success ? parsed.data : null;
-  return {
-    daily: storedStructure(file, "daily"),
-    weekly: storedStructure(file, "weekly"),
-    catch_up: storedStructure(file, "catch_up"),
-  };
+  const blocks = storedStructure(file);
+  return blocks === null ? null : { profile: file?.profile ?? "custom", blocks };
+}
+
+/** The owner's block prompts (D182) by key; a missing or malformed file has none. */
+export type PromptView = Record<string, string>;
+
+export function promptViewOf(json: unknown): PromptView {
+  const parsed = StructureFile.safeParse(json);
+  return { ...(parsed.success ? parsed.data.prompts : undefined) };
+}
+
+/** A structure.prompt for each block prompt the store set, changed or put back since the build. */
+function promptOps(built: PromptView, stored: PromptView): ConfigOp[] {
+  const keys = [...new Set([...Object.keys(built), ...Object.keys(stored)])].sort();
+  return keys.flatMap((key): ConfigOp[] => {
+    const prompt = stored[key] ?? null;
+    return prompt === (built[key] ?? null) ? [] : [{ op: "structure.prompt", key, prompt }];
+  });
 }
 
 /**
- * A structure.set for each kind whose stored blocks differ from the build's. A kind the store has
- * put back on its defaults sends none: the op cannot say "defaults", and no page shows it yet.
+ * A structure.set when the stored profile or blocks differ from the build's. A store put back on
+ * the defaults sends none: the op cannot say "defaults", and no page shows it yet.
  */
 function structureOps(built: StructureView, stored: StructureView): ConfigOp[] {
-  return STRUCTURE_KINDS.flatMap((kind): ConfigOp[] => {
-    const blocks = stored[kind];
-    return blocks === null || same(built[kind], blocks)
-      ? []
-      : [{ op: "structure.set", kind, blocks }];
-  });
+  if (stored === null) return [];
+  if (built !== null && built.profile === stored.profile && same(built.blocks, stored.blocks))
+    return [];
+  return [{ op: "structure.set", profile: stored.profile, blocks: stored.blocks }];
 }
 
 interface ConfigView {
@@ -289,6 +300,7 @@ interface ConfigView {
   schedule: ScheduleView;
   blocked: string[];
   structure: StructureView;
+  prompts: PromptView;
 }
 
 interface BuiltView extends ConfigView {
@@ -302,6 +314,7 @@ function viewOf(files: ConfigFiles): ConfigView {
     schedule: scheduleViewOf(json(files["config/schedule.json"])),
     blocked: blockedDomainsIn(json(files["config/profiles/owner.json"])),
     structure: structureViewOf(json(files["config/structure.json"])),
+    prompts: promptViewOf(json(files["config/structure.json"])),
   };
 }
 
@@ -346,6 +359,7 @@ export function storeChanges(built: ConfigFiles, storedRows: ConfigFiles): Store
       ),
       ...blockedOps(before.blocked, after.blocked),
       ...structureOps(before.structure, after.structure),
+      ...promptOps(before.prompts, after.prompts),
     ],
     sources: sources.sources,
   };

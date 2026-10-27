@@ -6,6 +6,7 @@
  * reason can be read; the shell's disabled guard swallows their clicks.
  */
 import { warmWhenIdle } from "./idle";
+import { readRun } from "./runStatus";
 
 const BUSY_ID = "episode-actions-busy";
 /** The offline banner's line (BaseLayout.astro). */
@@ -20,7 +21,7 @@ function sync(): void {
 function syncRoot(root: HTMLElement): void {
   let busy = false;
   try {
-    const run = JSON.parse(sessionStorage.getItem("singularity:run") ?? "null");
+    const run = readRun(localStorage, sessionStorage);
     // A briefing's root has no episode: its runs are followed by the Generate sheet.
     busy =
       root.dataset.episode !== undefined &&

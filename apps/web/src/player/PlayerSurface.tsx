@@ -7,6 +7,7 @@ import { playerSheet } from "./core/playerSheet";
 import { KEY_SEEK_SECONDS, KEY_SEEK_SHIFT_SECONDS } from "./core/scrubberMath";
 import type { GestureZone, PointerInput } from "./core/sheetController";
 import { usePlayerState } from "./hooks/usePlayer";
+import { useQueue } from "./hooks/useQueue";
 import PlayerBar, { PLAYER_PAGE_ID } from "./PlayerBar";
 import {
   getPageContent,
@@ -16,6 +17,7 @@ import {
   subscribePageContent,
 } from "./pageContentLoader";
 import SourceLink from "./SourceLink";
+import SpeedOffer from "./SpeedOffer";
 import Icon from "./ui/Icon";
 import PlayerCover, { PlayerCoverGlow } from "./ui/PlayerCover";
 
@@ -94,6 +96,7 @@ function PageBody() {
 
 export default function PlayerSurface() {
   const state = usePlayerState();
+  const queued = useQueue();
 
   // Nodes that React has just made are told where the page is.
   useEffect(() => playerSheet.sync(), []);
@@ -102,6 +105,10 @@ export default function PlayerSurface() {
   const timeline = state.track?.timeline;
   const item = timeline?.items[state.itemIndex];
   const title = digest ? digest.title || longDateFromDigestId(digest.id) : "";
+  // Nothing to read and nothing queued: the page is the cover and its controls, in one centred
+  // column (player.css, [data-lean]). A transcript or a queue brings the list and the second column.
+  const lean =
+    !(digest?.turns?.length || digest?.items.length) && queued.length === 0 && !state.upNextId;
   const visible = state.hasStarted && Boolean(digest?.audio);
   const cover = digest ? (
     <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="player" />
@@ -165,7 +172,7 @@ export default function PlayerSurface() {
             getPlayerStore().toggle();
           }}
         >
-          <div className="player-page-inner">
+          <div className="player-page-inner" data-lean={lean ? "" : undefined}>
             <div className="player-drag" data-player-drag>
               {/* A chevron at the top left on a phone (owner, 2026-10-20), so a listener who does not
                   know the page pulls down still sees how to put it away. From 64rem it shows only on
@@ -222,6 +229,8 @@ export default function PlayerSurface() {
         {cover}
       </div>
       <PlayerBar />
+      {/* Outside the dock: the dock is hidden when the player is expanded, and a modal in it would be too. */}
+      <SpeedOffer />
     </div>
   );
 }

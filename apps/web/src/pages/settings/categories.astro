@@ -33,17 +33,14 @@ const blocked = await loadBlockedDomains();
 // which is no topic, comes last. Each topic's page sets where it plays.
 const layout = topicLayout(topics, sources);
 const { groups } = layout;
-// How many sources a topic has, and how many of them are read.
-const counts = (id: string): [number, number] => {
-  const list = layout.sources.get(id) ?? [];
-  return [list.length, list.filter((source) => source.enabled).length];
-};
+// How many sources a topic has.
+const counts = (id: string): number => layout.sources.get(id)?.length ?? 0;
 const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
     emoji: topicEmoji(group),
-    hint: topicSummary(null, ...counts(group.id)),
+    hint: topicSummary(null, counts(group.id)),
     members: group.members.map((member) => member.id),
     never: undefined,
   })),
@@ -51,7 +48,7 @@ const rows = [
     id: topic.id,
     name: topic.name,
     emoji: topicEmoji(topic),
-    hint: topicSummary(topic, ...counts(topic.id)),
+    hint: topicSummary(topic, counts(topic.id)),
     members: [topic.id],
     never: topic.never_publish ? "" : undefined,
   })),
@@ -91,11 +88,11 @@ const choices = topicChoicesOf(layout);
     >
       <SettingsHead title="Sources" />
       <noscript>
-        <p class="manage-note">Changing topics and sources needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Changing categories and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <fieldset class="manage-fields" data-fields>
-        <legend class="sr-only">Topics</legend>
+        <legend class="sr-only">Categories</legend>
         {/* Search alone (2026-10-20): no count and no filters. Add is the floating button below
              64rem (AddFab.astro) and a button beside the search from 64rem; one shows at a time. */}
         <SourceFilter sources={libraryRows.map((row) => row.source)}>
@@ -103,7 +100,7 @@ const choices = topicChoicesOf(layout);
             slot="action"
             class="btn-secondary topic-add-source topics-add"
             type="button"
-            aria-label="Add a topic or a source"
+            aria-label="Add a category or a source"
             data-add-topic
             data-needs-js
           >
@@ -119,7 +116,7 @@ const choices = topicChoicesOf(layout);
             rows.map((row) => (
               <a
                 class="row-action"
-                href={`/settings/topics/${row.id}`}
+                href={`/settings/categories/${row.id}`}
                 data-page={row.id}
                 data-members={row.members.join(" ")}
                 data-never={row.never}
@@ -169,7 +166,7 @@ const choices = topicChoicesOf(layout);
 
       </fieldset>
 
-      <AddFab label="Add a topic or a source" />
+      <AddFab label="Add a category or a source" />
       <ManageChrome />
       <TopicsPanel topics={choices} />
     </div>

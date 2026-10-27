@@ -5,6 +5,11 @@ export const SPEECHIFY_BASE_URL = "https://api.speechify.ai";
 export const DEFAULT_VOICE_ID = "geffen_32";
 export const DEFAULT_MODEL = "simba-3.2";
 export const DEFAULT_OUTPUT_FORMAT = "mp3_24000_128";
+/**
+ * Pinned on every request. Left out, Speechify detects the language per input, so a segment with a
+ * foreign name or an acronym can be read with another accent and pitch than its neighbours.
+ */
+export const DEFAULT_LANGUAGE = "en-US";
 
 /** The MP3 formats `output_format` accepts on the stream endpoints, which is all we publish. */
 export const MP3_OUTPUT_FORMATS = [
@@ -122,6 +127,12 @@ export interface SpeechifyClientOptions {
   maxRetries?: number;
   /** Longer Retry-After values are not waited out; the call fails with the wait in the message. */
   maxRetryWaitMs?: number;
+  /**
+   * Retries after a 5xx, a timeout or a dropped connection. Off by default: the site's narrate route
+   * retries and counts every attempt itself, so a second layer here would spend characters twice.
+   * The audio command (digests and episodes) turns it on.
+   */
+  transientRetries?: number;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
   defaultVoiceId?: string;
@@ -151,6 +162,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
   const now = options.now ?? (() => new Date());
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const transientRetries = options.transientRetries ?? 0;
   const maxRetryWaitMs = options.maxRetryWaitMs ?? DEFAULT_MAX_RETRY_WAIT_MS;
   const apiKey = options.apiKey;
 
@@ -194,9 +206,17 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
     return 1000 * 2 ** attempt;
   }
 
+  /** Exponential backoff with up to 25% jitter, for failures that send no Retry-After. */
+  function transientDelayMs(attempt: number): number {
+    return Math.round(1000 * 2 ** attempt * (1 - 0.25 * Math.random()));
+  }
+
   /** POST with 429 handling. Returns the first non-429 response; the caller checks `ok`. */
   async function post(path: string, body: unknown): Promise<Response> {
-    for (let attempt = 0; ; attempt++) {
+    // 429s and transient failures each keep their own budget and backoff step.
+    let rateRetries = 0;
+    let transientAttempts = 0;
+    for (;;) {
       let response: Response;
       try {
         response = await doFetch(`${baseUrl}${path}`, {
@@ -206,6 +226,11 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (error) {
+        // A timeout or a dropped connection is transient: retried like a 5xx, up to the same cap.
+        if (transientAttempts < transientRetries) {
+          await sleep(transientDelayMs(transientAttempts++));
+          continue;
+        }
         const name = error instanceof Error ? error.name : "";
         if (name === "TimeoutError" || name === "AbortError") {
           throw fail(`Speechify request timed out after ${Math.round(timeoutMs / 1000)}s`);
@@ -213,12 +238,23 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
         const reason = error instanceof Error ? error.message : String(error);
         throw fail(`Speechify request could not be sent: ${reason}`);
       }
-      if (response.status !== 429) return response;
+      if (response.status !== 429) {
+        // A 5xx is retried (transientRetries times) with backoff and jitter; any other status (a 400, a 401) is the caller's.
+        if (response.status < 500 || transientAttempts >= transientRetries) return response;
+        const waitMs = response.headers.has("retry-after")
+          ? retryDelayMs(response, transientAttempts)
+          : transientDelayMs(transientAttempts);
+        // A server asking for longer than a 429 may ask is not waited for: its failure is returned.
+        if (waitMs > maxRetryWaitMs) return response;
+        transientAttempts++;
+        await sleep(waitMs);
+        continue;
+      }
 
       const failure = await describeFailure(response);
-      const waitMs = retryDelayMs(response, attempt);
+      const waitMs = retryDelayMs(response, rateRetries);
       const retryAfterSeconds = Math.ceil(waitMs / 1000);
-      if (attempt >= maxRetries) {
+      if (rateRetries >= maxRetries) {
         throw fail(`${failure.message} after ${maxRetries} retries`, {
           status: 429,
           ...(failure.code ? { code: failure.code } : {}),
@@ -232,6 +268,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
           retryAfterSeconds,
         });
       }
+      rateRetries++;
       await sleep(waitMs);
     }
   }
@@ -241,6 +278,7 @@ export function createSpeechifyClient(options: SpeechifyClientOptions): SpeechSy
       input: request.text,
       voice_id: request.voiceId ?? options.defaultVoiceId ?? DEFAULT_VOICE_ID,
       model: request.model ?? DEFAULT_MODEL,
+      language: DEFAULT_LANGUAGE,
       output_format: request.outputFormat ?? DEFAULT_OUTPUT_FORMAT,
     };
   }

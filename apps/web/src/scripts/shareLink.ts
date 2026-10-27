@@ -1,33 +1,20 @@
 import { sharedItem, sharedUrl, track } from "../lib/analytics";
 import { listenUrl, NOT_STORED_COPY } from "../lib/share";
+import { whenIdle } from "./idle";
+import { openShareDialog } from "./shareDialog";
 
-export type ShareOutcome = "shared" | "copied" | "none";
+export type ShareOutcome = "copied" | "none";
 
-/** Hands a finished address to the share sheet, or copies it where there is none. */
+/** Opens the share dialog on a finished address; counted when the link was copied from it. */
 async function send(title: string, url: string, kind: string, item: string): Promise<ShareOutcome> {
-  if (navigator.share) {
-    try {
-      await navigator.share({ title, url });
-      track("share", { kind, item, outcome: "shared" });
-      return "shared";
-    } catch (error) {
-      // The reader closed the share sheet: nothing more to do. Any other failure falls back to a copy.
-      if (error instanceof Error && error.name === "AbortError") return "none";
-    }
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-    track("share", { kind, item, outcome: "copied" });
-    return "copied";
-  } catch {
-    // The clipboard is not available here (an insecure origin, a denied permission).
-    return "none";
-  }
+  const outcome = await openShareDialog(title, url);
+  if (outcome === "copied") track("share", { kind, item, outcome });
+  return outcome;
 }
 
 /**
- * Share a link: the system share sheet where there is one, a copy to the clipboard where there is
- * not. Returns what happened so the caller can say so ("copied" is the one that needs a word). The
+ * Share a link: a small dialog with the address and a Copy link button (shareDialog.ts), which says
+ * its own "Copied". Returns what happened once it closes. The
  * link carries `ref=share`, so the visit it brings is counted as a share's (D154).
  */
 export async function shareLink(
@@ -96,6 +83,14 @@ const PREPARED_MS = 30_000;
 /** Links asked for on this page: the pending answer, and the answer once it came. */
 const prepared = new Map<string, { at: number; pending: Promise<Prepared>; ready?: Prepared }>();
 
+/**
+ * The last link the route gave for each item, kept past PREPARED_MS for a press that would otherwise
+ * wait: iOS opens no share sheet after an awaited request, so a slightly old link shared at once
+ * beats a fresh one shared never. A press still asks again in the background, for the next one.
+ */
+const LINK_KEPT_MS = 10 * 60_000;
+const known = new Map<string, { url: string; at: number }>();
+
 async function askForLink(id: string): Promise<Prepared> {
   try {
     const response = await fetch("/api/share", {
@@ -127,6 +122,8 @@ export function prepareShare(id: string): Promise<Prepared> {
   };
   entry.pending = askForLink(id).then((answer) => {
     entry.ready = answer;
+    if (answer && "url" in answer) known.set(id, { url: answer.url, at: Date.now() });
+    else if (answer) known.delete(id);
     // A failed ask is not kept: the next menu asks again.
     if (answer === null && prepared.get(id) === entry) prepared.delete(id);
     return answer;
@@ -161,6 +158,25 @@ if (typeof document !== "undefined") {
 }
 
 /**
+ * Share beside Play (data-share-early) asks for its link once the page is idle, and again when the
+ * page comes back into view after the kept link has aged: on iOS the first tap otherwise reached the
+ * sheet only after the request, and the sheet did not open. One indexed read once the link exists.
+ */
+export function prepareEarly(): void {
+  const id = document.querySelector<HTMLElement>("[data-share-early]")?.dataset.shareItem;
+  // Offline there is no link to get, and a failed ask only logs an error: the press asks again.
+  if (id)
+    whenIdle(() => {
+      if (navigator.onLine) void prepareShare(id);
+    });
+}
+
+if (typeof document !== "undefined")
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") prepareEarly();
+  });
+
+/**
  * Share an item as a public listen link (D153): the share route makes or reuses the item's link,
  * and the sheet sends `/s/<token>?ref=share&g=1`. A link prepared when the menu opened is shared at
  * once, inside the press. Where the site cannot make one (no database, the store down, a
@@ -175,7 +191,13 @@ export async function shareItem(item: {
 }): Promise<ShareOutcome | { refused: string }> {
   // An answer older than PREPARED_MS is asked again: the link may have stopped, or the audio landed.
   const held = prepared.get(item.id);
-  const ready = held && Date.now() - held.at < PREPARED_MS ? held.ready : undefined;
+  const kept = known.get(item.id);
+  const ready =
+    held && Date.now() - held.at < PREPARED_MS && held.ready !== undefined
+      ? held.ready
+      : kept && Date.now() - kept.at < LINK_KEPT_MS
+        ? { url: kept.url }
+        : undefined;
   const answer = ready !== undefined ? ready : await prepareShare(item.id);
   if (answer === null) return shareLink(item.title, item.path);
   if ("refused" in answer) return answer;
@@ -194,6 +216,7 @@ export async function stopSharing(id: string): Promise<boolean> {
     });
     if (!response.ok) return false;
     prepared.delete(id);
+    known.delete(id);
     remember(id, false);
     return true;
   } catch {

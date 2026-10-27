@@ -21,11 +21,10 @@ function startPlaying(harness: ReturnType<typeof createHarness>, digest = makeDi
 }
 
 describe("loading", () => {
-  it("attaches the source with preload metadata and waits for a tap", () => {
+  it("fetches no audio on load, attaches the source on the tap, and takes the duration from the timeline", () => {
     const { store, audio } = createHarness();
     store.load(makeDigest());
-    expect(audio.src).toBe("/audio/2026-10-07.mp3");
-    expect(audio.preload).toBe("metadata");
+    expect(audio.src).toBe("");
     expect(audio.playCalls).toBe(0);
     expect(store.getState()).toMatchObject({
       status: "idle",
@@ -69,6 +68,7 @@ describe("loading", () => {
   it("refreshes the track when the same digest loads again, without touching the source", () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
+    harness.store.play();
     const before = harness.audio.src;
     harness.audio.src = "kept";
     harness.store.load(makeDigest());
@@ -695,6 +695,84 @@ describe("errors", () => {
     expect(harness.events.filter((event) => event.type === "error")).toHaveLength(1);
   });
 
+  it("tries the MP3 when play() rejects an unsupported Opus file before the element's error", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    harness.store.load(
+      makeDigest({
+        audio: {
+          url: "/audio/2026-10-07.mp3",
+          m4a_url: "/audio/2026-10-07.m4a",
+          duration_ms: 120_000,
+        },
+      }),
+    );
+    harness.audio.playRejection = Object.assign(new Error("no source"), {
+      name: "NotSupportedError",
+    });
+    harness.store.play();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.audio.src).toContain(".mp3");
+    expect(harness.audio.playCalls).toBe(2);
+    expect(harness.store.getState().status).not.toBe("error");
+  });
+
+  it("keeps the Opus file when the listener seeks back during the advance check", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const m4a = "/audio/2026-10-07.m4a";
+    harness.store.load(
+      makeDigest({
+        audio: { url: "/audio/2026-10-07.mp3", m4a_url: m4a, duration_ms: 120_000 },
+      }),
+    );
+    harness.audio.currentTime = 30;
+    harness.store.play();
+    await vi.advanceTimersByTimeAsync(0);
+    harness.audio.loadMetadata(120);
+    harness.store.seekTo(10_000);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(harness.audio.src).toContain(".m4a");
+  });
+
+  it("does not give up the Opus file mid-scrub while the start is still pending", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    harness.store.load(
+      makeDigest({
+        audio: {
+          url: "/audio/2026-10-07.mp3",
+          m4a_url: "/audio/2026-10-07.m4a",
+          duration_ms: 120_000,
+        },
+      }),
+    );
+    harness.audio.play = () => new Promise<void>(() => {});
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.store.beginScrub();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(harness.audio.src).toContain(".m4a");
+  });
+
+  it("arms no advance check when the pending start settles during a scrub", async () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    harness.store.load(
+      makeDigest({
+        audio: {
+          url: "/audio/2026-10-07.mp3",
+          m4a_url: "/audio/2026-10-07.m4a",
+          duration_ms: 120_000,
+        },
+      }),
+    );
+    let settle: () => void = () => {};
+    harness.audio.play = () => new Promise<void>((resolve) => (settle = resolve));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.store.beginScrub();
+    settle();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(harness.audio.src).toContain(".m4a");
+  });
+
   it("ignores a play rejected because a newer load won", async () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
@@ -808,8 +886,11 @@ describe("one digest at a time", () => {
       audio: { url: "/audio/old.mp3", duration_ms: 90_000 },
     });
     harness.store.load(other);
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
     expect(harness.audio.src).toBe("/audio/old.mp3");
-    expect(harness.store.getState()).toMatchObject({ digestId: "2026-10-05", status: "idle" });
+    harness.store.pause();
+    expect(harness.store.getState()).toMatchObject({ digestId: "2026-10-05", status: "paused" });
     expect(harness.storage.getItem(resumeKey("2026-10-07"))).toBe("40");
     expect(harness.createdAudios).toHaveLength(1);
   });

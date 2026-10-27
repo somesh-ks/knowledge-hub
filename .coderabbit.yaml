@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: "Senior design engineer. Be concise, direct, and actionable. Flag concrete bugs, logic errors, design system regressions, and performance regressions. Do not generate conversational filler or pedantic stylistic complaints."
+early_access: false
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - ".*"
+  path_filters:
+    - "!Digests/**"
+    - "!Podcasts/**"
+    - "!state/**"
+    - "!docs/history/**"
+    - "!package-lock.json"
+    - "!**/dist/**"
+    - "!**/.astro/**"
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        - Conventional Commits: PR titles and commit messages must follow Conventional Commits (feat, fix, docs, chore, etc.).
+        - No em dashes: Antigravity and repository rules prohibit em dashes anywhere in comments, markdown, or text. Use commas, semicolons, colons, or periods instead.
+        - Security and privacy: Never expose API keys or secrets. Keys live in gitignored .env.
+        - TypeScript: Strict TypeScript on 6.x.
+        - Persisted data: JSON keys must be snake_case; config and doc files must be lowercase kebab-case.
+        - Untouchable directories: Do not edit or suggest changes in Digests/ or state/ by hand.
+    - path: "apps/web/**/*"
+      instructions: |
+        - 8pt grid system: Spatial values must adhere to the 8pt grid (4px for named exceptions only).
+        - Shared design tokens: Use existing tokens from tokens.json and primitives.css rather than ad-hoc inline styles or uncurated colors.
+        - Load-bearing design fixes: Any rule or markup with a rationale comment (date, D-number, sizer) must not be casually removed or rewritten to make another task work.
+        - Astro and CSS: Use Vanilla CSS and Astro components.
+  tools:
+    ast-grep:
+      enabled: true
+chat:
+  auto_reply: true

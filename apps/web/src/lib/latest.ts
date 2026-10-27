@@ -14,6 +14,27 @@ export interface LatestResponse {
   outcome_at: string | null;
 }
 
+/**
+ * What `/` shows: the most recently written item of any kind. Briefings sort by date and a catch-up
+ * episode has no digest, so entries[0] alone kept Latest on the daily or weekly briefing.
+ * `skip` holds ids this device deleted before the content store caught up: they are never chosen.
+ */
+export function newestItem(
+  site: Pick<Site, "entries" | "episodes">,
+  skip: ReadonlySet<string> = new Set(),
+): { kind: "digest" | "episode"; id: string } | null {
+  const digest = site.entries.find((entry) => !skip.has(entry.digest.id))?.digest;
+  const episode = site.episodes.find((entry) => !skip.has(entry.id));
+  // Instants, not strings: a digest keeps the offset it was written with.
+  if (
+    episode &&
+    (!digest || Date.parse(episode.episode.generated_at) > Date.parse(digest.generated_at))
+  ) {
+    return { kind: "episode", id: episode.id };
+  }
+  return digest ? { kind: "digest", id: digest.id } : null;
+}
+
 /** An explicit whitelist: nothing else from the run record or the digest can leak into the file. */
 export function buildLatest(
   site: Pick<Site, "entries" | "lastRun"> & { episodes?: Site["episodes"] },

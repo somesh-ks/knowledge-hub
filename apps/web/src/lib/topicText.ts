@@ -1,5 +1,5 @@
 /**
- * The pure parts of the Topics and sources editing: ids from what a person types, web addresses, the
+ * The pure parts of the Categories and sources editing: ids from what a person types, web addresses, the
  * words for a refused lookup, whether a topic's details changed, and what a suggested source's +
  * button carries. Free of DOM and of imports, so the page scripts bundle it and the tests read it
  * directly.
@@ -63,9 +63,9 @@ export function topicProblems(
       : idText(name).length < 2
         ? "Use at least two letters or numbers in the name."
         : same
-          ? `You already have a topic called ${same.trim()}.`
+          ? `You already have a category called ${same.trim()}.`
           : "",
-    description: input.description.trim() ? "" : "Say what should count as this topic.",
+    description: input.description.trim() ? "" : "Say what should count as this category.",
   };
 }
 
@@ -122,7 +122,7 @@ export function parseSuggestedAdd(json: string | undefined): SuggestedAdd | null
 
 /**
  * The page that shows a topic added since the build, before the build gives it its own (D142):
- * pages/settings/topics/new, built once with these stand-ins for the topic's id, name and what counts,
+ * pages/settings/categories/new, built once with these stand-ins for the topic's id, name and what counts,
  * which savedView.ts (fillShell) swaps for the saved topic's. No topic may take its address.
  */
 export const NEW_TOPIC_ID = "new";

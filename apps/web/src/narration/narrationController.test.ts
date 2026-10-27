@@ -16,9 +16,15 @@ interface ServerState {
   /** Answer every POST with this refusal instead of narrating. */
   refuse: { status: number; error: string } | null;
   whole: { url: string; duration_ms: number } | null;
+  /** An episode stored as one Opus file: its manifest as the store answers it (null: listed, but not there). */
+  opus: { manifest: unknown | null } | null;
   posts: Array<{ segment: string }>;
   lookups: number;
+  manifestFetches: number;
 }
+
+const OPUS_URL = "https://store.test/episode.abc.m4a";
+const OPUS_MANIFEST = "https://store.test/episode.abc.json";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status });
@@ -36,27 +42,34 @@ function segment(key: string, state: ServerState) {
 }
 
 /** The real store, adapter, queue and controller, over a fake element and a fake /api/narrate. */
-function setup(overrides: Partial<ServerState> = {}) {
+function setup(overrides: Partial<ServerState> = {}, canPlayType: () => string = () => "") {
   const server: ServerState = {
     narrated: new Set(),
     refuse: null,
     whole: null,
+    opus: null,
     posts: [],
     lookups: 0,
+    manifestFetches: 0,
     ...overrides,
   };
   const element = new FakeAudio();
   const audio = createSwitchableAudio(element);
-  const harness = createHarness({ createAudio: () => audio });
+  const harness = createHarness({ createAudio: () => audio, canPlayType });
   const said: string[] = [];
   const preparing: Array<string | null> = [];
 
   const controller = createNarrationController({
     store: harness.store,
     audio,
+    canPlayType,
     api: {
       isOnline: () => true,
       async fetch(url, init) {
+        if (url === OPUS_MANIFEST) {
+          server.manifestFetches += 1;
+          return server.opus?.manifest ? json(200, server.opus.manifest) : json(404, {});
+        }
         if (!init?.method) {
           server.lookups += 1;
           return json(200, {
@@ -78,6 +91,7 @@ function setup(overrides: Partial<ServerState> = {}) {
                 }
               : null,
             ms_per_character: 60,
+            ...(server.opus ? { opus: { url: OPUS_URL, manifest_url: OPUS_MANIFEST } } : {}),
             segments: ["intro", ...ids].map((key) => segment(key, server)),
           });
         }
@@ -109,6 +123,71 @@ function setup(overrides: Partial<ServerState> = {}) {
 
 beforeEach(() => {
   forgetNarrated(page.id);
+});
+
+const MANIFEST = {
+  duration_ms: 3_000 + ids.length * 18_000,
+  turns: ["intro", ...ids].map((key, index) => ({
+    key,
+    start_ms: index === 0 ? 0 : 3_000 + (index - 1) * 18_000,
+    end_ms: index === 0 ? 3_000 : 3_000 + index * 18_000,
+  })),
+};
+const SUPPORTED = () => "probably";
+
+describe("an episode stored as one Opus file", () => {
+  it("plays the single file, lays turns where the file has them, and narrates nothing", async () => {
+    const { controller, server, element, harness } = setup(
+      { narrated: new Set(["intro", ...ids]), opus: { manifest: MANIFEST } },
+      SUPPORTED,
+    );
+    await expect(controller.play(page)).resolves.toBe("playing");
+    expect(element.src).toBe(OPUS_URL);
+    expect(server.posts).toEqual([]);
+    expect(harness.store.getState().track?.timeline?.items.map((item) => item.startSec)).toEqual(
+      ids.map((_, index) => 3 + index * 18),
+    );
+  });
+
+  it("plays the turns when the file is not there, the manifest is for other turns, or the browser cannot decode it", async () => {
+    const all = new Set(["intro", ...ids]);
+    const wrong = { ...MANIFEST, turns: MANIFEST.turns.slice(1) };
+    for (const [state, can] of [
+      [{ narrated: all, opus: { manifest: null } }, SUPPORTED],
+      [{ narrated: all, opus: { manifest: wrong } }, SUPPORTED],
+      [{ narrated: all, opus: { manifest: MANIFEST } }, () => ""],
+    ] as const) {
+      forgetNarrated(page.id);
+      const { controller, server, element } = setup(state, can);
+      await controller.play(page);
+      expect(element.src).toBe("https://store.test/intro.mp3");
+      expect(server.manifestFetches).toBe(can() === "" ? 0 : 1);
+    }
+  });
+
+  it("an episode without one plays its turns as before", async () => {
+    const { controller, server, element } = setup(
+      { narrated: new Set(["intro", ...ids]) },
+      SUPPORTED,
+    );
+    await controller.play(page);
+    expect(element.src).toBe("https://store.test/intro.mp3");
+    expect(server.manifestFetches).toBe(0);
+  });
+
+  it("falls back to the turns when the browser cannot play the file", async () => {
+    const { controller, element, harness } = setup(
+      { narrated: new Set(["intro", ...ids]), opus: { manifest: MANIFEST } },
+      SUPPORTED,
+    );
+    await controller.play(page);
+    expect(element.src).toBe(OPUS_URL);
+    element.error = { code: 4 };
+    element.emit("error");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(element.src).toBe("https://store.test/intro.mp3");
+    expect(harness.store.getState().track?.digest.audio?.url).toBe(narrationSource(page.id));
+  });
 });
 
 describe("prewarm", () => {

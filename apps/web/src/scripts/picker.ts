@@ -13,8 +13,10 @@
  * voices) needs no call: a script that changes the options or the value without a `change` sends
  * `picker:sync` to the select to bring the button's words up to date.
  */
+
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
+import { flagNode } from "../lib/voices";
 
 const GAP_PX = 8;
 const MIN_WIDTH_PX = 288;
@@ -39,6 +41,8 @@ interface Choice {
   label: string;
   /** What the search also reads: a voice's accent, a zone's offset. */
   keywords: string;
+  /** The region whose flag leads the words (a voice's accent), or "". */
+  region: string;
 }
 
 function mountPicker(select: HTMLSelectElement): void {
@@ -124,11 +128,15 @@ function mountPicker(select: HTMLSelectElement): void {
       value: option.value,
       label: option.textContent ?? "",
       keywords: option.dataset.keywords ?? "",
+      region: option.dataset.region ?? "",
     }));
 
   const sync = (): void => {
     const chosen = select.selectedOptions[0];
-    value.textContent = chosen?.textContent ?? "";
+    value.replaceChildren(
+      ...(chosen?.dataset.region ? [flagNode(chosen.dataset.region)] : []),
+      chosen?.textContent ?? "",
+    );
     name();
   };
 
@@ -162,6 +170,7 @@ function mountPicker(select: HTMLSelectElement): void {
         item.setAttribute("role", "option");
         item.setAttribute("aria-selected", String(choice.value === select.value));
         item.dataset.index = String(index);
+        if (choice.region) item.append(flagNode(choice.region));
         item.append(element("span", "picker-option-name", choice.label));
         return item;
       }),

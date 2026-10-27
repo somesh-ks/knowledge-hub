@@ -5,11 +5,11 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons and chips, 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons, chips, selects and text fields (a multi-line field 24px, D186), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
-- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a rounded hover and press tile clear of the hairlines (`.row-action`). Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
+- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options use a hover and press tile clear of the hairlines (`.row-action`): fully round on the page, the card's inner radius in a card. Segmented controls have a sliding thumb that moves at once when a key moves it (`data-input` on the root says key or pointer).
 - Sideways scrollers (the section tabs, the Earlier shelf, the Costs table) fade their hidden edges by `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
-- Dropdowns share one chevron gap.
+- Dropdowns share one chevron gap. A glyph that ends a row lands its ink, not its box, where the words end (`--ink-end`, D187).
 - A secondary action beside the hero's Play (Share) is `.btn-secondary.hero-share`: tonal, in Play's pill and height, as wide as its label, its touch area 44px (D153).
 - Latest's navigation icon is a fire (outline, filled when current) (D129). Theme is a select in Appearance and draws no value until the stored one is set, so the page never flashes the default (D129).
 
@@ -31,7 +31,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Every enabled control makes one: an action button a soft tap, a dialog or popover its open and close including Escape, a toast its outcome. The first press of a page is queued until the engine is ready. A save that went through is silent.
 
 ### Style rules
-- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths and undefined custom properties. Unpinned: copy, geometry.
+- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths, undefined custom properties, and a width media query not in range syntax at a breakpoint's width (22.5, 40, 64, 80, 100rem). Unpinned: copy, geometry.
 - Design fixes with a commented reason are extended, never rewritten.
 
 ### Design system enforcement
@@ -40,9 +40,10 @@ Three layers, each catching what the others miss (the owner's ask, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, a PostToolUse hook on Edit, Write and MultiEdit for `apps/web/src/**` and `tokens/**`; silent when green, exit 2 with the failing rules when not.
 - Audit: the `design-audit` agent (`.claude/agents/design-audit.md`) screenshots the touched pages at phone and desktop in light and dark and judges them against the ledger. A UI change runs it before the PR; `/close-session` checks it ran.
 CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser job on any PR touching `apps/web`, `packages` or `tokens`.
-A component changes in the system, never on one page only (the owner, 2026-10-24): in its shared class, component or token, with its record in the same PR, the usage comment over its class, its ledger line and, for a new variant, this spec. The audit flags a shared class restyled in a page stylesheet. Variants: the segmented navigation's glyph tab (an icon alone, centred; Costs' chart and table switch) and its compact form (`.segmented-nav-compact`: a chip's height, a 44px target, `--segmented-nav-bg` for the track); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past it (the Costs table, the section tabs, and the Earlier shelf at 40px by `--scroll-fade-size`).
+A component changes in the system, never on one page (the owner, 2026-10-24): its shared class, component or token, with its record in the same PR. Variants: the segmented navigation's glyph tab (an icon alone, centred) and its compact form (`.segmented-nav-compact`: chip height, 44px columns, a square pill under the glyph, `--segmented-nav-bg` for the track); the stat tile (`.stat-tile`: a figure large over its word, overlay tone, two columns on a phone and four from 40rem); brand marks (`lib/brandMarks.ts`); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past it (the Costs table, the section tabs, the Earlier shelf), with `--scroll-fade-inset` for a pinned start column (the Costs dates). `.tabs-in-card`: a tab strip in a card, its first label on the card's words. A row that cannot act says `data-quiet`, its label muted (Volume with Sounds off, the Structure's frames). A sheet's header and a script-drawn menu come from `sheetHead.ts` (D188). The Blocked sheet (the create sheet with source rows); the unsaved-changes dialog (`.confirm-actions.is-stacked`: Save, Discard, Keep editing, from `sheetGuard.ts`); a disabled select with hint and link (Daily's Profile).
 
 ## Code
+- `apps/web/src/pages/design/[...slug].astro` and `apps/web/src/lib/designCatalogue.ts`: the catalogue, dev and fixture builds only (D189)
 - `apps/web/src/styles/tokens.css`
 - `apps/web/src/styles/primitives.css`
 - `apps/web/src/styles/empty.css`

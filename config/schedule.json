@@ -8,8 +8,8 @@
     "culture"
   ],
   "length_minutes": 5,
-  "voice_id": null,
-  "voice_id_b": null,
+  "voice_id": "geffen_32",
+  "voice_id_b": "alec",
   "weekly": {
     "enabled": true,
     "day": 0,
@@ -20,7 +20,7 @@
     ],
     "format": "readout",
     "length_minutes": 15,
-    "voice_id": "alicia",
+    "voice_id": null,
     "voice_id_b": null
   },
   "custom": {

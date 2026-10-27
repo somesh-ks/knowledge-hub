@@ -7,9 +7,16 @@
  * briefing is loaded as one track and plays; the rest is made just ahead of the playhead.
  */
 import type { StreamStatus } from "../lib/liveStream";
+import { browserCanPlayType, type CanPlayType, M4A_OPUS } from "../player/core/audioSource";
 import type { PlayerStore } from "../player/core/playerTypes";
 import type { NarrationTimeline, PlayerDigestData } from "../types/contracts";
-import { createGrowth, type GrowthDeps } from "./liveEpisode";
+import {
+  createGrowth,
+  GROWTH_GIVE_UP_MS,
+  GROWTH_POLL_MS,
+  type GrowthDeps,
+  liveNarrated,
+} from "./liveEpisode";
 import {
   type ApiDeps,
   describeNarrationFailure,
@@ -19,9 +26,11 @@ import {
   narrateSegment,
 } from "./narrationApi";
 import {
+  alignToManifest,
   type NarrationPlan,
   narratedDigest,
   narrationSource,
+  parseEpisodeOpusManifest,
   planNarration,
   type SegmentInfo,
 } from "./narrationPlan";
@@ -49,6 +58,8 @@ export interface ControllerDeps {
   notify(message: string): void;
   /** Marks a briefing as being prepared, so its Play control can show it. Null clears the mark. */
   setPreparing(digestId: string | null): void;
+  /** What the browser plays; left out, the page's own answer. Decides whether an episode's Opus file is looked for. */
+  canPlayType?: CanPlayType;
 }
 
 export type PlayOutcome = "playing" | "cancelled" | "failed";
@@ -87,6 +98,8 @@ type Prepared =
       plan: NarrationPlan;
       narrated: PlayerDigestData;
       queue: SegmentQueue;
+      /** The episode is also one Opus file, whose turns are all stored: no turn needs making first. */
+      opus: boolean;
     };
 
 /** The first segments a prewarm asks for: the intro, then the first story. */
@@ -174,17 +187,43 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
+  /**
+   * An episode's single Opus file, when the browser plays it and its manifest is there and is for
+   * these turns; the turns then carry the file's own lengths. Anything else is null and the episode
+   * plays turn by turn, as an episode without Opus does.
+   */
+  async function episodeOpus(
+    found: { url: string; manifest_url: string } | null,
+    segments: SegmentInfo[],
+  ): Promise<{ url: string; segments: SegmentInfo[] } | null> {
+    if (!found || (deps.canPlayType ?? browserCanPlayType())(M4A_OPUS) === "") return null;
+    try {
+      // Bounded: a manifest that never answers must not hold Play off the MP3 turns.
+      const response = await deps.api.fetch(found.manifest_url, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) return null;
+      const manifest = parseEpisodeOpusManifest(await response.json());
+      const aligned = manifest ? alignToManifest(segments, manifest) : null;
+      return aligned ? { url: found.url, segments: aligned } : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** One lookup per briefing, shared by a prewarm and a press. A failed one is forgotten. */
   const lookups = new Map<string, Promise<Prepared>>();
 
   function prepare(digest: PlayerDigestData): Promise<Prepared> {
     const existing = lookups.get(digest.id);
     if (existing) return existing;
-    const made = lookupNarration(digest.id, deps.api).then((found): Prepared => {
+    const made = lookupNarration(digest.id, deps.api).then(async (found): Promise<Prepared> => {
       if (!found.ok) return found;
       // Someone already narrated it as one file since this page was built.
       if (found.whole) return { ok: true, whole: withWholeAudio(digest, found.whole) };
-      const plan = planNarration(found.segments, found.msPerCharacter || FALLBACK_MS_PER_CHARACTER);
+      const opus = await episodeOpus(found.opus, found.segments);
+      const segments = opus?.segments ?? found.segments;
+      const plan = planNarration(segments, found.msPerCharacter || FALLBACK_MS_PER_CHARACTER);
       const queue = createSegmentQueue({
         segments: plan.segments,
         narrate: (key) => narrateSegment(digest.id, key, deps.api),
@@ -195,10 +234,11 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       return {
         ok: true,
         whole: null,
-        segments: found.segments,
+        segments,
         plan,
-        narrated: narratedDigest(digest, plan),
+        narrated: narratedDigest(digest, plan, opus?.url),
         queue,
+        opus: opus !== null,
       };
     });
     lookups.set(digest.id, made);
@@ -213,10 +253,48 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     if (sessions.has(digest.id)) return;
     try {
       const prepared = await prepare(digest);
-      if (!prepared.ok || prepared.whole) return;
+      if (!prepared.ok || prepared.whole || prepared.opus) return;
       for (let index = 0; index < PREWARM_SEGMENTS; index += 1) prepared.queue.warm(index);
     } catch {
       // A prewarm is never worth an error.
+    }
+  }
+
+  /**
+   * While the writer is going, the transcript and the chapters grow with the script, not only the
+   * audio: each turn that arrives is laid on the timeline and the player's copy is loaded again,
+   * which the store takes as a refresh (same episode, same audio), so playback, playhead and scroll
+   * stay where they are.
+   */
+  async function followLive(
+    id: string,
+    growth: ReturnType<typeof createGrowth>,
+    live: LiveSource,
+    segments: Parameters<typeof liveNarrated>[1],
+  ): Promise<void> {
+    let lastGrowth = live.now();
+    // Turns the transcript shows; the track's own wait for more can add some this poll never sees.
+    let shown = segments.length;
+    const gaveUp = () => live.now() - lastGrowth > (live.giveUpMs ?? GROWTH_GIVE_UP_MS);
+    while (growth.pending() && sessions.has(id)) {
+      await live.delay(live.pollMs ?? GROWTH_POLL_MS);
+      const doc = await live.fetchDoc().catch(() => null);
+      if (!doc) {
+        if (gaveUp()) return;
+        continue;
+      }
+      const added = growth.sync(doc);
+      if (added === 0 && doc.turns.length <= shown && doc.status === "writing") {
+        if (gaveUp()) return;
+        continue;
+      }
+      lastGrowth = live.now();
+      shown = doc.turns.length;
+      const narrated = liveNarrated(doc, segments, new Date());
+      const session = sessions.get(id);
+      if (session) session.narrated = narrated;
+      rememberNarrated(narrated);
+      if (deps.store.getState().digestId === id) deps.store.load(narrated);
     }
   }
 
@@ -260,12 +338,19 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       // Where the listener will start: the story they tapped, or the top.
       const tapped = itemId ? segments.findIndex((segment) => segment.item_id === itemId) : -1;
       const first = Math.max(0, tapped);
-      if (!plan.complete) {
+      if (!plan.complete && !prepared.opus) {
         const outcome = await firstFile(queue, first, mine);
         if (outcome !== "playing") return outcome;
       }
 
       sessions.set(digest.id, { queue, narrated });
+      const growth = live
+        ? createGrowth(
+            plan.segments,
+            { status: live.status },
+            { ...live, msPerCharacter: FALLBACK_MS_PER_CHARACTER },
+          )
+        : null;
       playlists.set(narrationSource(digest.id), {
         get segments() {
           return queue.segments;
@@ -275,20 +360,13 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
         describeFailure: (error) =>
           error instanceof NarrationError ? describeNarrationFailure(error.reason, noun) : null,
         // An episode still being written: the track grows with it (liveEpisode.ts).
-        ...(live
-          ? {
-              growth: createGrowth(
-                plan.segments,
-                { status: live.status },
-                { ...live, msPerCharacter: FALLBACK_MS_PER_CHARACTER },
-              ),
-            }
-          : {}),
+        ...(growth ? { growth } : {}),
       });
       installAdapter();
       rememberNarrated(narrated);
       activate(digest.id);
       start(narrated, itemId);
+      if (live && growth) void followLive(digest.id, growth, live, plan.segments);
       return "playing";
     } finally {
       if (mine === attempt) deps.setPreparing(null);

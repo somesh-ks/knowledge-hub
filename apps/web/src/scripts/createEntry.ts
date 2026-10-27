@@ -1,6 +1,6 @@
 /**
  * What the shell knows about Create without loading it: a press on a Create button (a link to
- * /create) opens the sheet when the script is here, and a run kept in sessionStorage is picked up
+ * /create) opens the sheet when the script is here, and a run kept in localStorage is picked up
  * again after a reload or a navigation. Both load their module on demand, so this stays tiny; the
  * sheet's is fetched at idle, so the first press does not wait for it.
  */
@@ -45,11 +45,15 @@ export function installCreateEntry(): void {
 
   document.addEventListener("astro:page-load", () => {
     try {
-      if (sessionStorage.getItem("singularity:run"))
+      if (localStorage.getItem("singularity:run") || sessionStorage.getItem("singularity:run"))
         void import("./runStatus").then((m) => m.resumeRun());
     } catch {
       // Storage can be blocked; there is then no run to pick up.
     }
+  });
+  // Another tab started, moved or cleared the run: this one shows what the record now says.
+  addEventListener("storage", (event) => {
+    if (event.key === "singularity:run") void import("./runStatus").then((m) => m.resumeRun());
   });
   warmWhenIdle(() => import("./createSheet"));
 }

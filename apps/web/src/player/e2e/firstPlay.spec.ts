@@ -21,11 +21,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(page.locator(".dock-btn[data-primary]")).toHaveAttribute("data-loading", "false");
   });
 
-  test("Up next at the end narrates and plays a briefing with no audio", async ({
+  // Autoplay: with nothing queued the first suggested item (the next older one) starts by itself,
+  // and a briefing with no audio is narrated on arrival.
+  test("an episode ends with an empty queue and the suggested one starts", async ({
     player,
     audio,
     page,
-    finger,
   }) => {
     await player.open();
     await serveNarration(page, 300, "/d/2026-10-05");
@@ -33,17 +34,25 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.openPlayer();
     await player.scrubber.focus();
     await page.keyboard.press("End");
-    await expect(player.root).toHaveAttribute("data-player-state", "ended");
-    // At the end only Up next shows (D126): a Stories tab still drawn was the regression.
-    await expect(player.dialog.getByRole("tab", { name: "Stories" })).toHaveCount(0);
-    const upNext = player.dialog.getByRole("button", { name: /The previous briefing/ });
-    // Never an autoplay chain: nothing plays until the listener chooses.
-    expect((await audio.read())?.paused).toBe(true);
-    await upNext.scrollIntoViewIfNeeded();
-    await finger.press(upNext);
-    await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}`));
+    await expect(page).toHaveURL(/\/e\/ep-20261007-1930/);
     await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
     expect(await audio.count()).toBe(1);
+  });
+
+  test("the plus on a suggested row adds it to the queue", async ({ player, page }) => {
+    await player.open();
+    await player.play();
+    await player.openPlayer();
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
+    await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
+    await player.dialog
+      .getByRole("button", { name: /^Add .* to the queue$/ })
+      .first()
+      .click();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:queue")))
+      .toContain("ep-20261007-1930");
+    await expect(player.dialog.getByText("Suggested", { exact: true })).toHaveCount(0);
   });
 
   // The queue is the listener's choice, so it does chain: a queued item that never started at the

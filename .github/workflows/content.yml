@@ -5,13 +5,17 @@ name: content
 # drawn (apps/web/scripts/storeCovers.ts). The pages read the store; git stays the backup. `singularity content sync` sends only what changed and is safe to run again,
 # so a failed or skipped sync is finished by the next one. Run it by hand to fill the store.
 #
-# workflow_run, not push: the engine pushes with the Actions token, and GitHub starts no workflow
-# for a push made with it.
+# workflow_run for the engine: it pushes with the Actions token, and GitHub starts no workflow for a
+# push made with it. push for everything else that changes content on main, such as a merged PR
+# (2026-10-27: an Opus backfill merged by PR never reached the store until a manual sync).
 
 on:
   workflow_run:
     workflows: [run, podcast, audio, config]
     types: [completed]
+  push:
+    branches: [main]
+    paths: ["Digests/**", "Podcasts/**"]
   workflow_dispatch:
 
 # One sync at a time; a queued one reads the newest main, so it covers every sync it waited behind.

@@ -28,6 +28,34 @@ export const CACHE_GRACE_MS = 300;
 /** Where the device keeps the last answer: one build's edits, checked against the page on read. */
 export const CACHE_KEY = "singularity:store-read";
 
+/** Where the device keeps the newest revision its own saves produced (the store's clock). */
+export const OWN_KEY = "singularity:store-own-write";
+
+/**
+ * Keeps the revision a save of this device produced, so the store's answer holding it is not read as
+ * another device's change (offerReload): only a write after it is.
+ */
+export function noteOwnWrite(writtenAt: number): void {
+  try {
+    localStorage.setItem(OWN_KEY, String(Math.max(writtenAt, ownWrite())));
+  } catch {
+    // A full or blocked storage only costs a toast that is not needed.
+  }
+}
+
+function ownWrite(): number {
+  try {
+    const kept = Number(localStorage.getItem(OWN_KEY));
+    return Number.isFinite(kept) ? kept : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** True when the answer is no newer than this device's own latest save. */
+const isOwn = (body: ConfigReadBody): boolean =>
+  body.written_at !== null && body.written_at <= ownWrite();
+
 let last: { at: number; read: Promise<ConfigReadBody | null> } | undefined;
 let current: ConfigReadBody | null = null;
 
@@ -75,12 +103,56 @@ function readCache(): ConfigReadBody | null {
   }
 }
 
+/** The page's store value takes an answer unless the one it holds was written later. */
+function adopt(body: ConfigReadBody): void {
+  if (
+    current?.written_at != null &&
+    (body.written_at == null || body.written_at < current.written_at)
+  ) {
+    return;
+  }
+  current = body;
+}
+
 function writeCache(body: ConfigReadBody): void {
+  // A read that started before a save can resolve after the post-save read: never write older over newer.
+  const held = readCache();
+  if (held?.written_at != null && (body.written_at == null || body.written_at < held.written_at)) {
+    return;
+  }
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(body));
   } catch {
     // A full or blocked storage only costs the next load its copy.
   }
+}
+
+/**
+ * A save made here went through (written_at is the store's clock for it): the device's copy is a
+ * write behind, so the store is asked again at once and the copy takes the answer. Another tab reads
+ * the same copy on its next navigation, so it shows the edit without a reload. The ask carries its
+ * own query so the edge's one-second cache cannot hand back the answer from before the save.
+ */
+export function afterOwnSave(): void {
+  const asked = { at: 0 } as { at: number; read: Promise<ConfigReadBody | null> };
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), STORE_READ_TIMEOUT_MS * 2);
+  asked.read = fetch(`/api/config?after=${Date.now()}`, {
+    signal: stop.signal,
+    headers: { Accept: "application/json" },
+  })
+    .then((response) => (response.ok ? response.json() : null))
+    .then(parseRead)
+    .catch(() => null)
+    .then((body) => {
+      clearTimeout(timer);
+      // adopt() keeps a newer value, so a save's answer counts even after a later read started.
+      if (body) adopt(body);
+      if (body) writeCache(body);
+      return body;
+    });
+  // Reads started before the save no longer speak for the store.
+  last = asked;
 }
 
 /**
@@ -106,7 +178,7 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
       clearTimeout(timer);
       // Only the newest read speaks for the store: an older one that ends late, or fails, does not
       // replace what a newer one found. A failed read leaves the device's copy standing.
-      if (last === asked && body) current = body;
+      if (last === asked && body) adopt(body);
       if (body) writeCache(body);
       return body ?? (last === asked ? current : null);
     });
@@ -115,7 +187,8 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
     // The page keeps its built copy after the wait; a store that answers later is offered.
     let late = false;
     void asked.read.then((body) => {
-      if (late && body && (body.ops.length > 0 || body.sources.length > 0)) offerReload();
+      if (late && body && !isOwn(body) && (body.ops.length > 0 || body.sources.length > 0))
+        offerReload();
     });
     const wait = new Promise<null>((resolve) => {
       setTimeout(() => {
@@ -140,7 +213,7 @@ export function loadStore(now = Date.now()): Promise<ConfigReadBody | null> {
     // The page shows the copy: a store that answers after it, with something else, is offered.
     if (!settled)
       void asked.read.then((later) => {
-        if (later && sameEdits(later, cached) === false) offerReload();
+        if (later && !isOwn(later) && sameEdits(later, cached) === false) offerReload();
       });
     return settled ? body : cached;
   });

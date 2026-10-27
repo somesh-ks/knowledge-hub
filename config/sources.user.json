@@ -69,6 +69,25 @@
       "topic_ids": [
         "frontier_model_releases"
       ]
+    },
+    {
+      "id": "youtube-com-g0r2",
+      "name": "Better Stack",
+      "type": "youtube",
+      "format": "video",
+      "url": "https://www.youtube.com/@betterstack/videos",
+      "feed_url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCkVfrGwV-iG9bSsgCbrNPxQ",
+      "tier": "daily",
+      "high_signal": false,
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "channel_id": "UCkVfrGwV-iG9bSsgCbrNPxQ"
+      },
+      "origin": "manual",
+      "topic_ids": [
+        "frontier_model_releases"
+      ]
     }
   ],
   "overrides": {

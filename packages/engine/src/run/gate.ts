@@ -34,6 +34,8 @@ export async function decideKinds(
     cadenceDays: schedule.cadence_days,
     weekly: schedule.weekly,
     zone: scheduleZone(schedule.timezone),
+    hour: schedule.hour,
+    dailyEnabled: schedule.enabled,
   });
   const kinds: DigestKind[] = [];
   if (decision.due) kinds.push(options.mode === "on-demand" ? "on-demand" : "regular");
@@ -81,6 +83,9 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     reason: decision.reason,
     passes,
     source: "gate",
+    ...(decision.publishAt && !options.dryRun
+      ? { publish_at: decision.publishAt.toISOString() }
+      : {}),
   };
   await writePlan(deps.root, plan);
   // A fresh run starts with no stage done, even when the same id was planned before.

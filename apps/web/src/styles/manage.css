@@ -2,7 +2,7 @@
  * The Topics and Sources pages: rows in the shared row grammar (primitives.css), a form of fields,
  * the bar that counts unsaved changes, and the passphrase dialog. The switch and the slider are the
  * settings page's (settings.css), the search field and the chips are the Library's (library.css).
- * Imported by pages/settings/topics.astro and sources.astro, after the layout's stylesheets.
+ * Imported by pages/settings/categories.astro and sources.astro, after the layout's stylesheets.
  *
  * Type comes in two steps only: a name at the body size and one quiet line at the label size, with
  * air between them. Nothing small sits tight against anything larger.
@@ -70,8 +70,9 @@
 }
 
 /* A field's label is the body size, as the Create panel's are: the Add source panel wears that panel's
-   looks, and the Add topic form sits among 16px rows. */
-.manage-field > label {
+   looks, and the Add topic form sits among 16px rows. A group with no one control (a segmented
+   choice) names itself with `.field-label` and the same looks. */
+.manage-field > :is(label, .field-label) {
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
@@ -95,6 +96,8 @@
   block-size: 1lh;
 }
 
+/* The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea
+   24px), the one control with an outline, which shows on focus. */
 .manage-input {
   width: 100%;
   min-height: var(--field-height);
@@ -114,6 +117,7 @@
 /* It grows with what is typed, so it needs no grip to drag. */
 textarea.manage-input {
   min-block-size: 6rem;
+  border-radius: var(--field-radius-multiline);
   padding-block: var(--field-padding);
   field-sizing: content;
   resize: none;
@@ -148,7 +152,7 @@ textarea.manage-input {
   width: 100%;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .manage-form .manage-submit {
     width: auto;
     justify-self: start;

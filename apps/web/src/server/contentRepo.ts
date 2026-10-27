@@ -2,6 +2,7 @@ import type { ContentFiles } from "../lib/contentFiles";
 import { loadSite, readSiteFrom, type Site } from "../lib/site";
 import { type BlobFetch, readPublicText } from "./blobStore";
 import { readPublicBlobBase, type ServerEnv } from "./config";
+import { readTombstones, withoutTombstoned } from "./tombstones";
 
 /**
  * The content repository (D173): the one place a page rendered on request gets its content. Today
@@ -66,12 +67,22 @@ export interface ContentRepoDeps {
 }
 
 let heldManifest: { at: number; base: string; manifest: Manifest } | null = null;
+let heldTombstones: { at: number; ids: Promise<ReadonlySet<string>> } | null = null;
 let heldSite: { updatedAt: string; site: Promise<Site> } | null = null;
 
 /** Forget what this instance holds. For tests. */
 export function resetContentRepo(): void {
   heldManifest = null;
   heldSite = null;
+  heldTombstones = null;
+  savedContent = false;
+}
+
+/** Deleted episodes the manifest may still list (tombstones.ts), read at most once per window. */
+function currentTombstones(base: string, deps: ContentRepoDeps): Promise<ReadonlySet<string>> {
+  if (heldTombstones && deps.now() - heldTombstones.at < MANIFEST_TTL_MS) return heldTombstones.ids;
+  heldTombstones = { at: deps.now(), ids: readTombstones(base, deps.fetch, deps.now()) };
+  return heldTombstones.ids;
 }
 
 /** The store's manifest, read fresh at most once per MANIFEST_TTL_MS. Null when there is none. */
@@ -81,12 +92,34 @@ async function currentManifest(
   if (heldManifest && deps.now() - heldManifest.at < MANIFEST_TTL_MS) return heldManifest;
   const base = readPublicBlobBase(deps.env);
   if (base === null) return null;
-  // `t` is never used by the store; it makes a URL the CDN has not cached.
-  const text = await readPublicText(`${base}/${MANIFEST_PATH}?t=${deps.now()}`, deps.fetch);
-  const manifest = text === null ? null : parseManifest(text);
-  if (manifest === null) return null;
-  heldManifest = { at: deps.now(), base, manifest };
-  return heldManifest;
+  try {
+    // `t` is never used by the store; it makes a URL the CDN has not cached.
+    const text = await readPublicText(`${base}/${MANIFEST_PATH}?t=${deps.now()}`, deps.fetch);
+    const manifest = text === null ? null : parseManifest(text);
+    if (manifest === null) throw new Error("the content store has no manifest");
+    heldManifest = { at: deps.now(), base, manifest };
+    savedContent = false;
+    return heldManifest;
+  } catch (error) {
+    // Unreachable: the last manifest this instance read still answers, and pages say so (criterion
+    // 9). An instance that never read one has nothing to show.
+    if (heldManifest === null) {
+      if (error instanceof Error && error.message === "the content store has no manifest")
+        return null;
+      throw error;
+    }
+    savedContent = true;
+    // The next read waits a window, so an outage does not make every request wait on the dead store.
+    heldManifest = { ...heldManifest, at: deps.now() };
+    return heldManifest;
+  }
+}
+
+let savedContent = false;
+
+/** True while pages are drawn from the last manifest read, because the store could not be reached. */
+export function isShowingSavedContent(): boolean {
+  return savedContent;
 }
 
 /** The store's files by repository path, or null when the store is not configured or empty. */
@@ -102,7 +135,9 @@ export async function loadStoreFiles(deps: ContentRepoDeps): Promise<ContentFile
 export async function loadStoreSite(deps: ContentRepoDeps): Promise<Site | null> {
   const current = await currentManifest(deps);
   if (current === null) return null;
-  if (heldSite?.updatedAt === current.manifest.updated_at) return heldSite.site;
+  const ids = await currentTombstones(current.base, deps);
+  if (heldSite?.updatedAt === current.manifest.updated_at)
+    return heldSite.site.then((site) => withoutTombstoned(site, ids));
   const site = loadSite({
     root: "",
     env: {},
@@ -114,7 +149,7 @@ export async function loadStoreSite(deps: ContentRepoDeps): Promise<Site | null>
   site.catch(() => {
     if (heldSite?.site === site) heldSite = null;
   });
-  return site;
+  return site.then((loaded) => withoutTombstoned(loaded, ids));
 }
 
 /**

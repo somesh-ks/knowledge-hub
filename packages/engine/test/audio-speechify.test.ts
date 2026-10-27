@@ -95,6 +95,7 @@ describe("synthesizeWithMarks", () => {
       input: "Hello world.",
       voice_id: "voice_x",
       model: "simba-3.0",
+      language: "en-US",
       output_format: "mp3_24000_64",
     });
   });
@@ -383,6 +384,43 @@ describe("synthesizeWithMarks", () => {
   });
 });
 
+describe("transient failures", () => {
+  // A 503 used to fail a narration that the next request would have served.
+  it("retries a 5xx, and does not retry a 400", async () => {
+    const flaky = await serve((_req, res, _rec, index) => {
+      if (index === 0) return jsonError(res, 503, "unavailable", "try later");
+      startSse(res);
+      res.end(standardStream());
+    });
+    await client(flaky, { transientRetries: 2 }).synthesizeWithMarks(REQUEST);
+    expect(flaky.requests).toHaveLength(2);
+
+    const bad = await serve((_req, res) => jsonError(res, 400, "bad_request", "no"));
+    await expect(
+      client(bad, { transientRetries: 2 }).synthesizeWithMarks(REQUEST),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(bad.requests).toHaveLength(1);
+
+    // A 429 does not spend the 5xx budget, and a 5xx asking for a long wait is not waited for.
+    const mixed = await serve((_req, res, _rec, index) => {
+      if (index === 0) return jsonError(res, 429, "rate", "slow down");
+      if (index === 1) return jsonError(res, 503, "unavailable", "try later");
+      startSse(res);
+      res.end(standardStream());
+    });
+    await client(mixed, { maxRetries: 1, transientRetries: 1 }).synthesizeWithMarks(REQUEST);
+    expect(mixed.requests).toHaveLength(3);
+
+    const slow = await serve((_req, res) =>
+      jsonError(res, 503, "unavailable", "later", { "retry-after": "3600" }),
+    );
+    await expect(
+      client(slow, { transientRetries: 2 }).synthesizeWithMarks(REQUEST),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(slow.requests).toHaveLength(1);
+  });
+});
+
 describe("rate limiting", () => {
   it("waits out Retry-After and retries", async () => {
     const waits: number[] = [];
@@ -585,6 +623,7 @@ describe("synthesize (plain stream)", () => {
       input: "Hi.",
       voice_id: "geffen_32",
       model: "simba-3.2",
+      language: "en-US",
       output_format: "mp3_24000_64",
     });
   });

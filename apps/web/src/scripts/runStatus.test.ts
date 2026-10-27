@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { fill, focusCreate, forgetRunAbout, resumeRun, SITE_POLL_MS } = await import("./runStatus");
+const { fill, focusCreate, forgetRunAbout, readRun, resumeRun, SITE_POLL_MS } = await import(
+  "./runStatus"
+);
 
 describe("the progress bar", () => {
   it("starts a new run (a Try again) from empty, and never goes back within one run", () => {
@@ -32,17 +34,18 @@ const OLD = { episode_at: "2020-01-01T00:00:00Z", episode_id: "old" };
 
 /**
  * The last stage of a new episode: waiting for the redeployed site. A page with no indicator in
- * it is enough here, so the stand-ins are a session store, a document that finds nothing and fetch.
+ * it is enough here, so the stand-ins are a local store, a document that finds nothing and fetch.
  */
 function stubPage(id: number, episode: string) {
   const store = new Map<string, string>();
   const requests: { url: string; init: RequestInit | undefined }[] = [];
   const page = { store, requests, live: false };
-  vi.stubGlobal("sessionStorage", {
+  vi.stubGlobal("localStorage", {
     getItem: (key: string) => store.get(key) ?? null,
     setItem: (key: string, value: string) => store.set(key, value),
     removeItem: (key: string) => store.delete(key),
   });
+  vi.stubGlobal("sessionStorage", { getItem: () => null, removeItem: () => undefined });
   vi.stubGlobal("document", {
     querySelector: () => null,
     querySelectorAll: () => [],
@@ -189,5 +192,32 @@ describe("a finished line that has gone stale", () => {
     );
     resumeRun();
     expect(stored(page)?.phase).toBe("done");
+  });
+});
+
+describe("the run record moved to localStorage", () => {
+  const memory = (initial: Record<string, string> = {}) => {
+    const map = new Map(Object.entries(initial));
+    return {
+      map,
+      getItem: (key: string) => map.get(key) ?? null,
+      setItem: (key: string, value: string) => map.set(key, value),
+      removeItem: (key: string) => map.delete(key),
+    };
+  };
+  const old = JSON.stringify({ id: 41, phase: "running", t0: 1 });
+
+  it("reads a run an older page kept in sessionStorage once, and moves it over", () => {
+    const local = memory();
+    const session = memory({ "singularity:run": old });
+    expect(readRun(local, session)?.id).toBe(41);
+    expect(local.map.get("singularity:run")).toBe(old);
+    expect(session.map.has("singularity:run")).toBe(false);
+  });
+
+  it("prefers the shared record, so a stale session copy never wins", () => {
+    const local = memory({ "singularity:run": JSON.stringify({ id: 42, phase: "done" }) });
+    const session = memory({ "singularity:run": old });
+    expect(readRun(local, session)?.id).toBe(42);
   });
 });

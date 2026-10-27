@@ -10,7 +10,7 @@ import { expect, test } from "./fixtures";
 /** Answers /api/config in order, then 202. */
 async function mockConfig(page: Page, answers: number[]): Promise<unknown[]> {
   const sent: unknown[] = [];
-  await page.route("**/api/config", async (route: Route) => {
+  await page.route(/\/api\/config(\?|$)/, async (route: Route) => {
     sent.push(route.request().postDataJSON());
     const status = answers.shift() ?? 202;
     await route.fulfill({
@@ -37,7 +37,7 @@ test.describe("a refused settings change", () => {
     await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
     await page.locator("#daily-hour").selectOption("9");
     await page.clock.runFor(2000);
-    await expect(page.locator("[data-live]")).toHaveText("Saved.");
+    await expect(page.locator("[data-live]")).toHaveText("Settings saved");
     // Inside the server's gap: the change waits, and the owner leaves for Today.
     await page.locator("#daily-length").selectOption("3");
     await page.clock.runFor(2000);

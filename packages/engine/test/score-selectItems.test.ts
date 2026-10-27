@@ -7,7 +7,6 @@ import {
   compareCandidates,
   DEFAULT_SCORE_THRESHOLD,
   isTech,
-  medianWeight,
   newestReleasePerRepo,
   releaseRepo,
   SECTION_TARGET_MAX,
@@ -16,9 +15,7 @@ import {
   TOP_PICKS,
 } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
-import { makeEntry, makeItem, plainPreferences, realPreferences } from "./score-factories.js";
-
-const weights = realPreferences().weights;
+import { makeEntry, makeItem, plainPreferences } from "./score-factories.js";
 
 let seq = 0;
 /** A pre-scored item with an exact score, so selection rules are tested apart from scoring. */
@@ -106,6 +103,43 @@ describe("sections from the schedule", () => {
     });
     expect(result.outcome).toBe("nothing");
   });
+
+  // The owner sets how far back a podcast looks on its settings page; a story older than that
+  // would air as news after the owner said it was too old to.
+  it("leaves out a story older than the podcast's lookback, dated by its fetch when it has no date", () => {
+    const now = new Date("2026-10-24T06:00:00Z");
+    const fresh = scored("design_engineering_craft", 0.9, { published_at: "2026-10-23T12:00:00Z" });
+    const old = scored("frontier_model_releases", 0.85, { published_at: "2026-10-21T06:00:00Z" });
+    const undated = scored("hci_empirical_research", 0.8, {
+      published_at: undefined,
+      fetched_at: "2026-10-20T06:00:00Z",
+    });
+    const items = [fresh, old, undated];
+    const limited = selectItems({
+      scored: items,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      lookbackHours: 24,
+      now,
+    });
+    expect(ids(limited.selected)).toEqual([fresh.item.id]);
+    expect(
+      limited.dropped
+        .filter((d) => d.reason === "too_old")
+        .map((d) => d.id)
+        .sort(),
+    ).toEqual([old.item.id, undated.item.id].sort());
+    const auto = selectItems({
+      scored: items,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      lookbackHours: null,
+      now,
+    });
+    expect(auto.selected).toHaveLength(3);
+  });
 });
 
 describe("eligibility", () => {
@@ -143,27 +177,6 @@ describe("eligibility", () => {
       cap: 12,
     });
     expect(ids(result.selected)).toContain(edge.item.id);
-  });
-
-  it("never publishes a category at Off (weight 0), whatever its score", () => {
-    const vc = scored("venture_capital_and_gossip", 0.99);
-    const hype = scored("generic_ai_hype_listicles", 0.98);
-    const result = selectItems({
-      scored: [
-        vc,
-        hype,
-        scored("design_engineering_craft", 0.9),
-        scored("hci_empirical_research", 0.8),
-        scored("css_canvas_motion_techniques", 0.7),
-      ],
-      kind: "regular",
-      weights,
-      floor: 3,
-      cap: 12,
-    });
-    expect(ids(result.selected)).not.toContain(vc.item.id);
-    expect(ids(result.selected)).not.toContain(hype.item.id);
-    expect(result.dropped.filter((d) => d.reason === "never_publish")).toHaveLength(2);
   });
 
   it("drops items whose most probable option is none", () => {
@@ -543,95 +556,6 @@ describe("same story", () => {
   });
 });
 
-describe("weekly reserved slot", () => {
-  const build = (): ScoredItem[] => [
-    ...Array.from({ length: 3 }, (_, i) => scored("design_engineering_craft", 0.9 - i * 0.01)),
-    ...Array.from({ length: 3 }, (_, i) => scored("ai_ux_interaction_patterns", 0.86 - i * 0.01)),
-    ...Array.from({ length: 3 }, (_, i) => scored("hci_empirical_research", 0.8 - i * 0.01)),
-  ];
-
-  it("computes the median of the twelve weights: the mean of the middle two", () => {
-    expect(Object.keys(weights)).toHaveLength(12);
-    // Sorted: 0.02, 0.1, 0.8, 0.82, 0.85, [0.85, 0.85], 0.88, 0.9, 0.92, 0.92, 0.95.
-    expect(medianWeight(weights)).toBe(0.85);
-  });
-
-  it("moves with the weights: one category raised above the middle shifts the median up", () => {
-    expect(medianWeight({ ...weights, consumer_tech_releases: 0.9 })).toBe(0.865);
-    expect(medianWeight({ ...weights, consumer_tech_releases: 0 })).toBe(0.85);
-  });
-
-  it("guarantees one slot to the best below-median category in a weekly digest", () => {
-    // Three slots for four topics: every topic's best story competes for them, so the launch
-    // gets in only through the reserved slot.
-    const launch = scored("developer_tool_launches", 0.45);
-    const pool = [...build(), launch];
-    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 3, weights });
-    expect(weekly.selected).toHaveLength(3);
-    expect(ids(weekly.selected)).toContain(launch.item.id);
-    const regular = selectItems({ scored: pool, kind: "regular", floor: 3, cap: 3, weights });
-    expect(ids(regular.selected)).not.toContain(launch.item.id);
-  });
-
-  it("picks the best-ranked below-median item as the reserve", () => {
-    const worse = scored("developer_tool_launches", 0.42);
-    const better = scored("developer_tool_launches", 0.47);
-    const weekly = selectItems({
-      scored: [...build(), worse, better],
-      kind: "weekly",
-      floor: 3,
-      cap: 6,
-      weights,
-    });
-    expect(ids(weekly.selected)).toContain(better.item.id);
-    expect(ids(weekly.selected)).not.toContain(worse.item.id);
-  });
-
-  it("reserves nothing for a category whose weight sits exactly at the median", () => {
-    // Taste essays and frontier models weigh 0.85, the median itself, so they are not below it.
-    expect(weights.taste_and_design_philosophy).toBe(medianWeight(weights));
-    const atMedian = scored("taste_and_design_philosophy", 0.47);
-    const pool = [...build(), atMedian];
-    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 3, weights });
-    expect(ids(weekly.selected)).not.toContain(atMedian.item.id);
-  });
-
-  it("never spends the reserved slot on a tech candidate, which has its own allowance", () => {
-    expect(weights.consumer_tech_releases).toBeLessThan(medianWeight(weights));
-    const techItem = scored("consumer_tech_releases", 0.6);
-    const launch = scored("developer_tool_launches", 0.45);
-    const pool = [...build(), techItem, launch];
-    const weekly = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
-    // Six capped slots, one of them the reserved launch, plus the tech story on top.
-    expect(weekly.selected).toHaveLength(7);
-    expect(ids(weekly.selected)).toContain(launch.item.id);
-    expect(weekly.selected.filter((s) => !isTech(s))).toHaveLength(6);
-    expect(weekly.selected.find((s) => s.item.id === techItem.item.id)?.section).toBe("tech");
-  });
-
-  it("changes nothing when a below-median item is already selected", () => {
-    const launch = scored("developer_tool_launches", 0.95);
-    const pool = [...build(), launch];
-    const withWeights = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
-    const without = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6 });
-    expect(ids(withWeights.selected)).toEqual(ids(without.selected));
-  });
-
-  it("changes nothing without weights or without a below-median candidate", () => {
-    const pool = build();
-    const base = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6 });
-    const same = selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 6, weights });
-    expect(ids(same.selected)).toEqual(ids(base.selected));
-  });
-
-  it("does not exceed the cap when it adds the reserve", () => {
-    const pool = [...build(), scored("developer_tool_launches", 0.45)];
-    expect(
-      selectItems({ scored: pool, kind: "weekly", floor: 3, cap: 4, weights }).selected,
-    ).toHaveLength(4);
-  });
-});
-
 describe("the tech allowance", () => {
   const craft = (n: number, base = 0.9): ScoredItem[] =>
     Array.from({ length: n }, (_, i) => scored("design_engineering_craft", base - i * 0.001));
@@ -870,7 +794,7 @@ describe("scoring and selection together", () => {
     ];
     const flagship = launch(0.75);
     const newProduct = launch(0.5);
-    const refresh = launch(0.25);
+    const refresh = launch(0.3);
     const rumour = launch(0);
     const result = selectItems({
       scored: [rumour, refresh, newProduct, flagship, ...craft],
@@ -883,7 +807,7 @@ describe("scoring and selection together", () => {
     expect(result.dropped).toContainEqual({
       id: rumour.item.id,
       reason: "below_threshold",
-      score: 0.252,
+      score: 0.2205,
     });
     // The flagship outscores one craft item and still stays out of the Top picks.
     expect(flagship.score).toBeGreaterThan(craft[2]?.score ?? 1);
@@ -986,7 +910,7 @@ describe("the outlet cap", () => {
       scored("hci_empirical_research", 0.8, { source_id: "loud-c", url: "https://loud.example/c" }),
       scored("developer_tool_launches", 0.6, { source_id: "quiet" }),
     ];
-    const result = selectItems({ scored: pool, kind: "regular", floor: 1, cap: 10, weights });
+    const result = selectItems({ scored: pool, kind: "regular", floor: 1, cap: 10 });
     expect(result.selected.filter((s) => s.item.url.includes("loud.example"))).toHaveLength(2);
     expect(result.dropped.map((d) => d.reason)).toContain("over_outlet");
     expect(ids(result.selected)).toContain(pool[3]?.item.id);

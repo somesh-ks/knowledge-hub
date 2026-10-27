@@ -178,6 +178,21 @@ const del = (fields: Record<string, unknown> = {}) =>
 const regen = (fields: Record<string, unknown> = {}) =>
   action({ action: "regenerate", id: EPISODE_ID, feedback: "Shorter intro", ...fields });
 
+describe("parsePodcastBody resume_from", () => {
+  // Try again after a failed run sends the failed run's id; anything but a run id must not reach the workflow.
+  it("keeps a run id beside the request and rejects anything else", () => {
+    const text = (resume: unknown) => JSON.stringify({ request: REQUEST, resume_from: resume });
+    expect(parsePodcastBody(text(123456789))).toEqual({
+      request: REQUEST,
+      resume_from: "123456789",
+    });
+    expect(parsePodcastBody(text("42"))).toEqual({ request: REQUEST, resume_from: "42" });
+    for (const bad of ["abc", "0", "1; rm -rf", "../4", -5, 1.5, null, {}]) {
+      expect(parsePodcastBody(text(bad)), String(bad)).toBeNull();
+    }
+  });
+});
+
 describe("parsePodcastBody for an episode action", () => {
   it("reads delete and regenerate", () => {
     expect(parsePodcastBody(del())).toEqual({

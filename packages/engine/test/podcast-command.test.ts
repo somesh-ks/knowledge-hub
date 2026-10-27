@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makePodcastCommand } from "../src/commands/podcast.js";
 import { commitAndPush } from "../src/git/commit.js";
@@ -15,7 +17,11 @@ import {
 
 describe("the podcast allowlist", () => {
   it("allows Podcasts/ and the cost ledger and nothing else", () => {
-    expect(ALLOWLISTS.podcast).toEqual(["Podcasts/", "state/costs-*.json"]);
+    expect(ALLOWLISTS.podcast).toEqual([
+      "Podcasts/",
+      "state/costs-*.json",
+      "state/podcast-timings.json",
+    ]);
     expect(isPathAllowed("Podcasts/2026/10/ep-20261008-0913.md", ALLOWLISTS.podcast)).toBe(true);
     for (const path of [
       "Digests/2026/10/2026-10-08.md",
@@ -90,6 +96,35 @@ describe("singularity podcast", () => {
       "Podcasts/2026/10/ep-20261008-0913.md",
     );
     expect(git(root, "status", "--porcelain")).toBe("");
+  });
+
+  // A failed voice or publish step used to throw the script away, and Try again paid for it twice.
+  it("resumes: a stage that finished is not run again, and publish commits the saved script", async () => {
+    const dir = join(root, "..", `stages-${Date.now()}`);
+    const step = (stage: string, writer = new FakeScriptWriter()) =>
+      runPodcast([...args(), "--stage", stage, "--artifacts", dir], writer);
+    for (const stage of ["select", "cover", "script"]) {
+      expect((await step(stage)).code).toBe(0);
+    }
+    const again = await step("script");
+    expect(again.code).toBe(0);
+    expect(again.writer.calls).toHaveLength(0);
+    const published = await step("publish");
+    expect(published.code).toBe(0);
+    expect(published.writer.calls).toHaveLength(0);
+    expect(git(root, "log", "-1", "--format=%s")).toBe("feat(podcast): add ep-20261008-0913");
+    expect(git(root, "show", "--name-only", "--format=", "HEAD")).toContain(
+      "state/podcast-timings.json",
+    );
+  });
+
+  // A run that stopped between the select and cover saves left the script step failing on the cover.
+  it("resumes the script step when the cover was never saved", async () => {
+    const dir = join(root, "..", `no-cover-${Date.now()}`);
+    const step = (stage: string) => runPodcast([...args(), "--stage", stage, "--artifacts", dir]);
+    expect((await step("select")).code).toBe(0);
+    await rm(join(dir, "cover.json"));
+    expect((await step("script")).code).toBe(0);
   });
 
   it("prints one JSON line with --json", async () => {

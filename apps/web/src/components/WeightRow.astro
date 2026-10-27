@@ -1,7 +1,5 @@
 ---
-import { stopIndex, WEIGHT_STOPS } from "@singularity/core";
-
-/** A slider that is not a weight (a format mix, a perspective): its stops, the op it sends and the field it sets. */
+/** The slider's stops (a format mix, a perspective), the op it sends and the field it sets. */
 interface Custom {
   stops: readonly { name: string; value: number }[];
   op: object;
@@ -9,30 +7,26 @@ interface Custom {
 }
 
 interface Props {
-  /** The topic the slider weighs: `weights.set` keys its value by this id. */
   id: string;
   label: string;
-  /** The topic's name, spoken with the stop ("Build breakdowns, More") when the label is "Weight". */
+  /** Spoken with the stop. */
   name?: string;
   weight: number;
-  custom?: Custom;
+  custom: Custom;
 }
 
 const { id, label, name = label, weight, custom } = Astro.props;
-const stops = custom?.stops ?? WEIGHT_STOPS.map((s) => ({ name: s.name, value: s.weight }));
-const place = custom
-  ? Math.max(
-      0,
-      stops.findIndex((s) => s.value === weight),
-    )
-  : stopIndex(weight);
+const stops = custom.stops;
+const place = Math.max(
+  0,
+  stops.findIndex((s) => s.value === weight),
+);
 const stopName = stops[place]?.name ?? "Normal";
 ---
 
-{/* How much one topic counts, on five fixed stops. The stop's name sits under the label, where
-     topicsPage.ts updates it as the thumb moves, so the slider ends where every control ends; every
-     slider on a page goes in one weights.set. The input holds the stop's place (0 to 4) so the
-     stops sit evenly; data-stops maps it back to the weight that is saved. */}
+{/* A slider on fixed stops. The stop's name sits under the label, where topicsPage.ts updates it as
+     the thumb moves, so the slider ends where every control ends. The input holds the stop's place
+     so the stops sit evenly; data-stops maps it back to the value that is saved. */}
 <div class="settings-row topic-weight">
   <div class="settings-text">
     <label class="settings-label" for={`weight-${id}`}>{label}</label>
@@ -49,11 +43,11 @@ const stopName = stops[place]?.name ?? "Normal";
     autocomplete="off"
     aria-valuetext={`${name}, ${stopName}`}
     style={`--range-fill: ${(place / (stops.length - 1)) * 100}%`}
-    data-op={JSON.stringify(custom?.op ?? { op: "weights.set", weights: {} })}
-    data-field={custom?.field ?? `weights.${id}`}
+    data-op={JSON.stringify(custom.op)}
+    data-field={custom.field}
     data-stops={stops.map((s) => s.value).join(",")}
     data-names={stops.map((s) => s.name).join(",")}
     data-label={name}
-    {...(custom ? { "data-mix": "" } : { "data-weight": "" })}
+    data-mix
   />
 </div>

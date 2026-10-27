@@ -1,18 +1,22 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  CONFIG_FILES,
   compareNewestFirst,
   type Digest,
   parseDigestFile,
+  ScheduleFile,
+  scheduleZone,
   stockholmDate,
   VOICE_LIMITS,
 } from "@singularity/core";
 import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
+import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
-import { loadScheduleFile } from "../schedule/store.js";
+import { loadSchedule, loadScheduleFile } from "../schedule/store.js";
 import {
   readJudgments,
   readLastRun,
@@ -109,6 +113,8 @@ export const DEPLOY_LAG_MS = 45 * 60_000;
  */
 export const DEPLOY_MISSING_FAULT_MS = 24 * 60 * 60_000;
 const DAY_MS = 86_400_000;
+/** How long past its commit time a due briefing may stay unpublished before health says so. */
+const SLOT_MISSED_AFTER_MS = 15 * 60_000;
 const TIMEOUT_MS = 20_000;
 
 /** Headers vercel.json sets on every page; a deploy that drops one has lost the file. */
@@ -142,7 +148,27 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       fault("run_failed", "reliability", `The last ${label} run failed (${run.at}).`);
     }
   }
-  if (status.next_regular_due < status.today) {
+  // A briefing that is switched off is never due, so it is never overdue or missed.
+  // With the config store on, the stored schedule is the effective one: health does not hydrate
+  // config, so the committed file may still say enabled while the owner switched it off.
+  const storedDocuments =
+    options.store && "documents" in options.store ? options.store.documents : undefined;
+  const storedSchedule =
+    storedDocuments && !("error" in storedDocuments)
+      ? storedDocuments.find((document) => document.path === CONFIG_FILES.schedule)
+      : undefined;
+  let slotSchedule = await loadSchedule(root).catch(() => null);
+  if (storedSchedule !== undefined) {
+    try {
+      const parsed = ScheduleFile.safeParse(JSON.parse(storedSchedule.content));
+      if (parsed.success) slotSchedule = parsed.data;
+    } catch {
+      // An unreadable stored document is config_store_drift's to report.
+    }
+  }
+  if (slotSchedule?.enabled === false) {
+    passed.push("the daily briefing is switched off");
+  } else if (status.next_regular_due < status.today) {
     fault(
       "run_overdue",
       "reliability",
@@ -150,6 +176,35 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     );
   } else {
     passed.push(`next regular briefing due ${status.next_regular_due}`);
+  }
+
+  // The slot's own hour has passed with its briefing unpublished: said the same day, not the next
+  // (D193; `run_overdue` waits for the date). A later cron call or health's heal can still publish.
+  // An unreadable last-run.json is already a state_invalid fault: the check has nothing to read.
+  const slotLastRun = await readLastRun(root).catch(() => undefined);
+  if (slotSchedule !== null && slotLastRun !== undefined) {
+    const due = decideRun({
+      now,
+      mode: "scheduled",
+      lastRun: slotLastRun,
+      force: false,
+      cadenceDays: slotSchedule.cadence_days,
+      weekly: slotSchedule.weekly,
+      zone: scheduleZone(slotSchedule.timezone),
+      hour: slotSchedule.hour,
+      dailyEnabled: slotSchedule.enabled,
+    });
+    if (
+      (due.due || due.runWeekly) &&
+      due.publishAt !== null &&
+      now.getTime() - due.publishAt.getTime() > SLOT_MISSED_AFTER_MS
+    ) {
+      fault(
+        "slot_missed",
+        "reliability",
+        `The ${due.runWeekly ? "weekly podcast" : "briefing"} was due at its scheduled time (${due.publishAt.toISOString()}) and has not published.`,
+      );
+    }
   }
 
   if (options.runs) {

@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { AutoAdjust, emptyAutoAdjust } from "@singularity/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 
@@ -33,11 +34,19 @@ export const Profile = z.object({
   blocked_domains: z.array(z.string().min(1)).default([]),
   votes: z.array(Vote).default([]),
   opens: z.array(Open).default([]),
+  /** What votes add to a source's score. An older file's `topics` is stripped on parse (D194). */
+  auto_adjust: AutoAdjust.default({ sources: {} }),
 });
 export type Profile = z.infer<typeof Profile>;
 
 export function emptyProfile(userId: string): Profile {
-  return { user_id: userId, blocked_domains: [], votes: [], opens: [] };
+  return {
+    user_id: userId,
+    blocked_domains: [],
+    votes: [],
+    opens: [],
+    auto_adjust: emptyAutoAdjust(),
+  };
 }
 
 export interface ProfileStore {

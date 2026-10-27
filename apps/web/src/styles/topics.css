@@ -1,5 +1,5 @@
 /*
- * The Topics & Sources pages (pages/settings/topics.astro and topics/[id].astro): each topic with its
+ * The Topics & Sources pages (pages/settings/categories.astro and topics/[id].astro): each topic with its
  * switch, its weight and the sources under it; a source's row and its rating out of 5; the sources the
  * catalogue suggests for a topic; and the panel that adds a topic or a source and edits a source
  * (TopicsPanel.astro).
@@ -52,7 +52,9 @@
    search bar"); until then the chevron was pulled out to the page's edge. */
 .topics .row-action {
   padding-inline: var(--space-4);
-  border-radius: var(--row-radius);
+  /* The row's corners keep to its tile's, fully round as every link row's on the page (owner,
+     2026-10-24); the ring is drawn on the tile. */
+  border-radius: var(--row-tile-radius);
 }
 
 /* The tile is the row's own box (owner, 2026-10-24: "optical alignment of list's hover state and
@@ -131,9 +133,10 @@
 }
 
 /* The glyph, not the 44px target, sits at the card's corner padding. */
+/* Its dots end where the card's words do (.icon-btn-end, D187). */
 .topic-more {
   anchor-name: --hero-more;
-  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  margin-block-start: calc(var(--space-2) * -1);
 }
 
 /* Listen in closes the card under a line that runs its full width, edge to edge through the card's
@@ -170,17 +173,17 @@
   text-wrap: nowrap;
 }
 
-/* An open Listen in list rises over the search block that sticks under the app bar below 64rem
-   (.source-filter[data-chips], one under the header), so its last row, Catch up, is never drawn
-   under the search (2026-10-22). While the list is open the card takes the search's level and the
-   search steps one below it; both stay under the app bar, so a page scrolled with the list open
-   slides under the bar as before. */
-@media (width < 64rem) {
-  .topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
-    position: relative;
-    z-index: calc(var(--z-header) - 1);
-  }
+/* An open Listen in list rises over the search and tabs block that sticks under the app bar
+   (.source-filter[data-chips], one under the header, at every width since 2026-10-25), so its last
+   row, Catch up, is never drawn under the search (2026-10-22). While the list is open the card takes
+   the search's level and the search steps one below it; both stay under the app bar, so a page
+   scrolled with the list open slides under the bar as before. */
+.topic-card:has(.multiselect-trigger[aria-expanded="true"]) {
+  position: relative;
+  z-index: calc(var(--z-header) - 1);
+}
 
+@media (width < 64rem) {
   /* On a phone the open list is a bottom sheet (multiselect.css) drawn inside the card's layer, so
      the card rises over the navigation bar while it is open; the scrim the sheet spreads covers the
      card and the bars alike (2026-10-23). */
@@ -189,11 +192,10 @@
       z-index: var(--z-sheet);
     }
   }
+}
 
-  .topic-page:has(.topic-card .multiselect-trigger[aria-expanded="true"])
-    .source-filter[data-chips] {
-    z-index: calc(var(--z-header) - 2);
-  }
+.topic-page:has(.topic-card .multiselect-trigger[aria-expanded="true"]) .source-filter[data-chips] {
+  z-index: calc(var(--z-header) - 2);
 }
 
 /* ------------------------------------------------------------------ Sources or Preferences */
@@ -219,8 +221,7 @@
    surface, so they read against the card. */
 .topic-panel > .topic-view,
 .topic-panel .search-field,
-.topic-panel .filter-row > .topic-add-source,
-.topic-panel .filter-chip:not(:has(input:checked)) {
+.topic-panel .filter-row > .topic-add-source {
   background: var(--color-surface);
 }
 
@@ -229,6 +230,10 @@
 .topic .topic-panel .topic-suggested {
   margin-block-start: var(--space-4);
   padding-block-start: var(--space-2);
+  /* Full bleed, as the design system's hairlines are (2026-10-25): it reaches the card's edges and the
+     content keeps the card's padding. */
+  margin-inline: calc(var(--card-padding) * -1);
+  padding-inline: var(--card-padding);
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
@@ -294,7 +299,7 @@
   padding-block-start: 0;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .topic-card {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
@@ -337,7 +342,7 @@
   flex: 1 1 auto;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .topic-weight > .settings-range {
     flex: 0 1 var(--settings-control-width);
     margin-inline-start: auto;
@@ -357,7 +362,7 @@
   flex-basis: 100%;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .topic .topic-weight {
     flex-wrap: nowrap;
   }
@@ -531,7 +536,9 @@
   z-index: var(--z-base);
   inset-block: 0;
   inset-inline: calc(var(--space-2) * -1) calc(var(--space-4) * -1);
-  border-radius: var(--radius-md);
+  /* On the page a row's tile is fully round, as the topics' rows above it are (owner, 2026-10-24);
+     in a topic's card it takes the card's inner radius (below). */
+  border-radius: var(--row-tile-radius);
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
@@ -716,7 +723,7 @@
   white-space: normal;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-host {
     display: block;
   }
@@ -794,9 +801,10 @@
   white-space: nowrap;
 }
 
-/* Poor is told apart by its word and its weight as well as its colour. */
+/* Poor is told apart by its word and its weight, in neutral ink: a low or zero rating is a measure
+   of what a source sent, not an error, so it never takes the danger colour (2026-10-25). */
 .score[data-label="Poor"] {
-  color: var(--color-danger);
+  color: var(--color-on-surface);
   font-weight: var(--font-weight-medium);
 }
 
@@ -811,12 +819,6 @@
   justify-self: end;
 }
 
-@media (forced-colors: active) {
-  .score[data-label="Poor"] {
-    color: CanvasText;
-  }
-}
-
 /* ------------------------------------------------------------------ the Topics & Sources panel */
 
 /* The foot of the panel stays at the bottom of the sheet; the form scrolls above it. */
@@ -824,8 +826,9 @@
   display: flex;
   flex: none;
   gap: var(--space-2);
-  padding-block: var(--space-4) max(var(--space-4), var(--safe-bottom));
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+  /* On a phone the full-screen sheet's 24px gutter (owner, 2026-10-24, create-sheet.css). */
+  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
+  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-6), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
   background: var(--sheet-bg);
 }
@@ -834,7 +837,7 @@
   flex: 1 1 auto;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-sheet-foot {
     padding-block-end: max(var(--space-6), var(--safe-bottom));
     padding-inline: var(--space-6);
@@ -892,6 +895,35 @@
     background: color-mix(
       in oklch,
       var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+/* Inside a card (the Structure sheet's Writing instructions, 2026-10-24) the card is already the
+   container's fill, so a text field there takes the page's surface instead, as the Topics card's
+   switch and search field do (.topic-panel above), and stays a field you can see. */
+.topics-panel
+  .card-group
+  :is(input, textarea).manage-input:not(
+    :focus-visible,
+    [readonly],
+    [aria-invalid]:not([aria-invalid="false"])
+  ) {
+  background: var(--color-surface);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .topics-panel
+    .card-group
+    :is(input, textarea).manage-input:not(
+      :focus-visible,
+      [readonly],
+      [aria-invalid]:not([aria-invalid="false"])
+    ):hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface),
       var(--color-on-surface) var(--state-hover)
     );
   }
@@ -1294,7 +1326,7 @@
   white-space: nowrap;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-line {
     display: flex;
   }
@@ -1316,7 +1348,7 @@
 
 /* From 40rem a suggestion is three lines (name, site and cadence, what it covers): it takes a
    three-line row's height, so its lines have the air the Sources rows above have. */
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .source-row.is-suggested:has(.source-line) {
     min-height: calc(var(--space-12) + var(--space-8) + var(--space-2));
   }
@@ -1447,8 +1479,9 @@
 
 /* ------------------------------------------------------------------ search and format tabs */
 
-/* The search field over a list of sources and, on a topic's page, a tab bar of its formats, All
-   first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20). */
+/* The search field over a list of sources and, on a category's page, a tab strip of its formats, All
+   first: the briefing's section tabs (primitives.css), one chosen at a time (2026-10-20, again
+   2026-10-25 after the chips). */
 .source-filter {
   display: grid;
   /* One column that may shrink below its content: otherwise the tab strip's full width sets the
@@ -1500,32 +1533,32 @@
   inset-block: 0;
 }
 
-/* Below 64rem the field and the chips stick under the app bar as one block, so both stay in reach
-   down a long list. Inside the topic card the block takes the card's fill and runs to its edges. */
-@media (width < 64rem) {
-  .source-filter[data-chips] {
-    position: sticky;
-    inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
-    z-index: calc(var(--z-header) - 1);
-    margin-inline: calc(var(--space-4) * -1);
-    padding: var(--space-2) var(--space-4);
-    background: var(--color-surface-container);
-  }
+/* The field and the tabs stick under the app bar as one block at every width, so both stay in reach
+   down a long list. --sticky-top is the bar's height below 64rem (and none of it once the bar has
+   slid away) and the safe area above it, where the bar does not stick. Inside the topic card the
+   block takes the card's fill and runs to its edges. */
+.source-filter[data-chips] {
+  position: sticky;
+  inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
+  z-index: calc(var(--z-header) - 1);
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-container);
+}
 
-  .source-filter[data-chips] .filter-none {
-    padding-block: var(--space-2);
-  }
+.source-filter[data-chips] .filter-none {
+  padding-block: var(--space-2);
+}
 
-  /* An anchor or a focused row lands below the stuck block, not under it. The one root :has() kept
-     (D147): the chips are drawn by the server and never change, and only a topic's page has them. */
-  html:has(.source-filter[data-chips]) {
-    scroll-padding-block-start: calc(
-      var(--sticky-top) +
-      var(--field-height) +
-      var(--chip-height) +
-      var(--space-6)
-    );
-  }
+/* An anchor or a focused row lands below the stuck block, not under it. The one root :has() kept
+   (D147): the tabs are drawn by the server and never change, and only a category's page has them. */
+html:has(.source-filter[data-chips]) {
+  scroll-padding-block-start: calc(
+    var(--sticky-top) +
+    var(--field-height) +
+    var(--tabs-height) +
+    var(--space-6)
+  );
 }
 
 .filter-none {
@@ -1688,4 +1721,317 @@
   padding: var(--space-4) var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
+}
+
+/* ------------------------------------------------------------------ the podcast structure (D170) */
+
+/* Source types or Structure on the Preferences page, as a topic's page shows Sources or Preferences:
+   one pane at a time, read from ?view= (topicsPage.ts). */
+.preferences-page:not([data-view="structure"]) .pref-view-structure,
+.preferences-page[data-view="structure"] .pref-view-types {
+  display: none;
+}
+
+/* The profile's row is a settings row like Daily's, in the same `.rows` as the blocks, so its
+   label sits on the rows' text edge and the select ends where theirs do (2026-10-25). Reorder sits on the
+   line under it, at the strip's end, where the rows' dots end; below 64rem the page's floating
+   button is Reorder instead. */
+.structure-kinds-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+  margin-block-start: var(--space-6);
+}
+
+.structure-kinds-bar > .structure-reorder {
+  align-self: flex-end;
+}
+
+/* The profile card is the category card (.topic-card) with a 64px picture, its one line, and the
+   shared settings select (.value-select) at the end, so its value and chevron end in the rows'
+   column (D187). The row's own padding is dropped: the card pads (2026-10-26). */
+.structure-profile {
+  min-width: 0;
+  /* The card's surface is the pane's, so its end padding is the pane's: the select's chevron ends in
+     the rows' column. */
+  padding: 0;
+}
+
+/* One row: the category card's empty foot row would add a gap and 24px of padding under it. */
+@media (width >= 40rem) {
+  .structure-profile {
+    grid-template-areas: "art text menu";
+  }
+}
+
+.profile-card-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-leading-body);
+}
+
+.structure-profile .topic-card-art {
+  width: var(--space-16);
+  height: var(--space-16);
+}
+
+/* The chevron's ink ends 4px in from the card's edge, where the rows' dots and pencil end
+   (--space-1, the same inset as `.structure-row .icon-btn-end`), measured 2026-10-26. */
+.structure-profile .profile-select {
+  padding: 0;
+  padding-inline-end: var(--space-1);
+  min-height: 0;
+  min-inline-size: 10rem;
+  justify-content: flex-end;
+  --value-select-pull: var(--space-2);
+}
+
+/* The question before a named profile replaces the owner's own list, asked in the page. */
+.structure-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-block-start: var(--space-4);
+  padding-inline: var(--card-padding);
+}
+
+.structure-confirm > p {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+.structure-confirm-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.structure-confirm-actions > .btn-secondary {
+  width: auto;
+}
+
+/* Reorder beside the tabs from 64rem, tonal and as wide as its words; below 64rem the page's
+   floating button is Reorder instead (owner, 2026-10-24), so one shows at a time. */
+.structure-reorder {
+  flex: none;
+  width: auto;
+}
+
+@media (width < 64rem) {
+  .structure-reorder {
+    display: none;
+  }
+}
+
+/* The floating Reorder shows the grip, and Done (while reordering) the check. */
+.preferences-page:not([data-reordering]) [data-reorder-icon="check"],
+.preferences-page[data-reordering] [data-reorder-icon="grip"] {
+  display: none;
+}
+
+.structure-reorder-icon {
+  display: contents;
+}
+
+.structure-list {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A block: its name and what it holds, its dots at the end. One line of each, never wrapping. */
+.structure-row {
+  flex-wrap: nowrap;
+}
+
+/* The hello and the sign-off frame the episode and never move: drawn quieter (`data-quiet`,
+   settings.css), with no menu. A section whose topics are all left out of the briefing stays where
+   it was, as quiet, and says so. */
+
+/*
+ * The grip (2026-10-24, the owner: "there are no reordering mechanism I see"): a body row's handle at
+ * its start, six dots in a 48px target, pulled with a finger or a mouse (pointer events, as no phone
+ * drags an HTML5 draggable) or moved with Up and Down. It takes the row's start, pulled out by the
+ * glyph's own air so the names still share one edge; a frame row keeps the same room empty.
+ * Markup: <button class="icon-btn structure-grip" data-grip aria-label="Move Design"><svg/></button>
+ */
+/* Reorder mode (owner, 2026-10-24: "I'm worried about accidental reorders"): the grips and their
+   room show only once Reorder is pressed, and then the dots, the pencils and Add step aside, so the
+   list does one thing at a time. structureEditor.ts sets data-reordering on the pane. */
+.pref-view-structure:not([data-reordering]) :is(.structure-grip, .structure-grip-room),
+.pref-view-structure[data-reordering] :is(.structure-menu, .structure-edit, .structure-add) {
+  display: none;
+}
+
+.structure-grip,
+.structure-grip-room {
+  flex: none;
+  width: var(--size-touch-comfortable);
+  /* As tall as the dots it stands in for, so a row keeps its height in and out of Reorder. */
+  min-height: var(--size-touch);
+  margin-inline: calc(var(--space-4) * -1) calc(var(--space-4) * -1 + var(--space-2));
+}
+
+.structure-grip {
+  color: var(--color-on-surface-muted);
+  cursor: grab;
+  /* The finger's pull is the row's move, never the page's scroll. */
+  touch-action: none;
+}
+
+/* Below 64rem the grip takes the row's end, where the dots were and the thumb is (owner, 2026-10-24:
+   "move this to the right side for mobile"), ending as the dots do; the names keep the card's edge,
+   so a frame row needs no room. From 64rem it stays at the start. */
+@media (width < 64rem) {
+  .structure-grip {
+    order: 1;
+    margin-inline: var(--space-2) calc(var(--space-2) * -1);
+  }
+
+  .pref-view-structure .structure-grip-room {
+    display: none;
+  }
+}
+
+.structure-grip .icon {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+/* Held, the row lifts above its neighbours and follows the pointer at once (no easing on the held
+   row); the rows it passes step aside by its height, which shows where it will land. */
+.structure-list[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.structure-list[data-dragging] .structure-row:not([data-dragging]) {
+  transition: translate var(--duration-state) var(--ease-out);
+}
+
+.structure-row[data-dragging] {
+  z-index: var(--z-raised);
+  border-radius: var(--card-inner-radius);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-popover);
+}
+
+/* The lifted row is the feedback: its grip draws no press layer of its own. */
+.structure-row[data-dragging] .structure-grip {
+  background: none;
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .structure-list[data-dragging] .structure-row:not([data-dragging]) {
+    transition: none;
+  }
+}
+
+/* The dots and the pencil land their ink on the row's end by `icon-btn-end` (D187); the menu's
+   wrapper only keeps its width. */
+.structure-menu {
+  flex: none;
+}
+
+/* Inside the card's 32px corner the dots read tight at the 24px the words start at, so a row's dots
+   and pencil end 4px further in, 28px from the card's edge, still in one column (2026-10-26). */
+.structure-row .icon-btn-end {
+  margin-inline-end: calc(
+    (var(--size-touch) - var(--size-icon-lg)) /
+    -2 -
+    var(--size-icon-lg) *
+    var(--ink-end, 0) +
+    var(--space-1)
+  );
+}
+
+/* Each menu hangs under its own dots: one anchor each, named on the wrapper. */
+@supports (top: anchor(bottom)) {
+  .structure-more {
+    anchor-name: var(--row-anchor);
+  }
+
+  .hero-menu-list.structure-menu-list {
+    position-anchor: var(--row-anchor);
+  }
+}
+
+.structure-add {
+  margin-block-start: var(--space-4);
+}
+
+/* Tonal, as wide as its words: the one action under the list. */
+.structure-add > .btn-secondary {
+  width: auto;
+}
+
+.structure-sheet .segmented-choice {
+  flex: none;
+}
+
+/* The rules card sits one step under the sheet's other fields. */
+.structure-rules {
+  margin-block-start: var(--space-2);
+}
+
+/* Writing instructions sits last, closed, a step clear of the rules above it. */
+.structure-advanced {
+  margin-block-start: var(--space-2);
+}
+
+/* A long prompt scrolls inside its field, so the count and Reset stay in reach under it. */
+textarea.manage-input.structure-prompt {
+  max-block-size: var(--field-max-height-multiline);
+  overflow-y: auto;
+}
+
+.structure-prompt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.structure-prompt-foot > .btn {
+  flex: none;
+  margin-inline-end: calc(var(--space-4) * -1);
+}
+
+/* A weight row, 2026-10-25 (owner): the stop's name starts where the slider's track starts, in the
+   slider's column, with the slider under it; the topic's name takes the rest of the row and the
+   whole height. The text wrapper dissolves so its label and output are the grid's own items. One
+   grid for the phone and the desktop, so the name never gives its line to the slider
+   (--slider-max-width, settings.css). The doubled class beats `.topic .topic-weight`, and the last
+   selector `.preferences-page`'s row gap. */
+.settings-row.topic-weight,
+.topic .settings-row.topic-weight,
+.preferences-page .topic .settings-row.topic-weight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--slider-max-width));
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: 0;
+}
+
+.topic-weight > .settings-text {
+  display: contents;
+}
+
+.topic-weight > .settings-text > .settings-label {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+.topic-weight > .settings-text > .settings-hint {
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.topic-weight > .settings-range {
+  grid-row: 2;
+  grid-column: 2;
+  inline-size: 100%;
+  margin: 0;
 }

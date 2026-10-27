@@ -6,7 +6,7 @@ From D124 on, an entry that supersedes another adds `- Context changed:` (one se
 
 The first build's plan and vision were retired on 2026-10-19: `git show 91bc533:docs/plan/build-plan.md` and `git show 91bc533:docs/plan/vision.md`.
 
-D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale, written by the docs owner; correct any the owner would state differently.
+D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reasons are the plan's working rationale; correct any the owner would state differently.
 
 ## Index
 
@@ -17,7 +17,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
-| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; the trigger is Vercel Cron since D61, the date gate stays; the weekly day has no briefing since D65 |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly since D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
@@ -42,7 +42,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
 | D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
-| D31 | The visual language follows Google Podcasts and YouTube Music | active; the outlined play chip is tonal since D72 |
+| D31 | The visual language follows Google Podcasts and YouTube Music | active; the play chip is tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
 | D34 | Stories are told in four beats; the why line is no longer written | active |
@@ -82,7 +82,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; suggestions from the catalogue, unscored (D75); a new topic stays on its list (D79); no time zone selector (D89) |
+| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; amended by D75, D79, D89 |
 | D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
 | D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
@@ -136,11 +136,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card; pull down to close the source panel | active; amends D73, D123, D124 |
+| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | active; amends D51, D87, D124, D125 |
+| D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -189,7 +189,21 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
 | D183 | Costs read the bill | active |
+| D184 | Podcast lookback | active |
 | D179 | Every name says Singularity; saved state moves once | active |
+| D182 | Block prompts | active |
+| D185 | Repo config to store | amends D149 |
+| D186 | Every control is a pill | amends D167 |
+| D187 | Glyphs align by ink | active |
+| D188 | Script-drawn markup | active |
+| D189 | Catalogue route | active |
+| D190 | Votes tune weights | partly superseded by D194 for topics |
+| D191 | Structure by profile | amends D170, D176 |
+| D192 | CodeRabbit review agent | amends D143 |
+| D193 | Dock chevron; one-episode speed | amends D102 |
+| D195 | Breadcrumb | amends D129 |
+| D194 | Topic weight removed | supersedes D190 |
+| D196 | Save refreshes copy | amends D172 |
 
 ---
 
@@ -1622,6 +1636,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: every PR is opened with the `review` label. `claude-code-review.yml` reviews it and `automerge.yml` skips it, so it merges by hand once the review has landed and its blocking findings are fixed. A large change also gets the `/code-review` skill on the branch before the PR.
 - Why: two large PRs auto-merged on green CI with no review, and the review run afterwards on the merged diff found real bugs (a broken import, cost records that overwrote each other, a paid call on empty text).
 - Cost: no PR merges itself any more; each waits for a review run and a hand merge.
+- Amends: amended by D192 (CodeRabbit replaces claude-code-review.yml).
 
 ## D144: phone sheets close by gesture and show no Close
 
@@ -1887,6 +1902,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Daily and weekly (the owner chose, 2026-10-24: "Rundown in code, rest Catch up only"): a rundown block makes the narration name the first stories by their chapters after the opening ("Coming up: ..."), its count kept in the digest's `rundown` so a later edit never changes old audio. A close or a custom block is refused for those kinds; Catch up takes both.
 - Why: the design assumed every episode is written by the script writer; only Catch up is. Daily and weekly narration is code around stories written one by one, so a close and a custom brief have no writer there.
 - Revisit if: the owner wants custom blocks in daily or weekly, which needs a model call per briefing.
+
 ## D177: on a phone the Costs chart or table switch sits beside the figure
 
 - Date: 2026-10-24
@@ -1930,6 +1946,13 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Later the same day: a voice rewrite sends the first 4,000 characters of its source, not up to 10,000 (`rewriteOnce.ts`); grounding repairs still send the whole text.
 - Revisit if: the next runs' `lost_reasons` still show more than about 8 voice rewrites, when the per-field rewrites become one call per story.
 
+## D182: each block's prompt is the owner's to replace, per kind
+
+- Date: 2026-10-24 (the owner: "the block level model instructions must be open for editing"; on the cards, "The full prompt per block" and "Separate per kind")
+- Decision: `config/structure.json` keeps `prompts` by kind and block key (`section:<id>` or the block type), apart from the blocks, set one at a time by `structure.prompt` (null puts back the built-in). The built-in prompts live in `packages/core/src/blockPrompts.ts`, the strings the engine sends, so the page shows exactly what the writer is told. Daily and weekly: a story block's prompt replaces the fields and fact rules for the stories of that section (they are batched apart); the voice from `config/voice.md`, the source handling and the reply's JSON shape stay in code, and the linter, numbers and grounding checks still run. The hello, rundown and sign-off are spoken by code there, so they take no prompt. Catch up: every block but an owner block (whose brief is its prompt) takes one, delimited in the message as the owner's text; a prompt set while the kind is on its defaults runs the defaults as a structure.
+- Why: one request per prompt keeps a reorder small and a 6000-character prompt inside the settings request limit; a prompt kept apart survives a block's removal and Undo.
+- Revisit if: login (Google, in progress) lands, since until then anyone with the URL can edit a prompt (D160); or a prompt edit is wanted for the voice itself.
+
 ## D183: The Costs page counts what Anthropic billed, not only what the app recorded
 
 - Date: 2026-10-24 (the owner: "show all costs in the cost page including evals and others to get accurate cost")
@@ -1937,3 +1960,109 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the ledger sees only the app's own calls. The episode eval (estimated at $4 to $6 a run, 12 runs on 24 Oct) and local scripts reach the bill but never the page, so the page read far below the bill. The bill is the only source that catches spend nobody thought to meter.
 - Revisit if: another project shares the Anthropic organization (the report covers the whole organization, so its spend would land in "Outside the app"), or Gemini spend grows enough to need its billing export.
 
+## D184: Each podcast looks back as far as its settings page says
+
+- Date: 2026-10-25 (the owner, on the Structure view's per-block "Newer than": "this should be gone if we are handling globally for daily and weekly setting")
+- Decision: Daily and Weekly each have a Look back row in Episode: since the last episode (the default, no field written) or 12 hours, 1, 2, 3 or 7 days, stored as `lookback_hours` at the top of `config/schedule.json` and in `weekly`. Selection drops a story dated (or, undated, fetched) before the lookback as `too_old`. Catch up and briefings run by hand ignore it.
+- Why: the fetch window (since the last fetch, at most 7 days) decides what is read; the lookback only narrows what airs, so it cannot reach stories the engine never fetched, and an unset field keeps every run as it was.
+- Revisit if: a lookback longer than the fetch window is wanted, which needs the fetch to read further back.
+
+## D185: a config edit made in the repo reaches the store; one made in both stops the run
+
+- Date: 2026-10-25 (the 06:52 UTC weekly: #263 changed `config/queries.json` after the store was seeded, the gate copied the store's older row over it, the commit stage refused the copy and the failure record committed the old queries to `main`)
+- Decision: a run or podcast commit whose gate finished copying the store ends with the trailer `Config-Store: snapshot` (`SNAPSHOT_TRAILER`). When a stored row differs from its file, `hydrateConfig` compares both with the file at the newest such commit (`git/configBase.ts`; before the first, the newest run commit that changed a config file). Changed in the repo only: the file goes to the store on the version read and stays. Changed in both: the gate stops before any spend (`ConfigConflict`), naming the file. Changed in the store only, or no base found: the row is copied, as before. The commit stage's early check allows what the guard allows (`commandAllowlist`).
+- Why: a pull request, `config.yml` or a hand edit can change the committed files while the app edits the store, and the old rule (the store always wins) undid the repo edit without a word. A base tells the two apart without a new column or file; stopping on both edits costs a run, never an edit.
+- Revisit if: a conflict stop happens often enough to want a merge of the two JSON documents.
+
+## D186: every control is a pill, text fields and a card's buttons too
+
+- Date: 2026-10-24 (the owner, on the edit source panel: "all the ui elements as much as possible should have fully rounded corners to be consistent")
+- Decision: `--field-radius` is the pill, so every one-line text field and every form select that follows it (the Add and edit source panels, Blocked sources, the sheets) is round like the buttons, chips and selects beside it. A multi-line field takes `--field-radius-multiline`, 24px, half a field's height, so its corners draw the one-line field's arc. A button in a card is a pill (the concentric `.card-group .btn` override goes), the floating button is a pill (a circle folded) (owner, 2026-10-24: "only to the components that make sense"). Page row tiles are #295's (`--row-tile-radius`).
+- Why: D167 left text fields at 8px and a card's buttons concentric, so an 8px Name field stood over pill selects in one panel; the owner read it as two languages.
+- Rejected: a pill textarea (it clips the first and last lines' corners); rounding containers (cards, sheets, menus, toasts, banners, covers), which are surfaces, not controls.
+- Kept for the owner's call: the Create Title (a filled field with round top corners over its D54 bottom line), menu and list option tiles inside a popup or sheet, checkbox squares (round reads as a radio), the mini player's open target, the emoji grid's cells (a wide cell would hover as a pill).
+- Amends: D167's text-field and card-button rules.
+- Revisit if: a pill field's text or placeholder reads cramped at its start.
+
+## D187: a glyph that ends a row lands its ink on the row's end, not its box
+
+- Date: 2026-10-25 (the owner, on Blocked sources: "so many ui elements that are not aligned optically on both sides of the screen - fix them all and check if other screens also have this to fix it at the source of design system")
+- Decision: words and bare glyphs align by their ink; a filled or outlined control (a field, a select chip, a segmented track, the sample disc) aligns by its edge. Each Phosphor glyph's ink margin is measured once (`getBBox` on its path) and set as `--ink-end` on the glyph and on what holds it (`buttons.css`; `Icon.astro` writes `data-icon`). A row's chevron, a value select's chevron, a settings multi-select's chevron, Create's More options chevron, and `.icon-btn-end` (the Blocked row's cross, a topic card's More) pull out by it; the voice sample's disc meets the row's end. Measured at 390 and 1280px on Settings, Daily, Weekly, Voice, Blocked sources and a topic page: every row-end glyph's ink 24px in from the card's edge, where the words end (before: 24 to 39.5px, the select chevrons 3px and the cross 6.5px short).
+- Why: the chevron's 0.28 pull fitted one glyph only; a chevron down, a cross and the More dots sit further inside their boxes, so each ended a few pixels short of the line the words make.
+- Rejected: pulling the More dots on Today's story rows and hero, and the Library's view buttons, to the 16px page edge (their 44px targets would leave the screen); moving the topic page's source list, which lines up with its search field's glyph (owner, 2026-10-23).
+- Revisit if: a glyph outside the table ends a row (add its measured margin).
+
+## D188: a list a script redraws takes its sheet header and icons from the same source as the pages
+
+- Date: 2026-10-25 (the design-system audit; the owner: "I see too many deviations - especially in the structure tab").
+- Decision: `apps/web/src/lib/sheetHead.ts` holds the markup of a sheet's header row and of an icon; `SheetHeader.astro` renders it, and any list a script rebuilds (`structureView.ts`) calls it. A menu a script builds is `MenuSheet.astro`'s menu: the header, and each item with its glyph at the start. Every glyph carries `data-icon`, so D187's ink margins reach it. A row that cannot act says `data-quiet` (settings.css) rather than a page recolouring `.settings-label`; tabs in a card are `.tabs-in-card`; a multi-line field's ceiling is `--field-max-height-multiline`.
+- Why: the Structure view copied the menu sheet by hand, lost the item icons and the D187 alignment, and placed its glyphs with negative margins; each copy is a place the system drifts.
+- Rejected: server-rendering the menus once per row (the list is rebuilt after every edit, so the client needs the markup too).
+- Revisit if: a second script-drawn list appears (then `MenuSheet.astro` should also render through `sheetHead.ts`).
+
+## D189: the design catalogue is a route of the site, not a tool
+
+- Date: 2026-10-25 (the owner: "I need a simple storybook kinda tool/page to visualize all the tokens, typography, colors, ui components"; and "shouldn't we have a different ui repo?").
+- Decision: `/design` (`apps/web/src/pages/design/[...slug].astro`) lists the tokens from `tokens.json`, the type roles, the colour roles as live swatches, every glyph, and each shared component drawn by its own class, with the usage comment over that class read from its stylesheet at build time (`lib/designCatalogue.ts`). It is built in dev and in the fixture build only (no static path otherwise), sits in the browser suites' page list, and no separate UI repository or package is made.
+- Why: one consumer and one person; a catalogue rendered by the CSS the app ships cannot drift from it, while zeroheight, Supernova or a Storybook (the community Astro framework is the only one that renders `.astro`) are a second source of truth kept by hand. A separate repository buys versioning and publishing work for no second consumer.
+- Rejected: Storybook with `@storybook-astro/framework` (a second build and dev server, a story per component); zeroheight and Supernova (Figma sync and team governance this project does not have); Backlight (shut down 2025-06-01).
+- Revisit if: a second app consumes the styles (then lift them into a workspace package under `packages/`), or the catalogue needs knobs and isolation per state (then try Storybook on a branch first).
+
+
+## D190: votes tune topic weights and source scores through a bounded, decaying adjustment
+
+- Amends: D108, D118.
+- Amended by D194: the topic part (weight adjustment, the "Adjusted" mark) is removed; source score adjustment stays.
+
+- Date: 2026-10-25 (the owner: "make sure topics evolve as models generate new podcasts. This should be refined and intelligently managed").
+- Decision: a story vote moves an `auto_adjust` on its topic and its source in the owner's profile (`packages/core/src/autoAdjust.ts`, applied in `profile/autoAdjust.ts` by the same `profile.vote` op that stores the vote): 0.02 a vote, within plus or minus 0.2, halving over 30 days without votes, sources at a quarter of the step. Scoring reads the owner's weight plus the decayed adjustment (Off stays Off); the weight itself is never written. A weight row with a live adjustment says "Adjusted" (`lib/topicAdjust.ts`, WeightRow).
+- Why: D108 kept votes out of weights so a bad week could not rewrite the owner's choices; a separate, bounded, decaying term keeps that guarantee and still lets the mix follow what the owner likes. The constants are first guesses, named in one place for tuning against real data.
+- Rejected: writing the adjustment into the weight (the owner's setting would drift under them); a separate learn step (the vote op already runs on every batch and commits through the config store, D185).
+- Revisit if: two weeks of votes show the step or the cap moving a topic further than the owner meant, or Jev's taste answer (D118) and this term pull apart.
+
+## D191: one podcast structure, chosen by listener profile, sized to the episode's length
+
+- Date: 2026-10-25 (the owner: "have one global structure of the podcast instead of daily, weekly, catch up"; "the current podcast structure is very focused on design engineers. If you can add a profile selector in preferences settings page").
+- Decision: `config/structure.json` holds one block list for every podcast type, `{version: 1, profile, blocks, prompts}`; a Profile select on `/settings/preferences` (Artist, Designer, Founder, General, Journalist, Product Manager, Researcher, Software Engineer, Student, then Custom) loads a preset list, and any edit turns the profile Custom and keeps the list. The engine applies the one structure and scales each block's count by the episode's length over ten minutes (`score/sectionPlan.ts`). Daily and Weekly show the profile as a disabled select with "Set once for every podcast in Preferences" linking there. The old per-kind shape reads as Custom (the daily list, else the first present) and the next save rewrites it.
+- Why: three lists said the same thing three times and read as a design-engineering product; a profile names the listener, and the length already says how much a block holds.
+- Rejected: a profile per podcast type (the owner asked for one global structure); hiding the Catch up frame rows (the owner keeps Hello and Sign-off listed for their prompts, D170).
+- Revisit if: a type needs a block the others must not have (then a per-type override on top of the profile, not a second list).
+
+## D192: CodeRabbit is the default PR review agent
+
+- Date: 2026-10-25 (the owner: "I have installed code rabbit on github, where do I change to use it as default review agent?").
+- Decision: CodeRabbit replaces `claude-code-review.yml` as the automated review agent on GitHub. `.coderabbit.yaml` defines repository conventions (no em dashes, 8pt grid, shared design tokens, TypeScript 6.x, snake_case data keys, and excludes `Digests/`, `Podcasts/`, and `state/`). Reviews run automatically on pull requests without requiring label triggers or Actions runner minutes; a human merges once findings are resolved. Local `/code-review` remains available for pre-PR checks.
+- Why: CodeRabbit reviews incrementally on each commit, supports threaded conversation, and avoids the single-run and re-label limits of the Claude action (learning 2026-10-11).
+- Rejected: keeping `claude-code-review.yml` in parallel (duplicate comments and Anthropic token spend); relying on manual review only.
+- Amends: D143.
+
+## D193: a desktop dock chevron beside volume; a chosen speed lasts one episode
+
+- Date: 2026-10-25 (the owner asked for a way to open the player from the desktop bar, and for speed to stop sticking).
+- Decision: from 64rem the dock holds a chevron `.icon-btn` right of volume that expands and collapses the player. D102 stands for the rest: no chevron on the bar below 64rem (the phone bar opens by press and drag), and the keyboard-focus chevron on the open desktop player is unchanged. A speed chosen in the player applies to that episode only; the next starts at Preferences, Default playback speed. The same speed left in three episodes, or an episode ending off the default, offers it once per speed as the new default (`core/speedDefault.ts`); an episode counts at the speed it was left at, not the slider steps passed.
+- Why: the desktop bar had no visible way to the full player, and a remembered speed carried into episodes where it did not fit.
+- Rejected: a chevron on the phone bar (D102, the bar is the target); remembering the last speed (the old behaviour); counting every slider step.
+- Amends: D102, D126.
+
+## D195: settings subpages show a Settings breadcrumb
+
+- Supersedes: the no-breadcrumbs clause of D129 (the rest of D129 stands).
+- Context changed: D129 dropped breadcrumbs as repeating the title and app bar; the owner found a subpage gave no quick way up to the Settings index.
+- Date: 2026-10-25 (the owner's ask).
+- Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
+- Why: one tap up beats the app bar's back, which can leave settings.
+
+## D194: topic weight is removed
+
+- Date: 2026-10-26 (implementation plan v2, section 5, D-f).
+- Context changed: topic weights were removed in implementation plan v2, so D190's per-topic vote adjustments no longer have an owner-set weight to adjust.
+- Decision: a topic has no weight. Scoring uses `NORMAL_TASTE` (0.7) for categories and custom topics, 1 for general and Trending topics, and 0.85 for Design; the weight sliders, `weights.set`, the learn patch `weight_deltas`, the vote-driven topic adjustment and the "Adjusted" mark are gone. Old configs that carry `weights`, `topic.weight` or `auto_adjust.topics` parse and the fields are stripped. Vote-driven source scores stay.
+- Why: fixed taste values remove per-topic tuning while preserving the shipped app and general topics' scoring strengths.
+- Supersedes: D190 for topics.
+
+## D196: a save refreshes the device's copy of the store and confirms
+
+- Date: 2026-10-26 (plan 20, criterion 7).
+- Decision: a save that went through asks the store again at once (`afterOwnSave`, with its own query past the edge's second) and the device's copy takes the answer, so the device's next page, and another tab's, shows the edit. A store answer whose `written_at` is this device's own newest write (`noteOwnWrite`, #329) is never offered as "changed on another device". The copy is never overwritten by an older answer (a read that began before the save and resolves after it). The save says "Settings saved".
+- Why: D172's copy left a saved edit a write behind on the device, so another tab showed the old setting until a reload.
+- Amends: D172.

@@ -31,11 +31,12 @@ import {
 import type { SpokenText } from "../audio/spokenText.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
+import type { EpisodeOpusFile } from "../audio/transcode.js";
 import type { Logger } from "../context.js";
 import { costKindOf } from "../cost/ledger.js";
 import { loadSchedule } from "../schedule/store.js";
 import type { BlobClient, PruneResult } from "./blob.js";
-import { pruneAudio, uploadAudio } from "./blob.js";
+import { pruneAudio, uploadAudio, uploadOpusAudio } from "./blob.js";
 
 export interface PublishAudioDeps {
   root: string;
@@ -49,6 +50,18 @@ export interface PublishAudioDeps {
   model?: string;
   outputFormat?: Mp3OutputFormat;
   cacheControlMaxAge?: number;
+  /**
+   * MP3 bytes to Opus in MP4 (audio/transcode.ts). When set, the narration is also published
+   * as .m4a; a failure here leaves the MP3 alone, so the briefing still has audio.
+   */
+  transcodeOpus?: (mp3: Uint8Array) => Promise<Uint8Array>;
+  /**
+   * An episode's turns, in order, to ONE Opus in MP4 file (audio/transcode.ts), and a way to read a
+   * stored turn back. Both set, a finished episode is also published as one .m4a with the turns'
+   * offsets; a failure leaves the MP3 turns alone, so the episode still plays.
+   */
+  transcodeEpisodeOpus?: (mp3s: Uint8Array[]) => Promise<EpisodeOpusFile>;
+  fetchAudio?: (url: string) => Promise<Uint8Array>;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -396,6 +409,22 @@ async function processDigest(
     return failed(digestId, "upload", error);
   }
 
+  let m4aUrl: string | undefined;
+  const transcode = deps.transcodeOpus;
+  if (transcode) {
+    try {
+      m4aUrl = await uploadOpusAudio(deps.blob, {
+        digestId,
+        audio: await transcode(narration.audio),
+        ...(deps.cacheControlMaxAge !== undefined
+          ? { cacheControlMaxAge: deps.cacheControlMaxAge }
+          : {}),
+      });
+    } catch (error) {
+      deps.log.warn("Opus skipped, the MP3 plays alone", { reason: message(error) });
+    }
+  }
+
   const timelinePath = audioTimelineRelPath(digestId);
   try {
     // Timeline first: a crash in between leaves audio null, so the next run converges.
@@ -404,7 +433,11 @@ async function processDigest(
       join(root, target.relPath),
       serializeDigestFile({
         ...digest,
-        audio: { url, duration_ms: resolved.timeline.duration_ms },
+        audio: {
+          url,
+          duration_ms: resolved.timeline.duration_ms,
+          ...(m4aUrl ? { m4a_url: m4aUrl } : {}),
+        },
       }),
     );
   } catch (error) {

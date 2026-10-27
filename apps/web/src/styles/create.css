@@ -45,10 +45,6 @@
   line-height: var(--font-leading-body);
 }
 
-.create-format-hint {
-  padding-block-start: var(--space-2);
-}
-
 .create-error {
   display: flex;
   align-items: flex-start;
@@ -80,7 +76,7 @@
   margin-block-start: 0;
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .create-view .create-choice {
     grid-auto-columns: minmax(6rem, 1fr);
     inline-size: fit-content;
@@ -98,6 +94,19 @@
    row is the press target and wears the row's state layer. */
 .create-more {
   margin-block: var(--space-2) var(--space-4);
+  /* The grey of the menu sections; the summary is a pill inside it (2026-10-25). */
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+  padding-inline: var(--space-4);
+}
+
+/* Open, the grey is a card around the questions; the summary inside it stays a pill. */
+.create-more[open] {
+  border-radius: var(--radius-lg);
+}
+
+.create-more-body {
+  padding-block-end: var(--space-4);
 }
 
 .create-more-summary {
@@ -108,7 +117,7 @@
   min-height: var(--fab-size);
   margin-inline: calc(var(--space-4) * -1);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--row-radius);
+  border-radius: var(--radius-round);
   list-style: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -157,6 +166,8 @@
 
 .create-more-chevron {
   flex: none;
+  /* Its ink, not its box, ends on the page's edge, where the fields and chips end (D187). */
+  margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
   color: var(--color-on-surface-muted);
   transition: rotate var(--duration-state) var(--ease-out);
 }
@@ -168,12 +179,6 @@
 /* Open, the choices are on show: the line that repeated them steps aside. */
 .create-more[open] .create-more-values {
   display: none;
-}
-
-/* Inside, the questions are a step quieter than the main ones above. */
-.create-view .create-more-body .create-group .section-head {
-  padding-block: var(--space-4) var(--space-2);
-  font-size: var(--font-size-label);
 }
 
 .create-more-body > .create-group:last-child {
@@ -250,7 +255,7 @@
   padding-block: var(--space-4) var(--space-8);
 }
 
-@media (min-width: 40rem) {
+@media (width >= 40rem) {
   .create-view .create-submit > .btn-primary {
     width: auto;
     min-width: 14rem;
@@ -427,7 +432,7 @@
 /* From 80rem the page takes the track the shell keeps for a contents list as well, and More options
    stands open in it beside the main questions, so the right of the window is not left empty and
    the whole form is in view at once. The title keeps the place it has on every other page. */
-@media (min-width: 80rem) {
+@media (width >= 80rem) {
   .shell:has(.create-page) > main {
     grid-column: 1 / -1;
   }
@@ -485,10 +490,5 @@
      body size, so the two columns read as one form. */
   .create-page .create-more .create-choice {
     inline-size: fit-content;
-  }
-
-  .create-page .create-more-body .create-group .section-head {
-    padding-block: var(--space-4) var(--space-4);
-    font-size: var(--font-size-body);
   }
 }

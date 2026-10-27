@@ -56,7 +56,7 @@ jobs:
             exit 0
           fi
           if gh pr view "$PR" -R "$REPO" --json labels -q '.labels[].name' | grep -qx 'review'; then
-            echo "Not merging #$PR: it carries the review label, so a human merges it after the Claude review."
+            echo "Not merging #$PR: it carries the review label, so a human merges it after the CodeRabbit review."
             exit 0
           fi
           if [ "$head" != "$HEAD_SHA" ]; then

@@ -153,41 +153,12 @@ test.describe("the briefing header", () => {
 });
 
 test.describe("sharing", () => {
-  test("hands the dated address to the share sheet where there is one", async ({ page }) => {
-    await page.addInitScript(() => {
-      const shared: ShareData[] = [];
-      (window as unknown as { __shared: ShareData[] }).__shared = shared;
-      Object.defineProperty(navigator, "share", {
-        configurable: true,
-        value: (data: ShareData) => {
-          shared.push(data);
-          return Promise.resolve();
-        },
-      });
-    });
-    await page.goto("/");
-    const more = page.getByRole("button", { name: "More actions" });
-    await expect
-      .poll(async () => {
-        await page.getByRole("button", { name: "Share", exact: true }).click();
-        return page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared[0]);
-      })
-      .toBeTruthy();
-    const shared = await page.evaluate(
-      () => (window as unknown as { __shared: ShareData[] }).__shared[0],
-    );
-    // Today's page shares the dated address, so the link still opens this briefing next week, tagged
-    // so the visit it brings counts as a share's (D154).
-    expect(shared?.url).toMatch(/\/d\/2026-10-07\?ref=share$/);
-    expect(shared?.title).toBe("Wednesday 7 October, Singularity");
-    await expect(more).not.toHaveAttribute("data-copied", /.*/);
-  });
-
-  test("copies the address and says so where there is no share sheet", async ({ page }) => {
+  test("Share opens a dialog with the dated address, Copy link copies it and says so, Close closes it", async ({
+    page,
+  }) => {
     await page.addInitScript(() => {
       const copied: string[] = [];
       (window as unknown as { __copied: string[] }).__copied = copied;
-      Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
       Object.defineProperty(navigator, "clipboard", {
         configurable: true,
         value: {
@@ -199,12 +170,19 @@ test.describe("sharing", () => {
       });
     });
     await page.goto(SILENT_DIGEST);
-    // An older briefing has the same Share as the latest (D104); it copies its own address.
+    // An older briefing has the same Share as the latest (D104); it shares its own address, tagged so
+    // the visit it brings counts as a share's (D154).
     await hydrated(page);
     await page.getByRole("button", { name: "Share", exact: true }).click();
-    await expect
-      .poll(() => page.evaluate(() => (window as unknown as { __copied: string[] }).__copied))
-      .toEqual([expect.stringMatching(/\/d\/2026-10-05\?ref=share$/)]);
+    const dialog = page.getByRole("dialog", { name: "Share link" });
+    await expect(dialog.getByLabel("Link")).toHaveValue(/\/d\/2026-10-05\?ref=share$/);
+    await dialog.getByRole("button", { name: "Copy link" }).click();
+    await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
+    expect(
+      await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied),
+    ).toEqual([expect.stringMatching(/\/d\/2026-10-05\?ref=share$/)]);
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
   });
 
   // Only on-demand briefings and episodes can be deleted (#152): a Daily or Weekly has no Delete.
@@ -445,7 +423,7 @@ test.describe("sections and stories", () => {
       "launches",
       "watch",
     ]);
-    expect(data.cover.src512).toBe("/covers/2026-10-07-512.webp");
+    expect(data.cover.src512).toMatch(/^\/covers\/2026-10-07-512\.webp\?v=\w+$/);
     // Pages show the WebP; the PNG beside it is for the lock screen's media controls.
     const webp = await page.request.get(data.cover.src512);
     expect(webp.headers()["content-type"]).toBe("image/webp");
@@ -669,21 +647,21 @@ test.describe("the section tabs with the app bar hidden", () => {
     // Well above Research, then down towards it: a scroll down sends the bar away.
     await page.evaluate(() => {
       const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
-      window.scrollTo({ top: scrollY + top - 400, behavior: "instant" });
+      window.scrollTo({ top: scrollY + top - 700, behavior: "instant" });
     });
     await page.mouse.wheel(0, 200);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await expect
       .poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99)
       .toBeLessThan(2);
-    // Research's heading well under the strip: the section above still crosses the reading line.
+    // Research's heading well below the reading line (a third down the space under the strip): the section above holds the mark.
     const placeUnderStrip = (gap: number) =>
       page.evaluate((room) => {
         const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
         const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
         window.scrollBy({ top: top - strip - room, behavior: "instant" });
       }, gap);
-    await placeUnderStrip(72);
+    await placeUnderStrip(400);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await expect(current).toHaveText("AI products");
     // Past the line, Research takes the mark: the line is measured from where the strip is now.
@@ -777,11 +755,28 @@ test.describe("a tab's jump with the app bar", () => {
     const root = page.locator("html");
     await page.evaluate(() => {
       const top = document.querySelector("#c-launches")?.getBoundingClientRect().top ?? 0;
-      window.scrollTo({ top: scrollY + top - 400, behavior: "instant" });
+      window.scrollTo({ top: scrollY + top - 700, behavior: "instant" });
     });
     await page.mouse.wheel(0, 200);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await stripRests(page);
+    // The wheel's scroll is animated: on a slow runner it was still running when the tab's jump
+    // landed and carried the page back past it (the heading ended 135px under the strip, CI only).
+    // Click once the page has stood still for a few frames.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          let last = -1;
+          let still = 0;
+          const frame = () => {
+            still = scrollY === last ? still + 1 : 0;
+            last = scrollY;
+            if (still >= 5) resolve();
+            else requestAnimationFrame(frame);
+          };
+          requestAnimationFrame(frame);
+        }),
+    );
     // A click from the page itself: Playwright's own would first scroll the stuck strip to where it
     // sits in the flow, moving the page it is about to measure.
     await page

@@ -57,12 +57,16 @@ export function serializeSchedule(file: ScheduleFile): string {
     {
       version: checked.version,
       timezone: checked.timezone,
+      // Written only once off, so a file from before the switch reads and writes as it did.
+      ...(checked.enabled ? {} : { enabled: false }),
       hour: checked.hour,
       cadence_days: checked.cadence_days,
       skip_topics: checked.skip_topics,
       length_minutes: checked.length_minutes,
       voice_id: checked.voice_id,
       voice_id_b: checked.voice_id_b,
+      // Written only once set, so a file from before the lookback reads and writes as it did.
+      ...(checked.lookback_hours == null ? {} : { lookback_hours: checked.lookback_hours }),
       weekly: {
         enabled: checked.weekly.enabled,
         day: checked.weekly.day,
@@ -72,6 +76,9 @@ export function serializeSchedule(file: ScheduleFile): string {
         length_minutes: checked.weekly.length_minutes,
         voice_id: checked.weekly.voice_id,
         voice_id_b: checked.weekly.voice_id_b,
+        ...(checked.weekly.lookback_hours == null
+          ? {}
+          : { lookback_hours: checked.weekly.lookback_hours }),
       },
       custom: {
         skip_topics: checked.custom.skip_topics,

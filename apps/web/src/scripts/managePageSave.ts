@@ -5,15 +5,15 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { SAVED_KEY } from "../lib/savedKey";
+import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
-import { weightOf } from "../lib/weightStops";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
+import { afterOwnSave, noteOwnWrite } from "./configStoreRead";
 import { sendToast } from "./toastEvent";
 
 export const SAVING = "Saving";
 /** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
-export const SAVED = "Saved.";
+export const SAVED = "Settings saved";
 
 /** Shown when the edit went through but the site could not change the briefing time. */
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
@@ -57,6 +57,15 @@ function refusalReason(body: unknown): string | null {
 
 /** The most edits one request may carry (MAX_OPS in server/configEdit.ts). */
 export const MAX_OPS = 8;
+/**
+ * The longest body one request may be (MAX_CONFIG_BODY_CHARS in server/configEdit.ts): a block's
+ * prompt (D182) runs to thousands of characters, so it and a structure.set can outgrow one request.
+ */
+export const MAX_BODY_CHARS = 8192;
+
+/** The length of the body a request with these edits sends (post). */
+const bodyLength = (ops: readonly ConfigOp[]): number =>
+  JSON.stringify({ op: ops.length === 1 ? ops[0] : ops }).length;
 
 /** One pending change: the edit, the control (or added row) behind it, and what the control now holds. */
 export interface Pending {
@@ -111,8 +120,6 @@ interface Step {
  * and a removal goes last so nothing is edited after it is gone.
  */
 export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
-  const weights: Record<string, number> = {};
-  const weightKeys: string[] = [];
   /** Every type slider goes in one mix.set. */
   const mix: Record<string, number> = {};
   const mixKeys: string[] = [];
@@ -120,14 +127,7 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
   /** A topic's perspective goes in one topic.mix. */
   const mixes = new Map<string, Step>();
   const removals: Step[] = [];
-  for (const [key, { op, el, with: extra }] of changes) {
-    if (op.op === "topic.upsert") {
-      // The switch was built with the slider's value from the page load, which may have moved since.
-      const slider = el
-        .closest("li, [data-topic]")
-        ?.querySelector<HTMLInputElement>("[data-weight]");
-      if (slider) op.topic.weight = weightOf(slider);
-    }
+  for (const [key, { op, with: extra }] of changes) {
     if (op.op === "topic.mix") {
       const step = mixes.get(op.id);
       if (step && step.op.op === "topic.mix") {
@@ -141,9 +141,6 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
     } else if (op.op === "mix.set") {
       Object.assign(mix, op.format_mix);
       mixKeys.push(key);
-    } else if (op.op === "weights.set") {
-      Object.assign(weights, op.weights);
-      weightKeys.push(key);
     } else {
       (op.op.endsWith(".remove") ? removals : edits).push({
         op,
@@ -152,7 +149,6 @@ export function buildQueue(changes: ReadonlyMap<string, Pending>): Step[] {
       });
     }
   }
-  if (weightKeys.length > 0) edits.push({ op: { op: "weights.set", weights }, keys: weightKeys });
   if (mixKeys.length > 0) edits.push({ op: { op: "mix.set", format_mix: mix }, keys: mixKeys });
   return [...edits, ...removals];
 }
@@ -166,15 +162,19 @@ export interface Batch {
 }
 
 /**
- * The steps packed into as few requests as the server allows, in their order. A step never splits:
- * an edit and the sources chosen with it go together.
+ * The steps packed into as few requests as the server allows (eight edits, and a body it takes), in
+ * their order. A step never splits: an edit and the sources chosen with it go together.
  */
 export function pack(steps: readonly Step[], changes: ReadonlyMap<string, Pending>): Batch[] {
   const batches: Batch[] = [];
   let current: Batch = { ops: [], sent: [], owners: [] };
   for (const step of steps) {
     const ops = step.ops ?? [step.op];
-    if (current.ops.length > 0 && current.ops.length + ops.length > MAX_OPS) {
+    if (
+      current.ops.length > 0 &&
+      (current.ops.length + ops.length > MAX_OPS ||
+        bodyLength([...current.ops, ...ops]) > MAX_BODY_CHARS)
+    ) {
       batches.push(current);
       current = { ops: [], sent: [], owners: [] };
     }
@@ -235,7 +235,7 @@ export function settle(batch: Pick<Batch, "ops" | "sent">, changes: Map<string, 
         // the dead page's place in history, so Back from the list does not return to it; a page
         // already left stays left.
         if (pending.op.op === "topic.remove" && !el.closest("li") && el.isConnected)
-          globalThis.location?.replace("/settings/topics");
+          globalThis.location?.replace("/settings/categories");
       } else if (el.matches("[data-suggest]")) (el as HTMLButtonElement).disabled = true;
       // Every control, a pressed remove button included, now starts from what was saved: read again,
       // it is no longer a change.
@@ -266,6 +266,7 @@ export function remember(
   waiting: readonly ConfigOp[] = heldOps(),
   stored?: number,
 ): void {
+  if (stored !== undefined) noteOwnWrite(stored);
   try {
     const saved = addSaved(parseSaved(localStorage.getItem(SAVED_KEY), now), ops, now, stored);
     const entries = waiting.length > 0 ? withPending(saved, waiting, now) : saved;
@@ -599,6 +600,13 @@ export async function flush(context: SaveContext): Promise<void> {
         const body = answer.body as { written_at?: unknown } | undefined;
         const stored = typeof body?.written_at === "number" ? body.written_at : undefined;
         remember(batch.ops, lastSent, heldOps(), stored);
+        // With the store on, this device's copy of the store is a write behind: bring it up to date
+        // now, so the next page, and another tab's, shows the edit and never offers it as news.
+        try {
+          if (storeOn()) afterOwnSave();
+        } catch {
+          // No document or storage: nothing keeps a copy.
+        }
       }
       try {
         context.settled?.();

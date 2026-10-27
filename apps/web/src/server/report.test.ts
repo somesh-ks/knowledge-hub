@@ -141,6 +141,10 @@ describe("handleReport", () => {
       expect(fault?.message).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/);
     }
     expect(parseClientFault({ kind: "error" })?.page).toBe("other");
+    // A category page is its template, not "other", after the route moved from /settings/topics.
+    expect(parseClientFault({ kind: "error", page: "/settings/categories/design" })?.page).toBe(
+      "/settings/categories/[id]",
+    );
   });
 
   // Vitals reports, and kinds the log does not know, spent the fault log's slots (D146), so a busy

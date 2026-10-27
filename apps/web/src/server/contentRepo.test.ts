@@ -4,7 +4,12 @@ import { join, relative, sep } from "node:path";
 import { beforeEach, expect, it } from "vitest";
 import { diskFiles } from "../lib/contentFiles";
 import { loadSite } from "../lib/site";
-import { loadStoreSite, MANIFEST_TTL_MS, resetContentRepo } from "./contentRepo";
+import {
+  isShowingSavedContent,
+  loadStoreSite,
+  MANIFEST_TTL_MS,
+  resetContentRepo,
+} from "./contentRepo";
 
 /**
  * A page rendered on request reads the content store (D173) through the same readers as the build.
@@ -25,6 +30,12 @@ async function fillStore(updatedAt: string, leaveOut = ""): Promise<void> {
   for (const path of await diskFiles.list(join(FIXTURES, "digests"))) {
     const repoPath = `Digests/${relative(join(FIXTURES, "digests"), path).split(sep).join("/")}`;
     if (repoPath === leaveOut) continue;
+    const text = await readFile(path, "utf8");
+    files[repoPath] = createHash("sha256").update(text).digest("hex");
+    store.set(`content/${repoPath}`, text);
+  }
+  for (const path of await diskFiles.list(join(FIXTURES, "podcasts"))) {
+    const repoPath = `Podcasts/${relative(join(FIXTURES, "podcasts"), path).split(sep).join("/")}`;
     const text = await readFile(path, "utf8");
     files[repoPath] = createHash("sha256").update(text).digest("hex");
     store.set(`content/${repoPath}`, text);
@@ -67,6 +78,42 @@ it("lists the same briefings from the store as the build does from the checkout"
   expect(fromStore?.entries.length).toBeGreaterThan(0);
 });
 
+// An unreachable store answered 503, an empty page, though the instance had read the content a
+// minute before (plan section 20, criterion 9).
+it("keeps the last content and says so while the store cannot be reached", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let now = 0;
+  let down = false;
+  let failed = 0;
+  const deps = {
+    env: ENV,
+    fetch: async (url: string) => {
+      if (down) {
+        failed += 1;
+        throw new Error("network down");
+      }
+      return fakeFetch(url);
+    },
+    now: () => now,
+  };
+  const before = (await loadStoreSite(deps))?.entries.length ?? 0;
+  expect(isShowingSavedContent()).toBe(false);
+
+  down = true;
+  now = MANIFEST_TTL_MS + 1;
+  expect((await loadStoreSite(deps))?.entries.length).toBe(before);
+  expect(isShowingSavedContent()).toBe(true);
+  // The next request in the window does not wait on the dead store again.
+  const attempts = failed;
+  await loadStoreSite(deps);
+  expect(failed).toBe(attempts);
+
+  down = false;
+  now = 2 * MANIFEST_TTL_MS + 2;
+  await loadStoreSite(deps);
+  expect(isShowingSavedContent()).toBe(false);
+});
+
 it("reads the manifest once per window and reloads when it changes", async () => {
   await fillStore("2026-10-24T12:00:00Z");
   let now = 0;
@@ -83,4 +130,16 @@ it("reads the manifest once per window and reloads when it changes", async () =>
   const site = await loadStoreSite(deps);
   expect(manifestReads).toBe(2);
   expect(site?.entries.length).toBe(before - 1);
+});
+
+it("skips an episode deleted a moment ago, before the sync drops it from the store", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const before = await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 });
+  const gone = before?.episodes[0]?.id ?? "";
+  expect(gone).not.toBe("");
+  store.set("tombstones/episodes.json", JSON.stringify([{ id: gone, at: 0 }]));
+  resetContentRepo();
+  const after = await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 });
+  expect(after?.episodes.map((entry) => entry.id)).not.toContain(gone);
+  expect(after?.episodes.length).toBe((before?.episodes.length ?? 0) - 1);
 });

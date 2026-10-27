@@ -4,6 +4,7 @@ import { anyPending, parseSaved, savedOps } from "../lib/savedOverlay";
 import type { ConfigOp } from "../types/contracts";
 import {
   adopt,
+  buildQueue,
   dropUnclaimed,
   flush,
   GAP_MS,
@@ -11,7 +12,9 @@ import {
   HELD_EVENT,
   type Held,
   keepWaiting,
+  MAX_BODY_CHARS,
   type Pending,
+  pack,
   remember,
   type SaveContext,
 } from "./managePageSave";
@@ -45,6 +48,47 @@ describe("gapLeft", () => {
     expect(gapLeft(1000, 1000 + GAP_MS)).toBe(0);
     // A clock moved back never holds longer than one gap.
     expect(gapLeft(10_000, 0)).toBe(GAP_MS);
+  });
+});
+
+describe("pack", () => {
+  it("puts a long block prompt in a request of its own, so the server never refuses the body", () => {
+    // A structure.set and a 6000-character prompt in one request outgrew the server's 8192 characters.
+    const changes = new Map<string, Pending>([
+      [
+        "structure",
+        change({
+          op: "structure.set",
+          profile: "custom",
+          blocks: [{ type: "hello" }, { type: "trending" }, { type: "sign_off" }],
+        }),
+      ],
+      [
+        "prompt:trending",
+        change({
+          op: "structure.prompt",
+          key: "trending",
+          prompt: "a".repeat(6000),
+        }),
+      ],
+      [
+        "prompt:top_picks",
+        change({
+          op: "structure.prompt",
+          key: "top_picks",
+          prompt: "b".repeat(3000),
+        }),
+      ],
+    ]);
+    const batches = pack(buildQueue(changes), changes);
+    expect(batches.map((batch) => batch.ops.map((op) => op.op))).toEqual([
+      ["structure.set", "structure.prompt"],
+      ["structure.prompt"],
+    ]);
+    for (const batch of batches) {
+      const body = JSON.stringify({ op: batch.ops.length === 1 ? batch.ops[0] : batch.ops });
+      expect(body.length).toBeLessThanOrEqual(MAX_BODY_CHARS);
+    }
   });
 });
 

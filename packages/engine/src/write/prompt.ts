@@ -1,4 +1,4 @@
-import { VOICE_LIMITS } from "@singularity/core";
+import { BRIEFING_STORY_PROMPT } from "@singularity/core";
 import { boundaryLine, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { type Taste, tasteNote } from "../profile/tasteNote.js";
 import type { VoiceConfig } from "../voice/voice.js";
@@ -24,64 +24,18 @@ export function voiceBrief(voice: VoiceConfig): string {
   return lines.join("\n");
 }
 
-const FIELD_RULES = [
-  [
-    `- headline: at most ${VOICE_LIMITS.headlineWords} words, no trailing period.`,
-    "Say what happened and why a reader would care, the way a person would tell a friend: natural word order and a real verb.",
-    'Not a changelog line ("X 2.0 released with Y"), not a colon list, not title case. Name the product, number or result.',
-  ].join(" "),
-  [
-    `- chapter: 2 to ${VOICE_LIMITS.chapterWords} words and at most ${VOICE_LIMITS.chapterChars} characters naming the story for a phone's player bar, so it fits on one line: the subject and what changed ("shadcn moves to Zod 4", "Pixels get Android 17").`,
-    "No trailing period, no colon, no version strings beyond the product's own name, and never the headline cut short.",
-  ].join(" "),
-  [
-    `- spoken: the same story told aloud by a host, ${VOICE_LIMITS.spokenMinSentences} to ${VOICE_LIMITS.spokenSentences} sentences, ${VOICE_LIMITS.spokenMinWords} to ${VOICE_LIMITS.spokenWords} words and at most ${VOICE_LIMITS.spokenChars} characters in total.`,
-    'Conversational but not chatty: use contractions and open with a natural lead-in instead of reading the headline as a title ("Google has a new Pixel, and the headline feature is the screen.").',
-    'Open on the news itself, never on a setup such as "Here\'s a..." or "Most teams..., but".',
-    "Lead with the most surprising concrete fact, and say in a clause what any unfamiliar product, person or term is, so a listener who never heard of it follows on first hearing.",
-    "Every sentence adds a fact the earlier ones did not: never restate the opening in other words.",
-    'Say at most two numbers, the way a person says them ("about a hundred and twenty lines", "forty percent"), but write years as digits. Leave out version strings, model ids, handles and plan names beyond the product\'s own name: they cannot be followed by ear.',
-    // The judge heard nearly every story of the October weekly end on a hedge ("still
-    // experimental", "a rerun would likely differ"), because every catch closed its story.
-    // Told to end on what the listener can do, every story then closed "so a team can..." and the
-    // judge heard one formula (loop/results/iteration-8.md).
-    'End on the story\'s own strongest fact, on what happens next, or on what it lets a design engineer do. Mix these across a reply, and never end on "so a team can" or a generic warning.',
-    'Give the catch only when it would change a reader\'s decision, and say it before the ending ("It only works..., so..."), never as the last line.',
-    "No two stories in a reply open or close with the same words or the same sentence shape.",
-    'No "in this story", no hype, no questions to the listener, no "we" or "our".',
-    "Use only facts that are in your own summary: no new number, name, date or claim.",
-  ].join(" "),
-  [
-    `- summary: three or four sentences, at most ${VOICE_LIMITS.summaryWords} words in total, each sentence at most ${VOICE_LIMITS.sentenceWords} words.`,
-    "Four beats in this order: what happened; the number that makes it concrete (a price, date, size or percentage);",
-    "why it happened or what it changes; the catch.",
-    "The catch is a limit, a cost, a missing piece or a date that is still far away, and it must come from the text.",
-    "If the text gives no catch, stop after three sentences.",
-  ].join(" "),
-].join("\n");
-
-const FACT_RULES = [
-  "Use facts from the source text only. Never add a claim, number, name, date or link that the text does not state.",
-  "If the text lacks a detail, leave it out instead of guessing.",
-  'A block headed "Alexandria facts" is sourced records from a data provider. A fact taken from it must name that provider in the sentence ("per <provider>").',
-  // Seen in the October weekly: "The catch: the piece doesn't include new evidence" and a catch
-  // after a missile strike that killed a person.
-  'Tell the news, never review the article: no "the piece", "the post" or "the author doesn\'t say".',
-  "When the news is a death, an attack, a disaster or other harm, tell it plainly and end on the latest fact: no catch and no twist.",
-  "Write plain sentences: no markdown, no links, no quotation marks around a field, no labels such as 'Summary:'.",
-].join(" ");
-
-export function writerSystemPrompt(voice: VoiceConfig): string {
+/**
+ * `rules` is the block's prompt (D182): the built-in fields and fact rules, or the owner's
+ * replacement for the stories of one section. The voice, the source handling and the reply's
+ * shape stay as they are, and the checks after writing still apply.
+ */
+export function writerSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_PROMPT): string {
   return [
     "You write items for Singularity, a private tech and design engineering briefing. The reader is sharp but may not know the topic.",
     "",
     voiceBrief(voice),
     "",
-    "FIELDS",
-    FIELD_RULES,
-    "",
-    "RULES",
-    FACT_RULES,
+    rules,
     "",
     "SOURCE HANDLING",
     untrustedInstruction(),
@@ -141,17 +95,13 @@ export function writerUserMessage(
   ].join("\n\n");
 }
 
-export function rewriteSystemPrompt(voice: VoiceConfig): string {
+export function rewriteSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_PROMPT): string {
   return [
     "You fix one field of a Singularity item so that it follows the house voice.",
     "",
     voiceBrief(voice),
     "",
-    "FIELDS",
-    FIELD_RULES,
-    "",
-    "RULES",
-    FACT_RULES,
+    rules,
     "Keep every fact of the current text that the source supports. Change only what the problems list requires.",
     "",
     "SOURCE HANDLING",

@@ -9,7 +9,7 @@ import { gzipSync } from "node:zlib";
 
 /**
  * First-load JavaScript, gzipped. It was 100 KB until the bottom bar became a full transport (seek,
- * clock, volume) and the Topics and Sources pages arrived; 68 KB of it is React itself. Raised to
+ * clock, volume) and the Categories and Sources pages arrived; 68 KB of it is React itself. Raised to
  * 104 KB on 2026-10-08 for interface sounds, live run stages and the cover play button. On
  * 2026-10-10 the Podcast page's editor moved after first paint (the Topics editor already was), so
  * the heaviest page was /library at 102.7 KB. The owner declined preact/compat (about 57 KB off every
@@ -224,6 +224,48 @@ export function withModulePreloads(html: string, read: (url: string) => string |
   if (urls.length === 0 || headEnd === -1) return html;
   const links = urls.map((url) => `<link rel="modulepreload" href="${url}">`).join("");
   return `${html.slice(0, headEnd)}${links}${html.slice(headEnd)}`;
+}
+
+/** Where `importGraph`'s file also names the duplicate stylesheet links to drop. */
+export const WAKE_STYLES_KEY = "stylesheets:wake";
+
+/**
+ * The copies of the player and sheets islands' stylesheet that a page links under a second name.
+ * Astro links player.css (54 KB) in every head twice (Icon.*.css, the file the islands list in their
+ * dependencies, and player.*.css, the same bytes), so a first visit downloads and waits for both.
+ * The islands' own link stays: a resumed bar paints at first load and needs it then (a first try
+ * that left both out let the bar show unstyled and the pages overflow).
+ */
+export function wakeStylesheets(
+  urls: readonly string[],
+  read: (url: string) => string | null,
+): string[] {
+  const listed = (island: string) => {
+    const script = urls.find((url) => url.startsWith(`/_astro/${island}.`) && url.endsWith(".js"));
+    const source = script ? read(script) : null;
+    return new Set(
+      source ? [...source.matchAll(/_astro\/([\w.-]+\.css)/g)].map((m) => `/_astro/${m[1]}`) : [],
+    );
+  };
+  const players = listed("PlayerRoot");
+  const sheets = listed("SheetsRoot");
+  const shared = [...players].filter((url) => sheets.has(url));
+  const bodies = new Set(shared.map(read).filter((body) => body !== null));
+  return urls.filter((url) => {
+    if (!url.endsWith(".css")) return false;
+    const body = read(url);
+    return !shared.includes(url) && body !== null && bodies.has(body);
+  });
+}
+
+/** The page without the render-blocking links to the given stylesheets. */
+export function withoutStylesheets(html: string, hrefs: readonly string[]): string {
+  if (hrefs.length === 0) return html;
+  return html.replace(/<link\b[^>]*>/g, (tag) => {
+    if (!/\brel=["']stylesheet["']/.test(tag)) return tag;
+    const href = /\bhref=["']([^"']+)["']/.exec(tag)?.[1];
+    return href !== undefined && hrefs.includes(href) ? "" : tag;
+  });
 }
 
 /**

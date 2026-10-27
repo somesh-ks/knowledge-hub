@@ -6,7 +6,6 @@ import {
   linkSourceIds,
   loadLastRun,
   loadPool,
-  loadPreferences,
   loadSources,
   readJsonIfExists,
   sourceNameMap,
@@ -105,7 +104,7 @@ export function makeRenderCommand(deps: RenderDeps = {}): CommandRun {
         return 0;
       }
 
-      const topics = await loadTopics(root, await loadPreferences(root));
+      const topics = await loadTopics(root);
       const loaded = await loadPool(location.poolPath);
       const pool = new Map(loaded.items.map((item) => [item.id, item]));
       const selected: SelectedItem[] = [];

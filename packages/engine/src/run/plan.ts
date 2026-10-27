@@ -35,6 +35,8 @@ export const Plan = z.object({
   replaces: DigestId.optional(),
   /** "adopted" plans come from an agent-mode run directory; no gate ran. */
   source: z.enum(["gate", "adopted"]).default("gate"),
+  /** When to publish: the scheduled time a run that started ahead waits for (D193). */
+  publish_at: isoDateTime.optional(),
   /** Set once the commit stage finished, so a second commit cannot publish the same run twice. */
   committed_at: isoDateTime.optional(),
 });

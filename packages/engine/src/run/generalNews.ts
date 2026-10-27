@@ -1,4 +1,11 @@
-import { generalTopics, Item, type Source, type Topic, type TopicsFile } from "@singularity/core";
+import {
+  generalTopics,
+  Item,
+  type Source,
+  type Topic,
+  type TopicsFile,
+  topicTaste,
+} from "@singularity/core";
 import { z } from "zod";
 import { clusterStories } from "../dedupe/storyCluster.js";
 import { round4 } from "../score/numbers.js";
@@ -241,12 +248,12 @@ export function applyCeiling(
 }
 
 /**
- * Whether a fit clears the bar every other topic is held to: the topic's weight times the fit
+ * Whether a fit clears the bar every other topic is held to: the topic's taste times the fit
  * curve against the score threshold of a briefing. The hype and sponsored discount is left out on
  * purpose, because a source's trust is measured on its own.
  */
-export function fitPasses(topic: Pick<Topic, "weight">, value: number): boolean {
-  return round4(topic.weight * fitCurve(value)) >= DEFAULT_SCORE_THRESHOLD;
+export function fitPasses(topic: Pick<Topic, "id" | "origin">, value: number): boolean {
+  return round4(topicTaste(topic) * fitCurve(value)) >= DEFAULT_SCORE_THRESHOLD;
 }
 
 export type GeneralCounts = Record<string, SourceCounts>;
@@ -261,7 +268,7 @@ export type GeneralCounts = Record<string, SourceCounts>;
 export function countGeneral(input: {
   pool: GeneralPoolFile;
   judged: GeneralJudgedFile;
-  topics: readonly Pick<Topic, "id" | "weight">[];
+  topics: readonly Pick<Topic, "id" | "origin">[];
 }): GeneralCounts {
   const out: GeneralCounts = {};
   const row = (id: string): Required<SourceCounts> => {
