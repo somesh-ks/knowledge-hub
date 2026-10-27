@@ -23,7 +23,7 @@
     "@singularity/sound": "*",
     "@vercel/blob": "^2.8.1",
     "@vercel/functions": "^3.9.11",
-    "astro": "^7.3.8",
+    "astro": "^7.4.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.1",
     "sharp": "^0.35.5",
