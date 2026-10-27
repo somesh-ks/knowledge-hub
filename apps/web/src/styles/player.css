@@ -733,8 +733,17 @@
   column-gap: var(--space-2);
   align-items: start;
   height: var(--player-dock-height);
-  /* Whatever the row's height, its controls sit in the middle of it. */
-  padding-block-start: calc((var(--player-dock-row) - var(--mini-player-control-size)) / 2);
+  /* Whatever the row's height, its controls sit in the middle of it. The middle of what shows: the
+     progress line is drawn over the row's top edge, so the controls drop by half its height
+     (2026-10-27; they read high by that much). */
+  padding-block-start: calc(
+    (
+      var(--player-dock-row) -
+      var(--mini-player-control-size) +
+      var(--mini-player-progress-height)
+    ) /
+    2
+  );
   padding-inline: max(var(--mini-player-inset), var(--safe-left))
     calc(max(var(--mini-player-inset), var(--safe-right)) + var(--dock-gutter, 0px));
   /* The tonal container, one block with the navigation under it: no rule along its top. */
