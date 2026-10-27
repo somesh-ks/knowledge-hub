@@ -48,12 +48,19 @@ jobs:
       # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
       - name: ffmpeg
         timeout-minutes: 5
+        # A failed or stalled install must never cost the episode: the MP3 still publishes alone.
+        continue-on-error: true
         run: |
           # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
           encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
           if ! grep -q libopus <<<"$encoders"; then
-            sudo apt-get update -qq
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends ffmpeg
+            # The man-db trigger can take minutes after an install on the runner image, and apt
+            # waits on a slow mirror unbounded: skip the one and bound the other. Not -qq, so a
+            # stall shows its stage in the log.
+            sudo rm -f /var/lib/man-db/auto-update
+            apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+            sudo apt-get "${apt_opts[@]}" update -q
+            sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -q --no-install-recommends ffmpeg
             encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
           fi
           if ! grep -q libopus <<<"$encoders"; then
