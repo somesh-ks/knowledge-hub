@@ -15,12 +15,7 @@ import {
   segmentPrefix,
 } from "../audio/segmentStore.js";
 import type { SpeechMark, SynthesisRequest } from "../audio/speechify.js";
-import {
-  DEFAULT_MODEL,
-  DEFAULT_OUTPUT_FORMAT,
-  durationFromMp3Bytes,
-  isMarksUnavailable,
-} from "../audio/speechify.js";
+import { DEFAULT_MODEL, DEFAULT_OUTPUT_FORMAT, isMarksUnavailable } from "../audio/speechify.js";
 import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 import type { BlobClient } from "./blob.js";
 import type { DigestAudioOutcome, PublishAudioDeps, PublishAudioResult } from "./publishAudio.js";
@@ -186,15 +181,16 @@ export async function publishEpisodeOpus(
       if (!bytes) throw new Error(`${segment.key} is not stored`);
       mp3s.push(bytes);
     }
-    // The lengths the site works out from the same files' sizes, so the offsets here and the
-    // spans of the turn-by-turn fallback agree.
+    // The lengths come from the joined files themselves: a size-based estimate drifts by the
+    // encoder padding of every turn, and the transcript would run ahead of the voice.
+    const { audio: m4a, durations_ms } = await transcodeEpisodeOpus(mp3s);
+    if (durations_ms.length !== plan.segments.length) throw new Error("a turn has no length");
     const manifest = episodeOpusManifest(
-      mp3s.map((mp3, index) => ({
-        key: plan.segments[index]?.key ?? "",
-        duration_ms: durationFromMp3Bytes(mp3.byteLength, DEFAULT_OUTPUT_FORMAT),
+      plan.segments.map((segment, index) => ({
+        key: segment.key,
+        duration_ms: durations_ms[index] ?? 0,
       })),
     );
-    const m4a = await transcodeEpisodeOpus(mp3s);
     await putWithRetry(deps, address.path, m4a, OPUS_CONTENT_TYPE);
     await putWithRetry(
       deps,

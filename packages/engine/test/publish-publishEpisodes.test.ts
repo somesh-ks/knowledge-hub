@@ -6,7 +6,6 @@ import {
   planEpisodeNarration,
   segmentMarksPath,
 } from "../src/audio/segmentStore.js";
-import { DEFAULT_OUTPUT_FORMAT, durationFromMp3Bytes } from "../src/audio/speechify.js";
 import type { PublishAudioDeps } from "../src/publish/publishAudio.js";
 import { listEpisodeCandidates, publishEpisodeAudio } from "../src/publish/publishEpisodes.js";
 import type { FakeBlob, FakeSpeech, TempRoot } from "./audio-fixtures.js";
@@ -26,6 +25,8 @@ import {
 
 const NOW = new Date("2026-10-20T06:00:00Z");
 const ENV = { SPEECHIFY_VOICE_ID: "geffen_32" };
+/** The length the stubbed transcode measures for every turn. */
+const STUB_TURN_MS = 1500;
 
 function episodeFile(id: string): string {
   const front = stringify({
@@ -126,7 +127,7 @@ describe("episode pre-narration", () => {
         ...deps,
         async transcodeEpisodeOpus(mp3s) {
           joined.push(mp3s.map((mp3) => mp3.byteLength));
-          return new Uint8Array([9, 9]);
+          return { audio: new Uint8Array([9, 9]), durations_ms: mp3s.map(() => STUB_TURN_MS) };
         },
         async fetchAudio(url) {
           const pathname = url.split(".vercel-storage.com/")[1] ?? "";
@@ -135,7 +136,7 @@ describe("episode pre-narration", () => {
       };
     });
 
-    it("lays the turns end to end in the manifest, at the lengths the site reads from their sizes", async () => {
+    it("lays the turns end to end in the manifest, at the lengths the transcode measured", async () => {
       const plan = planEpisodeNarration(episodeFile(id), ENV);
       blob.seed(plan.segments[0]?.path ?? "", NOW);
       await publishEpisodeAudio(withOpus, ENV, [id]);
@@ -148,12 +149,7 @@ describe("episode pre-narration", () => {
         duration_ms: number;
         turns: { key: string; start_ms: number; end_ms: number }[];
       };
-      const lengths = plan.segments.map((segment) =>
-        durationFromMp3Bytes(
-          blob.store.get(segment.path)?.body.byteLength ?? 0,
-          DEFAULT_OUTPUT_FORMAT,
-        ),
-      );
+      const lengths = plan.segments.map(() => STUB_TURN_MS);
       expect(manifest.turns.map((turn) => turn.key)).toEqual(plan.segments.map((s) => s.key));
       expect(manifest.turns.map((turn) => turn.end_ms - turn.start_ms)).toEqual(lengths);
       expect(manifest.turns.map((turn) => turn.start_ms)).toEqual(

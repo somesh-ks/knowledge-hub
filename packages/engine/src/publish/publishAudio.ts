@@ -29,6 +29,7 @@ import {
   SpeechifyError,
 } from "../audio/speechify.js";
 import type { SpokenText } from "../audio/spokenText.js";
+import type { EpisodeOpusFile } from "../audio/transcode.js";
 import { buildSpokenText } from "../audio/spokenText.js";
 import { resolveTimeline } from "../audio/timeline.js";
 import type { Logger } from "../context.js";
@@ -59,7 +60,7 @@ export interface PublishAudioDeps {
    * stored turn back. Both set, a finished episode is also published as one .m4a with the turns'
    * offsets; a failure leaves the MP3 turns alone, so the episode still plays.
    */
-  transcodeEpisodeOpus?: (mp3s: Uint8Array[]) => Promise<Uint8Array>;
+  transcodeEpisodeOpus?: (mp3s: Uint8Array[]) => Promise<EpisodeOpusFile>;
   fetchAudio?: (url: string) => Promise<Uint8Array>;
   sleep?: (ms: number) => Promise<void>;
 }

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { EpisodeId, readEpisodeScript } from "@singularity/core";
+import { audioVersion, episodeOpusKey } from "../publish/blob.js";
 import { DEFAULT_LANGUAGE, DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
 
 /**
@@ -166,11 +167,8 @@ export function episodeOpusAddress(
   episode: string,
   segmentPaths: readonly string[],
 ): EpisodeOpusAddress {
-  const hash = createHash("sha256")
-    .update(segmentPaths.join("\n"))
-    .digest("hex")
-    .slice(0, SEGMENT_HASH_CHARS);
-  const path = `audio/${episode}/episode.${hash}.m4a`;
+  const version = audioVersion(new TextEncoder().encode(segmentPaths.join("\n")));
+  const path = episodeOpusKey(episode, version);
   return { path, manifestPath: path.replace(/\.m4a$/, ".json") };
 }
 

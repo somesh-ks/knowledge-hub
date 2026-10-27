@@ -75,14 +75,35 @@ export async function transcodeToOpus(
   }
 }
 
+/** An episode's one Opus file and the length of each turn in it, in playing order. */
+export interface EpisodeOpusFile {
+  audio: Uint8Array;
+  durations_ms: number[];
+}
+
+/** The length of an audio file as ffprobe reads it, which is what the concat joins end to end. */
+async function probeMs(file: string): Promise<number> {
+  const { stdout } = await execFileAsync(
+    "ffprobe",
+    ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file],
+    { timeout: 30_000 },
+  );
+  const ms = Math.round(Number(stdout.trim()) * 1000);
+  if (!Number.isFinite(ms) || ms <= 0) throw new Error(`ffprobe read no length from ${file}`);
+  return ms;
+}
+
 /**
  * Transcode several MP3s, played one after another, to ONE Opus in MP4 file (an episode's turns).
- * The joined file is the turns' sum, so the caller's offsets are the sum of their lengths.
+ * The turns' lengths come back with it, measured on the files: an MP3's size says its length only
+ * to within its encoder padding and tag frames, and the manifest's offsets must be where the turns
+ * really start, so the transcript does not drift off the voice.
  */
 export async function transcodeSegmentsToOpus(
   mp3s: readonly Uint8Array[],
   run: RunFfmpeg = runFfmpeg,
-): Promise<Uint8Array> {
+  probe: (file: string) => Promise<number> = probeMs,
+): Promise<EpisodeOpusFile> {
   if (mp3s.length === 0 || mp3s.some((mp3) => mp3.byteLength === 0)) {
     throw new Error("Refusing to transcode empty audio");
   }
@@ -96,7 +117,8 @@ export async function transcodeSegmentsToOpus(
     await run(opusTranscodeArgs(list, output, true));
     const bytes = await readFile(output);
     if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
-    return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const durations_ms = await Promise.all(names.map((name) => probe(join(dir, name))));
+    return { audio: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), durations_ms };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

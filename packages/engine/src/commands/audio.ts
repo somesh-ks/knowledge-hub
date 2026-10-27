@@ -6,7 +6,7 @@ import { checkBudget, describeRefusal, loadUsage, parseMonthlyChars } from "../a
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import { createSpeechifyClient } from "../audio/speechify.js";
 import { buildSpokenText } from "../audio/spokenText.js";
-import { transcodeSegmentsToOpus, transcodeToOpus } from "../audio/transcode.js";
+import { type EpisodeOpusFile, transcodeSegmentsToOpus, transcodeToOpus } from "../audio/transcode.js";
 import type { CommandContext, CommandRun } from "../context.js";
 import type { BlobClient } from "../publish/blob.js";
 import { createVercelBlobClient } from "../publish/blob.js";
@@ -23,7 +23,7 @@ export interface AudioCommandDeps {
   /** Also publish the narration as Opus in MP4. Left out, only the MP3 is published. */
   transcodeOpus?: ((mp3: Uint8Array) => Promise<Uint8Array>) | undefined;
   /** Also publish a finished episode as one Opus file (publishEpisodes.ts). Left out, only its MP3 turns. */
-  transcodeEpisodeOpus?: ((mp3s: Uint8Array[]) => Promise<Uint8Array>) | undefined;
+  transcodeEpisodeOpus?: ((mp3s: Uint8Array[]) => Promise<EpisodeOpusFile>) | undefined;
   fetchAudio?: ((url: string) => Promise<Uint8Array>) | undefined;
 }
 
