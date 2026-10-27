@@ -141,6 +141,12 @@ dialog.confirm-dialog:focus-visible {
   margin-block-start: var(--space-4);
 }
 
+/* Three choices stacked, the committing one first: the unsaved-changes guard (sheetGuard.ts). */
+.confirm-actions.is-stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 /* Red only here, once the person has asked to delete. */
 .confirm-delete {
   color: var(--color-danger);
