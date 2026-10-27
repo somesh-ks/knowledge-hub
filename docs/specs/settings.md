@@ -28,7 +28,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71). The add topic panel takes Name, Description and Scope, with suggested sources, each with a plus; a topic's page lists up to five catalogue feeds that fit (D75).
 - A new topic is a list row at once, by name, with `topicEmoji`'s guess until Jev's pick (D142); its one `topic.upsert` waits for Jev (4.5 s at most). Before the build it opens `/settings/topics/new?id=`, filled from the saved edits (`fillShell`). Suggested sources show only on a topic's page.
 - Add source (beside the search from 64rem) lists its topic's suggestions; an added one shimmers, moves into Sources and the next fills its place (10 rendered, 5 shown).
-- A source row: name, address, stories that reached a briefing, a star rating or "Not scored yet" (D83, D102, D103), a checkbox. It opens a side panel (full screen on a phone) to rename, move, favorite (`high_signal`: every post reaches the judge), open or Delete: a confirm, the row goes at once, the removal waits 5 s with Undo (D56, D125, D129, D142). A source added from the panel keeps the page's id.
+- A source row: name, address, stories that reached a briefing, a star rating or "Not scored yet" (D83, D102, D103), a checkbox. Its side panel renames, moves, favorites (`high_signal`), opens or deletes: a confirm, the row goes at once, the removal waits 5 s with Undo (D56, D125, D129, D142). A source added from the panel keeps the page's id.
 - `GET /api/source-preview` is behind an SSRF guard.
 
 ### Model
@@ -39,7 +39,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with the rest in one request, also when the page is left: waiting edits are kept in storage, marked pending, for up to 90 s (D91).
 - Scenario: WHEN the held request fails THEN the open page shows "Not saved yet" with the reason and Retry, and the index says "Your last change was not saved." (D98). Elsewhere a toast names the page with Open (D99).
 - For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`singularity:saved-edits`, D79, D115).
-- With the config store on (D149) a settings page lays what the store holds over its built copy; slow or down, what this device last read (D172), else the build.
+- With the config store on (D149) a settings page shows what this device last read at once, offers a newer store answer as a reload (D172, D173), and with no copy waits for the store (index lines too).
 
 ### Blocked outlets and votes
 - A user profile (`config/profiles/owner.json`) holds blocked domains and story votes (D108). A blocked outlet is cut on every fetch path. Votes nudge ranking, the Firecrawl listing order and the writer.
