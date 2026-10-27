@@ -29,12 +29,10 @@ function fakeStorage(initial: Record<string, string> = {}): Storage {
 
 describe("loadStore", () => {
   // The bug (D172): with the store on, a settings page that could not get the store's answer in time
-  // (Neon waking, the phone offline) showed the build's copy, a run old, as if it were current. Then
-  // (owner, 2026-10-27): the page waited a grace for the store before the copy, so the held values
-  // painted late; the copy is the page's at once.
-  it("answers from the device's last copy at once, and keeps the store's newer answer for the next read", async () => {
+  // (Neon waking, the phone offline) showed the build's copy, a run old, as if it were current.
+  it("answers from the device's last copy when the store is slow, and keeps the store's newer answer", async () => {
     vi.useFakeTimers();
-    const { CACHE_KEY, loadStore, storeRead } = await fresh();
+    const { CACHE_GRACE_MS, CACHE_KEY, loadStore, storeRead } = await fresh();
     vi.stubGlobal("document", { querySelector: () => ({ content: "built-here" }) });
     const kept = {
       status: 200,
@@ -48,24 +46,32 @@ describe("loadStore", () => {
     const answers: ((response: Response) => void)[] = [];
     vi.stubGlobal("fetch", () => new Promise<Response>((resolve) => answers.push(resolve)));
 
-    // The store has not answered: the page gets the copy with no wait.
-    expect((await loadStore(0))?.ops).toEqual([{ op: "kept" }]);
+    // The store is still silent when the grace runs out: the page gets the copy.
+    const slow = loadStore(0);
+    await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
+    expect((await slow)?.ops).toEqual([{ op: "kept" }]);
     expect(storeRead()?.ops).toEqual([{ op: "kept" }]);
 
-    // The store answers with newer edits: the next read and the copy hold them.
+    // The store answers late with newer edits: the next read and the copy hold them.
     const later = { ...kept, written_at: 2, ops: [{ op: "fresh" }] };
     answers[0]?.(Response.json(later));
     await vi.advanceTimersByTimeAsync(0);
     expect(storeRead()?.ops).toEqual([{ op: "fresh" }]);
     expect(JSON.parse(storage.getItem(CACHE_KEY) ?? "null").ops).toEqual([{ op: "fresh" }]);
 
-    // A copy from another build is not this page's: the page waits for the store, and a failed
-    // read leaves the last good answer standing.
+    // A store that answers within the grace is what the page gets, not the copy.
+    const quick = loadStore(5000);
+    answers[1]?.(Response.json({ ...later, written_at: 3, ops: [{ op: "quick" }] }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect((await quick)?.ops).toEqual([{ op: "quick" }]);
+
+    // A copy from another build is not this page's.
     storage.setItem(CACHE_KEY, JSON.stringify({ ...later, built: "elsewhere" }));
     const other = loadStore(10_000);
-    answers[1]?.(new Response(null, { status: 503 }));
-    await vi.advanceTimersByTimeAsync(0);
-    expect((await other)?.ops).toEqual([{ op: "fresh" }]);
+    answers[2]?.(new Response(null, { status: 503 }));
+    await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
+    // The failed read leaves the last good answer standing for the page.
+    expect((await other)?.ops).toEqual([{ op: "quick" }]);
   });
 
   // The bug: whichever read ended last set what the page used, so a slow first read that failed
@@ -124,7 +130,7 @@ describe("loadStore", () => {
   // tracked: only a write newer than it comes from another device.
   it("offers a reload only for a write newer than this device's own save", async () => {
     vi.useFakeTimers();
-    const { CACHE_KEY, loadStore } = await fresh();
+    const { CACHE_GRACE_MS, CACHE_KEY, loadStore } = await fresh();
     const { remember } = await import("./managePageSave");
     const { TOAST_EVENT } = await import("./toastEvent");
     const toasts: unknown[] = [];
@@ -148,14 +154,14 @@ describe("loadStore", () => {
     // This device saved an edit the store stamped 5; the next page view finds it in the store.
     remember(own as unknown as ConfigOp[], 0, [], 5);
     void loadStore(0);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
     answers[0]?.(answer(5, own));
     await vi.advanceTimersByTimeAsync(0);
     expect(toasts).toEqual([]);
 
     // A write after it, from another device, is still offered.
     void loadStore(5000);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(CACHE_GRACE_MS);
     answers[1]?.(answer(9, []));
     await vi.advanceTimersByTimeAsync(0);
     expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);

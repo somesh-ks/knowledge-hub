@@ -39,7 +39,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with the rest in one request, also when the page is left: waiting edits are kept in storage, marked pending, for up to 90 s (D91).
 - Scenario: WHEN the held request fails THEN the open page shows "Not saved yet" with the reason and Retry, and the index says "Your last change was not saved." (D98). Elsewhere a toast names the page with Open (D99).
 - For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`singularity:saved-edits`, D79, D115).
-- With the config store on (D149) a settings page shows what this device last read at once, offers a newer store answer as a reload (D172, D173), and with no copy waits for the store (index lines too).
+- With the config store on (D149) a settings page lays what the store holds over its built copy; slow or down, what this device last read (D172), else the build. What it changes, index lines too, waits hidden.
 
 ### Blocked outlets and votes
 - A user profile (`config/profiles/owner.json`) holds blocked domains and story votes (D108). A blocked outlet is cut on every fetch path. Votes nudge ranking, the Firecrawl listing order and the writer.

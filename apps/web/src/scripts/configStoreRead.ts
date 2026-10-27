@@ -7,7 +7,7 @@
  *
  * Loaded only when the build says the store is on (storeOn, lib/savedKey.ts). The device keeps the
  * last answer it read (D172): a store that is slow (Neon waking), down or unreachable (offline)
- * answers from that copy at once, so the page shows what this device last knew rather
+ * answers from that copy after a short grace, so the page shows what this device last knew rather
  * than the build, which is a run old by design. A store that answers in time, or answers later, is
  * what the next read and the copy hold; one that answers after the page is drawn, with something
  * new, is offered in a toast as a reload (D173). With no copy, an outage costs freshness, never the
@@ -23,6 +23,8 @@ const STORE_READ_LIMIT_MS = 20_000;
 
 /** One read serves the scripts of one page view; a page opened a second later asks again. */
 const REUSE_MS = 1000;
+/** How long a page waits for the store before it shows the device's copy instead, when it has one. */
+export const CACHE_GRACE_MS = 300;
 /** Where the device keeps the last answer: one build's edits, checked against the page on read. */
 export const CACHE_KEY = "singularity:store-read";
 
@@ -154,8 +156,8 @@ export function afterOwnSave(): void {
 }
 
 /**
- * Asks the store, once per page view: the device's copy at once when it has one, while the store is
- * still asked; else the store's answer within the wait; null when it is off, down, slow or
+ * Asks the store, once per page view: the store's answer when it comes within the grace, else the
+ * device's copy at once while the store is still asked; null when it is off, down, slow or
  * unreadable and the device has no copy.
  *
  * The page's regions the store can change (`[data-store-held]`, settings.css) wait, hidden, until
@@ -224,14 +226,25 @@ function askStore(now: number): Promise<ConfigReadBody | null> {
     });
     return Promise.race([asked.read, wait]);
   }
-  // The copy is what the page shows, at once, so the last-known values paint first and never the
-  // build's (owner, 2026-10-27). A read that ends after updates `current` for whatever reads next
-  // and the copy for the next page; one with something else, not this device's, is offered.
+  // The copy stands until the store answers; a read that ends after the grace updates `current`
+  // for whatever reads next, and the copy for the next page.
   if (current === null) current = cached;
-  void asked.read.then((later) => {
-    if (later && !isOwn(later) && sameEdits(later, cached) === false) offerReload();
+  let settled = false;
+  const fromStore = asked.read.then((body) => {
+    settled = true;
+    return body ?? cached;
   });
-  return Promise.resolve(cached);
+  const fromCache = new Promise<ConfigReadBody>((resolve) => {
+    setTimeout(() => resolve(cached), CACHE_GRACE_MS);
+  });
+  return Promise.race([fromStore, fromCache]).then((body) => {
+    // The page shows the copy: a store that answers after it, with something else, is offered.
+    if (!settled)
+      void asked.read.then((later) => {
+        if (later && !isOwn(later) && sameEdits(later, cached) === false) offerReload();
+      });
+    return settled ? body : cached;
+  });
 }
 
 const sameEdits = (a: ConfigReadBody, b: ConfigReadBody): boolean =>
