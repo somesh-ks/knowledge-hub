@@ -139,11 +139,12 @@ export function liveDigestFrom(doc: StreamDoc, now: Date): PlayerDigestData {
     voices: doc.voices,
     format: doc.format,
     // Its cover may not be drawn yet: until the file exists the image fails and PlayerCover shows the
-    // branded fallback (cover.css), so the player never shows a broken or empty cover.
+    // branded fallback (cover.css) on the cover's own colour, so the player never shows a broken or
+    // empty cover and the placeholder already matches the episode it becomes.
     cover: {
       src512: `/covers/${doc.id}-512.webp`,
       src1024: `/covers/${doc.id}-1024.webp`,
-      key: "var(--accent)",
+      key: doc.cover_key ?? "var(--accent)",
     },
     prev_id: null,
     next_id: null,

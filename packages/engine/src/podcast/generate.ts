@@ -60,6 +60,7 @@ export interface GenerateInput {
     id: string;
     request: PodcastRequest;
     stories: readonly PodcastStory[];
+    cover: Episode["cover"];
   }) => StreamPublisher | null;
 }
 
@@ -394,6 +395,7 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
             id: selection.id,
             request: input.request,
             stories: selection.stories,
+            cover,
           }) ?? null);
     }
     return stream;

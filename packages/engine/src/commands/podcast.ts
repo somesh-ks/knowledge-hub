@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { loadModelRouting, type PodcastRequest } from "@singularity/core";
+import { type Episode, loadModelRouting, type PodcastRequest } from "@singularity/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { recordRunCosts } from "../cost/ledger.js";
 import { emit } from "../curate/output.js";
@@ -290,7 +290,12 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       const runId = process.env.GITHUB_RUN_ID;
       const makeStream =
         command.action === "create" && !dryRun && blobClient && runId
-          ? (info: { id: string; request: PodcastRequest; stories: readonly PodcastStory[] }) => {
+          ? (info: {
+              id: string;
+              request: PodcastRequest;
+              stories: readonly PodcastStory[];
+              cover: Episode["cover"];
+            }) => {
               void pruneStreams(blobClient, ctx.now(), ctx.log);
               live.stream = createStreamPublisher({
                 client: blobClient,
@@ -298,6 +303,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
                 episodeId: info.id,
                 request: info.request,
                 stories: info.stories,
+                cover: info.cover,
                 now: ctx.now,
                 log: ctx.log,
               });

@@ -31,10 +31,14 @@ export interface StreamDoc {
   hosts: { a: string; b: string } | null;
   format: "readout" | "discussion" | "headlines";
   stories: StreamStory[];
+  /** The cover box's colour until the drawn cover is deployed; a hex colour, or absent. */
+  cover_key?: string;
   updated_at: string;
 }
 
 export const STREAM_EPISODE_ID = /^ep-\d{8}-\d{4}$/;
+/** The player sets the cover colour as a CSS value, so only a plain hex colour is let through. */
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 /** A script is some thousand turns at most; a bigger document is not one of ours. */
 const MAX_TURNS = 400;
 
@@ -98,6 +102,9 @@ export function parseStreamDoc(text: string): StreamDoc | null {
         : null,
     format,
     stories: parsedStories,
+    ...(typeof raw.cover_key === "string" && HEX_COLOR.test(raw.cover_key)
+      ? { cover_key: raw.cover_key }
+      : {}),
     updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
   };
 }

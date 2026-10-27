@@ -1,4 +1,5 @@
-import type { PodcastRequest } from "@singularity/core";
+import type { Episode, PodcastRequest } from "@singularity/core";
+import { paletteAccent } from "@singularity/cover";
 import type { Logger } from "../context.js";
 import type { BlobClient } from "../publish/blob.js";
 import { episodeTitle } from "./episode.js";
@@ -36,6 +37,12 @@ export interface StreamDoc {
   format: PodcastRequest["format"];
   /** The stories the turns refer to, for the player's list. */
   stories: { item_id: string; headline: string; source: string; url: string; section: string }[];
+  /**
+   * The colour the player's cover box takes until the drawn cover is deployed (the same one the
+   * committed episode gets, `paletteAccent(...).light`). Without it a live episode shows the site's
+   * accent on a generic mark for the minutes between Play and the deploy.
+   */
+  cover_key?: string;
   updated_at: string;
 }
 
@@ -59,8 +66,20 @@ export interface StreamPublisherInput {
   episodeId: string;
   request: PodcastRequest;
   stories: readonly PodcastStory[];
+  /** The cover chosen for the episode; its colour goes into the live copy. */
+  cover?: Episode["cover"];
   now: () => Date;
   log?: Logger;
+}
+
+/** The cover's placeholder colour, or undefined for a palette the cover package does not know. */
+function coverKeyOf(cover: Episode["cover"] | undefined): string | undefined {
+  if (!cover) return undefined;
+  try {
+    return paletteAccent(cover.palette).light;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -73,6 +92,7 @@ export function createStreamPublisher(input: StreamPublisherInput): StreamPublis
   let status: StreamStatus = "writing";
   let last: Promise<void> = Promise.resolve();
   const hosts = request.format === "discussion" ? discussionHostNames(request) : null;
+  const coverKey = coverKeyOf(input.cover);
 
   const document = (): StreamDoc => ({
     id: input.episodeId,
@@ -89,6 +109,7 @@ export function createStreamPublisher(input: StreamPublisherInput): StreamPublis
       url: story.url,
       section: story.section,
     })),
+    ...(coverKey ? { cover_key: coverKey } : {}),
     updated_at: input.now().toISOString(),
   });
 
