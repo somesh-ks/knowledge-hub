@@ -620,7 +620,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
       "close",
       () => {
         unfit();
-        removeEventListener("singularity:back", onBack);
+        // onBack stays until the pop the entry give-back causes, so the sheet swallows it.
         const row = focusAt >= 0 ? list.querySelector(`[data-index="${focusAt}"]`) : null;
         const back =
           row?.querySelector<HTMLElement>(".structure-more, .structure-edit") ??
