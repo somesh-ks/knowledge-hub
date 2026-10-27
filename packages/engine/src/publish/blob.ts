@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { DigestId } from "@singularity/core";
+import { DigestId, EpisodeId } from "@singularity/core";
 import { del, list, put } from "@vercel/blob";
 import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 
@@ -115,6 +115,16 @@ export function audioKey(digestId: string, version?: string): string {
 export function audioOpusKey(digestId: string, version?: string): string {
   const id = DigestId.parse(digestId);
   return version === undefined ? `${AUDIO_PREFIX}${id}.m4a` : `${AUDIO_PREFIX}${id}.${version}.m4a`;
+}
+
+/**
+ * Blob key for a podcast episode's one Opus file: audio/<episode id>/episode.<version>.m4a. The
+ * version comes from audioVersion like every other narration's; the site cannot read the file, so
+ * the caller hashes what it can name (the turn files' own paths) and the key follows the script.
+ */
+export function episodeOpusKey(episodeId: string, version: string): string {
+  const id = EpisodeId.parse(episodeId);
+  return `${AUDIO_PREFIX}${id}/episode.${version}.m4a`;
 }
 
 export interface UploadAudioInput {

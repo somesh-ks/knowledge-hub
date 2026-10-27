@@ -57,7 +57,7 @@ interface Stored {
   /** When the run entered the stage it is in, for the time left. */
   stageAt?: number;
   /** The usual length of each stage in ms (the route's stage_estimates_ms), when it knows them. */
-  estimates?: number[];
+  estimates?: (number | null)[];
   /** A failed run: the stage it stopped in and what the earlier stages kept (the route's words). */
   failedStage?: string;
   kept?: string[];
@@ -78,7 +78,7 @@ const staged = (body: {
   stages: body.stages,
   label: body.label,
   estimates: Array.isArray(body.stage_estimates_ms)
-    ? (body.stage_estimates_ms as number[])
+    ? (body.stage_estimates_ms as (number | null)[])
     : undefined,
   failedStage: typeof body.failed_stage === "string" ? body.failed_stage : undefined,
   kept: Array.isArray(body.kept) ? body.kept.map(String) : undefined,

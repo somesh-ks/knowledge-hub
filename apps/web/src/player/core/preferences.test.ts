@@ -29,9 +29,15 @@ describe("parsePreferences", () => {
 
   it("keeps valid fields and replaces invalid ones one by one", () => {
     const parsed = parsePreferences(
-      JSON.stringify({ theme: "dark", sounds: false, volume: 4, rate: 1.5 }),
+      JSON.stringify({ theme: "dark", sounds: false, volume: 4, rate: 1.5, autoplay: false }),
     );
-    expect(parsed).toEqual({ theme: "dark", sounds: false, volume: 1, rate: 1.5 });
+    expect(parsed).toEqual({
+      theme: "dark",
+      sounds: false,
+      volume: 1,
+      rate: 1.5,
+      autoplay: false,
+    });
     const partial = parsePreferences(JSON.stringify({ theme: "neon", rate: 3, volume: "loud" }));
     expect(partial).toEqual(DEFAULT_PREFERENCES);
   });

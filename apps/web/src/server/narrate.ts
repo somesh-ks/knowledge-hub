@@ -61,6 +61,7 @@ import type { ApiResult } from "./http";
 import { NARRATE_DAILY_CAP } from "./limits";
 import {
   deriveSegmentMarks,
+  describeEpisodeOpus,
   describeSegments,
   SEGMENT_KEY,
   segmentAudio,
@@ -606,23 +607,24 @@ async function lookupEpisode(id: string, deps: LookupDeps): Promise<NarrateResul
   if (!("episode" in script)) return script;
   const voices = hostVoices(deps.env, script.episode.request);
   if (voices === null) return unavailable;
+  const publicBase = readPublicBlobBase(deps.env);
+  const voiceOf = (key: string): string => (script.speakers.get(key) === "b" ? voices.b : voices.a);
+  // A finished episode may also be stored as one Opus file; a script still being written never is.
+  const opus = script.live
+    ? null
+    : describeEpisodeOpus(script.segments, publicBase, id, voiceOf, DEFAULT_MODEL);
   return {
     status: 200,
     // A script still being written grows between two lookups, so it is not kept at the edge.
     headers: { "Cache-Control": script.live ? "private, no-store" : LOOKUP_CACHE_CONTROL },
     body: {
       status: 200,
-      // An episode is narrated turn by turn. There is no whole-episode file to offer.
+      // An episode is narrated turn by turn. The single file, when there is one, is `opus`.
       audio: null,
       timeline: null,
-      segments: describeSegments(
-        script.segments,
-        readPublicBlobBase(deps.env),
-        id,
-        (key) => (script.speakers.get(key) === "b" ? voices.b : voices.a),
-        DEFAULT_MODEL,
-      ),
+      segments: describeSegments(script.segments, publicBase, id, voiceOf, DEFAULT_MODEL),
       ms_per_character: MS_PER_CHARACTER,
+      ...(opus ? { opus } : {}),
     },
   };
 }

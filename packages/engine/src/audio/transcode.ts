@@ -15,12 +15,14 @@ export const OPUS_BITRATE_KBPS = 32;
 export const OPUS_CONTENT_TYPE = "audio/mp4";
 
 /** The ffmpeg arguments for one MP3 to Opus transcode: mono, speech-tuned, no metadata. */
-export function opusTranscodeArgs(input: string, output: string): string[] {
+export function opusTranscodeArgs(input: string, output: string, concat = false): string[] {
   return [
     "-hide_banner",
     "-loglevel",
     "error",
     "-y",
+    // A list file of MP3s joined end to end, for an episode made of turns.
+    ...(concat ? ["-f", "concat", "-safe", "0"] : []),
     "-i",
     input,
     "-vn",
@@ -68,6 +70,58 @@ export async function transcodeToOpus(
     const bytes = await readFile(output);
     if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
     return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/** An episode's one Opus file and the length of each turn in it, in playing order. */
+export interface EpisodeOpusFile {
+  audio: Uint8Array;
+  durations_ms: number[];
+}
+
+/** The length of an audio file as ffprobe reads it, which is what the concat joins end to end. */
+async function probeMs(file: string): Promise<number> {
+  const { stdout } = await execFileAsync(
+    "ffprobe",
+    ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file],
+    { timeout: 30_000 },
+  );
+  const ms = Math.round(Number(stdout.trim()) * 1000);
+  if (!Number.isFinite(ms) || ms <= 0) throw new Error(`ffprobe read no length from ${file}`);
+  return ms;
+}
+
+/**
+ * Transcode several MP3s, played one after another, to ONE Opus in MP4 file (an episode's turns).
+ * The turns' lengths come back with it, measured on the files: an MP3's size says its length only
+ * to within its encoder padding and tag frames, and the manifest's offsets must be where the turns
+ * really start, so the transcript does not drift off the voice.
+ */
+export async function transcodeSegmentsToOpus(
+  mp3s: readonly Uint8Array[],
+  run: RunFfmpeg = runFfmpeg,
+  probe: (file: string) => Promise<number> = probeMs,
+): Promise<EpisodeOpusFile> {
+  if (mp3s.length === 0 || mp3s.some((mp3) => mp3.byteLength === 0)) {
+    throw new Error("Refusing to transcode empty audio");
+  }
+  const dir = await mkdtemp(join(tmpdir(), "singularity-opus-"));
+  try {
+    const names = mp3s.map((_, index) => `in${index}.mp3`);
+    await Promise.all(mp3s.map((mp3, index) => writeFile(join(dir, names[index] ?? ""), mp3)));
+    const list = join(dir, "list.txt");
+    await writeFile(list, names.map((name) => `file '${name}'\n`).join(""));
+    const output = join(dir, "out.m4a");
+    await run(opusTranscodeArgs(list, output, true));
+    const bytes = await readFile(output);
+    if (bytes.byteLength === 0) throw new Error("ffmpeg wrote an empty file");
+    const durations_ms = await Promise.all(names.map((name) => probe(join(dir, name))));
+    return {
+      audio: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      durations_ms,
+    };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

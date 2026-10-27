@@ -36,6 +36,8 @@ export interface MediaSessionDeps {
   createMetadata?: (init: MediaMetadataInit) => MediaMetadata;
   onVisibilityChange?: (callback: () => void) => () => void;
   isHidden?: () => boolean;
+  /** Next on the last story: the queue, or else the suggested item, starts. */
+  onNextPastEnd?: () => void;
 }
 
 /** The PNG beside a cover's WebP. */
@@ -96,7 +98,7 @@ export function attachMediaSession(store: PlayerStore, deps: MediaSessionDeps = 
       store.previous("ui");
     },
     nexttrack: () => {
-      store.next("ui");
+      if (!store.next("ui")) deps.onNextPastEnd?.();
     },
   };
 

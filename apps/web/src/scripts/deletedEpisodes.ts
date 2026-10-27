@@ -40,7 +40,7 @@ const cardId = (card: Element): string =>
 export function rememberDeleted(id: string): void {
   save(addDeleted(load(), id, Date.now()));
   // install() ran before this delete (or on an earlier one), so the queue and download need it now.
-  dropFromDevice();
+  dropFromDevice(id);
 }
 
 /** Drops from `doc` what the list hides, and tidies the list when `doc` is the Library. */
@@ -82,8 +82,10 @@ function leaveIfDeleted(): void {
 }
 
 /** A deleted episode leaves this device's queue and its offline copy: it must never play from either. */
-function dropFromDevice(): void {
+function dropFromDevice(accepted?: string): void {
   const gone = new Set(load().map((entry) => entry.id));
+  // The accepted id counts even when blocked storage could not keep it.
+  if (accepted) gone.add(accepted);
   if (!gone.size) return;
   try {
     const queued = parseQueue(localStorage.getItem(QUEUE_KEY));

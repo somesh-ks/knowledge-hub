@@ -277,7 +277,7 @@ export async function handleStatus(
             state,
             step: null,
             ...stageFields(episodeStage(steps)),
-            ...(estimates ? { stage_estimates_ms: estimates as number[] } : {}),
+            ...(estimates ? { stage_estimates_ms: estimates } : {}),
           },
         };
       }

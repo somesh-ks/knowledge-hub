@@ -221,6 +221,20 @@ export const PROFILE_LABEL: Record<StructureProfile, string> = {
   custom: "Custom",
 };
 
+/** One plain line on what a profile changes in an episode: the card on Preferences shows it. */
+export const PROFILE_NOTE: Record<StructureProfile, string> = {
+  artist: "Leans on design and visual craft, with a little AI and tech.",
+  designer: "Design and interface craft first, then AI, tech and launches.",
+  founder: "Tech, AI and what is trending, with a nod to design and launches.",
+  general: "A balanced mix of design, software, AI and tech.",
+  journalist: "More top stories and trending news, fewer deep dives.",
+  product_manager: "AI and tech first, then design, with launches and software.",
+  researcher: "Heavy on AI, with software, tech and launches.",
+  software_engineer: "Software and launches first, then AI and tech.",
+  student: "AI, software and tech, to build a broad footing.",
+  custom: "Your own list of blocks, kept as you edited it.",
+};
+
 /** Minutes the presets' counts are written for; an episode of another length scales them. */
 export const REFERENCE_MINUTES = 10;
 

@@ -45,7 +45,7 @@
   --ink-end: 0.438;
 }
 
-:is(.icon[data-icon="pencil"], :has(> .icon[data-icon="pencil"])) {
+:is(.icon[data-icon="pencilSimple"], :has(> .icon[data-icon="pencilSimple"])) {
   --ink-end: 0.094;
 }
 

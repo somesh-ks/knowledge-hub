@@ -734,13 +734,131 @@ describe("source ops", () => {
     expect(repo.dirty()).toEqual(["config/sources.user.json"]);
   });
 
+  it("opts a seed source in to the Alexandria read through its override, and null clears it", async () => {
+    const blog = makeSource({
+      id: "anthropic-blog",
+      name: "Anthropic Blog",
+      type: "firecrawl",
+      url: "https://www.anthropic.com/news",
+    });
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({ version: 1, sources: [...SEED_SOURCES, blog] }),
+    );
+    const on = await apply({
+      op: "source.update",
+      id: "anthropic-blog",
+      fetch_via: "alexandria:anthropic-com",
+    });
+    expect(on.code).toBe(0);
+    const merged = async () =>
+      (await loadSources(repo.root)).sources.find((s) => s.id === "anthropic-blog");
+    expect((await merged())?.options).toEqual({
+      via: "alexandria:anthropic-com",
+      category: "news",
+    });
+    expect(repo.dirty()).toEqual(["config/sources.user.json"]);
+    await apply({ op: "source.update", id: "anthropic-blog", fetch_via: null });
+    expect((await merged())?.options).toEqual({});
+  });
+
+  it("keeps a seed source's other override options when the route is set and cleared", async () => {
+    const blog = makeSource({
+      id: "anthropic-blog",
+      name: "Anthropic Blog",
+      type: "firecrawl",
+      url: "https://www.anthropic.com/news",
+    });
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({ version: 1, sources: [...SEED_SOURCES, blog] }),
+    );
+    await writeFileIn(
+      "config/sources.user.json",
+      JSON.stringify({
+        version: 1,
+        added: [],
+        overrides: { "anthropic-blog": { options: { limit: "5" } } },
+      }),
+    );
+    await apply({
+      op: "source.update",
+      id: "anthropic-blog",
+      fetch_via: "alexandria:anthropic-com",
+    });
+    const user = () => loadUserSources(repo.root);
+    expect((await user()).overrides["anthropic-blog"]?.options).toEqual({
+      limit: "5",
+      via: "alexandria:anthropic-com",
+      category: "news",
+    });
+    await apply({ op: "source.update", id: "anthropic-blog", fetch_via: null });
+    expect((await user()).overrides["anthropic-blog"]?.options).toEqual({ limit: "5" });
+  });
+
+  it("clears a route the seed file itself carries, which an override alone would not remove", async () => {
+    const blog = makeSource({
+      id: "anthropic-blog",
+      name: "Anthropic Blog",
+      type: "firecrawl",
+      url: "https://www.anthropic.com/news",
+      options: { via: "alexandria:anthropic-com", category: "news", limit: "5" },
+    });
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({ version: 1, sources: [...SEED_SOURCES, blog] }),
+    );
+    await apply({ op: "source.update", id: "anthropic-blog", fetch_via: null });
+    const merged = (await loadSources(repo.root)).sources.find((s) => s.id === "anthropic-blog");
+    expect(merged?.options.via).not.toBe("alexandria:anthropic-com");
+    expect(merged?.options.limit).toBe("5");
+  });
+
+  it("refuses an Alexandria read for a source the Firecrawl fetcher does not read", async () => {
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({
+        version: 1,
+        sources: [
+          ...SEED_SOURCES,
+          makeSource({
+            id: "anthropic-rss",
+            name: "Anthropic RSS",
+            type: "rss",
+            url: "https://www.anthropic.com/rss",
+          }),
+        ],
+      }),
+    );
+    const refused = await apply({
+      op: "source.update",
+      id: "anthropic-rss",
+      fetch_via: "alexandria:anthropic-com",
+    });
+    expect(refused.code).toBe(1);
+    expect(repo.dirty()).toEqual([]);
+  });
+
+  it("refuses an Alexandria read for a source of another site", async () => {
+    const refused = await apply({
+      op: "source.update",
+      id: "alpha",
+      fetch_via: "alexandria:anthropic-com",
+    });
+    expect(refused.code).toBe(1);
+    expect(repo.errors.join("\n")).toContain("anthropic.com only");
+    expect(repo.dirty()).toEqual([]);
+  });
+
   it("refuses an unknown source or topic, and an update that changes nothing", async () => {
     expect((await apply({ op: "source.update", id: "ghost", name: "Ghost" })).code).toBe(1);
     expect(repo.errors.join("\n")).toContain("There is no source ghost.");
     expect((await apply({ op: "source.update", id: "alpha", topic_ids: ["nope"] })).code).toBe(1);
     expect(repo.errors.join("\n")).toContain("There is no topic nope.");
     expect((await apply({ op: "source.update", id: "alpha" })).code).toBe(1);
-    expect(repo.errors.join("\n")).toContain("set name, topic_ids, format, lean or any of them");
+    expect(repo.errors.join("\n")).toContain(
+      "set name, topic_ids, format, lean, fetch_via or any of them",
+    );
     expect(repo.dirty()).toEqual([]);
   });
 

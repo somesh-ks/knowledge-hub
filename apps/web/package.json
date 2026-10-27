@@ -14,8 +14,8 @@
     "e2e:player": "playwright test -c src/player/e2e/playwright.config.ts"
   },
   "dependencies": {
-    "@astrojs/react": "^7.0.0",
-    "@astrojs/vercel": "11.0.15",
+    "@astrojs/react": "^7.1.1",
+    "@astrojs/vercel": "11.0.16",
     "@base-ui/react": "^1.9.0",
     "@singularity/core": "*",
     "@singularity/cover": "*",
@@ -23,7 +23,7 @@
     "@singularity/sound": "*",
     "@vercel/blob": "^2.8.1",
     "@vercel/functions": "^3.9.11",
-    "astro": "^7.3.8",
+    "astro": "^7.4.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.1",
     "sharp": "^0.35.5",

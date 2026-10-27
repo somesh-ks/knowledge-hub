@@ -1,4 +1,4 @@
-import { planEpisodeNarration } from "@singularity/engine/segments";
+import { episodeOpusAddress, planEpisodeNarration } from "@singularity/engine/segments";
 import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import { createFakeBlobStore, FAKE_BLOB_HOST } from "../testing/fakeBlobStore";
@@ -236,11 +236,20 @@ describe("GET /api/narrate for an episode", () => {
       const context = setup({ files: new Map([[ID, file]]) });
       // As the route runs it: the second voice is filled in when nothing sets it.
       context.deps.env = withSecondVoice({ ...context.deps.env, ...env });
-      const { segments } = lookupBody(await lookup(context));
+      const { segments, opus } = lookupBody(await lookup(context));
       const plan = planEpisodeNarration(file, env);
       expect(segments.map((segment) => segment.audio?.url)).toEqual(
         plan.segments.map((segment) => `${FAKE_BLOB_HOST}/${segment.path}`),
       );
+      // And the single Opus file the engine stores after them, under the name it gives it.
+      const address = episodeOpusAddress(
+        ID,
+        plan.segments.map((segment) => segment.path),
+      );
+      expect(opus).toEqual({
+        url: `${FAKE_BLOB_HOST}/${address.path}`,
+        manifest_url: `${FAKE_BLOB_HOST}/${address.manifestPath}`,
+      });
     }
   });
 

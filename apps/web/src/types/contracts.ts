@@ -146,7 +146,7 @@ export interface StatusResponse {
    * Usual length of each stage in milliseconds, matching the stages, when the engine knows them.
    * The page turns it into "About N min left"; without it the page shows the stage name only.
    */
-  stage_estimates_ms?: number[];
+  stage_estimates_ms?: (number | null)[];
   /** A failed episode run: the stage it stopped in ("gathering", "script", "cover", "voices", "publishing"). */
   failed_stage?: string;
   /** A failed episode run: the artifacts the earlier stages finished ("script", "cover", "voices"). */
@@ -266,6 +266,12 @@ export type NarrateLookupResponse =
       segments: NarrationSegment[];
       /** An estimate of the voice's pace, for laying out segments that have no audio yet. */
       ms_per_character: number;
+      /**
+       * A finished episode as one Opus in MP4 file, with a manifest of where each turn sits in it.
+       * Both are where the files WOULD be, not proof: the manifest is fetched first and the file
+       * is used only when it is there. Absent for a briefing and for an episode still being written.
+       */
+      opus?: { url: string; manifest_url: string };
     }
   | NarrateError;
 
@@ -330,6 +336,8 @@ export type ConfigOp =
       lean?: number | null;
       /** A favorite: every post goes to the judge, ranked up, with no keyword needed. */
       high_signal?: boolean;
+      /** Opt in to a provider read ("alexandria:anthropic-com", anthropic.com only); null is the default scrape. */
+      fetch_via?: "alexandria:anthropic-com" | null;
     }
   | { op: "source.remove"; id: string }
   | {

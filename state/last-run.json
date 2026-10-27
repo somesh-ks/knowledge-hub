@@ -1,10 +1,10 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "graphite-signal",
-    "template": "lattice"
+    "palette": "indigo-aqua",
+    "template": "dither"
   },
-  "last_fetch_at": "2026-10-25T08:47:38.193Z",
+  "last_fetch_at": "2026-10-27T04:20:39.611Z",
   "on_demand": {
     "at": "2026-10-24T12:52:42.746Z",
     "digest_id": "2026-10-24",
@@ -12,21 +12,31 @@
     "outcome": "published"
   },
   "regular": {
-    "at": "2026-10-24T05:40:58.187Z",
-    "digest_id": "2026-10-24",
-    "items": 7,
+    "at": "2026-10-27T05:57:00.089Z",
+    "digest_id": "2026-10-27",
+    "generated_at": "2026-10-27T04:23:31.433Z",
+    "items": 3,
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-10-25T08:52:38.590Z",
+    "at": "2026-10-27T05:57:00.089Z",
     "firecrawl_rate_limited": 0,
-    "firecrawl_skipped": [],
+    "firecrawl_skipped": [
+      "jhey-tompkins",
+      "lee-robinson",
+      "material-design-blog",
+      "meta-ai-blog",
+      "rauno-freiberg",
+      "the-batch",
+      "toools-newsletter",
+      "xai-blog"
+    ],
     "requests": {
-      "anthropic": 44,
+      "anthropic": 11,
       "exa": 14,
-      "firecrawl_listing": 15,
-      "firecrawl_scrape": 7,
-      "jev": 688
+      "firecrawl_listing": 7,
+      "firecrawl_scrape": 6,
+      "jev": 484
     }
   },
   "weekly": {
