@@ -336,6 +336,8 @@ export type ConfigOp =
       lean?: number | null;
       /** A favorite: every post goes to the judge, ranked up, with no keyword needed. */
       high_signal?: boolean;
+      /** Opt in to a provider read ("alexandria:anthropic-com", anthropic.com only); null is the default scrape. */
+      fetch_via?: "alexandria:anthropic-com" | null;
     }
   | { op: "source.remove"; id: string }
   | {

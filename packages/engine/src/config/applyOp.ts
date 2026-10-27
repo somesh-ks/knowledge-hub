@@ -1,5 +1,6 @@
 import {
   applyVotes,
+  FETCH_VIA,
   GENERAL_TOPICS,
   isBuiltinCategory,
   isBuiltinSection,
@@ -382,6 +383,40 @@ function updateSource(
   const source = added ?? next.registry.sources.find((s) => s.id === op.id);
   if (!source) throw new ConfigOpError(`There is no source ${op.id}.`);
   const before = source.name;
+  const via = op.fetch_via;
+  if (via) {
+    const host = new URL(source.url).hostname;
+    if (host !== FETCH_VIA[via].host && !host.endsWith(`.${FETCH_VIA[via].host}`)) {
+      throw new ConfigOpError(`${via} reads ${FETCH_VIA[via].host} only, not ${source.name}.`);
+    }
+    // Only the Firecrawl fetcher reads options.via, so any other type would persist a dead route.
+    if (source.type !== "firecrawl") {
+      throw new ConfigOpError(`${via} applies to a Firecrawl source only, not ${source.name}.`);
+    }
+  }
+  if (via !== undefined) {
+    // The fetcher reads options.via and options.category (engine/fetch/firecrawl.ts).
+    const set: Record<string, string> =
+      via === null ? {} : { via, category: FETCH_VIA[via].category };
+    if (added) {
+      const { via: _via, category: _category, ...rest } = added.options;
+      added.options = { ...rest, ...set };
+    } else {
+      const { options: own, ...rest } = next.sourcesUser.overrides[op.id] ?? {};
+      const { via: _via, category: _category, ...kept } = own ?? {};
+      const options: Record<string, string> = { ...kept, ...set };
+      // mergeUserSources keeps a seed's own options under an override, so a clear must mask them:
+      // an empty value is no route to the fetcher, which compares options.via to a provider name.
+      if (via === null) {
+        for (const key of ["via", "category"]) {
+          // `source` is the merged source: a key the override never set came from the seed file.
+          if (source.options?.[key] !== undefined && own?.[key] === undefined) options[key] = "";
+        }
+      }
+      next.sourcesUser.overrides[op.id] =
+        Object.keys(options).length > 0 ? { ...rest, options } : rest;
+    }
+  }
   if (added) {
     if (op.name !== undefined) added.name = op.name;
     if (topicIds !== undefined) {
@@ -406,9 +441,14 @@ function updateSource(
   let summary: string;
   if (rename === null && topicIds === undefined) {
     summary =
-      op.high_signal !== undefined && op.format === undefined && op.lean === undefined
-        ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
-        : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
+      via !== undefined &&
+      op.high_signal === undefined &&
+      op.format === undefined &&
+      op.lean === undefined
+        ? `set how source ${tidy(before)} is fetched`
+        : op.high_signal !== undefined && op.format === undefined && op.lean === undefined
+          ? `${op.high_signal ? "favorite" : "unfavorite"} source ${tidy(before)}`
+          : `set ${op.lean === undefined ? "format" : "lean"} of source ${tidy(before)}`;
   } else if (rename === null) summary = `move source ${tidy(before)} to ${where}`;
   else if (topicIds === undefined) summary = rename;
   else summary = `${rename} and move it to ${where}`;
