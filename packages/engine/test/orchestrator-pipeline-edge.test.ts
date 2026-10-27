@@ -273,13 +273,20 @@ describe("a run that died before the commit stage", () => {
 });
 
 describe("grounding and validation", () => {
+  /**
+   * A summary the checker supports in no sentence. One bad sentence beside good ones is cut and the
+   * story kept (groundingRepair.ts), so a story that must be dropped has nothing supported left.
+   */
+  const NOTHING_SUPPORTED =
+    "UNSUPPORTED claim about springs that the source never states in any way. UNSUPPORTED claim about drawers that the source never states in any way either. UNSUPPORTED claim about toasts and every other control on the page.";
+
   function writerUnsupportedFor(ids: readonly string[]) {
     return fakeWriter({
       write: (material) =>
         ids.includes(material.id)
           ? {
               ...okWritten(material),
-              summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+              summary: NOTHING_SUPPORTED,
             }
           : okWritten(material),
     });
@@ -297,7 +304,7 @@ describe("grounding and validation", () => {
         unsupported.push(material.id);
         return {
           ...okWritten(material),
-          summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+          summary: NOTHING_SUPPORTED,
         };
       },
     });
@@ -442,7 +449,7 @@ describe("grounding and validation", () => {
         if (!bad) return ok;
         return cut === "voice" && refill === null
           ? { ...ok, summary: `${ok.summary} It ships \u2014 today.` }
-          : { ...ok, summary: `UNSUPPORTED claim about springs. ${ok.summary}` };
+          : { ...ok, summary: NOTHING_SUPPORTED };
       },
     });
     const calls = { write: 0, airing: [] as string[] };
