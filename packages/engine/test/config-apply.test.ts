@@ -796,6 +796,24 @@ describe("source ops", () => {
     expect((await user()).overrides["anthropic-blog"]?.options).toEqual({ limit: "5" });
   });
 
+  it("clears a route the seed file itself carries, which an override alone would not remove", async () => {
+    const blog = makeSource({
+      id: "anthropic-blog",
+      name: "Anthropic Blog",
+      type: "firecrawl",
+      url: "https://www.anthropic.com/news",
+      options: { via: "alexandria:anthropic-com", category: "news", limit: "5" },
+    });
+    await writeFileIn(
+      "config/sources.json",
+      JSON.stringify({ version: 1, sources: [...SEED_SOURCES, blog] }),
+    );
+    await apply({ op: "source.update", id: "anthropic-blog", fetch_via: null });
+    const merged = (await loadSources(repo.root)).sources.find((s) => s.id === "anthropic-blog");
+    expect(merged?.options.via).not.toBe("alexandria:anthropic-com");
+    expect(merged?.options.limit).toBe("5");
+  });
+
   it("refuses an Alexandria read for a source the Firecrawl fetcher does not read", async () => {
     await writeFileIn(
       "config/sources.json",

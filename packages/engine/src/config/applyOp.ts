@@ -406,7 +406,15 @@ function updateSource(
     } else {
       const { options: own, ...rest } = next.sourcesUser.overrides[op.id] ?? {};
       const { via: _via, category: _category, ...kept } = own ?? {};
-      const options = { ...kept, ...set };
+      const options: Record<string, string> = { ...kept, ...set };
+      // mergeUserSources keeps a seed's own options under an override, so a clear must mask them:
+      // an empty value is no route to the fetcher, which compares options.via to a provider name.
+      if (via === null) {
+        for (const key of ["via", "category"]) {
+          // `source` is the merged source: a key the override never set came from the seed file.
+          if (source.options?.[key] !== undefined && own?.[key] === undefined) options[key] = "";
+        }
+      }
       next.sourcesUser.overrides[op.id] =
         Object.keys(options).length > 0 ? { ...rest, options } : rest;
     }
