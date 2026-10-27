@@ -217,27 +217,27 @@ const offers = addOffers(structure.blocks, structure.sections);
         <span class="structure-reorder-icon" data-reorder-icon="check"><Icon name="check" class="icon-lg" /></span>
         <span class="create-fab-label" aria-hidden="true" data-reorder-label>Reorder</span>
       </button>
-    </div>
 
-    {/* What leaving Custom asks (structureEditor.ts): the shared confirm dialog, saying the owner's
-         own list is kept and comes back with Custom (owner, 2026-10-27). */}
-    <dialog
-      class="confirm-dialog"
-      aria-labelledby="profile-confirm-title"
-      aria-describedby="profile-confirm-lede"
-      data-profile-confirm
-    >
-      <div class="confirm-form">
-        <h2 class="sheet-title" id="profile-confirm-title" data-profile-confirm-title>Switch profile?</h2>
-        <p class="create-hint confirm-lede" id="profile-confirm-lede">
-          Your custom structure is kept and you can switch back.
-        </p>
-        <div class="confirm-actions">
-          <button class="btn" type="button" data-profile-keep autofocus>Cancel</button>
-          <button class="btn-primary" type="button" data-profile-replace>Switch</button>
+      {/* What leaving Custom asks (structureEditor.ts): the shared confirm dialog, saying the owner's
+           own list is kept and comes back with Custom (owner, 2026-10-27). */}
+      <dialog
+        class="confirm-dialog"
+        aria-labelledby="profile-confirm-title"
+        aria-describedby="profile-confirm-lede"
+        data-profile-confirm
+      >
+        <div class="confirm-form">
+          <h2 class="sheet-title" id="profile-confirm-title" data-profile-confirm-title>Switch profile?</h2>
+          <p class="create-hint confirm-lede" id="profile-confirm-lede">
+            Your custom structure is kept and you can switch back.
+          </p>
+          <div class="confirm-actions">
+            <button class="btn" type="button" data-profile-keep autofocus>Cancel</button>
+            <button class="btn-primary" type="button" data-profile-replace>Switch</button>
+          </div>
         </div>
-      </div>
-    </dialog>
+      </dialog>
+    </div>
 
     {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's
          sheet (full screen on a phone, a side panel from 40rem). Each part shows for the blocks that

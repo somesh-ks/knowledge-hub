@@ -9,6 +9,7 @@ import {
   StructureFile,
   scaleStructure,
   storedStructure,
+  withoutSection,
 } from "./structure.js";
 import { chooseProfile, editStructure } from "./structureChoice.js";
 
@@ -70,6 +71,19 @@ describe("the listener profile", () => {
     for (const profile of NAMED_PROFILES) {
       expect(StructureBlocks.safeParse(profileBlocks(profile, ["quantum"])).success).toBe(true);
     }
+  });
+
+  // A topic removed while Student ran left its section in the kept Custom list, so choosing Custom
+  // again ran a section that no longer exists and the editor's resend was refused.
+  it("a section removed while a named profile runs leaves the kept Custom list too", () => {
+    const kept = StructureBlocks.parse([hello, design, trending, signOff]);
+    const file = StructureFile.parse({
+      version: 1,
+      profile: "student",
+      blocks: profileBlocks("student"),
+      custom_blocks: kept,
+    });
+    expect(withoutSection(file, "design").custom_blocks).toEqual([kept[0], kept[2], kept[3]]);
   });
 
   it("Custom, then Student, then Custom again restores the owner's own list, and an edit on Student replaces it only once confirmed", () => {
