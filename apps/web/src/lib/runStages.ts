@@ -54,6 +54,26 @@ export const STAGE_IDS: Record<string, string> = {
   Publishing: "publishing",
 };
 
+/**
+ * What a failed briefing says about the step it stopped in (the status route's `step`): the
+ * sentence for the card. A briefing is published only by its last step, so every failure leaves
+ * the earlier briefing as it was.
+ */
+const BRIEFING_FAILED: Record<GenerateStep, string> = {
+  waiting: "The briefing couldn't start.",
+  reading: "The stories couldn't be gathered.",
+  judging: "The stories couldn't be chosen.",
+  writing: "The briefing couldn't be written.",
+  checking: "The facts couldn't be checked.",
+  publishing: "The briefing couldn't be published.",
+};
+
+export function briefingFailureLine(step: unknown): string | null {
+  const sentence =
+    typeof step === "string" ? (BRIEFING_FAILED as Record<string, string>)[step] : undefined;
+  return sentence ? `${sentence} Nothing was changed.` : null;
+}
+
 /** What each stage leaves behind when it finishes, by `kept` id, in the words of a sentence. */
 const KEPT_WORDS: Record<string, string> = {
   script: "the script",

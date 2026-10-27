@@ -42,8 +42,19 @@ const lines = {
     "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
   "data-retry-400": "The server turned that request down. Reload the page and try again.",
   "data-retry-network": "Couldn't reach the site. Check your connection, then try again.",
+  // A briefing (Regenerate) rides the same card: data-briefing-<state>, and its stage names come
+  // from the status route like an episode's (lib/runStages.ts). A nothing or a gated run is a done
+  // one with its own sentence; a failed one names its step (briefingFailureLine).
+  "data-briefing-queued": "Waiting for a slot",
+  "data-briefing-running": "Making your briefing",
+  "data-briefing-done": "Briefing ready",
+  "data-briefing-nothing": "Nothing cleared the bar, so the briefing stays as it was.",
+  "data-briefing-gated": "The schedule held this run back.",
+  "data-briefing-failed": "Couldn't make the briefing",
+  "data-open-briefing": "Open briefing",
   // The Create form and the New episode buttons say this while a run is still going (createPage.ts).
   "data-busy-create": "An episode is still being made. You can start another when it's ready.",
+  "data-busy-briefing": "A briefing is still being made. You can start another when it's ready.",
 };
 ---
 

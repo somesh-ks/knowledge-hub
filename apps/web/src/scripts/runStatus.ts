@@ -14,7 +14,7 @@
  * out again and the new run is followed. A finished run goes away once its episode has been opened.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { failureLine, timeLeft } from "../lib/runStages";
+import { briefingFailureLine, failureLine, timeLeft } from "../lib/runStages";
 
 const KEY = "singularity:run";
 const POLL_MS = 4000;
@@ -30,16 +30,27 @@ const SITE_POLLS = 240;
 type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed";
 /** What the run does to an episode that exists. Absent means a new episode. */
 type Kind = "regenerate" | "delete";
-/** What it takes to send a run's request again: its body. */
+/** What it takes to send a run's request again: its body, and where it goes (episodes by default). */
 export interface Retry {
   body: Record<string, unknown>;
+  endpoint?: "/api/generate";
 }
+/** A briefing run: Regenerate or Generate, followed through the same status route as an episode. */
+type What = "briefing";
 interface Stored {
   id: number;
   phase: Phase;
   kind?: Kind;
+  /** A briefing's run, not an episode's: its stages, its failure sentences and its link say so. */
+  what?: What;
   /** The episode a rewrite or a removal is about; its page disables its actions while the run goes. */
   episode?: string;
+  /** A finished briefing run that published nothing: why, for its line. */
+  outcome?: "nothing" | "gated";
+  /** The workflow step a failed briefing stopped in (the status route's `step`). */
+  step?: string;
+  /** Why a failed run stopped, in the engine's sentence for the listener (the failure record). */
+  reason?: string;
   /** Where the status route said the run is; the label is its name for the stage. */
   stage?: number;
   stages?: number;
@@ -73,7 +84,11 @@ const staged = (body: {
   stage_estimates_ms?: unknown;
   failed_stage?: unknown;
   kept?: unknown;
+  reason?: unknown;
+  step?: unknown;
 }) => ({
+  reason: typeof body.reason === "string" && body.reason ? body.reason : undefined,
+  step: typeof body.step === "string" ? body.step : undefined,
   stage: body.stage,
   stages: body.stages,
   label: body.label,
@@ -157,7 +172,9 @@ function clearTitle(): void {
 
 /** The time-left line for a run, or "" when it has nothing to say (lib/runStages.ts timeLeft). */
 function etaLine(root: HTMLElement, run: Stored | null): string {
-  if (!run || run.kind || !GOING.includes(run.phase)) return "";
+  // A failed run says why where a running one says the time left.
+  if (run?.phase === "failed" && run.reason) return run.reason;
+  if (!run || run.kind || run.what || !GOING.includes(run.phase)) return "";
   const left = timeLeft(
     run.stage ?? 0,
     run.estimates,
@@ -243,12 +260,66 @@ function samePage(href: string): boolean {
   return path === location.pathname.replace(/\/$/, "");
 }
 
+/** What the card says for a run, from the sentences the element carries (`data-<state>`). */
+export function statusLine(run: Stored, words: Record<string, string | undefined>): string {
+  const word = (key: string): string => words[key] ?? "";
+  const cap = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+  if (run.phase === "failed") {
+    if (run.note) return run.note;
+    if (run.what) return briefingFailureLine(run.step) ?? word("briefingFailed");
+    if (!run.kind) {
+      const sentence = failureLine(run.failedStage, run.kept);
+      if (sentence) return sentence;
+      if (run.label) return word("failedStage").replace("{label}", run.label.toLowerCase());
+    }
+  }
+  if (run.what) {
+    if (run.phase === "done") {
+      return word(
+        run.outcome === "nothing"
+          ? "briefingNothing"
+          : run.outcome === "gated"
+            ? "briefingGated"
+            : "briefingDone",
+      );
+    }
+    if (run.phase === "queued") return word("briefingQueued");
+    if (run.phase === "started") return word("started");
+    return run.label ?? word("briefingRunning");
+  }
+  const named = !run.kind && run.label && run.phase !== "queued";
+  // A new episode says its stage. Only a change is written, so a screen reader hears each stage once.
+  if (named && run.phase !== "done" && run.phase !== "started" && run.phase !== "failed") {
+    return run.label ?? "";
+  }
+  const key = run.kind ? run.kind + cap(run.phase) : "";
+  return words[key] ?? word(run.phase);
+}
+
+/**
+ * The page keeps room for the card as tall as the card is. Below 64rem the strip opens (a failed
+ * run opens it, and its actions take a second row), and the floating button, the toasts and the
+ * page's own foot all stack on `--run-room`, which is one line (3rem) until this says otherwise.
+ * From 64rem the side column carries the card and the page needs none.
+ */
+function keepRoom(card: HTMLElement): void {
+  if (typeof ResizeObserver !== "function") return;
+  new ResizeObserver(() => {
+    const page = document.documentElement;
+    if (card.hidden || matchMedia("(width >= 64rem)").matches)
+      page.style.removeProperty("--run-room");
+    else
+      page.style.setProperty("--run-room", `${Math.ceil(card.getBoundingClientRect().height)}px`);
+  }).observe(card);
+}
+
 function show(run: Stored | null): void {
   const root = document.querySelector<HTMLElement>("[data-run-status]");
   const card = root?.querySelector<HTMLElement>("[data-run-card]");
   if (!root || !card) return;
   if (!root.hasAttribute("data-bound")) {
     root.setAttribute("data-bound", "");
+    keepRoom(card);
     document.addEventListener("visibilitychange", clearTitle);
     root.addEventListener("click", (event) => {
       const target = event.target as Element;
@@ -276,7 +347,7 @@ function show(run: Stored | null): void {
   }
   // The new episode is the page on screen: it has been found, so the line goes and gives back the
   // room it kept.
-  if (run?.phase === "done" && run.href && samePage(run.href)) {
+  if (run?.phase === "done" && run.href && !run.what && samePage(run.href)) {
     write(null);
     run = null;
   }
@@ -295,20 +366,8 @@ function show(run: Stored | null): void {
     }
     const text = card.querySelector("[data-run-text]");
     // A rewrite in the "running" phase reads data-regenerate-running; a new episode reads data-running.
-    const key = run.kind ? run.kind + run.phase.charAt(0).toUpperCase() + run.phase.slice(1) : "";
-    // A new episode says its stage. Only a change is written, so a screen reader hears each stage once.
-    const named = !run.kind && run.label && run.phase !== "queued";
-    const line =
-      run.phase === "failed" && run.note
-        ? run.note
-        : !run.kind && run.phase === "failed" && failureLine(run.failedStage, run.kept)
-          ? failureLine(run.failedStage, run.kept)
-          : named && run.phase === "failed"
-            ? (root.dataset.failedStage ?? "").replace("{label}", run.label?.toLowerCase() ?? "")
-            : named && run.phase !== "done" && run.phase !== "started"
-              ? run.label
-              : (root.dataset[key] ?? root.dataset[run.phase]);
-    if (text && text.textContent !== (line ?? "")) text.textContent = line ?? "";
+    const line = statusLine(run, root.dataset);
+    if (text && text.textContent !== line) text.textContent = line;
     // The status region hears the line and the time left together, and only when they change.
     showEta(root, card, run);
     fill(card, run);
@@ -323,19 +382,32 @@ function show(run: Stored | null): void {
     if (library.getAttribute("href") !== href) library.setAttribute("href", href);
     // Not `data-library`: that is the Library page's own root, and a link carrying it was found first.
     library.dataset.runWords ??= library.textContent ?? "";
-    const words = run?.href ? root.dataset.open : library.dataset.runWords;
+    const words = run?.href
+      ? run.what
+        ? root.dataset.openBriefing
+        : root.dataset.open
+      : library.dataset.runWords;
     if (words && library.textContent !== words) library.textContent = words;
-    // A link to the page on screen would only load it again, so the line offers none there.
+    // A link to the page on screen would only load it again, so the line offers none there. A
+    // regenerated briefing is the exception: the page on screen is the old one, and opening it
+    // brings the new one in. One that published nothing has nothing to open.
     library.hidden =
       (run?.phase !== "done" && run?.phase !== "started") ||
       run?.kind === "delete" ||
-      samePage(href);
+      (run?.what !== undefined && run.phase === "done" && !run.href) ||
+      (samePage(href) && !run?.what);
   }
   // Listen now: offered while the episode is being written and its first turns exist; once the
   // committed episode is found, Open episode is the way in.
   const listen = card.querySelector<HTMLButtonElement>("[data-run-play]");
   if (listen) {
-    listen.hidden = !(run && !run.kind && live?.runId === run.id && GOING.includes(run.phase));
+    listen.hidden = !(
+      run &&
+      !run.kind &&
+      !run.what &&
+      live?.runId === run.id &&
+      GOING.includes(run.phase)
+    );
   }
   // A failed run links to its log, which says what went wrong.
   const log = card.querySelector<HTMLAnchorElement>("[data-run-log]");
@@ -357,8 +429,10 @@ function show(run: Stored | null): void {
   // New episode says why it cannot start another while this one is going.
   const going = run ? GOING.includes(run.phase) : false;
   for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
-    if (going) create.setAttribute("aria-description", root.dataset.busyCreate ?? "");
-    else create.removeAttribute("aria-description");
+    if (going) {
+      const busy = run?.what ? root.dataset.busyBriefing : root.dataset.busyCreate;
+      create.setAttribute("aria-description", busy ?? "");
+    } else create.removeAttribute("aria-description");
   }
   // The episode page listens, so it can disable its actions while its own episode is being changed.
   document.dispatchEvent(new Event("singularity:run"));
@@ -368,7 +442,7 @@ function show(run: Stored | null): void {
 let creep = 0;
 export function fill(card: HTMLElement, run: Stored): void {
   // A rewrite or a removal has no last stage of its own: the page has nothing to wait for.
-  const total = (run.stages ?? 3) - (run.kind ? 1 : 0);
+  const total = (run.stages ?? 3) - (run.kind || run.what ? 1 : 0);
   const stage = Math.min(run.stage ?? 0, total - 1);
   const key = `${run.id}:${run.phase}:${stage}`;
   if (card.dataset.fill === key) return;
@@ -454,7 +528,7 @@ let watching = 0;
 let live: { runId: number; doc: Record<string, unknown> } | null = null;
 
 async function watchStream(run: Stored): Promise<void> {
-  if (watching === run.id || run.kind) return;
+  if (watching === run.id || run.kind || run.what) return;
   watching = run.id;
   for (let turn = 0; turn < STREAM_POLLS && watching === run.id; turn += 1) {
     const res = await fetch(`/api/stream?run=${run.id}`, { cache: "no-store" }).catch(() => null);
@@ -492,7 +566,8 @@ async function follow(run: Stored, now: boolean): Promise<void> {
     const asked = run.retry?.body.request as
       | { format?: string; length_minutes?: number }
       | undefined;
-    const about = asked?.format ? `&format=${asked.format}&length=${asked.length_minutes}` : "";
+    const about =
+      !run.what && asked?.format ? `&format=${asked.format}&length=${asked.length_minutes}` : "";
     const res = await fetch(`/api/status?run=${run.id}${about}`).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
     // A run the status route does not know (a 4xx): the episode was started all the same, so say
@@ -501,6 +576,27 @@ async function follow(run: Stored, now: boolean): Promise<void> {
     if (!body?.state) continue;
     refreshEta();
     if (body.state === "running") void watchStream(run);
+    if (body.state === "completed" && run.what) {
+      // A briefing is live as soon as the workflow has committed it (live content, D199): there is
+      // no deploy to wait for, so it is done, and the line offers it.
+      following = 0;
+      const failed = body.outcome === "failed";
+      const next: Stored = {
+        ...run,
+        ...staged(body),
+        phase: failed ? "failed" : "done",
+        stageAt: Date.now(),
+        ...(body.outcome === "nothing" || body.outcome === "gated"
+          ? { outcome: body.outcome }
+          : {}),
+        ...(body.outcome === "published" && typeof body.digest_id === "string"
+          ? { href: `/d/${body.digest_id}` }
+          : {}),
+        ...(failed && typeof body.run_url === "string" ? { log: body.run_url } : {}),
+      };
+      set(next);
+      return;
+    }
     if (body.state === "completed") {
       following = 0;
       const failed = body.outcome === "failed";
@@ -545,7 +641,11 @@ async function follow(run: Stored, now: boolean): Promise<void> {
  * Starts showing and following a run that has just been accepted. `retry` is the request that
  * started it, so a failure can offer Try again.
  */
-export function startRun(id: number, about?: { kind: Kind; episode: string }, retry?: Retry): void {
+export function startRun(
+  id: number,
+  about?: { kind: Kind; episode: string } | { what: What },
+  retry?: Retry,
+): void {
   const run: Stored = {
     id,
     phase: "queued",
@@ -556,6 +656,12 @@ export function startRun(id: number, about?: { kind: Kind; episode: string }, re
   following = 0;
   set(run);
   void follow(run, false);
+}
+
+/** True while a run of any kind is going: nothing else is started until it is done. */
+export function isRunGoing(): boolean {
+  const run = read();
+  return run !== null && GOING.includes(run.phase);
 }
 
 /** An episode was removed: a finished line about it (a rewrite, a failure) has nothing left to say. */
@@ -613,7 +719,7 @@ async function retry(): Promise<void> {
   const words = button.textContent;
   button.setAttribute("aria-disabled", "true");
   button.textContent = root.dataset.starting ?? "";
-  const res = await fetch("/api/podcast", {
+  const res = await fetch(run.retry.endpoint ?? "/api/podcast", {
     method: "POST",
     headers: { "content-type": "application/json" },
     // A failed run that kept its earlier stages is resumed from them, not made again from nothing.
@@ -627,7 +733,11 @@ async function retry(): Promise<void> {
   button.removeAttribute("aria-disabled");
   button.textContent = words;
   if (res?.status === 202 && reply.run_id) {
-    const about = run.kind && run.episode ? { kind: run.kind, episode: run.episode } : undefined;
+    const about = run.what
+      ? { what: run.what }
+      : run.kind && run.episode
+        ? { kind: run.kind, episode: run.episode }
+        : undefined;
     startRun(reply.run_id, about, run.retry);
     focusCreate();
     return;

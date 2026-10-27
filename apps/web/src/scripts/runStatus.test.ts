@@ -3,9 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { fill, focusCreate, forgetRunAbout, readRun, resumeRun, SITE_POLL_MS } = await import(
-  "./runStatus"
-);
+const { fill, focusCreate, forgetRunAbout, readRun, resumeRun, SITE_POLL_MS, statusLine } =
+  await import("./runStatus");
 
 describe("the progress bar", () => {
   it("starts a new run (a Try again) from empty, and never goes back within one run", () => {
@@ -219,5 +218,66 @@ describe("the run record moved to localStorage", () => {
     const local = memory({ "singularity:run": JSON.stringify({ id: 42, phase: "done" }) });
     const session = memory({ "singularity:run": old });
     expect(readRun(local, session)?.id).toBe(42);
+  });
+});
+
+// A Regenerate rides the Catch up card (2026-10-27): the same line, bar and Try again, in a briefing's
+// words. The sentences are the element's own; this reads which one a run asks for.
+describe("what the card says for a run", () => {
+  const words = {
+    queued: "Episode queued",
+    running: "Writing your episode",
+    done: "Episode ready",
+    started: "Lost track of this run",
+    failed: "Couldn't make the episode",
+    failedStage: "Stopped while {label}",
+    regenerateRunning: "Rewriting your episode",
+    briefingQueued: "Waiting for a slot",
+    briefingRunning: "Making your briefing",
+    briefingDone: "Briefing ready",
+    briefingNothing: "Nothing cleared the bar, so the briefing stays as it was.",
+    briefingGated: "The schedule held this run back.",
+    briefingFailed: "Couldn't make the briefing",
+  };
+  const run = (extra: Record<string, unknown>) => ({ id: 1, phase: "running", ...extra }) as never;
+
+  it("names a briefing's stage while it runs and says what happened when it is done", () => {
+    expect(statusLine(run({ what: "briefing", phase: "queued" }), words)).toBe(
+      "Waiting for a slot",
+    );
+    expect(statusLine(run({ what: "briefing", label: "Writing the briefing" }), words)).toBe(
+      "Writing the briefing",
+    );
+    expect(statusLine(run({ what: "briefing", phase: "done" }), words)).toBe("Briefing ready");
+    expect(statusLine(run({ what: "briefing", phase: "done", outcome: "nothing" }), words)).toMatch(
+      /stays as it was/,
+    );
+    expect(statusLine(run({ what: "briefing", phase: "done", outcome: "gated" }), words)).toMatch(
+      /held this run back/,
+    );
+  });
+
+  it("says which step a failed briefing stopped in, and that nothing was changed", () => {
+    const line = statusLine(run({ what: "briefing", phase: "failed", step: "writing" }), words);
+    expect(line).toBe("The briefing couldn't be written. Nothing was changed.");
+    expect(statusLine(run({ what: "briefing", phase: "failed" }), words)).toBe(
+      "Couldn't make the briefing",
+    );
+  });
+
+  it("keeps an episode's words as they were", () => {
+    expect(statusLine(run({ phase: "queued" }), words)).toBe("Episode queued");
+    expect(statusLine(run({ label: "Writing the script" }), words)).toBe("Writing the script");
+    expect(statusLine(run({ kind: "regenerate" }), words)).toBe("Rewriting your episode");
+    expect(statusLine(run({ phase: "failed", label: "Publishing" }), words)).toBe(
+      "Stopped while publishing",
+    );
+    expect(
+      statusLine(run({ phase: "failed", failedStage: "publishing", kept: ["script"] }), words),
+    ).toBe("The episode couldn't be published. The script is saved.");
+    expect(statusLine(run({ phase: "failed" }), words)).toBe("Couldn't make the episode");
+    expect(statusLine(run({ phase: "failed", note: "Wait 2 minutes." }), words)).toBe(
+      "Wait 2 minutes.",
+    );
   });
 });

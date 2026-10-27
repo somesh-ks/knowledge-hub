@@ -1,12 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import "../styles/player.css";
 import "../styles/sheets.css";
-import { safeSessionStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
-import { cueForSheet } from "../player/sound/soundMap";
+import { cueForGenerate, cueForSheet } from "../player/sound/soundMap";
 import { takeEarlySheet } from "../scripts/islandWake";
-import { RUN_STORAGE_KEY } from "./generate/runKey";
 import { isSheetName, OPEN_SHEET_EVENT, type SheetName } from "./sheetEvents";
 import Toaster from "./Toaster";
 
@@ -72,19 +70,25 @@ export default function SheetsRoot() {
     return () => window.removeEventListener(OPEN_SHEET_EVENT, onRequest);
   }, [openSheet]);
 
-  // A run remembered from before a reload is picked up, so its toast can still arrive. Only then
-  // is the Generate code needed before the sheet is opened.
+  // A briefing run finishes in the run indicator, not in this island. Its sound is played here, once
+  // for each outcome, so a Regenerate still ends with the cue it always had.
   useEffect(() => {
-    let remembered = false;
-    try {
-      remembered = safeSessionStorage()?.getItem(RUN_STORAGE_KEY) != null;
-    } catch {
-      remembered = false;
-    }
-    if (!remembered) return;
-    void import("./generate/generateRuntime").then(({ getGenerateStore }) => {
-      getGenerateStore().resume();
-    });
+    let cued = "";
+    const onRun = (): void => {
+      let run: { id?: number; phase?: string; what?: string } | null = null;
+      try {
+        run = JSON.parse(localStorage.getItem("singularity:run") ?? "null");
+      } catch {
+        run = null;
+      }
+      if (run?.what !== "briefing" || (run.phase !== "done" && run.phase !== "failed")) return;
+      const key = `${run.id}:${run.phase}`;
+      if (cued === key) return;
+      cued = key;
+      playUiCue(cueForGenerate(run.phase === "done" ? "finished" : "failed"));
+    };
+    document.addEventListener("singularity:run", onRun);
+    return () => document.removeEventListener("singularity:run", onRun);
   }, []);
 
   useEffect(() => whenIdle(() => void loadGenerate()), []);
