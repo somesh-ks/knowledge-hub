@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-28 | [The Health page](2026-10-28-health-page.md) | Settings, Analytics, Health: briefings, run times, field speed, errors, workflow runs and services read live, judged by the daily check's lines (D202) |
 | 2026-10-27 | [About 50 PRs, then the close](2026-10-27-session-close.md) | Live content, strict publish, Opus, `fetch_via`, open write routes (D197 to D201); review loops closed; Opus never ran on runners and turn offsets drifted on ffmpeg 6 (#381); instant paint left to the owner |
 | 2026-10-25 | [The owner's feedback pass](2026-10-25-owner-feedback-pass.md) | 42 items and five additions over #308 to #312 (D190, D191); the internal topic-to-category rename and the other items left out, with the migration-first order for the rename |
 | 2026-10-25 | [Design-system audit](2026-10-25-design-system-audit.md) | The component catalogue, the Structure view brought back to the system (D188), and the tools verdict: a /design route, no new tool |

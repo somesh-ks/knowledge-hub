@@ -15,6 +15,7 @@ const SETTINGS_SUBPAGES = [
   "/settings/sounds",
   "/settings/voice",
   "/analytics",
+  "/settings/health",
 ];
 
 test("every settings subpage shows the Settings crumb and the same gap from its title to its first block @both", async ({

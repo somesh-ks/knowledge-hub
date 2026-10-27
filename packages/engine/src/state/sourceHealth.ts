@@ -1,8 +1,8 @@
 import type { Source, SourceHealthFile, SourcesFile } from "@singularity/core";
 import type { SourceResult } from "../fetch/types.js";
+import { FAILURE_FLAG_THRESHOLD } from "../ops/healthLimits.js";
 
-/** A source failing this many runs in a row is flagged (build plan risk table). */
-export const FAILURE_FLAG_THRESHOLD = 5;
+export { FAILURE_FLAG_THRESHOLD };
 
 /**
  * Update failure counters and last_ok from a fetch pass. Success resets the counter. A skipped

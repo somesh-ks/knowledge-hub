@@ -11,6 +11,7 @@ import { bundledCostRecords, bundledPrices } from "./costSource";
 import { bundledDigestIds, bundledDigests } from "./digestSource";
 import { bundledEpisodeIds, bundledEpisodes } from "./episodeSource";
 import type { DigestSource, EpisodeBundle } from "./narrate";
+import { bundledStateFile } from "./stateSource";
 
 /**
  * The briefings and episodes as the API routes read them (D173): from the content repository, so
@@ -184,6 +185,20 @@ export async function contentCostRecords(
       return [];
     }
   });
+}
+
+/**
+ * A state file the engine commits (state/last-run.json, state/source-health.json), as text: the
+ * store's, or this build's when the store cannot answer (`stored` false). Null text: no such file.
+ */
+export async function contentStateFile(
+  path: string,
+  deps: () => ContentRepoDeps = runtime,
+): Promise<{ text: string | null; stored: boolean }> {
+  const text = await storeRead(path, deps());
+  return text === undefined
+    ? { text: bundledStateFile(path), stored: false }
+    : { text, stored: true };
 }
 
 /** The price table the cost report uses, or null when there is none that parses. */
