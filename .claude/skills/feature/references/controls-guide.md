@@ -18,7 +18,7 @@ Standardized control reference for Singularity. When adding or modifying interac
 | **Segmented Choice** | `.segmented-choice-item` | Single option picker | Radio group for discrete values (3 min, 5 min, 10 min). |
 | **Row Action** | `.row-action` | Full-row navigation trigger | Settings and menu rows acting as pressable tiles off hairlines. |
 | **Floating Action** | `CreateFab.astro`, `AddFab.astro` | Floating action trigger | Prominent mobile creation triggers pinned above bottom dock. |
-| **Bottom Sheet** | `SheetFrame.tsx` (dialogs), `MenuSheet.astro` (menus) | Modal drawer for mobile (<40rem) | Lists, menus, and selects on viewports under 40rem; never popovers. |
+| **Bottom Sheet** | `SheetFrame.tsx` (dialogs), `MenuSheet.astro` (menus) | Bottom-sheet presentation under 40rem | Dialogs are modal; menus are popovers styled as bottom sheets. Lists, menus and selects on a phone sit in one, never in a small popover. |
 
 ---
 
@@ -83,6 +83,7 @@ Settings row or menu option acting as a tactile tile.
 * **Rules**: Presses as an elevated tile off dividing hairlines. Label is regular weight, never bold.
 
 ### Bottom Sheet (`SheetFrame.tsx`, `MenuSheet.astro`)
+
 A phone shows a dialog or a menu as a bottom sheet; from 40rem it is a centered dialog or a small menu under its button (D167, Ledger section 11). There are two builds, and neither is hand-written markup:
 
 * **A dialog** (Create, Settings, Generate): mount `apps/web/src/sheets/SheetFrame.tsx`. It wraps Base UI's `Drawer`, which provides the dialog semantics, focus trap, inert background, Escape, scrim tap, swipe to dismiss and Back-closes-the-sheet. It renders `.sheet-scrim`, `.sheet-viewport`, `.sheet-popup`, `.sheet-panel` and the `.sheet-head` with the title and Close; the title is a `Drawer.Title`, so its id is generated per instance.
@@ -93,7 +94,8 @@ A phone shows a dialog or a menu as a bottom sheet; from 40rem it is a centered 
   <button class="hero-menu-item" type="button" role="menuitem" data-act="edit">Edit</button>
 </MenuSheet>
 ```
-* **Rules**: Under 40rem, selects and menus open as bottom sheets, never popovers a tap can fall through. Top corners rounded only (`--radius-sheet`). Motion uses `--duration-sheet-in` (300 ms), `--duration-sheet-out` (220 ms) and `--ease-drawer`; the height cap is `--sheet-max-height`; the bottom padding clears `--safe-bottom`. All of it is in `sheets.css` and `hero.css`; never restyle it per page.
+
+* **Rules**: Under 40rem, selects and menus open as bottom sheets, never popovers a tap can fall through. Top corners rounded only (`--radius-sheet`). Motion uses `--duration-sheet-in` (300 ms), `--duration-sheet-out` (220 ms) and `--ease-drawer`; a dialog's height cap is `--sheet-max-height` (a `MenuSheet` has none, so keep its item list short); the bottom padding clears `--safe-bottom`. All of it is in `sheets.css` and `hero.css`; never restyle it per page.
 
 ---
 

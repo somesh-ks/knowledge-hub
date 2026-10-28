@@ -39,9 +39,11 @@ Audit all seven canonical states. Any state that does not apply must be explicit
 - **Requirement**: If a state is not applicable, write: `N/A: [One-line rationale]`.
 
 ### 3. Canonical Control Archetypes
+
 Pick every control from the decision matrix in [references/controls-guide.md](references/controls-guide.md) (sections 1 and 4: the matrix and the universal rules; open the markup contracts for the control you use). That file is the one copy of the matrix; this skill does not repeat it, so the two cannot drift. Never invent bespoke control classes: a new one needs an entry in `BESPOKE_CONTROLS` in `apps/web/src/styles/styles.test.ts` with an owner-approved reason.
 
 ### 4. Design System & Budget Contract
+
 - Identify exact semantic tokens to be used (`--color-surface-*`, `--color-on-surface-*`, `--color-accent-*`, `--space-*`, `--radius-*`; the names are in `apps/web/src/styles/tokens.css`).
 - Verify 8pt spatial grid compliance (4px only for designated micro-alignments).
 - **Phone-First Rule**: On viewports under 40rem, menus and selects open as bottom sheets, not popovers (D167, Ledger section 11).
@@ -70,7 +72,7 @@ Run commands through PowerShell on the owner's machine ([AGENTS.md](../../../AGE
 2. **Repository Gate & Build**:
    Run `npm run gate -- --build` (typecheck, `astro check`, Biome, unit tests, docs budgets and the static build). The build's `postbuild` step runs `checkBundle.ts`, which enforces the 130 KB first-load budget against that build; there is no separate bundle command to run.
 3. **Browser Suites (for UI changes)**:
-   Run `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 minutes each) once, before the PR. Set `PORT` above 4400; never stop or reuse the owner's dev server on port 4321. Tests run on the phone first; tag `@desktop` or `@both` only when the behaviour needs it.
+   Run `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 minutes each) once, before the PR. Set `PORT` above 4400; never stop or reuse the owner's dev server on port 4321. Tests run on the phone first. In the main suite, tag `@desktop` for a desktop-only test and `@both` for one that must run at both sizes. In the player suite, tag `@wide` for desktop-only and `@desktop` for both sizes; `@both` is not recognized there and runs on the phone only.
 4. **Visual Inspection**:
    Screenshot every touched page and every open state (sheet, menu, popover, focused field) at 390x844 and 1526x782, in light and dark, and look at each one. Then run the `design-audit` agent on the diff before the PR.
 5. **Code Review**:

@@ -70,8 +70,9 @@ def check_em_dashes(files: list[str]) -> list[str]:
 
 def main():
     parser = argparse.ArgumentParser(description="Feature preflight and status verifier")
-    parser.add_argument("--status", action="store_true", help="Quick delta status check and early exit")
-    parser.add_argument("--check", action="store_true", help="Check modified files for em dashes and run npm run design-check (which holds the colour-token rules)")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--status", action="store_true", help="List pending files and exit")
+    modes.add_argument("--check", action="store_true", help="Check modified files for em dashes and run npm run design-check (which holds the colour-token rules)")
     args = parser.parse_args()
 
     success, files = check_git_status()
@@ -86,10 +87,8 @@ def main():
     if files:
         print(f"[STATUS] {len(files)} modified or untracked file(s) found.")
         if args.status:
-            for path in files[:20]:
+            for path in files:
                 print(f"  - {path}")
-            if len(files) > 20:
-                print(f"  ... and {len(files) - 20} more")
     else:
         print("[STATUS] Working tree clean.")
 
