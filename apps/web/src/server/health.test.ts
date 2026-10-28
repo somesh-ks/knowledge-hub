@@ -115,5 +115,7 @@ describe("healthBody", () => {
     // A workflow GitHub did not list is unavailable, never "No runs".
     expect(rowOf(body, "job_podcast")).toMatchObject({ value: "Unavailable", tone: "none" });
     expect(rowOf(body, "job_run")?.detail).toMatch(/^2 runs this week/);
+    // ...and the note says GitHub answered only in part, so "All good" never hides it.
+    expect(body.parts.github).toBe("partial");
   });
 });

@@ -502,7 +502,14 @@ export function healthBody(input: HealthInput, now: Date): HealthBody {
       content: input.stored ? "ok" : "fallback",
       database:
         input.vitals === "off" ? "off" : input.vitals === UNAVAILABLE ? "unavailable" : "ok",
-      github: input.jobs === "off" ? "off" : input.jobs === UNAVAILABLE ? "unavailable" : "ok",
+      github:
+        input.jobs === "off"
+          ? "off"
+          : input.jobs === UNAVAILABLE
+            ? "unavailable"
+            : Object.values(HEALTH_JOBS).every((file) => file in (input.jobs as object))
+              ? "ok"
+              : "partial",
     },
   };
 }

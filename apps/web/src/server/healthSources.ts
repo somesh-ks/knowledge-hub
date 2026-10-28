@@ -1,5 +1,6 @@
 import {
   type Digest,
+  digestRelPath,
   LastRunFile,
   parseDigestFile,
   ScheduleFile,
@@ -23,8 +24,10 @@ import { HEALTH_WINDOW_DAYS, type HealthInput, healthBody, UNAVAILABLE } from ".
 
 const PART_TIMEOUT_MS = 4_000;
 const FRESH_MS = 20_000;
-/** Enough briefings for ten of each kind's run times. */
-const DIGESTS_READ = 14;
+/** Briefings read of each kind (weekly, the rest): ten for its run times, with room for a bad file. */
+const DIGESTS_PER_KIND = 12;
+/** One workflow's run list may take this long, inside the part's limit, so the rest still answer. */
+const JOB_TIMEOUT_MS = PART_TIMEOUT_MS - 500;
 
 const log = (message: string): void => console.error(`[api/health] ${message}`);
 
@@ -62,11 +65,22 @@ const parseJson = <T>(
   }
 };
 
-async function readDigests(): Promise<Digest[]> {
+/**
+ * The newest briefings of each kind, apart, so a run of one kind never hides the other's (a weekly's
+ * id says so). `stored` is false when any came from this build's copy, not the content store.
+ */
+async function readDigests(): Promise<{ digests: Digest[]; stored: boolean }> {
   const source = contentDigests();
-  const ids = (await contentDigestIds()).slice(0, DIGESTS_READ);
-  const texts = await Promise.all(ids.map((id) => source.readDigest(id)));
-  return texts.flatMap((text) => {
+  const ids = await contentDigestIds();
+  const weekly = ids.filter((id) => id.includes("weekly")).slice(0, DIGESTS_PER_KIND);
+  const rest = ids.filter((id) => !id.includes("weekly")).slice(0, DIGESTS_PER_KIND);
+  const reads = await Promise.all(
+    [...weekly, ...rest].map(async (id) => {
+      const read = await contentStateFile(digestRelPath(id));
+      return read.stored ? read : { text: await source.readDigest(id), stored: false };
+    }),
+  );
+  const digests = reads.flatMap(({ text }) => {
     if (!text) return [];
     try {
       return [parseDigestFile(text)];
@@ -74,6 +88,20 @@ async function readDigests(): Promise<Digest[]> {
       return [];
     }
   });
+  return { digests, stored: reads.every((read) => read.stored) };
+}
+
+/** `work`, or a rejection once `ms` pass. */
+async function inTime<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${ms} ms`)), ms);
+  });
+  try {
+    return await Promise.race([work, late]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 type Store = { vitals: readonly VitalSummary[]; faults: readonly ClientFaultGroup[] | null };
@@ -104,7 +132,9 @@ async function readJobs(now: Date): Promise<HealthInput["jobs"]> {
     .slice(0, 10);
   const files = Object.values(HEALTH_JOBS);
   // Each workflow apart: one GitHub error leaves its own row unavailable, not every row.
-  const lists = await Promise.allSettled(files.map((file) => github.listRecentRuns(file, since)));
+  const lists = await Promise.allSettled(
+    files.map((file) => inTime(github.listRecentRuns(file, since), JOB_TIMEOUT_MS)),
+  );
   const read = files.flatMap((file, index) => {
     const list = lists[index];
     if (list?.status === "fulfilled") return [[file, list.value] as const];
@@ -125,7 +155,7 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
       stored: false,
     }),
     within("schedule", async () => contentDigests().readSchedule?.() ?? null, null as unknown),
-    within("digests", readDigests, [] as Digest[]),
+    within("digests", readDigests, { digests: [] as Digest[], stored: false }),
     within(
       "store",
       () => readStore(now.getTime()),
@@ -139,8 +169,8 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
       lastRun: parseJson(lastRun.text, LastRunFile),
       sourceHealth: parseJson(sourceHealth.text, SourceHealthFile),
       schedule: parsedSchedule.success ? parsedSchedule.data : null,
-      stored: lastRun.stored,
-      digests,
+      stored: lastRun.stored && digests.stored,
+      digests: digests.digests,
       vitals: typeof store === "string" ? store : store.vitals,
       faults: typeof store === "string" ? store : store.faults,
       jobs,

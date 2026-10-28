@@ -50,6 +50,7 @@ function paint(): void {
     answer.parts.content === "fallback" && "the content store answered from this build's copy",
     answer.parts.database === "unavailable" && "the database did not answer",
     answer.parts.github === "unavailable" && "GitHub did not answer",
+    answer.parts.github === "partial" && "GitHub answered for some workflows only",
   ].filter(Boolean);
   const note = root.querySelector<HTMLElement>("[data-health-note]");
   if (note) {

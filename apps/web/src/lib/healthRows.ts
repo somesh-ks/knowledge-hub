@@ -25,7 +25,8 @@ export interface HealthBody {
   parts: {
     content: "ok" | "fallback";
     database: "ok" | "unavailable" | "off";
-    github: "ok" | "unavailable" | "off";
+    /** `partial`: GitHub answered for some workflows, not all. */
+    github: "ok" | "partial" | "unavailable" | "off";
   };
 }
 
