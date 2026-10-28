@@ -36,6 +36,8 @@ export interface WorkflowRun {
   title: string;
   createdAt: string;
   startedAt: string | null;
+  /** When GitHub last changed the run: its end, once it is completed. */
+  updatedAt?: string | null;
   repositoryFullName: string;
 }
 
@@ -68,6 +70,7 @@ function parseRun(value: unknown): WorkflowRun | null {
     title: asString(value.display_title) ?? "",
     createdAt,
     startedAt: asString(value.run_started_at),
+    updatedAt: asString(value.updated_at),
     repositoryFullName: repository ?? "",
   };
 }
@@ -88,6 +91,8 @@ export interface GitHubClient {
    * workflow file name.
    */
   dispatchWorkflowFile(file: string, inputs: Record<string, string>): Promise<number | null>;
+  /** Runs of the named workflow file created since `since` (an ISO date), any event, newest first; at most 200. */
+  listRecentRuns(file: string, since: string): Promise<WorkflowRun[]>;
   getRun(runId: number): Promise<WorkflowRun | null>;
   listSteps(runId: number): Promise<WorkflowStep[]>;
   /** The text of a file at `ref`, or null when it does not exist. */
@@ -150,6 +155,20 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     dispatch: (inputs) => dispatchFile(WORKFLOW_FILE, inputs),
     listWorkflowFileRuns: listRuns,
     dispatchWorkflowFile: dispatchFile,
+
+    async listRecentRuns(file, since) {
+      // run.yml starts every hour, so a week is about 170 runs: two pages hold it.
+      const runs: WorkflowRun[] = [];
+      for (const page of [1, 2]) {
+        const body = await json(
+          `${workflowPath(file)}/runs?created=${encodeURIComponent(`>=${since}`)}&per_page=100&page=${page}`,
+        );
+        const list = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+        runs.push(...list.map(parseRun).filter((run): run is WorkflowRun => run !== null));
+        if (list.length < 100) break;
+      }
+      return runs;
+    },
 
     async getRun(runId) {
       const response = await request(`/actions/runs/${runId}`);

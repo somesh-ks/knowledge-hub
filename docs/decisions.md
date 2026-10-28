@@ -210,6 +210,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
+| D203 | Live Health page | active |
 
 ---
 
@@ -2117,3 +2118,9 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: a prompt asks the reader to do what the app can do itself, and a dismissed or unseen one leaves the old bundle running. D146 dropped the automatic reload because each round found one more thing it could throw away; those are now the guard list above, as one tested function (`canReloadNow`), with the wait as the fallback instead of a prompt.
 - Amends: D146 (the offer becomes an automatic reload).
 - Revisit if: a reload ever loses a reader's work (add its guard to `canReloadNow` with a test), or a page keeps a state the guards cannot see.
+## D203: a Health page reads the app's state live and judges by `singularity health`'s lines
+
+- Date: 2026-10-28.
+- Decision: Settings, Analytics has Health (`/settings/health`): briefings, run times, field speed per device, errors, workflow runs, sources and services, from `/api/health`, which reads the content store, Neon and GitHub at request time. The thresholds move into `packages/engine/src/ops/healthLimits.ts` (export `./health-limits`), which the daily check and the route both import. `state/source-health.json` joins the content store. Run time is `generated_at` less `window.to`.
+- Why: the owner asked for app health, performance and times in Analytics. The daily check's report lives only in an Actions run and an issue; reading the same sources live needs no workflow change, and one module of lines means the page and the issue cannot disagree. The ledger's and the run record's `at` is the publish time for a run started ahead (D193), which read 96 minutes for a 3 minute run.
+- Revisit if: OAuth lands (Health becomes admin-only with Costs, D201), or GitHub's run list for run.yml outgrows two pages a week.

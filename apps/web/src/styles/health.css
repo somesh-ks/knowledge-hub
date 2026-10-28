@@ -1,0 +1,67 @@
+/*
+ * The Health page (/settings/health): a summary card, then the settings rows grouped as the index's
+ * are, each reading at its row's end as a link row's value sits (settings.css), with the shared status
+ * dot before it (primitives.css). The summary card is the Costs card's shape: its padding on all four
+ * sides, the answer at the display step, the shared stat tiles under it (costs.css). Imported by
+ * pages/settings/health.astro after settings.css.
+ */
+
+/* A content card, not rows: the card's padding on all four sides, as the Costs card's (costs.css). */
+.health .health-card {
+  display: grid;
+  gap: var(--space-8);
+  margin-block-start: 0;
+  padding: var(--card-padding);
+}
+
+/* While the answer loads the rows hold their place and words, dimmed: no skeleton, no jump. */
+.health-data {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.health[data-loading] .health-data {
+  opacity: 0.6;
+}
+
+/* The answer the page leads with, at the Costs total's step, its dot on the words' middle. */
+.health-answer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+}
+
+/* Name and line at the start, the reading at the end, one shape at every width: the reading never
+   wraps under the name, and a long line is cut rather than widen the row. */
+.health-row {
+  flex-wrap: nowrap;
+}
+
+.health-row .settings-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The reading: the quiet ink at the body size, as a link row's value and a select's are, with its
+   dot 8px before it. */
+.health-value {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-body-size);
+  line-height: var(--font-leading-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.health-note:empty {
+  display: none;
+}
