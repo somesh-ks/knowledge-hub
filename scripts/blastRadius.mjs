@@ -7,7 +7,7 @@ import { execSync } from "node:child_process";
 
 const SHARED_RULES = [
   {
-    pattern: /^tokens\//,
+    pattern: /^(?:tokens\/|apps\/web\/tokens\.json)/,
     risk: "HIGH",
     surface: "Design Tokens (all pages: color, typography, spacing, elevation)",
     checks: ["npm run design-check", "npx playwright test apps/web/e2e/designSystem.spec.ts"],
@@ -40,7 +40,10 @@ const SHARED_RULES = [
     pattern: /^apps\/web\/src\/(?:sheets|components\/Create)/,
     risk: "MEDIUM",
     surface: "Creation & Drawer Sheets (New episode, prompt adjustments, topics panel)",
-    checks: ["npm run check -w @singularity/web", "npx playwright test apps/web/e2e/create.spec.ts"],
+    checks: [
+      "npm run check -w @singularity/web",
+      "npx playwright test apps/web/e2e/create.spec.ts",
+    ],
   },
   {
     pattern: /^apps\/web\/src\/(?:pages\/settings|scripts\/structure|lib\/structure)/,
@@ -75,16 +78,29 @@ function getChangedFiles() {
     }
   };
 
-  // Try diff against origin/main first
-  const diffMain = run("git diff --name-only origin/main");
-  if (diffMain) {
-    diffMain.split("\n").forEach((f) => f && files.add(f.replace(/\\/g, "/")));
-  } else {
-    // Fallback to diff against HEAD~1 or HEAD
-    const diffHead = run("git diff --name-only HEAD~1");
-    if (diffHead) {
-      diffHead.split("\n").forEach((f) => f && files.add(f.replace(/\\/g, "/")));
+  // Determine merge base against origin/main or local main
+  let baseRef = null;
+  for (const candidate of ["origin/main", "main"]) {
+    if (run(`git rev-parse --verify ${candidate}`)) {
+      baseRef = candidate;
+      break;
     }
+  }
+
+  if (baseRef) {
+    // Compare current branch against merge base with baseRef (three dots), excluding upstream-only commits
+    const diffMain = run(`git diff --name-only ${baseRef}...HEAD`);
+    if (diffMain) {
+      diffMain.split("\n").forEach((f) => {
+        if (f) {
+          files.add(f.replace(/\\/g, "/"));
+        }
+      });
+    }
+  } else {
+    console.warn(
+      "Blast Radius: Warning: Could not determine a reliable base branch (neither origin/main nor main found).",
+    );
   }
 
   // Always include uncommitted staged and unstaged files
@@ -92,8 +108,14 @@ function getChangedFiles() {
   if (status) {
     status.split("\n").forEach((line) => {
       if (line.trim().length > 0) {
-        const file = line.trimStart().replace(/^[A-Z?]{1,2}\s+/, "").trim().replace(/\\/g, "/");
-        if (file) files.add(file);
+        const file = line
+          .trimStart()
+          .replace(/^[A-Z?]{1,2}\s+/, "")
+          .trim()
+          .replace(/\\/g, "/");
+        if (file) {
+          files.add(file);
+        }
       }
     });
   }
@@ -125,7 +147,9 @@ for (const file of changed) {
       const list = matchedSurfaces.get(rule.surface) || [];
       list.push(file);
       matchedSurfaces.set(rule.surface, list);
-      rule.checks.forEach((c) => recommendedChecks.add(c));
+      rule.checks.forEach((c) => {
+        recommendedChecks.add(c);
+      });
       break;
     }
   }
@@ -138,10 +162,17 @@ for (const file of changed) {
 
 console.log(`Risk Assessment: ${highestRisk} BLAST RADIUS\n`);
 
+const showAll = process.argv.includes("--all");
+
 for (const [surface, files] of matchedSurfaces.entries()) {
   console.log(`Surface: ${surface}`);
-  files.slice(0, 5).forEach((f) => console.log(`  - ${f}`));
-  if (files.length > 5) console.log(`  ... and ${files.length - 5} more`);
+  const displayFiles = showAll ? files : files.slice(0, 5);
+  displayFiles.forEach((f) => {
+    console.log(`  - ${f}`);
+  });
+  if (!showAll && files.length > 5) {
+    console.log(`  ... and ${files.length - 5} more`);
+  }
   console.log("");
 }
 
@@ -154,7 +185,9 @@ if (recommendedChecks.size > 0) {
 }
 
 if (process.argv.includes("--strict") && highestRisk === "HIGH") {
-  console.error("Blast radius check failed: High-risk shared core files were modified (--strict enabled).\n");
+  console.error(
+    "Blast radius check failed: High-risk shared core files were modified (--strict enabled).\n",
+  );
   process.exit(1);
 }
 

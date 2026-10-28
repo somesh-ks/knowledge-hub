@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { StructureBlock } from "@singularity/core";
+import { describe, expect, it } from "vitest";
 import {
   blockCount,
   blockName,
@@ -35,7 +35,9 @@ describe("structureView", () => {
   it("resolves block names for sections and standard types", () => {
     expect(blockName({ type: "hello" }, sections)).toBe("Hello");
     expect(blockName({ type: "rundown" }, sections)).toBe("Rundown");
-    expect(blockName({ type: "section", id: "design", depth: "brief" }, sections)).toBe("Design & UX");
+    expect(blockName({ type: "section", id: "design", depth: "brief" }, sections)).toBe(
+      "Design & UX",
+    );
     expect(blockName({ type: "custom", title: "My Segment", brief: "..." }, sections)).toBe(
       "My Segment",
     );
@@ -45,7 +47,9 @@ describe("structureView", () => {
     expect(promptKey({ type: "section", id: "design", depth: "brief" })).toBe("section:design");
     expect(promptKey({ type: "rundown" })).toBe("rundown");
     expect(blockSummary({ type: "rundown" })).toBe("Auto");
-    expect(blockSummary({ type: "custom", title: "My Segment", brief: "..." })).toBe("Your own block");
+    expect(blockSummary({ type: "custom", title: "My Segment", brief: "..." })).toBe(
+      "Your own block",
+    );
   });
 
   it("identifies frame blocks that cannot move or leave", () => {
@@ -89,7 +93,7 @@ describe("structureView", () => {
     expect(html).toContain('class="settings-row structure-row" data-index="1"');
     expect(html).toContain('class="icon-btn press structure-grip"');
     expect(html).toContain('aria-label="Move Rundown"');
-    expect(html).toContain('data-grip');
+    expect(html).toContain("data-grip");
     expect(html).toContain('class="settings-label">Rundown</span>');
 
     // Section row
@@ -122,7 +126,7 @@ describe("structureView", () => {
     const offSkip: SkipLists = { daily: ["tech"], weekly: ["tech"] };
     const html = rowsHtml(blocks, data, offSkip);
 
-    expect(html).toContain('data-off data-quiet');
-    expect(html).toContain('Off in daily and weekly');
+    expect(html).toContain("data-off data-quiet");
+    expect(html).toContain("Off in daily and weekly");
   });
 });

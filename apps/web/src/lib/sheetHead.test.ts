@@ -29,7 +29,7 @@ describe("sheetHead helpers", () => {
     });
     expect(head).toContain('class="create-sheet-head"');
     expect(head).toContain('<h2 class="sheet-title" id="title-1" data-sheet-title>Edit block</h2>');
-    expect(head).toContain('data-menu-close');
+    expect(head).toContain("data-menu-close");
     expect(head).toContain('aria-label="Close"');
   });
 
@@ -92,5 +92,26 @@ describe("sheetHead helpers", () => {
     expect(btn).toContain("data-hero-more");
     expect(btn).toContain('data-icon="moreVert"');
   });
-});
 
+  it("escapes dynamic attributes in menuItemHtml and iconBtnHtml", () => {
+    const item = menuItemHtml({
+      act: 'edit" data-evil="true',
+      glyph: "pencilSimple",
+      label: "Safe Label",
+      extraClass: 'bad" class="injected',
+    });
+    expect(item).toContain('data-act="edit&quot; data-evil=&quot;true"');
+    expect(item).toContain('class="hero-menu-item bad&quot; class=&quot;injected"');
+
+    const btn = iconBtnHtml({
+      label: "Safe Btn",
+      glyph: "moreVert",
+      className: 'injected" onclick="alert(1)',
+      popoverTarget: 'pop" target="evil',
+      describedBy: 'desc" aria-label="evil',
+    });
+    expect(btn).toContain('class="icon-btn press injected&quot; onclick=&quot;alert(1)"');
+    expect(btn).toContain('popovertarget="pop&quot; target=&quot;evil"');
+    expect(btn).toContain('aria-describedby="desc&quot; aria-label=&quot;evil"');
+  });
+});

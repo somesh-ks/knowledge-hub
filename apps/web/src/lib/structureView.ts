@@ -362,11 +362,21 @@ export function rowsHtml(
         sheetHeadHtml(name, `${menu}-title`, "data-menu-close"),
         `<div class="menu-sheet-items" role="menu" aria-label="${escapeHtml(name)}">`,
         menuItemHtml({ act: "up", glyph: "arrowUp", label: "Move up", disabled: index <= 1 }),
-        menuItemHtml({ act: "down", glyph: "arrowDown", label: "Move down", disabled: index >= last }),
+        menuItemHtml({
+          act: "down",
+          glyph: "arrowDown",
+          label: "Move down",
+          disabled: index >= last,
+        }),
         menuItemHtml({ act: "edit", glyph: "pencilSimple", label: "Edit" }),
         // The last one goes too: the list then shows its empty state and saves nothing until a
         // block is added (owner, 2026-10-27).
-        menuItemHtml({ act: "remove", glyph: "trash", label: "Remove", extraClass: "hero-menu-delete" }),
+        menuItemHtml({
+          act: "remove",
+          glyph: "trash",
+          label: "Remove",
+          extraClass: "hero-menu-delete",
+        }),
         `</div></div></div></li>`,
       ].join("");
     })

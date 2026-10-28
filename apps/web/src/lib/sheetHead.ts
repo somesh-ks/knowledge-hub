@@ -65,8 +65,8 @@ export function menuItemHtml({
   disabled = false,
   extraClass = "",
 }: MenuItemOptions): string {
-  const cls = ["hero-menu-item", extraClass].filter(Boolean).join(" ");
-  return `<button class="${cls}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${iconHtml(glyph)}${escapeHtml(label)}</button>`;
+  const cls = ["hero-menu-item", extraClass].filter(Boolean).map(escapeHtml).join(" ");
+  return `<button class="${cls}" type="button" role="menuitem" data-act="${escapeHtml(act)}"${disabled ? " disabled" : ""}>${iconHtml(glyph)}${escapeHtml(label)}</button>`;
 }
 
 export interface SettingsTextOptions {
@@ -79,7 +79,8 @@ export interface SettingsTextOptions {
  * Escapes text safely.
  */
 export function settingsTextHtml({ label, hint }: SettingsTextOptions): string {
-  const hintHtml = hint !== undefined ? `<span class="settings-hint">${escapeHtml(hint)}</span>` : "";
+  const hintHtml =
+    hint !== undefined ? `<span class="settings-hint">${escapeHtml(hint)}</span>` : "";
   return `<div class="settings-text"><span class="settings-label">${escapeHtml(label)}</span>${hintHtml}</div>`;
 }
 
@@ -103,13 +104,15 @@ export function iconBtnHtml({
   describedBy,
   dataAttrs = {},
 }: IconBtnOptions): string {
-  const cls = ["icon-btn press", className].filter(Boolean).join(" ");
-  const target = popoverTarget ? ` popovertarget="${popoverTarget}"` : "";
-  const desc = describedBy ? ` aria-describedby="${describedBy}"` : "";
+  const cls = ["icon-btn press", className].filter(Boolean).map(escapeHtml).join(" ");
+  const target = popoverTarget ? ` popovertarget="${escapeHtml(popoverTarget)}"` : "";
+  const desc = describedBy ? ` aria-describedby="${escapeHtml(describedBy)}"` : "";
   const data = Object.entries(dataAttrs)
     .filter(([, value]) => value !== false)
     .map(([name, value]) =>
-      value === true || value === "" ? ` ${name}` : ` ${name}="${escapeHtml(String(value))}"`,
+      value === true || value === ""
+        ? ` ${escapeHtml(name)}`
+        : ` ${escapeHtml(name)}="${escapeHtml(String(value))}"`,
     )
     .join("");
   return `<button class="${cls}" type="button" aria-label="${escapeHtml(label)}"${desc}${target}${data}>${iconHtml(glyph)}</button>`;
