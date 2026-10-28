@@ -5,7 +5,7 @@ import type { GitRunner } from "./runGit.js";
  * Brings the checkout up to the remote branch it is on, by fast-forward only. A run that waited
  * for its publish time reads state/ and Digests/ from the checkout it made at job start, so
  * whatever was pushed meanwhile (an on-demand run, a config commit) would make its own push a
- * rebase conflict (D203). Best effort: a checkout that cannot fast-forward (a tracked file the
+ * rebase conflict (D209). Best effort: a checkout that cannot fast-forward (a tracked file the
  * incoming commits also change, a lost network) keeps what it has, which is what a run did before.
  * True when the checkout now matches the remote branch.
  */

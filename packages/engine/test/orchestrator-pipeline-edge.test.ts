@@ -157,7 +157,7 @@ describe("concurrent writers and push handling", () => {
   });
 });
 
-// The bug (D203): a run generated ahead reads state/ from the checkout it made at job start, so a
+// The bug (D209): a run generated ahead reads state/ from the checkout it made at job start, so a
 // push made during its wait (an on-demand run's, a config commit) made its own push a rebase
 // conflict on state/seen.json and lost the briefing. Config is read before the wait, so a category
 // muted meanwhile cannot fail a briefing that was validated against the old one.

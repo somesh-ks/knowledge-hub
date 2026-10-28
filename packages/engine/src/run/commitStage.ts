@@ -169,7 +169,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   // started late publishes at once. The record keeps both instants (D193).
   const generatedAt = deps.now().toISOString();
   // Config is read before the wait: the selection was validated against it, and a category muted
-  // or a voice edited meanwhile must not fail a finished briefing (D203).
+  // or a voice edited meanwhile must not fail a finished briefing (D209).
   const sources: Source[] = await loadSources(root);
   const linter = createLinter(await loadVoice(root));
   const topics = withGeneralTopics(await loadTopicsFile(root));
@@ -179,7 +179,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   }
   const held = !dryRun && !adopted && (await holdUntilPublishTime(deps, plan));
   // State and Digests are read after it, from the remote's branch and not the checkout from job
-  // start (D203).
+  // start (D209).
   if (held && !options.noPush) await fastForwardToRemote(deps.git, deps.log);
   const now = deps.now();
 
