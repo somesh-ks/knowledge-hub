@@ -109,8 +109,9 @@ export interface ValidateContext {
  * size, a Tech releases story among the Top picks, and voice lint failures on any written field.
  * Warnings: a source name or reading time that differs from what the engine would compute.
  *
- * Item limits are counted in two pools: Tech releases has its own allowance, and everything else
- * shares the cap for the digest kind.
+ * Tech releases and custom sections have their own allowances; remaining items share the cap
+ * for the digest kind. An allowance error includes the section's item ids and excess count so
+ * callers can choose which stories to trim.
  *
  * "No empty sections" holds by construction (a digest lists only the sections its items use), so
  * the check that can fail is the Top picks size: three, or every item outside Tech releases when
