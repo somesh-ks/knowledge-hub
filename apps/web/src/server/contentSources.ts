@@ -11,6 +11,7 @@ import { bundledCostRecords, bundledPrices } from "./costSource";
 import { bundledDigestIds, bundledDigests } from "./digestSource";
 import { bundledEpisodeIds, bundledEpisodes } from "./episodeSource";
 import type { DigestSource, EpisodeBundle } from "./narrate";
+import { bundledStateFile } from "./stateSource";
 
 /**
  * The briefings and episodes as the API routes read them (D173): from the content repository, so
@@ -148,8 +149,17 @@ export function contentEpisodes(deps: () => ContentRepoDeps = runtime): EpisodeB
 
 /** The id of every briefing, newest first. */
 export async function contentDigestIds(deps: () => ContentRepoDeps = runtime): Promise<string[]> {
+  return (await contentDigestList(deps)).ids;
+}
+
+/** The id of every briefing, newest first, and whether the list is the store's (not the build's). */
+export async function contentDigestList(
+  deps: () => ContentRepoDeps = runtime,
+): Promise<{ ids: string[]; stored: boolean }> {
   const paths = await storeList("Digests", deps());
-  return paths === undefined ? bundledDigestIds() : markdownIds(paths);
+  return paths === undefined
+    ? { ids: bundledDigestIds(), stored: false }
+    : { ids: markdownIds(paths), stored: true };
 }
 
 /** The id of every episode, newest first. */
@@ -184,6 +194,20 @@ export async function contentCostRecords(
       return [];
     }
   });
+}
+
+/**
+ * A state file the engine commits (state/last-run.json, state/source-health.json), as text: the
+ * store's, or this build's when the store cannot answer (`stored` false). Null text: no such file.
+ */
+export async function contentStateFile(
+  path: string,
+  deps: () => ContentRepoDeps = runtime,
+): Promise<{ text: string | null; stored: boolean }> {
+  const text = await storeRead(path, deps());
+  return text === undefined
+    ? { text: bundledStateFile(path), stored: false }
+    : { text, stored: true };
 }
 
 /** The price table the cost report uses, or null when there is none that parses. */

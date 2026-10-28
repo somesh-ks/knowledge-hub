@@ -12,6 +12,7 @@
     "./neon": "./src/store/neon.ts",
     "./rate-counter": "./src/store/rateCounter.ts",
     "./gate": "./src/gate/decideRun.ts",
+    "./health-limits": "./src/ops/healthLimits.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts",
     "./vitals-store": "./src/store/vitalsStore.ts",

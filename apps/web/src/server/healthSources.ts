@@ -1,0 +1,228 @@
+import {
+  type Digest,
+  digestRelPath,
+  LastRunFile,
+  parseDigestFile,
+  ScheduleFile,
+  SourceHealthFile,
+} from "@singularity/core";
+import { type ClientFaultGroup, readClientFaults } from "@singularity/engine/faults-store";
+import { readVitals, type VitalSummary } from "@singularity/engine/vitals-store";
+import type { HealthBody } from "../lib/healthRows";
+import { HEALTH_JOBS } from "../lib/healthRows";
+import { readServerConfig } from "./config";
+import { isShowingSavedContent } from "./contentRepo";
+import { contentDigestList, contentDigests, contentStateFile } from "./contentSources";
+import { guardedDatabase } from "./database";
+import { bundledDigests } from "./digestSource";
+import { createGitHubClient } from "./github";
+import { HEALTH_WINDOW_DAYS, type HealthInput, healthBody, UNAVAILABLE } from "./health";
+
+/**
+ * Gathers what the Health page judges (health.ts), each part at once and each within PART_TIMEOUT_MS,
+ * so one slow upstream marks its rows unavailable and the rest still answer. The last answer is kept
+ * per instance for FRESH_MS: the page is opened by one person and every part is a network read.
+ */
+
+const PART_TIMEOUT_MS = 4_000;
+/**
+ * GitHub's run list is slower than the rest: run.yml ticks hourly, so its week is two pages of 100
+ * large run objects, which missed 4 s on production (2026-10-28). The page fetches after its first
+ * paint, so a slower answer costs nothing a reader sees.
+ */
+const GITHUB_TIMEOUT_MS = 6_000;
+const FRESH_MS = 20_000;
+/** Briefings read of each kind (weekly, the rest): ten for its run times, with room for a bad file. */
+const DIGESTS_PER_KIND = 12;
+/** One workflow's run list may take this long, inside the part's limit, so the rest still answer. */
+const JOB_TIMEOUT_MS = GITHUB_TIMEOUT_MS - 500;
+
+const log = (message: string): void => console.error(`[api/health] ${message}`);
+
+async function within<T>(
+  label: string,
+  work: () => Promise<T>,
+  fallback: T,
+  ms: number = PART_TIMEOUT_MS,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      log(`${label}: no answer in ${ms} ms`);
+      resolve(fallback);
+    }, ms);
+  });
+  try {
+    return await Promise.race([
+      work().catch((error: unknown) => {
+        log(`${label}: ${error instanceof Error ? error.message : "unreadable"}`);
+        return fallback;
+      }),
+      late,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const parseJson = <T>(
+  text: string | null,
+  schema: { safeParse(value: unknown): { success: boolean; data?: T } },
+): T | null => {
+  if (text === null) return null;
+  try {
+    const parsed = schema.safeParse(JSON.parse(text));
+    return parsed.success ? (parsed.data as T) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The newest briefings of each kind, apart, so a run of one kind never hides the other's (a weekly's
+ * id says so). `stored` is false when any came from this build's copy, not the content store.
+ */
+async function readDigests(): Promise<{ digests: Digest[]; stored: boolean }> {
+  const list = await contentDigestList();
+  const ids = list.ids;
+  const weekly = ids.filter((id) => id.includes("weekly")).slice(0, DIGESTS_PER_KIND);
+  const rest = ids.filter((id) => !id.includes("weekly")).slice(0, DIGESTS_PER_KIND);
+  const reads = await Promise.all(
+    [...weekly, ...rest].map(async (id) => {
+      const read = await contentStateFile(digestRelPath(id));
+      // Straight to the build's copy: the store just failed, and asking it again could outlast the part.
+      return read.stored ? read : { text: await bundledDigests.readDigest(id), stored: false };
+    }),
+  );
+  const digests = reads.flatMap(({ text }) => {
+    if (!text) return [];
+    try {
+      return [parseDigestFile(text)];
+    } catch {
+      return [];
+    }
+  });
+  return { digests, stored: list.stored && reads.every((read) => read.stored) };
+}
+
+/** `work`, or a rejection once `ms` pass. */
+async function inTime<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${ms} ms`)), ms);
+  });
+  try {
+    return await Promise.race([work, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+type Store = { vitals: readonly VitalSummary[]; faults: readonly ClientFaultGroup[] | null };
+
+const database = guardedDatabase({
+  databaseUrl: process.env.DATABASE_URL,
+  timeoutMs: PART_TIMEOUT_MS,
+  log: (message) => log(`store ${message}`),
+});
+
+async function readStore(now: number): Promise<Store | typeof UNAVAILABLE | "off"> {
+  if (!process.env.DATABASE_URL) return "off";
+  return database<Store | typeof UNAVAILABLE>(
+    async (sql) => ({
+      vitals: await readVitals(sql, now),
+      faults: await readClientFaults(sql, now),
+    }),
+    UNAVAILABLE,
+  );
+}
+
+async function readJobs(now: Date): Promise<HealthInput["jobs"]> {
+  const config = readServerConfig(process.env);
+  if (!config) return "off";
+  const github = createGitHubClient(config, fetch);
+  const since = new Date(now.getTime() - HEALTH_WINDOW_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const files = Object.values(HEALTH_JOBS);
+  // Each workflow apart: one GitHub error leaves its own row unavailable, not every row.
+  const lists = await Promise.allSettled(
+    files.map((file) =>
+      inTime(
+        github.listRecentRuns(file, since, AbortSignal.timeout(JOB_TIMEOUT_MS)),
+        JOB_TIMEOUT_MS,
+      ),
+    ),
+  );
+  const read = files.flatMap((file, index) => {
+    const list = lists[index];
+    if (list?.status === "fulfilled") return [[file, list.value] as const];
+    log(`github ${file}: ${list?.reason instanceof Error ? list.reason.message : "unreadable"}`);
+    return [];
+  });
+  return read.length === 0 ? UNAVAILABLE : Object.fromEntries(read);
+}
+
+export async function buildHealth(now: Date): Promise<HealthBody> {
+  const [lastRun, sourceHealth, schedule, digests, store, jobs] = await Promise.all([
+    within("last-run", () => contentStateFile("state/last-run.json"), {
+      text: null,
+      stored: false,
+    }),
+    within("source-health", () => contentStateFile("state/source-health.json"), {
+      text: null,
+      stored: false,
+    }),
+    within("schedule", async () => contentDigests().readSchedule?.() ?? null, null as unknown),
+    within("digests", readDigests, { digests: [] as Digest[], stored: false }),
+    within(
+      "store",
+      () => readStore(now.getTime()),
+      UNAVAILABLE as Store | typeof UNAVAILABLE | "off",
+    ),
+    within("github", () => readJobs(now), UNAVAILABLE as HealthInput["jobs"], GITHUB_TIMEOUT_MS),
+  ]);
+  const parsedSchedule = ScheduleFile.safeParse(schedule);
+  return healthBody(
+    {
+      lastRun: parseJson(lastRun.text, LastRunFile),
+      sourceHealth: parseJson(sourceHealth.text, SourceHealthFile),
+      schedule: parsedSchedule.success ? parsedSchedule.data : null,
+      // Any content read that came from the build's copy marks the store as fallback; the schedule
+      // comes from the settings store, so it is not one of them.
+      stored: lastRun.stored && sourceHealth.stored && digests.stored,
+      saved: isShowingSavedContent(),
+      digests: digests.digests,
+      vitals: typeof store === "string" ? store : store.vitals,
+      faults: typeof store === "string" ? store : store.faults,
+      jobs,
+    },
+    now,
+  );
+}
+
+let held: { at: number; body: HealthBody } | null = null;
+let building: Promise<HealthBody> | null = null;
+
+/** Forget the held answer. For tests. */
+export function resetHealthCache(): void {
+  held = null;
+  building = null;
+}
+
+/**
+ * The held answer while it is fresh, else a new one. Requests that miss together share one build,
+ * so a burst under the rate cap reads the content store, Neon and GitHub once, not once each.
+ */
+export async function serveHealth(now: Date): Promise<HealthBody> {
+  if (held && now.getTime() - held.at < FRESH_MS) return held.body;
+  building ??= buildHealth(now)
+    .then((body) => {
+      held = { at: now.getTime(), body };
+      return body;
+    })
+    .finally(() => {
+      building = null;
+    });
+  return building;
+}

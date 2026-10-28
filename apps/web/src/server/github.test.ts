@@ -26,6 +26,19 @@ describe("createGitHubClient", () => {
     expect(request?.headers["user-agent"]).toBe("singularity-site");
   });
 
+  // The Health page asks for a week of runs in two pages at once (run.yml ticks hourly). Most
+  // workflows fit one page; a failing second page must not lose the whole week (2026-10-28).
+  it("keeps a short first page of recent runs when the second page fails", async () => {
+    const { github, client } = setup();
+    github.on("GET /actions/workflows/podcast.yml/runs", () =>
+      github.requests.at(-1)?.path.includes("page=2")
+        ? { status: 502 }
+        : { json: { workflow_runs: [runJson({ id: 7 })] } },
+    );
+    const runs = await client.listRecentRuns("podcast.yml", "2026-10-21");
+    expect(runs.map((run) => run.id)).toEqual([7]);
+  });
+
   it("lists only workflow_dispatch runs of run.yml on main", async () => {
     const { github, client } = setup();
     github.on("GET /actions/workflows/run.yml/runs", {
@@ -56,6 +69,7 @@ describe("createGitHubClient", () => {
       "startedAt",
       "status",
       "title",
+      "updatedAt",
     ]);
   });
 
