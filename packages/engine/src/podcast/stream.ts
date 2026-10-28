@@ -84,7 +84,8 @@ function coverKeyOf(cover: Episode["cover"] | undefined): string | undefined {
 
 /**
  * Writes are queued one after another, so the order they were asked in is the order they land in:
- * a slow opening can never overwrite the finished script. Nothing here throws.
+ * a slow opening can never overwrite the finished script. Blob write failures are caught; errors
+ * constructing a document or thrown by the supplied clock or logger propagate.
  */
 export function createStreamPublisher(input: StreamPublisherInput): StreamPublisher {
   const { client, request } = input;

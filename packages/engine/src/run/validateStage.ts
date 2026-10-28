@@ -121,12 +121,15 @@ interface ValidateDrop {
 
 /**
  * The grounding check and the final validation. Every summary sentence (and a why sentence, when
- * an item has one) is checked against its source text with Jev; an unsupported sentence gets one rewrite and one more check,
- * then the item drops. `verified` is true only when the grounder ran and every kept item passed
+ * an item has one) is checked against its source text with Jev. Unsupported sentences are pruned
+ * when the remaining text passes voice lint, otherwise rewritten and checked again by groundAndRepair.
+ * `verified` is true only when the grounder ran and every kept item passed
  * every check; without a Jev key the digest is kept and marked unverified. The surviving items
  * are then rendered as a digest and run through `validateDigest`: any item with an error drops,
  * and the floor of three is checked again, so the commit stage only ever sees a publishable
- * selection.
+ * selection. Sections over their allowance lose their lowest-scored stories. A sized pass may
+ * refill once from its reserve; refill errors keep the previously validated selection. Other
+ * digest-wide validation errors throw StageFailure; artifact and initial grounding errors propagate.
  */
 export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageReport> {
   const runtime = await deps.runtime();
@@ -215,6 +218,10 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     /** Stories trimmed for their section's allowance; they never air, whatever their score. */
     const overAllowance = new Set<string>();
     let warnings = 0;
+    /**
+     * Validate ranked survivors and fit their narration to the pass's length. Records drops and
+     * allowance trims in the enclosing pass; throws StageFailure for other digest-wide errors.
+     */
     const fit = (kept: readonly GroundedItem[]): Fitted => {
       let ranked: GroundedItem[] = [...kept].sort((a, b) => scoreOf(b) - scoreOf(a));
       let survivors: GroundedItem[] = ranked.slice(0, VOICE_LIMITS.items.hardMax);
