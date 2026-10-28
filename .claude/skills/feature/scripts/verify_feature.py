@@ -44,12 +44,9 @@ def check_git_status() -> tuple[bool, list[str]]:
             continue
         status = entry[:2]
         path = entry[3:]
+        files.append(path)
         if "R" in status:
-            idx += 1
-            if idx < len(parts) and parts[idx]:
-                files.append(parts[idx])
-        else:
-            files.append(path)
+            idx += 1  # Consume following old path field for renames
         idx += 1
     return True, files
 
@@ -76,6 +73,7 @@ def check_em_dashes(files: list[str]) -> list[str]:
 def check_raw_hex(files: list[str]) -> list[str]:
     issues = []
     hex_pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b")
+    url_pattern = re.compile(r"url\([^)]*\)|data:[^\s,;)]*")
     for file_path in files:
         p = Path(file_path)
         normalized = p.as_posix()
@@ -88,9 +86,8 @@ def check_raw_hex(files: list[str]) -> list[str]:
             content = p.read_text(encoding="utf-8", errors="ignore")
             lines = content.splitlines()
             for idx, line in enumerate(lines, 1):
-                if "url(" in line or "data:" in line:
-                    continue
-                match = hex_pattern.search(line)
+                clean_line = url_pattern.sub("", line)
+                match = hex_pattern.search(clean_line)
                 if match:
                     issues.append(f"{file_path}:{idx} contains raw hex {match.group(0)} (use semantic tokens)")
                     if len(issues) >= 10:

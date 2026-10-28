@@ -85,10 +85,10 @@ Settings row or menu option acting as a tactile tile.
 ### Bottom Sheet (`.sheet`, `BottomSheet.astro`, Base UI `Drawer`)
 Mobile-first drawer for options, selects, and action lists on screens under 40rem (D167, Ledger section 11).
 ```html
-<dialog class="sheet" data-open="true">
+<dialog class="sheet" aria-labelledby="sheet-title" data-open="true">
   <div class="sheet-surface">
     <div class="sheet-header">
-      <h3 class="sheet-title">Playback Speed</h3>
+      <h3 id="sheet-title" class="sheet-title">Playback Speed</h3>
       <button class="icon-btn press" type="button" aria-label="Close"><Icon name="close" /></button>
     </div>
     <div class="sheet-body">...</div>
