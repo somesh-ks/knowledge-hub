@@ -16,11 +16,11 @@ Updated 2026-10-27. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 
 ## Tests
 
-Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 302 files, 4,943 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
-- Short briefings: 2026-10-27 shipped 3 of 8 stories (grounding dropped 5, empty reserve; #373, #375). closed when: a daily airs within 10% of its length and its drop log names the cause.
+- Short briefings: 2026-10-27 shipped 3 of 8 stories (grounding dropped 5; #373, #375). closed when: a daily airs within 10% of its length and its drop log names the cause.
 - Opus on runners (D198, #381, #388). closed when: the next audio run logs `ffmpeg version` and its digest has `m4a_url`; then the owner plays /d/2026-10-24 on an iPhone before the backfilled MP3s go.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
@@ -32,14 +32,14 @@ Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
-- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast, health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
-- Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
-- Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
+- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
+- Downloads (D127) on a phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
+- Player tabs and queue (D126, D133): Stories with the live transcript, Up next, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` (#183); `SPEECHIFY_VOICE_ID_B` on GitHub must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - Episode quality (D119, D120) and the refill (#237, #197): a live run with spares, a refill and a one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length, and one has a Science story from one outlet.
-- Taste check (D118): Jev 1.14 live, taste answers on real candidates, an open from a real phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
+- Taste check (D118): Jev 1.14 live; taste answers on real candidates; an open from a phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
 - Covers and header light (D110, D122): monthly covers on the deployed site; the light on a real GPU, Safari and Firefox; a theme switch past 400 ms. closed when: phone and desktop screenshots of production show each.
-- Real phones, Safari, WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
+- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
 - "Narration is not available right now" (2026-10-12): not reproduced. A failing try leaves a `server` fault for `api/narrate`. closed when: one names the step.
 - Time zone (D100) only against fakes: not a non-Stockholm zone, a fallback entry or a clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still compare with Stockholm's today. closed when: a run across the 2026-10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no run judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge stage reports the feeds.
