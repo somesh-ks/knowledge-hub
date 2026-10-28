@@ -30,6 +30,8 @@ export interface VoiceOutcome {
  * The spoken version is different: it is an extra. A spoken text that fails lint, or states a number
  * the headline and summary do not, gets one rewrite; if it still fails it is removed from the item
  * and narration falls back to the headline and the summary. It never costs the item.
+ * Items without source material are dropped with no violations. Writer and linter errors,
+ * including writer budget errors, propagate to the caller.
  */
 export async function enforceVoice(args: {
   written: readonly WrittenItem[];

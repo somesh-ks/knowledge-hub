@@ -101,7 +101,8 @@ const LENGTHS: readonly number[] = [3, 5, 10, 15];
 /**
  * The minutes this one run is asked to be, in place of the schedule's: absent means the schedule's,
  * otherwise one of its four lengths. Anything else is invalid (undefined), so a request is refused
- * before it costs a run.
+ * before it costs a run. Missing or null length returns null. The body must already be a JSON
+ * object: malformed JSON throws SyntaxError, and JSON null throws TypeError.
  */
 export function parseLength(bodyText: string): number | null | undefined {
   const raw = (JSON.parse(bodyText) as { length_minutes?: unknown }).length_minutes;
@@ -136,6 +137,12 @@ export function isSameOrigin(origin: string | null, expectedOrigin: string): boo
   }
 }
 
+/**
+ * Validate and rate-limit a briefing creation, replacement or deletion, then dispatch run.yml.
+ * Return 202 with the run id, 400 for invalid input, 429 with a retry delay in seconds, or 503
+ * when configuration is missing or dispatch/lookup fails. Dispatch may succeed even if lookup
+ * returns 503. Errors from digest lookup and the burst limiter propagate before dispatch handling.
+ */
 export async function handleGenerate(
   input: GenerateInput,
   deps: GenerateDeps,

@@ -209,6 +209,13 @@ function nothingSelection(pass: PlanPass): Selection {
   };
 }
 
+/**
+ * Select and write one pass, excluding `claimed` story ids from earlier passes. Save selection,
+ * source counts, written text, materials and any reserve, then mark the write stage complete.
+ * Return the pass report and surviving ids, including spares for later validation. Too few
+ * survivors yields nothing; mostly failed extraction or writing throws StageFailure instead.
+ * Artifact, configuration and uncaught runtime errors propagate.
+ */
 async function writePass(
   context: PassContext,
   pass: PlanPass,

@@ -68,6 +68,7 @@ const BRIEFING_FAILED: Record<GenerateStep, string> = {
   publishing: "The briefing couldn't be published.",
 };
 
+/** Look up a briefing step's failure line, returning null when the lookup finds no sentence. */
 export function briefingFailureLine(step: unknown): string | null {
   const sentence =
     typeof step === "string" ? (BRIEFING_FAILED as Record<string, string>)[step] : undefined;

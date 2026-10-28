@@ -45,9 +45,10 @@ interface GenerateSheetProps {
 const BUSY = "A briefing or an episode is still being made. You can start another when it's ready.";
 
 /**
- * Regenerate a briefing: its topics (this run only, ticked from the original) and comments for the
- * writer (optional). Pressing Regenerate starts the run and closes the sheet; the run is followed
- * by the run indicator (scripts/runStatus.ts), the same line and bar a Catch up has, above the
+ * Regenerate a briefing: its topics (this run only, ticked from the original), optional length in
+ * minutes (Usual keeps the schedule's), and optional comments for the writer. Pressing Regenerate
+ * starts the run and closes the sheet; the run is followed by the run indicator (scripts/runStatus.ts),
+ * the same line and bar a Catch up has, above the
  * navigation on a phone and at the foot of the side column from 64rem, so it goes on across pages.
  */
 export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps) {

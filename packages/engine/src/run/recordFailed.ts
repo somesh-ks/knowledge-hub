@@ -28,9 +28,9 @@ function report(reason: string, commit: CommitReport["commit"]): CommitReport {
  * `run_failed` (and heals once) instead of reading the run before; the record, newer than the
  * run, keeps `run_died` quiet for it. The gate's plan says what was due; without one (the job died
  * before the gate) the gate is asked again. What the run's stages spent goes to the cost ledger
- * with it, so Firecrawl's weekly budget counts a failed run. Nothing is recorded for a dry run, a
- * replacement or an on-demand run (they leave the cadence alone, so `run_died` still reports
- * them), for a run that was not due, or once the commit stage has committed. A run with a plan
+ * with it, so Firecrawl's weekly budget counts a failed run. Nothing is recorded for a dry run,
+ * for a run that was not due, or once the commit stage has committed. Replacements and on-demand
+ * runs leave the cadence alone, so `run_died` still reports them. A run with a plan
  * leaves its metrics entry, a replacement or an on-demand run also its spend, which is how a failed
  * run shows in the failure rate; an on-demand run's cadence record stays as it was.
  */

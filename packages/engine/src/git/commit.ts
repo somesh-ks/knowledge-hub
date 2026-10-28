@@ -121,9 +121,11 @@ function pathsOf(changed: readonly ChangedPath[]): string[] {
 
 /**
  * Commit only what the command may change, then optionally push. The guard runs first: any change
- * outside the allowlist, or a digest edit that touches more than its audio field, refuses the whole
- * commit and nothing is staged. A rejected push is retried after `git pull --rebase`; a rebase
- * conflict is aborted and reported; the push is never forced.
+ * outside the allowlist, or a publish-command digest edit beyond its audio field, refuses the whole
+ * commit and nothing is staged. A rejected push is retried after `git pull --rebase`; supported
+ * state conflicts are merged and copied config snapshots take upstream's version. Unresolved
+ * conflicts are aborted and reported; the push is never forced. Git command errors during staging
+ * or committing, and filesystem errors while writing merged state, propagate to the caller.
  */
 export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOutcome> {
   const run = input.git ?? createGitRunner(input.root);
@@ -191,6 +193,7 @@ interface PushInput {
 
 const SNAPSHOT_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 
+/** List paths currently marked as unmerged in the index. */
 async function unmergedPaths(run: GitRunner): Promise<string[]> {
   const unmerged = await run(["diff", "--name-only", "--diff-filter=U"]);
   return unmerged.stdout
@@ -199,7 +202,10 @@ async function unmergedPaths(run: GitRunner): Promise<string[]> {
     .filter(Boolean);
 }
 
-/** One side of a conflicted file from the index: 1 the ancestor, 2 the remote's, 3 this run's. */
+/**
+ * One side of a conflicted file during rebase: 1 the ancestor, 2 the remote's, 3 this run's.
+ * Return null when git cannot read that index entry.
+ */
 async function indexVersion(
   run: GitRunner,
   stage: 1 | 2 | 3,
@@ -263,6 +269,11 @@ async function resolveRebaseConflicts(
   return false;
 }
 
+/**
+ * Push the current branch, rebasing after a competing push up to `maxRetries` times. Return a
+ * push failure for a detached head, exhausted retries or unresolved conflicts; abort a failed
+ * rebase when possible. Git execution errors and merged-state write errors propagate.
+ */
 async function pushWithRebase(input: PushInput): Promise<CommitOutcome> {
   const { run, remote } = input;
   const failure = (

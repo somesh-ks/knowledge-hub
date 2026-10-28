@@ -53,9 +53,10 @@ function hasError(verdict: GroundingVerdict): boolean {
 
 /**
  * What an item reads like with its unsupported sentences cut out, or null when that leaves a text
- * that breaks the voice limits (fewer than two sentences, under the minimum words): then there is
- * nothing honest left to say and the item is dropped. A sentence whose check errored stays: only a
- * sentence the checker found unsupported goes. A why line left with no sentence is removed.
+ * that breaks the voice limits (fewer than two sentences, under the minimum words), so the caller
+ * can try a rewrite or drop the item. A sentence whose check errored stays: only a
+ * sentence the checker found unsupported goes. A why line left with no sentence is removed; a
+ * changed summary loses its spoken text.
  */
 function prune(
   item: WrittenItem,
@@ -99,9 +100,11 @@ function prune(
  * limits gets one more, with the violations as problems (2026-10-27: three of four drops were a
  * 30-word sentence or an 88-word summary in a grounding rewrite). The rewritten item is checked
  * again, and the sentences still unsupported are cut the same way before an item is dropped and
- * reported. Checks that error out keep the item but mark it unverified, so an outage never
- * silently passes as verified and never loses the whole run. With no grounder every item is kept
- * unverified.
+ * reported. Checks returned as error verdicts keep the item but mark it unverified, so those
+ * failures do not abort the run. With no grounder every item is kept unverified. Items without
+ * source material are dropped when a grounder is present. Thrown grounder, writer or linter errors,
+ * including writer budget errors, reject the operation. Pruning or rewriting a summary removes
+ * its spoken text.
  */
 export async function groundAndRepair(args: {
   grounder: Grounder | null;

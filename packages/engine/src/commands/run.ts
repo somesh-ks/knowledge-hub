@@ -15,6 +15,10 @@ import {
 } from "../run/types.js";
 import { RUN_USAGE } from "../run/usage.js";
 
+/**
+ * Parse CLI flags into run options. Blank feedback, topics and length mean no override; length
+ * is in minutes. Argument parsing errors and invalid values or flag combinations throw.
+ */
 function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   const { values } = parseArgs({
     args: argv,

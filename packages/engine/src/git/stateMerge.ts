@@ -31,6 +31,7 @@ const TIMINGS_KEEP = 50;
 
 const serialize = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
+/** Parse a state version, returning undefined for an absent ancestor or malformed JSON. */
 function parse(text: string | null): unknown {
   if (text === null) return undefined;
   try {
@@ -53,6 +54,7 @@ interface TimedRun {
   run_id: string | null;
 }
 
+/** Read a version-1 timings list, requiring an `at` string on every entry; otherwise return null. */
 function runsOf(value: unknown): TimedRun[] | null {
   if (typeof value !== "object" || value === null) return null;
   const file = value as { version?: unknown; runs?: unknown };

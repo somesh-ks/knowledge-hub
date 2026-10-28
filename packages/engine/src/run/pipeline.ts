@@ -50,6 +50,11 @@ async function loadPlan(deps: RunDeps, options: RunOptions): Promise<Plan> {
   return { ...plan, dry_run: plan.dry_run || options.dryRun };
 }
 
+/**
+ * Run one pass stage using the saved plan with dry-run flags folded in, and return its spend totals
+ * when available. Save elapsed time and spend on success or failure, recording stage failures
+ * before rethrowing. Plan, stage and spend errors propagate to the pipeline's failure handler.
+ */
 async function runPassStage(
   deps: RunDeps,
   options: RunOptions,

@@ -76,6 +76,9 @@ function retryAfterSeconds(body: Record<string, unknown> | null, response: Respo
 /**
  * POST /api/generate. The HTTP status carries the outcome; the body adds detail. A 202 is the only
  * success, and it needs a numeric run id, because without one there is nothing to poll.
+ * Trim feedback and replace the briefing named by the current page; topics are sent only for a
+ * replacement. A truthy `lengthMinutes` overrides the schedule for this run. The accepted result
+ * includes the submitted request for retries. Offline state and fetch failures return rejections.
  */
 export async function startGenerate(
   deps: ClientDeps,

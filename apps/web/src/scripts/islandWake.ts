@@ -44,6 +44,11 @@ export function takeEarlySheet(): SheetName | null {
 
 let installed = false;
 
+/**
+ * Install wake listeners once, retaining an early sheet press until the island can handle it.
+ * A remembered briefing in progress wakes the islands immediately; otherwise a sheet, toast or
+ * idle time after the first input wakes them.
+ */
 export function installIslandWake(): void {
   if (installed) return;
   installed = true;
