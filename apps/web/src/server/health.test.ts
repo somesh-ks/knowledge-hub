@@ -118,4 +118,12 @@ describe("healthBody", () => {
     // ...and the note says GitHub answered only in part, so "All good" never hides it.
     expect(body.parts.github).toBe("partial");
   });
+
+  // The store serving its last manifest is what the pages call saved content: Health must not read
+  // "Answering" over it.
+  it("names a store serving its last saved list, apart from a live one", () => {
+    const body = healthBody(input({ saved: true }), NOW);
+    expect(rowOf(body, "content")).toMatchObject({ value: "Saved copy", tone: "warn" });
+    expect(body.parts.content).toBe("saved");
+  });
 });

@@ -11,6 +11,7 @@ import { readVitals, type VitalSummary } from "@singularity/engine/vitals-store"
 import type { HealthBody } from "../lib/healthRows";
 import { HEALTH_JOBS } from "../lib/healthRows";
 import { readServerConfig } from "./config";
+import { isShowingSavedContent } from "./contentRepo";
 import { contentDigestList, contentDigests, contentStateFile } from "./contentSources";
 import { guardedDatabase } from "./database";
 import { bundledDigests } from "./digestSource";
@@ -174,6 +175,7 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
       // Any content read that came from the build's copy marks the store as fallback; the schedule
       // comes from the settings store, so it is not one of them.
       stored: lastRun.stored && sourceHealth.stored && digests.stored,
+      saved: isShowingSavedContent(),
       digests: digests.digests,
       vitals: typeof store === "string" ? store : store.vitals,
       faults: typeof store === "string" ? store : store.faults,

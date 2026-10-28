@@ -48,6 +48,7 @@ function paint(): void {
   });
   const missing = [
     answer.parts.content === "fallback" && "the content store answered from this build's copy",
+    answer.parts.content === "saved" && "the content store answered from its last saved list",
     answer.parts.database === "unavailable" && "the database did not answer",
     answer.parts.github === "unavailable" && "GitHub did not answer",
     answer.parts.github === "partial" && "GitHub answered for some workflows only",

@@ -23,7 +23,8 @@ export interface HealthBody {
   rows: HealthRow[];
   /** Which upstreams answered: a part that did not is named in the page's note. */
   parts: {
-    content: "ok" | "fallback";
+    /** `saved`: the store answered from its last manifest, which did not refresh. */
+    content: "ok" | "saved" | "fallback";
     database: "ok" | "unavailable" | "off";
     /** `partial`: GitHub answered for some workflows, not all. */
     github: "ok" | "partial" | "unavailable" | "off";

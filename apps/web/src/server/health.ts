@@ -63,6 +63,8 @@ export interface HealthInput {
   sourceHealth: SourceHealthFile | null;
   /** Whether the state came from the content store or this build's copy. */
   stored: boolean;
+  /** The store answered from its last manifest, which could not be refreshed (contentRepo.ts). */
+  saved?: boolean;
   vitals: Maybe<readonly VitalSummary[]>;
   /** Null: no fault was ever reported (no table yet). */
   faults: Maybe<readonly ClientFaultGroup[] | null>;
@@ -460,9 +462,16 @@ function serviceRows(input: HealthInput, now: Date): HealthRow[] {
         : row("database", "Answering", "Field data and reports", "good"),
   );
   rows.push(
-    input.stored
-      ? row("content", "Answering", "Pages read it live", "good")
-      : row("content", "Build copy", "The store did not answer: one deploy behind", "warn"),
+    !input.stored
+      ? row("content", "Build copy", "The store did not answer: one deploy behind", "warn")
+      : input.saved
+        ? row(
+            "content",
+            "Saved copy",
+            "The store's list did not refresh: newer items may be missing",
+            "warn",
+          )
+        : row("content", "Answering", "Pages read it live", "good"),
   );
   return rows;
 }
@@ -499,7 +508,7 @@ export function healthBody(input: HealthInput, now: Date): HealthBody {
     },
     rows,
     parts: {
-      content: input.stored ? "ok" : "fallback",
+      content: !input.stored ? "fallback" : input.saved ? "saved" : "ok",
       database:
         input.vitals === "off" ? "off" : input.vitals === UNAVAILABLE ? "unavailable" : "ok",
       github:
