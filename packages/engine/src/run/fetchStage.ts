@@ -175,7 +175,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       window: { from: new Date(pass.window.from), to: new Date(pass.window.to) },
       setup: deps.fetch,
       ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
-      ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode)),
+      ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode, plan.length_minutes)),
     });
     await writePool(passFile(deps.root, pass.id, "pool.json"), gathered.pool);
     // The general stories live beside the pool, never in it. A file left by an earlier attempt

@@ -210,6 +210,20 @@ describe("a run's health metrics", () => {
   });
 });
 
+// A Regenerate can ask for its own length (3, 5, 10 or 15 minutes). Only the gate step is given
+// `--length`, so the plan keeps it for the fetch and write steps that size the run.
+describe("a run asked for its own length", () => {
+  it("keeps the asked length in the plan, and none when none was asked", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    expect(
+      (await runStage(world, { stage: "gate", mode: "on-demand", force: true, length: 10 })).code,
+    ).toBe(0);
+    expect((await readPlan(repo.root))?.length_minutes).toBe(10);
+    expect((await runStage(world, { stage: "gate", mode: "on-demand", force: true })).code).toBe(0);
+    expect((await readPlan(repo.root))?.length_minutes).toBeUndefined();
+  });
+});
+
 // A job that died after the gate and before Commit (an install, a crash) recorded nothing, so
 // health read the briefing before it as the last run: run_died alerted and nothing healed.
 describe("a run that died before the commit stage", () => {

@@ -33,6 +33,11 @@ export const Plan = z.object({
   passes: z.array(PlanPass),
   /** The digest this run replaces: its files go in the commit that publishes the new one. */
   replaces: DigestId.optional(),
+  /**
+   * Minutes the person asked this run to be (a Regenerate's Length), in place of the schedule's. Only
+   * the gate step receives `--length`, so it lives here for the stages after it.
+   */
+  length_minutes: z.number().int().positive().optional(),
   /** "adopted" plans come from an agent-mode run directory; no gate ran. */
   source: z.enum(["gate", "adopted"]).default("gate"),
   /** When to publish: the scheduled time a run that started ahead waits for (D193). */

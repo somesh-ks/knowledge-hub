@@ -22,6 +22,8 @@ const PLACEHOLDERS: Record<string, string[]> = {
     "2026-10-01",
     "--replace",
     "2026-10-01",
+    "--length",
+    "10",
     "--dry-run",
   ],
   // seed.yml: the replace and dry-run flags it can pass.

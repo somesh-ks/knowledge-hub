@@ -95,6 +95,20 @@ export function parseTopics(bodyText: string): string[] | null | undefined {
   return chosen;
 }
 
+/** The lengths a person can ask a run for, the schedule's own choices (core's ScheduleLengthMinutes). */
+const LENGTHS: readonly number[] = [3, 5, 10, 15];
+
+/**
+ * The minutes this one run is asked to be, in place of the schedule's: absent means the schedule's,
+ * otherwise one of its four lengths. Anything else is invalid (undefined), so a request is refused
+ * before it costs a run.
+ */
+export function parseLength(bodyText: string): number | null | undefined {
+  const raw = (JSON.parse(bodyText) as { length_minutes?: unknown }).length_minutes;
+  if (raw === undefined || raw === null) return null;
+  return typeof raw === "number" && LENGTHS.includes(raw) ? raw : undefined;
+}
+
 /** A digest id: a date, then `-weekly` or a same-day number (core's DigestId). */
 const DIGEST_ID = /^\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?$/;
 
@@ -139,6 +153,8 @@ export async function handleGenerate(
   if (feedback === undefined) return invalid;
   const topics = parseTopics(input.bodyText);
   if (topics === undefined) return invalid;
+  const length = parseLength(input.bodyText);
+  if (length === undefined) return invalid;
   const target = parseTarget(input.bodyText);
   if (target === undefined) return invalid;
   const id = target === null ? null : "delete" in target ? target.delete : target.replace;
@@ -184,6 +200,7 @@ export async function handleGenerate(
             mode: "on-demand",
             ...(feedback ? { feedback } : {}),
             ...(topics && id ? { topics: topics.join(",") } : {}),
+            ...(length ? { length_minutes: String(length) } : {}),
             ...(id ? { replace: id } : {}),
           },
     );

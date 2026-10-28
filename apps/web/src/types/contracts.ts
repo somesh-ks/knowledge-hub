@@ -94,6 +94,8 @@ export interface GenerateRequest {
   feedback?: string;
   /** Regenerate: the topic ids for this run only; absent keeps the briefing's own. */
   topics?: string[];
+  /** Regenerate: this run's length in minutes (3, 5, 10 or 15) in place of the schedule's. */
+  length_minutes?: number;
   /** Regenerate a briefing that exists: its digest id. The new digest replaces it. */
   replace?: string;
   /** Delete a briefing: with `id`, no feedback and no run of the writer. */

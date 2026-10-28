@@ -139,6 +139,32 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     });
   });
 
+  // The 2026-10-28 ask: a Regenerate can be made longer or shorter than the schedule's length.
+  test("a length chosen in the sheet goes with the request, and Try again sends it again", async ({
+    page,
+  }) => {
+    const bodies = await mock(page, [
+      { run_id: 91, state: "completed", step: "writing", outcome: "failed" },
+      { run_id: 92, state: "running", step: "reading", stage: 1, stages: 7, label: "Gathering" },
+    ]);
+    await openRegenerate(page);
+    // Usual is chosen until the person says otherwise: it asks for no length at all.
+    await expect(dialog(page).getByRole("radio", { name: "Usual" })).toBeChecked();
+    await dialog(page).getByRole("radio", { name: "10 min" }).check({ force: true });
+    await dialog(page).getByRole("button", { name: "Regenerate" }).click();
+    await expect.poll(() => bodies.length).toBe(1);
+    expect(bodies[0]).toEqual({ length_minutes: 10, replace: ID });
+
+    await expect(text(page)).toHaveText("The briefing couldn't be written. Nothing was changed.", {
+      timeout: 15_000,
+    });
+    await page.locator("[data-run-card]").getByRole("button", { name: "Try again" }).click();
+    await expect.poll(() => bodies.length).toBe(2);
+    expect(bodies[1]).toEqual(bodies[0]);
+
+    await expect(text(page)).toHaveText(/Waiting for a slot|Gathering/, { timeout: 15_000 });
+  });
+
   test("a second run is not started while one is going, and the sheet says why", async ({
     page,
   }) => {

@@ -16,13 +16,14 @@ Updated 2026-10-27. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 
 ## Tests
 
-Unit (CI): 308 files, 4,961 tests (10-28), 96 s. Site e2e: 403 runs (10-28), 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 308 files, 4,964 tests (10-28), 96 s. Site e2e: 403 runs (10-28), 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
 - Short briefings and lost runs (D202): the 2026-10-27 Regenerate aired 2 of 5 minutes and its Catch up lost its episode to a push conflict; the fixes have only run against fakes. closed when: `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
-- Not built: a Length control in the Regenerate sheet (it needs `run.yml`, the engine and the server contract to change together), and a length option above 15 minutes (the 19,000-character narration request is full at 15). closed when: the owner asks for either.
+- A Regenerate can ask for 3, 5, 10 or 15 minutes (D205): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
+- Not built: a length option above 15 minutes (the 19,000-character narration request is full at 15). closed when: the owner asks for it.
 - Discovery copies now rank below an outlet's own entry in dedupe (2026-10-28); a Catch up's general feeds never used Exa. closed when: a run's dedupe report keeps the outlet's entry where a discovery copy of the story was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.

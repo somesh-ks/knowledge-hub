@@ -11,6 +11,15 @@ import SheetFrame from "./SheetFrame";
 /** The same cap as an episode's Regenerate feedback (server/podcast.ts). */
 const FEEDBACK_MAX = 500;
 
+/** The lengths the schedule offers; "Usual" asks for none, so the run keeps the schedule's own. */
+const LENGTHS = [
+  { value: "", label: "Usual" },
+  { value: "3", label: "3 min" },
+  { value: "5", label: "5 min" },
+  { value: "10", label: "10 min" },
+  { value: "15", label: "15 min" },
+] as const;
+
 /** The topics the briefing page offers (EpisodeActions.astro): its chips and the ids it was made with. */
 interface PageTopics {
   chips: RegenChip[];
@@ -46,6 +55,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [topicError, setTopicError] = useState(false);
+  const [length, setLength] = useState("");
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
@@ -60,6 +70,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     );
     setTopicError(false);
     setFieldError(null);
+    setLength("");
   }, [open]);
 
   function toggle(value: string): void {
@@ -99,6 +110,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
       { fetch: (input, init) => fetch(input, init), isOnline: () => navigator.onLine },
       feedbackRef.current?.value ?? "",
       topics,
+      length === "" ? undefined : Number(length),
     );
     setBusy(false);
     if (result.kind === "rejected") {
@@ -162,6 +174,25 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
             ) : null}
           </fieldset>
         ) : null}
+        <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-length-label">
+          <h3 className="sheet-field-label" id="regen-length-label">
+            Length
+          </h3>
+          <div className="segmented-choice" role="radiogroup" aria-labelledby="regen-length-label">
+            {LENGTHS.map((choice) => (
+              <label className="segmented-choice-item" key={choice.value}>
+                <input
+                  type="radio"
+                  name="length"
+                  value={choice.value}
+                  checked={length === choice.value}
+                  onChange={() => setLength(choice.value)}
+                />
+                <span>{choice.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <Field.Root disabled={busy} className="sheet-field">
           <Field.Label className="sheet-field-label">Comments (optional)</Field.Label>
           <textarea

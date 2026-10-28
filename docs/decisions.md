@@ -212,6 +212,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D202 | Guards for a short or lost run, health metrics, one run card | active |
 | D203 | Settings paint the kept copy at once | amends D172 |
 | D204 | Stay on npm; pnpm spiked | active |
+| D205 | A Regenerate asks for its own length | amends D202 |
 
 ---
 
@@ -2135,3 +2136,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: no migration yet. A scratch worktree ran install, typecheck, 4,960 unit tests and the static build under pnpm 10.28; [pnpm-migration](engineering/pnpm-migration.md) lists the five changes it needs.
 - Why: the gain is about 8 s of a 15 s install, against a daily run of 2 to 3 minutes. The change touches ten workflow files (a manual merge each), Vercel's install and a new pinned action, and none of that can be tried here; a mistake stops the daily briefing, which is the thing this branch exists to make reliable (AGENTS.md: pipeline discipline). One task per branch.
 - Revisit if: install time or disk use in CI or on the owner's machines becomes a cost, or Dependabot or Vercel drop npm; then do it on its own branch with a CI run before the merge.
+
+## D205: a Regenerate can ask for its own length
+
+- Date: 2026-10-28 (the owner's goal: the generation length needs fixing; length may need to go up).
+- Decision: the Regenerate sheet has a Length (Usual, 3, 5, 10 or 15 min). The choice travels as `length_minutes` through `/api/generate` (one of the four, else 400), a `run.yml` input, `--length` on the gate step and `length_minutes` in the plan, which sizes the fetch and write steps in place of the schedule's length (`lengthMinutesFor`). Usual sends nothing, so a run without it is sized as before; Try again sends it again.
+- Why: the schedule's length is the owner's standing choice (the store owns it, D149), and a short briefing could only be answered by changing it. A single run can now be made longer or shorter without touching the schedule. The four lengths are the schedule's; longer than 15 still needs chunked narration.
+- Rejected: editing the schedule from the sheet (it would change every later run); a free number of minutes (the sizing, the pool and the narration limit are tuned for the four).
+- Revisit if: a run at 10 or 15 minutes airs under 90% of it (`length_share`), or the narration request grows past 15 minutes.
+- Amends: D202, which left a Length control out.

@@ -119,6 +119,8 @@ interface PassContext {
   /** The schedule and run mode, which say what general topics each pass publishes. */
   schedule: ScheduleFile;
   mode: RunMode;
+  /** The minutes this run was asked to be, in place of the schedule's; undefined for none. */
+  asked: number | undefined;
   /** What the owner asked to improve, for the writer prompt. */
   feedback: string | undefined;
 }
@@ -168,6 +170,7 @@ export async function writeStage(
     generalTopics: activeGeneralFrom(topics),
     schedule: fullSchedule,
     mode: plan.mode,
+    asked: plan.length_minutes,
     feedback,
   };
 
@@ -311,7 +314,7 @@ async function writePass(
   // the weekly podcast's own length. Such a briefing also writes spares, so a story dropped after
   // selection does not come off the length; validation airs as many as fill it.
   // The same rule sizes the judge's pool in the fetch stage (fetchStage.ts).
-  const lengthOf = lengthMinutesFor(context.schedule, pass.kind, context.mode);
+  const lengthOf = lengthMinutesFor(context.schedule, pass.kind, context.mode, context.asked);
   const wanted =
     lengthOf === null
       ? undefined

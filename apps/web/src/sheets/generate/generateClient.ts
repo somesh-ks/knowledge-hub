@@ -81,6 +81,7 @@ export async function startGenerate(
   deps: ClientDeps,
   feedback = "",
   topics?: readonly string[],
+  lengthMinutes?: number,
 ): Promise<StartResult> {
   if (!deps.isOnline()) return { kind: "rejected", reason: "offline", message: MESSAGES.offline };
 
@@ -94,6 +95,7 @@ export async function startGenerate(
   const request: GenerateRequest = {
     ...(note ? { feedback: note } : {}),
     ...(topics && replace ? { topics: [...topics] } : {}),
+    ...(lengthMinutes ? { length_minutes: lengthMinutes } : {}),
     ...(replace ? { replace } : {}),
   };
   let response: Response;
