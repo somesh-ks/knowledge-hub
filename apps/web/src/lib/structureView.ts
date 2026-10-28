@@ -7,8 +7,13 @@
  */
 import type { NamedProfile, StructureBlock, StructureProfile } from "@singularity/core";
 import type { ConfigOp } from "../types/contracts";
-import type { IconName } from "./icons";
-import { escapeHtml, iconHtml, sheetHeadHtml } from "./sheetHead";
+import {
+  escapeHtml,
+  iconBtnHtml,
+  menuItemHtml,
+  settingsTextHtml,
+  sheetHeadHtml,
+} from "./sheetHead";
 
 /** A section a block may name: its id, its name, and the topics that file their stories there. */
 export interface SectionOffer {
@@ -304,12 +309,6 @@ export function moved(
 
 // ------------------------------------------------------------------------------------- markup
 
-const icon = (name: IconName): string => iconHtml(name);
-
-/** A menu's row, as MenuSheet.astro's slot holds them: its glyph at the start, then the word. */
-const item = (act: string, glyph: IconName, label: string, disabled = false, extra = ""): string =>
-  `<button class="hero-menu-item${extra}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${icon(glyph)}${label}</button>`;
-
 /**
  * The rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
  * name and what it holds, its dots with Move up, Move down, Edit and Remove (the More menu,
@@ -326,31 +325,58 @@ export function rowsHtml(
   const last = blocks.length - 2;
   return blocks
     .map((block, index) => {
-      const name = escapeHtml(blockName(block, data.sections));
+      const name = blockName(block, data.sections);
       const off = isOff(block, data.sections, skip);
-      const summary = escapeHtml(
-        off ? `Off in daily and weekly · ${blockSummary(block)}` : blockSummary(block),
-      );
-      const text = `<div class="settings-text"><span class="settings-label">${name}</span><span class="settings-hint">${summary}</span></div>`;
+      const summary = off
+        ? `Off in daily and weekly · ${blockSummary(block)}`
+        : blockSummary(block);
+      const text = settingsTextHtml({ label: name, hint: summary });
       // The frames are not the owner's to shape (owner, 2026-10-24: "remove hello and closing";
       // 2026-10-27: Catch up's model-written ones too).
       if (isFrame(block)) return "";
       const menu = `structure-menu-${Number(index)}`;
+      const gripBtn = iconBtnHtml({
+        label: `Move ${name}`,
+        glyph: "grip",
+        className: "structure-grip",
+        describedBy: "structure-grip-hint",
+        dataAttrs: { "data-grip": true },
+      });
+      const moreBtn = iconBtnHtml({
+        label: `More for ${name}`,
+        glyph: "moreVert",
+        className: "icon-btn-end structure-more",
+        popoverTarget: menu,
+        dataAttrs: {
+          "aria-haspopup": "menu",
+          "data-hero-more": true,
+        },
+      });
       return [
         `<li class="settings-row structure-row" data-index="${index}"${off ? " data-off data-quiet" : ""}>`,
-        `<button class="icon-btn press structure-grip" type="button" aria-label="Move ${name}" aria-describedby="structure-grip-hint" data-grip>${icon("grip")}</button>`,
+        gripBtn,
         text,
         `<div class="structure-menu" style="--row-anchor: --${menu}">`,
-        `<button class="icon-btn press icon-btn-end structure-more" type="button" aria-label="More for ${name}" aria-haspopup="menu" popovertarget="${menu}" data-hero-more>${icon("moreVert")}</button>`,
+        moreBtn,
         `<div class="hero-menu-list menu-sheet structure-menu-list" id="${menu}" popover>`,
-        sheetHeadHtml(blockName(block, data.sections), `${menu}-title`, "data-menu-close"),
-        `<div class="menu-sheet-items" role="menu" aria-label="${name}">`,
-        item("up", "arrowUp", "Move up", index <= 1),
-        item("down", "arrowDown", "Move down", index >= last),
-        item("edit", "pencilSimple", "Edit"),
+        sheetHeadHtml(name, `${menu}-title`, "data-menu-close"),
+        `<div class="menu-sheet-items" role="menu" aria-label="${escapeHtml(name)}">`,
+        menuItemHtml({ act: "up", glyph: "arrowUp", label: "Move up", disabled: index <= 1 }),
+        menuItemHtml({
+          act: "down",
+          glyph: "arrowDown",
+          label: "Move down",
+          disabled: index >= last,
+        }),
+        menuItemHtml({ act: "edit", glyph: "pencilSimple", label: "Edit" }),
         // The last one goes too: the list then shows its empty state and saves nothing until a
         // block is added (owner, 2026-10-27).
-        item("remove", "trash", "Remove", false, " hero-menu-delete"),
+        menuItemHtml({
+          act: "remove",
+          glyph: "trash",
+          label: "Remove",
+          extraClass: "hero-menu-delete",
+        }),
         `</div></div></div></li>`,
       ].join("");
     })
