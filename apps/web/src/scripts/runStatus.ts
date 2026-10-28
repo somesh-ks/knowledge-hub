@@ -21,6 +21,15 @@ const KEY = RUN_STORAGE_KEY;
 const POLL_MS = 4000;
 const MAX_POLLS = 300;
 /**
+ * A briefing can wait behind a scheduled run that holds for its publish time (up to 135 minutes,
+ * D193; they share one workflow group), and a long Regenerate finishes after its audio job. So it is
+ * followed for three hours, as the Regenerate sheet followed it, asking every 15 seconds once the
+ * first 20 minutes are past.
+ */
+const SLOW_POLL_MS = 15_000;
+const BRIEFING_MAX_POLLS =
+  MAX_POLLS + Math.ceil((3 * 3_600_000 - MAX_POLLS * POLL_MS) / SLOW_POLL_MS);
+/**
  * The last stage asks this often for the redeployed site: the deploy takes about 35 s, and every
  * second between it landing and the line noticing is a second the listener waits for nothing.
  */
@@ -561,8 +570,12 @@ async function follow(run: Stored, now: boolean): Promise<void> {
   let stage = run.stage;
   let estimated = Boolean(run.estimates?.length);
   let stageAt = run.stageAt;
-  for (let turn = 0; turn < MAX_POLLS && following === run.id; turn += 1) {
-    if (turn > 0 || !now) await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+  const polls = run.what ? BRIEFING_MAX_POLLS : MAX_POLLS;
+  for (let turn = 0; turn < polls && following === run.id; turn += 1) {
+    if (turn > 0 || !now) {
+      const wait = turn >= MAX_POLLS ? SLOW_POLL_MS : POLL_MS;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
     if (following !== run.id) return;
     const asked = run.retry?.body.request as
       | { format?: string; length_minutes?: number }

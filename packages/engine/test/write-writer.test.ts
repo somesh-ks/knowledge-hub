@@ -269,6 +269,11 @@ describe("LlmWriter.write", () => {
     expect(llm.calls).toHaveLength(3);
     expect(llm.calls[1]?.maxTokens).toBeGreaterThan((800 * 2 + 300) as number);
     expect(llm.userText(1).match(/<<<SOURCE-\w+ id=/g)).toHaveLength(2);
+    // Each half still knows the other half's headlines, as the whole batch knew its neighbours'.
+    const otherOfFirst = llm.userText(1).split("other-headlines>>>")[1] ?? "";
+    expect(otherOfFirst).toContain(items[2]?.title);
+    expect(otherOfFirst).toContain(items[3]?.title);
+    expect(otherOfFirst).not.toContain(`${items[0]?.title}\n`);
   });
 
   it("gives up on a story whose reply never validates, and keeps its neighbours", async () => {

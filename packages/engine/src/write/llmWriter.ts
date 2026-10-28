@@ -200,7 +200,11 @@ export class LlmWriter implements Writer {
             : [batch];
         const results: WriteResult[] = [];
         for (const part of parts) {
-          results.push(await this.writeBatch(part, feedback, taste, others, split + 1));
+          // Each half still sees the titles of the stories outside it, the other half's included.
+          const siblings = batch.filter((item) => !part.includes(item)).map((item) => item.title);
+          results.push(
+            await this.writeBatch(part, feedback, taste, [...others, ...siblings], split + 1),
+          );
         }
         return {
           written: results.flatMap((r) => r.written),

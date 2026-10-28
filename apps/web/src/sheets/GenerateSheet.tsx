@@ -5,7 +5,7 @@ import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate } from "../player/sound/soundMap";
 import Icon from "../player/ui/LazyIcon";
-import { startGenerate } from "./generate/generateClient";
+import { MESSAGES, startGenerate } from "./generate/generateClient";
 import SheetFrame from "./SheetFrame";
 
 /** The same cap as an episode's Regenerate feedback (server/podcast.ts). */
@@ -100,19 +100,27 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     }
     setBusy(true);
     setFieldError(null);
-    const indicator = await import("../scripts/runStatus");
-    if (indicator.isRunGoing()) {
-      setBusy(false);
-      setFieldError(BUSY);
+    let indicator: typeof import("../scripts/runStatus");
+    let result: Awaited<ReturnType<typeof startGenerate>>;
+    try {
+      indicator = await import("../scripts/runStatus");
+      if (indicator.isRunGoing()) {
+        setFieldError(BUSY);
+        return;
+      }
+      result = await startGenerate(
+        { fetch: (input, init) => fetch(input, init), isOnline: () => navigator.onLine },
+        feedbackRef.current?.value ?? "",
+        topics,
+        length === "" ? undefined : Number(length),
+      );
+    } catch {
+      // The indicator's chunk failed to load (offline, a stale deploy): say so, never stay busy.
+      setFieldError(MESSAGES.network);
       return;
+    } finally {
+      setBusy(false);
     }
-    const result = await startGenerate(
-      { fetch: (input, init) => fetch(input, init), isOnline: () => navigator.onLine },
-      feedbackRef.current?.value ?? "",
-      topics,
-      length === "" ? undefined : Number(length),
-    );
-    setBusy(false);
     if (result.kind === "rejected") {
       setFieldError(result.message);
       playUiCue(cueForGenerate("failed"));

@@ -92,22 +92,31 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
   }
 }
 
-/** The failed run's entry in the run metrics, so the failure rate counts it. */
+/**
+ * The failed run's entry in the run metrics, so the failure rate counts it. Best effort, as in the
+ * commit stage: a metric never stops the failure record or its commit.
+ */
 async function recordFailedMetrics(
   deps: RunDeps,
   plan: NonNullable<Awaited<ReturnType<typeof readPlan>>>,
   at: string,
 ): Promise<void> {
-  await recordRunMetrics(
-    deps.root,
-    await failedRunMetrics({
-      root: deps.root,
-      plan,
-      at,
-      stage: "unknown",
-      reason: "The job stopped before the commit stage.",
-    }),
-  );
+  try {
+    await recordRunMetrics(
+      deps.root,
+      await failedRunMetrics({
+        root: deps.root,
+        plan,
+        at,
+        stage: "unknown",
+        reason: "The job stopped before the commit stage.",
+      }),
+    );
+  } catch (error) {
+    deps.log.warn("The failed run's metrics were not recorded", {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /**

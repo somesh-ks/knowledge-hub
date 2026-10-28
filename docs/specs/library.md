@@ -9,7 +9,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 - No banner says how old a briefing is; offline is the one device banner.
 - The latest briefing's three-dots menu offers Share and New briefing; an older briefing has a Share button.
 - Every briefing has Share, Regenerate and Delete in its More menu (D104). Regenerate replaces that digest over its own window (`singularity run --replace`); Delete removes the digest and its timeline (`singularity run --delete`). Both go through `run.yml` and `/api/generate`. Today's Regenerate takes feedback for the writer and makes a new digest, not a replacement (D103).
-- Regenerate chooses the topics again and takes comments, for an episode and a briefing (D109). A briefing's also takes a Length (Usual, 3, 5, 10 or 15 min; Usual keeps the schedule's) (D205).
+- Regenerate chooses the topics again and takes comments, for an episode and a briefing (D109). A briefing's also takes a Length (Usual, 3, 5, 10 or 15 min). Usual sends no override and keeps the run's own sizing (the schedule's, or none for an on-demand run); the others size the run to that length (D205).
 - Each story has like, dislike and "Stop hearing from" controls.
 - The hero Play chip, the floating Play and the cards show resume, played and heard state (D97, see player.md).
 

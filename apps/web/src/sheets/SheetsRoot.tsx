@@ -76,8 +76,8 @@ export default function SheetsRoot() {
   // for each outcome, so a Regenerate still ends with the cue it always had.
   useEffect(() => {
     const onRun = (): void => {
-      const run = readRunRecord(localStorage);
-      const cue = claimEndCue(run, sessionStorage);
+      const run = readRunRecord(() => localStorage);
+      const cue = claimEndCue(run, () => sessionStorage);
       if (!run || !cue) return;
       playUiCue(cueForGenerate(cue));
       toastForEndedRun(run, cue);

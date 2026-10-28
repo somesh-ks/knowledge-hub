@@ -234,7 +234,7 @@ function askStore(now: number): Promise<ConfigReadBody | null> {
   }
   // The copy stands until the store answers; a read that ends after the grace updates `current`
   // for whatever reads next, and the copy for the next page.
-  if (current === null) current = cached;
+  adopt(cached);
   let settled = false;
   const fromStore = asked.read.then((body) => {
     settled = true;

@@ -91,9 +91,11 @@ export function summarize(input: {
   const finished = runs.filter((run) => run.outcome !== "failed");
   const published = runs.filter((run) => run.outcome === "published");
   const sized = published.flatMap((run) => (run.length.share === null ? [] : [run.length.share]));
-  const survival = published.flatMap((run) =>
-    run.funnel.written > 0 ? [1 - run.funnel.grounding_dropped / run.funnel.written] : [],
-  );
+  // Grounding checks what the writer wrote and what the refill wrote after it, so both count.
+  const survival = published.flatMap((run) => {
+    const checked = run.funnel.written + run.funnel.refill_written;
+    return checked > 0 ? [Math.max(0, 1 - run.funnel.grounding_dropped / checked)] : [];
+  });
   const enough = runs.length >= MIN_RUNS;
   const timed = finished.flatMap((run) => (run.total_ms === undefined ? [] : [run.total_ms]));
 

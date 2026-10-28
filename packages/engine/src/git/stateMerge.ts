@@ -1,5 +1,5 @@
 import { CostFile, mergeRecords, UsageFile } from "@singularity/core";
-import { RUN_METRICS_KEEP, RunMetricsFile } from "../metrics/runMetrics.js";
+import { parseRunMetrics, RUN_METRICS_KEEP, RUN_METRICS_PATH } from "../metrics/runMetrics.js";
 
 /**
  * How a state file that two workflows both append to is reconciled after a rebase conflict. The
@@ -25,7 +25,6 @@ export type StateMerge = (versions: StateVersions) => string | null;
 const COSTS_PATH = /^state\/costs-\d{4}-\d{2}\.json$/;
 const TIMINGS_PATH = "state/podcast-timings.json";
 const USAGE_PATH = "state/usage.json";
-const RUN_METRICS_PATH = "state/run-metrics.json";
 
 /** The same cap `recordTimings` keeps; older runs say little about today's speed. */
 const TIMINGS_KEEP = 50;
@@ -102,11 +101,11 @@ const mergeUsage: StateMerge = ({ base, upstream, mine }) => {
 
 /** Run metrics: one entry per run and digest, oldest first, the newest 60. */
 const mergeRunMetrics: StateMerge = ({ upstream, mine }) => {
-  const theirs = RunMetricsFile.safeParse(parse(upstream));
-  const ours = RunMetricsFile.safeParse(parse(mine));
-  if (!theirs.success || !ours.success) return null;
-  const byKey = new Map<string, (typeof ours.data.runs)[number]>();
-  for (const run of [...theirs.data.runs, ...ours.data.runs]) {
+  const theirs = parseRunMetrics(parse(upstream));
+  const ours = parseRunMetrics(parse(mine));
+  if (theirs === null || ours === null) return null;
+  const byKey = new Map<string, (typeof ours.runs)[number]>();
+  for (const run of [...theirs.runs, ...ours.runs]) {
     byKey.set(`${run.run_id}|${run.digest_id}`, run);
   }
   const runs = [...byKey.values()]

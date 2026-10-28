@@ -230,7 +230,7 @@ async function writePass(
     autoAdjust,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
-  const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
+  const sectionPlan = await loadSectionPlan(deps.root, pass.kind, context.asked);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
   const byId = new Map(pool.items.map((item) => [item.id, item]));

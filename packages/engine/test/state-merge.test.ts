@@ -72,6 +72,41 @@ describe("state merges after a rebase conflict", () => {
     ).toEqual(["a", "b"]);
   });
 
+  // One entry the schema no longer reads must not turn a mergeable conflict into a failed push.
+  it("leaves out a metrics entry that does not parse and keeps the rest", () => {
+    const good = (run_id: string): Record<string, unknown> => ({
+      run_id,
+      at: "2026-10-27T10:00:00.000Z",
+      digest_id: "2026-10-27",
+      kind: "regular",
+      mode: "scheduled",
+      replace: false,
+      outcome: "published",
+      stage_ms: {},
+      funnel: {
+        pool: 1,
+        written: 1,
+        grounding_dropped: 0,
+        grounding_pruned: 0,
+        validate_dropped: 0,
+        refill_written: 0,
+        refill_kept: 0,
+        aired: 1,
+      },
+      length: { asked_chars: null, aired_chars: null, share: null },
+      verified: true,
+      model_fallbacks: 0,
+    });
+    const text = stateMergerFor("state/run-metrics.json")?.({
+      base: null,
+      upstream: json({ version: 1, runs: [good("a"), { run_id: "old-shape" }] }),
+      mine: json({ version: 1, runs: [good("b")] }),
+    });
+    expect(
+      (JSON.parse(text ?? "{}") as { runs: { run_id: string }[] }).runs.map((r) => r.run_id),
+    ).toEqual(["a", "b"]);
+  });
+
   it("declines a file it cannot read, so the conflict stands", () => {
     const text = stateMergerFor("state/costs-2026-10.json")?.({
       base: null,

@@ -233,7 +233,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       continue;
     }
 
-    const sectionPlan = await loadSectionPlan(root, pass.kind);
+    const sectionPlan = await loadSectionPlan(root, pass.kind, plan.length_minutes);
     const digest = digestFromSelection({
       selection,
       pool: pool.items,

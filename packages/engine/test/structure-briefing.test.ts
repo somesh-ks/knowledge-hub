@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   type Category,
   defaultStructure,
@@ -13,7 +16,7 @@ import { fitToBudget } from "../src/podcast/fit.js";
 import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js";
 import { fitStories, shapeStories } from "../src/podcast/structure.js";
 import type { PodcastStory } from "../src/podcast/types.js";
-import { sectionPlanFor } from "../src/score/sectionPlan.js";
+import { loadSectionPlan, sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { REQUEST } from "./podcast-fixtures.js";
@@ -21,6 +24,23 @@ import { buildFixtureDigest } from "./render-factories.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 
 const blocks = (input: StructureBlockInput[]) => StructureBlocks.parse(input);
+
+describe("a Regenerate's asked length sizes its sections", () => {
+  // A Regenerate at 15 minutes on the 5-minute daily was held to the daily's section counts and wrote
+  // about a third of the stories its length called for (independent review, PR 391).
+  it("gives a run asked for 15 minutes the 15-minute counts, and the schedule's length without one", async () => {
+    const root = await mkdtemp(join(tmpdir(), "section-plan-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    await writeFile(
+      join(root, "config/structure.json"),
+      JSON.stringify({ version: 1, profile: "designer" }),
+    );
+    const usual = await loadSectionPlan(root, "regular");
+    const asked = await loadSectionPlan(root, "regular", 15);
+    expect(asked.limit("design")).toBeGreaterThan(usual.limit("design") ?? 0);
+    expect(asked.limit("ai")).toBeGreaterThan(usual.limit("ai") ?? 0);
+  });
+});
 
 describe("a briefing follows its stored structure (D170)", () => {
   it("reads sections in the owner's order on the page and in the narration, after the file is written and read back", () => {
@@ -154,6 +174,27 @@ describe("a Catch up fills its slots after the structure's caps", () => {
     // The lowest-ranked of the rest go, not the best.
     expect(fitted.stories.map((each) => each.item_id)).toContain("w6");
     expect(fitted.stories.map((each) => each.item_id)).not.toContain("w7");
+  });
+
+  // The wide selection lists a mixed episode's topics one after another; cutting it by position took
+  // the whole last topic (independent review, PR 391).
+  it("cuts each section's tail first, so a later topic keeps its best stories", () => {
+    const candidates = [
+      ...["a1", "a2", "a3", "a4"].map((id) => story(id, "topic-a")),
+      ...["b1", "b2", "b3", "b4"].map((id) => story(id, "topic-b")),
+    ];
+    const fitted = fitStories(candidates, capped, {}, 4).stories.map((each) => each.item_id);
+    expect(fitted.filter((id) => id.startsWith("a"))).toHaveLength(2);
+    expect(fitted.filter((id) => id.startsWith("b"))).toHaveLength(2);
+    expect(fitted).toContain("b1");
+  });
+
+  // A short episode with many blocks plans one slot; selection kept two, and fitting must not cut
+  // under what selection kept (CodeRabbit, PR 391).
+  it("never cuts an episode under two stories, whatever the structure left room for", () => {
+    const many = Array.from({ length: 5 }, (_, i) => story(`w${i}`, "world"));
+    expect(fitStories(many, capped, {}, 1).stories).toHaveLength(2);
+    expect(fitStories(many, capped, {}, 0).stories).toHaveLength(2);
   });
 
   it("is what shapeStories gives when nothing is cut, and holds the slot count", () => {

@@ -70,12 +70,30 @@ export const RunMetricsFile = z.object({
 });
 export type RunMetricsFile = z.infer<typeof RunMetricsFile>;
 
+/**
+ * The entries of a run-metrics document that parse, or null when it is not one. An entry that no
+ * longer parses (a field the schema grew) is left out and the others stay: one old entry must not
+ * empty the file, nor stop two runs' files from merging.
+ */
+export function parseRunMetrics(value: unknown): RunMetricsFile | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { version, runs } = value as { version?: unknown; runs?: unknown };
+  if (version !== 1 || !Array.isArray(runs)) return null;
+  return {
+    version: 1,
+    runs: runs.flatMap((run) => {
+      const entry = RunMetric.safeParse(run);
+      return entry.success ? [entry.data] : [];
+    }),
+  };
+}
+
 export async function readRunMetrics(root: string): Promise<RunMetricsFile> {
   try {
-    const parsed = RunMetricsFile.safeParse(
+    const parsed = parseRunMetrics(
       JSON.parse(await readFile(join(root, RUN_METRICS_PATH), "utf8")),
     );
-    return parsed.success ? parsed.data : { version: 1, runs: [] };
+    return parsed ?? { version: 1, runs: [] };
   } catch {
     return { version: 1, runs: [] };
   }

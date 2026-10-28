@@ -4,8 +4,8 @@
 
 ## What worked
 
-- `pnpm import` kept every version of `package-lock.json` (531 packages). A cold install took 6 s against `npm ci --ignore-scripts` at 14.5 s with a warm cache.
-- `astro check` (0 errors), the static build (bundle budget met), the typecheck and all 4,960 unit tests pass once the changes below are made.
+- `pnpm import` kept every version of `package-lock.json` (531 packages). A cold-store install took 6 s; `npm ci --ignore-scripts` took 14.5 s with a warm npm cache. The cache states differ, so the two times are two observations, not a like-for-like comparison.
+- `astro check` (0 errors), the static build (bundle budget met), the typecheck and all the unit tests (4,960 when the spike ran; the branch has 4,964 since) pass once the changes below are made.
 
 ## What had to change
 

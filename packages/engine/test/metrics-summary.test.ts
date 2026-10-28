@@ -32,6 +32,45 @@ const run = (n: number, over: Partial<RunMetric> = {}): RunMetric => ({
 const verdicts = (readings: ReadonlyArray<{ metric: string; verdict: string }>) =>
   Object.fromEntries(readings.map((r) => [r.metric, r.verdict]));
 
+// Grounding checks the refill's stories too, so its drops are counted against both writings: with
+// three dropped of 8 written and 4 refilled, 9 of 12 survived, not 5 of 8 (independent review).
+describe("grounding_survival", () => {
+  it("counts the refill's stories as checked, and never goes below zero", () => {
+    const withRefill = (n: number) =>
+      run(n, {
+        funnel: {
+          pool: 87,
+          written: 8,
+          grounding_dropped: 3,
+          grounding_pruned: 0,
+          validate_dropped: 0,
+          refill_written: 4,
+          refill_kept: 4,
+          aired: 8,
+        },
+      });
+    const summary = summarize({ runs: [withRefill(1), withRefill(2), withRefill(3)], timings: [] });
+    expect(summary.briefings.readings.find((r) => r.metric === "grounding_survival")?.value).toBe(
+      0.75,
+    );
+    const heavy = (n: number) =>
+      run(n, {
+        funnel: {
+          pool: 87,
+          written: 2,
+          grounding_dropped: 9,
+          grounding_pruned: 0,
+          validate_dropped: 0,
+          refill_written: 1,
+          refill_kept: 0,
+          aired: 3,
+        },
+      });
+    const floor = summarize({ runs: [heavy(1), heavy(2), heavy(3)], timings: [] });
+    expect(floor.briefings.readings.find((r) => r.metric === "grounding_survival")?.value).toBe(0);
+  });
+});
+
 // The 2026-10-27 regenerate aired 2,117 of 5,330 characters and nothing said so beyond one log line.
 describe("summarize", () => {
   it("judges nothing before three runs say the same", () => {

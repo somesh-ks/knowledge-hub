@@ -185,7 +185,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       MaterialsFile,
     );
     const pool = await loadPassPool(file("pool.json"), file("general.json"));
-    const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
+    const sectionPlan = await loadSectionPlan(deps.root, pass.kind, plan.length_minutes);
     const materials = new Map<string, SourceMaterial>(materialsFile.items.map((m) => [m.id, m]));
     const poolSourceOf = new Map(pool.items.map((item) => [item.id, item.source_id]));
     const entryOf = new Map<string, SelectionItem>(selection.items.map((e) => [e.id, e]));

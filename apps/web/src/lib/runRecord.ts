@@ -21,9 +21,19 @@ export interface RunRecord {
   step?: string;
 }
 
-export function readRunRecord(storage: Pick<Storage, "getItem">): RunRecord | null {
+/**
+ * A storage, or a function that gets it. Resolving `localStorage` itself throws when the browser
+ * blocks site data, so a caller passes `() => localStorage` and the throw lands in the try below.
+ */
+type StorageSource<T> = T | (() => T);
+
+function resolve<T>(source: StorageSource<T>): T {
+  return typeof source === "function" ? (source as () => T)() : source;
+}
+
+export function readRunRecord(storage: StorageSource<Pick<Storage, "getItem">>): RunRecord | null {
   try {
-    const run: unknown = JSON.parse(storage.getItem(RUN_STORAGE_KEY) ?? "null");
+    const run: unknown = JSON.parse(resolve(storage).getItem(RUN_STORAGE_KEY) ?? "null");
     return typeof run === "object" && run !== null ? (run as RunRecord) : null;
   } catch {
     return null;
@@ -41,13 +51,14 @@ export const isBriefingGoing = (run: RunRecord | null): boolean =>
  */
 export function claimEndCue(
   run: RunRecord | null,
-  session: Pick<Storage, "getItem" | "setItem">,
+  session: StorageSource<Pick<Storage, "getItem" | "setItem">>,
 ): "finished" | "failed" | null {
   if (run?.what !== "briefing" || (run.phase !== "done" && run.phase !== "failed")) return null;
   const key = `${run.id}:${run.phase}`;
   try {
-    if (session.getItem(CUED_KEY) === key) return null;
-    session.setItem(CUED_KEY, key);
+    const storage = resolve(session);
+    if (storage.getItem(CUED_KEY) === key) return null;
+    storage.setItem(CUED_KEY, key);
   } catch {
     // Without storage the cue may repeat; it is a sound, not a record.
   }

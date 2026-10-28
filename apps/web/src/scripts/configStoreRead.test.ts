@@ -151,6 +151,36 @@ describe("loadStore", () => {
     expect(shown).toMatchObject({ ops: [{ op: "kept" }] });
   });
 
+  // A page view after an in-page navigation: another tab saved meanwhile and wrote a newer copy, and
+  // with no wait for the store the page must still read that copy, not the older one this module
+  // held from the page before (CodeRabbit, PR 391).
+  it("reads a newer device copy than the one an earlier page view held", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, loadStore, storeRead } = await fresh();
+    vi.stubGlobal("document", {
+      querySelector: () => ({ content: "built-here" }),
+      querySelectorAll: () => [],
+    });
+    const copy = (writtenAt: number, op: string) => ({
+      status: 200,
+      built: "built-here",
+      written_at: writtenAt,
+      ops: [{ op }],
+      sources: [],
+    });
+    const storage = fakeStorage({ [CACHE_KEY]: JSON.stringify(copy(1, "older")) });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => {}));
+    void loadStore(0);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeRead()?.ops).toEqual([{ op: "older" }]);
+
+    storage.setItem(CACHE_KEY, JSON.stringify(copy(3, "newer")));
+    void loadStore(5_000);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeRead()?.ops).toEqual([{ op: "newer" }]);
+  });
+
   // The bug: the owner's own save left the device's kept copy stale, so the next page view read the
   // store's answer (their own save) as "changed on another device". The revision a save produced is
   // tracked: only a write newer than it comes from another device.

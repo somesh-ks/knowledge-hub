@@ -3,8 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 
-const { fill, focusCreate, forgetRunAbout, readRun, refusal, resumeRun, SITE_POLL_MS, statusLine } =
-  await import("./runStatus");
+const {
+  fill,
+  focusCreate,
+  forgetRunAbout,
+  readRun,
+  refusal,
+  resumeRun,
+  SITE_POLL_MS,
+  startRun,
+  statusLine,
+} = await import("./runStatus");
 
 describe("the progress bar", () => {
   it("starts a new run (a Try again) from empty, and never goes back within one run", () => {
@@ -298,5 +307,45 @@ describe("a refused Try again", () => {
 
   it("says something for a wait of a kind it has no words for, so the button is never silent", () => {
     expect(refusal(root, { status: 429 }, { error: "burst", retry_after_s: 30 })).not.toBe("");
+  });
+});
+
+// A briefing queued behind a scheduled run that is holding for its publish time waits far longer
+// than the 20 minutes an episode is followed for; the card said "Lost track of this run" and the end
+// cue never played (independent review, PR 391).
+describe("following a briefing for as long as it can take", () => {
+  it("is still asking after 25 minutes, and shows the briefing when it lands", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, removeItem: () => undefined });
+    vi.stubGlobal("document", {
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      documentElement: { dataset: {} },
+      dispatchEvent: () => true,
+    });
+    let finished = false;
+    vi.stubGlobal("fetch", async () =>
+      Response.json(
+        finished
+          ? { run_id: 31, state: "completed", outcome: "published", digest_id: "2026-10-28" }
+          : { run_id: 31, state: "queued" },
+      ),
+    );
+    startRun(31, { what: "briefing" });
+    const phase = (): string => JSON.parse(store.get("singularity:run") ?? "{}").phase;
+    for (let elapsed = 0; elapsed < 25 * 60_000; elapsed += 4_000) {
+      await vi.advanceTimersByTimeAsync(4_000);
+      await settle();
+    }
+    expect(phase()).not.toBe("started");
+    finished = true;
+    await vi.advanceTimersByTimeAsync(16_000);
+    await settle();
+    expect(phase()).toBe("done");
   });
 });

@@ -80,8 +80,11 @@ export function airsUnder(
   return blocks.some((block) => keyOf(block) === key);
 }
 
+/** The fewest stories an episode airs; selection never returns fewer. */
+const MIN_EPISODE_STORIES = 2;
+
 /**
- * `shapeStories` over more candidates than the episode has room for, cut back to `max` by rank. A
+ * `shapeStories` over more candidates than the episode has room for, cut back to `slots` by rank. A
  * block's count caps its stories after the ranking filled the slots, and an episode sized for 10
  * minutes halves them at 5, so the 2026-10-27 Catch up aired 6 of its 8 slots and told each story
  * longer than it could carry. Candidates beyond the slots stand in for what the caps cut; the
@@ -92,15 +95,30 @@ export function fitStories(
   candidates: readonly PodcastStory[],
   blocks: readonly StructureBlock[],
   prompts: Readonly<Record<string, string>>,
-  max: number,
+  slots: number,
 ): { stories: PodcastStory[]; shape: ScriptShape } {
+  // An episode keeps its two stories (the selection's own floor) whatever the structure leaves room
+  // for: a short episode with many blocks plans one slot and must not be cut under what select kept.
+  const max = Math.max(MIN_EPISODE_STORIES, slots);
   const shaped = shapeStories(candidates, blocks, prompts);
   if (shaped.stories.length <= max) return shaped;
-  const rank = new Map(candidates.map((story, index) => [story.item_id, index]));
-  const byRank = (story: PodcastStory): number => rank.get(story.item_id) ?? candidates.length;
+  // A story ranks by its place inside its own section first, so the cut takes each section's tail
+  // before any section's best: a mixed episode lists its topics one after another, and cutting by
+  // position alone would take the whole last topic (2026-10-28, independent review).
+  const place = new Map<string, number>();
+  const filled = new Map<string, number>();
+  for (const story of candidates) {
+    const before = filled.get(story.section) ?? 0;
+    place.set(story.item_id, before);
+    filled.set(story.section, before + 1);
+  }
+  const order = new Map(candidates.map((story, index) => [story.item_id, index]));
+  const byRank = (a: PodcastStory, b: PodcastStory): number =>
+    (place.get(a.item_id) ?? candidates.length) - (place.get(b.item_id) ?? candidates.length) ||
+    (order.get(a.item_id) ?? candidates.length) - (order.get(b.item_id) ?? candidates.length);
   const kept = new Set(
     [...shaped.stories]
-      .sort((a, b) => byRank(a) - byRank(b))
+      .sort(byRank)
       .slice(0, max)
       .map((story) => story.item_id),
   );

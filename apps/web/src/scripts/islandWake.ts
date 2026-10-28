@@ -65,7 +65,7 @@ export function installIslandWake(): void {
   document.addEventListener(TOAST_EVENT, wakeIslands);
   // A briefing run remembered from before a reload ends with a sound the sheets island plays, so the
   // sheets come now.
-  if (isBriefingGoing(readRunRecord(localStorage))) {
+  if (isBriefingGoing(readRunRecord(() => localStorage))) {
     wakeIslands();
     return;
   }
