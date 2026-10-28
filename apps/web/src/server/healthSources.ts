@@ -11,8 +11,9 @@ import { readVitals, type VitalSummary } from "@singularity/engine/vitals-store"
 import type { HealthBody } from "../lib/healthRows";
 import { HEALTH_JOBS } from "../lib/healthRows";
 import { readServerConfig } from "./config";
-import { contentDigestIds, contentDigests, contentStateFile } from "./contentSources";
+import { contentDigestList, contentDigests, contentStateFile } from "./contentSources";
 import { guardedDatabase } from "./database";
+import { bundledDigests } from "./digestSource";
 import { createGitHubClient } from "./github";
 import { HEALTH_WINDOW_DAYS, type HealthInput, healthBody, UNAVAILABLE } from "./health";
 
@@ -70,14 +71,15 @@ const parseJson = <T>(
  * id says so). `stored` is false when any came from this build's copy, not the content store.
  */
 async function readDigests(): Promise<{ digests: Digest[]; stored: boolean }> {
-  const source = contentDigests();
-  const ids = await contentDigestIds();
+  const list = await contentDigestList();
+  const ids = list.ids;
   const weekly = ids.filter((id) => id.includes("weekly")).slice(0, DIGESTS_PER_KIND);
   const rest = ids.filter((id) => !id.includes("weekly")).slice(0, DIGESTS_PER_KIND);
   const reads = await Promise.all(
     [...weekly, ...rest].map(async (id) => {
       const read = await contentStateFile(digestRelPath(id));
-      return read.stored ? read : { text: await source.readDigest(id), stored: false };
+      // Straight to the build's copy: the store just failed, and asking it again could outlast the part.
+      return read.stored ? read : { text: await bundledDigests.readDigest(id), stored: false };
     }),
   );
   const digests = reads.flatMap(({ text }) => {
@@ -88,7 +90,7 @@ async function readDigests(): Promise<{ digests: Digest[]; stored: boolean }> {
       return [];
     }
   });
-  return { digests, stored: reads.every((read) => read.stored) };
+  return { digests, stored: list.stored && reads.every((read) => read.stored) };
 }
 
 /** `work`, or a rejection once `ms` pass. */
@@ -169,7 +171,9 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
       lastRun: parseJson(lastRun.text, LastRunFile),
       sourceHealth: parseJson(sourceHealth.text, SourceHealthFile),
       schedule: parsedSchedule.success ? parsedSchedule.data : null,
-      stored: lastRun.stored && digests.stored,
+      // Any content read that came from the build's copy marks the store as fallback; the schedule
+      // comes from the settings store, so it is not one of them.
+      stored: lastRun.stored && sourceHealth.stored && digests.stored,
       digests: digests.digests,
       vitals: typeof store === "string" ? store : store.vitals,
       faults: typeof store === "string" ? store : store.faults,

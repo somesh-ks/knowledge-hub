@@ -149,8 +149,17 @@ export function contentEpisodes(deps: () => ContentRepoDeps = runtime): EpisodeB
 
 /** The id of every briefing, newest first. */
 export async function contentDigestIds(deps: () => ContentRepoDeps = runtime): Promise<string[]> {
+  return (await contentDigestList(deps)).ids;
+}
+
+/** The id of every briefing, newest first, and whether the list is the store's (not the build's). */
+export async function contentDigestList(
+  deps: () => ContentRepoDeps = runtime,
+): Promise<{ ids: string[]; stored: boolean }> {
   const paths = await storeList("Digests", deps());
-  return paths === undefined ? bundledDigestIds() : markdownIds(paths);
+  return paths === undefined
+    ? { ids: bundledDigestIds(), stored: false }
+    : { ids: markdownIds(paths), stored: true };
 }
 
 /** The id of every episode, newest first. */
