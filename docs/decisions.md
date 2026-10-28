@@ -211,6 +211,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | Guards for a short or lost run, health metrics, one run card | active |
 | D203 | Settings paint the kept copy at once | amends D172 |
+| D204 | Stay on npm; pnpm spiked | active |
 
 ---
 
@@ -2127,3 +2128,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: rendering settings from the store on the server (D172's rejection stands); the same inline script for the sounds, autoplay and volume controls (it would copy the reduced-motion default of `getSoundsEnabled`); keeping a copy across config changes (its ops are a diff from that build's files).
 - Revisit if: cross-device reload toasts become common, or a first visit after a config change is reported slow; then keep the copy as full values, not a diff.
 - Amends: D172.
+
+## D204: stay on npm for now; pnpm was spiked and works locally
+
+- Date: 2026-10-28 (the owner: "welcome to upgrade to pnpm as a final task").
+- Decision: no migration yet. A scratch worktree ran install, typecheck, 4,960 unit tests and the static build under pnpm 10.28; [pnpm-migration](engineering/pnpm-migration.md) lists the five changes it needs.
+- Why: the gain is about 8 s of a 15 s install, against a daily run of 2 to 3 minutes. The change touches ten workflow files (a manual merge each), Vercel's install and a new pinned action, and none of that can be tried here; a mistake stops the daily briefing, which is the thing this branch exists to make reliable (AGENTS.md: pipeline discipline). One task per branch.
+- Revisit if: install time or disk use in CI or on the owner's machines becomes a cost, or Dependabot or Vercel drop npm; then do it on its own branch with a CI run before the merge.
