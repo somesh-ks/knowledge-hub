@@ -211,7 +211,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
 | D203 | Live Health page | active |
-| D204 | Dual-render typed HTML templates | active |
+| D210 | Dual-render typed HTML templates | active |
 
 ---
 
@@ -2126,7 +2126,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the owner asked for app health, performance and times in Analytics. The daily check's report lives only in an Actions run and an issue; reading the same sources live needs no workflow change, and one module of lines means the page and the issue cannot disagree. The ledger's and the run record's `at` is the publish time for a run started ahead (D193), which read 96 minutes for a 3 minute run.
 - Revisit if: OAuth lands (Health becomes admin-only with Costs, D201), or GitHub's run list for run.yml outgrows two pages a week.
 
-## D204: dual-rendering parity uses typed HTML builders; blast radius analysis is advisory
+## D210: dual-rendering parity uses typed HTML builders; blast radius analysis is advisory
 
 - Date: 2026-10-28.
 - Decision: dynamic client-side DOM updates that re-render Astro pre-rendered blocks (e.g. Structure view in Preferences, `structureView.ts`) use pure typed HTML generator functions (`sheetHead.ts`) with internal HTML escaping and data attributes, rather than client hydration islands or duplicated string concatenation. Blast radius inspection is implemented as an advisory CLI check (`scripts/blastRadius.mjs`, `npm run blast-radius`) mapping modified surfaces to consumers and suggested tests, without blocking git commits.

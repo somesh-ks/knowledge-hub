@@ -11,7 +11,6 @@ Updated 2026-10-28. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): generated ahead, published at 07:00.
-- Dual-render HTML templates: shared typed markup for Astro and client scripts without islands (D204).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
 - Tooling (D38 [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
 
@@ -26,7 +25,7 @@ Unit (CI): 304 files, 4,957 tests (10-28), 85 s. Site e2e: 396 runs (10-27), 10 
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
 - Owner's eye: the bar's centring (they saw more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
-- Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on prod; offline copies of removed episode unaudited. closed when: each is built or checked.
+- Live content (plan 20): an open page elsewhere does not refresh within 60 s (criterion 3); `smokeLive.mjs --apply` never ran on production (criterion 10, owner's); offline copies of a removed episode, Listen now after a delete unaudited. closed when: each is built or checked.
 - Settings paint the device's copy after a 300 ms grace; another device's edit waits for a reload toast (#382). closed when: the owner picks.
 - `topics.spec.ts` near 823 (Add source) failed 1 of 2 cloud runs, passed alone. closed when: a trace names the race or CI runs it clean for a week.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
@@ -47,8 +46,8 @@ Unit (CI): 304 files, 4,957 tests (10-28), 85 s. Site e2e: 396 runs (10-27), 10 
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
 - Config store (D149, D185): on since 2026-10-24; the 2026-10-25 weekly copied it. closed when: a phone's edit shows on a laptop.
-- Pending `config.yml` run can cancel after 202; prod token unchecked since 10-14. closed when: a config save from the site produces a commit.
-- Live services never called from production: Anthropic, Speechify voice list/samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on production.
+- A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
+- Live services never called from production: Anthropic, the Speechify voice list and samples, `/api/source-preview`, `/api/site-icon`. closed when: each answers once on production.
 - Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the note.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source scores (D55), the vote numbers, `auto_adjust` (D190). closed when: each is checked against the golden set or two weeks of real data.

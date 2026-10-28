@@ -3,17 +3,18 @@
 // and recommended verification commands. Non-blocking (exits 0 by default).
 //
 // Usage: node scripts/blastRadius.mjs [--all] [--strict]
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 const SHARED_RULES = [
   {
-    pattern: /^(?:tokens\/|apps\/web\/tokens\.json)/,
+    pattern: /^tokens\//,
     risk: "HIGH",
     surface: "Design Tokens (all pages: color, typography, spacing, elevation)",
     checks: ["npm run design-check", "npm run e2e -w @singularity/web -- e2e/designSystem.spec.ts"],
   },
   {
-    pattern: /^apps\/web\/src\/styles\/(?:tokens|primitives|buttons|shell|foundations)\.css$/,
+    pattern:
+      /^apps\/web\/src\/styles\/(?:tokens|primitives|buttons|shell|foundations|player|sheets)\.css$/,
     risk: "HIGH",
     surface: "Shared CSS Primitives (buttons, chips, navigation, sheets across all pages)",
     checks: ["npm run design-check", "npm run e2e -w @singularity/web -- e2e/designSystem.spec.ts"],
@@ -51,7 +52,7 @@ const SHARED_RULES = [
     surface: "Settings & Preferences (podcast structure, categories, voice, sound)",
     checks: [
       "npx vitest run apps/web/src/lib/structureView.test.ts",
-      "npm run e2e -w @singularity/web -- e2e/settings.spec.ts",
+      "npm run e2e -w @singularity/web -- e2e/settings.spec.ts e2e/topics.spec.ts",
     ],
   },
   {
@@ -68,75 +69,53 @@ const SHARED_RULES = [
   },
 ];
 
-function getChangedFiles() {
-  const files = new Set();
-  const run = (cmd) => {
-    try {
-      return execSync(cmd, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    } catch {
-      return "";
-    }
-  };
+// Runs git and returns its stdout, or null when git exits non-zero. Callers decide whether that is
+// fatal (no git worktree) or expected (a base ref that does not exist).
+function git(args) {
+  try {
+    return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  } catch {
+    return null;
+  }
+}
 
-  // Determine merge base against origin/main or local main
-  let baseRef = null;
-  for (const candidate of ["origin/main", "main"]) {
-    if (run(`git rev-parse --verify ${candidate}`)) {
-      baseRef = candidate;
-      break;
-    }
+const posix = (path) => path.replace(/\\/g, "/");
+
+function getChangedFiles() {
+  if (git(["rev-parse", "--is-inside-work-tree"]) === null) {
+    console.error("Blast Radius: not inside a git worktree, so there is nothing to compare.");
+    process.exit(1);
   }
 
+  const files = new Set();
+  // --no-renames lists both sides of a move, so a HIGH path that moved away is still seen.
+  // -z keeps names with spaces or non-ASCII characters unquoted.
+  const baseRef = ["origin/main", "main"].find(
+    (ref) => git(["rev-parse", "--verify", ref]) !== null,
+  );
   if (baseRef) {
-    // Compare current branch against merge base with baseRef (three dots), excluding upstream-only commits
-    try {
-      const diffMain = execSync(`git diff --name-only ${baseRef}...HEAD`, {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim();
-      if (diffMain) {
-        diffMain.split("\n").forEach((f) => {
-          if (f) {
-            files.add(f.replace(/\\/g, "/"));
-          }
-        });
-      }
-    } catch {
+    // Three dots: this branch's own changes since it left baseRef, not what landed on baseRef since.
+    const diff = git(["diff", "--no-renames", "--name-only", "-z", `${baseRef}...HEAD`]);
+    if (diff === null) {
       console.warn(
-        `Blast Radius: Warning: Comparison against ${baseRef}...HEAD failed (missing merge base or shallow history). Run 'git fetch --unshallow' or 'git fetch origin ${baseRef.replace("origin/", "")}'.`,
+        `Blast Radius: could not compare against ${baseRef}...HEAD (no merge base? shallow clone?). Run 'git fetch --unshallow'.`,
       );
+    } else {
+      for (const file of diff.split("\0")) if (file) files.add(posix(file));
     }
   } else {
     console.warn(
-      "Blast Radius: Warning: Could not determine a reliable base branch (neither origin/main nor main found).",
+      "Blast Radius: neither origin/main nor main exists; only uncommitted files are listed.",
     );
   }
 
-  // Always include uncommitted staged and unstaged files (-z handles renames as NUL-delimited dest and orig)
-  let status = "";
-  try {
-    status = execSync("git status --porcelain -z", {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-  } catch {
-    status = "";
+  // Uncommitted work, staged or not, including each file inside a new directory.
+  const status = git(["status", "--porcelain", "--no-renames", "-z", "--untracked-files=all"]);
+  if (status === null) {
+    console.error("Blast Radius: git status failed.");
+    process.exit(1);
   }
-  const entries = status.split("\0");
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    if (entry && entry.length >= 4) {
-      const code = entry.slice(0, 2);
-      files.add(entry.slice(3).replace(/\\/g, "/"));
-      if (code.includes("R") || code.includes("C")) {
-        i += 1;
-        const origin = entries[i];
-        if (origin) {
-          files.add(origin.replace(/\\/g, "/"));
-        }
-      }
-    }
-  }
+  for (const entry of status.split("\0")) if (entry.length > 3) files.add(posix(entry.slice(3)));
 
   return [...files].sort();
 }
