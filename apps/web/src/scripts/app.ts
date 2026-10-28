@@ -9,6 +9,7 @@ import { installIslandWake } from "./islandWake";
 import { installNavigation } from "./navigation";
 import { installRootState } from "./rootState";
 import { installThemeColor } from "./themeColor";
+import { trackTyping } from "./typing";
 import { installUiSound } from "./uiSound";
 
 /**
@@ -18,6 +19,8 @@ import { installUiSound } from "./uiSound";
  * A bundled module script runs once per session, so per-page work listens for astro:page-load.
  */
 installDisabledGuard();
+// From the first moment: the update check starts after load and must know what was typed before it.
+trackTyping();
 captureInstallPrompt();
 installNavigation();
 installRootState();

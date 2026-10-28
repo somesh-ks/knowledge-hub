@@ -5,6 +5,8 @@
  * (applyBuild), at the first moment nothing would be lost; there is no prompt to answer (D202).
  */
 
+import { wasTypedIn } from "./typing";
+
 /** A waiting worker may take over unless audio is playing or buffering. */
 export function shouldActivateUpdate(playerState: string | undefined): boolean {
   return playerState !== "playing" && playerState !== "loading";
@@ -53,18 +55,6 @@ export function canReloadNow(moment: Moment): boolean {
 const TEXT_FIELD =
   'textarea, input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"])';
 
-/** Fields the reader typed in, from trusted input events: a field the page filled in by script is not theirs to lose. */
-const typedIn = new WeakSet<EventTarget>();
-function trackTyping(): void {
-  document.addEventListener(
-    "input",
-    (event) => {
-      if (event.isTrusted && event.target) typedIn.add(event.target);
-    },
-    { capture: true, passive: true },
-  );
-}
-
 function readMoment(): Moment {
   let overlayOpen = false;
   try {
@@ -78,7 +68,7 @@ function readMoment(): Moment {
     (focused instanceof HTMLElement &&
       (focused.isContentEditable || focused.matches(TEXT_FIELD))) ||
     [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TEXT_FIELD)].some(
-      (field) => typedIn.has(field) && field.value !== field.defaultValue,
+      (field) => wasTypedIn(field) && field.value !== field.defaultValue,
     );
   return { playerState: document.documentElement.dataset.playerState, overlayOpen, editing };
 }
@@ -190,8 +180,6 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
 export function registerServiceWorker(pageBuild?: string): void {
   // Development serves unhashed modules that a cache would keep stale.
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
-  // Before registration resolves: typing in that gap still counts.
-  trackTyping();
   const register = (): void => {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })

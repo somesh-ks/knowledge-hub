@@ -5,45 +5,52 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: a container fill, an accent container for the chosen or current one, 8% and 12% state layers, pill buttons (but Catch up: `.btn-action-tonal`, flat, 16px), chips, selects and text fields (a multi-line field 24px, D186), 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, 8% and 12% state layers, pill buttons (Catch up: `.btn-action-tonal`, flat, 16px), chips, selects, text fields (multi-line 24px, D186), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
-- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off the hairlines (`.row-action`), round on the page, concentric in a card. A one-row card's radius is 24px, a third of its height. Segmented controls have a sliding thumb that moves at once when a key moves it.
-- Sideways scrollers (the section tabs, the Earlier shelf, the Costs table) fade their hidden edges by `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking uses `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
-- Dropdowns share one chevron gap. A glyph that ends a row lands its ink, not its box, where the words end (`--ink-end`, D187).
-- A secondary action beside the hero's Play (Share) is `.btn-secondary.hero-share`: tonal, in Play's pill and height, as wide as its label, its touch area 44px (D153).
-- Latest's navigation icon is a bolt (outline, filled when current) (D129, D168). Theme is a select in Appearance and draws no value until the stored one is set, so the page never flashes the default (D129).
+- A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
+- Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
+- Dropdowns share one chevron gap. Glyphs ending a row land ink at the word end (`--ink-end`, D187).
+- Hero Share action is `.btn-secondary.hero-share`: tonal, Play's pill and height, touch area 44px (D153).
+- Latest icon is a bolt (outline, filled when active) (D129, D168). Theme select in Appearance renders blank until stored value loads to avoid theme flashes (D129).
 
 ### Covers and the header light
-- Covers dated 2026-10 or later are drawn monthly (D110, `packages/cover/src/season.ts`, `MONTHLY_FROM`): one colour scheme a month; Daily and Weekly with set layouts (the weekly shows its ISO week number and Monday to Sunday range); On demand and episodes as a round plate on a matte; type held to 4.5:1 and the spot ink to 3:1 on its paper (tints and haze are softer). Earlier covers keep mixed palettes.
-- Covers are a step brighter and a little more saturated in both themes (paper chroma 0.045, spot and tint 25% richer, under the 0.12 cap); a card's progress scrim covers only its bottom quarter (D122).
-- Ambient cover light (D48): a soft light in the cover's colours behind the header of Latest and of an episode, drawn by a small WebGL canvas on a GPU and by a CSS layer elsewhere. It reads its colours from the drawn cover per theme (`coverColors`) and draws three drifting round lights; the CSS layer draws the same three (D122). Headless Chromium draws on the processor, so its tests check the CSS fallback; when the browser job runs, CI covers that layer.
-- Covers ship as lossless WebP (pixel-identical, about a third of the PNG bytes), encoded with sharp at build time and cached beside the PNG, which is still built for the lock screen's media controls.
-- Safari lacks `overlay` and `interpolate-size`: the sheets, the Delete confirm, the hero menu and toasts place and stack themselves for their exit, the speed panel closes at once there, and heights do not animate to auto.
-- Scenario: WHEN the theme changes THEN the covers on screen decode before the crossfade and the bars fade with the page.
-- A topic's picture is drawn from its name and id (`packages/cover/src/topicArt.ts`).
+- Covers dated 2026-10 or later draw monthly (D110, `packages/cover/src/season.ts`, `MONTHLY_FROM`): set layout for Daily and Weekly (weekly shows ISO week number and range); On demand and episodes use a round plate on matte; type 4.5:1, spot ink 3:1 on paper. Earlier covers keep mixed palettes.
+- Covers have richer saturation in both themes (paper chroma 0.045, spot and tint 25% richer, under 0.12 cap); card progress scrim covers bottom quarter only (D122).
+- Ambient light (D48): soft cover-colored light behind Latest and episode headers, drawn by WebGL canvas on GPU and CSS layer fallback (D122).
+- Covers ship as lossless WebP (about 1/3 PNG bytes), encoded with sharp at build time; PNG retained for lock screen media controls.
+- Safari workarounds: sheets, Delete confirm, hero menu, and toasts stack for exit; speed panel closes immediately; heights do not animate to auto.
+- Scenario: WHEN theme changes THEN covers decode before crossfade and bars fade with page.
+- Topic artwork generated from name and id (`packages/cover/src/topicArt.ts`).
 
 ### Empty states
-- Every screen with nothing to show is one flat illustration, a title, one muted line and one filled action (D96): Latest with no briefing, an empty Library, a search or filter with no result (its line follows the search box in CSS), offline and back online, 404, and an empty topic or Structure list (compact).
-- The art is inline SVG in `EmptyArt.astro`, coloured by classes in `empty.css` from the theme's roles, `aria-hidden`, hidden under forced colours.
+- Screens without content show one flat illustration, title, muted line, and one filled action (D96): Latest without briefing, empty Library, search/filter without result, offline/online transitions, 404, empty topic or Structure list.
+- Art is inline SVG in `EmptyArt.astro`, styled via `empty.css` roles, `aria-hidden`, hidden in forced colors.
 
 ### Interface sounds
-- Sounds are by kind of action (navigate, select, tap, open and close, success, failure) through one delegated listener that loads the sound code on the first gesture, key or focus and follows the Sounds setting (D101).
-- Every enabled control makes one: an action button a soft tap, a dialog or popover its open and close including Escape, a toast its outcome. The first press of a page is queued until the engine is ready. A save that went through is silent.
+- Sounds categorize by action (navigate, select, tap, open, close, success, failure) via one delegated listener loading on first gesture and following Sounds setting (D101).
+- Enabled controls trigger cues: action buttons soft tap, dialogs/popovers open/close including Escape, toasts outcome. Silent after successful save.
 
 ### Style rules
-- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, and 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` holds the grid, regular headings and token-only styles; `e2e/designSystem.spec.ts` checks the rendered grid on every page and open surface. Style tests also forbid raw lengths, undefined custom properties, and a width media query not in range syntax at a breakpoint's width (22.5, 40, 64, 80, 100rem). Unpinned: copy, geometry.
-- Design fixes with a commented reason are extended, never rewritten.
+- Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, with 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` enforces grid, regular headings, and token-only styles; `e2e/designSystem.spec.ts` verifies rendered grid across pages. Tests forbid raw lengths, undefined custom properties, and non-range media queries.
+- Design fixes with commented rationale are extended, never rewritten.
 
 ### Design system enforcement
-Three layers, each catching what the others miss (owner, 2026-10-21):
-- Static: `npm run design-check` (`styles.test.ts`, about 2 s). Colour, type, space, radius, easing and z-index only from tokens; no colour literal in markup or script; icons only through the Icon component; a button, chip, pill or fab is a shared class or a named entry in `BESPOKE_CONTROLS`; no shadow on a control. Each rule's comment names the drift it prevents; an allowlist entry carries a reason.
-- Hook: `.claude/hooks/design-check.mjs`, a PostToolUse hook on Edit, Write and MultiEdit for `apps/web/src/**` and `tokens/**`; silent when green, exit 2 with the failing rules when not.
-- Audit: the `design-audit` agent (`.claude/agents/design-audit.md`) screenshots the touched pages at phone and desktop in light and dark and judges them against the ledger. A UI change runs it before the PR; `/close-session` checks it ran.
-CI runs the rules in the unit tests and `designSystem.spec.ts` in the browser job on any PR touching `apps/web`, `packages` or `tokens`.
-A component changes in its shared class, component or token, with its record, in one PR (owner, 2026-10-24). Variants: the segmented navigation's glyph tab (an icon alone, centred) and its compact form (`.segmented-nav-compact`: chip height, 44px columns, a square pill under the glyph, `--segmented-nav-bg` for the track); the stat tile (`.stat-tile`: a figure over its word, overlay tone, 2 columns, 4 from 40rem); the status dot (`.status-dot`: 8px, good, warn, bad); brand marks (`lib/brandMarks.ts`); `.scroll-fade-inline`, a sideways scroller's hidden edge fading while more lies past (Costs table, section tabs, Earlier shelf), `--scroll-fade-inset` for a pinned start column. `.tabs-in-card`: a tab strip in a card, its first label on the card's words. A row that cannot act says `data-quiet`, its label muted (Volume with Sounds off, the Structure's frames). A sheet's header and a script-drawn menu come from `sheetHead.ts` (D188). The Blocked sheet (the create sheet with source rows); the unsaved-changes dialog (`.confirm-actions.is-stacked`: Save, Discard, Keep editing, from `sheetGuard.ts`); a disabled select with hint and link (Daily's Profile).
+Three layers catch regressions (owner, 2026-10-21):
+- Static: `npm run design-check` (`styles.test.ts`, about 2 s). Enforces tokens for color, type, space, radius, easing, z-index; no color literals; icons via Icon component; controls match shared classes or `BESPOKE_CONTROLS`; no box-shadows.
+- Hook: `.claude/hooks/design-check.mjs`, PostToolUse hook on Edit/Write for `apps/web/src/**` and `tokens/**`.
+- Audit: `design-audit` agent (`.claude/agents/design-audit.md`) screenshots pages at mobile and desktop viewports in light and dark before PRs.
+CI runs rules in unit tests and `designSystem.spec.ts` in browser suite. Components change in shared class, component, or token with ledger records in one PR (owner, 2026-10-24).
+Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.status-dot` (8px, status tones); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`).
+
+### Agentic design conventions
+Coding agents building or modifying UI follow these contracts (adapted from Astryx best practices):
+- **Token purity**: Never write hex codes, rgb/hsl, or literal pixel spacing in CSS or inline styles. All visual properties map to CSS custom properties derived from `tokens/tokens.json`.
+- **Headless behavior**: Use unstyled accessible primitives (`@base-ui/react`) for popovers, dialogs, and sheets; apply styling via Singularity component classes.
+- **Zero layout shift**: Controls hold fixed box dimensions across states (hover, active, played, checked). Use hidden sizers or absolute positioning for state icons.
+- **Verification**: Run `npm run design-check` after modifying any CSS or markup to ensure instant adherence to house rules.
 
 ## Code
-- `apps/web/src/pages/design/[...slug].astro` and `apps/web/src/lib/designCatalogue.ts`: the catalogue, dev and fixture builds only (D189)
+- `apps/web/src/pages/design/[...slug].astro` and `apps/web/src/lib/designCatalogue.ts`: catalogue (D189)
 - `apps/web/src/styles/tokens.css`
 - `apps/web/src/styles/primitives.css`
 - `apps/web/src/styles/empty.css`
@@ -52,4 +59,4 @@ A component changes in its shared class, component or token, with its record, in
 - `packages/cover/src/season.ts`
 - `packages/sound/src/engine.ts`
 - `apps/web/src/scripts/uiSound.ts`
-- Segmented controls come in two kinds (D132): a choice with a check for picking a value, and a sliding-pill tablist for switching views. Every full-screen sheet closes from the top right (`SheetHeader.astro`).
+- Segmented controls have two kinds (D132): choice with check for picking value, and sliding-pill tablist for view switching. Full-screen sheets close from top right (`SheetHeader.astro`).

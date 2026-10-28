@@ -232,6 +232,46 @@ test.describe("service worker", () => {
     expect(await kept()).toBeUndefined();
   });
 
+  // A title typed and left before the page finished loading (the load event waits on a slow image
+  // here) must survive the deploy that is waiting: the update check starts only after load, and
+  // used to know nothing of text typed before it.
+  test("keeps a title typed before the page finished loading", async ({ page }) => {
+    let release = (): void => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/__slow.png", async (route) => {
+      await held;
+      await route.fulfill({ status: 200, contentType: "image/png", body: Buffer.alloc(0) });
+    });
+    // A newer build than the page names, so the first check after load finds a deploy waiting.
+    await page.route("**/build.json", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: '{"build":"newer"}' }),
+    );
+    await page.addInitScript(() => {
+      addEventListener("DOMContentLoaded", () => {
+        const image = new Image();
+        image.hidden = true;
+        image.src = "/__slow.png";
+        document.body.append(image);
+      });
+    });
+    await page.goto("/create", { waitUntil: "domcontentloaded" });
+    const title = page.locator("#create-title");
+    await title.fill("my title");
+    await title.blur();
+    await page.evaluate(() => {
+      (window as unknown as { kept: boolean }).kept = true;
+    });
+    const checked = page.waitForResponse("**/build.json");
+    release();
+    await checked;
+    // The reload, had the check allowed it, starts in the same turn as the answer.
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(0))));
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    await expect(title).toHaveValue("my title");
+  });
+
   test("serves the manifest with its icons", async ({ page, request }) => {
     await page.goto("/");
     const response = await request.get("/manifest.webmanifest");
