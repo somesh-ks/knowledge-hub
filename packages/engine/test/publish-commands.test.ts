@@ -431,6 +431,16 @@ describe("singularity publish", () => {
       expect(r.out.join("")).toContain("git: pushed");
     });
 
+    // The 2026-10-27 briefing was narrated by this command with ffmpeg installed and got no
+    // m4a_url: the command dropped the transcoder before it reached the briefing's narration.
+    it("also publishes a briefing's narration as Opus when a transcoder is available", async () => {
+      await seed("2026-10-07");
+      const r = rig();
+      const deps = { ...r.deps, transcodeOpus: async (mp3: Uint8Array) => mp3 };
+      expect(await createPublishCommand(deps)([], ctx)).toBe(0);
+      expect(audioOf("2026-10-07")?.m4a_url).toMatch(/audio\/2026-10-07\.[0-9a-f]{12}\.m4a$/);
+    });
+
     it("converges: a second run is a no-op", async () => {
       await seed("2026-10-07");
       const r = rig();
