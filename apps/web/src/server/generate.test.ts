@@ -135,6 +135,24 @@ describe("handleGenerate", () => {
     }
   });
 
+  it("sends the length asked for a Regenerate to run.yml, and refuses one the schedule does not offer", async () => {
+    const { deps, github } = setup({ digestIds: () => ["2026-10-07"] });
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 6 } });
+    const send = (length_minutes: unknown) =>
+      handleGenerate(input(JSON.stringify({ replace: "2026-10-07", length_minutes })), deps);
+    expect((await send(10)).status).toBe(202);
+    const dispatched = github.requests.find((request) => request.method === "POST");
+    expect(dispatched?.body).toMatchObject({
+      inputs: { replace: "2026-10-07", length_minutes: "10" },
+    });
+    // No length asked: the input is not sent at all, so a workflow without it still accepts the run.
+    expect((await send(undefined)).status).toBe(202);
+    const plain = github.requests.filter((request) => request.method === "POST").at(-1);
+    expect(JSON.stringify(plain?.body)).not.toContain("length_minutes");
+    for (const bad of [7, 0, "10", 15.5, [10]]) expect((await send(bad)).status).toBe(400);
+  });
+
   it("passes cleaned Regenerate feedback to run.yml and refuses a note over 500 characters", async () => {
     const { deps, github } = setup();
     github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });

@@ -67,6 +67,12 @@ export interface ValidationIssue {
   code: IssueCode;
   message: string;
   itemId?: string;
+  /**
+   * A section over its own allowance (Tech releases, a custom section): which section, the ids of
+   * its items, and how many are over. The caller that ranks the items can trim the lowest instead
+   * of failing the digest (a refill wrote four Tech releases stories for a limit of one, 2026-10-27).
+   */
+  overAllowance?: { section: string; itemIds: string[]; excess: number };
 }
 
 export interface ValidationReport {
@@ -145,10 +151,12 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   };
   // Sections with an allowance of their own (Tech releases and custom sections) count apart from the cap.
   const allowanceBySection = new Map<string, number>();
+  const idsBySection = new Map<string, string[]>();
   for (const item of digest.items) {
     const owner = ownerOf(item);
     if (owner !== undefined && hasOwnAllowance(owner)) {
       allowanceBySection.set(owner, (allowanceBySection.get(owner) ?? 0) + 1);
+      idsBySection.set(owner, [...(idsBySection.get(owner) ?? []), item.id]);
     }
   }
   const allowanceCount = [...allowanceBySection.values()].reduce((sum, n) => sum + n, 0);
@@ -170,13 +178,19 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
   for (const [section, count] of allowanceBySection) {
     const allowance = allowanceFor(section, context.plan);
     if (count <= allowance) continue;
-    add(
-      "error",
-      "item_count",
-      section === TECH_SECTION
-        ? `${count} Tech releases items; the limit is ${allowance}.`
-        : `${count} items in ${titles.get(section) ?? section}; the limit is ${allowance}.`,
-    );
+    issues.push({
+      severity: "error",
+      code: "item_count",
+      message:
+        section === TECH_SECTION
+          ? `${count} Tech releases items; the limit is ${allowance}.`
+          : `${count} items in ${titles.get(section) ?? section}; the limit is ${allowance}.`,
+      overAllowance: {
+        section,
+        itemIds: idsBySection.get(section) ?? [],
+        excess: count - allowance,
+      },
+    });
   }
   if (digest.items.length < VOICE_LIMITS.items.floor) {
     add(

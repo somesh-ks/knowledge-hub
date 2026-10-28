@@ -83,6 +83,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     reason: decision.reason,
     passes,
     source: "gate",
+    ...lengthOf(options),
     ...(decision.publishAt && !options.dryRun
       ? { publish_at: decision.publishAt.toISOString() }
       : {}),
@@ -104,6 +105,10 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
   };
 }
 
+/** The plan's length when the person asked for one. */
+const lengthOf = (options: RunOptions): Pick<Plan, "length_minutes"> =>
+  options.length === undefined ? {} : { length_minutes: options.length };
+
 /**
  * Regenerate on a briefing: one pass with the old digest's id, kind and date, over its own window up
  * to now, whatever the cadence says. The old digest stays until the commit stage publishes the new one.
@@ -120,6 +125,7 @@ async function replaceGate(deps: RunDeps, options: RunOptions, id: string): Prom
     passes: [pass],
     source: "gate",
     replaces: pass.id,
+    ...lengthOf(options),
   };
   await writePlan(deps.root, plan);
   await writePassState(deps.root, newPassState(pass));

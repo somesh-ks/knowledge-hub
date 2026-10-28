@@ -9,6 +9,7 @@ import {
   type SourceStatsFile,
 } from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { readRunMetrics } from "../src/metrics/runMetrics.js";
 import { git } from "./git-testRepo.js";
 import {
   buildTemplate,
@@ -145,6 +146,7 @@ describe("published run", () => {
         DIGEST_PATH,
         "state/judgments.json",
         "state/last-run.json",
+        "state/run-metrics.json",
         "state/seen.json",
         "state/source-health.json",
         "state/source-stats.json",
@@ -275,6 +277,8 @@ describe("published run", () => {
     const result = await runStage(world);
     expect(result.report).toMatchObject({ outcome: "published" });
     expect((await readDigest(repo.root, DIGEST_PATH)).verified).toBe(false);
+    // The metric says nothing was checked, so grounding_survival does not read it as perfect.
+    expect((await readRunMetrics(repo.root)).runs[0]?.grounded).toBe(false);
   });
 });
 

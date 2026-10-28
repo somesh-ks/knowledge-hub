@@ -63,29 +63,9 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
-      # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
-      # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
-      - name: ffmpeg
-        timeout-minutes: 5
-        # A failed or stalled install must never cost the episode: the MP3 still publishes alone.
-        continue-on-error: true
-        run: |
-          # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
-          encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
-          if ! grep -q libopus <<<"$encoders"; then
-            # The man-db trigger can take minutes after an install on the runner image, and apt
-            # waits on a slow mirror unbounded: skip the one and bound the other. Not -qq, so a
-            # stall shows its stage in the log.
-            sudo rm -f /var/lib/man-db/auto-update
-            apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
-            sudo apt-get "${apt_opts[@]}" update -q
-            sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -q --no-install-recommends ffmpeg
-            encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
-          fi
-          if ! grep -q libopus <<<"$encoders"; then
-            echo "::warning::ffmpeg has no libopus encoder; episodes fall back to MP3"
-          fi
-          ffmpeg -hide_banner -version </dev/null | sed -n 1p
+      # No ffmpeg here: nothing in this job transcodes. The voices are recorded, and their Opus copy
+      # made, in the audio job below, which installs ffmpeg for itself (audio.yml). This step cost 17
+      # seconds before the first stage of every Catch up.
 
       # One step per stage, named as the page shows them (apps/web/src/lib/runStages.ts: the status
       # route reads the running step's name). Each saves its result in $RUNNER_TEMP and in Blob, and

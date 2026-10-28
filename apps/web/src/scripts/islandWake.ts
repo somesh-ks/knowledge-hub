@@ -1,5 +1,4 @@
-import { safeSessionStorage } from "../player/core/resume";
-import { RUN_STORAGE_KEY } from "../sheets/generate/runKey";
+import { isBriefingGoing, readRunRecord } from "../lib/runRecord";
 import { isSheetName, type SheetName } from "../sheets/sheetEvents";
 import { whenIdle } from "./idle";
 import { TOAST_EVENT } from "./toastEvent";
@@ -45,6 +44,11 @@ export function takeEarlySheet(): SheetName | null {
 
 let installed = false;
 
+/**
+ * Install wake listeners once, retaining an early sheet press until the island can handle it.
+ * A remembered briefing in progress wakes the islands immediately; otherwise a sheet, toast or
+ * idle time after the first input wakes them.
+ */
 export function installIslandWake(): void {
   if (installed) return;
   installed = true;
@@ -64,14 +68,9 @@ export function installIslandWake(): void {
   );
   // A toast sent before the sheets loaded waits for their store (toastEvent.ts), which this brings.
   document.addEventListener(TOAST_EVENT, wakeIslands);
-  // A run remembered from before a reload brings its toast when it ends, so the sheets come now.
-  let remembered = false;
-  try {
-    remembered = safeSessionStorage()?.getItem(RUN_STORAGE_KEY) != null;
-  } catch {
-    remembered = false;
-  }
-  if (remembered) {
+  // A briefing run remembered from before a reload ends with a sound the sheets island plays, so the
+  // sheets come now.
+  if (isBriefingGoing(readRunRecord(() => localStorage))) {
     wakeIslands();
     return;
   }

@@ -2,7 +2,7 @@ import { VOICE_LIMITS } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
-import { BudgetExceededError, describeError } from "../llm/errors.js";
+import { BudgetExceededError, describeError, LlmOutputError } from "../llm/errors.js";
 import type { LlmClient } from "../llm/types.js";
 import { newBoundary } from "../llm/untrusted.js";
 import type { Taste } from "../profile/tasteNote.js";
@@ -33,6 +33,13 @@ const WRITER_CONCURRENCY = 4;
  */
 const WRITE_TOKENS_PER_ITEM = 800;
 const WRITE_TOKENS_OVERHEAD = 300;
+/**
+ * A batch whose reply never validated (cut off at the token limit, or malformed) is written again
+ * in halves, and a lone story once more, each with this much more room per item. The 2026-10-27
+ * refill lost four stories to one such reply from both models, and with them the briefing's length.
+ */
+const RETRY_TOKEN_BOOST = 1.5;
+const MAX_SPLITS = 2;
 const REWRITE_MAX_TOKENS = 400;
 
 const WriterOutput = z.object({
@@ -130,11 +137,19 @@ export class LlmWriter implements Writer {
     };
   }
 
+  /**
+   * Write a batch, reporting omitted items as failures and preserving batch order. `others` holds
+   * titles outside this batch for context; `split` is the retry depth, starting at zero.
+   * Invalid model output retries in halves (or retries a lone item) for up to two levels with a
+   * larger token allowance. Other model failures become failed entries; BudgetExceededError
+   * propagates without retrying.
+   */
   private async writeBatch(
     batch: readonly SourceMaterial[],
     feedback?: string,
     taste?: Taste,
     others: readonly string[] = [],
+    split = 0,
   ): Promise<WriteResult> {
     const boundary = newBoundary();
     try {
@@ -146,7 +161,10 @@ export class LlmWriter implements Writer {
           { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
         ],
         step: "story_writer",
-        maxTokens: WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD,
+        maxTokens: Math.round(
+          (WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD) *
+            RETRY_TOKEN_BOOST ** split,
+        ),
         label: "writer",
       });
       const wanted = new Set(batch.map((m) => m.id));
@@ -170,7 +188,36 @@ export class LlmWriter implements Writer {
     } catch (error) {
       if (error instanceof BudgetExceededError) throw error;
       const reason = describeError(error, this.options.secrets);
-      this.options.log?.warn("The writer failed on a batch", { items: batch.length, reason });
+      const cause = (error as { cause?: unknown }).cause;
+      this.options.log?.warn("The writer failed on a batch", {
+        items: batch.length,
+        reason,
+        ...(cause === undefined ? {} : { detail: describeError(cause, this.options.secrets) }),
+        retrying: error instanceof LlmOutputError && split < MAX_SPLITS,
+      });
+      if (error instanceof LlmOutputError && split < MAX_SPLITS) {
+        // One long or odd source can sink the reply for all four: write the halves, one after the
+        // other, so a provider that is struggling is never asked for more than WRITER_CONCURRENCY.
+        const parts =
+          batch.length > 1
+            ? [
+                batch.slice(0, Math.ceil(batch.length / 2)),
+                batch.slice(Math.ceil(batch.length / 2)),
+              ]
+            : [batch];
+        const results: WriteResult[] = [];
+        for (const part of parts) {
+          // Each half still sees the titles of the stories outside it, the other half's included.
+          const siblings = batch.filter((item) => !part.includes(item)).map((item) => item.title);
+          results.push(
+            await this.writeBatch(part, feedback, taste, [...others, ...siblings], split + 1),
+          );
+        }
+        return {
+          written: results.flatMap((r) => r.written),
+          failed: results.flatMap((r) => r.failed),
+        };
+      }
       return { written: [], failed: batch.map((m) => ({ id: m.id, reason })) };
     }
   }

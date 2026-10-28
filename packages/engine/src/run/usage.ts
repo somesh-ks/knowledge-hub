@@ -1,7 +1,7 @@
 import { STAGES } from "./types.js";
 
 export const RUN_USAGE = `Usage: singularity run [--mode scheduled|on-demand|weekly] [--force] [--since <iso>]
-                    [--dry-run] [--no-push] [--feedback <text>] [--topics <ids>] [--replace <id>] [--delete <id>] [--record-failed] [--stage ${STAGES.join("|")}] [--run <id>]
+                    [--dry-run] [--no-push] [--feedback <text>] [--topics <ids>] [--replace <id>] [--length <minutes>] [--delete <id>] [--record-failed] [--stage ${STAGES.join("|")}] [--run <id>]
 
 Runs the pipeline: gate, fetch, judge, write, validate, commit. With --stage it runs one stage,
 as a workflow step does; stages hand work to each other through .cache/run/. Without it every
@@ -21,6 +21,8 @@ stage runs in order and stops cleanly when the gate says nothing is due.
               of this run only (Regenerate on a briefing). The saved schedule is not changed.
   --replace   gate: make digest <id> again over its own window and, once the new one is published,
               remove the old one in the same commit (Regenerate on a briefing).
+  --length    gate: size this run to 3, 5, 10 or 15 minutes in place of the schedule's (Regenerate's
+              Length); the plan keeps it for the stages after.
   --delete    remove digest <id> and its narration timeline in one commit; no stage runs.
   --record-failed
               the job died before the commit stage (run.yml): record "failed" in state/last-run.json

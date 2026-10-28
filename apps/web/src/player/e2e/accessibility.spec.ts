@@ -55,7 +55,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await expectAccessible(page, "the ended player");
   });
 
-  test("the Generate sheet idle, refused, running, and when the run fails", async ({
+  test("the Generate sheet idle and refused, then the run line going and failed", async ({
     player,
     page,
   }) => {
@@ -73,7 +73,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
         route,
         200,
         status === 1
-          ? { run_id: 79, state: "running", step: "writing" }
+          ? { run_id: 79, state: "running", step: "writing", stage: 3, stages: 7 }
           : {
               run_id: 79,
               state: "completed",
@@ -92,23 +92,17 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await expect(dialog.getByRole("alert")).toContainText("ran into a problem");
     await expectAccessible(page, "the Generate sheet refused");
     await player.finger.press(start);
-    await expect(dialog.getByRole("list", { name: "Progress" })).toBeVisible();
-    await expectAccessible(page, "the Generate sheet running");
-    await page.clock.runFor(3_100);
-    // The step that failed is named, with a way to the run and back to the form.
-    await expect(
-      dialog.getByRole("alert").filter({ hasText: "The run failed while writing" }),
-    ).toBeVisible();
-    await expect(dialog.getByRole("link", { name: "View the run" })).toHaveAttribute(
-      "href",
-      /runs\/79/,
-    );
-    await expect(
-      dialog.getByRole("list", { name: "Progress" }).getByRole("listitem").nth(3),
-    ).toContainText("Failed");
-    await expectAccessible(page, "the Generate sheet failed");
-    await player.finger.press(dialog.getByRole("button", { name: "Try again" }));
-    await expect(dialog.getByRole("button", { name: "Regenerate" })).toBeVisible();
+    // The sheet is only the form: the run is followed in the line above the navigation.
+    await expect(dialog).toBeHidden();
+    const card = page.locator("[data-run-card]");
+    await expect(card).toBeVisible();
+    await expectAccessible(page, "the run line going");
+    await page.clock.runFor(4_100);
+    // The step that failed is named, with a way to the run and a way to try again.
+    await expect(page.locator("[data-run-text]")).toContainText("couldn't be written");
+    await expect(card.getByRole("link", { name: "Details" })).toHaveAttribute("href", /runs\/79/);
+    await expectAccessible(page, "the run line failed");
+    await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });
 

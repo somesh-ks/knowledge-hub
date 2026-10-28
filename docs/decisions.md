@@ -116,8 +116,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, the bar has no chevron, titles are bigger, and the gate runs in parallel with the site type-checked | active; amends D69, D87, D89, D90, D101 |
 | D103 | Source scores are out of 5 again, shown as a star rating; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; the first-load budget is 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing, daily or weekly, latest or older, has Share, Regenerate and Delete; Regenerate replaces that digest over its own window; Delete removes its file and timeline | active; amends D88, D103 |
-| D105 | A new episode is playable from a live copy in Blob while it is still being written; mobile sounds unlock on click and play through the silent switch; the spoken word lights without lag; the player's switch is sticky on a phone | active; amends D82, D101 |
-| D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber and the corners; a played chip offers Play again; the Model field is a plain dropdown | active; amends D46, D58, D101 |
+| D105 | A new episode is playable from a live copy in Blob while it is still being written; mobile sounds unlock on click and play through the silent switch; the spoken word lights without lag | active; amends D82, D101 |
+| D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber and the corners; a played chip offers Play again | active; amends D46, D58, D101 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | active; amends D44, D103, D104 |
@@ -134,8 +134,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
-| D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
-| D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
+| D123 | One AI model select on Settings (newest Claude models and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
+| D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a Jev-classified format; a format mix per page, a Perspective slider on general topics, two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
@@ -151,7 +151,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock race, and the site reports its own errors | active |
-| D140 | The design system is enforced in three layers: static rules in `npm run design-check`, a PostToolUse hook that runs them on every UI edit, and the `design-audit` agent before a UI PR; icons come only from the Phosphor package, checked by a drift test | active; amends D131 |
+| D140 | The design system is enforced in three layers: `npm run design-check`, a PostToolUse hook on every UI edit, and the `design-audit` agent before a UI PR; icons come only from Phosphor, checked by a drift test | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 | D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
@@ -211,6 +211,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
 | D203 | Live Health page | active |
+| D204 | Guards for a short or lost run, health metrics, one run card | active |
+| D205 | Settings paint the kept copy at once | amends D172 |
+| D206 | Stay on npm; pnpm spiked | active |
+| D207 | A Regenerate asks for its own length | amends D204 |
+| D208 | A list of generations, with Cancel | amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 
 ---
@@ -2125,6 +2130,49 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: Settings, Analytics has Health (`/settings/health`): briefings, run times, field speed per device, errors, workflow runs, sources and services, from `/api/health`, which reads the content store, Neon and GitHub at request time. The thresholds move into `packages/engine/src/ops/healthLimits.ts` (export `./health-limits`), which the daily check and the route both import. `state/source-health.json` joins the content store. Run time is `generated_at` less `window.to`.
 - Why: the owner asked for app health, performance and times in Analytics. The daily check's report lives only in an Actions run and an issue; reading the same sources live needs no workflow change, and one module of lines means the page and the issue cannot disagree. The ledger's and the run record's `at` is the publish time for a run started ahead (D193), which read 96 minutes for a 3 minute run.
 - Revisit if: OAuth lands (Health becomes admin-only with Costs, D201), or GitHub's run list for run.yml outgrows two pages a week.
+
+## D204: a short or lost run is guarded against, measured, and followed in one run card
+
+- Date: 2026-10-27 (branch `ccr-d90138a8-9n397m`).
+- Decision: (1) a push that conflicts on the cost ledger, timings, usage counter or run metrics merges them by id (`git/stateMerge.ts`) instead of failing; (2) grounding cuts an unsupported sentence before it drops a story, a section over its allowance gives up its lowest stories, and a writer batch that fails is written again in halves; (3) every briefing and episode records its funnel, length share and stage times (`state/run-metrics.json`, `podcast-timings.json`), `singularity metrics` reads them against targets (`metrics/summary.ts`) and `health` warns; (4) a Regenerate is followed in the same run card as a Catch up (strip above the bottom bar on a phone, card in the side column from 64rem), and a failed run says why in a sentence; (5) a Catch up selects half again as many stories as it airs and fills its slots after the structure's caps; (6) the length options stay 3, 5, 10 and 15 minutes.
+- Why: the 2026-10-27 Regenerate aired 2 of 5 minutes (4 stories dropped, refill threw) and its Catch up lost a written episode to a rebase conflict on a ledger that both workflows append to; a stepper inside the Regenerate sheet duplicated the run card and could not show a failure. The 15-minute option already fills the 19,000-character request one narration takes, so a longer option needs chunked narration first.
+- Rejected: choosing one side of a conflicting state file (loses records); editing `config/` in Git to raise the daily length (the store owns it, D149, D185; the owner raises it in Preferences); a Length control in the Regenerate sheet (needs `run.yml`, the engine and the server contract to change together).
+- Revisit if: `singularity metrics` shows `length_share` under 0.9 or `failure_rate` over 0.1 across ten runs, or a longer option is wanted.
+
+## D205: Settings paint the kept store copy at once, and the theme before first paint
+
+- Date: 2026-10-28 (the owner: Settings takes a second to show Daily, Weekly, podcast and theme).
+- Decision: a page with a kept copy of the store's answer (D172) shows it without waiting (`CACHE_GRACE_MS` 0); a store that then answers with something else is offered as a reload, as before. The Theme select takes this device's theme from an inline script before the first paint (`settingsInit.js`, its hash in the policy). A page with no valid copy still waits for the store, up to 2.5 s.
+- Why: measured on the built site with a slow store, the lines took 376 to 577 ms with a copy (a fixed 300 ms wait for a store that nearly always takes longer, plus the script) and the theme 130 to 240 ms (the select drew nothing until the script ran). Now 163 to 184 ms and about 70 ms; the floor with no store is about 65 ms. The copy is what the page would show after the wait, so no build value paints first.
+- Rejected: rendering settings from the store on the server (D172's rejection stands); the same inline script for the sounds, autoplay and volume controls (it would copy the reduced-motion default of `getSoundsEnabled`); keeping a copy across config changes (its ops are a diff from that build's files).
+- Revisit if: cross-device reload toasts become common, or a first visit after a config change is reported slow; then keep the copy as full values, not a diff.
+- Amends: D172.
+
+## D206: stay on npm for now; pnpm was spiked and works locally
+
+- Date: 2026-10-28 (the owner: "welcome to upgrade to pnpm as a final task").
+- Decision: no migration yet. A scratch worktree ran install, typecheck, 4,960 unit tests and the static build under pnpm 10.28; [pnpm-migration](engineering/pnpm-migration.md) lists the five changes it needs.
+- Why: the install is about 6 s against about 15 s (unlike cache states, so only an indication), against a daily run of 2 to 3 minutes. The change touches ten workflow files (a manual merge each), Vercel's install and a new pinned action, and none of that can be tried here; a mistake stops the daily briefing, which is the thing this branch exists to make reliable (AGENTS.md: pipeline discipline). One task per branch.
+- Revisit if: install time or disk use in CI or on the owner's machines becomes a cost, or Dependabot or Vercel drop npm; then do it on its own branch with a CI run before the merge.
+
+## D207: a Regenerate can ask for its own length
+
+- Date: 2026-10-28 (the owner's goal: the generation length needs fixing; length may need to go up).
+- Decision: the Regenerate sheet has a Length (Usual, 3, 5, 10 or 15 min). The choice travels as `length_minutes` through `/api/generate` (one of the four, else 400), a `run.yml` input, `--length` on the gate step and `length_minutes` in the plan, which sizes the fetch and write steps in place of the schedule's length (`lengthMinutesFor`). Usual sends nothing, so a run without it is sized as before; Try again sends it again.
+- Why: the schedule's length is the owner's standing choice (the store owns it, D149), and a short briefing could only be answered by changing it. A single run can now be made longer or shorter without touching the schedule. The four lengths are the schedule's; longer than 15 still needs chunked narration.
+- Rejected: editing the schedule from the sheet (it would change every later run); a free number of minutes (the sizing, the pool and the narration limit are tuned for the four).
+- Revisit if: a run at 10 or 15 minutes airs under 90% of it (`length_share`), or the narration request grows past 15 minutes.
+- Amends: D204, which left a Length control out.
+
+## D208: every generation under way in one list, each with a Cancel
+
+- Date: 2026-10-28 (the owner: "a simpler way to track the queue of generation on mobile and desktop", an icon "not for downloads, but for generations", a list with a thumbnail, a bar, a time left and Cancel, "just like how a file download UI would look").
+- Decision: `GET /api/generations` lists the Catch up and briefing runs that are queued or running (at most 6, each with the status route's stage, `progressOf`), and `POST /api/cancel` cancels one of ours (`cancelRun`; GitHub's 409 means it had finished). From 64rem an icon at the top of the side column opens a popover with a row per generation: cover, title, stage and time left, a bar, Cancel, and Listen now once a live episode can be heard. Its ring fills with the run's progress. With nothing under way it says "Nothing in the works" and offers a Catch up. Below 64rem the strip above the bottom bar gains "All generations", which opens the same list as a bottom sheet. A cancelled run ends as "Cancelled": no Try again, no failure. A briefing's time left comes from the medians of the last ten runs' `stage_ms` in `state/run-metrics.json` (three runs at least).
+- Why: the strip follows one run, so a second one (a Regenerate during a Catch up, or one started in another tab) could not be seen or stopped from the page. The route is a write, so it takes the shared burst cap (D150, 10 a minute) and refuses an id that is not a dispatched run of `run.yml` or `podcast.yml`. With no auth (D201), anyone with the URL can stop the schedule's briefing too, as they can already delete one; a cancel stops spend and loses nothing that Regenerate cannot remake.
+- Rejected: an icon in the phone's app bar (nothing needed often sits at the top of a phone, ledger section 1; the strip is already in the thumb's reach); one polling loop for the whole site (the list polls every 4 s only while open, and the strip's own poll keeps the ring); Pause (GitHub cannot).
+- Known gap (CodeRabbit, 2026-10-28): the narration job runs inside `podcast.yml` (step "Recording voices"), so Cancel there stops it before the usage ledger's final commit. The episode is already committed; only that run's usage charge for segments already made is lost, so the monthly counter can read low by up to one episode's narration. A crash or timeout has the same window; Cancel makes it reachable on purpose.
+- Revisit if: the token turns out to lack Actions write (Cancel then says it could not), the usage counter is seen reading low after a cancel (then refuse Cancel from the voices stage, or commit usage per segment), or owners ask for the list on a phone's top bar.
+- Amends: D204 (one run card).
 
 ## D209: the lane is free while a briefing waits for its publish time
 

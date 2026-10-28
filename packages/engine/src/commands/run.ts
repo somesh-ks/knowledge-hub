@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { DigestId, PodcastFeedback } from "@singularity/core";
+import { DigestId, PodcastFeedback, ScheduleLengthMinutes } from "@singularity/core";
 import type { CommandContext, CommandRun } from "../context.js";
 import { RUN_MODES, type RunMode } from "../gate/decideRun.js";
 import { buildDeps } from "../run/buildDeps.js";
@@ -15,6 +15,10 @@ import {
 } from "../run/types.js";
 import { RUN_USAGE } from "../run/usage.js";
 
+/**
+ * Parse CLI flags into run options. Blank feedback, topics and length mean no override; length
+ * is in minutes. Argument parsing errors and invalid values or flag combinations throw.
+ */
 function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   const { values } = parseArgs({
     args: argv,
@@ -31,6 +35,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       feedback: { type: "string" },
       topics: { type: "string" },
       replace: { type: "string" },
+      length: { type: "string" },
       delete: { type: "string" },
       "record-failed": { type: "boolean" },
       help: { type: "boolean", short: "h" },
@@ -66,6 +71,11 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   if (topics?.some((id) => !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(id))) {
     throw new Error("--topics takes comma-separated topic ids such as ai,design");
   }
+  // Blank means the schedule's length (the workflow passes an empty input).
+  const length = values.length?.trim() ? Number(values.length) : undefined;
+  if (length !== undefined && !ScheduleLengthMinutes.safeParse(length).success) {
+    throw new Error("--length takes 3, 5, 10 or 15 (minutes)");
+  }
   for (const id of [values.replace, values.delete]) {
     if (id !== undefined && !DigestId.safeParse(id).success) {
       throw new Error(`--replace and --delete take a digest id such as 2026-10-11, not "${id}"`);
@@ -82,6 +92,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       stage: values.stage === undefined ? undefined : (values.stage as RunOptions["stage"]),
       run: values.run,
       replace: values.replace,
+      length,
       delete: values.delete,
       recordFailed: values["record-failed"] === true,
       feedback: feedback?.success ? feedback.data : undefined,

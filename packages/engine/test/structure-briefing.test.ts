@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   type Category,
   defaultStructure,
@@ -11,9 +14,10 @@ import { describe, expect, it } from "vitest";
 import { buildSpokenText } from "../src/audio/spokenText.js";
 import { fitToBudget } from "../src/podcast/fit.js";
 import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js";
-import { shapeStories } from "../src/podcast/structure.js";
+import { fitStories, shapeStories } from "../src/podcast/structure.js";
 import type { PodcastStory } from "../src/podcast/types.js";
-import { sectionPlanFor } from "../src/score/sectionPlan.js";
+import { RELEASE_CATEGORY } from "../src/score/releaseNotes.js";
+import { loadSectionPlan, sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { REQUEST } from "./podcast-fixtures.js";
@@ -21,6 +25,23 @@ import { buildFixtureDigest } from "./render-factories.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 
 const blocks = (input: StructureBlockInput[]) => StructureBlocks.parse(input);
+
+describe("a Regenerate's asked length sizes its sections", () => {
+  // A Regenerate at 15 minutes on the 5-minute daily was held to the daily's section counts and wrote
+  // about a third of the stories its length called for (independent review, PR 391).
+  it("gives a run asked for 15 minutes the 15-minute counts, and the schedule's length without one", async () => {
+    const root = await mkdtemp(join(tmpdir(), "section-plan-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    await writeFile(
+      join(root, "config/structure.json"),
+      JSON.stringify({ version: 1, profile: "designer" }),
+    );
+    const usual = await loadSectionPlan(root, "regular");
+    const asked = await loadSectionPlan(root, "regular", 15);
+    expect(asked.limit("design")).toBeGreaterThan(usual.limit("design") ?? 0);
+    expect(asked.limit("ai")).toBeGreaterThan(usual.limit("ai") ?? 0);
+  });
+});
 
 describe("a briefing follows its stored structure (D170)", () => {
   it("reads sections in the owner's order on the page and in the narration, after the file is written and read back", () => {
@@ -120,6 +141,118 @@ it("a structure of Top picks and release news alone still airs both, though it l
     "top",
     "launches",
   ]);
+});
+
+// ep-20261027-2333: eight slots were filled by rank, the structure's scaled caps then cut the design
+// side to 6, and each story was asked to carry more than it had. More candidates stand in for the cut.
+describe("a Catch up fills its slots after the structure's caps", () => {
+  const story = (id: string, section: string): PodcastStory => ({
+    item_id: id,
+    headline: `Headline ${id}`,
+    summary: `Summary ${id}.`,
+    source: `Outlet ${id}`,
+    url: `https://example.com/${id}`,
+    section,
+    category: section,
+  });
+  const capped = blocks([
+    { type: "hello" },
+    { type: "section", id: "design", max_stories: 2 },
+    { type: "sign_off" },
+  ]);
+
+  it("keeps the slots full when a block's cap cuts the ranked stories", () => {
+    // Ranked: five design stories lead, then the rest. Eight slots hold design x5 and three others,
+    // and the cap leaves 2 + 3 = 5.
+    const candidates = [
+      ...["d1", "d2", "d3", "d4", "d5"].map((id) => story(id, "design")),
+      ...["w1", "w2", "w3", "w4", "w5", "w6", "w7"].map((id) => story(id, "world")),
+    ];
+    expect(shapeStories(candidates.slice(0, 8), capped).stories).toHaveLength(5);
+    const fitted = fitStories(candidates, capped, {}, 8);
+    expect(fitted.stories).toHaveLength(8);
+    expect(fitted.stories.filter((each) => each.section === "design")).toHaveLength(2);
+    // The lowest-ranked of the rest go, not the best.
+    expect(fitted.stories.map((each) => each.item_id)).toContain("w6");
+    expect(fitted.stories.map((each) => each.item_id)).not.toContain("w7");
+  });
+
+  // The wide selection lists a mixed episode's topics one after another; cutting it by position took
+  // the whole last topic (independent review, PR 391).
+  it("cuts each section's tail first, so a later topic keeps its best stories", () => {
+    const candidates = [
+      ...["a1", "a2", "a3", "a4"].map((id) => story(id, "topic-a")),
+      ...["b1", "b2", "b3", "b4"].map((id) => story(id, "topic-b")),
+    ];
+    const fitted = fitStories(candidates, capped, {}, 4).stories.map((each) => each.item_id);
+    expect(fitted.filter((id) => id.startsWith("a"))).toHaveLength(2);
+    expect(fitted.filter((id) => id.startsWith("b"))).toHaveLength(2);
+    expect(fitted).toContain("b1");
+  });
+
+  // A release story keeps its world section on the card but airs in the release block, so the cut
+  // ranks it there: ranked by section it sat third behind two world stories and went first
+  // (CodeRabbit, PR 391, second round).
+  it("ranks a release story by the block it airs in, not by its section", () => {
+    const withRelease = blocks([
+      { type: "hello" },
+      { type: "section", id: "world" },
+      { type: "release_news", stories: 2 },
+      { type: "sign_off" },
+    ]);
+    const release: PodcastStory = { ...story("r1", "world"), category: RELEASE_CATEGORY };
+    const candidates = [story("w1", "world"), story("w2", "world"), release];
+    const fitted = fitStories(candidates, withRelease, {}, 2).stories.map((each) => each.item_id);
+    expect(fitted).toContain("r1");
+    expect(fitted).toContain("w1");
+  });
+
+  // A story the structure's per-outlet limit turns away never airs, so it must not take a place in the
+  // rank either: counted, it pushed the block's next story behind another block's second one
+  // (CodeRabbit, PR 391, third round).
+  it("ranks only the stories that air, so a turned-away story takes no place", () => {
+    const limited = blocks([
+      { type: "hello" },
+      { type: "section", id: "world", per_source: 1 },
+      { type: "section", id: "design" },
+      { type: "sign_off" },
+    ]);
+    const at = (id: string, section: string, host: string): PodcastStory => ({
+      ...story(id, section),
+      url: `https://${host}/${id}`,
+    });
+    const candidates = [
+      at("w1", "world", "a.example"),
+      at("w2", "world", "a.example"),
+      at("w3", "world", "b.example"),
+      at("d1", "design", "c.example"),
+      at("d2", "design", "d.example"),
+    ];
+    const fitted = fitStories(candidates, limited, {}, 3).stories.map((each) => each.item_id);
+    expect(fitted).not.toContain("w2");
+    expect(fitted).toContain("w3");
+    expect(fitted).toHaveLength(3);
+  });
+
+  // A short episode with many blocks plans one slot; selection kept two, and fitting must not cut
+  // under what selection kept (CodeRabbit, PR 391).
+  it("never cuts an episode under two stories, whatever the structure left room for", () => {
+    const many = Array.from({ length: 5 }, (_, i) => story(`w${i}`, "world"));
+    expect(fitStories(many, capped, {}, 1).stories).toHaveLength(2);
+    expect(fitStories(many, capped, {}, 0).stories).toHaveLength(2);
+  });
+
+  it("is what shapeStories gives when nothing is cut, and holds the slot count", () => {
+    const few = [story("d1", "design"), story("w1", "world")];
+    expect(fitStories(few, capped, {}, 8)).toEqual(shapeStories(few, capped, {}));
+    const many = Array.from({ length: 6 }, (_, i) => story(`w${i}`, "world"));
+    expect(fitStories(many, capped, {}, 4).stories.map((each) => each.item_id)).toEqual([
+      "w0",
+      "w1",
+      "w2",
+      "w3",
+    ]);
+  });
 });
 
 describe("a structured Catch up script over its length", () => {

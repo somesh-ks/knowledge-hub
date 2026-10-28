@@ -94,6 +94,8 @@ export interface GenerateRequest {
   feedback?: string;
   /** Regenerate: the topic ids for this run only; absent keeps the briefing's own. */
   topics?: string[];
+  /** Regenerate: this run's length in minutes (3, 5, 10 or 15) in place of the schedule's. */
+  length_minutes?: number;
   /** Regenerate a briefing that exists: its digest id. The new digest replaces it. */
   replace?: string;
   /** Delete a briefing: with `id`, no feedback and no run of the writer. */
@@ -151,10 +153,32 @@ export interface StatusResponse {
   failed_stage?: string;
   /** A failed episode run: the artifacts the earlier stages finished ("script", "cover", "voices"). */
   kept?: string[];
+  /** A failed episode run: why, in one sentence for the listener, from the engine's failure record. */
+  reason?: string;
   /** Present once state is "completed". Read from state/last-run.json. */
-  outcome?: "published" | "nothing" | "gated" | "failed";
+  outcome?: "published" | "nothing" | "gated" | "failed" | "cancelled";
   digest_id?: string;
   run_url?: string;
+}
+
+/** One generation under way, as GET /api/generations lists it. */
+export interface GenerationRow {
+  run_id: number;
+  /** A briefing's run (a Regenerate, a Generate or the schedule's) or an episode's (a Catch up). */
+  what: "briefing" | "episode";
+  state: "queued" | "running";
+  /** When GitHub created the run: ISO 8601. */
+  started_at: string;
+  stage: number;
+  stages: number;
+  label: string;
+  /** The usual length of each stage in milliseconds, when the engine has timed such runs. */
+  stage_estimates_ms?: (number | null)[];
+}
+
+/** GET /api/generations response body. */
+export interface GenerationsResponse {
+  generations: GenerationRow[];
 }
 
 /** POST /api/narrate request body. */

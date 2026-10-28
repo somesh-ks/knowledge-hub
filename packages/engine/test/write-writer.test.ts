@@ -239,19 +239,63 @@ describe("LlmWriter.write", () => {
     ]);
   });
 
-  it("fails a batch whose reply never validates, without sinking the other batches", async () => {
+  it("fails only the story whose reply never validates, not its batch or the other batches", async () => {
     const items = Array.from({ length: 6 }, () => material());
-    const llm = new FakeLlm((request, call) => {
-      if (call === 0)
+    const llm = new FakeLlm((request) => {
+      const asked = llm.userText(llm.calls.length - 1);
+      if (asked.includes(`id=${items[0]?.id} `)) {
         throw new LlmOutputError(
           "The model reply failed validation after a retry: items: Required",
         );
+      }
       return writeAll(request);
     });
     const result = await new LlmWriter({ llm, voice }).write(items);
-    expect(result.written.length + result.failed.length).toBe(6);
-    expect(result.failed.length).toBeGreaterThan(0);
-    expect(result.written.length).toBeGreaterThan(0);
+    expect(result.failed.map((f) => f.id)).toEqual([items[0]?.id]);
+    expect(result.written.map((w) => w.id)).toEqual(items.slice(1).map((i) => i.id));
+  });
+
+  // The 2026-10-27 refill: one four-story reply never validated on either model and all four
+  // stories were lost, which left the briefing at 2,117 of 5,330 characters.
+  it("writes a failed batch again in halves, with more room, and keeps what it gets", async () => {
+    const items = Array.from({ length: 4 }, () => material());
+    const llm = new FakeLlm((request, call) => {
+      if (call === 0) throw new LlmOutputError("The reply was cut off at the token limit.");
+      return writeAll(request);
+    });
+    const result = await new LlmWriter({ llm, voice }).write(items);
+    expect(result.failed).toEqual([]);
+    expect(result.written.map((w) => w.id)).toEqual(items.map((i) => i.id));
+    expect(llm.calls).toHaveLength(3);
+    expect(llm.calls[1]?.maxTokens).toBeGreaterThan((800 * 2 + 300) as number);
+    expect(llm.userText(1).match(/<<<SOURCE-\w+ id=/g)).toHaveLength(2);
+    // Each half still knows the other half's headlines, as the whole batch knew its neighbours'.
+    const otherOfFirst = llm.userText(1).split("other-headlines>>>")[1] ?? "";
+    expect(otherOfFirst).toContain(items[2]?.title);
+    expect(otherOfFirst).toContain(items[3]?.title);
+    expect(otherOfFirst).not.toContain(`${items[0]?.title}\n`);
+  });
+
+  it("gives up on a story whose reply never validates, and keeps its neighbours", async () => {
+    const items = Array.from({ length: 4 }, () => material());
+    const llm = new FakeLlm((request) => {
+      if (llm.userText(llm.calls.length - 1).includes(`id=${items[3]?.id} `)) {
+        throw new LlmOutputError("The model reply was not valid JSON.");
+      }
+      return writeAll(request);
+    });
+    const result = await new LlmWriter({ llm, voice }).write(items);
+    expect(result.written.map((w) => w.id)).toEqual(items.slice(0, 3).map((i) => i.id));
+    expect(result.failed.map((f) => f.id)).toEqual([items[3]?.id]);
+  });
+
+  it("does not split a batch for an outage, only for a reply that never validated", async () => {
+    const llm = new FakeLlm(() => {
+      throw new Error("provider exploded");
+    });
+    const result = await new LlmWriter({ llm, voice }).write([material(), material()]);
+    expect(llm.calls).toHaveLength(1);
+    expect(result.failed).toHaveLength(2);
   });
 
   it("aborts the whole run on a budget error", async () => {
@@ -426,6 +470,35 @@ describe("enforceVoice", () => {
     expect(out.passed).toHaveLength(1);
     expect(out.passed[0]?.rewrittenFields).toEqual([]);
     expect(out.dropped).toEqual([]);
+  });
+
+  // 25 rewrites ran one after another in the 2026-10-24 write stage; stories are independent.
+  it("rewrites several stories at once and still returns them in the order they came", async () => {
+    const mats = Array.from({ length: 6 }, () => material());
+    const all = new Map(mats.map((each) => [each.id, each]));
+    let inFlight = 0;
+    let peak = 0;
+    const writer: Writer = {
+      async write() {
+        return { written: [], failed: [] };
+      },
+      async rewrite(request) {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        return request.field === "headline" ? "Springlet 2.0 retargets springs" : null;
+      },
+    };
+    // The second and fifth fail their headline lint, so they are rewritten; the rest wait on nothing.
+    const written = mats.map((each, index) =>
+      index === 1 || index === 4 || index === 2
+        ? { ...good(each.id), headline: "An incredible release!" }
+        : good(each.id),
+    );
+    const out = await enforceVoice({ written, materials: all, writer, linter });
+    expect(peak).toBeGreaterThan(1);
+    expect(out.passed.map((p) => p.item.id)).toEqual(mats.map((each) => each.id));
   });
 
   it("lints only the fields an item has: no why line, no why rewrite", async () => {

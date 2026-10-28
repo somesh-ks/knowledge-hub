@@ -23,6 +23,7 @@ import { type CommitOutcome, commandAllowlist, commitAndPush } from "../git/comm
 import { fastForwardToRemote } from "../git/fastForward.js";
 import { findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
+import { recordRunMetrics } from "../metrics/runMetrics.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
 import { loadSectionPlan } from "../score/sectionPlan.js";
@@ -47,6 +48,7 @@ import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
+import { collectRunMetrics } from "./collectMetrics.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
@@ -179,7 +181,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   const topics = withGeneralTopics(await loadTopicsFile(root));
   const sectionPlans = new Map<string, Awaited<ReturnType<typeof loadSectionPlan>>>();
   for (const pass of plan.passes) {
-    sectionPlans.set(pass.id, await loadSectionPlan(root, pass.kind));
+    sectionPlans.set(pass.id, await loadSectionPlan(root, pass.kind, plan.length_minutes));
   }
   const held = !dryRun && !adopted && (await holdUntilPublishTime(deps, plan));
   // State and Digests are read after it, from the remote's branch and not the checkout from job
@@ -379,6 +381,36 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   if (spend) lastRun = { ...lastRun, spend: { at: nowIso, ...spend } };
   if (spend && deps.spend) await recordSpend(root, deps.spend, plan, nowIso);
   await writeLastRun(root, lastRun);
+  if (!adopted) {
+    // The run's health numbers go in the same commit. They describe the run and never stop it.
+    try {
+      await recordRunMetrics(
+        root,
+        await collectRunMetrics({
+          root,
+          plan,
+          at: nowIso,
+          totalMs: Date.parse(generatedAt) - Date.parse(plan.created_at),
+          modelFallbacks: spend?.requests.model_fallback ?? 0,
+          passes: passData.map((data, index) => {
+            const report = reports[index];
+            return {
+              pass: data.pass,
+              digestId: report?.id ?? data.pass.id,
+              outcome: report?.outcome === "published" ? "published" : "nothing",
+              verified: report?.verified ?? false,
+              aired: report?.items ?? 0,
+              pool: data.pool.items.length,
+            };
+          }),
+        }),
+      );
+    } catch (error) {
+      deps.log.warn("The run's metrics were not recorded", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   const message =
     outcome === "published"

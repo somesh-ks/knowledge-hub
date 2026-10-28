@@ -80,6 +80,60 @@ export function airsUnder(
   return blocks.some((block) => keyOf(block) === key);
 }
 
+/** The fewest stories an episode airs; selection never returns fewer. */
+const MIN_EPISODE_STORIES = 2;
+
+/**
+ * `shapeStories` over more candidates than the episode has room for, cut back to `slots` by rank. A
+ * block's count caps its stories after the ranking filled the slots, and an episode sized for 10
+ * minutes halves them at 5, so the 2026-10-27 Catch up aired 6 of its 8 slots and told each story
+ * longer than it could carry. Candidates beyond the slots stand in for what the caps cut; the
+ * lowest-ranked of the shaped list go first, and the rest is shaped again so its order, its deep
+ * dives and its owner blocks follow what stays. Rank is the position within the airing block,
+ * then the original candidate order. The slot limit is at least two, but structure caps or a
+ * smaller candidate pool can leave fewer stories; the function never adds stories.
+ */
+export function fitStories(
+  candidates: readonly PodcastStory[],
+  blocks: readonly StructureBlock[],
+  prompts: Readonly<Record<string, string>>,
+  slots: number,
+): { stories: PodcastStory[]; shape: ScriptShape } {
+  // An episode keeps its two stories (the selection's own floor) whatever the structure leaves room
+  // for: a short episode with many blocks plans one slot and must not be cut under what select kept.
+  const max = Math.max(MIN_EPISODE_STORIES, slots);
+  const shaped = shapeStories(candidates, blocks, prompts);
+  if (shaped.stories.length <= max) return shaped;
+  // A story ranks by its place inside the block it airs in first, so the cut takes each block's tail
+  // before any block's best: a mixed episode lists its topics one after another, and cutting by
+  // position alone would take the whole last topic (2026-10-28, independent review). A release story
+  // airs in the release block whatever its section, so it ranks there. Only the stories that air take
+  // a place: one a block's per-outlet limit turned away must not push the next behind another block's.
+  const place = new Map<string, number>();
+  const filled = new Map<string, number>();
+  for (const story of shaped.stories) {
+    const key = blockKey(story);
+    const before = filled.get(key) ?? 0;
+    place.set(story.item_id, before);
+    filled.set(key, before + 1);
+  }
+  const order = new Map(candidates.map((story, index) => [story.item_id, index]));
+  const byRank = (a: PodcastStory, b: PodcastStory): number =>
+    (place.get(a.item_id) ?? candidates.length) - (place.get(b.item_id) ?? candidates.length) ||
+    (order.get(a.item_id) ?? candidates.length) - (order.get(b.item_id) ?? candidates.length);
+  const kept = new Set(
+    [...shaped.stories]
+      .sort(byRank)
+      .slice(0, max)
+      .map((story) => story.item_id),
+  );
+  return shapeStories(
+    candidates.filter((story) => kept.has(story.item_id)),
+    blocks,
+    prompts,
+  );
+}
+
 /**
  * Order ranked stories by the structure: each block's stories in rank order, blocks in the
  * structure's order, then stories of sections it does not name. A block's count caps its stories.

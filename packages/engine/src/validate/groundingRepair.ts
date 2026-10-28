@@ -1,5 +1,7 @@
 import { mapConcurrent } from "../llm/concurrency.js";
 import type { Linter, Violation } from "../voice/lint.js";
+import { splitSentences } from "../voice/sentences.js";
+import { rewriteOnce } from "../write/rewriteOnce.js";
 import type { SourceMaterial, Writer, WrittenItem } from "../write/types.js";
 import type { GroundedField, Grounder, GroundingVerdict, SentenceVerdict } from "./grounding.js";
 
@@ -10,6 +12,8 @@ export interface GroundedItem {
   /** Fields rewritten once because a sentence was unsupported. */
   rewrittenFields: GroundedField[];
   checks: SentenceVerdict[];
+  /** Unsupported sentences cut out, which left a text that still passes the voice limits. */
+  prunedSentences: number;
 }
 
 export interface GroundingDrop {
@@ -28,7 +32,14 @@ export interface GroundingOutcome {
   verified: boolean;
 }
 
-const CONCURRENCY = 4;
+/**
+ * Stories grounded at once, and the sentences of one story checked at once. Each story is
+ * independent, so the stories overlap; the two numbers multiply into the Jev requests in flight (32,
+ * as when it was four stories of eight sentences), and a story has about five sentences, so four at
+ * once costs it little.
+ */
+const CONCURRENCY = 8;
+export const GROUNDING_SENTENCE_CONCURRENCY = 4;
 
 type StepResult = { keep: GroundedItem } | { drop: GroundingDrop };
 
@@ -41,13 +52,59 @@ function hasError(verdict: GroundingVerdict): boolean {
 }
 
 /**
+ * What an item reads like with its unsupported sentences cut out, or null when that leaves a text
+ * that breaks the voice limits (fewer than two sentences, under the minimum words), so the caller
+ * can try a rewrite or drop the item. A sentence whose check errored stays: only a
+ * sentence the checker found unsupported goes. A why line left with no sentence is removed; a
+ * changed summary loses its spoken text.
+ */
+function prune(
+  item: WrittenItem,
+  verdict: GroundingVerdict,
+  linter: Linter,
+): { item: WrittenItem; fields: GroundedField[]; removed: number } | null {
+  const next: WrittenItem = { ...item };
+  const fields: GroundedField[] = [];
+  let removed = 0;
+  for (const field of ["summary", "why"] as const) {
+    const current = item[field];
+    if (current === undefined) continue;
+    const cut = new Set(
+      verdict.sentences
+        .filter((s) => s.field === field && s.status === "unsupported")
+        .map((s) => s.sentence),
+    );
+    if (cut.size === 0) continue;
+    const kept = splitSentences(current).filter((sentence) => !cut.has(sentence));
+    removed += splitSentences(current).length - kept.length;
+    fields.push(field);
+    if (field === "why" && kept.length === 0) {
+      delete next.why;
+      continue;
+    }
+    const text = kept.join(" ");
+    if (linter.lint(field, text).length > 0) return null;
+    next[field] = text;
+  }
+  // The spoken telling was written from the summary that was just cut, so it goes with it.
+  if (fields.includes("summary")) delete next.spoken;
+  return { item: next, fields, removed };
+}
+
+/**
  * Grounding stage. Each item's summary sentences, and its why sentence when it has one, are
  * checked against its source text.
- * Unsupported sentences trigger one rewrite of the affected fields with the sentences quoted
- * back as problems, then a second check; an item still unsupported (or whose rewrite breaks the
- * voice limits) is dropped and reported. Checks that error out keep the item but mark it
- * unverified, so an outage never silently passes as verified and never loses the whole run.
- * With no grounder every item is kept unverified.
+ * An unsupported sentence is first cut out when what is left still passes the voice limits: a story
+ * with two true sentences beats no story, and it costs no model call. Otherwise the affected fields
+ * get one rewrite with the sentences quoted back as problems; a rewrite that breaks the voice
+ * limits gets one more, with the violations as problems (2026-10-27: three of four drops were a
+ * 30-word sentence or an 88-word summary in a grounding rewrite). The rewritten item is checked
+ * again, and the sentences still unsupported are cut the same way before an item is dropped and
+ * reported. Checks returned as error verdicts keep the item but mark it unverified, so those
+ * failures do not abort the run. With no grounder every item is kept unverified. Items without
+ * source material are dropped when a grounder is present. Thrown grounder, writer or linter errors,
+ * including writer budget errors, reject the operation. Pruning or rewriting a summary removes
+ * its spoken text.
  */
 export async function groundAndRepair(args: {
   grounder: Grounder | null;
@@ -59,7 +116,13 @@ export async function groundAndRepair(args: {
   const { grounder, writer, linter } = args;
   if (grounder === null) {
     return {
-      kept: args.items.map((item) => ({ item, verified: false, rewrittenFields: [], checks: [] })),
+      kept: args.items.map((item) => ({
+        item,
+        verified: false,
+        rewrittenFields: [],
+        checks: [],
+        prunedSentences: 0,
+      })),
       dropped: [],
       verified: false,
     };
@@ -93,9 +156,24 @@ export async function groundAndRepair(args: {
       let item = original;
       let verdict = await check(item);
       const rewrittenFields: GroundedField[] = [];
+      let prunedSentences = 0;
 
       const bad = unsupportedOf(verdict);
       if (bad.length > 0) {
+        // Cut first: it keeps only sentences the checker already supported.
+        const pruned = prune(item, verdict, linter);
+        if (pruned !== null) {
+          const remaining = verdict.sentences.filter((s) => s.status !== "unsupported");
+          return {
+            keep: {
+              item: pruned.item,
+              verified: !hasError({ id: item.id, sentences: remaining }),
+              rewrittenFields: pruned.fields,
+              checks: remaining,
+              prunedSentences: pruned.removed,
+            },
+          };
+        }
         const fields = [...new Set(bad.map((s) => s.field))];
         const next: WrittenItem = { ...item };
         const violations: Violation[] = [];
@@ -114,11 +192,19 @@ export async function groundAndRepair(args: {
             ],
             focus: bad.filter((s) => s.field === field).map((s) => s.sentence),
           });
-          if (rewritten !== null) {
-            next[field] = rewritten;
-            rewrittenFields.push(field);
-            violations.push(...linter.lint(field, rewritten));
-          }
+          if (rewritten === null) continue;
+          rewrittenFields.push(field);
+          // A rewrite that fixed the facts but broke a length rule gets its one voice rewrite.
+          const repaired = await rewriteOnce({
+            writer,
+            linter,
+            material,
+            field,
+            text: rewritten,
+            violations: linter.lint(field, rewritten),
+          });
+          next[field] = repaired.text;
+          violations.push(...repaired.violations);
         }
         if (violations.length > 0) {
           return {
@@ -137,20 +223,31 @@ export async function groundAndRepair(args: {
         verdict = await check(item);
         const stillBad = unsupportedOf(verdict);
         if (stillBad.length > 0) {
-          return {
-            drop: {
-              id: item.id,
-              reason: "unsupported",
-              unsupported: stillBad,
-              violations: [],
-              repairs: rewrittenFields.length,
-            },
+          const pruned = prune(item, verdict, linter);
+          if (pruned === null) {
+            return {
+              drop: {
+                id: item.id,
+                reason: "unsupported",
+                unsupported: stillBad,
+                violations: [],
+                repairs: rewrittenFields.length,
+              },
+            };
+          }
+          item = pruned.item;
+          prunedSentences = pruned.removed;
+          verdict = {
+            id: item.id,
+            sentences: verdict.sentences.filter((s) => s.status !== "unsupported"),
           };
         }
       }
 
       const verified = !hasError(verdict);
-      return { keep: { item, verified, rewrittenFields, checks: verdict.sentences } };
+      return {
+        keep: { item, verified, rewrittenFields, checks: verdict.sentences, prunedSentences },
+      };
     },
   );
 

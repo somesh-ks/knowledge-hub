@@ -8,6 +8,7 @@ import { judgeStage } from "./judgeStage.js";
 import { type Plan, requirePlan } from "./plan.js";
 import { recordFailedRun } from "./recordFailed.js";
 import { deleteDigest } from "./replace.js";
+import { addStageTime, noteStageFailure } from "./stageClock.js";
 import type {
   CommitReport,
   FailureReport,
@@ -49,6 +50,11 @@ async function loadPlan(deps: RunDeps, options: RunOptions): Promise<Plan> {
   return { ...plan, dry_run: plan.dry_run || options.dryRun };
 }
 
+/**
+ * Run one pass stage using the saved plan with dry-run flags folded in, and return its spend totals
+ * when available. Save elapsed time and spend on success or failure, recording stage failures
+ * before rethrowing. Plan, stage and spend errors propagate to the pipeline's failure handler.
+ */
 async function runPassStage(
   deps: RunDeps,
   options: RunOptions,
@@ -58,10 +64,24 @@ async function runPassStage(
   // Spend is saved after every stage, failed or not, so the next stage (a new process in the
   // workflow) carries on from the same Firecrawl ceiling and the commit stage can report it all.
   await deps.spend?.begin(deps.root, plan.created_at, deps.log);
+  const started = deps.now().getTime();
   try {
     const report = await runStage(deps, plan, stage, options.feedback, options.topics);
     return deps.spend ? { ...report, spend: deps.spend.totals() } : report;
+  } catch (error) {
+    // Kept for the run's record: the failing step is a process of its own, gone by the time the
+    // workflow's last step asks what happened.
+    await noteStageFailure(
+      deps.root,
+      plan.created_at,
+      stage,
+      error instanceof StageFailure
+        ? redact(error.message, deps.secrets)
+        : describeError(error, deps.secrets),
+    );
+    throw error;
   } finally {
+    await addStageTime(deps.root, plan.created_at, stage, deps.now().getTime() - started);
     await deps.spend?.save(deps.root);
   }
 }

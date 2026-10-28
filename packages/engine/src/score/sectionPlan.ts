@@ -101,14 +101,20 @@ export function structureKindOf(kind: DigestKind): StructureKind | null {
 
 /**
  * The plan config/structure.json gives a digest kind, or the default when it has none. The one
- * structure serves every kind; its story counts are sized to the kind's configured length.
+ * structure serves every kind; its story counts are sized to the kind's configured length, or to
+ * the length this run was asked for (a Regenerate's Length), so a 15-minute run is not held to the
+ * section counts of a 5-minute daily.
  */
-export async function loadSectionPlan(root: string, kind: DigestKind): Promise<SectionPlan> {
+export async function loadSectionPlan(
+  root: string,
+  kind: DigestKind,
+  asked?: number,
+): Promise<SectionPlan> {
   const structureKind = structureKindOf(kind);
   if (structureKind === null) return DEFAULT_SECTION_PLAN;
   const file: StructureFile | null = await loadStructureFile(root);
   const stored = storedStructure(file);
-  const minutes = stored === null ? 0 : await lengthMinutes(root, structureKind);
+  const minutes = stored === null ? 0 : (asked ?? (await lengthMinutes(root, structureKind)));
   return sectionPlanFor(stored && scaleStructure(stored, minutes), file?.prompts);
 }
 

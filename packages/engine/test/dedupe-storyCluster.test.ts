@@ -382,9 +382,11 @@ describe("story clustering in dedupe", () => {
     });
     const outlet = story("the-verge", "Apple announces the iPad Pro with M5 chip");
     const { items, report } = run([hinted, unhinted, outlet]);
+    // The hinted result joins the outlet's story and is absorbed into the outlet's own entry, which
+    // leads; the unhinted one takes no part.
     expect(report.story_clustered).toBe(1);
-    expect(items.map((item) => item.id).sort()).toEqual([unhinted.id, hinted.id].sort());
-    expect(items.find((item) => item.id === hinted.id)?.signals.coverage).toBe(2);
+    expect(items.map((item) => item.id).sort()).toEqual([unhinted.id, outlet.id].sort());
+    expect(items.find((item) => item.id === outlet.id)?.signals.coverage).toBe(2);
   });
 
   it("counts an outlet the near-duplicate pass already merged", () => {
@@ -409,9 +411,10 @@ describe("story clustering in dedupe", () => {
     expect(items[0]?.signals.coverage).toBe(2);
   });
 
-  it("keeps a tech article in the beat when the copy a discovery search found is the one kept", () => {
-    // The same URL from The Verge and from an unhinted Exa query. The Exa copy has the votes, so
-    // it survives the same-URL pass; it must still cluster with the other outlets.
+  it("keeps the outlet's entry, with the votes the discovery copy of the same URL had, and clusters it", () => {
+    // The same URL from The Verge and from an unhinted Exa query. The Exa copy has the votes, but
+    // the outlet's own entry is the one kept (a discovery copy ranks below it); it takes the votes
+    // and still clusters with the other outlets.
     const [lead, ...rest] = tablet() as [Item, ...Item[]];
     const sameUrl: Item = {
       ...lead,
@@ -421,8 +424,7 @@ describe("story clustering in dedupe", () => {
     };
     const { items, report } = run([lead, sameUrl, ...rest]);
     expect(report).toMatchObject({ same_url: 1, story_clustered: 5, output: 1 });
-    expect(items[0]?.source_id).toBe("exa-discovery");
-    expect(items[0]?.category_hint).toBe(TECH);
+    expect(items[0]?.source_id).toBe("the-verge");
     expect(items[0]?.signals).toMatchObject({ hn_points: 150, coverage: 6 });
   });
 

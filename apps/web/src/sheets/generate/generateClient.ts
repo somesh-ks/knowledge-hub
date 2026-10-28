@@ -1,10 +1,10 @@
 /**
- * The Generate sheet's network layer. Plain functions over an injected `fetch`, so every response
- * and outcome is testable without a network.
+ * The Generate sheet's network layer: the request that starts a run. A plain function over an
+ * injected `fetch`, so every response and outcome is testable without a network. Following the run
+ * is the run indicator's work (scripts/runStatus.ts).
  */
 import { isSiteAnswer, withErrorRef } from "../../lib/errorRef";
-import type { GenerateRequest, StatusResponse } from "../../types/contracts";
-import { GENERATE_STEPS } from "../../types/contracts";
+import type { GenerateRequest } from "../../types/contracts";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -22,7 +22,7 @@ export type StartRejection =
   | "network";
 
 export type StartResult =
-  | { kind: "started"; runId: number; startedAt: string }
+  | { kind: "started"; runId: number; startedAt: string; request: GenerateRequest }
   | { kind: "rejected"; reason: StartRejection; message: string; retryAfterSeconds?: number };
 
 export const MESSAGES = {
@@ -76,11 +76,15 @@ function retryAfterSeconds(body: Record<string, unknown> | null, response: Respo
 /**
  * POST /api/generate. The HTTP status carries the outcome; the body adds detail. A 202 is the only
  * success, and it needs a numeric run id, because without one there is nothing to poll.
+ * Trim feedback and replace the briefing named by the current page; topics are sent only for a
+ * replacement. A truthy `lengthMinutes` overrides the schedule for this run. The accepted result
+ * includes the submitted request for retries. Offline state and fetch failures return rejections.
  */
 export async function startGenerate(
   deps: ClientDeps,
   feedback = "",
   topics?: readonly string[],
+  lengthMinutes?: number,
 ): Promise<StartResult> {
   if (!deps.isOnline()) return { kind: "rejected", reason: "offline", message: MESSAGES.offline };
 
@@ -94,6 +98,7 @@ export async function startGenerate(
   const request: GenerateRequest = {
     ...(note ? { feedback: note } : {}),
     ...(topics && replace ? { topics: [...topics] } : {}),
+    ...(lengthMinutes ? { length_minutes: lengthMinutes } : {}),
     ...(replace ? { replace } : {}),
   };
   let response: Response;
@@ -119,6 +124,7 @@ export async function startGenerate(
         kind: "started",
         runId,
         startedAt: typeof startedAt === "string" ? startedAt : new Date().toISOString(),
+        request,
       };
     }
     case 400:
@@ -148,50 +154,4 @@ export async function startGenerate(
         message: isSiteAnswer(body) ? withErrorRef(MESSAGES.unavailable, body) : MESSAGES.crashed,
       };
   }
-}
-
-export type StatusResult =
-  | { kind: "ok"; status: StatusResponse }
-  /** The run id is unknown to the server: the sheet should stop asking. */
-  | { kind: "unknown" }
-  /** A hiccup worth retrying with backoff: network, throttling, a server error. */
-  | { kind: "transient" };
-
-const STEP_SET: ReadonlySet<string> = new Set(GENERATE_STEPS);
-const STATES: ReadonlySet<string> = new Set(["queued", "running", "completed"]);
-const OUTCOMES: ReadonlySet<string> = new Set(["published", "nothing", "gated", "failed"]);
-
-export function parseStatus(body: Record<string, unknown> | null): StatusResponse | null {
-  if (!body) return null;
-  const { run_id: runId, state, step, outcome } = body;
-  if (typeof runId !== "number" || typeof state !== "string" || !STATES.has(state)) return null;
-  if (step !== null && step !== undefined && (typeof step !== "string" || !STEP_SET.has(step))) {
-    return null;
-  }
-  if (outcome !== undefined && (typeof outcome !== "string" || !OUTCOMES.has(outcome))) return null;
-  const result: StatusResponse = {
-    run_id: runId,
-    state: state as StatusResponse["state"],
-    step: (step ?? null) as StatusResponse["step"],
-  };
-  if (typeof outcome === "string") result.outcome = outcome as StatusResponse["outcome"];
-  if (typeof body.digest_id === "string") result.digest_id = body.digest_id;
-  if (typeof body.run_url === "string") result.run_url = body.run_url;
-  return result;
-}
-
-/** GET /api/status?run=<id>. */
-export async function fetchStatus(runId: number, deps: ClientDeps): Promise<StatusResult> {
-  let response: Response;
-  try {
-    response = await deps.fetch(`/api/status?run=${encodeURIComponent(String(runId))}`, {
-      headers: { accept: "application/json" },
-    });
-  } catch {
-    return { kind: "transient" };
-  }
-  if (response.status === 404 || response.status === 400) return { kind: "unknown" };
-  if (!response.ok) return { kind: "transient" };
-  const status = parseStatus(await readJson(response));
-  return status ? { kind: "ok", status } : { kind: "transient" };
 }

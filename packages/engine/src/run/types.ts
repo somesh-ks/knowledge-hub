@@ -38,6 +38,8 @@ export interface RunOptions {
   run: string | undefined;
   /** Gate: make this digest again (same id, kind and window start) and, once published, replace it. */
   replace: string | undefined;
+  /** Gate: the minutes this run is sized to, in place of the schedule's (Regenerate's Length). */
+  length: number | undefined;
   /** Remove this digest, its timeline included, in one guarded commit. No other stage runs. */
   delete: string | undefined;
   /** The job died before the commit stage: record `failed` for what was due (run.yml). No stage runs. */
@@ -55,6 +57,7 @@ export const DEFAULT_RUN_OPTIONS: RunOptions = {
   topics: undefined,
   run: undefined,
   replace: undefined,
+  length: undefined,
   delete: undefined,
   recordFailed: false,
 };

@@ -6,9 +6,9 @@
  * from what is stored, not from the build.
  *
  * Loaded only when the build says the store is on (storeOn, lib/savedKey.ts). The device keeps the
- * last answer it read (D172): a store that is slow (Neon waking), down or unreachable (offline)
- * answers from that copy after a short grace, so the page shows what this device last knew rather
- * than the build, which is a run old by design. A store that answers in time, or answers later, is
+ * last answer it read (D172): a page shows that copy at once, whether the store is fast, slow (Neon
+ * waking), down or unreachable (offline), so it shows what this device last knew rather than the
+ * build, which is a run old by design. A store that answers in time, or answers later, is
  * what the next read and the copy hold; one that answers after the page is drawn, with something
  * new, is offered in a toast as a reload (D173). With no copy, an outage costs freshness, never the
  * page.
@@ -23,8 +23,14 @@ const STORE_READ_LIMIT_MS = 20_000;
 
 /** One read serves the scripts of one page view; a page opened a second later asks again. */
 const REUSE_MS = 1000;
-/** How long a page waits for the store before it shows the device's copy instead, when it has one. */
-export const CACHE_GRACE_MS = 300;
+/**
+ * How long a page waits for the store before it shows the device's copy instead, when it has one.
+ * None: the copy is the store's last answer (D172), so showing it at once is the page the store would
+ * most likely give, and waiting 300 ms for a store that takes longer (a function and Neon, nearly
+ * always) put that wait in front of every settings page (D205). A store that then answers with
+ * something else is offered as a reload.
+ */
+export const CACHE_GRACE_MS = 0;
 /** Where the device keeps the last answer: one build's edits, checked against the page on read. */
 export const CACHE_KEY = "singularity:store-read";
 
@@ -188,9 +194,23 @@ function showHeld(held: HTMLElement[]): void {
   }
 }
 
+/**
+ * Read config using `now` in epoch milliseconds to reuse requests for one second. With a cached
+ * copy, race it against the store without a grace period; without one, wait up to 2.5 seconds.
+ * Fetch or response failures fall back to the held copy or null. A later answer updates the cache
+ * and may offer a reload when it contains another device's edits.
+ */
 function askStore(now: number): Promise<ConfigReadBody | null> {
-  // A read reused within the second answers as storeRead does: for the page now in the document.
-  if (last && now - last.at < REUSE_MS) return last.read.then(() => storeRead());
+  // A read reused within the second answers as storeRead does: for the page now in the document. It
+  // holds this page no longer than it held the first (CodeRabbit, PR 391): with a copy the page has
+  // it at once, as the first had; without one it waits the same 2.5 s, not the read's 20.
+  if (last && now - last.at < REUSE_MS) {
+    if (readCache() !== null) return Promise.resolve(storeRead());
+    const wait = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), STORE_READ_TIMEOUT_MS),
+    );
+    return Promise.race([last.read.then(() => storeRead()), wait]);
+  }
   const stop = new AbortController();
   const timer = setTimeout(() => stop.abort(), STORE_READ_LIMIT_MS);
   const asked = { at: now } as { at: number; read: Promise<ConfigReadBody | null> };
@@ -228,7 +248,7 @@ function askStore(now: number): Promise<ConfigReadBody | null> {
   }
   // The copy stands until the store answers; a read that ends after the grace updates `current`
   // for whatever reads next, and the copy for the next page.
-  if (current === null) current = cached;
+  adopt(cached);
   let settled = false;
   const fromStore = asked.read.then((body) => {
     settled = true;

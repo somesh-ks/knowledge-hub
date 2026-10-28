@@ -15,6 +15,7 @@ import { Selection, WrittenFile } from "../src/curate/selectionFile.js";
 import { PoolFile, writePool } from "../src/fetch/pool.js";
 import type { Judge } from "../src/judge/types.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
+import type { RunMetric } from "../src/metrics/runMetrics.js";
 import { collectHealth } from "../src/ops/health.js";
 import { readPlan, writePlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
@@ -157,6 +158,72 @@ describe("concurrent writers and push handling", () => {
   });
 });
 
+// The numbers that say whether generation is healthy (docs/engineering/metrics.md) ride in the
+// run's own commit: the funnel, the length attained against the length asked, the stage times.
+describe("a run's health metrics", () => {
+  it(
+    "records a published briefing's funnel, length and stage times in its commit",
+    LONG,
+    async () => {
+      const world = makeWorld(repo.root, { now: WED });
+      const result = await runStage(world);
+      expect(result.report).toMatchObject({ outcome: "published" });
+      const file = await readJson<{ runs: RunMetric[] }>(repo.root, "state/run-metrics.json");
+      expect(file.runs).toHaveLength(1);
+      expect(file.runs[0]).toMatchObject({
+        digest_id: "2026-10-07",
+        kind: "regular",
+        outcome: "published",
+        replace: false,
+        funnel: {
+          aired: (await readDigest(repo.root, DIGEST_PATH)).items.length,
+          grounding_dropped: 0,
+        },
+      });
+      expect(file.runs[0]?.funnel.written).toBeGreaterThanOrEqual(5);
+      expect(file.runs[0]?.funnel.pool).toBeGreaterThan(0);
+      expect(Object.keys(file.runs[0]?.stage_ms ?? {})).toEqual(
+        expect.arrayContaining(["fetch", "judge", "write", "validate"]),
+      );
+      expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toContain(
+        "state/run-metrics.json",
+      );
+    },
+  );
+
+  // A failed Regenerate left no trace anywhere: the run record skips on-demand runs, so the failure
+  // rate of Regenerate and Catch up could not be read (2026-10-27).
+  it("records a failed on-demand run without touching the cadence", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    expect((await runStage(world, { stage: "gate", mode: "on-demand", force: true })).code).toBe(0);
+    const lastRun = (): Promise<unknown> =>
+      readJson(repo.root, "state/last-run.json").catch(() => null);
+    const before = await lastRun();
+    expect((await runStage(world, { recordFailed: true })).code).toBe(0);
+    const file = await readJson<{ runs: RunMetric[] }>(repo.root, "state/run-metrics.json");
+    expect(file.runs[0]).toMatchObject({ outcome: "failed", mode: "on-demand", replace: false });
+    expect(file.runs[0]?.failure?.reason).toBeTruthy();
+    expect(await lastRun()).toEqual(before);
+    expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
+      "chore(state): run 2026-10-07 failed",
+    );
+  });
+});
+
+// A Regenerate can ask for its own length (3, 5, 10 or 15 minutes). Only the gate step is given
+// `--length`, so the plan keeps it for the fetch and write steps that size the run.
+describe("a run asked for its own length", () => {
+  it("keeps the asked length in the plan, and none when none was asked", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    expect(
+      (await runStage(world, { stage: "gate", mode: "on-demand", force: true, length: 10 })).code,
+    ).toBe(0);
+    expect((await readPlan(repo.root))?.length_minutes).toBe(10);
+    expect((await runStage(world, { stage: "gate", mode: "on-demand", force: true })).code).toBe(0);
+    expect((await readPlan(repo.root))?.length_minutes).toBeUndefined();
+  });
+});
+
 // The bug (D209): a run generated ahead reads state/ from the checkout it made at job start, so a
 // push made during its wait (an on-demand run's, a config commit) made its own push a rebase
 // conflict on state/seen.json and lost the briefing. Config is read before the wait, so a category
@@ -219,6 +286,9 @@ describe("a run that died before the commit stage", () => {
       expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
         "chore(state): run 2026-10-07 failed",
       );
+      // The failure rate counts a scheduled run's failure too, not only a Regenerate's.
+      const metrics = await readJson<{ runs: RunMetric[] }>(repo.root, "state/run-metrics.json");
+      expect(metrics.runs[0]).toMatchObject({ outcome: "failed", mode: "scheduled" });
       const report = await collectHealth({
         root: repo.root,
         now: new Date(WED.getTime() + 3_600_000),
@@ -321,13 +391,20 @@ describe("a run that died before the commit stage", () => {
 });
 
 describe("grounding and validation", () => {
+  /**
+   * A summary the checker supports in no sentence. One bad sentence beside good ones is cut and the
+   * story kept (groundingRepair.ts), so a story that must be dropped has nothing supported left.
+   */
+  const NOTHING_SUPPORTED =
+    "UNSUPPORTED claim about springs that the source never states in any way. UNSUPPORTED claim about drawers that the source never states in any way either. UNSUPPORTED claim about toasts and every other control on the page.";
+
   function writerUnsupportedFor(ids: readonly string[]) {
     return fakeWriter({
       write: (material) =>
         ids.includes(material.id)
           ? {
               ...okWritten(material),
-              summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+              summary: NOTHING_SUPPORTED,
             }
           : okWritten(material),
     });
@@ -345,7 +422,7 @@ describe("grounding and validation", () => {
         unsupported.push(material.id);
         return {
           ...okWritten(material),
-          summary: `UNSUPPORTED claim about springs. ${okWritten(material).summary}`,
+          summary: NOTHING_SUPPORTED,
         };
       },
     });
@@ -490,7 +567,7 @@ describe("grounding and validation", () => {
         if (!bad) return ok;
         return cut === "voice" && refill === null
           ? { ...ok, summary: `${ok.summary} It ships \u2014 today.` }
-          : { ...ok, summary: `UNSUPPORTED claim about springs. ${ok.summary}` };
+          : { ...ok, summary: NOTHING_SUPPORTED };
       },
     });
     const calls = { write: 0, airing: [] as string[] };

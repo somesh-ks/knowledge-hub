@@ -27,6 +27,7 @@ import { meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { TasteFitter } from "../profile/tasteFit.js";
 import { type Grounder, JevGrounder } from "../validate/grounding.js";
+import { GROUNDING_SENTENCE_CONCURRENCY } from "../validate/groundingRepair.js";
 import type { VoiceConfig } from "../voice/voice.js";
 import { LlmWriter } from "../write/llmWriter.js";
 import type { Writer } from "../write/types.js";
@@ -142,6 +143,7 @@ export function createApiRuntime(
     sampleJudge = jevJudge;
     grounder = new JevGrounder({
       client: withModelFallback(jevClient, router, "grounding", log),
+      concurrency: GROUNDING_SENTENCE_CONCURRENCY,
       log,
       secrets,
     });

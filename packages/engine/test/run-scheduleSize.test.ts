@@ -12,6 +12,20 @@ import {
 import { narrationLength } from "../src/run/validateStage.js";
 import { makeDigest } from "./audio-fixtures.js";
 
+describe("a length asked for one run", () => {
+  // A Regenerate's Length (2026-10-28): the weekly is 15 and the daily 5, and a run asked for 10
+  // minutes is sized to 10 in whatever mode it runs. Unasked, the schedule decides as before.
+  it("sizes the run to the asked minutes in place of the schedule's, in any mode and kind", () => {
+    expect(lengthMinutesFor(DEFAULT_SCHEDULE, "regular", "scheduled", 10)).toBe(10);
+    expect(lengthMinutesFor(DEFAULT_SCHEDULE, "regular", "on-demand", 10)).toBe(10);
+    expect(lengthMinutesFor(DEFAULT_SCHEDULE, "weekly", "scheduled", 3)).toBe(3);
+    expect(lengthMinutesFor(DEFAULT_SCHEDULE, "regular", "scheduled")).toBe(
+      DEFAULT_SCHEDULE.length_minutes,
+    );
+    expect(lengthMinutesFor(DEFAULT_SCHEDULE, "regular", "on-demand")).toBeNull();
+  });
+});
+
 describe("sizing a briefing by its length", () => {
   // The 2026-10-18 weekly, set to 15 minutes, aired 14 stories and 5 minutes: the judge saw the
   // five-minute daily's 60 candidates, selection filled 27 of its slots, and grounding and

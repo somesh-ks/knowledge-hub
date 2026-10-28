@@ -1,0 +1,313 @@
+/*
+ * The generations list (components/GenerationsMenu.astro, scripts/generations.ts): what is being made
+ * right now, as a browser lists its downloads. An icon whose ring fills with the run's progress and,
+ * under it, one row for each generation: a thumbnail, its name, the stage and the time left, a bar and
+ * Cancel. Empty, it says so, as the Settings lists do, and offers a Catch up. From 64rem the icon is at the top of the side
+ * column; below it the strip above the bottom bar opens the list as a bottom sheet.
+ *
+ * Usage: the panel is the More menu's popover (hero.css, .menu-sheet) under its own class, as the
+ * emoji picker is (topics.css): the surface, the slide and the scrim are the menu's, the size and the
+ * rows are here. A row is .gen-row: .gen-thumb, .gen-main (.gen-title, .gen-meta, .gen-bar) and
+ * Cancel on one line, and Listen now on a second line of its own when a live episode can be heard.
+ */
+
+/* ------------------------------------------------------------------ the icon */
+
+/* Only the side column has the room for it; a phone reaches the list through the strip. */
+.gen-trigger {
+  display: none;
+}
+
+@media (width >= 64rem) {
+  .gen-trigger {
+    position: fixed;
+    z-index: var(--z-header);
+    /* Level with the wordmark: the column's own top padding, and its right edge. */
+    inset-block-start: max(var(--space-4), var(--safe-top));
+    inset-inline-start: calc(var(--side-nav-width) - var(--size-touch));
+    anchor-name: --gen-anchor;
+    display: inline-grid;
+    place-items: center;
+  }
+
+  /* The player covers the column's lower part, and with it open the page is not this one's to act on. */
+  html[data-player="open"] .gen-trigger {
+    visibility: hidden;
+  }
+}
+
+/* The ring around the glyph, drawn from a circle of 100 units: the fill is a share of it. It is there
+   only while a run is going, and the glyph is the icon's own the rest of the time. */
+.gen-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  transform: rotate(-90deg);
+  overflow: visible;
+  opacity: 0;
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+.gen-trigger[data-active] .gen-ring {
+  opacity: 1;
+}
+
+.gen-ring circle {
+  fill: none;
+  stroke-width: 2;
+}
+
+.gen-ring-track {
+  stroke: var(--rail-track);
+}
+
+.gen-ring-fill {
+  stroke: var(--color-accent);
+  stroke-linecap: round;
+  stroke-dasharray: var(--gen-p, 0) 100;
+  transition: stroke-dasharray var(--gen-span, var(--duration-state)) var(--ease-linear);
+}
+
+/* The glyph steps in so the ring has room around it. */
+.gen-trigger .gen-glyph {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.gen-trigger[data-active] {
+  color: var(--color-accent);
+}
+
+/* Below 64rem the list opens from the strip's own button, so the panel hangs from that. */
+.run-queue {
+  anchor-name: --gen-anchor;
+}
+
+/* ------------------------------------------------------------------ the panel */
+
+/* From 40rem it hangs under the icon from the column's edge (the strip's own button on a tablet), so it
+   covers the page and never the navigation, and a phone's bottom sheet is as tall as its rows need.
+   The extra class beats the menu's own rules. */
+.hero-menu-list.gen-pop {
+  inset-inline: var(--menu-left, 0) auto;
+  flex-direction: column;
+  width: min(26rem, calc(100vw - var(--space-8)));
+  max-height: min(32rem, 70dvh);
+  padding: 0;
+  transform-origin: top left;
+}
+
+@supports (top: anchor(bottom)) {
+  .hero-menu-list.gen-pop {
+    position-anchor: --gen-anchor;
+    inset-inline: anchor(right) auto;
+  }
+}
+
+.hero-menu-list.gen-pop:popover-open {
+  display: flex;
+}
+
+@media (width < 40rem) {
+  .hero-menu-list.menu-sheet.gen-pop,
+  .hero-menu-list.menu-sheet.gen-pop:popover-open {
+    inset: auto 0 0 0;
+    width: min(100%, var(--layout-column));
+    max-height: min(36rem, calc(100dvh - var(--space-16)));
+    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+  }
+}
+
+.gen-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.gen-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gen-list:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ a row */
+
+.gen-row {
+  display: grid;
+  grid-template-columns: var(--size-touch) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-4);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+/* The thumbnail: the episode's colour until its cover is drawn, a Regenerate's briefing cover, and the
+   waveform when it has neither. A 44px square, the size of a cover thumb. */
+.gen-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(
+    --gen-tint,
+    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent)
+  );
+  color: var(--color-on-surface-muted);
+}
+
+/* On the episode's own colour the glyph is a darker step of it, so it reads on any tint. */
+.gen-thumb[data-tinted] {
+  color: color-mix(in oklch, var(--gen-tint), var(--color-blue-975) 70%);
+}
+
+.gen-thumb-glyph {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.gen-thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gen-thumb-img[hidden] {
+  display: none;
+}
+
+.gen-main {
+  display: grid;
+  min-width: 0;
+  row-gap: var(--space-2);
+}
+
+/* One line each, so a row keeps its height as the minutes tick down: the time left comes first and
+   the stage's name is what an ellipsis cuts. */
+.gen-title,
+.gen-meta {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gen-title {
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-label);
+}
+
+.gen-meta {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+/* The bar: a track and a fill that is a share of it (scripts/generations.ts sets --gen-to, 0 to 1, and
+   --gen-span, the seconds the move takes, so it glides between two answers and never goes back). */
+.gen-bar {
+  display: block;
+  position: relative;
+  height: var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-round);
+  background: var(--rail-track);
+}
+
+.gen-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
+  transform: scaleX(var(--gen-to, 0));
+  transform-origin: left center;
+  transition: transform var(--gen-span, var(--duration-state)) var(--ease-linear);
+}
+
+.gen-row:dir(rtl) .gen-fill {
+  transform-origin: right center;
+}
+
+/* Listen now has the row's second line, under the text, so the thumbnail, the text and Cancel stay
+   where they are when it appears. */
+.gen-listen {
+  grid-column: 2 / -1;
+  justify-self: start;
+  margin-inline-start: calc(var(--space-4) * -1);
+}
+
+.gen-listen[hidden] {
+  display: none;
+}
+
+/* A row that is being cancelled waits where it is, and says so. */
+.gen-row[data-cancelling] :is(.gen-thumb, .gen-bar) {
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ empty, checking, a failed check */
+
+.gen-checking,
+.gen-note {
+  margin: 0;
+  padding: var(--space-4);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-align: center;
+}
+
+.gen-checking[hidden],
+.gen-note[hidden] {
+  display: none;
+}
+
+/* The shared compact empty state (empty.css) takes the panel's width, not a page's top room. */
+.gen-empty {
+  padding-block: var(--space-6);
+}
+
+.gen-empty[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ motion and forced colours */
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-fill,
+  .gen-ring-fill {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .gen-bar {
+    outline: var(--stroke-hairline) solid CanvasText;
+  }
+
+  .gen-fill {
+    background: Highlight;
+  }
+
+  .gen-ring-track {
+    stroke: CanvasText;
+  }
+
+  .gen-ring-fill {
+    stroke: Highlight;
+  }
+}
