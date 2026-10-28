@@ -136,7 +136,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover image and is three round, drifting lights; a theme change waits for the covers on screen and fades the window as one picture | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings (newest Claude Opus, Sonnet, Haiku and five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen in the installed app; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops with plain story-kind names and Off as never-publish; every source has a format (Jev-classified) with search and filters; a format mix per page, a Perspective slider on general topics from Jev-rated lean, and two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add; a topic's format tabs, collapsed weight groups, Listen in on the card | active; amends D73, D123, D124 |
+| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
@@ -146,7 +146,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
 | D133 | The second owner round: Up next as a player tab, Settings cards, one search and chip style, Jev emoji, no Daily type | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
-| D135 | No batch API for the scheduled runs | active |
+| D135 | No batch API for the scheduled runs | superseded by D209 at step 3 |
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared edition costs and per-user costs, reported by `dispatch costs` and on /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
@@ -211,7 +211,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
 | D203 | Live Health page | active |
-| D209 | Lane free in the hold | amends D197 |
+| D209 | Lane free in the hold | supersedes D135; amends D197 |
 
 ---
 
@@ -2134,5 +2134,5 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the wait is the hold, not the work (an on-demand daily with no hold took 3 m 20 s, queued 2 s). The hold is already idle time, so a batch fits in it without D135's submit-and-resume split.
 - Rejected: an own group for on-demand runs (two commits would both rewrite `seen`, `last-run` and `costs-*.json`, and `commit.ts` aborts on a rebase conflict, never forces; #391, still open, merges the cost ledger, timings, usage and run metrics on such a conflict, and its description lists neither `seen`, `last-run` nor the judgments, so step 2 builds on it and on its `run.yml` length input); a 30-minute job timeout (ends the hold, D197).
 - Open before step 4: the reply ceiling is not what costs money. `THINKING_HEADROOM` (8,000) already sits on top of it, a tight ceiling once cut the writer's JSON off mid-object, and `TokenBudget.check` counts the ceiling in its estimate, so raising it alone trips the 400,000-token run budget sooner (the 2026-10-25 weekly wrote 403,000). `story_writer` sets no `effort`, so its thinking is billed as output. Measure stories written against stories aired, and the writer at lower effort on `loop/`'s replay, before the batch.
-- Amends: D197 (the hold stays; it no longer holds the lane). Builds on: D135's revisit condition (an earlier start is accepted).
+- Supersedes: D135 once step 3 ships (its revisit condition, an earlier start, is met, and the hold gives the batch its wait). Amends: D197 (the strict publish time stays; the hold no longer holds the lane).
 - Revisit if: a held publish job is replaced while pending (GitHub keeps one pending run per group), or a batch misses 15 minutes before publish on more than one run in ten.
