@@ -121,9 +121,9 @@ interface ValidateDrop {
 
 /**
  * The grounding check and the final validation. Every summary sentence (and a why sentence, when
- * an item has one) is checked against its source text with Jev. Unsupported sentences are pruned
- * when the remaining text passes voice lint, otherwise rewritten and checked again by groundAndRepair.
- * `verified` is true only when the grounder ran and every kept item passed
+ * an item has one) is checked against its source text with Jev. groundAndRepair prunes an
+ * unsupported sentence when the rest still passes voice lint, otherwise rewrites the item and
+ * checks it again; its own notes list the ways an item is dropped. `verified` is true only when the grounder ran and every kept item passed
  * every check; without a Jev key the digest is kept and marked unverified. The surviving items
  * are then rendered as a digest and run through `validateDigest`: any item with an error drops,
  * and the floor of three is checked again, so the commit stage only ever sees a publishable
@@ -221,7 +221,8 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     let warnings = 0;
     /**
      * Validate ranked survivors and fit their narration to the pass's length. Records drops and
-     * allowance trims in the enclosing pass; throws StageFailure for other digest-wide errors.
+     * allowance trims in the enclosing pass; throws StageFailure for other digest-wide errors. A
+     * refill whose fit throws keeps the prior selection, but allowance trims it recorded stay.
      */
     const fit = (kept: readonly GroundedItem[]): Fitted => {
       let ranked: GroundedItem[] = [...kept].sort((a, b) => scoreOf(b) - scoreOf(a));
