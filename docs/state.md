@@ -1,6 +1,6 @@
 # State
 
-Updated 2026-10-27. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions.md). Sessions: [history](history/README.md).
+Updated 2026-10-28. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions.md). Sessions: [history](history/README.md).
 
 ## Working
 
@@ -8,7 +8,7 @@ Updated 2026-10-27. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 - Reader: Latest, Library, Catch up, Settings, tonal Material 3, `/design` catalogue: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus with an MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in one run card; a failed run says why (D203).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in one run card; a failed run says why (D203). Every generation under way is listed with Cancel, in a popover from the side column's icon and a sheet on a phone (D207).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): generated ahead, published at 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
@@ -23,6 +23,7 @@ Unit (CI): 308 files, 4,991 tests (10-28), 99 s. Site e2e: 403 runs (10-28), 10 
 - Short briefings and lost runs (D203): the 2026-10-27 Regenerate aired 2 of 5 minutes and its Catch up lost its episode to a push conflict; the fixes have only run against fakes. closed when: `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D206): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
+- Generations list and Cancel (D207): only against fakes. `POST /api/cancel` needs the token's Actions write (`GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14); a cancelled Catch up leaves its live copy "writing" for the 24 h prune; a briefing's time left needs three timed runs in `state/run-metrics.json`, which has none. closed when: the owner cancels a real Catch up from the list, it ends as Cancelled, and a briefing shows a time left.
 - Not built: a length option above 15 minutes (the 19,000-character narration request is full at 15). closed when: the owner asks for it.
 - Discovery copies rank below an outlet's own entry in dedupe (2026-10-28). closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
@@ -32,7 +33,6 @@ Unit (CI): 308 files, 4,991 tests (10-28), 99 s. Site e2e: 403 runs (10-28), 10 
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is built or checked.
 - Settings paint the kept store copy at once and the theme before first paint (D204); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or outlet cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
-- Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
@@ -45,14 +45,9 @@ Unit (CI): 308 files, 4,991 tests (10-28), 99 s. Site e2e: 403 runs (10-28), 10 
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
 - Config store (D149, D185): on since 2026-10-24; the 2026-10-25 weekly copied it. closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
-- Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the note.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
-- Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source scores (D55), the vote numbers, `auto_adjust` (D190). closed when: each is checked against the golden set or two weeks of real data.
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
-- Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
-- [Analytics](specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
-- No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
-- Twenty-four older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked). closed when: each closes.
+- Thirty older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [six](history/2026-10-28-generations-list.md#parked). closed when: each closes.
 
 ## Known risks
 

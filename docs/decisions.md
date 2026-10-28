@@ -214,6 +214,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D204 | Settings paint the kept copy at once | amends D172 |
 | D205 | Stay on npm; pnpm spiked | active |
 | D206 | A Regenerate asks for its own length | amends D203 |
+| D207 | A list of generations, with Cancel | amends D203 |
 
 ---
 
@@ -2154,3 +2155,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: editing the schedule from the sheet (it would change every later run); a free number of minutes (the sizing, the pool and the narration limit are tuned for the four).
 - Revisit if: a run at 10 or 15 minutes airs under 90% of it (`length_share`), or the narration request grows past 15 minutes.
 - Amends: D203, which left a Length control out.
+
+## D207: every generation under way in one list, each with a Cancel
+
+- Date: 2026-10-28 (the owner: "a simpler way to track the queue of generation on mobile and desktop", an icon "not for downloads, but for generations", a list with a thumbnail, a bar, a time left and Cancel, "just like how a file download UI would look").
+- Decision: `GET /api/generations` lists the Catch up and briefing runs that are queued or running (at most 6, each with the status route's stage, `progressOf`), and `POST /api/cancel` cancels one of ours (`cancelRun`; GitHub's 409 means it had finished). From 64rem an icon at the top of the side column opens a popover with a row per generation: cover, title, stage and time left, a bar, Cancel, and Listen now once a live episode can be heard. Its ring fills with the run's progress. With nothing under way it says "Nothing in the works" and offers a Catch up. Below 64rem the strip above the bottom bar gains "All generations", which opens the same list as a bottom sheet. A cancelled run ends as "Cancelled": no Try again, no failure. A briefing's time left comes from the medians of the last ten runs' `stage_ms` in `state/run-metrics.json` (three runs at least).
+- Why: the strip follows one run, so a second one (a Regenerate during a Catch up, or one started in another tab) could not be seen or stopped from the page. The route is a write, so it takes the shared burst cap (D150, 10 a minute) and refuses an id that is not a dispatched run of `run.yml` or `podcast.yml`. With no auth (D201), anyone with the URL can stop the schedule's briefing too, as they can already delete one; a cancel stops spend and loses nothing that Regenerate cannot remake.
+- Rejected: an icon in the phone's app bar (nothing needed often sits at the top of a phone, ledger section 1; the strip is already in the thumb's reach); one polling loop for the whole site (the list polls every 4 s only while open, and the strip's own poll keeps the ring); Pause (GitHub cannot).
+- Revisit if: the token turns out to lack Actions write (Cancel then says it could not), or owners ask for the list on a phone's top bar.
+- Amends: D203 (one run card).
