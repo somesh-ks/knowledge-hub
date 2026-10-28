@@ -94,4 +94,4 @@ Before declaring the feature complete, execute all required checks in sequence:
 6. **CodeRabbit Second Opinion**:
    Run `coderabbit review --agent` (via `code-review-rabbit` skill) on the diff to catch edge cases, concurrency regressions, and accessibility flaws.
 7. **Record Update & 2-Minute Test Close**:
-   Update [docs/state.md](docs/state.md), record any architectural direction change in [docs/decisions.md](docs/decisions.md), and note UI changes in [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md). Close with one concrete, 2-minute verification action on localhost (e.g. `http://localhost:4321/...`).
+   Update [docs/state.md](../../../docs/state.md), record any architectural direction change in [docs/decisions.md](../../../docs/decisions.md), and note UI changes in [docs/design-engineering-ledger.md](../../../docs/design-engineering-ledger.md). Close with one concrete, 2-minute verification action on localhost (e.g. `http://localhost:4321/...`).

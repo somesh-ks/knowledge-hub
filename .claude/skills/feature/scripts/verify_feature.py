@@ -18,20 +18,39 @@ from pathlib import Path
 
 def run_cmd(cmd: list[str]) -> tuple[int, str]:
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=(sys.platform == "win32"))
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            shell=(sys.platform == "win32"),
+        )
         return proc.returncode, proc.stdout + proc.stderr
     except Exception as e:
         return 1, str(e)
 
 
 def check_git_status() -> tuple[bool, list[str]]:
-    code, out = run_cmd(["git", "status", "--porcelain"])
+    code, out = run_cmd(["git", "status", "--porcelain=v1", "-uall", "-z"])
     if code != 0:
         return False, []
     files = []
-    for line in out.splitlines():
-        if len(line) > 3:
-            files.append(line[3:].strip())
+    parts = out.split("\0")
+    idx = 0
+    while idx < len(parts):
+        entry = parts[idx]
+        if not entry:
+            idx += 1
+            continue
+        status = entry[:2]
+        path = entry[3:]
+        if "R" in status:
+            idx += 1
+            if idx < len(parts) and parts[idx]:
+                files.append(parts[idx])
+        else:
+            files.append(path)
+        idx += 1
     return True, files
 
 
