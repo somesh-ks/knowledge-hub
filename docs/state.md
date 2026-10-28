@@ -55,7 +55,7 @@ Unit (CI): 302 files, 4,943 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
 - [Analytics](specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
-- [Health](specs/health.md) (D203): only faked. closed when: production shows no Unavailable row.
+- Catch up: 2 of 7 `podcast.yml` runs failed by 10-28, the last too. closed when: the cause is named.
 - No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
 - Seventeen older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked). closed when: each closes.
 
