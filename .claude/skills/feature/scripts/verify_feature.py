@@ -78,6 +78,10 @@ def check_raw_hex(files: list[str]) -> list[str]:
     hex_pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b")
     for file_path in files:
         p = Path(file_path)
+        normalized = p.as_posix()
+        # Skip token and foundation definition files where canonical color tokens are authored
+        if "styles/tokens.css" in normalized or "styles/foundations.css" in normalized:
+            continue
         if not p.is_file() or p.suffix not in (".astro", ".css", ".tsx", ".jsx", ".ts", ".js"):
             continue
         try:

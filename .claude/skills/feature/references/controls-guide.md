@@ -82,11 +82,10 @@ Settings row or menu option acting as a tactile tile.
 ```
 * **Rules**: Presses as an elevated tile off dividing hairlines. Label is regular weight, never bold.
 
-### Bottom Sheet (`.sheet`, `BottomSheet.astro`)
+### Bottom Sheet (`.sheet`, `BottomSheet.astro`, Base UI `Drawer`)
 Mobile-first drawer for options, selects, and action lists on screens under 40rem (D167, Ledger section 11).
 ```html
-<div class="sheet" role="dialog" aria-modal="true" data-open="true">
-  <div class="sheet-scrim" aria-hidden="true"></div>
+<dialog class="sheet" data-open="true">
   <div class="sheet-surface">
     <div class="sheet-header">
       <h3 class="sheet-title">Playback Speed</h3>
@@ -94,9 +93,9 @@ Mobile-first drawer for options, selects, and action lists on screens under 40re
     </div>
     <div class="sheet-body">...</div>
   </div>
-</div>
+</dialog>
 ```
-* **Rules**: Under 40rem, selects and menus must open as bottom sheets, never popovers. Top corners rounded only. Slide up in 300 ms (`--duration-sheet-enter`, `--ease-drawer`), down in 220 ms. Maximum 70dvh tall. Always pad bottom for `env(safe-area-inset-bottom)`.
+* **Rules**: Under 40rem, selects and menus must open as bottom sheets, never popovers. Must use native modal dialog behavior via `showModal()` (or the existing `SheetFrame.astro` / Base UI `Drawer`), guaranteeing focus containment, an inert background, Escape dismissal, and focus restoration upon closing. Top corners rounded only. Slide up in 300 ms (`--duration-sheet-enter`, `--ease-drawer`), down in 220 ms. Maximum 70dvh tall. Always pad bottom for `env(safe-area-inset-bottom)`.
 
 ---
 

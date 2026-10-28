@@ -13,7 +13,11 @@ Before starting work or modifying files, run a lightweight status check:
 ```bash
 python .claude/skills/feature/scripts/verify_feature.py --status
 ```
-If the status check reveals pending uncommitted changes from another task, stop immediately and ask for guidance before proceeding.
+If the status check reports modified or untracked files, inspect the changed paths:
+```bash
+git status --short --untracked-files=all
+```
+If any changes belong to another task or represent uncommitted work in progress, stop immediately and ask for guidance before proceeding.
 
 ---
 
