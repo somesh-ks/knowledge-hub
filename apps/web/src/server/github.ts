@@ -157,17 +157,20 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     dispatchWorkflowFile: dispatchFile,
 
     async listRecentRuns(file, since) {
-      // run.yml starts every hour, so a week is about 170 runs: two pages hold it.
-      const runs: WorkflowRun[] = [];
-      for (const page of [1, 2]) {
-        const body = await json(
-          `${workflowPath(file)}/runs?created=${encodeURIComponent(`>=${since}`)}&per_page=100&page=${page}`,
-        );
+      // run.yml starts every hour, so a week is about 170 runs: two pages hold it. Both are asked at
+      // once (one after the other missed the Health page's limit on production, 2026-10-28); a
+      // second page past the last run comes back empty.
+      const pages = await Promise.all(
+        [1, 2].map((page) =>
+          json(
+            `${workflowPath(file)}/runs?created=${encodeURIComponent(`>=${since}`)}&exclude_pull_requests=true&per_page=100&page=${page}`,
+          ),
+        ),
+      );
+      return pages.flatMap((body) => {
         const list = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
-        runs.push(...list.map(parseRun).filter((run): run is WorkflowRun => run !== null));
-        if (list.length < 100) break;
-      }
-      return runs;
+        return list.map(parseRun).filter((run): run is WorkflowRun => run !== null);
+      });
     },
 
     async getRun(runId) {

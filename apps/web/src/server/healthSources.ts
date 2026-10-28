@@ -25,21 +25,32 @@ import { HEALTH_WINDOW_DAYS, type HealthInput, healthBody, UNAVAILABLE } from ".
  */
 
 const PART_TIMEOUT_MS = 4_000;
+/**
+ * GitHub's run list is slower than the rest: run.yml ticks hourly, so its week is two pages of 100
+ * large run objects, which missed 4 s on production (2026-10-28). The page fetches after its first
+ * paint, so a slower answer costs nothing a reader sees.
+ */
+const GITHUB_TIMEOUT_MS = 6_000;
 const FRESH_MS = 20_000;
 /** Briefings read of each kind (weekly, the rest): ten for its run times, with room for a bad file. */
 const DIGESTS_PER_KIND = 12;
 /** One workflow's run list may take this long, inside the part's limit, so the rest still answer. */
-const JOB_TIMEOUT_MS = PART_TIMEOUT_MS - 500;
+const JOB_TIMEOUT_MS = GITHUB_TIMEOUT_MS - 500;
 
 const log = (message: string): void => console.error(`[api/health] ${message}`);
 
-async function within<T>(label: string, work: () => Promise<T>, fallback: T): Promise<T> {
+async function within<T>(
+  label: string,
+  work: () => Promise<T>,
+  fallback: T,
+  ms: number = PART_TIMEOUT_MS,
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<T>((resolve) => {
     timer = setTimeout(() => {
-      log(`${label}: no answer in ${PART_TIMEOUT_MS} ms`);
+      log(`${label}: no answer in ${ms} ms`);
       resolve(fallback);
-    }, PART_TIMEOUT_MS);
+    }, ms);
   });
   try {
     return await Promise.race([
@@ -164,7 +175,7 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
       () => readStore(now.getTime()),
       UNAVAILABLE as Store | typeof UNAVAILABLE | "off",
     ),
-    within("github", () => readJobs(now), UNAVAILABLE as HealthInput["jobs"]),
+    within("github", () => readJobs(now), UNAVAILABLE as HealthInput["jobs"], GITHUB_TIMEOUT_MS),
   ]);
   const parsedSchedule = ScheduleFile.safeParse(schedule);
   return healthBody(
