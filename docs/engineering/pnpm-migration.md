@@ -1,6 +1,6 @@
 # Moving to pnpm: what a spike found, and the steps
 
-2026-10-28, in a scratch worktree of this branch with pnpm 10.28 and Node 24. Not adopted (D204); this is what a later branch needs.
+2026-10-28, in a scratch worktree of this branch with pnpm 10.28 and Node 24. Not adopted (D205); this is what a later branch needs.
 
 ## What worked
 

@@ -26,7 +26,7 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 
 ### Run indicator
 - Making something shows live stages: seven for a briefing (one per workflow step, then "Updating the site"), three for an episode ("Getting ready", "Making the episode", "Adding it to your Library"; `podcast.yml` makes the whole episode in one step).
-- A Regenerate shows in the same card as a Catch up (D202): the Regenerate sheet only starts it, and its words come from the briefing's stages. The card is a strip above the bottom bar on a phone and sits at the foot of the side column from 64rem; it reserves its room (`--run-room`) so the floating button rides above it.
+- A Regenerate shows in the same card as a Catch up (D203): the Regenerate sheet only starts it, and its words come from the briefing's stages. The card is a strip above the bottom bar on a phone and sits at the foot of the side column from 64rem; it reserves its room (`--run-room`) so the floating button rides above it.
 - Scenario: WHEN a briefing run ends while the player's page is open (it covers the card) THEN a toast says so: "Briefing ready" with Open, or the run's failure line.
 - Scenario: WHEN a run fails THEN its request is kept and Try again is offered; the next run's bar starts from empty. A failed card says what failed, why in a sentence (an episode's `reason`), and that nothing was changed. A refusal names its own wait; a request that cannot go from the line reopens the form filled in.
 - Opening the new episode, or having it on screen, clears "Episode ready".
