@@ -5,6 +5,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | File | Holds | When to read |
 | :--- | :--- | :--- |
 | [state.md](state.md) | What works, what is unverified (each with `closed when:`), risks, next | Every session |
+| [backlog.md](backlog.md) | Long-term memory, future ideas, parked tasks, and shipped milestones | Before planning new features or offloading cold tasks |
 | [decisions.md](decisions.md) | Every decision, D1 onward; grep its Index | For the reason behind a choice |
 | [learnings.md](learnings.md) | Gotchas by area, one line each | Before debugging |
 | [specs/README.md](specs/README.md) | What each capability does now, one spec each | Before changing a capability you do not know |
@@ -18,6 +19,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
 | [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |
+| [engineering/stylex-pilot-evaluation.md](engineering/stylex-pilot-evaluation.md) | StyleX pilot benchmark and trade-offs for React player islands | Before introducing CSS-in-JS or changing player styles |
 | [reference/sources-reference.md](reference/sources-reference.md) | Sources outside the pipeline, and rejected candidates | Before adding a source |
 | [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources | When asked for references |
 | [history/](history/README.md) | One note per session: why something was done | Only for the why behind a change |
