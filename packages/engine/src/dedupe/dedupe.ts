@@ -52,11 +52,16 @@ function isNewsletterLink(source: Source | undefined): boolean {
   return source?.options.kind === "newsletter-link";
 }
 
-/** Larger is better. Originals beat newsletter links, then source signal, then HN and Lobsters votes. */
+/**
+ * Larger is better. Originals beat newsletter links, an outlet's own feed entry beats the copy a
+ * discovery search found, then source signal, then HN and Lobsters votes. Without the second step,
+ * sources of equal signal fell back to the order of their ids, which put "exa-discovery" first.
+ */
 function quality(item: Item, sources: ReadonlyMap<string, Source>): number[] {
   const source = sources.get(item.source_id);
   return [
     isNewsletterLink(source) ? 0 : 1,
+    source?.type === "exa" ? 0 : 1,
     source?.high_signal ? 1 : 0,
     item.signals.hn_points ?? 0,
     item.signals.lobsters_score ?? 0,

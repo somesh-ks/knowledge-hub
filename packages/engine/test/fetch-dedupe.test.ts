@@ -41,6 +41,17 @@ describe("dedupe", () => {
     expect(report).toMatchObject({ input: 2, already_seen: 1, output: 1 });
   });
 
+  // 2026-10-27: the copy the discovery search found of a story outranked the outlet's own feed entry,
+  // because sources of equal signal fall back to the order of their ids, and "exa-discovery" sorts early.
+  it("keeps the outlet's own feed entry over the copy the discovery search found of the same story", () => {
+    const title = "Apple unveils a new iPad Pro with the faster M5 chip";
+    const own = makeItem({ url: "https://outlet.example/ipad-pro", title, source_id: "src-b" });
+    const copy = makeItem({ url: "https://syndicate.example/ipad-pro", title, source_id: "exa" });
+    const withDiscovery = [...sources, makeSource({ id: "exa", type: "exa" })];
+    const { items } = dedupe({ items: [copy, own], sources: withDiscovery, seen: emptySeen });
+    expect(items.map((item) => item.source_id)).toEqual(["src-b"]);
+  });
+
   it("keeps each story of a shared page when another source ranks first for its URL", () => {
     const url = "https://example.com/changelog";
     const other = makeItem({ url, title: "Changelog overview", source_id: "craft" });

@@ -35,6 +35,21 @@ The Regenerate of that evening (run 40595530256) and the Catch up pressed a minu
 | Time | 3 min 36 s: fetch 17 s, judge 5 s, write 69 s, validate 121 s | select 3 s, script 120 s |
 | Outcome | published | failed: push `rebase_conflict` on `state/costs-2026-10.json` |
 
+## Baseline, the six committed digests
+
+Narrated minutes over the owner's length (5 for a daily, 15 for the weekly), from each digest's `audio.json`. This is what `length_share` starts from; the target is 0.90.
+
+| Digest | Stories | Narrated | Share |
+| :--- | :--- | :--- | :--- |
+| 2026-10-18 weekly | 14 | 5.1 min | 0.34 |
+| 2026-10-20 | 10 | 4.0 min | 0.79 |
+| 2026-10-22 | 9 | 3.6 min | 0.72 |
+| 2026-10-24 | 8 | 3.5 min | 0.70 |
+| 2026-10-25 weekly | 20 | 8.1 min | 0.54 |
+| 2026-10-27 | 4 | 2.0 min | 0.39 |
+
+Every digest fell short, not only the one that failed: dailies at 0.70 to 0.79, weeklies at 0.34 to 0.54. A story airs at 390 to 530 characters (the sizing assumes 364) and the voice runs 1,015 to 1,077 characters a minute (it assumes 1,066), so the loss is stories, not pace. Nothing has been measured since the fixes of 2026-10-27 to 28: the first three runs after they merge decide `length_share`.
+
 ## Reading them
 
 - `length_share` off: read `funnel` (where did the stories go), then the validate report's `grounding_drops`.

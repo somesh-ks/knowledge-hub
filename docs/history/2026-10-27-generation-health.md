@@ -13,6 +13,7 @@ One `/goal` after a Regenerate that aired 2 of 5 minutes and a Catch up that los
 
 - Metrics: `state/run-metrics.json`, `singularity metrics`, `health` warnings and [metrics](../engineering/metrics.md) with targets.
 - The UI: a Regenerate is followed in the Catch up run card (strip above the bottom bar on a phone, side column card from 64rem); a failure line with its reason; the card reserves its room (`--run-room`) so the floating button rides above it; "Listen now" keeps a gutter; sheet chips sit a hover step above the sheet colour; a live episode's cover box takes the cover's colour from the stream document.
+- Dedupe: a copy the discovery search found ranks below the outlet's own feed entry; sources of equal signal had fallen back to the order of their ids, which put `exa-discovery` first.
 - Settings: the kept store copy and the theme paint without the 300 ms wait or the page script (D203), measured at 163 to 184 ms and about 70 ms. A briefing run that ends behind the open player is told in a toast again; the player suite's two stepper tests follow the run line.
 
 ## What was not done, and why
@@ -20,7 +21,6 @@ One `/goal` after a Regenerate that aired 2 of 5 minutes and a Catch up that los
 - pnpm: spiked, works locally, not adopted (D204).
 
 - A Length control in the Regenerate sheet and a longer length option. The 15-minute option already fills the 19,000-character narration request; a longer one needs chunked narration first. The daily length is the owner's, in Preferences (the store owns it, D149, D185).
-- Discovery trust: an `exa-discovery` copy can outrank its original.
 - A drawn cover for a live episode. It would take a serverless renderer; the colour is the cheap part.
 
 ## Parked
