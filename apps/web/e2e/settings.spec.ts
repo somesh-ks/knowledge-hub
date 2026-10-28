@@ -56,8 +56,9 @@ test.describe("settings page", () => {
   // The select drew nothing until the page's script ran; the stored choice is now in it before the
   // first paint, with that script not even loaded.
   test("shows the stored theme before the page's script has run", async ({ page }) => {
+    // Served empty, not refused, so the suite's console check stays quiet: the page never wires up.
     await page.route(/\/_astro\/settings\.astro_astro_type_script[^/]*\.js$/, (route) =>
-      route.abort(),
+      route.fulfill({ contentType: "text/javascript", body: "" }),
     );
     await page.addInitScript(
       ([key]) => localStorage.setItem(key as string, JSON.stringify({ theme: "dark" })),
