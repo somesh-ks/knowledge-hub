@@ -40,6 +40,8 @@ import {
   writeSourceStats,
   writeTopicJudgments,
 } from "../state/store.js";
+import { markCopiedFromStore, syncedWithStore } from "../store/configDocs.js";
+import { CONFIG_DOCUMENT_PATHS } from "../store/configPaths.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
@@ -64,6 +66,8 @@ import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js"
 import { readSourceCounts } from "./sourceCounts.js";
 import { recordSpend } from "./spend.js";
 import type { CommitReport, DigestReport, RunDeps, RunOptions } from "./types.js";
+
+const CONFIG_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 
 /** What the commit stage reads for one pass. */
 interface PassData {
@@ -180,7 +184,15 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   const held = !dryRun && !adopted && (await holdUntilPublishTime(deps, plan));
   // State and Digests are read after it, from the remote's branch and not the checkout from job
   // start (D209).
-  if (held && !options.noPush) await fastForwardToRemote(deps.git, deps.log);
+  if (held && !options.noPush) {
+    const forwarded = await fastForwardToRemote(deps.git, deps.log);
+    // A config edit that came in from the repo means the files are no longer the store's, so the
+    // commit must not claim to be a snapshot of it: the next gate would read the store's older copy
+    // as the newer one and revert the edit (D209).
+    if (forwarded.changed.some((path) => CONFIG_PATHS.has(path)) && (await syncedWithStore(root))) {
+      await markCopiedFromStore(root, true, false);
+    }
+  }
   const now = deps.now();
 
   // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.

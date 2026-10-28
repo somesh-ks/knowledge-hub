@@ -187,13 +187,21 @@ describe("a run that holds for its publish time", () => {
       );
       world.setNow(new Date(WED.getTime() + 30 * 60_000));
     };
+    // The gate copied the store's config, so this commit would claim to be a snapshot of it.
+    await markCopiedFromStore(repo.root, true, true);
     const commit = await runStage(world, { stage: "commit" });
     expect(commit.report).toMatchObject({ outcome: "published", commit: { status: "pushed" } });
     const seen = JSON.parse(git(repo.remote, "show", "main:state/seen.json")) as SeenFile;
     expect(Object.keys(seen.items)).toContain("pushed-meanwhile");
     expect(Object.keys(seen.items).length).toBeGreaterThan(1);
-    // The muted categories are the other writer's edit, kept.
-    expect(git(repo.remote, "show", "main:config/topics.json")).toContain('"never_publish": true');
+    // The muted categories are the other writer's edit, every one kept.
+    const kept = JSON.parse(git(repo.remote, "show", "main:config/topics.json")) as {
+      topics: { never_publish?: boolean }[];
+    };
+    expect(kept.topics.length).toBeGreaterThan(0);
+    expect(kept.topics.every((topic) => topic.never_publish === true)).toBe(true);
+    // A config edit came in from the repo, so the files are no longer the store's: no snapshot claim.
+    expect(git(repo.remote, "log", "-1", "--format=%B", "main")).not.toContain(SNAPSHOT_TRAILER);
   });
 });
 
