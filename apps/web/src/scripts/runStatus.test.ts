@@ -349,3 +349,55 @@ describe("following a briefing for as long as it can take", () => {
     expect(phase()).toBe("done");
   });
 });
+
+// An episode started while a briefing's status request was out left the older answer to land on the
+// newer run: it cleared the marker, drew its own card and stopped the new run's polling (CodeRabbit,
+// PR 391, second round).
+describe("a status answer for a run that is no longer followed", () => {
+  it("leaves the newer run's card and polling alone", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, removeItem: () => undefined });
+    vi.stubGlobal("document", {
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      documentElement: { dataset: {} },
+      dispatchEvent: () => true,
+    });
+    let answerFirst: (response: Response) => void = () => undefined;
+    let calls = 0;
+    vi.stubGlobal("fetch", () => {
+      calls += 1;
+      if (calls === 1) return new Promise<Response>((resolve) => (answerFirst = resolve));
+      return Promise.resolve(Response.json({ run_id: 41, state: "queued" }));
+    });
+    startRun(40, { what: "briefing" });
+    // Past the wait before the first ask, so run 40's request is out and unanswered.
+    await vi.advanceTimersByTimeAsync(10_000);
+    await settle();
+    expect(calls).toBe(1);
+    startRun(41, { what: "briefing" });
+    await settle();
+    answerFirst(
+      Response.json({
+        run_id: 40,
+        state: "completed",
+        outcome: "published",
+        digest_id: "2026-10-28",
+      }),
+    );
+    await settle();
+    const record = JSON.parse(store.get("singularity:run") ?? "{}");
+    expect(record.id).toBe(41);
+    expect(record.phase).not.toBe("done");
+    // Run 41 is still being asked about.
+    const before = calls;
+    await vi.advanceTimersByTimeAsync(8_000);
+    await settle();
+    expect(calls).toBeGreaterThan(before);
+  });
+});

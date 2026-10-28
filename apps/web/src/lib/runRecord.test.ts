@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { claimEndCue, isBriefingGoing, type RunRecord, readRunRecord } from "./runRecord";
+import {
+  claimEndCue,
+  endedRecently,
+  isBriefingGoing,
+  type RunRecord,
+  readRunRecord,
+} from "./runRecord";
 
 const memory = (): Pick<Storage, "getItem" | "setItem"> => {
   const data = new Map<string, string>();
@@ -34,5 +40,23 @@ describe("a briefing run's end cue", () => {
     expect(claimEndCue({ id: 9, phase: "running", what: "briefing" }, session)).toBeNull();
     expect(isBriefingGoing({ id: 9, phase: "running", what: "briefing" })).toBe(true);
     expect(isBriefingGoing({ id: 9, phase: "running" })).toBe(false);
+  });
+});
+
+// The island hydrates on a wake (islandWake.ts) and can come up after the first status answer: a run
+// that ended in that gap sent its event to nobody and never got its cue (CodeRabbit, PR 391). The
+// island looks once when it mounts, and must not replay a run that ended before the page opened.
+describe("a briefing run that ended while the island was loading", () => {
+  const now = 2_000_000_000_000;
+
+  it("is announced on mount, and one that ended long before the page opened is not", () => {
+    expect(
+      endedRecently({ id: 9, phase: "done", what: "briefing", stageAt: now - 2_000 }, now),
+    ).toBe(true);
+    expect(
+      endedRecently({ id: 9, phase: "failed", what: "briefing", stageAt: now - 3_600_000 }, now),
+    ).toBe(false);
+    expect(endedRecently({ id: 9, phase: "done", what: "briefing" }, now)).toBe(false);
+    expect(endedRecently(null, now)).toBe(false);
   });
 });

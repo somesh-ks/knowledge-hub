@@ -71,6 +71,63 @@ describe("grounding_survival", () => {
   });
 });
 
+// A run that made a regular and a weekly briefing leaves two entries under one run_id. When it fails
+// both read `failed`, and counted per entry one failed workflow was two failures that also pushed an
+// older run out of the window (CodeRabbit, PR 391, second round).
+describe("a run is the unit of failure_rate", () => {
+  const failedPass = (n: number, kind: string): RunMetric =>
+    run(n, {
+      kind,
+      digest_id: `${kind}-${n}`,
+      outcome: "failed",
+      failure: { stage: "write", reason: "x" },
+    });
+
+  it("counts a two-pass failed run once", () => {
+    const summary = summarize({
+      runs: [run(1), run(2), run(3), run(4), failedPass(5, "regular"), failedPass(5, "weekly")],
+      timings: [],
+    });
+    expect(summary.briefings.runs).toBe(5);
+    expect(summary.briefings.readings.find((r) => r.metric === "failure_rate")?.value).toBe(0.2);
+  });
+
+  it("keeps ten runs in the window whatever their passes", () => {
+    const nine = Array.from({ length: 9 }, (_, i) => run(i + 1));
+    const summary = summarize({
+      runs: [...nine, failedPass(10, "regular"), failedPass(10, "weekly")],
+      timings: [],
+    });
+    expect(summary.briefings.runs).toBe(10);
+    expect(summary.briefings.readings.find((r) => r.metric === "failure_rate")?.value).toBe(0.1);
+  });
+});
+
+// A pass whose stories grounding dropped below the publication floor commits as `nothing`; its
+// written stories were checked all the same, and leaving it out hid the loss (CodeRabbit, PR 391).
+describe("grounding_survival counts a pass that published nothing", () => {
+  it("reads the funnel of a nothing run", () => {
+    const lost = (n: number) =>
+      run(n, {
+        outcome: "nothing",
+        funnel: {
+          pool: 87,
+          written: 8,
+          grounding_dropped: 6,
+          grounding_pruned: 0,
+          validate_dropped: 0,
+          refill_written: 0,
+          refill_kept: 0,
+          aired: 0,
+        },
+      });
+    const summary = summarize({ runs: [lost(1), lost(2), lost(3)], timings: [] });
+    const reading = summary.briefings.readings.find((r) => r.metric === "grounding_survival");
+    expect(reading?.value).toBe(0.25);
+    expect(reading?.verdict).toBe("off");
+  });
+});
+
 // The 2026-10-27 regenerate aired 2,117 of 5,330 characters and nothing said so beyond one log line.
 describe("summarize", () => {
   it("judges nothing before three runs say the same", () => {

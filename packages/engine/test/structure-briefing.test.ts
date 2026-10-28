@@ -16,6 +16,7 @@ import { fitToBudget } from "../src/podcast/fit.js";
 import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js";
 import { fitStories, shapeStories } from "../src/podcast/structure.js";
 import type { PodcastStory } from "../src/podcast/types.js";
+import { RELEASE_CATEGORY } from "../src/score/releaseNotes.js";
 import { loadSectionPlan, sectionPlanFor } from "../src/score/sectionPlan.js";
 import { selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
@@ -187,6 +188,23 @@ describe("a Catch up fills its slots after the structure's caps", () => {
     expect(fitted.filter((id) => id.startsWith("a"))).toHaveLength(2);
     expect(fitted.filter((id) => id.startsWith("b"))).toHaveLength(2);
     expect(fitted).toContain("b1");
+  });
+
+  // A release story keeps its world section on the card but airs in the release block, so the cut
+  // ranks it there: ranked by section it sat third behind two world stories and went first
+  // (CodeRabbit, PR 391, second round).
+  it("ranks a release story by the block it airs in, not by its section", () => {
+    const withRelease = blocks([
+      { type: "hello" },
+      { type: "section", id: "world" },
+      { type: "release_news", stories: 2 },
+      { type: "sign_off" },
+    ]);
+    const release: PodcastStory = { ...story("r1", "world"), category: RELEASE_CATEGORY };
+    const candidates = [story("w1", "world"), story("w2", "world"), release];
+    const fitted = fitStories(candidates, withRelease, {}, 2).stories.map((each) => each.item_id);
+    expect(fitted).toContain("r1");
+    expect(fitted).toContain("w1");
   });
 
   // A short episode with many blocks plans one slot; selection kept two, and fitting must not cut

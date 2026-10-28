@@ -19,6 +19,8 @@ export interface RunRecord {
   outcome?: string;
   /** The workflow step a failed briefing stopped in. */
   step?: string;
+  /** When the run last changed phase (`Date.now()`). */
+  stageAt?: number;
 }
 
 /**
@@ -63,4 +65,22 @@ export function claimEndCue(
     // Without storage the cue may repeat; it is a sound, not a record.
   }
   return run.phase === "done" ? "finished" : "failed";
+}
+
+/** How long after a run's end the island, mounting late, still announces it. */
+const LATE_MOUNT_MS = 30_000;
+
+/**
+ * Whether a run ended just now, in the gap before the island was listening. The sheets island wakes
+ * after the first status answer can arrive, and the event that answer sent reached nobody; looking
+ * once at mount makes up for it. A run that ended before the page opened has its card and is not
+ * announced again.
+ */
+export function endedRecently(run: RunRecord | null, now = Date.now()): boolean {
+  return (
+    run?.stageAt !== undefined &&
+    (run.phase === "done" || run.phase === "failed") &&
+    now - run.stageAt >= 0 &&
+    now - run.stageAt < LATE_MOUNT_MS
+  );
 }

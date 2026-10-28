@@ -584,6 +584,9 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       !run.what && asked?.format ? `&format=${asked.format}&length=${asked.length_minutes}` : "";
     const res = await fetch(`/api/status?run=${run.id}${about}`).catch(() => null);
     const body = res?.ok ? await res.json().catch(() => null) : null;
+    // An answer for a run that is no longer followed (another was started while it was out) is
+    // not this run's card to draw, nor its polling to stop.
+    if (following !== run.id) return;
     // A run the status route does not know (a 4xx): the episode was started all the same, so say
     // that and stop asking. A hiccup is asked again, until the loop runs out.
     if (res && res.status < 500 && !res.ok) break;

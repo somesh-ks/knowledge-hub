@@ -663,12 +663,6 @@
   color: transparent;
 }
 
-/* Its change listener is installed by settingsPage.ts at data-ready: a choice made before would not be
-   saved and the page's first draw would put the stored one back. The manage selects wait the same way. */
-.settings-view:not([data-ready]) .theme-select > select {
-  pointer-events: none;
-}
-
 /* ------------------------------------------------------------------ cards (2026-10-21) */
 
 /* One page edge (2026-10-26, the owner: "Settings has more margin than Latest and Library"): the title,

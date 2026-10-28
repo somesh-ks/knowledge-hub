@@ -87,16 +87,25 @@ export function summarize(input: {
   runs: readonly RunMetric[];
   timings: readonly TimingEntry[];
 }): Summary {
-  const runs = [...input.runs].sort((a, b) => b.at.localeCompare(a.at)).slice(0, WINDOW);
+  // The window is ten runs, not ten entries: a run that made a regular and a weekly briefing leaves
+  // one entry for each under one run_id, and a failed one must count once.
+  const newestFirst = [...input.runs].sort((a, b) => b.at.localeCompare(a.at));
+  const ids = [...new Set(newestFirst.map((run) => run.run_id))].slice(0, WINDOW);
+  const windowed = new Set(ids);
+  const runs = newestFirst.filter((run) => windowed.has(run.run_id));
+  const failedRuns = new Set(
+    runs.filter((run) => run.outcome === "failed").map((run) => run.run_id),
+  );
   const finished = runs.filter((run) => run.outcome !== "failed");
   const published = runs.filter((run) => run.outcome === "published");
   const sized = published.flatMap((run) => (run.length.share === null ? [] : [run.length.share]));
-  // Grounding checks what the writer wrote and what the refill wrote after it, so both count.
-  const survival = published.flatMap((run) => {
+  // Grounding checks what the writer wrote and what the refill wrote after it, so both count. A
+  // pass that published nothing counts too: grounding dropping its stories is what emptied it.
+  const survival = finished.flatMap((run) => {
     const checked = run.funnel.written + run.funnel.refill_written;
     return checked > 0 ? [Math.max(0, 1 - run.funnel.grounding_dropped / checked)] : [];
   });
-  const enough = runs.length >= MIN_RUNS;
+  const enough = ids.length >= MIN_RUNS;
   const timed = finished.flatMap((run) => (run.total_ms === undefined ? [] : [run.total_ms]));
 
   const episodes = [...input.timings]
@@ -111,13 +120,11 @@ export function summarize(input: {
 
   return {
     briefings: {
-      runs: runs.length,
+      runs: ids.length,
       readings: [
         reading(
           "failure_rate",
-          runs.length === 0
-            ? null
-            : runs.filter((r) => r.outcome === "failed").length / runs.length,
+          ids.length === 0 ? null : failedRuns.size / ids.length,
           `<= ${TARGETS.failureRateMax}`,
           (v) => v <= TARGETS.failureRateMax,
           enough,

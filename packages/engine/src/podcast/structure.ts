@@ -102,15 +102,17 @@ export function fitStories(
   const max = Math.max(MIN_EPISODE_STORIES, slots);
   const shaped = shapeStories(candidates, blocks, prompts);
   if (shaped.stories.length <= max) return shaped;
-  // A story ranks by its place inside its own section first, so the cut takes each section's tail
-  // before any section's best: a mixed episode lists its topics one after another, and cutting by
-  // position alone would take the whole last topic (2026-10-28, independent review).
+  // A story ranks by its place inside the block it airs in first, so the cut takes each block's tail
+  // before any block's best: a mixed episode lists its topics one after another, and cutting by
+  // position alone would take the whole last topic (2026-10-28, independent review). A release story
+  // airs in the release block whatever its section, so it ranks there.
   const place = new Map<string, number>();
   const filled = new Map<string, number>();
   for (const story of candidates) {
-    const before = filled.get(story.section) ?? 0;
+    const key = blockKey(story);
+    const before = filled.get(key) ?? 0;
     place.set(story.item_id, before);
-    filled.set(story.section, before + 1);
+    filled.set(key, before + 1);
   }
   const order = new Map(candidates.map((story, index) => [story.item_id, index]));
   const byRank = (a: PodcastStory, b: PodcastStory): number =>

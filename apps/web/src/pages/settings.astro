@@ -144,11 +144,13 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         <div class="rows card-group">
           {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
                settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
-               Dark never shows System first. */}
+               Dark never shows System first. It is inert until settingsPage.ts has its change listener
+               in place: a choice made before would not be saved, and the first draw would put the stored
+               one back. */}
           <div class="settings-row">
             <label class="settings-label" for="settings-theme">Theme</label>
             <span class="manage-select value-select theme-select">
-              <select class="manage-input" id="settings-theme" name="theme" autocomplete="off">
+              <select class="manage-input" id="settings-theme" name="theme" autocomplete="off" inert>
                 {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
               </select>
               <Icon name="chevronDown" />

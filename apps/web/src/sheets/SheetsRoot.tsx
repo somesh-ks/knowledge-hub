@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import "../styles/player.css";
 import "../styles/sheets.css";
-import { claimEndCue, RUN_EVENT, readRunRecord } from "../lib/runRecord";
+import { claimEndCue, endedRecently, RUN_EVENT, readRunRecord } from "../lib/runRecord";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate, cueForSheet } from "../player/sound/soundMap";
@@ -83,6 +83,8 @@ export default function SheetsRoot() {
       toastForEndedRun(run, cue);
     };
     document.addEventListener(RUN_EVENT, onRun);
+    // A run that ended while this island was loading sent its event to nobody.
+    if (endedRecently(readRunRecord(() => localStorage))) onRun();
     return () => document.removeEventListener(RUN_EVENT, onRun);
   }, []);
 
