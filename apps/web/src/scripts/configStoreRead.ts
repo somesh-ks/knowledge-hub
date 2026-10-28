@@ -201,8 +201,16 @@ function showHeld(held: HTMLElement[]): void {
  * and may offer a reload when it contains another device's edits.
  */
 function askStore(now: number): Promise<ConfigReadBody | null> {
-  // A read reused within the second answers as storeRead does: for the page now in the document.
-  if (last && now - last.at < REUSE_MS) return last.read.then(() => storeRead());
+  // A read reused within the second answers as storeRead does: for the page now in the document. It
+  // holds this page no longer than it held the first (CodeRabbit, PR 391): with a copy the page has
+  // it at once, as the first had; without one it waits the same 2.5 s, not the read's 20.
+  if (last && now - last.at < REUSE_MS) {
+    if (readCache() !== null) return Promise.resolve(storeRead());
+    const wait = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), STORE_READ_TIMEOUT_MS),
+    );
+    return Promise.race([last.read.then(() => storeRead()), wait]);
+  }
   const stop = new AbortController();
   const timer = setTimeout(() => stop.abort(), STORE_READ_LIMIT_MS);
   const asked = { at: now } as { at: number; read: Promise<ConfigReadBody | null> };

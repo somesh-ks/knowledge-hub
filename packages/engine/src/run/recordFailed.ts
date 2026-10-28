@@ -70,6 +70,18 @@ export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promi
     git: deps.git,
   });
   const reason = `Recorded failed for ${kinds.join(", ")}.`;
+  return reportCommit(committed, reason, message);
+}
+
+/**
+ * What a failure record's commit came to, in the same words for a scheduled run and an on-demand
+ * one: a refused commit names the paths that broke the allowlist, a failed push its sha and cause.
+ */
+function reportCommit(
+  committed: Awaited<ReturnType<typeof commitAndPush>>,
+  reason: string,
+  message: string,
+): CommitReport {
   switch (committed.status) {
     case "pushed":
     case "committed":
@@ -143,15 +155,5 @@ async function recordFailedOnDemand(
     git: deps.git,
   });
   const reason = "Recorded the failed on-demand run.";
-  if (committed.status === "refused" || committed.status === "push_failed") {
-    return report(`${reason} The commit did not land (${committed.status}).`, {
-      status: committed.status,
-      message,
-    });
-  }
-  return report(reason, {
-    status: committed.status,
-    message,
-    ...("sha" in committed ? { sha: committed.sha } : {}),
-  });
+  return reportCommit(committed, reason, message);
 }

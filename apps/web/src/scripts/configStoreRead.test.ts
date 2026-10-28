@@ -151,6 +151,47 @@ describe("loadStore", () => {
     expect(shown).toMatchObject({ ops: [{ op: "kept" }] });
   });
 
+  // CodeRabbit, PR 391 (Major): a page opened within a second of another reused the read still out and
+  // waited for it, up to 20 s, though the first page had shown its copy at once.
+  it("holds a page opened within a second no longer than the first, with a copy or without", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, STORE_READ_TIMEOUT_MS, loadStore } = await fresh();
+    vi.stubGlobal("document", {
+      querySelector: () => ({ content: "built-here" }),
+      querySelectorAll: () => [],
+    });
+    const kept = {
+      status: 200,
+      built: "built-here",
+      written_at: 1,
+      ops: [{ op: "kept" }],
+      sources: [],
+    };
+    const storage = fakeStorage({ [CACHE_KEY]: JSON.stringify(kept) });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => {}));
+    void loadStore(0);
+    await vi.advanceTimersByTimeAsync(0);
+    let shown: unknown = "pending";
+    void loadStore(500).then((body) => {
+      shown = body;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(shown).toMatchObject({ ops: [{ op: "kept" }] });
+
+    // With no copy the first page waits the timeout and keeps its build; the second waits no longer.
+    storage.clear();
+    vi.resetModules();
+    const again = await import("./configStoreRead");
+    void again.loadStore(10_000);
+    let second: unknown = "pending";
+    void again.loadStore(10_500).then((body) => {
+      second = body;
+    });
+    await vi.advanceTimersByTimeAsync(STORE_READ_TIMEOUT_MS);
+    expect(second).toBeNull();
+  });
+
   // A page view after an in-page navigation: another tab saved meanwhile and wrote a newer copy, and
   // with no wait for the store the page must still read that copy, not the older one this module
   // held from the page before (CodeRabbit, PR 391).
