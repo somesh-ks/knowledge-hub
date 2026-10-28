@@ -400,8 +400,11 @@ function jobRows(jobs: HealthInput["jobs"], now: Date): HealthRow[] {
   return Object.entries(HEALTH_JOBS).map(([id, file]) => {
     if (jobs === "off") return row(id, "Not set up", "No GitHub token", "none");
     if (jobs === UNAVAILABLE) return row(id, "Unavailable", "GitHub did not answer", "none");
+    // A workflow GitHub did not list (an error for that one alone) is unavailable, not quiet.
+    const runs = jobs[file];
+    if (runs === undefined) return row(id, "Unavailable", "GitHub did not answer", "none");
     // Skipped runs are run.yml's hourly ticks outside its slot: no work, no outcome.
-    const done = (jobs[file] ?? []).filter(
+    const done = runs.filter(
       (run) =>
         run.status === "completed" && run.conclusion !== null && run.conclusion !== "skipped",
     );

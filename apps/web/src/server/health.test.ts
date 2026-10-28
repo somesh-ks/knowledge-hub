@@ -82,7 +82,7 @@ describe("healthBody", () => {
   });
 
   // run.yml ticks every hour and skips outside its slot: some 160 skipped runs a week must not read
-  // as passes, nor hide the one that failed.
+  // as passes, nor hide the one that failed. One workflow's read failing must not read as quiet.
   it("counts only the workflow runs that did work", () => {
     const run = (conclusion: string, at: string): WorkflowRun => ({
       id: Date.parse(at),
@@ -112,6 +112,8 @@ describe("healthBody", () => {
       NOW,
     );
     expect(rowOf(body, "job_run")).toMatchObject({ value: "1 failed", tone: "warn" });
+    // A workflow GitHub did not list is unavailable, never "No runs".
+    expect(rowOf(body, "job_podcast")).toMatchObject({ value: "Unavailable", tone: "none" });
     expect(rowOf(body, "job_run")?.detail).toMatch(/^2 runs this week/);
   });
 });

@@ -103,8 +103,15 @@ async function readJobs(now: Date): Promise<HealthInput["jobs"]> {
     .toISOString()
     .slice(0, 10);
   const files = Object.values(HEALTH_JOBS);
-  const lists = await Promise.all(files.map((file) => github.listRecentRuns(file, since)));
-  return Object.fromEntries(files.map((file, index) => [file, lists[index] ?? []]));
+  // Each workflow apart: one GitHub error leaves its own row unavailable, not every row.
+  const lists = await Promise.allSettled(files.map((file) => github.listRecentRuns(file, since)));
+  const read = files.flatMap((file, index) => {
+    const list = lists[index];
+    if (list?.status === "fulfilled") return [[file, list.value] as const];
+    log(`github ${file}: ${list?.reason instanceof Error ? list.reason.message : "unreadable"}`);
+    return [];
+  });
+  return read.length === 0 ? UNAVAILABLE : Object.fromEntries(read);
 }
 
 export async function buildHealth(now: Date): Promise<HealthBody> {
@@ -143,16 +150,27 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
 }
 
 let held: { at: number; body: HealthBody } | null = null;
+let building: Promise<HealthBody> | null = null;
 
 /** Forget the held answer. For tests. */
 export function resetHealthCache(): void {
   held = null;
+  building = null;
 }
 
-/** The held answer while it is fresh, else a new one. */
+/**
+ * The held answer while it is fresh, else a new one. Requests that miss together share one build,
+ * so a burst under the rate cap reads the content store, Neon and GitHub once, not once each.
+ */
 export async function serveHealth(now: Date): Promise<HealthBody> {
   if (held && now.getTime() - held.at < FRESH_MS) return held.body;
-  const body = await buildHealth(now);
-  held = { at: now.getTime(), body };
-  return body;
+  building ??= buildHealth(now)
+    .then((body) => {
+      held = { at: now.getTime(), body };
+      return body;
+    })
+    .finally(() => {
+      building = null;
+    });
+  return building;
 }
