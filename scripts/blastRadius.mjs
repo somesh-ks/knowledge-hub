@@ -47,7 +47,8 @@ const SHARED_RULES = [
     ],
   },
   {
-    pattern: /^apps\/web\/src\/(?:pages\/settings|scripts\/structure|lib\/structure)/,
+    pattern:
+      /^apps\/web\/src\/(?:pages\/settings|styles\/settings\.css|scripts\/structure|lib\/structure)/,
     risk: "MEDIUM",
     surface: "Settings & Preferences (podcast structure, categories, voice, sound)",
     checks: [

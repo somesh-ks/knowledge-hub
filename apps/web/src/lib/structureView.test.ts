@@ -117,6 +117,25 @@ describe("structureView", () => {
     expect(html).toContain('data-icon="trash"');
   });
 
+  it("disables Move up on the first movable row and Move down on the last, and neither between", () => {
+    const blocks: StructureBlock[] = [
+      { type: "hello" },
+      { type: "rundown" },
+      { type: "section", id: "design", depth: "brief" },
+      { type: "section", id: "tech", depth: "brief" },
+      { type: "sign_off" },
+    ];
+    const html = rowsHtml(blocks, data, skip);
+    const row = (index: number): string =>
+      html.match(new RegExp(`data-index="${index}"[\\s\\S]*?</li>`))?.[0] ?? "";
+
+    expect(row(1)).toContain('data-act="up" disabled');
+    expect(row(1)).not.toContain('data-act="down" disabled');
+    expect(row(2)).not.toContain("disabled");
+    expect(row(3)).toContain('data-act="down" disabled');
+    expect(row(3)).not.toContain('data-act="up" disabled');
+  });
+
   it("marks off sections with data-off and data-quiet", () => {
     const blocks: StructureBlock[] = [
       { type: "hello" },
