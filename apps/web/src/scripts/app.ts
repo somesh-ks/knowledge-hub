@@ -60,9 +60,12 @@ if (matchMedia("(display-mode: standalone)").matches) {
     if (event.target instanceof Element && event.target.closest(IN_APP_NAV)) event.preventDefault();
   });
 }
+// The build this bundle loaded with, read once: in-app moves swap the head's meta for the new
+// page's while this bundle keeps running (the fault reports and the update check both need the old name).
+const build = document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content;
 // The service worker registers once the page has loaded, so its code can arrive then too.
 const registerWorker = (): void =>
-  void import("./serviceWorker").then((worker) => worker.registerServiceWorker());
+  void import("./serviceWorker").then((worker) => worker.registerServiceWorker(build));
 if (document.readyState === "complete") registerWorker();
 else addEventListener("load", registerWorker, { once: true });
 // The scrollbar's width, measured while no dialog or open player holds the page: either takes the
@@ -91,10 +94,8 @@ const launch = document.querySelector<HTMLElement>(".launch");
 if (launch) setTimeout(() => (launch.hidden = true), 1200);
 // Uncaught errors and policy violations go to /api/report (server/report.ts), at most five a page
 // load, so a fault on a phone reaches the function log and the week's store instead of vanishing.
-// The build goes with it (D158), read once here: in-app moves swap the head's meta for the new
-// page's while this bundle, the one that raised the fault, keeps running.
+// The build goes with it (D158), read once above.
 // Kept a few hundred bytes: it is on every page's first load.
-const build = document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content;
 let reports = 0;
 const report = (fault: object): void => {
   if (reports++ < 5)

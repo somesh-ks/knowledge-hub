@@ -5,7 +5,7 @@ Updated 2026-10-28. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 ## Working
 
 - Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md).
-- Reader: Latest, Library, Catch up, Settings, Health (D202), `/design`: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Reader: Latest, Library, Catch up, Settings, `/design`: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus with an MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199).
@@ -16,11 +16,11 @@ Updated 2026-10-28. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 
 ## Tests
 
-Unit (CI): 303 files, 4,939 tests (10-28), 85 s. Site e2e: 396 runs (10-27), 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 302 files, 4,943 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
-- Short briefings: 2026-10-27 shipped 3 of 8 (grounding dropped 5, empty reserve; #373, #375). closed when: a daily airs within 10% of its length and its drop log names the cause.
+- Short briefings: 2026-10-27 shipped 3 of 8 stories (grounding dropped 5; #373, #375). closed when: a daily airs within 10% of its length and its drop log names the cause.
 - Opus on runners (D198, #381, #388). closed when: the next audio run logs `ffmpeg version` and its digest has `m4a_url`; then the owner plays /d/2026-10-24 on an iPhone before the backfilled MP3s go.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
@@ -32,16 +32,16 @@ Unit (CI): 303 files, 4,939 tests (10-28), 85 s. Site e2e: 396 runs (10-27), 10 
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcripts answered live (2026-10-24), Gemini 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners (since about 10-14); #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
-- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast, health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
-- Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode. closed when: a briefing and an episode play offline on a phone after a Download.
-- Player tabs and queue (D126, D133): Stories with the live transcript, Up next tab, handle drag, chevron. closed when: each works on a phone and the queue starts the next item at an end.
+- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
+- Downloads (D127) on a phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
+- Player tabs and queue (D126, D133): Stories with the live transcript, Up next, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` (#183); GitHub's `SPEECHIFY_VOICE_ID_B` must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
 - Episode quality (D119, D120), refill (#237, #197): no live spares, refill or one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length, and one has a one-outlet Science story.
-- Taste check (D118): Jev 1.14 live, taste on real candidates, an open from a phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
+- Taste check (D118): Jev 1.14 live; taste on real candidates; an open from a phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
 - Covers and header light (D110, D122): monthly covers deployed; the light on a real GPU, Safari, Firefox; a theme switch past 400 ms. closed when: phone and desktop screenshots of production show each.
-- Real phones, Safari, WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
+- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
 - "Narration is not available right now" (2026-10-12): not reproduced. A failing try leaves a `server` fault for `api/narrate`. closed when: one names the step.
-- Time zone (D100) only against fakes: not a non-Stockholm zone, a fallback entry or a clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still compare with Stockholm's today. closed when: a run across the 2026-10-25 clock change publishes on the right day.
+- Time zone (D100) only faked: no non-Stockholm zone, fallback entry or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still compare with Stockholm's today. closed when: a run across the 2026-10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no run judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge stage reports the feeds.
 - Scoring sample (D70): most sources still New. closed when: two weeks on, under 10% of switched-on sources read New.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a commit on `main` from the site.
@@ -51,11 +51,11 @@ Unit (CI): 303 files, 4,939 tests (10-28), 85 s. Site e2e: 396 runs (10-27), 10 
 - Timings (D80 to D82: press to episode about 2.2 min) are from the fixture build. closed when: one real episode is timed against the note.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - Thresholds untuned: Jev 0.4 and 0.5, Trending clustering, source scores (D55), the vote numbers, `auto_adjust` (D190). closed when: each is checked against the golden set or two weeks of real data.
-- Unverified (D106 to D109): the volume slider's linger and hold while dragged, the highlight's pause on a live briefing, a vote batch sent on unload, a briefing regenerated with a topic its run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
+- Unverified (D106 to D109): the volume slider's linger and drag hold, the highlight's pause on a live briefing, a vote batch sent on unload, a briefing regenerated with a topic its run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
 - [Analytics](specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
-- [Health](specs/health.md) (D202): frozen answer only. closed when: production shows no Unavailable row.
+- [Health](specs/health.md) (D203): only faked. closed when: production shows no Unavailable row.
 - No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
 - Seventeen older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked). closed when: each closes.
 

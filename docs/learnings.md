@@ -38,7 +38,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
-- 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for a 3 min run, D193); time a run as `generated_at` less `window.to` (D202).
+- 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
 - 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding (#381). The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
 - 2026-10-25: the config store silently undid a PR's config edit (D185).
@@ -55,7 +55,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-19: the caption track URLs on a watch page answer 200 with an empty body, so every video fell through to Gemini. The player API's Android client (`youtubei/v1/player`, no key) lists tracks whose URLs return the text. A fake that returns captions proves the parser, not that YouTube still serves them: probe one live video after any change here.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - 2026-10-08: Vercel Hobby includes 2,000 advanced Blob operations a month (`put`, `copy`, `list`) and 10,000 simple ones (`head`, a read that misses the cache); going over locks the store for 30 days. Count operations per call when designing anything that writes to Blob, and never `list` on a page view.
-- 2026-10-18: the 15-minute weekly aired 14 stories (5 minutes): the prefilter's fixed cap of 80 (a daily's), 27 of 52 slots filled, 11 dropped by grounding and validation. `poolCapFor` sizes the prefilter, writes 85% spares up to 80, cuts to the narration limit after grounding. Read a short episode's funnel from the stage lines (`kept`, `qualifying`, `selected`, `grounding_dropped`).
+- 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots, grounding and validation dropped 11. `poolCapFor` now sizes the prefilter, writes 85% spares up to 80 and cuts to the narration limit after grounding. Read a short episode's funnel from the stage lines (`kept`, `qualifying`, `selected`, `grounding_dropped`) first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain falls through silently to Nebius, so from 2026-10-14 the briefings were written by the Nebius model while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
 - 2026-10-15: the eval's quality score moves ±0.25 between runs on the same episode; read the judge's reasons (`loop/inspect.ts` in the eval job log) before acting on a score change.
@@ -71,6 +71,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-27: in-app moves swap the head's build meta: read it once (D202).
 - 2026-10-27: moving a shared rule behind `:has()` raised its specificity over podcast.css's override, cutting voice names at 70% of 70% (#378): wrap the condition in `:where()` (#386).
 - 2026-10-27: a Playwright `**/api/config` route glob ignores query strings, so `/api/config?after=` slipped past the mock: match with a regex.
 - 2026-10-24: a chart panel hidden by CSS (`display: none`, the Costs table view) still gets its ResizeObserver callback, at zero height, and drew a rect of -40. Guard a draw on the box (`clientHeight === 0`), not on `hidden`.
@@ -88,7 +89,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
-- 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` matches its own shell: kill by PID.
+- 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens` there, and Biome on every file in `git diff --name-only origin/main...HEAD` before a PR. `biome check <dir>` on touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
@@ -123,7 +124,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
-- 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` after the clean and junction checks.
+- 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once the worktree is clean.
 - 2026-10-21: a worktree can start from an older base than the brief names (it lacked 29 commits): check the last commit first and reset to the target before editing.
 - 2026-10-11: the review workflow's code-review plugin stops at a PR it already reviewed: a re-labelled run posts nothing, reports success, and new commits go unreviewed. Review them locally (`/code-review` on the range).
 - 2026-10-06: Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.

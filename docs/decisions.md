@@ -209,7 +209,8 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
-| D202 | Live Health page | active |
+| D202 | A deploy loads itself | amends D146 |
+| D203 | Live Health page | active |
 
 ---
 
@@ -2110,7 +2111,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Revisit if: the URL reaches anyone beyond friends, or a config change is made that the owner did not make.
 - Amends: D160.
 
-## D202: a Health page reads the app's state live and judges by `singularity health`'s lines
+## D202: a deploy loads itself; the Reload toast is gone
+
+- Date: 2026-10-27 (the owner: "there's never a reason to refresh or give the snack bar to reload")
+- Decision: a page behind `/build.json` reloads itself at the first moment a reload costs nothing. The page asks `/build.json` on load, on each return to the front, and every 10 minutes while in front (at most once a minute), against the build its bundle loaded with. That name is read once in `app.ts` and passed in: the head meta is swapped by every move inside the app, so the old check read the new page's name and never saw a bundle left behind. When the site is newer the page reloads if no audio plays or buffers, no dialog, sheet or toast (an Undo) is open, and no text field has focus or holds what the reader typed (a field the page filled in does not count); else it tries again every 5 s, on each move inside the app, and when the page is hidden. One build is loaded for at most twice per tab (`singularity:applied-build` in sessionStorage), so a reload that still shows the old build cannot loop. The "New version available" toast is removed.
+- Why: a prompt asks the reader to do what the app can do itself, and a dismissed or unseen one leaves the old bundle running. D146 dropped the automatic reload because each round found one more thing it could throw away; those are now the guard list above, as one tested function (`canReloadNow`), with the wait as the fallback instead of a prompt.
+- Amends: D146 (the offer becomes an automatic reload).
+- Revisit if: a reload ever loses a reader's work (add its guard to `canReloadNow` with a test), or a page keeps a state the guards cannot see.
+## D203: a Health page reads the app's state live and judges by `singularity health`'s lines
 
 - Date: 2026-10-28.
 - Decision: Settings, Analytics has Health (`/settings/health`): briefings, run times, field speed per device, errors, workflow runs, sources and services, from `/api/health`, which reads the content store, Neon and GitHub at request time. The thresholds move into `packages/engine/src/ops/healthLimits.ts` (export `./health-limits`), which the daily check and the route both import. `state/source-health.json` joins the content store. Run time is `generated_at` less `window.to`.

@@ -1,9 +1,9 @@
 name: podcast
 
-# Writes one episode of Singularity on request and commits it under Podcasts/. The site is deployed
-# by the Vercel GitHub integration on every push to main. Vercel Hobby only deploys commits authored
-# by the team owner, so the commit uses the owner's identity from DISPATCH_GIT_NAME and
-# DISPATCH_GIT_EMAIL, exactly as run.yml does.
+# Writes one episode of Singularity on request and commits it under Podcasts/. This commit does not
+# deploy the site: vercel.json's ignoreCommand skips a push that touches no app code (D199), and
+# content.yml mirrors the episode into the content store the pages read. The commit still uses the
+# owner's identity from DISPATCH_GIT_NAME and DISPATCH_GIT_EMAIL, exactly as run.yml does.
 
 on:
   workflow_dispatch:

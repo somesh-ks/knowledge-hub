@@ -4,7 +4,7 @@
 
 ## What was built
 
-Settings, Analytics, Health opens `/settings/health` ([spec](../specs/health.md), D202): a summary card in the Costs card's shape (how many rows need a look, four stat tiles) and six groups of settings rows: Briefings, Run times, Speed (a device select), Errors, Jobs, Sources and services. Twenty-five readings in all.
+Settings, Analytics, Health opens `/settings/health` ([spec](../specs/health.md), D203): a summary card in the Costs card's shape (how many rows need a look, four stat tiles) and six groups of settings rows: Briefings, Run times, Speed (a device select), Errors, Jobs, Sources and services. Twenty-five readings in all.
 
 ## The sources, and what was left out
 

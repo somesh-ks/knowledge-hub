@@ -267,8 +267,9 @@ jobs:
           [ "$FORCE" = "true" ] && args+=(--force)
           npm run --silent singularity -- run --record-failed "${args[@]}"
 
-  # Vercel deploys the text digest from the Commit push. This job adds narration afterwards; its
-  # own push triggers a second Vercel deploy that carries the audio.
+  # The Commit push does not deploy: vercel.json's ignoreCommand skips it (D199) and content.yml
+  # mirrors the digest into the store the pages read. This job adds narration afterwards, which
+  # reaches the site through the same sync.
   audio:
     needs: run
     # After a published digest, or when any digest still lacks audio (the retry path). The output
