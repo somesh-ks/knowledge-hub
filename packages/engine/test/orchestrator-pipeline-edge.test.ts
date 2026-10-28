@@ -16,7 +16,7 @@ import { PoolFile, writePool } from "../src/fetch/pool.js";
 import type { Judge } from "../src/judge/types.js";
 import { BudgetExceededError } from "../src/llm/errors.js";
 import { collectHealth } from "../src/ops/health.js";
-import { readPlan } from "../src/run/plan.js";
+import { readPlan, writePlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
 import { groundingDropRecords } from "../src/run/validateStage.js";
 import { markCopiedFromStore, SNAPSHOT_TRAILER } from "../src/store/configDocs.js";
@@ -154,6 +154,54 @@ describe("concurrent writers and push handling", () => {
     expect((await readDigest(repo.root, "Digests/2026/10/2026-10-07-2.md")).id).toBe(
       "2026-10-07-2",
     );
+  });
+});
+
+// The bug (D209): a run generated ahead reads state/ from the checkout it made at job start, so a
+// push made during its wait (an on-demand run's, a config commit) made its own push a rebase
+// conflict on state/seen.json and lost the briefing. Config is read before the wait, so a category
+// muted meanwhile cannot fail a briefing that was validated against the old one.
+describe("a run that holds for its publish time", () => {
+  it("commits on top of what was pushed meanwhile", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    await throughValidate(world);
+    const plan = await readPlan(repo.root);
+    if (!plan) throw new Error("the gate wrote no plan");
+    await writePlan(repo.root, {
+      ...plan,
+      publish_at: new Date(WED.getTime() + 30 * 60_000).toISOString(),
+    });
+    world.deps.wait = async () => {
+      git(repo.other, "pull", "-q", "origin", "main");
+      const topics = await readJson<{ topics: object[] }>(repo.other, "config/topics.json");
+      await seed(
+        repo.other,
+        {
+          "state/seen.json": json({ version: 1, items: { "pushed-meanwhile": "2026-10-07" } }),
+          "config/topics.json": json({
+            ...topics,
+            topics: topics.topics.map((topic) => ({ ...topic, never_publish: true })),
+          }),
+        },
+        "chore(state): an on-demand run and a muted category",
+      );
+      world.setNow(new Date(WED.getTime() + 30 * 60_000));
+    };
+    // The gate copied the store's config, so this commit would claim to be a snapshot of it.
+    await markCopiedFromStore(repo.root, true, true);
+    const commit = await runStage(world, { stage: "commit" });
+    expect(commit.report).toMatchObject({ outcome: "published", commit: { status: "pushed" } });
+    const seen = JSON.parse(git(repo.remote, "show", "main:state/seen.json")) as SeenFile;
+    expect(Object.keys(seen.items)).toContain("pushed-meanwhile");
+    expect(Object.keys(seen.items).length).toBeGreaterThan(1);
+    // The muted categories are the other writer's edit, every one kept.
+    const kept = JSON.parse(git(repo.remote, "show", "main:config/topics.json")) as {
+      topics: { never_publish?: boolean }[];
+    };
+    expect(kept.topics.length).toBeGreaterThan(0);
+    expect(kept.topics.every((topic) => topic.never_publish === true)).toBe(true);
+    // A config edit came in from the repo, so the files are no longer the store's: no snapshot claim.
+    expect(git(repo.remote, "log", "-1", "--format=%B", "main")).not.toContain(SNAPSHOT_TRAILER);
   });
 });
 
