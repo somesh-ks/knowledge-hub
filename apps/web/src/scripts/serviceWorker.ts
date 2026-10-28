@@ -87,10 +87,11 @@ function readMoment(): Moment {
 export function claimApply(build: string, store?: Pick<Storage, "getItem" | "setItem">): boolean {
   try {
     const kept = store ?? sessionStorage;
-    const [was, count] = (kept.getItem(APPLIED_KEY) ?? "").split("@");
-    const tries = was === build ? Number(count) || 0 : 0;
+    // One count per build, so a claim for another build never resets this one's.
+    const key = `${APPLIED_KEY}:${build}`;
+    const tries = Number(kept.getItem(key)) || 0;
     if (tries >= APPLY_ATTEMPTS) return false;
-    kept.setItem(APPLIED_KEY, `${build}@${tries + 1}`);
+    kept.setItem(key, String(tries + 1));
   } catch {
     // No per-tab marker survives a reload, so a stale edge copy could loop. Stop automatic reloads;
     // the next full navigation loads the current build.
@@ -117,7 +118,6 @@ async function newerBuild(pageBuild: string | undefined): Promise<string | null 
 }
 
 function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: string): void {
-  trackTyping();
   activateWhenIdle(registration);
   registration.addEventListener("updatefound", () => {
     registration.installing?.addEventListener("statechange", () => activateWhenIdle(registration));
@@ -190,6 +190,8 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
 export function registerServiceWorker(pageBuild?: string): void {
   // Development serves unhashed modules that a cache would keep stale.
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+  // Before registration resolves: typing in that gap still counts.
+  trackTyping();
   const register = (): void => {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })

@@ -223,8 +223,10 @@ test.describe("service worker", () => {
     await expect(
       page.getByRole("status").getByRole("button").filter({ hasText: /\S/ }),
     ).toHaveCount(0);
-    // Once the text is gone nothing is left to lose, and the page loads the deploy by itself.
-    await page.evaluate(() => document.getElementById("draft")?.remove());
+    // Once the text is cleared (the field stays mounted) nothing is left to lose, and the page
+    // loads the deploy by itself.
+    await page.locator("#draft").fill("");
+    await page.locator("#draft").blur();
     await page.clock.fastForward(10_000);
     await expect.poll(() => build().catch(() => "")).toBe(deploy);
     expect(await kept()).toBeUndefined();

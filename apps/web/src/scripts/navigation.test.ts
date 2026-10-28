@@ -198,6 +198,14 @@ describe("claimApply", () => {
     expect(claimApply("b2", broken)).toBe(false);
   });
 
+  // B, B, C, B: a claim for C must not reset B's count (CodeRabbit, PR #392).
+  it("keeps the count of each build apart", () => {
+    const store = memory();
+    for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
+    expect(claimApply("b3", store)).toBe(true);
+    expect(claimApply("b2", store)).toBe(false);
+  });
+
   it("loads a build newer than the one it loaded for at once", () => {
     const store = memory();
     for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
