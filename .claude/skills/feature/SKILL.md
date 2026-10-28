@@ -1,6 +1,6 @@
 ---
 name: feature
-description: "Build and share production-grade features in Singularity: enforces a 1-page contextual feature brief, 7-state audit (with explicit N/A justification), canonical control archetypes, and multi-layer verification (design-check, gate, browser suites, bundle check, visual screenshots, and CodeRabbit review). Use when asked to build a new feature, add interactive UI, modify user flows, or when the user invokes /feature."
+description: "Build and share production-grade features in Singularity: enforces a 1-page contextual feature brief, 7-state audit (with explicit N/A justification), canonical control archetypes, and multi-layer verification (design-check, gate, bundle check, browser suites, visual screenshots, and CodeRabbit review). Use when asked to build a new feature, add interactive UI, modify user flows, or when the user invokes /feature."
 ---
 
 # Feature Development Protocol
@@ -11,7 +11,7 @@ Builds fully baked, production-grade features for Singularity. Enforces upfront 
 
 Before starting work or modifying files, run a lightweight status check:
 ```bash
-python scripts/verify_feature.py --status
+python .claude/skills/feature/scripts/verify_feature.py --status
 ```
 If the status check reveals pending uncommitted changes from another task, stop immediately and ask for guidance before proceeding.
 
@@ -82,11 +82,11 @@ Select exclusively from the shared control archetypes below. Never invent bespok
 Before declaring the feature complete, execute all required checks in sequence:
 
 1. **Preflight Token & Style Check**:
-   Run `python scripts/verify_feature.py --check` to verify no raw hex colors, zero em dashes, and passing `npm run design-check`.
-2. **First-Load Bundle Budget Check**:
-   Run `npx tsx apps/web/scripts/checkBundle.ts` after build to confirm first-load JS remains within the 130 KB budget.
-3. **Repository Gate**:
-   Run `npm run gate -- --build` to verify TypeScript, Astro diagnostics, Biome linting, unit tests, docs budgets, and static build in parallel.
+   Run `python .claude/skills/feature/scripts/verify_feature.py --check` to verify no raw hex colors, zero em dashes, and passing `npm run design-check`.
+2. **Repository Gate & Build**:
+   Run `npm run gate -- --build` to verify TypeScript, Astro diagnostics, Biome linting, unit tests, docs budgets, the static build, and `postbuild` bundle budget check in parallel.
+3. **First-Load Bundle Budget Check**:
+   Verify bundle output via `npx tsx apps/web/scripts/checkBundle.ts` (enforcing the 130 KB budget ceiling against the fresh build).
 4. **Browser Suites (for UI Changes)**:
    Run `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web`.
 5. **Visual Screenshot Inspection**:

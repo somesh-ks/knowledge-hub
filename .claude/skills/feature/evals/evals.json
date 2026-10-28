@@ -17,7 +17,7 @@
       "id": "early-exit-trivial-or-noop",
       "prompt": "Check feature branch readiness and run preflight verification for the completed playback speed popover.",
       "expectations": [
-        "Executes scripts/verify_feature.py --status as a lightweight early check",
+        "Executes python .claude/skills/feature/scripts/verify_feature.py --status as a lightweight early check",
         "Validates zero token drift, no raw hex colors, and no em dashes",
         "Checks bundle size impact against checkBundle",
         "Halts early if no pending edits or flags failure before full suite run"
@@ -25,4 +25,3 @@
     }
   ]
 }
-

@@ -4,8 +4,8 @@ Feature preflight verification helper for Singularity.
 Deterministic CLI for fast early checks before running heavy browser suites.
 
 Usage:
-  python scripts/verify_feature.py --status
-  python scripts/verify_feature.py --check
+  python .claude/skills/feature/scripts/verify_feature.py --status
+  python .claude/skills/feature/scripts/verify_feature.py --check
 """
 
 import argparse
@@ -18,21 +18,21 @@ from pathlib import Path
 
 def run_cmd(cmd: list[str]) -> tuple[int, str]:
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=(sys.platform == "win32"))
         return proc.returncode, proc.stdout + proc.stderr
     except Exception as e:
         return 1, str(e)
 
 
-def check_git_status() -> list[str]:
+def check_git_status() -> tuple[bool, list[str]]:
     code, out = run_cmd(["git", "status", "--porcelain"])
     if code != 0:
-        return []
+        return False, []
     files = []
     for line in out.splitlines():
         if len(line) > 3:
             files.append(line[3:].strip())
-    return files
+    return True, files
 
 
 def check_em_dashes(files: list[str]) -> list[str]:
@@ -65,7 +65,6 @@ def check_raw_hex(files: list[str]) -> list[str]:
             content = p.read_text(encoding="utf-8", errors="ignore")
             lines = content.splitlines()
             for idx, line in enumerate(lines, 1):
-                # Ignore url() or hash fragments
                 if "url(" in line or "data:" in line:
                     continue
                 match = hex_pattern.search(line)
@@ -84,32 +83,40 @@ def main():
     parser.add_argument("--check", action="store_true", help="Run token and design checks on modified files")
     args = parser.parse_args()
 
-    files = check_git_status()
-    if not files:
+    success, files = check_git_status()
+    if not success:
+        print("[FAIL] Failed to execute git status. Unable to verify working tree.")
+        sys.exit(1)
+
+    if not files and not args.check:
         print("[OK] Working tree clean. Zero pending changes.")
         sys.exit(0)
 
-    print(f"[STATUS] {len(files)} modified or untracked file(s) found.")
-
-    dash_issues = check_em_dashes(files)
-    hex_issues = check_raw_hex(files)
+    if files:
+        print(f"[STATUS] {len(files)} modified or untracked file(s) found.")
+    else:
+        print("[STATUS] Working tree clean.")
 
     failed = False
-    if dash_issues:
-        print("[FAIL] Em dashes detected in feature changes:")
-        for issue in dash_issues[:5]:
-            print(f"  - {issue}")
-        failed = True
-    else:
-        print("[OK] No em dashes found in modified files.")
+    if files:
+        dash_issues = check_em_dashes(files)
+        hex_issues = check_raw_hex(files)
 
-    if hex_issues:
-        print("[FAIL] Raw hex colors detected (use semantic CSS tokens):")
-        for issue in hex_issues[:5]:
-            print(f"  - {issue}")
-        failed = True
-    else:
-        print("[OK] No raw hex colors found.")
+        if dash_issues:
+            print("[FAIL] Em dashes detected in feature changes:")
+            for issue in dash_issues[:5]:
+                print(f"  - {issue}")
+            failed = True
+        else:
+            print("[OK] No em dashes found in modified files.")
+
+        if hex_issues:
+            print("[FAIL] Raw hex colors detected (use semantic CSS tokens):")
+            for issue in hex_issues[:5]:
+                print(f"  - {issue}")
+            failed = True
+        else:
+            print("[OK] No raw hex colors found.")
 
     if args.check:
         print("[RUN] Running design-check...")
@@ -130,4 +137,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
