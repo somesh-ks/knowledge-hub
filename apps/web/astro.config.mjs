@@ -23,7 +23,8 @@ process.env.SINGULARITY_REPO_ROOT ??=
 process.env.DISPATCH_REPO_ROOT ??= process.env.SINGULARITY_REPO_ROOT;
 
 // The inline scripts must run before first paint, so they cannot be external files: the saved-key
-// move and the theme in the head, the device banners and the Library's saved view. Their hashes go into the
+// move and the theme in the head, the device banners, the Library's saved view and the Settings
+// theme select. Their hashes go into the
 // Content-Security-Policy instead of allowing inline scripts in general.
 const inlineScriptHash = (path) => {
   const code = readFileSync(new URL(path, import.meta.url), "utf8").trim();
@@ -34,6 +35,7 @@ const inlineScriptHashes = [
   inlineScriptHash("./src/scripts/themeInit.js"),
   inlineScriptHash("./src/scripts/bannersInit.js"),
   inlineScriptHash("./src/scripts/libraryViewInit.js"),
+  inlineScriptHash("./src/scripts/settingsInit.js"),
 ];
 
 /**

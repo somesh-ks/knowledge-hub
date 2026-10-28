@@ -199,6 +199,8 @@ function mountSettings(root: HTMLElement): () => void {
   // the page is marked ready. Reading a layout value here settles the first state under those rules,
   // so the controls appear where they belong instead of sliding there from the off position.
   void root.offsetWidth;
+  // The Theme select has waited inert for the listener above (settings.astro).
+  if (theme) theme.inert = false;
   root.dataset.ready = "true";
 
   return () => {

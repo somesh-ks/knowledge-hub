@@ -329,6 +329,24 @@ describe("pickStories", () => {
     // world again, newest first; the episode then reads topic by topic in the order chosen.
     expect(picked).toEqual(["b1", "a1", "a2", "b2", "c1"]);
   });
+
+  it("gives each topic its slot when it opens with no coverage leader, as a mixed episode asks", () => {
+    const all = [
+      candidate("c1", "culture", 9, 10),
+      candidate("c2", "culture", 8, 20),
+      candidate("s1", "science", 2, 30),
+      candidate("w1", "world", 3, 40),
+    ];
+    const topics = ["culture", "science", "world"];
+    // With leaders, culture's two syndicated stories open and take two of three places.
+    expect(pickStories(all, topics, 3).map((c) => c.item.id)).toEqual(["c1", "c2", "s1"]);
+    // Without, the slice is one story for each topic, its best.
+    expect(pickStories(all, topics, 3, () => 1, 0).map((c) => c.item.id)).toEqual([
+      "c1",
+      "s1",
+      "w1",
+    ]);
+  });
 });
 
 describe("a general episode", () => {

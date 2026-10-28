@@ -62,6 +62,43 @@ function publisher(client: BlobClient) {
 }
 
 describe("the live copy of the script", () => {
+  it("carries the cover's colour, so the player's placeholder matches the episode before its image exists", async () => {
+    const { client, store } = fakeBlob();
+    const stream = createStreamPublisher({
+      client,
+      runId: "123",
+      episodeId: "ep-20261013-1200",
+      request: REQUEST,
+      stories: STORIES,
+      cover: { template: "spring", palette: "kelp", seed: 4117 },
+      now: () => new Date("2026-10-13T12:00:00Z"),
+    });
+    await stream.opening(TURNS);
+    const doc = store.get(streamKeyForEpisode("ep-20261013-1200")) as StreamDoc & {
+      cover_key?: string;
+    };
+    expect(doc.cover_key).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it("is still written when the cover's palette is unknown, with no colour", async () => {
+    const { client, store } = fakeBlob();
+    const stream = createStreamPublisher({
+      client,
+      runId: "123",
+      episodeId: "ep-20261013-1200",
+      request: REQUEST,
+      stories: STORIES,
+      cover: { template: "spring", palette: "no-such-palette", seed: 1 },
+      now: () => new Date("2026-10-13T12:00:00Z"),
+    });
+    await stream.opening(TURNS);
+    const doc = store.get(streamKeyForEpisode("ep-20261013-1200")) as StreamDoc & {
+      cover_key?: string;
+    };
+    expect(doc.turns).toHaveLength(TURNS.length);
+    expect(doc.cover_key).toBeUndefined();
+  });
+
   it("lands in the order it was written, so a slow opening cannot cut a finished script back", async () => {
     const { client, store } = fakeBlob({ slowFirst: true });
     const stream = publisher(client);

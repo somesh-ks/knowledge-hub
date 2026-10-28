@@ -322,119 +322,6 @@ textarea.sheet-input {
   transform: none;
 }
 
-/* ------------------------------------------------------------------ the run: steps and result */
-
-/* One row per step: a mark, the step and its state in words, so the list reads without colour. */
-.run-steps {
-  display: grid;
-  margin-block-start: var(--space-4);
-  padding-inline: var(--space-2);
-}
-
-.run-step {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--size-touch);
-  color: var(--color-on-surface-muted);
-  transition: color var(--duration-state) var(--ease-hover);
-}
-
-/* The mark. Waiting: a hollow ring. */
-.run-step::before {
-  content: "";
-  width: var(--space-4);
-  height: var(--space-4);
-  border: var(--stroke-ring) solid var(--color-track-strong);
-  border-radius: var(--radius-round);
-  transition:
-    background-color var(--duration-state) var(--ease-out),
-    border-color var(--duration-state) var(--ease-out);
-}
-
-/* In progress: the ring turns, in the accent. */
-.run-step[data-state="active"] {
-  color: var(--color-on-surface);
-  font-weight: var(--font-weight-medium);
-}
-
-.run-step[data-state="active"]::before {
-  border-color: color-mix(in oklch, var(--color-accent) 24%, transparent);
-  border-block-start-color: var(--color-accent);
-  animation: spin var(--duration-spin) var(--ease-linear) infinite;
-}
-
-/* Done: filled, in the one place green is used. */
-.run-step[data-state="done"] {
-  color: var(--color-on-surface);
-}
-
-.run-step[data-state="done"]::before {
-  border-color: var(--color-success);
-  background: var(--color-success);
-}
-
-.run-step[data-state="failed"] {
-  color: var(--color-danger);
-  font-weight: var(--font-weight-medium);
-}
-
-.run-step[data-state="failed"]::before {
-  border-color: var(--color-danger);
-  background: var(--color-danger);
-}
-
-.run-step-state {
-  font-size: var(--font-size-meta);
-}
-
-.sheet-result {
-  margin-block-start: var(--space-4);
-}
-
-/* A banner is a tint, an icon in the tone's colour and text. No stripe down its side. */
-.sheet-banner {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
-  gap: var(--space-4);
-  padding: var(--banner-padding);
-  border-radius: var(--radius-lg);
-  background: var(--tone-bg);
-  color: var(--color-on-surface);
-}
-
-.sheet-banner[data-tone="info"] {
-  --tone-bg: var(--color-info-subtle);
-  --tone: var(--color-info);
-}
-
-.sheet-banner[data-tone="success"] {
-  --tone-bg: var(--color-success-subtle);
-  --tone: var(--color-success);
-}
-
-.sheet-banner[data-tone="danger"] {
-  --tone-bg: var(--color-danger-subtle);
-  --tone: var(--color-danger);
-}
-
-.sheet-banner .ui-icon {
-  block-size: 1lh;
-  color: var(--tone);
-}
-
-.sheet-banner-title {
-  font-weight: var(--font-weight-regular);
-}
-
-/* Quieter than the title, and drawn toward the tint it sits on rather than toward grey. */
-.sheet-banner-body {
-  color: color-mix(in oklch, var(--color-on-surface) 78%, var(--tone-bg));
-  font-size: var(--font-size-meta);
-}
-
 /* ------------------------------------------------------------------ settings: switch, range, hint */
 
 .setting-row {
@@ -789,36 +676,10 @@ html[data-mini="visible"] .toast {
 
 /* ------------------------------------------------------------------ preferences */
 
-/* The turning ring becomes a slow pulse, which still says the step is under way. */
-@media (prefers-reduced-motion: reduce) {
-  .run-step[data-state="active"]::before {
-    animation: pulse var(--duration-spin) var(--ease-in-out) infinite;
-  }
-}
-
 @media (forced-colors: active) {
   .sheet-panel,
   .toast {
     border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .run-step::before {
-    border-color: GrayText;
-  }
-
-  .run-step[data-state="active"]::before {
-    border-color: GrayText;
-    border-block-start-color: Highlight;
-  }
-
-  .run-step[data-state="done"]::before {
-    border-color: Highlight;
-    background: Highlight;
-  }
-
-  .run-step[data-state="failed"]::before {
-    border-color: ButtonText;
-    background: ButtonText;
   }
 
   .switch {

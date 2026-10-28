@@ -80,6 +80,13 @@ describe("a track that grows with the script", () => {
 });
 
 describe("the player's copy of a live catch-up episode", () => {
+  it("boxes the cover in the colour the engine chose, so the placeholder matches the episode before its image is deployed", () => {
+    const live: StreamDoc = { ...doc("writing", 1), cover_key: "#2a6f4e" };
+    const digest = liveDigestFrom(live, new Date("2026-10-27T10:00:00Z"));
+    expect(digest.cover.key).toBe("#2a6f4e");
+    expect(liveDigestFrom(doc("writing", 1), new Date()).cover.key).toBe("var(--accent)");
+  });
+
   it("lists its stories under one section the player names, so a catch-up across topics shows chapters and transcript instead of nothing", () => {
     const live: StreamDoc = {
       ...doc("writing", 0),

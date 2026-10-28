@@ -410,12 +410,75 @@ describe("groundAndRepair", () => {
     ]);
   });
 
-  it("rewrites only the field that holds the unsupported sentence", async () => {
-    const writer = writerOf(["Copy the pattern for drawers"]);
+  it("drops an unsupported why line without a rewrite and leaves the summary alone", async () => {
+    const writer = writerOf([]);
     const bad = { ...item("aaaaaaaaaaaa"), why: "UNSUPPORTED advice" };
     const out = await run([bad], writer);
-    expect(writer.requests.map((r) => r.field)).toEqual(["why"]);
+    expect(writer.requests).toHaveLength(0);
+    expect(out.kept[0]?.item).not.toHaveProperty("why");
+    expect(out.kept[0]?.item.summary).toBe(bad.summary);
     expect(out.kept[0]?.rewrittenFields).toEqual(["why"]);
+  });
+
+  // The 2026-10-27 regenerate dropped 4 of 8 stories here: a sentence the checker could not support
+  // sat beside sentences it could, and the whole story went.
+  describe("an unsupported sentence beside supported ones", () => {
+    const FIRST = "Springlet 2.0 keeps velocity when the target changes.";
+    const SECOND =
+      "Interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript that runs on slow phones.";
+    const WRONG = "UNSUPPORTED claim about toasts.";
+
+    it("cuts it when the rest still passes the voice limits, with no model call", async () => {
+      const writer = writerOf([]);
+      const mixed = {
+        ...item("aaaaaaaaaaaa", `${FIRST} ${SECOND} ${WRONG}`),
+        spoken: "A telling written from the old summary.",
+      };
+      const out = await run([mixed], writer);
+      expect(writer.requests).toHaveLength(0);
+      expect(out.dropped).toEqual([]);
+      expect(out.kept[0]).toMatchObject({
+        verified: true,
+        rewrittenFields: ["summary"],
+        prunedSentences: 1,
+      });
+      expect(out.kept[0]?.item.summary).toBe(`${FIRST} ${SECOND}`);
+      expect(out.kept[0]?.item).not.toHaveProperty("spoken");
+    });
+
+    it("cuts the sentence a rewrite still got wrong instead of dropping the story", async () => {
+      const writer = writerOf([`${FIRST} ${SECOND} ${WRONG}`]);
+      const bad = item("aaaaaaaaaaaa", "UNSUPPORTED claim.");
+      const out = await run([bad], writer);
+      expect(writer.requests).toHaveLength(1);
+      expect(out.dropped).toEqual([]);
+      expect(out.kept[0]?.item.summary).toBe(`${FIRST} ${SECOND}`);
+      expect(out.kept[0]).toMatchObject({ verified: true, prunedSentences: 1 });
+    });
+
+    it("drops the story when cutting would leave under the summary minimum", async () => {
+      const out = await run(
+        [item("aaaaaaaaaaaa", `${FIRST} ${WRONG}`)],
+        writerOf(["Another UNSUPPORTED claim about drawers that the source never makes at all."]),
+      );
+      expect(out.kept).toEqual([]);
+      expect(out.dropped[0]?.reason).toBe("voice");
+    });
+  });
+
+  // The other half of the same night: a rewrite that fixed the facts ran past the sentence limit
+  // (30 words against 28) and the story was dropped with no second try.
+  it("gives a grounding rewrite that breaks a voice limit one more rewrite", async () => {
+    const LONG =
+      "Springlet 2.0 keeps velocity when the target changes, so interrupted drawers keep their speed, and the change is about 120 lines of plain JavaScript that runs on slow phones without any extra tuning. A fixed timestep keeps the motion the same everywhere.";
+    const writer = writerOf([LONG, REWRITE]);
+    const out = await run([item("aaaaaaaaaaaa", "UNSUPPORTED claim.")], writer);
+    expect(writer.requests).toHaveLength(2);
+    expect(writer.requests[1]?.current).toBe(LONG);
+    expect(writer.requests[1]?.problems.join(" ")).toMatch(/sentence/i);
+    expect(out.dropped).toEqual([]);
+    expect(out.kept[0]?.item.summary).toBe(REWRITE);
+    expect(out.kept[0]?.verified).toBe(true);
   });
 
   it("keeps an item unverified when its checks error out, and marks the run unverified", async () => {

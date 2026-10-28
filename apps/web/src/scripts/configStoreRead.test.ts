@@ -125,6 +125,103 @@ describe("loadStore", () => {
     expect(toasts).toEqual([expect.objectContaining({ actionLabel: "Reload" })]);
   });
 
+  // The owner's report (2026-10-27): Settings took about a second to show the chosen values. A page
+  // with a kept copy waited a fixed 300 ms for a store that nearly always takes longer.
+  it("shows the device's copy at once when the store has not answered, without waiting for it", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, loadStore } = await fresh();
+    vi.stubGlobal("document", {
+      querySelector: () => ({ content: "built-here" }),
+      querySelectorAll: () => [],
+    });
+    const kept = {
+      status: 200,
+      built: "built-here",
+      written_at: 1,
+      ops: [{ op: "kept" }],
+      sources: [],
+    };
+    vi.stubGlobal("localStorage", fakeStorage({ [CACHE_KEY]: JSON.stringify(kept) }));
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => {}));
+    let shown: unknown = null;
+    void loadStore(0).then((body) => {
+      shown = body;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(shown).toMatchObject({ ops: [{ op: "kept" }] });
+  });
+
+  // CodeRabbit, PR 391 (Major): a page opened within a second of another reused the read still out and
+  // waited for it, up to 20 s, though the first page had shown its copy at once.
+  it("holds a page opened within a second no longer than the first, with a copy or without", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, STORE_READ_TIMEOUT_MS, loadStore } = await fresh();
+    vi.stubGlobal("document", {
+      querySelector: () => ({ content: "built-here" }),
+      querySelectorAll: () => [],
+    });
+    const kept = {
+      status: 200,
+      built: "built-here",
+      written_at: 1,
+      ops: [{ op: "kept" }],
+      sources: [],
+    };
+    const storage = fakeStorage({ [CACHE_KEY]: JSON.stringify(kept) });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => {}));
+    void loadStore(0);
+    await vi.advanceTimersByTimeAsync(0);
+    let shown: unknown = "pending";
+    void loadStore(500).then((body) => {
+      shown = body;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(shown).toMatchObject({ ops: [{ op: "kept" }] });
+
+    // With no copy the first page waits the timeout and keeps its build; the second waits no longer.
+    storage.clear();
+    vi.resetModules();
+    const again = await import("./configStoreRead");
+    void again.loadStore(10_000);
+    let second: unknown = "pending";
+    void again.loadStore(10_500).then((body) => {
+      second = body;
+    });
+    await vi.advanceTimersByTimeAsync(STORE_READ_TIMEOUT_MS);
+    expect(second).toBeNull();
+  });
+
+  // A page view after an in-page navigation: another tab saved meanwhile and wrote a newer copy, and
+  // with no wait for the store the page must still read that copy, not the older one this module
+  // held from the page before (CodeRabbit, PR 391).
+  it("reads a newer device copy than the one an earlier page view held", async () => {
+    vi.useFakeTimers();
+    const { CACHE_KEY, loadStore, storeRead } = await fresh();
+    vi.stubGlobal("document", {
+      querySelector: () => ({ content: "built-here" }),
+      querySelectorAll: () => [],
+    });
+    const copy = (writtenAt: number, op: string) => ({
+      status: 200,
+      built: "built-here",
+      written_at: writtenAt,
+      ops: [{ op }],
+      sources: [],
+    });
+    const storage = fakeStorage({ [CACHE_KEY]: JSON.stringify(copy(1, "older")) });
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => {}));
+    void loadStore(0);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeRead()?.ops).toEqual([{ op: "older" }]);
+
+    storage.setItem(CACHE_KEY, JSON.stringify(copy(3, "newer")));
+    void loadStore(5_000);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeRead()?.ops).toEqual([{ op: "newer" }]);
+  });
+
   // The bug: the owner's own save left the device's kept copy stale, so the next page view read the
   // store's answer (their own save) as "changed on another device". The revision a save produced is
   // tracked: only a write newer than it comes from another device.

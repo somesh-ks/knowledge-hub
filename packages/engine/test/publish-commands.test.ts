@@ -431,6 +431,16 @@ describe("singularity publish", () => {
       expect(r.out.join("")).toContain("git: pushed");
     });
 
+    // The 2026-10-27 briefing was narrated by this command with ffmpeg installed and got no
+    // m4a_url: the command dropped the transcoder before it reached the briefing's narration.
+    it("also publishes a briefing's narration as Opus when a transcoder is available", async () => {
+      await seed("2026-10-07");
+      const r = rig();
+      const deps = { ...r.deps, transcodeOpus: async (mp3: Uint8Array) => mp3 };
+      expect(await createPublishCommand(deps)([], ctx)).toBe(0);
+      expect(audioOf("2026-10-07")?.m4a_url).toMatch(/audio\/2026-10-07\.[0-9a-f]{12}\.m4a$/);
+    });
+
     it("converges: a second run is a no-op", async () => {
       await seed("2026-10-07");
       const r = rig();
@@ -626,7 +636,9 @@ describe("singularity publish", () => {
   });
 
   describe("pushing", () => {
-    it("exits 1 when a concurrent writer changed usage.json too", async () => {
+    // The 2026-10-27 Catch up lost its episode to a rebase conflict on a ledger two runs both
+    // appended to: the Speechify counter is merged now, each run's characters added.
+    it("lands the narration when a concurrent writer changed usage.json too, adding both counts", async () => {
       await seed("2026-10-07");
       git(pair.b, "pull", "-q", "origin", "main");
       await put(
@@ -635,6 +647,23 @@ describe("singularity publish", () => {
         '{ "version": 1, "speechify": { "month": "2026-10", "characters": 77 } }\n',
       );
       await commitAll(pair.b, "chore: other usage");
+      git(pair.b, "push", "-q", "origin", "main");
+      const r = rig();
+      expect(await createPublishCommand(r.deps)([], ctx)).toBe(0);
+      const usage = JSON.parse(git(pair.remote, "show", "refs/heads/main:state/usage.json"));
+      expect(usage.speechify.characters).toBeGreaterThan(77);
+      expect(remoteHead()).toBe(git(pair.a, "rev-parse", "HEAD"));
+    });
+
+    it("exits 1 when a concurrent writer changed a file nothing can merge", async () => {
+      await seed("2026-10-07");
+      git(pair.b, "pull", "-q", "origin", "main");
+      await put(
+        pair.b,
+        "Digests/2026/10/2026-10-07.audio.json",
+        '{ "version": 1, "other": true }\n',
+      );
+      await commitAll(pair.b, "chore: other narration");
       git(pair.b, "push", "-q", "origin", "main");
       const before = remoteHead();
       const out: string[] = [];

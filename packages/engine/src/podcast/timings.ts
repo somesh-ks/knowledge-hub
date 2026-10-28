@@ -9,7 +9,7 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
  */
 export const TIMINGS_PATH = "state/podcast-timings.json";
 /** Older runs say little about today's speed; the file stays small. */
-const KEEP_RUNS = 50;
+export const KEEP_RUNS = 50;
 
 export interface TimingEntry {
   at: string;
@@ -18,6 +18,23 @@ export interface TimingEntry {
   length_minutes: number;
   /** Milliseconds per stage id (select, cover, script, publish). A skipped stage has none. */
   stages: Record<string, number>;
+  /** How the episode turned out, for `singularity metrics`: absent on entries written before. */
+  metrics?: EpisodeMetrics;
+}
+
+export interface EpisodeMetrics {
+  /** Stories in the script. */
+  stories: number;
+  /** Stories the topics matched in the window, before the budget chose. */
+  matched: number;
+  /** Topics with no story in the window. */
+  empty_topics: number;
+  /** Characters asked for and written; the share is written over asked. */
+  budget_chars: number;
+  script_chars: number;
+  share: number;
+  /** Model calls the script took (a rewrite or an extension each count). */
+  writer_calls: number;
 }
 
 export interface TimingsFile {

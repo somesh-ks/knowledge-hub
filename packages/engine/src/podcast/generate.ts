@@ -29,7 +29,7 @@ import { generateScript, type ScriptResult } from "./script.js";
 import { joinNames, type Selection, selectStories } from "./select.js";
 import { type ArtifactStore, EPISODE_STAGE_IDS, type EpisodeStageId } from "./stages.js";
 import type { StreamPublisher } from "./stream.js";
-import { airsUnder, type ScriptShape, shapeStories } from "./structure.js";
+import { airsUnder, fitStories, type ScriptShape, shapeStories } from "./structure.js";
 import { PodcastError, type PodcastStory, type ScriptTurn, type ScriptWriter } from "./types.js";
 
 export interface GenerateInput {
@@ -60,6 +60,7 @@ export interface GenerateInput {
     id: string;
     request: PodcastRequest;
     stories: readonly PodcastStory[];
+    cover: Episode["cover"];
   }) => StreamPublisher | null;
 }
 
@@ -168,6 +169,8 @@ async function select(
       http: input.http ?? createHttpClient(),
       log: input.log,
       minStories,
+      // Beside briefing topics the feeds hold no opening of their own: each topic gets a slot.
+      ...(mixed ? { leaders: 0 } : {}),
     });
   };
   const feedCounts = (g: GeneralSelection) => ({ ok: g.feeds_ok, failed: g.feeds_failed });
@@ -352,8 +355,13 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
 
   const selection = await run<SelectArtifact>("select", async () => {
     const plan = planPodcast(input.request, blocks ? planningShape(blocks) : null);
-    const picked = await select(input, plan, blocks);
-    const shaped = blocks ? shapeStories(picked.stories, blocks, prompts) : null;
+    // With a structure, a block's count caps its stories after the ranking has filled the slots, so
+    // half as many again are chosen and fitStories cuts them back to the slots by rank.
+    const wide = blocks
+      ? { ...plan, max_stories: plan.max_stories + Math.ceil(plan.max_stories / 2) }
+      : plan;
+    const picked = await select(input, wide, blocks);
+    const shaped = blocks ? fitStories(picked.stories, blocks, prompts, plan.max_stories) : null;
     const chosen = shaped ? { ...picked, stories: shaped.stories } : picked;
     input.log?.info("Selected stories", {
       stories: chosen.stories.length,
@@ -387,6 +395,7 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
             id: selection.id,
             request: input.request,
             stories: selection.stories,
+            cover,
           }) ?? null);
     }
     return stream;

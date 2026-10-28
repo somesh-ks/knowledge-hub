@@ -20,8 +20,10 @@ import {
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
 import { type CommitOutcome, commandAllowlist, commitAndPush } from "../git/commit.js";
+import { fastForwardToRemote } from "../git/fastForward.js";
 import { findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
+import { recordRunMetrics } from "../metrics/runMetrics.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
 import { loadSectionPlan } from "../score/sectionPlan.js";
@@ -39,11 +41,14 @@ import {
   writeSourceStats,
   writeTopicJudgments,
 } from "../state/store.js";
+import { markCopiedFromStore, syncedWithStore } from "../store/configDocs.js";
+import { CONFIG_DOCUMENT_PATHS } from "../store/configPaths.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
+import { collectRunMetrics } from "./collectMetrics.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
@@ -63,6 +68,8 @@ import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js"
 import { readSourceCounts } from "./sourceCounts.js";
 import { recordSpend } from "./spend.js";
 import type { CommitReport, DigestReport, RunDeps, RunOptions } from "./types.js";
+
+const CONFIG_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 
 /** What the commit stage reads for one pass. */
 interface PassData {
@@ -133,15 +140,16 @@ function failedReport(
 /** The longest a run waits for its publish time: more than that and it publishes now. */
 export const MAX_HOLD_MS = 135 * 60_000;
 
-/** Waits until the plan's publish time when it is ahead, within MAX_HOLD_MS. */
-export async function holdUntilPublishTime(deps: RunDeps, plan: Plan): Promise<void> {
-  if (plan.publish_at === undefined) return;
+/** Waits until the plan's publish time when it is ahead, within MAX_HOLD_MS. True when it waited. */
+export async function holdUntilPublishTime(deps: RunDeps, plan: Plan): Promise<boolean> {
+  if (plan.publish_at === undefined) return false;
   const ms = Date.parse(plan.publish_at) - deps.now().getTime();
-  if (ms <= 0 || ms > MAX_HOLD_MS) return;
+  if (ms <= 0 || ms > MAX_HOLD_MS) return false;
   deps.log.info("Generated ahead; holding until the scheduled time", {
     publish_at: plan.publish_at,
   });
   await (deps.wait ?? ((wait) => new Promise<void>((resolve) => setTimeout(resolve, wait))))(ms);
+  return true;
 }
 
 /**
@@ -166,7 +174,29 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   // Generation is done. A run that started ahead holds here until its scheduled time; one that
   // started late publishes at once. The record keeps both instants (D193).
   const generatedAt = deps.now().toISOString();
-  if (!dryRun && !adopted) await holdUntilPublishTime(deps, plan);
+  // Config is read before the wait: the selection was validated against it, and a category muted
+  // or a voice edited meanwhile must not fail a finished briefing (D209).
+  const sources: Source[] = await loadSources(root);
+  const linter = createLinter(await loadVoice(root));
+  const topics = withGeneralTopics(await loadTopicsFile(root));
+  const sectionPlans = new Map<string, Awaited<ReturnType<typeof loadSectionPlan>>>();
+  for (const pass of plan.passes) {
+    sectionPlans.set(pass.id, await loadSectionPlan(root, pass.kind, plan.length_minutes));
+  }
+  const held = !dryRun && !adopted && (await holdUntilPublishTime(deps, plan));
+  // State and Digests are read after it, from the remote's branch and not the checkout from job
+  // start (D209).
+  if (held && !options.noPush) {
+    const forwarded = await fastForwardToRemote(deps.git, deps.log);
+    // A config edit that came in from the repo means the files are no longer the store's, so the
+    // commit must not claim to be a snapshot of it: the next gate would read the store's older copy
+    // as the newer one and revert the edit (D209).
+    const configMayHaveChanged =
+      forwarded.changed === null || forwarded.changed.some((path) => CONFIG_PATHS.has(path));
+    if (configMayHaveChanged && (await syncedWithStore(root))) {
+      await markCopiedFromStore(root, true, false);
+    }
+  }
   const now = deps.now();
 
   // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.
@@ -178,8 +208,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
 
   const today = stockholmDate(now);
   const nowIso = now.toISOString();
-  const sources: Source[] = await loadSources(root);
-  const linter = createLinter(await loadVoice(root));
   const sourceNames = sourceNameMap(sources);
   let lastRun = await readLastRun(root);
   let seen = await readSeen(root);
@@ -190,7 +218,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   );
   let sourceStats = await readSourceStats(root);
   let statsTouched = false;
-  const topics = withGeneralTopics(await loadTopicsFile(root));
 
   const taken = new Set<string>();
   for (const date of new Set(plan.passes.map((pass) => pass.id.slice(0, 10)))) {
@@ -231,7 +258,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       continue;
     }
 
-    const sectionPlan = await loadSectionPlan(root, pass.kind);
+    const sectionPlan = sectionPlans.get(pass.id);
     const digest = digestFromSelection({
       selection,
       pool: pool.items,
@@ -354,6 +381,36 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   if (spend) lastRun = { ...lastRun, spend: { at: nowIso, ...spend } };
   if (spend && deps.spend) await recordSpend(root, deps.spend, plan, nowIso);
   await writeLastRun(root, lastRun);
+  if (!adopted) {
+    // The run's health numbers go in the same commit. They describe the run and never stop it.
+    try {
+      await recordRunMetrics(
+        root,
+        await collectRunMetrics({
+          root,
+          plan,
+          at: nowIso,
+          totalMs: Date.parse(generatedAt) - Date.parse(plan.created_at),
+          modelFallbacks: spend?.requests.model_fallback ?? 0,
+          passes: passData.map((data, index) => {
+            const report = reports[index];
+            return {
+              pass: data.pass,
+              digestId: report?.id ?? data.pass.id,
+              outcome: report?.outcome === "published" ? "published" : "nothing",
+              verified: report?.verified ?? false,
+              aired: report?.items ?? 0,
+              pool: data.pool.items.length,
+            };
+          }),
+        }),
+      );
+    } catch (error) {
+      deps.log.warn("The run's metrics were not recorded", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   const message =
     outcome === "published"

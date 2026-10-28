@@ -119,6 +119,8 @@ interface PassContext {
   /** The schedule and run mode, which say what general topics each pass publishes. */
   schedule: ScheduleFile;
   mode: RunMode;
+  /** The minutes this run was asked to be, in place of the schedule's; undefined for none. */
+  asked: number | undefined;
   /** What the owner asked to improve, for the writer prompt. */
   feedback: string | undefined;
 }
@@ -168,6 +170,7 @@ export async function writeStage(
     generalTopics: activeGeneralFrom(topics),
     schedule: fullSchedule,
     mode: plan.mode,
+    asked: plan.length_minutes,
     feedback,
   };
 
@@ -206,6 +209,13 @@ function nothingSelection(pass: PlanPass): Selection {
   };
 }
 
+/**
+ * Select and write one pass, excluding `claimed` story ids from earlier passes. Save selection,
+ * source counts, written text, materials and any reserve, then mark the write stage complete.
+ * Return the pass report and surviving ids, including spares for later validation. Too few
+ * survivors yields nothing; mostly failed extraction or writing throws StageFailure instead.
+ * Artifact, configuration and uncaught runtime errors propagate.
+ */
 async function writePass(
   context: PassContext,
   pass: PlanPass,
@@ -227,7 +237,7 @@ async function writePass(
     autoAdjust,
   } = context;
   const file = (name: string): string => passFile(deps.root, pass.id, name);
-  const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
+  const sectionPlan = await loadSectionPlan(deps.root, pass.kind, context.asked);
   const pool = await loadPool(file("pool.json"));
   const judged = await readArtifact(file("judged.json"), "judged.json", JudgedFile);
   const byId = new Map(pool.items.map((item) => [item.id, item]));
@@ -311,7 +321,7 @@ async function writePass(
   // the weekly podcast's own length. Such a briefing also writes spares, so a story dropped after
   // selection does not come off the length; validation airs as many as fill it.
   // The same rule sizes the judge's pool in the fetch stage (fetchStage.ts).
-  const lengthOf = lengthMinutesFor(context.schedule, pass.kind, context.mode);
+  const lengthOf = lengthMinutesFor(context.schedule, pass.kind, context.mode, context.asked);
   const wanted =
     lengthOf === null
       ? undefined

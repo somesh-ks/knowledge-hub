@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { loadModelRouting, type PodcastRequest } from "@singularity/core";
+import { type Episode, loadModelRouting, type PodcastRequest } from "@singularity/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { recordRunCosts } from "../cost/ledger.js";
 import { emit } from "../curate/output.js";
@@ -14,6 +14,7 @@ import { createModelRouter } from "../llm/modelRouter.js";
 import { RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { episodeExists, parseCommand, readEpisode } from "../podcast/actions.js";
+import { commitFailureReason, errorFailureReason } from "../podcast/failureReason.js";
 import { runEpisodeStages } from "../podcast/generate.js";
 import { LlmScriptWriter } from "../podcast/llmScriptWriter.js";
 import { planPodcast } from "../podcast/plan.js";
@@ -218,10 +219,14 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     let store: ArtifactStore | null = null;
     let current: EpisodeStageId | undefined;
     // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
-    const recordFailure = async (): Promise<void> => {
+    const recordFailure = async (reason?: string): Promise<void> => {
       if (store && current) {
         await store
-          .write("failure", { failed_stage: current, kept: await store.names() })
+          .write("failure", {
+            failed_stage: current,
+            kept: await store.names(),
+            ...(reason ? { reason } : {}),
+          })
           .catch(() => {});
       }
     };
@@ -248,7 +253,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         });
         const failure = commitFailure(outcome);
         if (failure !== null) {
-          await recordFailure();
+          await recordFailure(commitFailureReason(outcome) ?? undefined);
           ctx.log.error(
             `${failure}. The episode file was removed from the working tree: ${relPath}.`,
           );
@@ -285,7 +290,12 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       const runId = process.env.GITHUB_RUN_ID;
       const makeStream =
         command.action === "create" && !dryRun && blobClient && runId
-          ? (info: { id: string; request: PodcastRequest; stories: readonly PodcastStory[] }) => {
+          ? (info: {
+              id: string;
+              request: PodcastRequest;
+              stories: readonly PodcastStory[];
+              cover: Episode["cover"];
+            }) => {
               void pruneStreams(blobClient, ctx.now(), ctx.log);
               live.stream = createStreamPublisher({
                 client: blobClient,
@@ -293,6 +303,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
                 episodeId: info.id,
                 request: info.request,
                 stories: info.stories,
+                cover: info.cover,
                 now: ctx.now,
                 log: ctx.log,
               });
@@ -378,12 +389,22 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       // How long each stage took, in the same commit, for the page's time left. Only a run that
       // saves its stages (the workflow) records one.
       if (store) {
+        const budgetChars = planPodcast(request).budget_chars;
         await recordTimings(ctx.root, {
           at: ctx.now().toISOString(),
           run_id: runId ?? null,
           format: request.format,
           length_minutes: request.length_minutes,
           stages: stages.durations,
+          metrics: {
+            stories: episode.sources.length,
+            matched: result.matched,
+            empty_topics: result.empty_topics.length,
+            budget_chars: budgetChars,
+            script_chars: episode.char_count,
+            share: Math.round((episode.char_count / Math.max(1, budgetChars)) * 100) / 100,
+            writer_calls: result.script.writer_calls,
+          },
         });
       }
       // The old file goes only now: generation has succeeded and the new file is written.
@@ -399,7 +420,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       const failure = commitFailure(outcome);
       if (failure !== null) {
         await live.stream?.failed();
-        await recordFailure();
+        await recordFailure(commitFailureReason(outcome) ?? undefined);
         ctx.log.error(`${failure}. The episode file stays at ${relPath}.`);
         return 1;
       }
@@ -440,7 +461,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     } catch (error) {
       await live.stream?.failed();
       // Which stage failed and what the run kept, for the page to say and a rerun to resume from.
-      await recordFailure();
+      await recordFailure(errorFailureReason(error));
       if (error instanceof PodcastError) {
         // The request, the stories or the script is at fault; the message is already for the listener.
         ctx.log.error(error.message);

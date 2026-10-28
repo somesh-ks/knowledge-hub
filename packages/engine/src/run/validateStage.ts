@@ -8,7 +8,7 @@ import { loadSectionPlan } from "../score/sectionPlan.js";
 import { readLastRun } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
-import { validateDigest } from "../validate/validateDigest.js";
+import { type ValidationIssue, validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { writtenText } from "../write/text.js";
@@ -24,6 +24,29 @@ import type { PassReport, RunDeps, StageReport } from "./types.js";
 import { writeFinalists } from "./writeStage.js";
 
 type SelectionItem = Selection["items"][number];
+
+/**
+ * The stories to cut so no section stands over its own allowance: in each over one, the lowest-scored
+ * `excess` of its items. Empty when every section fits.
+ */
+export function trimOverAllowance<T extends { item: { id: string } }>(
+  issues: readonly ValidationIssue[],
+  survivors: readonly T[],
+  scoreOf: (story: T) => number,
+): Set<string> {
+  const trimmed = new Set<string>();
+  for (const issue of issues) {
+    if (issue.overAllowance === undefined) continue;
+    const { itemIds, excess } = issue.overAllowance;
+    for (const story of survivors
+      .filter((g) => itemIds.includes(g.item.id))
+      .sort((a, b) => scoreOf(a) - scoreOf(b))
+      .slice(0, excess)) {
+      trimmed.add(story.item.id);
+    }
+  }
+  return trimmed;
+}
 
 /** A briefing narrating under this share of the owner's length after the refill is flagged. */
 const UNDER_LENGTH_SHARE = 0.7;
@@ -162,7 +185,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       MaterialsFile,
     );
     const pool = await loadPassPool(file("pool.json"), file("general.json"));
-    const sectionPlan = await loadSectionPlan(deps.root, pass.kind);
+    const sectionPlan = await loadSectionPlan(deps.root, pass.kind, plan.length_minutes);
     const materials = new Map<string, SourceMaterial>(materialsFile.items.map((m) => [m.id, m]));
     const poolSourceOf = new Map(pool.items.map((item) => [item.id, item.source_id]));
     const entryOf = new Map<string, SelectionItem>(selection.items.map((e) => [e.id, e]));
@@ -189,6 +212,8 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     // the next spare. What lies past the cap is a spare that could never air.
     const scoreOf = (g: GroundedItem): number => entryOf.get(g.item.id)?.score ?? 0;
     const validateDrops: ValidateDrop[] = [];
+    /** Stories trimmed for their section's allowance; they never air, whatever their score. */
+    const overAllowance = new Set<string>();
     let warnings = 0;
     const fit = (kept: readonly GroundedItem[]): Fitted => {
       let ranked: GroundedItem[] = [...kept].sort((a, b) => scoreOf(b) - scoreOf(a));
@@ -219,6 +244,16 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         });
         warnings = report.warnings;
         validated = digest;
+        // A section over its own allowance gives up its lowest-ranked stories, as spares: the
+        // refill's reserve is not shaped by the allowances, and failing the digest for it left a
+        // briefing half its length (2026-10-27: four Tech releases stories against a limit of one).
+        const trimmed = trimOverAllowance(report.issues, survivors, scoreOf);
+        if (trimmed.size > 0) {
+          for (const id of trimmed) overAllowance.add(id);
+          ranked = ranked.filter((g) => !trimmed.has(g.item.id));
+          survivors = ranked.slice(0, VOICE_LIMITS.items.hardMax);
+          continue;
+        }
         const general = report.issues.find((i) => i.severity === "error" && !i.itemId);
         if (general) {
           throw new StageFailure(`${pass.id}: the digest fails validation: ${general.message}`);
@@ -392,6 +427,11 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
           stage: "select" as const,
           reason: "a spare the briefing's length did not need",
         })),
+        ...[...overAllowance].map((id) => ({
+          id,
+          stage: "select" as const,
+          reason: "over its section's allowance",
+        })),
       ],
     });
     // Marked used last, once the selection holds the replacements: one round, and a run stopped
@@ -409,11 +449,16 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       id: pass.id,
       grounder: runtime.grounder !== null,
       verified,
+      written: selection.items.length,
       kept: finalists.length,
       grounding_dropped: grounding.dropped.length,
+      grounding_pruned: grounding.kept.filter((g) => g.prunedSentences > 0).length,
+      aired_chars: fitted.chars,
+      length_chars: lengthChars ?? null,
       grounding_drops: dropRecords,
       validate_dropped: validateDrops,
       spares_unaired: [...spare],
+      allowance_trimmed: [...overAllowance],
       refill_written: refill.written,
       refill_kept: refill.kept,
       ...(refill.error ? { refill_error: refill.error } : {}),

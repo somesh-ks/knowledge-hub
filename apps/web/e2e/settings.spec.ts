@@ -52,6 +52,32 @@ test.describe("settings page", () => {
     expect(main).toMatch(/<section[^>]*data-install-hint[^>]*hidden/);
   });
 
+  // The owner's report (2026-10-27): the Settings page took about a second to show the chosen theme.
+  // The select drew nothing until the page's script ran; the stored choice is now in it before the
+  // first paint, with that script not even loaded.
+  test("shows the stored theme before the page's script has run", async ({ page }) => {
+    // Served empty, not refused, so the suite's console check stays quiet: the page never wires up.
+    await page.route(/\/_astro\/settings\.astro_astro_type_script[^/]*\.js$/, (route) =>
+      route.fulfill({ contentType: "text/javascript", body: "" }),
+    );
+    await page.addInitScript(
+      ([key]) => localStorage.setItem(key as string, JSON.stringify({ theme: "dark" })),
+      [PREFERENCES_KEY],
+    );
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).not.toHaveAttribute("data-ready", /.*/);
+    await expect(theme(page)).toHaveValue("dark");
+    await expect(theme(page)).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
+    // Nor can it take a choice yet, by keyboard either: the change would not be saved, and the page's
+    // first draw would put the stored theme back (CodeRabbit, PR 391, second round).
+    const reachable = await page.evaluate(() => {
+      const select = document.getElementById("settings-theme");
+      select?.focus();
+      return document.activeElement === select;
+    });
+    expect(reachable).toBe(false);
+  });
+
   test("each theme choice sets the theme on the root and survives a reload", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await openSettings(page);

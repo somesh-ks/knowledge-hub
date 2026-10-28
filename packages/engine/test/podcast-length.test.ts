@@ -135,6 +135,24 @@ describe("the length asked of the writer", () => {
     expect(prompt).toContain("Neither host invents a fact, a number, a quote or a motive.");
   });
 
+  // ep-20261027-2333 was asked for about 108 words a nugget and told a nugget is one turn of one to
+  // four sentences: five nuggets of about 50 words were the whole 266-word gap (500 of 766 words).
+  it("tells a discussion nugget in as many turns as the words it is asked for need", () => {
+    const told = LENGTHS.map((minutes) => {
+      const input = inputFor("discussion", minutes);
+      const stories = input.stories.length;
+      const reach = reachableChars(input.budget_chars, stories, "discussion", minutes);
+      const asked = wordsFor(partChars(reach, stories, "discussion", minutes).nugget);
+      const prompt = scriptSystemPrompt(input);
+      const turns = prompt.includes("A nugget is two or three turns");
+      // One turn holds about 60 words at most; more than that needs the second and third turn.
+      expect(turns).toBe(asked > 60);
+      expect(prompt.includes("A nugget is one turn")).toBe(!turns);
+      return turns;
+    });
+    expect(told).toContain(true);
+  });
+
   it("keeps the arithmetic whole: the frame is taken out, deep dives weigh more than nuggets", () => {
     expect(planPodcast({ ...REQUEST, length_minutes: 5 }).budget_chars).toBe(4840);
     const budget = 4840;

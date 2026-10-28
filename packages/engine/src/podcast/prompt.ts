@@ -131,6 +131,28 @@ export function discussionHostNames(request: PodcastRequest): HostNames {
 const SOLO_HOST =
   'One host, speaker "a" only. The host never says a name for themselves, so write none.';
 
+/** How a discussion tells a nugget, so the turns it names can hold the words it is asked for. */
+function nuggetLine(input: ScriptInput): string {
+  return nuggetWordsFor(input) > ONE_TURN_NUGGET_WORDS
+    ? 'A nugget is two or three turns: "a" gives the news in two or three sentences, "b" says in plain words what it means in practice, and "a" adds the detail or the catch if the summary has one.'
+    : 'A nugget is one turn from "a" or two short turns, "a" with the news and "b" with one line on what it means.';
+}
+
+/** Words a nugget is asked for, from the same reach the length lines use. */
+function nuggetWordsFor(input: ScriptInput): number {
+  const stories = input.stories.length;
+  const { format, length_minutes: minutes } = input.request;
+  const reach = reachableChars(input.budget_chars, stories, format, minutes, input.shape);
+  return wordsFor(partChars(reach, stories, format, minutes, input.shape).nugget);
+}
+
+/**
+ * Past this many words a nugget cannot be one turn: a turn runs one to four sentences, about 45 to 60
+ * words. The 2026-10-27 Catch up was asked for about 108 words a nugget and told a nugget is one turn,
+ * and wrote 500 words of the 766 asked: five nuggets of about 50 words were the whole gap.
+ */
+const ONE_TURN_NUGGET_WORDS = 60;
+
 function formatLines(input: ScriptInput): string {
   const structure = structureFor(
     input.request.length_minutes,
@@ -153,7 +175,7 @@ function formatLines(input: ScriptInput): string {
         `FORMAT: discussion. Two hosts: ${names.a}, speaker "a", leads; ${names.b}, speaker "b", reacts.`,
         `The first turn is "a": the one-line hello, saying the show is Singularity and that ${names.b} is joining. Refer to a host by name, never with a gendered pronoun. The hosts may call each other by name now and then, not in most turns. The last turn is "a" with the sign-off.`,
         ...shape(),
-        'The rundown is one or two turns, "a" and "b" splitting the clauses. A deep dive is four to six turns: "a" introduces it in two or three sentences, "b" asks the obvious question, "a" answers from the summary, "b" puts in plain words what that means in practice, and "a" adds the catch if the summary has one. A nugget is one turn from "a" or two short turns, "a" with the news and "b" with one line on what it means. The close is "b" then "a", a sentence or two each.',
+        `The rundown is one or two turns, "a" and "b" splitting the clauses. A deep dive is four to six turns: "a" introduces it in two or three sentences, "b" asks the obvious question, "a" answers from the summary, "b" puts in plain words what that means in practice, and "a" adds the catch if the summary has one. ${nuggetLine(input)} The close is "b" then "a", a sentence or two each.`,
         'Turns run one to four sentences each; a one-word reaction is not a turn. A host may say what a fact could mean for the listener, clearly as their own view ("that sounds like", "I would want to know"), never as a fact about the product, the company or anyone\'s motive. Neither host invents a fact, a number, a quote or a motive.',
       ].join(" ");
     }

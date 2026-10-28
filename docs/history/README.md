@@ -4,8 +4,10 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-28 | [A list of generations, with Cancel](2026-10-28-generations-list.md) | An icon and popover on desktop and a sheet on a phone listing every generation under way with cover, bar, time left and Cancel; `/api/generations`, `/api/cancel`, a cancelled run ending as Cancelled (D208) |
 | 2026-10-28 | [The Health page](2026-10-28-health-page.md) | Settings, Analytics, Health: briefings, run times, field speed, errors, workflow runs and services read live, judged by the daily check's lines (D203) |
 | 2026-10-27 | [Deploys load themselves](2026-10-27-auto-update.md) | The Reload toast replaced by a guarded automatic reload (D202); the build check read the swapped head meta |
+| 2026-10-27 | [Generation health](2026-10-27-generation-health.md) | A short Regenerate and a lost Catch up traced to grounding drops, a throwing refill and a rebase conflict; metrics, one run card, failure reasons (D204) |
 | 2026-10-27 | [About 50 PRs, then the close](2026-10-27-session-close.md) | Live content, strict publish, Opus, `fetch_via`, open write routes (D197 to D201); review loops closed; Opus never ran on runners and turn offsets drifted on ffmpeg 6 (#381); instant paint left to the owner |
 | 2026-10-25 | [The owner's feedback pass](2026-10-25-owner-feedback-pass.md) | 42 items and five additions over #308 to #312 (D190, D191); the internal topic-to-category rename and the other items left out, with the migration-first order for the rename |
 | 2026-10-25 | [Design-system audit](2026-10-25-design-system-audit.md) | The component catalogue, the Structure view brought back to the system (D188), and the tools verdict: a /design route, no new tool |

@@ -97,7 +97,10 @@ export function lengthMinutesFor(
   schedule: Pick<ScheduleFile, "length_minutes" | "weekly">,
   kind: DigestKind,
   mode: RunMode,
+  /** The length the person asked this run for (a Regenerate's Length); it beats the schedule's. */
+  asked?: number,
 ): number | null {
+  if (asked !== undefined) return asked;
   if (kind === "weekly") return schedule.weekly.length_minutes;
   if (kind === "regular" && mode === "scheduled") return schedule.length_minutes;
   return null;

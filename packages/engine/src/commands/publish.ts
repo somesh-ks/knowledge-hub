@@ -227,6 +227,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         now: ctx.now,
         monthlyChars: keys.monthlyChars,
         voiceId: ctx.env.SPEECHIFY_VOICE_ID,
+        ...(deps.transcodeOpus ? { transcodeOpus: deps.transcodeOpus } : {}),
         ...(deps.transcodeEpisodeOpus ? { transcodeEpisodeOpus: deps.transcodeEpisodeOpus } : {}),
         ...(deps.fetchAudio ? { fetchAudio: deps.fetchAudio } : {}),
       };
