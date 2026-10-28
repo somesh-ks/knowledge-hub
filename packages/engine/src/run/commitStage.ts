@@ -20,6 +20,7 @@ import {
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
 import { type CommitOutcome, commandAllowlist, commitAndPush } from "../git/commit.js";
+import { fastForwardToRemote } from "../git/fastForward.js";
 import { findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
@@ -133,15 +134,16 @@ function failedReport(
 /** The longest a run waits for its publish time: more than that and it publishes now. */
 export const MAX_HOLD_MS = 135 * 60_000;
 
-/** Waits until the plan's publish time when it is ahead, within MAX_HOLD_MS. */
-export async function holdUntilPublishTime(deps: RunDeps, plan: Plan): Promise<void> {
-  if (plan.publish_at === undefined) return;
+/** Waits until the plan's publish time when it is ahead, within MAX_HOLD_MS. True when it waited. */
+export async function holdUntilPublishTime(deps: RunDeps, plan: Plan): Promise<boolean> {
+  if (plan.publish_at === undefined) return false;
   const ms = Date.parse(plan.publish_at) - deps.now().getTime();
-  if (ms <= 0 || ms > MAX_HOLD_MS) return;
+  if (ms <= 0 || ms > MAX_HOLD_MS) return false;
   deps.log.info("Generated ahead; holding until the scheduled time", {
     publish_at: plan.publish_at,
   });
   await (deps.wait ?? ((wait) => new Promise<void>((resolve) => setTimeout(resolve, wait))))(ms);
+  return true;
 }
 
 /**
@@ -166,7 +168,9 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   // Generation is done. A run that started ahead holds here until its scheduled time; one that
   // started late publishes at once. The record keeps both instants (D193).
   const generatedAt = deps.now().toISOString();
-  if (!dryRun && !adopted) await holdUntilPublishTime(deps, plan);
+  const held = !dryRun && !adopted && (await holdUntilPublishTime(deps, plan));
+  // The state read below must be the remote's, not the checkout from job start (D203).
+  if (held && !options.noPush) await fastForwardToRemote(deps.git, deps.log);
   const now = deps.now();
 
   // An adopted agent run made no model or Firecrawl calls through the stages, so it records none.
