@@ -83,7 +83,7 @@ function readMoment(): Moment {
   return { playerState: document.documentElement.dataset.playerState, overlayOpen, editing };
 }
 
-/** True while this build has been loaded for fewer than APPLY_ATTEMPTS times in the tab; counts this one. */
+/** True while this build has been loaded for fewer than APPLY_ATTEMPTS times in the tab; counts this one. False when the tab cannot remember. */
 export function claimApply(build: string, store?: Pick<Storage, "getItem" | "setItem">): boolean {
   try {
     const kept = store ?? sessionStorage;
@@ -92,7 +92,9 @@ export function claimApply(build: string, store?: Pick<Storage, "getItem" | "set
     if (tries >= APPLY_ATTEMPTS) return false;
     kept.setItem(APPLIED_KEY, `${build}@${tries + 1}`);
   } catch {
-    // No storage: load it anyway; the build check on the new page finds nothing newer.
+    // No per-tab marker survives a reload, so a stale edge copy could loop. Stop automatic reloads;
+    // the next full navigation loads the current build.
+    return false;
   }
   return true;
 }

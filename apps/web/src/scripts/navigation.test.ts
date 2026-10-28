@@ -187,6 +187,17 @@ describe("claimApply", () => {
     expect(claimApply("b2", store)).toBe(false);
   });
 
+  // Without a per-tab marker a stale edge copy would reload in a loop (CodeRabbit, PR #392).
+  it("does not reload when the tab cannot remember", () => {
+    const broken = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => undefined,
+    };
+    expect(claimApply("b2", broken)).toBe(false);
+  });
+
   it("loads a build newer than the one it loaded for at once", () => {
     const store = memory();
     for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
