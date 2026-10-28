@@ -12,6 +12,7 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 6. **Verify branch HEAD after pushing.** After `git push`, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`. A push on a detached HEAD reports "Everything up-to-date" while remote remains stale (class 11).
 7. **Workers never allocate decision IDs.** Decision numbers are assigned strictly by the lead on `main` right before merge to avoid parallel branch collisions (class 12).
 8. **Config store synchronization before config edits.** When editing `config/` in Git, sync with the live config store so deployed snapshots do not overwrite runtime state (class 13).
+9. **A PR that GitHub shows as conflicting is also an unchecked one.** Fetch `main` and merge it as soon as `mergeable_state` reads `dirty`, then read the first `ci` run on the merged head before calling the branch green (class 14).
 
 ## Failure classes
 
@@ -30,6 +31,7 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 | 11 | PR merged without review fixes (#160) | Commits were made on a detached HEAD; `git push` reported up-to-date, so another session merged the stale branch head | Fixed | Rule 6: compare `git ls-remote` with `git rev-parse HEAD` |
 | 12 | Decision number collision (D157, D159, D176) | Multiple parallel worktrees assigned the next decision ID locally | Fixed | Rule 7: workers allocate no D-numbers; lead numbers on `main` before merge |
 | 13 | Silent config reversion (2026-10-25) | PR edited repo config while live config store held newer state; store snapshot undid PR edit (D185) | Fixed | Rule 8: sync store before config edits; write guard allows snapshot |
+| 14 | A browser spec broken by the PR's own change (`topics.spec.ts`: a reload no longer showed a source another device added) first failed on the merge commit `5af78ab` (2026-10-28) | `edaf1fa` made a store read reused within a second answer from the device's copy at once, as the first did (D205), where before it waited for the store; `ci` runs on `pull_request`, which GitHub did not start for `dd261c2`, `edaf1fa` and `d598485` while the PR conflicted with `main` (#393 landed under it); the 49 specs run locally did not include this one. The old spec passes on the old code and fails on the new (reproduced) | Fixed (`8c976f3`: the spec reloads twice) | Rule 9 |
 
 ## The merge flow, as designed (not failures)
 

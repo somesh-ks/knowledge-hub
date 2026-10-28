@@ -635,8 +635,8 @@ test.describe("a topic's page", () => {
 
       // Another device adds Glaze Monthly; this one reads it once, then loses the store (Neon
       // asleep, or offline). The page shows what it last read (D172), not the build, which never
-      // had Glaze Monthly, and the local edits still lie over it. A page shows its copy at once
-      // (D205), so a reload reads the store's news and the next one shows it.
+      // had Glaze Monthly, and the local edits still lie over it. Every reader of a page view gets
+      // the copy at once (D205), so a reload reads the store's news and the next one shows it.
       user.added.push({
         ...user.added[0],
         id: "glaze-monthly",
