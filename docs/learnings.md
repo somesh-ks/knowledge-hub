@@ -4,6 +4,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Browser tests
 
+- 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it) and fails. `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
@@ -19,14 +20,14 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list, as the trace's last frame showed; `openPicker` (`e2e/picker.ts`) presses until it stays open. When a spec fails only in company, read its trace's last frame before touching the product.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot. A long-running `astro dev` answered 504 until restarted with `--force`.
-- 2026-10-12: a server or build left from an earlier step makes a suite test the wrong build: Playwright reuses a listening server and skips the build (use `taskkill`; Git Bash `kill $!` leaves a Windows `node`), a stale static server serves old stubs, and `dist` from `npm run build` serves real content, not fixtures. Stop old servers, one worktree per session, a fresh PORT after a page edit.
+- 2026-10-12: a server or build left from an earlier step makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a Windows `node`), and `dist` from `npm run build` serves real content, not fixtures. Stop old servers, one worktree per session, a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit. An audit builds into its own directory and port: a `dist` rebuilt mid-audit read as "page has no title".
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
 - 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe with thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: A WebGL canvas made the player suite fail on every page: headless Chromium draws on the processor (SwiftShader) and logs "GPU stall due to ReadPixels" each frame, and that suite fails on any warning. `failIfMajorPerformanceCaveat` does not refuse that context. Read the renderer's name (`WEBGL_debug_renderer_info`) and skip WebGL on a software one.
 - 2026-10-09: The site suite cannot run with `--headed` on this machine: Kaspersky injects requests that the page's CSP blocks, and the fixture fails on any console error. Check GPU-only behaviour with a standalone script that ignores those lines and nothing else.
-- 2026-10-09: A test run piped through `grep` or `tail` reports the filter's exit code, which is 0. Record `$?` of the runner itself.
-- 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build, and set `PLAYER_LAB_URL` and `PLAYER_SITE_URL` to it.
+- 2026-10-09: a test run piped through `grep` or `tail` reports the filter's exit code (0). Record the runner's own `$?`.
+- 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
 
 ## Unit tests
 
@@ -39,9 +40,9 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 ## Engine and workflows
 
 - 2026-10-27: two workflows appending to one state file conflict on every overlap. Merge a list by key, never pick a side (`git/stateMerge.ts`); a Catch up lost a written episode to `state/costs-2026-10.json`.
-- 2026-10-24, 10-27: a briefing aired 3 stories of 5 minutes because a check dropped a whole story for one bad sentence, the refill found the reserve empty (section caps capped it too) or threw on a section over its allowance, and grounding never saw the title the writer read. Cut the sentence first; refill from `reserve.json`; trim a section instead of failing (#373, D202).
+- 2026-10-24, 10-27: a briefing aired 3 stories of 5 minutes: a check dropped a whole story for one bad sentence, the refill found the reserve empty (section caps capped it too) or threw on a section over its allowance, and grounding never saw the title. Cut the sentence first; refill from `reserve.json`; trim a section instead of failing (#373, D202).
 - 2026-10-27: a prompt that says "one turn" for a nugget while the word target needs three gets a script that falls short; the length instruction and the shape instruction must agree (`nuggetLine`).
-- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped in silence; ffprobe counts MP3 padding (52 ms a turn). The workflows install it, turns are measured by decoding (#381). The install then hung 5 to 19 min, `-qq` hiding the stage, and a timeout would fail an episode: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
+- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped in silence; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding (#381). The install then hung 5 to 19 min with `-qq` hiding the stage: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other and a second channel failed "Already a source". A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment and a foreign name came back in another prosody. Pin `language` and hash it.
 - 2026-10-23: Vercel's Neon integration names its variables `NEON_*`, which nothing reads; seed before the GitHub variable goes on. lightningcss rejects `::picker(select)::backdrop`: use a `0 0 0 100vmax` shadow. A long-press drag that keeps scrolling cannot be pointer events (`touch-action: none` kills scroll): use `draggable`.

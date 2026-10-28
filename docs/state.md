@@ -30,7 +30,6 @@ Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 - Owner's eye: the bar's centring (they saw more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is built or checked.
 - Settings paint the kept store copy at once and the theme before first paint (D203); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
-- `topics.spec.ts` near 823 (Add source) failed 1 of 2 cloud runs. closed when: a trace names the race or CI runs it clean for a week.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or outlet cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
