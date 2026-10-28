@@ -210,6 +210,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | Guards for a short or lost run, health metrics, one run card | active |
+| D203 | Settings paint the kept copy at once | amends D172 |
 
 ---
 
@@ -2117,3 +2118,12 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: the 2026-10-27 Regenerate aired 2 of 5 minutes (4 stories dropped, refill threw) and its Catch up lost a written episode to a rebase conflict on a ledger that both workflows append to; a stepper inside the Regenerate sheet duplicated the run card and could not show a failure. The 15-minute option already fills the 19,000-character request one narration takes, so a longer option needs chunked narration first.
 - Rejected: choosing one side of a conflicting state file (loses records); editing `config/` in Git to raise the daily length (the store owns it, D149, D185; the owner raises it in Preferences); a Length control in the Regenerate sheet (needs `run.yml`, the engine and the server contract to change together).
 - Revisit if: `singularity metrics` shows `length_share` under 0.9 or `failure_rate` over 0.1 across ten runs, or a longer option is wanted.
+
+## D203: Settings paint the kept store copy at once, and the theme before first paint
+
+- Date: 2026-10-28 (the owner: Settings takes a second to show Daily, Weekly, podcast and theme).
+- Decision: a page with a kept copy of the store's answer (D172) shows it without waiting (`CACHE_GRACE_MS` 0); a store that then answers with something else is offered as a reload, as before. The Theme select takes this device's theme from an inline script before the first paint (`settingsInit.js`, its hash in the policy). A page with no valid copy still waits for the store, up to 2.5 s.
+- Why: measured on the built site with a slow store, the lines took 376 to 577 ms with a copy (a fixed 300 ms wait for a store that nearly always takes longer, plus the script) and the theme 130 to 240 ms (the select drew nothing until the script ran). Now 163 to 184 ms and about 70 ms; the floor with no store is about 65 ms. The copy is what the page would show after the wait, so no build value paints first.
+- Rejected: rendering settings from the store on the server (D172's rejection stands); the same inline script for the sounds, autoplay and volume controls (it would copy the reduced-motion default of `getSoundsEnabled`); keeping a copy across config changes (its ops are a diff from that build's files).
+- Revisit if: cross-device reload toasts become common, or a first visit after a config change is reported slow; then keep the copy as full values, not a diff.
+- Amends: D172.

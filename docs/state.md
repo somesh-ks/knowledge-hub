@@ -29,7 +29,7 @@ Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 - Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
 - Owner's eye: the bar's centring (they saw more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is built or checked.
-- Settings paint the device's copy after a 300 ms grace; another device's edit waits for a reload toast (#382). closed when: the owner picks.
+- Settings paint the kept store copy at once and the theme before first paint (D203); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - `topics.spec.ts` near 823 (Add source) failed 1 of 2 cloud runs. closed when: a trace names the race or CI runs it clean for a week.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or outlet cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - Software Engineering (D155) live. closed when: a digest has its section.
@@ -37,7 +37,6 @@ Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast, health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
-- Player tabs and queue (D126, D133): Stories with the live transcript, Up next as a tab, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
 - Episode quality (D119, D120) and the refill (#237, #197): a live run with spares, a refill and a one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length, and one has a Science story from one outlet.
 - Real phones, Safari, WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
 - "Narration is not available right now" (2026-10-12): not reproduced. A failing try leaves a `server` fault for `api/narrate`. closed when: one names the step.
@@ -53,7 +52,7 @@ Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
 - [Analytics](specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
 - No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
-- Twenty-three older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [six](history/2026-10-27-generation-health.md#parked). closed when: each closes.
+- Twenty-four older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked). closed when: each closes.
 
 ## Known risks
 
