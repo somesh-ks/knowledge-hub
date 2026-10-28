@@ -42,9 +42,16 @@ import {
   type WatchedHead,
   type WorkflowRun,
 } from "./healthChecks.js";
+import {
+  SHORT_EPISODE_FAULT,
+  SHORT_EPISODE_WARN,
+  SLOT_MISSED_AFTER_MS,
+  THIN_DIGEST_ITEMS,
+} from "./healthLimits.js";
 import { collectStatus } from "./statusReport.js";
 
 export type { FieldReading, HealthAspect, HealthFetch, StoreReading, WatchedHead, WorkflowRun };
+export { SHORT_EPISODE_FAULT, SHORT_EPISODE_WARN, THIN_DIGEST_ITEMS };
 
 /**
  * `singularity health`: the faults that fail silently today, from the repository files and the live
@@ -93,15 +100,6 @@ export interface HealthOptions {
   voices?: EpisodeVoiceEnv;
 }
 
-/** A briefing with fewer stories than this is thin (the schema stops at 3): the run found little or dropped most. */
-export const THIN_DIGEST_ITEMS = 5;
-/**
- * Shares of its set length below which an episode is short: a warning under 90%, a fault (the
- * `health` issue) under 75%. Every daily from 2026-10-11 to 10-17 aired 2.9 to 3.8 of its 5
- * minutes and the 10-18 weekly 5 of its 15, and nothing said so for a week.
- */
-export const SHORT_EPISODE_WARN = 0.9;
-export const SHORT_EPISODE_FAULT = 0.75;
 /** A story summary this short is a stub: a third of what the writer's lint asks for. */
 export const SHORT_STORY_WORDS = Math.floor(VOICE_LIMITS.summaryMinWords / 3);
 /** A deploy that has not picked up a new digest after this long has failed (Hobby author check). */
@@ -114,8 +112,6 @@ export const DEPLOY_LAG_MS = 45 * 60_000;
  */
 export const DEPLOY_MISSING_FAULT_MS = 24 * 60 * 60_000;
 const DAY_MS = 86_400_000;
-/** How long past its commit time a due briefing may stay unpublished before health says so. */
-const SLOT_MISSED_AFTER_MS = 15 * 60_000;
 const TIMEOUT_MS = 20_000;
 
 /** Headers vercel.json sets on every page; a deploy that drops one has lost the file. */

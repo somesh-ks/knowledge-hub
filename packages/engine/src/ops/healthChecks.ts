@@ -31,6 +31,7 @@ import { formatReading, summarize } from "../metrics/summary.js";
 import { readTimings } from "../podcast/timings.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { readConfigDocuments } from "../store/configDocs.js";
+
 import {
   CONFIG_DOCUMENT_PATHS,
   type ConfigDocument,
@@ -52,6 +53,22 @@ import {
 } from "../store/vitalsStore.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
+import {
+  CLIENT_ERRORS_PER_DAY,
+  FIELD_MIN_SAMPLES,
+  PLATFORM_FAULTS_PER_DAY,
+  SCRIPT_BLOCKS_PER_DAY,
+  SCRIPT_DIRECTIVES,
+  SERVER_FAULTS_PER_DAY,
+} from "./healthLimits.js";
+
+export {
+  CLIENT_ERRORS_PER_DAY,
+  FIELD_MIN_SAMPLES,
+  PLATFORM_FAULTS_PER_DAY,
+  SCRIPT_BLOCKS_PER_DAY,
+  SERVER_FAULTS_PER_DAY,
+} from "./healthLimits.js";
 
 /**
  * The checks hardening round 3 added to `singularity health` (docs/engineering/hardening.md): the
@@ -493,8 +510,6 @@ export function checkPerf(perf: unknown, sink: Sink): void {
 /** What health read from the field store (D156): each metric's p75 per device class, or why not. */
 export type FieldReading = { summaries: readonly VitalSummary[] } | { error: string };
 
-/** A p75 of fewer samples than this says more about one visit than about the site. */
-export const FIELD_MIN_SAMPLES = 20;
 /** Neon may be waking from idle; past this the store reads as unmeasured. */
 const FIELD_TIMEOUT_MS = 15_000;
 
@@ -577,17 +592,6 @@ export async function readStore(
     ...(documents ? { documents } : {}),
   };
 }
-
-/** Script blocks in 24 hours from this many reports on are a warning: an extension's one is not. */
-export const SCRIPT_BLOCKS_PER_DAY = 3;
-/** Client errors on one route in 24 hours from this many on are a warning (opaque ones not counted). */
-export const CLIENT_ERRORS_PER_DAY = 20;
-/** Server errors (a 5xx a site function answered) on one route in 24 hours from this many on warn. */
-export const SERVER_FAULTS_PER_DAY = 3;
-/** Functions Vercel killed (a timeout, a crash) on one route in 24 hours from this many on warn. */
-export const PLATFORM_FAULTS_PER_DAY = 3;
-/** CSP directives whose violation means a script did not run: a feature broken, or an injection. */
-const SCRIPT_DIRECTIVES = new Set(["script-src", "script-src-elem"]);
 
 /** Stored text as inline code in a GitHub issue, so an `@name` or a link in it does nothing. */
 const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``;

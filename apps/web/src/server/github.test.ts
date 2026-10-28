@@ -56,6 +56,7 @@ describe("createGitHubClient", () => {
       "startedAt",
       "status",
       "title",
+      "updatedAt",
     ]);
   });
 

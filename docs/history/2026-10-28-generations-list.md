@@ -26,3 +26,8 @@ Moved from state.md to keep it within budget; each still holds until its conditi
 - Model orchestrator (D136): never run live. closed when: a run log names the resolved models.
 - [Analytics](../specs/analytics.md) (D154). closed when: a live page view, `share` and `listen_half` show up.
 - No island at first load (D178). closed when: the owner's phone shows the bar promptly after a first Play.
+- Player tabs and queue (D126, D133): Stories with the live transcript, Up next, the handle drag, the chevron. closed when: each works on a phone and the queue starts the next item at an end.
+- Episode pre-narration (D128): no live run; `podcast.yml` calls `audio.yml` (#183); GitHub's `SPEECHIFY_VOICE_ID_B` must match Vercel's. closed when: a new episode's commit is followed by an `audio.yml` run and its turns are in Blob.
+- Taste check (D118): Jev 1.14 live; taste on real candidates; an open from a phone. closed when: a run log shows `taste` answers and an open from a phone reaches the vote batch.
+- Covers and header light (D110, D122): monthly covers deployed; the light on a real GPU, Safari, Firefox; a theme switch past 400 ms. closed when: phone and desktop screenshots of production show each.
+- Unverified (D106 to D109): the volume slider's linger and drag hold, the highlight's pause on a live briefing, a vote batch sent on unload, a briefing regenerated with a topic its run did not fetch, a custom topic's prefill in Regenerate. closed when: each is seen once on production.

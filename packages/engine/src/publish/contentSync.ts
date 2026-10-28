@@ -22,6 +22,8 @@ export const CONTENT_FILES = [
   "state/last-run.json",
   "state/source-stats.json",
   "state/source-candidates.json",
+  // The Health page (/settings/health) counts the sources failing in a row.
+  "state/source-health.json",
   // The cost report prices the ledger with this table (/api/costs).
   "config/prices.json",
 ] as const;
