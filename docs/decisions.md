@@ -140,7 +140,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10; a phone Library has no sort and one toolbar line | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings is restructured: Sources with a Sources or Preferences switch per topic, one voice pair for all podcasts, one global type mix on /settings/preferences, Theme as a select, no breadcrumbs, no Weekly switch, Catch up for on-request episodes | partly superseded by D195; amends D51, D87, D124, D125 |
+| D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one global type mix, Theme as a select, no breadcrumbs | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -210,6 +210,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
+| D203 | Lane free in the hold | amends D197 |
 
 ---
 
@@ -2117,3 +2118,14 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Why: a prompt asks the reader to do what the app can do itself, and a dismissed or unseen one leaves the old bundle running. D146 dropped the automatic reload because each round found one more thing it could throw away; those are now the guard list above, as one tested function (`canReloadNow`), with the wait as the fallback instead of a prompt.
 - Amends: D146 (the offer becomes an automatic reload).
 - Revisit if: a reload ever loses a reader's work (add its guard to `canReloadNow` with a test), or a page keeps a state the guards cannot see.
+
+## D203: the lane is free while a briefing waits for its publish time
+
+- Date: 2026-10-28 (the owner chose plan A after "Waiting for a slot"; Anthropic batch for the scheduled writer, an hour early with a fallback 15 minutes before publish; a story store by topic, for generation only).
+- Status: planned, nothing built.
+- Decision: `run.yml` holds the one `singularity` lane for the whole wait of a briefing generated ahead (up to 135 minutes, `MAX_HOLD_MS`), so a Regenerate or Catch up in that window queues (2026-10-27: run 461 behind run 459, 97 minutes). The plan, in order, one PR each: (1) the commit stage fetches and fast-forwards to `origin/main` after the hold, before it reads `seen`, `last-run` and the judgments, so it builds on what a push meanwhile committed (it read the checkout from job start; a config push is the same class as #303); (2) `run.yml` splits into a generate job (Gate to Validate, group `singularity`) that hands `.cache/run/` over as an artifact, a hold job with no group that only waits, and a publish job (Commit, group `singularity-publish`, seconds long), so an on-demand run takes the lane at once and publishes at once; (3) the scheduled writer sends its first pass to Anthropic's batch API inside the hold: submit about 60 minutes ahead, collect what finished by 15 minutes before publish and write the rest synchronously; Regenerate and Catch up stay synchronous; (4) cost is held at the run level, not per story: one generous reply ceiling per writer request instead of 800 tokens a story, the run's token budget and a spend line in USD as the backstop; (5) a 30-day store of stories by topic, filled by an ingest job, read by generation only.
+- Why: the wait is the hold, not the work (an on-demand daily with no hold took 3 m 20 s, queued 2 s). The hold is already idle time, so a batch fits in it without D135's submit-and-resume split.
+- Rejected: an own group for on-demand runs (two commits would both rewrite `seen`, `last-run` and `costs-*.json`, and `commit.ts` aborts on a rebase conflict, never forces); a 30-minute job timeout (ends the hold, D197).
+- Open before step 4: the reply ceiling is not what costs money. `THINKING_HEADROOM` (8,000) already sits on top of it, a tight ceiling once cut the writer's JSON off mid-object, and `TokenBudget.check` counts the ceiling in its estimate, so raising it alone trips the 400,000-token run budget sooner (the 2026-10-25 weekly wrote 403,000). `story_writer` sets no `effort`, so its thinking is billed as output. Measure stories written against stories aired, and the writer at lower effort on `loop/`'s replay, before the batch.
+- Amends: D197 (the hold stays; it no longer holds the lane). Builds on: D135's revisit condition (an earlier start is accepted).
+- Revisit if: a held publish job is replaced while pending (GitHub keeps one pending run per group), or a batch misses 15 minutes before publish on more than one run in ten.
