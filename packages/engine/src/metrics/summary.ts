@@ -55,6 +55,10 @@ const median = (values: readonly number[]): number | null => {
 const mean = (values: readonly number[]): number | null =>
   values.length === 0 ? null : values.reduce((sum, v) => sum + v, 0) / values.length;
 
+/** How many different runs a set of per-pass entries came from. */
+const runsIn = (entries: ReadonlyArray<{ run_id: string }>): number =>
+  new Set(entries.map((entry) => entry.run_id)).size;
+
 const round = (value: number | null, places = 2): number | null =>
   value === null ? null : Math.round(value * 10 ** places) / 10 ** places;
 
@@ -98,16 +102,16 @@ export function summarize(input: {
   );
   const finished = runs.filter((run) => run.outcome !== "failed");
   const published = runs.filter((run) => run.outcome === "published");
-  const sized = published.flatMap((run) => (run.length.share === null ? [] : [run.length.share]));
+  const sizedRuns = published.filter((run) => run.length.share !== null);
+  const sized = sizedRuns.map((run) => run.length.share as number);
   // Grounding checks what the writer wrote and what the refill wrote after it, so both count. A
   // pass that published nothing counts too: grounding dropping its stories is what emptied it. A pass
   // no grounder ran on checked nothing, so it says nothing of survival.
-  const survival = finished
-    .filter((run) => run.grounded !== false)
-    .flatMap((run) => {
-      const checked = run.funnel.written + run.funnel.refill_written;
-      return checked > 0 ? [Math.max(0, 1 - run.funnel.grounding_dropped / checked)] : [];
-    });
+  const checkedOf = (run: RunMetric): number => run.funnel.written + run.funnel.refill_written;
+  const survivalRuns = finished.filter((run) => run.grounded !== false && checkedOf(run) > 0);
+  const survival = survivalRuns.map((run) =>
+    Math.max(0, 1 - run.funnel.grounding_dropped / checkedOf(run)),
+  );
   const enough = ids.length >= MIN_RUNS;
   // A run's fallbacks, total time and stage clock are copied into each of its passes: one entry a
   // run, or a regular and a weekly briefing would weigh it twice.
@@ -140,14 +144,14 @@ export function summarize(input: {
           median(sized),
           `>= ${TARGETS.lengthShareMin}`,
           (v) => v >= TARGETS.lengthShareMin,
-          sized.length >= MIN_RUNS,
+          runsIn(sizedRuns) >= MIN_RUNS,
         ),
         reading(
           "grounding_survival",
           median(survival),
           `>= ${TARGETS.groundingSurvivalMin}`,
           (v) => v >= TARGETS.groundingSurvivalMin,
-          survival.length >= MIN_RUNS,
+          runsIn(survivalRuns) >= MIN_RUNS,
         ),
         reading(
           "verified_share",
@@ -156,7 +160,7 @@ export function summarize(input: {
             : published.filter((run) => run.verified).length / published.length,
           `>= ${TARGETS.verifiedShareMin}`,
           (v) => v >= TARGETS.verifiedShareMin,
-          published.length >= MIN_RUNS,
+          runsIn(published) >= MIN_RUNS,
         ),
         reading(
           "model_fallbacks_per_run",

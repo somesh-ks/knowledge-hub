@@ -74,7 +74,7 @@ export function briefingFailureLine(step: unknown): string | null {
   if (!sentence) return null;
   // The job's recovery step pushes again after a failed publish, so that briefing may have landed.
   return step === "publishing"
-    ? `${sentence} It may still have landed; check Latest.`
+    ? `${sentence} It may still have landed; check the briefing before trying again.`
     : `${sentence} Nothing was changed.`;
 }
 

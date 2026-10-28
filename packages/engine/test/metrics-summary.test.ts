@@ -172,6 +172,25 @@ describe("grounding_survival leaves out a pass nothing checked", () => {
   });
 });
 
+// Length, survival and verified are per pass, and the docs judge nothing before three runs: two runs
+// with three passes between them passed the gate (CodeRabbit, PR 391, fifth round).
+describe("per-pass readings need three runs, not three passes", () => {
+  it("leaves them unmeasured when two runs made three passes", () => {
+    const summary = summarize({
+      runs: [
+        run(1, { kind: "regular", digest_id: "regular-1" }),
+        run(1, { kind: "weekly", digest_id: "weekly-1" }),
+        run(2),
+      ],
+      timings: [],
+    });
+    const verdict = verdicts(summary.briefings.readings);
+    expect(verdict.length_share).toBe("unmeasured");
+    expect(verdict.grounding_survival).toBe("unmeasured");
+    expect(verdict.verified_share).toBe("unmeasured");
+  });
+});
+
 // The 2026-10-27 regenerate aired 2,117 of 5,330 characters and nothing said so beyond one log line.
 describe("summarize", () => {
   it("judges nothing before three runs say the same", () => {
