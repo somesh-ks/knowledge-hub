@@ -180,7 +180,7 @@ function clearTitle(): void {
   }
 }
 
-/** The time-left line for a run, or "" when it has nothing to say (lib/runStages.ts timeLeft). */
+/** A failed run's reason, or its time-left line; "" when neither is available (runStages.ts). */
 function etaLine(root: HTMLElement, run: Stored | null): string {
   // A failed run says why where a running one says the time left.
   if (run?.phase === "failed" && run.reason) return run.reason;
@@ -323,6 +323,11 @@ function keepRoom(card: HTMLElement): void {
   }).observe(card);
 }
 
+/**
+ * Draw or hide the run card, update its actions and page spacing, and announce its status.
+ * A completed episode already open is cleared from storage. Dispatches RUN_EVENT after drawing
+ * when the card exists, so listeners can react to the remembered run.
+ */
 function show(run: Stored | null): void {
   const root = document.querySelector<HTMLElement>("[data-run-status]");
   const card = root?.querySelector<HTMLElement>("[data-run-card]");
@@ -450,6 +455,10 @@ function show(run: Stored | null): void {
 
 /** The bar: at the start of the stage at once, then slowly toward its end, and never back. */
 let creep = 0;
+/**
+ * Advance the progress bar for this run without moving it backward; a new run resets it.
+ * Briefings and episode changes omit the site's final stage. Reduced motion disables the drift.
+ */
 export function fill(card: HTMLElement, run: Stored): void {
   // A rewrite or a removal has no last stage of its own: the page has nothing to wait for.
   const total = (run.stages ?? 3) - (run.kind || run.what ? 1 : 0);
@@ -537,6 +546,10 @@ const STREAM_POLLS = 100;
 let watching = 0;
 let live: { runId: number; doc: Record<string, unknown> } | null = null;
 
+/**
+ * Poll a new episode's live script and offer Listen now once turns exist. Briefings and episode
+ * changes are ignored; fetch and JSON failures are retried within the polling limit.
+ */
 async function watchStream(run: Stored): Promise<void> {
   if (watching === run.id || run.kind || run.what) return;
   watching = run.id;
@@ -563,6 +576,11 @@ async function listenLive(): Promise<void> {
   runtime.narrateLive(doc as never, runId);
 }
 
+/**
+ * Follow workflow status until completion, replacement by another run, or the polling limit.
+ * `now` skips the initial delay. Briefings finish from the workflow result; new episodes may then
+ * wait for the site. Fetch and JSON failures are retried; a 4xx or exhausted limit leaves Check again.
+ */
 async function follow(run: Stored, now: boolean): Promise<void> {
   if (following === run.id) return;
   following = run.id;

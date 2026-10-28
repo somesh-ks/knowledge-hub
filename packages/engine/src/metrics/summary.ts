@@ -75,6 +75,7 @@ const reading = (
   verdict: value === null || !enough ? "unmeasured" : ok(value) ? "ok" : "off",
 });
 
+/** Median milliseconds per stage, rounded to whole milliseconds; absent stages do not count. */
 function stageMedians(entries: ReadonlyArray<Record<string, number>>): Record<string, number> {
   const names = new Set(entries.flatMap((stages) => Object.keys(stages)));
   const out: Record<string, number> = {};
@@ -86,7 +87,12 @@ function stageMedians(entries: ReadonlyArray<Record<string, number>>): Record<st
   return out;
 }
 
-/** The newest `WINDOW` briefing runs and episodes, judged against the targets. */
+/**
+ * Summarize the newest `WINDOW` distinct briefing runs and episode entries with metrics.
+ * Each reading needs `MIN_RUNS` contributing runs to be judged; missing measurements stay null.
+ * Briefing length, survival and verification use passes, while failure rate, time and fallbacks
+ * count each run once. Failed passes contribute only to failure rate. Stage medians are in ms.
+ */
 export function summarize(input: {
   runs: readonly RunMetric[];
   timings: readonly TimingEntry[];
@@ -204,7 +210,7 @@ export function summarize(input: {
 
 const MINUTE = 60_000;
 
-/** One reading as a line: "length_share 0.62 (target >= 0.9) off". */
+/** Format one reading with its target and verdict, showing null as n/a and ms metrics in minutes. */
 export function formatReading(entry: Reading): string {
   const value =
     entry.value === null

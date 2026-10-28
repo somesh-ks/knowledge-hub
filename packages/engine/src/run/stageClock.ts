@@ -22,6 +22,7 @@ type StageClockFile = z.infer<typeof StageClockFile>;
 
 const clockPath = (root: string): string => join(runCacheDir(root), "stage-ms.json");
 
+/** Return this run's stage clock, or an empty clock for missing, invalid or another run's data. */
 export async function readStageClock(root: string, run: string): Promise<StageClockFile> {
   const empty: StageClockFile = { version: 1, run, stages: {} };
   try {
@@ -33,6 +34,7 @@ export async function readStageClock(root: string, run: string): Promise<StageCl
   }
 }
 
+/** Add rounded, nonnegative elapsed milliseconds to this run's stage total; ignore I/O failures. */
 export async function addStageTime(
   root: string,
   run: string,
@@ -48,6 +50,7 @@ export async function addStageTime(
   }
 }
 
+/** Save the latest failed stage and up to 280 characters of its reason; ignore I/O failures. */
 export async function noteStageFailure(
   root: string,
   run: string,

@@ -137,6 +137,13 @@ export class LlmWriter implements Writer {
     };
   }
 
+  /**
+   * Write a batch, reporting omitted items as failures and preserving batch order. `others` holds
+   * titles outside this batch for context; `split` is the retry depth, starting at zero.
+   * Invalid model output retries in halves (or retries a lone item) for up to two levels with a
+   * larger token allowance. Other model failures become failed entries; BudgetExceededError
+   * propagates without retrying.
+   */
   private async writeBatch(
     batch: readonly SourceMaterial[],
     feedback?: string,

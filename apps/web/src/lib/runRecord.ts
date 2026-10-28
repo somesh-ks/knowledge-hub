@@ -33,6 +33,10 @@ function resolve<T>(source: StorageSource<T>): T {
   return typeof source === "function" ? (source as () => T)() : source;
 }
 
+/**
+ * Read the indicator's stored JSON object without validating its fields. Missing, unreadable or
+ * malformed data returns null; a storage getter may be supplied so blocked access is caught too.
+ */
 export function readRunRecord(storage: StorageSource<Pick<Storage, "getItem">>): RunRecord | null {
   try {
     const run: unknown = JSON.parse(resolve(storage).getItem(RUN_STORAGE_KEY) ?? "null");
@@ -49,7 +53,8 @@ export const isBriefingGoing = (run: RunRecord | null): boolean =>
 /**
  * The cue a briefing run's end is owed, once. The indicator redraws many times after a run ends (a
  * tap on its chevron, another page), and the island is mounted anew on each page, so the answer is
- * kept for the tab: a run's end plays its cue the first time it is asked, and never again.
+ * kept for the tab: the last claimed `<id>:<phase>` is suppressed on later calls. Other runs or
+ * phases replace that claim. If storage is unavailable, the cue is returned and may repeat.
  */
 export function claimEndCue(
   run: RunRecord | null,
@@ -74,7 +79,8 @@ const LATE_MOUNT_MS = 30_000;
  * Whether a run ended just now, in the gap before the island was listening. The sheets island wakes
  * after the first status answer can arrive, and the event that answer sent reached nobody; looking
  * once at mount makes up for it. A run that ended before the page opened has its card and is not
- * announced again.
+ * announced again. `now`, `since` and `stageAt` are epoch milliseconds; the end must be at or
+ * after `since`, no later than `now`, and less than 30 seconds old. This does not claim a cue.
  */
 export function endedRecently(
   run: RunRecord | null,

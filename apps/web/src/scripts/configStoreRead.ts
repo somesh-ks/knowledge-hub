@@ -194,6 +194,12 @@ function showHeld(held: HTMLElement[]): void {
   }
 }
 
+/**
+ * Read config using `now` in epoch milliseconds to reuse requests for one second. With a cached
+ * copy, race it against the store without a grace period; without one, wait up to 2.5 seconds.
+ * Fetch or response failures fall back to the held copy or null. A later answer updates the cache
+ * and may offer a reload when it contains another device's edits.
+ */
 function askStore(now: number): Promise<ConfigReadBody | null> {
   // A read reused within the second answers as storeRead does: for the page now in the document.
   if (last && now - last.at < REUSE_MS) return last.read.then(() => storeRead());

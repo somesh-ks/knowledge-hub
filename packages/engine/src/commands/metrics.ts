@@ -6,6 +6,7 @@ import { readTimings } from "../podcast/timings.js";
 
 const USAGE = "Usage: singularity metrics [--json]";
 
+/** Format briefing and episode readings with median stage durations rounded to seconds. */
 function formatSummary(summary: Summary): string {
   const stages = (ms: Record<string, number>): string =>
     Object.entries(ms)

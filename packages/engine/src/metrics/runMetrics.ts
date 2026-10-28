@@ -90,6 +90,10 @@ export function parseRunMetrics(value: unknown): RunMetricsFile | null {
   };
 }
 
+/**
+ * Read recorded metrics, keeping entries that still parse. Missing, unreadable or malformed files
+ * and unsupported document versions return an empty version-1 file.
+ */
 export async function readRunMetrics(root: string): Promise<RunMetricsFile> {
   try {
     const parsed = parseRunMetrics(
@@ -101,7 +105,11 @@ export async function readRunMetrics(root: string): Promise<RunMetricsFile> {
   }
 }
 
-/** Add entries to the file, one per pass of a run, the oldest beyond the newest 60 dropped. */
+/**
+ * Add or replace entries by run and digest id, keeping the newest 60 by `at`, oldest first.
+ * Empty input writes nothing. Existing unreadable data is treated as empty; atomic write errors
+ * propagate to the caller.
+ */
 export async function recordRunMetrics(root: string, entries: readonly RunMetric[]): Promise<void> {
   if (entries.length === 0) return;
   const file = await readRunMetrics(root);

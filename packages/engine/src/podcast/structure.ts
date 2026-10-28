@@ -89,7 +89,9 @@ const MIN_EPISODE_STORIES = 2;
  * minutes halves them at 5, so the 2026-10-27 Catch up aired 6 of its 8 slots and told each story
  * longer than it could carry. Candidates beyond the slots stand in for what the caps cut; the
  * lowest-ranked of the shaped list go first, and the rest is shaped again so its order, its deep
- * dives and its owner blocks follow what stays.
+ * dives and its owner blocks follow what stays. Rank is the position within the airing block,
+ * then the original candidate order. The slot limit is at least two, but structure caps or a
+ * smaller candidate pool can leave fewer stories; the function never adds stories.
  */
 export function fitStories(
   candidates: readonly PodcastStory[],
