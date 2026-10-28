@@ -189,7 +189,9 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     // A config edit that came in from the repo means the files are no longer the store's, so the
     // commit must not claim to be a snapshot of it: the next gate would read the store's older copy
     // as the newer one and revert the edit (D209).
-    if (forwarded.changed.some((path) => CONFIG_PATHS.has(path)) && (await syncedWithStore(root))) {
+    const configMayHaveChanged =
+      forwarded.changed === null || forwarded.changed.some((path) => CONFIG_PATHS.has(path));
+    if (configMayHaveChanged && (await syncedWithStore(root))) {
       await markCopiedFromStore(root, true, false);
     }
   }

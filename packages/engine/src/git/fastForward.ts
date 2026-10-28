@@ -1,10 +1,14 @@
 import type { Logger } from "../context.js";
 import type { GitRunner } from "./runGit.js";
 
-/** What a fast-forward did: whether the checkout moved, and the paths the incoming commits changed. */
+/**
+ * What a fast-forward did: whether the checkout moved, and the paths the incoming commits changed.
+ * `changed` is null when the checkout moved but the paths could not be listed: that must never read
+ * as "nothing changed".
+ */
 export interface FastForward {
   moved: boolean;
-  changed: string[];
+  changed: string[] | null;
 }
 
 const NOT_MOVED: FastForward = { moved: false, changed: [] };
@@ -43,7 +47,7 @@ export async function fastForwardToRemote(
     return NOT_MOVED;
   }
   const diff = await run(["diff", "--name-only", before, "HEAD"]);
-  const changed = diff.code === 0 ? diff.stdout.split("\n").filter(Boolean) : [];
+  const changed = diff.code === 0 ? diff.stdout.split("\n").filter(Boolean) : null;
   return { moved: true, changed };
 }
 
