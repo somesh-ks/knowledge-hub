@@ -91,8 +91,11 @@ export interface GitHubClient {
    * workflow file name.
    */
   dispatchWorkflowFile(file: string, inputs: Record<string, string>): Promise<number | null>;
-  /** Runs of the named workflow file created since `since` (an ISO date), any event, newest first; at most 200. */
-  listRecentRuns(file: string, since: string): Promise<WorkflowRun[]>;
+  /**
+   * Runs of the named workflow file created since `since` (an ISO date), any event, newest first; at
+   * most 200. `signal` aborts both page requests at the caller's deadline.
+   */
+  listRecentRuns(file: string, since: string, signal?: AbortSignal): Promise<WorkflowRun[]>;
   getRun(runId: number): Promise<WorkflowRun | null>;
   listSteps(runId: number): Promise<WorkflowStep[]>;
   /** The text of a file at `ref`, or null when it does not exist. */
@@ -112,12 +115,14 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
         "User-Agent": "singularity-site",
         ...(init.body ? { "Content-Type": "application/json" } : {}),
       },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: init.signal
+        ? AbortSignal.any([init.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
+        : AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   }
 
-  async function json(path: string): Promise<unknown> {
-    const response = await request(path);
+  async function json(path: string, signal?: AbortSignal): Promise<unknown> {
+    const response = await request(path, signal ? { signal } : {});
     if (!response.ok) throw new GitHubError(response.status);
     return response.json();
   }
@@ -156,21 +161,24 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     listWorkflowFileRuns: listRuns,
     dispatchWorkflowFile: dispatchFile,
 
-    async listRecentRuns(file, since) {
+    async listRecentRuns(file, since, signal) {
       // run.yml starts every hour, so a week is about 170 runs: two pages hold it. Both are asked at
-      // once (one after the other missed the Health page's limit on production, 2026-10-28); a
-      // second page past the last run comes back empty.
-      const pages = await Promise.all(
-        [1, 2].map((page) =>
-          json(
-            `${workflowPath(file)}/runs?created=${encodeURIComponent(`>=${since}`)}&exclude_pull_requests=true&per_page=100&page=${page}`,
-          ),
-        ),
-      );
-      return pages.flatMap((body) => {
-        const list = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
-        return list.map(parseRun).filter((run): run is WorkflowRun => run !== null);
-      });
+      // once (one after the other missed the Health page's limit on production, 2026-10-28), but
+      // the second counts only when the first is full: a short first page is the whole week, and a
+      // slow or failed second page must not lose it.
+      const page = (number: number) =>
+        json(
+          `${workflowPath(file)}/runs?created=${encodeURIComponent(`>=${since}`)}&exclude_pull_requests=true&per_page=100&page=${number}`,
+          signal,
+        );
+      const runsOf = (body: unknown): unknown[] =>
+        isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+      const second = page(2);
+      // Settled here, so a second page the first makes needless never rejects unhandled.
+      second.catch(() => undefined);
+      const first = runsOf(await page(1));
+      const all = first.length < 100 ? first : [...first, ...runsOf(await second)];
+      return all.map(parseRun).filter((run): run is WorkflowRun => run !== null);
     },
 
     async getRun(runId) {

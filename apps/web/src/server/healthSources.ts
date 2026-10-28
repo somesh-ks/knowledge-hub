@@ -147,7 +147,12 @@ async function readJobs(now: Date): Promise<HealthInput["jobs"]> {
   const files = Object.values(HEALTH_JOBS);
   // Each workflow apart: one GitHub error leaves its own row unavailable, not every row.
   const lists = await Promise.allSettled(
-    files.map((file) => inTime(github.listRecentRuns(file, since), JOB_TIMEOUT_MS)),
+    files.map((file) =>
+      inTime(
+        github.listRecentRuns(file, since, AbortSignal.timeout(JOB_TIMEOUT_MS)),
+        JOB_TIMEOUT_MS,
+      ),
+    ),
   );
   const read = files.flatMap((file, index) => {
     const list = lists[index];
