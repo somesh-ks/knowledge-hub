@@ -22,6 +22,7 @@
     "dev": "npm run dev -w @singularity/web",
     "tokens": "tsx scripts/buildTokens.ts",
     "design-check": "vitest run apps/web/src/styles/styles.test.ts scripts/buildTokens.test.ts",
+    "blast-radius": "node scripts/blastRadius.mjs",
     "glyphs": "tsx scripts/buildGlyphs.ts",
     "emoji": "tsx scripts/buildEmoji.ts",
     "icons": "tsx scripts/buildIcons.ts",

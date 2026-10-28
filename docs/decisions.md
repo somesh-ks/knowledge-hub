@@ -211,6 +211,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
 | D203 | Live Health page | active |
+| D204 | Dual-render typed HTML templates | active |
 
 ---
 
@@ -2124,3 +2125,10 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Decision: Settings, Analytics has Health (`/settings/health`): briefings, run times, field speed per device, errors, workflow runs, sources and services, from `/api/health`, which reads the content store, Neon and GitHub at request time. The thresholds move into `packages/engine/src/ops/healthLimits.ts` (export `./health-limits`), which the daily check and the route both import. `state/source-health.json` joins the content store. Run time is `generated_at` less `window.to`.
 - Why: the owner asked for app health, performance and times in Analytics. The daily check's report lives only in an Actions run and an issue; reading the same sources live needs no workflow change, and one module of lines means the page and the issue cannot disagree. The ledger's and the run record's `at` is the publish time for a run started ahead (D193), which read 96 minutes for a 3 minute run.
 - Revisit if: OAuth lands (Health becomes admin-only with Costs, D201), or GitHub's run list for run.yml outgrows two pages a week.
+
+## D204: dual-rendering parity uses typed HTML builders; blast radius analysis is advisory
+
+- Date: 2026-10-28.
+- Decision: dynamic client-side DOM updates that re-render Astro pre-rendered blocks (e.g. Structure view in Preferences, `structureView.ts`) use pure typed HTML generator functions (`sheetHead.ts`) with internal HTML escaping and data attributes, rather than client hydration islands or duplicated string concatenation. Blast radius inspection is implemented as an advisory CLI check (`scripts/blastRadius.mjs`, `npm run blast-radius`) mapping modified surfaces to consumers and suggested tests, without blocking git commits.
+- Why: Astro cannot run its components inside vanilla DOM client scripts without hydrating full islands, which inflates the 130 KB bundle budget (D141). Hand-concatenated markup strings across files caused silent attribute and escaping divergence. Advisory blast radius alerts agents to consumer surfaces without creating brittle git-level blockers against required test mutations.
+- Revisit if: client DOM state management requires reactive framework islands.

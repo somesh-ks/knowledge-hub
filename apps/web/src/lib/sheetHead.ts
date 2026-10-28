@@ -45,3 +45,72 @@ export function sheetHeadHtml(
     `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "icon-lg")}</button></div>`
   );
 }
+
+export interface MenuItemOptions {
+  act: string;
+  glyph: IconName;
+  label: string;
+  disabled?: boolean;
+  extraClass?: string;
+}
+
+/**
+ * A menu's row, as MenuSheet.astro's slot holds them: its glyph at the start, then the word.
+ * Carries role="menuitem" and data-act for click delegation.
+ */
+export function menuItemHtml({
+  act,
+  glyph,
+  label,
+  disabled = false,
+  extraClass = "",
+}: MenuItemOptions): string {
+  const cls = ["hero-menu-item", extraClass].filter(Boolean).join(" ");
+  return `<button class="${cls}" type="button" role="menuitem" data-act="${act}"${disabled ? " disabled" : ""}>${iconHtml(glyph)}${escapeHtml(label)}</button>`;
+}
+
+export interface SettingsTextOptions {
+  label: string;
+  hint?: string;
+}
+
+/**
+ * A row's text block (settings.css): the label and its quiet hint below it.
+ * Escapes text safely.
+ */
+export function settingsTextHtml({ label, hint }: SettingsTextOptions): string {
+  const hintHtml = hint !== undefined ? `<span class="settings-hint">${escapeHtml(hint)}</span>` : "";
+  return `<div class="settings-text"><span class="settings-label">${escapeHtml(label)}</span>${hintHtml}</div>`;
+}
+
+export interface IconBtnOptions {
+  label: string;
+  glyph: IconName;
+  className?: string;
+  popoverTarget?: string;
+  describedBy?: string;
+  dataAttrs?: Record<string, string | boolean>;
+}
+
+/**
+ * An icon button (buttons.css, .icon-btn.press): 44px target with ink margins and ARIA label.
+ */
+export function iconBtnHtml({
+  label,
+  glyph,
+  className = "",
+  popoverTarget,
+  describedBy,
+  dataAttrs = {},
+}: IconBtnOptions): string {
+  const cls = ["icon-btn press", className].filter(Boolean).join(" ");
+  const target = popoverTarget ? ` popovertarget="${popoverTarget}"` : "";
+  const desc = describedBy ? ` aria-describedby="${describedBy}"` : "";
+  const data = Object.entries(dataAttrs)
+    .filter(([, value]) => value !== false)
+    .map(([name, value]) =>
+      value === true || value === "" ? ` ${name}` : ` ${name}="${escapeHtml(String(value))}"`,
+    )
+    .join("");
+  return `<button class="${cls}" type="button" aria-label="${escapeHtml(label)}"${desc}${target}${data}>${iconHtml(glyph)}</button>`;
+}
