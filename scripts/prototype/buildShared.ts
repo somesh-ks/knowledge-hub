@@ -36,20 +36,13 @@ function fontFace(family: string, weights: string, relativePath: string): string
   return `@font-face{font-family:"${family}";font-style:normal;font-weight:${weights};font-display:swap;src:url(data:font/woff2;base64,${base64}) format("woff2-variations"),url(data:font/woff2;base64,${base64}) format("woff2");}`;
 }
 
-/** Latin subsets of the two families, embedded so the page works offline. */
+/** Latin subset of Google Sans Flex, embedded so the page works offline. */
 export function fontsCss(): string {
-  return [
-    fontFace(
-      "Schibsted Grotesk Variable",
-      "400 900",
-      "node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2",
-    ),
-    fontFace(
-      "Literata Variable",
-      "200 900",
-      "node_modules/@fontsource-variable/literata/files/literata-latin-wght-normal.woff2",
-    ),
-  ].join("\n");
+  return fontFace(
+    "Google Sans Flex Variable",
+    "400 700",
+    "apps/web/src/assets/fonts/google-sans-flex-latin-wght-normal.woff2",
+  );
 }
 
 export function themeColors(): { light: string; dark: string } {
