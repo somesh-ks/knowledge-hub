@@ -50,6 +50,10 @@ Narrated minutes over the owner's length (5 for a daily, 15 for the weekly), fro
 
 Every digest fell short, not only the one that failed: dailies at 0.70 to 0.79, weeklies at 0.34 to 0.54. A story airs at 390 to 530 characters (the sizing assumes 364) and the voice runs 1,015 to 1,077 characters a minute (it assumes 1,066), so the loss is stories, not pace. Nothing has been measured since the fixes of 2026-10-27 to 28: the first three runs after they merge decide `length_share`.
 
+## Speed, measured offline (2026-10-28)
+
+The voice-rewrite step of the write stage, 28 stories (a 5-minute daily with spares) each needing one rewrite, with a fake model that takes a fixed 300 ms a call (a tenth of a real call): main, one story at a time, 8,425 ms; this branch, four at a time, 2,130 ms, 3.96 times faster. At a real 3 s a call that is about 84 s down to 21 s. Grounding runs eight stories at once instead of four (32 Jev requests in flight, as before) and a Catch up skips its 17 s ffmpeg install. What a whole run takes is `generation_ms` after the merge; the baseline is 3 min 36 s for the 10-27 Regenerate and 2 min 5 s for its Catch up.
+
 ## Reading them
 
 - `length_share` off: read `funnel` (where did the stories go), then the validate report's `grounding_drops`.
