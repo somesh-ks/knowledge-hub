@@ -15,7 +15,7 @@ How we tell that generation is healthy. Each metric has one definition, one sour
 | :--- | :--- | :--- | :--- |
 | `failure_rate` | Failed briefing runs over runs, newest ten | at most 0.10 | A press that ends in "Stopped while publishing" is the worst outcome |
 | `length_share` | Narration aired over the owner's length, median | at least 0.90 | The owner sets 5 minutes and got 2 on 2026-10-27 (0.40) |
-| `grounding_survival` | 1 minus stories grounding dropped over stories checked (a pass that published nothing counts), median | at least 0.85 | Dropped stories are paid for and never heard |
+| `grounding_survival` | 1 minus stories grounding dropped over stories checked (written plus refilled; a pass that published nothing counts, one with none checked does not), never below 0, median | at least 0.85 | Dropped stories are paid for and never heard |
 | `verified_share` | Published briefings whose every sentence was checked | at least 0.90 | An outage must not pass as verified |
 | `model_fallbacks_per_run` | A model replaced by the next in its chain, per run | at most 1 | Settings say Sonnet; a fallback quietly changes who writes |
 | `generation_ms` (briefing) | Plan created to generation done | at most 4 min | The owner waits on a Regenerate |

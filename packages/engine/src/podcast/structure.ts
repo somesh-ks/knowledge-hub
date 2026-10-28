@@ -105,10 +105,11 @@ export function fitStories(
   // A story ranks by its place inside the block it airs in first, so the cut takes each block's tail
   // before any block's best: a mixed episode lists its topics one after another, and cutting by
   // position alone would take the whole last topic (2026-10-28, independent review). A release story
-  // airs in the release block whatever its section, so it ranks there.
+  // airs in the release block whatever its section, so it ranks there. Only the stories that air take
+  // a place: one a block's per-outlet limit turned away must not push the next behind another block's.
   const place = new Map<string, number>();
   const filled = new Map<string, number>();
-  for (const story of candidates) {
+  for (const story of shaped.stories) {
     const key = blockKey(story);
     const before = filled.get(key) ?? 0;
     place.set(story.item_id, before);

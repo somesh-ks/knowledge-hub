@@ -158,7 +158,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
           </div>
         </div>
         {/* Runs before the row is first drawn and puts this device's theme in the select. */}
-        <script is:inline set:html={settingsInit.trim()} />
+        <script is:inline data-astro-rerun set:html={settingsInit.trim()} />
       </section>
 
       <section>

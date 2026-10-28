@@ -76,10 +76,16 @@ const LATE_MOUNT_MS = 30_000;
  * once at mount makes up for it. A run that ended before the page opened has its card and is not
  * announced again.
  */
-export function endedRecently(run: RunRecord | null, now = Date.now()): boolean {
+export function endedRecently(
+  run: RunRecord | null,
+  now = Date.now(),
+  /** When this page began: a tab opened after the run ended has no cue claim and must not play it. */
+  since = performance.timeOrigin,
+): boolean {
   return (
     run?.stageAt !== undefined &&
     (run.phase === "done" || run.phase === "failed") &&
+    run.stageAt >= since &&
     now - run.stageAt >= 0 &&
     now - run.stageAt < LATE_MOUNT_MS
   );

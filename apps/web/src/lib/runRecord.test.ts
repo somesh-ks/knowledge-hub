@@ -59,4 +59,12 @@ describe("a briefing run that ended while the island was loading", () => {
     expect(endedRecently({ id: 9, phase: "done", what: "briefing" }, now)).toBe(false);
     expect(endedRecently(null, now)).toBe(false);
   });
+
+  // A tab opened seconds after a run ended has no cue claim of its own, and played the sound again
+  // (CodeRabbit, PR 391, third round): the run must have ended after this page began.
+  it("is not announced in a page that opened after the run ended", () => {
+    const run: RunRecord = { id: 9, phase: "done", what: "briefing", stageAt: now - 10_000 };
+    expect(endedRecently(run, now, now - 5_000)).toBe(false);
+    expect(endedRecently(run, now, now - 20_000)).toBe(true);
+  });
 });

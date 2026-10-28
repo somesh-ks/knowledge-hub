@@ -106,7 +106,10 @@ export function summarize(input: {
     return checked > 0 ? [Math.max(0, 1 - run.funnel.grounding_dropped / checked)] : [];
   });
   const enough = ids.length >= MIN_RUNS;
-  const timed = finished.flatMap((run) => (run.total_ms === undefined ? [] : [run.total_ms]));
+  // A run's fallbacks, total time and stage clock are copied into each of its passes: one entry a
+  // run, or a regular and a weekly briefing would weigh it twice.
+  const finishedRuns = [...new Map(finished.map((run) => [run.run_id, run])).values()];
+  const timed = finishedRuns.flatMap((run) => (run.total_ms === undefined ? [] : [run.total_ms]));
 
   const episodes = [...input.timings]
     .filter((entry) => entry.metrics !== undefined)
@@ -154,10 +157,10 @@ export function summarize(input: {
         ),
         reading(
           "model_fallbacks_per_run",
-          mean(finished.map((run) => run.model_fallbacks)),
+          mean(finishedRuns.map((run) => run.model_fallbacks)),
           `<= ${TARGETS.fallbacksPerRunMax}`,
           (v) => v <= TARGETS.fallbacksPerRunMax,
-          finished.length >= MIN_RUNS,
+          finishedRuns.length >= MIN_RUNS,
         ),
         reading(
           "generation_ms",
@@ -167,7 +170,7 @@ export function summarize(input: {
           timed.length >= MIN_RUNS,
         ),
       ],
-      stage_ms: stageMedians(finished.map((run) => run.stage_ms)),
+      stage_ms: stageMedians(finishedRuns.map((run) => run.stage_ms)),
     },
     episodes: {
       runs: episodes.length,

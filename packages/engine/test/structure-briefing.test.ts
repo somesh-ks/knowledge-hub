@@ -207,6 +207,33 @@ describe("a Catch up fills its slots after the structure's caps", () => {
     expect(fitted).toContain("w1");
   });
 
+  // A story the structure's per-outlet limit turns away never airs, so it must not take a place in the
+  // rank either: counted, it pushed the block's next story behind another block's second one
+  // (CodeRabbit, PR 391, third round).
+  it("ranks only the stories that air, so a turned-away story takes no place", () => {
+    const limited = blocks([
+      { type: "hello" },
+      { type: "section", id: "world", per_source: 1 },
+      { type: "section", id: "design" },
+      { type: "sign_off" },
+    ]);
+    const at = (id: string, section: string, host: string): PodcastStory => ({
+      ...story(id, section),
+      url: `https://${host}/${id}`,
+    });
+    const candidates = [
+      at("w1", "world", "a.example"),
+      at("w2", "world", "a.example"),
+      at("w3", "world", "b.example"),
+      at("d1", "design", "c.example"),
+      at("d2", "design", "d.example"),
+    ];
+    const fitted = fitStories(candidates, limited, {}, 3).stories.map((each) => each.item_id);
+    expect(fitted).not.toContain("w2");
+    expect(fitted).toContain("w3");
+    expect(fitted).toHaveLength(3);
+  });
+
   // A short episode with many blocks plans one slot; selection kept two, and fitting must not cut
   // under what selection kept (CodeRabbit, PR 391).
   it("never cuts an episode under two stories, whatever the structure left room for", () => {

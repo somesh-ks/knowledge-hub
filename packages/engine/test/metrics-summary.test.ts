@@ -103,6 +103,38 @@ describe("a run is the unit of failure_rate", () => {
   });
 });
 
+// The producer copies a run's fallbacks, total time and stage clock into each of its passes, so a
+// regular and a weekly briefing weighed the run twice, and two such runs passed for a trend
+// (CodeRabbit, PR 391, third round).
+describe("run-wide readings count a run once", () => {
+  const pass = (n: number, kind: string, over: Partial<RunMetric> = {}) =>
+    run(n, { kind, digest_id: `${kind}-${n}`, ...over });
+
+  it("does not let a two-pass run weigh double", () => {
+    const slow = { total_ms: 600_000 };
+    const summary = summarize({
+      runs: [
+        pass(1, "regular", slow),
+        pass(1, "weekly", slow),
+        run(2, { total_ms: 100_000 }),
+        run(3, { total_ms: 100_000 }),
+      ],
+      timings: [],
+    });
+    expect(verdicts(summary.briefings.readings).generation_ms).toBe("ok");
+  });
+
+  it("needs three runs for them, not three entries", () => {
+    const summary = summarize({
+      runs: [pass(1, "regular"), pass(1, "weekly"), pass(2, "regular"), pass(2, "weekly")],
+      timings: [],
+    });
+    const verdict = verdicts(summary.briefings.readings);
+    expect(verdict.generation_ms).toBe("unmeasured");
+    expect(verdict.model_fallbacks_per_run).toBe("unmeasured");
+  });
+});
+
 // A pass whose stories grounding dropped below the publication floor commits as `nothing`; its
 // written stories were checked all the same, and leaving it out hid the loss (CodeRabbit, PR 391).
 describe("grounding_survival counts a pass that published nothing", () => {
