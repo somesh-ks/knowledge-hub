@@ -16,3 +16,7 @@ Settings, Analytics, Health opens `/settings/health` ([spec](../specs/health.md)
 ## Verification
 
 Unit tests for the three traps (publish wait, thin field samples, run.yml's skipped hourly ticks); the page joins the layout, crumb and design sweeps with a frozen answer; screenshots at 390 and 1280, light and dark.
+
+## On production
+
+#393 shipped the page; reading it live found three of its own rows wrong, fixed in #395: Model fallbacks read "No data" for a spend with none (the engine writes the key only when one happens), Catch up read "0 stories" for a run that found nothing, and Jobs, Briefings read Unavailable because run.yml's two pages of runs were fetched one after the other. Since build 3f1cc42 every row answers. The page's first live reading: the 10-27 briefing aired 39% of its length on 3 stories, and Catch up failed twice that week.
