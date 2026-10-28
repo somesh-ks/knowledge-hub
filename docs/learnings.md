@@ -4,7 +4,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Browser tests
 
-- 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it) and fails. `CI=1` skips it.
+- 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
@@ -39,10 +39,10 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
-- 2026-10-27: two workflows appending to one state file conflict on every overlap. Merge a list by key, never pick a side (`git/stateMerge.ts`); a Catch up lost a written episode to `state/costs-2026-10.json`.
-- 2026-10-24, 10-27: a briefing aired 3 stories of 5 minutes: a check dropped a whole story for one bad sentence, the refill found the reserve empty (section caps capped it too) or threw on a section over its allowance, and grounding never saw the title. Cut the sentence first; refill from `reserve.json`; trim a section instead of failing (#373, D203).
-- 2026-10-27: a prompt that says "one turn" for a nugget while the word target needs three gets a script that falls short; the length instruction and the shape instruction must agree (`nuggetLine`).
-- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped in silence; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding (#381). The install then hung 5 to 19 min with `-qq` hiding the stage: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
+- 2026-10-27: two workflows appending to one state file conflict on every overlap. Merge a list by key, never pick a side (`git/stateMerge.ts`); a Catch up lost a written episode this way.
+- 2026-10-24, 10-27: a briefing aired 3 stories of 5 minutes: a check dropped a whole story for one bad sentence, the refill found the reserve empty (section caps capped it too) or threw on a section over its allowance. Cut the sentence first; refill from `reserve.json`; trim a section instead of failing (#373, D203).
+- 2026-10-27: a prompt that says "one turn" while the word target needs three gets a script that falls short: the length and shape instructions must agree (`nuggetLine`).
+- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped in silence; The workflows install it; turns are measured by decoding (#381). The install then hung 5 to 19 min with `-qq` hiding the stage: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other and a second channel failed "Already a source". A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment and a foreign name came back in another prosody. Pin `language` and hash it.
 - 2026-10-23: Vercel's Neon integration names its variables `NEON_*`, which nothing reads; seed before the GitHub variable goes on. lightningcss rejects `::picker(select)::backdrop`: use a `0 0 0 100vmax` shadow. A long-press drag that keeps scrolling cannot be pointer events (`touch-action: none` kills scroll): use `draggable`.
@@ -52,17 +52,17 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: YouTube refuses datacenter addresses: the player API says 429 and yt-dlp hits "Sign in to confirm you're not a bot"; cookies lift it, PO tokens do not (yt-dlp #15865). Firecrawl's `youtube-com/videos/video_transcript` makes the call from its network, 5 credits.
 - 2026-10-24: no YouTube video had ever reached the judge (25 fetched since 9 Oct, `asked` 0 in `state/source-stats.json`): the prefilter keeps only keyword, author, high-signal or tagged items, and video titles name no keyword. The channels are seeded high-signal now. Check `asked` before debugging a later stage.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts`: subtitles, then Gemini (`GEMINI_TRANSCRIBE_MODEL`, first 30 minutes, 3 a run), cached in `state/video-text.json`; failure degrades to the description.
-- 2026-10-19: the caption track URLs on a watch page answer 200 with an empty body, so every video fell through to Gemini. The player API's Android client (`youtubei/v1/player`, no key) lists tracks whose URLs return the text. A fake proves the parser, not that YouTube still serves captions: probe one live video after any change here.
+- 2026-10-19: the caption track URLs on a watch page answer 200 with an empty body, so every video fell through to Gemini. The player API's Android client (`youtubei/v1/player`, no key) lists tracks whose URLs return the text. A fake proves the parser, not that YouTube serves captions: probe one live video.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - 2026-10-08: Vercel Hobby includes 2,000 advanced Blob operations a month (`put`, `copy`, `list`) and 10,000 simple ones (`head`, a read that misses the cache); going over locks the store for 30 days. Count operations per call when designing anything that writes to Blob, and never `list` on a page view.
-- 2026-10-18: the 15-minute weekly aired 14 stories (5 minutes): the prefilter's fixed cap of 80 (sized for a daily) filled 27 of 52 slots. `poolCapFor` sizes the prefilter; read a short run's funnel with `singularity metrics` first.
-- 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain falls through silently to Nebius, so from 2026-10-14 the briefings were written by Nebius while Settings said Sonnet. The client sends no temperature; a failover should be visible, not only in logs.
+- 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots, grounding and validation dropped 11. `poolCapFor` now sizes the prefilter, writes 85% spares up to 80 and cuts to the narration limit after grounding. Read a short episode's funnel from the stage lines (`kept`, `qualifying`, `selected`, `grounding_dropped`) first.
+- 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain falls through silently to Nebius, so from 2026-10-14 the briefings were written by the Nebius model while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
 - 2026-10-15: the eval's quality score moves ±0.25 between runs on the same episode; read the judge's reasons (`loop/inspect.ts` in the eval job log) before acting on a score change.
 - 2026-10-14: Firecrawl bills a cached scrape (its Faster Scraping page: "Cached results still cost 1 credit per page"), so `maxAge` cuts latency and not spend. Only a request that is not made saves a credit.
 - 2026-10-12: the workflows installed all 445 packages to run one CLI. `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` installs 118 and takes 4.3 s, not 10.4.
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
-- 2026-10-12: episode length: a writer told a length in characters delivers a third to two thirds; in words, per story and in total, 83 to 90%. A script cannot be longer than its stories carry, so hold it to that (D43). Asking for 90% wrote almost every episode twice: ask for 95% and accept a reply within a few percent of the floor.
+- 2026-10-12: episode length: a writer told a length in characters delivers a third to two thirds; in words, per story and in total, 83 to 90%. A script cannot be longer than its stories carry, so hold it to that (D43). Asking for 90% wrote almost every episode twice: ask for 95%, accept a few percent under.
 - 2026-10-11: a missing morning briefing was GitHub, not the gate: the 07:13 Stockholm entry ran 13:11 to 14:02 on 7 to 10 October, a platform-wide delay since 2026-08-26. Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. The trigger moved to Vercel Cron (D61).
 - 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change to either reaches only new sources; write it into `config/sources.json` after the import (`--fresh` would lose discovered feeds and counters). The import also writes JSON that Biome reformats: run `biome format` on it before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
@@ -71,7 +71,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
-- 2026-10-28: a fixed wait for an answer that is nearly always slower is paid on every visit (Settings waited 300 ms for the store): measure it on the built site with a stubbed slow store. The browser suites need `node e2e/run.mjs --build-only`.
+- 2026-10-28: a fixed wait for an answer that is nearly always slower is paid on every visit: measure it on the built site with a slow store stub. The browser suites need `node e2e/run.mjs --build-only`.
+- 2026-10-27: in-app moves swap the head's build meta: read it once (D202).
 - 2026-10-27: moving a shared rule behind `:has()` raised its specificity over podcast.css's override, cutting voice names at 70% of 70% (#378): wrap the condition in `:where()` (#386).
 - 2026-10-27: a Playwright `**/api/config` route glob ignores query strings, so `/api/config?after=` slipped past the mock: match with a regex.
 - 2026-10-24: a chart panel hidden by CSS (`display: none`, the Costs table view) still gets its ResizeObserver callback, at zero height, and drew a rect of -40. Guard a draw on the box (`clientHeight === 0`), not on `hidden`.
@@ -123,7 +124,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
-- 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` after the clean and junction checks.
+- 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once the worktree is clean.
 - 2026-10-21: a worktree can start from an older base than the brief names (it lacked 29 commits): check the last commit first and reset to the target before editing.
 - 2026-10-11: the review workflow's code-review plugin stops at a PR it already reviewed: a re-labelled run posts nothing, reports success, and new commits go unreviewed. Review them locally (`/code-review` on the range).
 - 2026-10-06: Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.

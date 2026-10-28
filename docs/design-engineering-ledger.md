@@ -189,7 +189,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Why the crossfade ran: Astro's swap keeps only a fixed set of root attributes, so `data-astro-nav` was dropped and the 330 ms default played. `navigation.ts:77` carries it onto `event.newDocument` in `astro:before-swap`.
   - The incoming page fades up in 100 ms, with an 8px settle into or out of a briefing.
   - `navigationBoost.ts` replaces the view-transition snapshot with an immediate swap: a one-shot stand-in for `document.startViewTransition`, branded with a WeakSet, that marks the new document `data-nav-swap` (`:66`, `:118`, `:138`). It skips two frames of snapshot capture.
-  - The service worker answers a move from a stamped copy (`x-singularity-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads once after a deploy, never while offline (2026-10-08).
+  - The service worker answers a move from a stamped copy (`x-singularity-stored-at`): fresh for 10 minutes, rechecked in the background after 15 s, expired when `/latest.json` changes (`sw.js:28-32`). A stale tab reloads itself after a deploy, never while offline, playing, typing or with a sheet or Undo open (D202, 2026-10-27).
   - A touch `pointerdown` starts the fetch about 100 ms before the tap ends.
   - The pressed nav item lights up before the page arrives.
 - **Motion rules in tokens.**

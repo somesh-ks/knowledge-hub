@@ -7,7 +7,14 @@ import {
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
-import { shouldActivateUpdate, shouldCheckForUpdate, UPDATE_CHECK_MS } from "./serviceWorker";
+import {
+  APPLY_ATTEMPTS,
+  canReloadNow,
+  claimApply,
+  shouldActivateUpdate,
+  shouldCheckForUpdate,
+  UPDATE_CHECK_MS,
+} from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
 
@@ -141,5 +148,67 @@ describe("shouldCheckForUpdate", () => {
   it("asks for a new worker at most once per interval", () => {
     expect(shouldCheckForUpdate(UPDATE_CHECK_MS - 1, 0)).toBe(false);
     expect(shouldCheckForUpdate(UPDATE_CHECK_MS, 0)).toBe(true);
+  });
+});
+
+// A deploy loads itself (D202), so the reload must never cost the reader anything: a listen, an
+// Undo, an open sheet, text typed and not yet saved.
+describe("canReloadNow", () => {
+  const idle = { playerState: "paused", overlayOpen: false, editing: false };
+
+  it("loads the new build when nothing is in use", () => {
+    expect(canReloadNow(idle)).toBe(true);
+    expect(canReloadNow({ ...idle, playerState: undefined })).toBe(true);
+  });
+
+  it("waits for each thing a reload would throw away", () => {
+    expect(canReloadNow({ ...idle, playerState: "playing" })).toBe(false);
+    expect(canReloadNow({ ...idle, playerState: "loading" })).toBe(false);
+    expect(canReloadNow({ ...idle, overlayOpen: true })).toBe(false);
+    expect(canReloadNow({ ...idle, editing: true })).toBe(false);
+  });
+});
+
+describe("claimApply", () => {
+  const memory = () => {
+    const data = new Map<string, string>();
+    return {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => void data.set(key, value),
+    };
+  };
+
+  // A reload that still shows the old build (a stale answer from the network's edge) must not loop.
+  it("loads a build a limited number of times", () => {
+    const store = memory();
+    for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) {
+      expect(claimApply("b2", store)).toBe(true);
+    }
+    expect(claimApply("b2", store)).toBe(false);
+  });
+
+  // Without a per-tab marker a stale edge copy would reload in a loop (CodeRabbit, PR #392).
+  it("does not reload when the tab cannot remember", () => {
+    const broken = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => undefined,
+    };
+    expect(claimApply("b2", broken)).toBe(false);
+  });
+
+  // B, B, C, B: a claim for C must not reset B's count (CodeRabbit, PR #392).
+  it("keeps the count of each build apart", () => {
+    const store = memory();
+    for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
+    expect(claimApply("b3", store)).toBe(true);
+    expect(claimApply("b2", store)).toBe(false);
+  });
+
+  it("loads a build newer than the one it loaded for at once", () => {
+    const store = memory();
+    for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
+    expect(claimApply("b3", store)).toBe(true);
   });
 });

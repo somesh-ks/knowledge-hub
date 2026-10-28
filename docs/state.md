@@ -16,7 +16,7 @@ Updated 2026-10-27. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 
 ## Tests
 
-Unit (CI): 308 files, 4,964 tests (10-28), 96 s. Site e2e: 403 runs (10-28), 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 308 files, 4,991 tests (10-28), 99 s. Site e2e: 403 runs (10-28), 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
@@ -24,7 +24,7 @@ Unit (CI): 308 files, 4,964 tests (10-28), 96 s. Site e2e: 403 runs (10-28), 10 
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D206): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Not built: a length option above 15 minutes (the 19,000-character narration request is full at 15). closed when: the owner asks for it.
-- Discovery copies now rank below an outlet's own entry in dedupe (2026-10-28); a Catch up's general feeds never used Exa. closed when: a run's dedupe report keeps the outlet's entry where a discovery copy of the story was found.
+- Discovery copies rank below an outlet's own entry in dedupe (2026-10-28). closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
@@ -35,7 +35,7 @@ Unit (CI): 308 files, 4,964 tests (10-28), 96 s. Site e2e: 403 runs (10-28), 10 
 - Software Engineering (D155) live. closed when: a digest has its section.
 - YouTube text: Firecrawl's transcript provider answered live (2026-10-24), Gemini on 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds answer the runners 404 (since about 10-14); #235 reads them through Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
-- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone gets the deploy toast, health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
+- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127) on a real phone: the audio fetch against Blob's CORS, Play in airplane mode, a briefing and an episode. closed when: both play offline on a phone after a Download.
 - Episode quality (D119, D120) and the refill (#237, #197): a live run with spares, a refill and a one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length, and one has a Science story from one outlet.
 - Real phones, Safari, WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
