@@ -168,8 +168,18 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   // Generation is done. A run that started ahead holds here until its scheduled time; one that
   // started late publishes at once. The record keeps both instants (D193).
   const generatedAt = deps.now().toISOString();
+  // Config is read before the wait: the selection was validated against it, and a category muted
+  // or a voice edited meanwhile must not fail a finished briefing (D203).
+  const sources: Source[] = await loadSources(root);
+  const linter = createLinter(await loadVoice(root));
+  const topics = withGeneralTopics(await loadTopicsFile(root));
+  const sectionPlans = new Map<string, Awaited<ReturnType<typeof loadSectionPlan>>>();
+  for (const pass of plan.passes) {
+    sectionPlans.set(pass.id, await loadSectionPlan(root, pass.kind));
+  }
   const held = !dryRun && !adopted && (await holdUntilPublishTime(deps, plan));
-  // The state read below must be the remote's, not the checkout from job start (D203).
+  // State and Digests are read after it, from the remote's branch and not the checkout from job
+  // start (D203).
   if (held && !options.noPush) await fastForwardToRemote(deps.git, deps.log);
   const now = deps.now();
 
@@ -182,8 +192,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
 
   const today = stockholmDate(now);
   const nowIso = now.toISOString();
-  const sources: Source[] = await loadSources(root);
-  const linter = createLinter(await loadVoice(root));
   const sourceNames = sourceNameMap(sources);
   let lastRun = await readLastRun(root);
   let seen = await readSeen(root);
@@ -194,7 +202,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   );
   let sourceStats = await readSourceStats(root);
   let statsTouched = false;
-  const topics = withGeneralTopics(await loadTopicsFile(root));
 
   const taken = new Set<string>();
   for (const date of new Set(plan.passes.map((pass) => pass.id.slice(0, 10)))) {
@@ -235,7 +242,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       continue;
     }
 
-    const sectionPlan = await loadSectionPlan(root, pass.kind);
+    const sectionPlan = sectionPlans.get(pass.id);
     const digest = digestFromSelection({
       selection,
       pool: pool.items,

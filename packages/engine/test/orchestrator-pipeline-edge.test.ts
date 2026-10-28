@@ -159,7 +159,8 @@ describe("concurrent writers and push handling", () => {
 
 // The bug (D203): a run generated ahead reads state/ from the checkout it made at job start, so a
 // push made during its wait (an on-demand run's, a config commit) made its own push a rebase
-// conflict on state/seen.json and lost the briefing.
+// conflict on state/seen.json and lost the briefing. Config is read before the wait, so a category
+// muted meanwhile cannot fail a briefing that was validated against the old one.
 describe("a run that holds for its publish time", () => {
   it("commits on top of what was pushed meanwhile", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
@@ -172,10 +173,17 @@ describe("a run that holds for its publish time", () => {
     });
     world.deps.wait = async () => {
       git(repo.other, "pull", "-q", "origin", "main");
+      const topics = await readJson<{ topics: object[] }>(repo.other, "config/topics.json");
       await seed(
         repo.other,
-        { "state/seen.json": json({ version: 1, items: { "pushed-meanwhile": "2026-10-07" } }) },
-        "chore(state): an on-demand run",
+        {
+          "state/seen.json": json({ version: 1, items: { "pushed-meanwhile": "2026-10-07" } }),
+          "config/topics.json": json({
+            ...topics,
+            topics: topics.topics.map((topic) => ({ ...topic, never_publish: true })),
+          }),
+        },
+        "chore(state): an on-demand run and a muted category",
       );
       world.setNow(new Date(WED.getTime() + 30 * 60_000));
     };
@@ -184,6 +192,8 @@ describe("a run that holds for its publish time", () => {
     const seen = JSON.parse(git(repo.remote, "show", "main:state/seen.json")) as SeenFile;
     expect(Object.keys(seen.items)).toContain("pushed-meanwhile");
     expect(Object.keys(seen.items).length).toBeGreaterThan(1);
+    // The muted categories are the other writer's edit, kept.
+    expect(git(repo.remote, "show", "main:config/topics.json")).toContain('"never_publish": true');
   });
 });
 
