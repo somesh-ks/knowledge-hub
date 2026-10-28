@@ -1,6 +1,6 @@
 # Control Archetypes Guide
 
-Standardized control reference for Singularity. When adding or modifying interactive controls (buttons, chips, tabs, switches), select directly from this catalog. Creating bespoke button classes is strictly forbidden unless formally added to `BESPOKE_CONTROLS` in `styles.test.ts` with an approved decision rationale.
+Standardized control reference for Singularity. When adding or modifying interactive controls (buttons, chips, tabs, switches, sheets), select directly from this catalog. Creating bespoke button classes is strictly forbidden unless formally added to `BESPOKE_CONTROLS` in `styles.test.ts` with an approved decision rationale.
 
 ---
 
@@ -18,6 +18,7 @@ Standardized control reference for Singularity. When adding or modifying interac
 | **Segmented Choice** | `.segmented-choice-item` | Single option picker | Radio group for discrete values (3 min, 5 min, 10 min). |
 | **Row Action** | `.row-action` | Full-row navigation trigger | Settings and menu rows acting as pressable tiles off hairlines. |
 | **Floating Action** | `CreateFab.astro`, `AddFab.astro` | Floating action trigger | Prominent mobile creation triggers pinned above bottom dock. |
+| **Bottom Sheet** | `.sheet`, `BottomSheet.astro` | Modal drawer for mobile (<40rem) | Lists, menus, and selects on viewports under 40rem; never popovers. |
 
 ---
 
@@ -81,6 +82,22 @@ Settings row or menu option acting as a tactile tile.
 ```
 * **Rules**: Presses as an elevated tile off dividing hairlines. Label is regular weight, never bold.
 
+### Bottom Sheet (`.sheet`, `BottomSheet.astro`)
+Mobile-first drawer for options, selects, and action lists on screens under 40rem (D167, Ledger section 11).
+```html
+<div class="sheet" role="dialog" aria-modal="true" data-open="true">
+  <div class="sheet-scrim" aria-hidden="true"></div>
+  <div class="sheet-surface">
+    <div class="sheet-header">
+      <h3 class="sheet-title">Playback Speed</h3>
+      <button class="icon-btn press" type="button" aria-label="Close"><Icon name="close" /></button>
+    </div>
+    <div class="sheet-body">...</div>
+  </div>
+</div>
+```
+* **Rules**: Under 40rem, selects and menus must open as bottom sheets, never popovers. Top corners rounded only. Slide up in 300 ms (`--duration-sheet-enter`, `--ease-drawer`), down in 220 ms. Maximum 70dvh tall. Always pad bottom for `env(safe-area-inset-bottom)`.
+
 ---
 
 ## 3. Bespoke Controls Inventory
@@ -101,10 +118,11 @@ The following 12 bespoke controls are the only non-standard controls permitted i
 
 ---
 
-## 4. Universal Design Rules
+## 4. Universal Design & Performance Rules
 
 1. **No Bold Labels**: Labels on buttons and rows stay regular weight (400 or 500); bold captures too much optical attention (D73, D125).
 2. **Never Scale Words on Press**: Label controls and worded buttons show a press on their background fill or tonal overlay, never by scaling text geometry down.
 3. **No Layout Shift**: Controls must never jump or change geometry when state toggles.
 4. **Strict Token Colors**: All control backgrounds, active layers, and ink colors must resolve to semantic color tokens (`--color-surface-*`, `--color-accent-*`, `--color-text-*`). Raw hex codes or un-tokenized lengths fail CI immediately.
-
+5. **Phone Sheets over Popovers**: Under 40rem, lists and menus open as bottom sheets, never popovers (D167, Ledger section 11).
+6. **First-Load JS Ceiling (130 KB)**: First-load JavaScript has a 130 KB gzipped ceiling (`FIRST_LOAD_BUDGET_BYTES`, D141). React islands wake on interaction or playback via `client:wake` (D178). Never load unhydrated client runtimes into first paint.

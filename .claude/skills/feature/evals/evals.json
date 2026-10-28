@@ -1,0 +1,28 @@
+{
+  "skill_name": "feature",
+  "evals": [
+    {
+      "id": "new-interactive-feature-flow",
+      "prompt": "Build a new interactive 'Save for Later' button on the story card in the briefing reader.",
+      "expectations": [
+        "Checks status and scope before modifying code",
+        "Generates a 1-page Feature Brief using assets/feature-brief-template.md",
+        "Audits all 7 states (idle, loading, active, empty, error, disabled, offline) with explicit N/A justification",
+        "Selects canonical control archetypes from controls guide and inlined decision matrix without inventing bespoke classes",
+        "Enforces phone-first sheet pattern (<40rem) and 8pt grid compliance",
+        "Verifies first-load JS bundle ceiling (130 KB budget) and runs multi-layer verification"
+      ]
+    },
+    {
+      "id": "early-exit-trivial-or-noop",
+      "prompt": "Check feature branch readiness and run preflight verification for the completed playback speed popover.",
+      "expectations": [
+        "Executes scripts/verify_feature.py --status as a lightweight early check",
+        "Validates zero token drift, no raw hex colors, and no em dashes",
+        "Checks bundle size impact against checkBundle",
+        "Halts early if no pending edits or flags failure before full suite run"
+      ]
+    }
+  ]
+}
+
