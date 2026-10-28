@@ -1,3 +1,4 @@
+import type { GenerationRow } from "../types/contracts";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { isSameOrigin } from "./generate";
 import { createGitHubClient, type FetchLike, type WorkflowRun } from "./github";
@@ -10,24 +11,13 @@ import { isOurRun, isPodcastRun, parseRunId, progressOf } from "./status";
  * generation is a briefing (run.yml) or an episode (podcast.yml) that someone dispatched, whether
  * this person, another device or the schedule. The list is built from GitHub's own run list, so it
  * keeps no state, and each row is built field by field like the status route's. A cancel answers
- * only for a run that list could show, so it cannot be used to stop anything else.
+ * only for a dispatched run of those two workflows (the status route's own test), so it cannot be
+ * used to stop a config save or anything else in the repository. The schedule's briefing is one
+ * of them, and with no auth (D201) anyone with the URL can stop it, as they can already delete.
  */
 
 /** Most rows a list answers with: one running and one waiting run for each of the two workflows. */
 const MAX_ROWS = 6;
-
-export interface GenerationRow {
-  run_id: number;
-  /** A briefing's run (a Regenerate, a Generate or the schedule's) or an episode's (a Catch up). */
-  what: "briefing" | "episode";
-  state: "queued" | "running";
-  /** When GitHub created the run: ISO 8601. */
-  started_at: string;
-  stage: number;
-  stages: number;
-  label: string;
-  stage_estimates_ms?: (number | null)[];
-}
 
 export type GenerationsBody = { generations: GenerationRow[] } | { error: "unavailable" };
 

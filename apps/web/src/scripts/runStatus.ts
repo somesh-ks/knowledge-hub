@@ -7,14 +7,16 @@
  * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
  * After the workflow has published, the last stage waits for the new page. Every sentence is in the
  * element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), except a failed
- * stage's sentence (lib/runStages.ts); this file imports only that and the error reference helper up front; the episode prewarm is loaded only once a new episode is
- * live.
+ * stage's sentence (lib/runStages.ts); this file imports only that, the error reference helper and
+ * the cancel call up front; the episode prewarm is loaded only once a new episode is live.
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
  * out again and the new run is followed. A finished run goes away once its episode has been opened.
  */
+
+import { cancelRun } from "../lib/cancelRun";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
+import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { briefingFailureLine, failureLine, timeLeft } from "../lib/runStages";
 
 const KEY = RUN_STORAGE_KEY;
@@ -37,7 +39,7 @@ export const SITE_POLL_MS = 2500;
 /** Ten minutes of asking, as before, at the faster pace. */
 const SITE_POLLS = 240;
 
-type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed";
+type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed" | "cancelled";
 /** What the run does to an episode that exists. Absent means a new episode. */
 type Kind = "regenerate" | "delete";
 /** What it takes to send a run's request again: its body, and where it goes (episodes by default). */
@@ -109,7 +111,7 @@ const staged = (body: {
   kept: Array.isArray(body.kept) ? body.kept.map(String) : undefined,
 });
 
-const FINISHED: Phase[] = ["done", "started", "failed"];
+const FINISHED: Phase[] = ["done", "started", "failed", "cancelled"];
 /** A finished rewrite's line is news for minutes: on a page that opens later it has gone stale. */
 const STALE_REWRITE_MS = 10 * 60_000;
 /** Phases of a run that is still going: Create waits for it (createPage.ts). */
@@ -180,8 +182,13 @@ function clearTitle(): void {
   }
 }
 
+/** What a refused Cancel says under the stage, for a few seconds, so the next poll does not erase it. */
+const CANCEL_NOTE_MS = 8000;
+let cancelNote: { id: number; text: string; until: number } | null = null;
+
 /** A failed run's reason, or its time-left line; "" when neither is available (runStages.ts). */
 function etaLine(root: HTMLElement, run: Stored | null): string {
+  if (run && cancelNote?.id === run.id && Date.now() < cancelNote.until) return cancelNote.text;
   // A failed run says why where a running one says the time left.
   if (run?.phase === "failed" && run.reason) return run.reason;
   if (!run || run.kind || run.what || !GOING.includes(run.phase)) return "";
@@ -274,6 +281,8 @@ function samePage(href: string): boolean {
 export function statusLine(run: Stored, words: Record<string, string | undefined>): string {
   const word = (key: string): string => words[key] ?? "";
   const cap = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+  // A run the person stopped is not an error: it says so and offers nothing but to be dismissed.
+  if (run.phase === "cancelled") return word("cancelled");
   if (run.phase === "failed") {
     if (run.note) return run.note;
     if (run.what) return briefingFailureLine(run.step) ?? word("briefingFailed");
@@ -342,6 +351,7 @@ function show(run: Stored | null): void {
       if (target.closest("[data-run-retry]")) void retry();
       if (target.closest("[data-run-play]")) void listenLive();
       if (target.closest("[data-run-check]")) checkAgain();
+      if (target.closest("[data-run-cancel]")) void stop(target.closest("[data-run-cancel]"));
       // Below 64rem the strip is one slim line; a press on it, or on its chevron, opens it.
       if (
         target.closest("[data-run-expand]") ||
@@ -434,6 +444,12 @@ function show(run: Stored | null): void {
   }
   const check = card.querySelector<HTMLButtonElement>("[data-run-check]");
   if (check) check.hidden = run?.phase !== "started";
+  // A run that is waiting or running can be stopped from the strip, and the whole list is one press
+  // away (scripts/generations.ts). The site's own last stage cannot be stopped: the run has ended.
+  const stoppable = run?.phase === "queued" || run?.phase === "running";
+  for (const button of card.querySelectorAll<HTMLElement>("[data-run-cancel], [data-run-queue]")) {
+    button.hidden = !stoppable;
+  }
   const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
   if (again) again.hidden = !(run?.phase === "failed" && run.retry);
   const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
@@ -490,7 +506,32 @@ export function fill(card: HTMLElement, run: Stored): void {
 function set(run: Stored): void {
   write(run);
   show(run);
-  if (FINISHED.includes(run.phase)) markTitle();
+  if (FINISHED.includes(run.phase) && run.phase !== "cancelled") markTitle();
+}
+
+/**
+ * Cancel on the strip: asks the server to stop the run on record and says so while it does. The
+ * next poll of the run reads "cancelled" and the strip settles on it; a refusal leaves the run as it
+ * was, with the button back, and the line saying it could not.
+ */
+async function stop(button: Element | null): Promise<void> {
+  const run = read();
+  if (!run || !(button instanceof HTMLButtonElement) || button.disabled) return;
+  const root = document.querySelector<HTMLElement>("[data-run-status]");
+  const words = button.textContent;
+  button.disabled = true;
+  button.textContent = root?.dataset.cancelling ?? words;
+  const result = await cancelRun(run.id);
+  button.disabled = false;
+  button.textContent = words;
+  if (result === "failed") {
+    cancelNote = {
+      id: run.id,
+      text: root?.dataset.cancelFailed ?? "",
+      until: Date.now() + CANCEL_NOTE_MS,
+    };
+    refreshEta();
+  }
 }
 
 /** Check again: polling ran out, so ask once more where the run is, the way it was asked before. */
@@ -568,8 +609,23 @@ async function watchStream(run: Stored): Promise<void> {
   if (watching === run.id) watching = 0;
 }
 
+/**
+ * What the live copy of the episode being written says of itself, for the generations list: its
+ * title and the colour of its cover until the drawn cover is deployed. Null before the copy has
+ * turns, and for a run it is not about.
+ */
+export function liveHint(): { runId: number; title: string | null; tint: string | null } | null {
+  if (!live) return null;
+  const { title, cover_key: tint } = live.doc as { title?: unknown; cover_key?: unknown };
+  return {
+    runId: live.runId,
+    title: typeof title === "string" ? title : null,
+    tint: typeof tint === "string" ? tint : null,
+  };
+}
+
 /** Listen now: plays the live copy from the persistent player. */
-async function listenLive(): Promise<void> {
+export async function listenLive(): Promise<void> {
   if (!live) return;
   const { runId, doc } = live;
   const runtime = await import("../narration/narrationRuntime");
@@ -619,7 +675,7 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       const next: Stored = {
         ...run,
         ...staged(body),
-        phase: failed ? "failed" : "done",
+        phase: body.outcome === "cancelled" ? "cancelled" : failed ? "failed" : "done",
         stageAt: Date.now(),
         ...(body.outcome === "nothing" || body.outcome === "gated"
           ? { outcome: body.outcome }
@@ -637,8 +693,15 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       const failed = body.outcome === "failed";
       // Published: a new episode still has to reach the site. An answer without stages is an older
       // route's, and finishes at once.
-      const waiting = !failed && !run.kind && body.stages;
-      const phase: Phase = failed ? "failed" : waiting ? "updating" : "done";
+      const cancelled = body.outcome === "cancelled";
+      const waiting = !failed && !cancelled && !run.kind && body.stages;
+      const phase: Phase = cancelled
+        ? "cancelled"
+        : failed
+          ? "failed"
+          : waiting
+            ? "updating"
+            : "done";
       const next: Stored = { ...run, ...staged(body), phase, stageAt: Date.now() };
       if (failed && typeof body.run_url === "string") next.log = body.run_url;
       if (waiting)
@@ -690,6 +753,8 @@ export function startRun(
   };
   following = 0;
   set(run);
+  // The generations list opens on a wide screen to show it (scripts/generations.ts).
+  document.dispatchEvent(new Event(GENERATION_STARTED_EVENT));
   void follow(run, false);
 }
 

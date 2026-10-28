@@ -740,7 +740,18 @@ dialog.create-sheet .create-submit > .btn-primary {
 
 .run-dismiss,
 .run-retry,
-.run-check {
+.run-check,
+.run-cancel {
+  flex: none;
+}
+
+/* Below 64rem the strip is where a run is stopped and where the whole list is opened (the list's icon
+   is in the side column only). Both wait until the strip is opened, with the other actions. */
+.run-card:not([data-expanded]) :is(.run-cancel, .run-queue) {
+  display: none;
+}
+
+.run-queue {
   flex: none;
 }
 
@@ -786,7 +797,7 @@ dialog.create-sheet .create-submit > .btn-primary {
     order: 1;
   }
 
-  .run-card[data-expanded] :is(.run-link, .run-details) {
+  .run-card[data-expanded] :is(.run-link, .run-details, .run-cancel, .run-queue) {
     order: 2;
   }
 
@@ -835,7 +846,13 @@ dialog.create-sheet .create-submit > .btn-primary {
   transform-origin: right center;
 }
 
-.run-card:is([data-state="done"], [data-state="started"], [data-state="failed"]) .run-bar {
+.run-card:is(
+    [data-state="done"],
+    [data-state="started"],
+    [data-state="failed"],
+    [data-state="cancelled"]
+  )
+  .run-bar {
   display: none;
 }
 
@@ -931,6 +948,15 @@ html[data-player="open"] .run-status {
 
   .run-card:not(:has(.run-dismiss:not([hidden]))) .run-bar {
     grid-column: 1 / -1;
+  }
+}
+
+/* From 64rem a run that is going lives in the generations icon at the top of the column (generations.css):
+   its ring, and the list under it with Cancel and Listen now. The card here comes back when the run
+   has ended, with the result's own buttons (Open, Try again, Details). Listen now moved with the run. */
+@media (width >= 64rem) {
+  .run-card:is([data-state="queued"], [data-state="running"]) {
+    display: none;
   }
 }
 

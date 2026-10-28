@@ -150,6 +150,10 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
   ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
   [
+    "components/GenerationsMenu.astro",
+    "the progress ring around the generations icon: a drawn arc, coloured by classes, not a glyph",
+  ],
+  [
     "sheets/GenerateSheet.tsx",
     "a glyph-set path that needs the shared .icon class the island Icon lacks",
   ],

@@ -14,6 +14,11 @@ const lines = {
   "data-eta": "About {n} min left",
   "data-slow": "Taking longer than usual",
   "data-failed": "Couldn't make the episode",
+  // A run the person stopped from the generations list: not an error, so it only says so.
+  "data-cancelled": "Cancelled",
+  // On the strip's Cancel: while the request is out, and after a refusal.
+  "data-cancelling": "Cancelling\u2026",
+  "data-cancel-failed": "Couldn't cancel. Try again.",
   // The stage names come from the status route (lib/runStages.ts); these are the sentences around them.
   "data-failed-stage": "Stopped while {label}",
   "data-updating": UPDATING_LABEL,
@@ -83,6 +88,10 @@ const lines = {
     <a class="text-link run-details" href="#" data-run-log target="_blank" rel="noopener noreferrer" hidden>Details</a>
     <button class="btn run-retry" type="button" data-run-retry hidden>Try again</button>
     <button class="btn run-check" type="button" data-run-check hidden>Check again</button>
+    {/* A run that is going can be stopped here, and the strip opens the whole list when more than one is
+         going (scripts/generations.ts shows them). */}
+    <button class="btn run-cancel" type="button" data-run-cancel hidden>Cancel</button>
+    <button class="btn run-queue" type="button" popovertarget="generations" data-run-queue hidden>All generations</button>
     <button class="btn-primary run-play" type="button" data-run-play hidden>Listen now</button>
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
       <Icon name="close" class="icon-lg" />

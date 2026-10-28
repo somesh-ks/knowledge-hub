@@ -161,6 +161,26 @@ export interface StatusResponse {
   run_url?: string;
 }
 
+/** One generation under way, as GET /api/generations lists it. */
+export interface GenerationRow {
+  run_id: number;
+  /** A briefing's run (a Regenerate, a Generate or the schedule's) or an episode's (a Catch up). */
+  what: "briefing" | "episode";
+  state: "queued" | "running";
+  /** When GitHub created the run: ISO 8601. */
+  started_at: string;
+  stage: number;
+  stages: number;
+  label: string;
+  /** The usual length of each stage in milliseconds, when the engine has timed such runs. */
+  stage_estimates_ms?: (number | null)[];
+}
+
+/** GET /api/generations response body. */
+export interface GenerationsResponse {
+  generations: GenerationRow[];
+}
+
 /** POST /api/narrate request body. */
 export interface NarrateRequest {
   /** The digest to narrate, by id: "2026-10-07", "2026-10-07-2" or "2026-10-11-weekly". */

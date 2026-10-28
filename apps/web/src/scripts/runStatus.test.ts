@@ -411,3 +411,39 @@ describe("a status answer for a run that is no longer followed", () => {
     expect(calls).toBeGreaterThan(before);
   });
 });
+
+// A run stopped from the generations list is neither made nor failed: the status route says
+// "cancelled", and the card used to have only "failed" to show it as (an error and Try again).
+describe("a run that was cancelled", () => {
+  async function endsAs(what: boolean, id: number): Promise<{ phase: string; line: string }> {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, removeItem: () => undefined });
+    vi.stubGlobal("document", {
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      documentElement: { dataset: {} },
+      dispatchEvent: () => true,
+    });
+    vi.stubGlobal("fetch", async () =>
+      Response.json({ run_id: id, state: "completed", outcome: "cancelled", stage: 0, stages: 3 }),
+    );
+    startRun(id, what ? { what: "briefing" } : undefined, { body: { request: {} } });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await settle();
+    const record = JSON.parse(store.get("singularity:run") ?? "{}");
+    return {
+      phase: record.phase,
+      line: statusLine(record, { cancelled: "Cancelled", failed: "Couldn't make the episode" }),
+    };
+  }
+
+  it("ends as cancelled for a briefing and for an episode, with a plain line", async () => {
+    expect(await endsAs(true, 61)).toEqual({ phase: "cancelled", line: "Cancelled" });
+    expect(await endsAs(false, 62)).toEqual({ phase: "cancelled", line: "Cancelled" });
+  });
+});

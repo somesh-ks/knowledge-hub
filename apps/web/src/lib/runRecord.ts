@@ -6,6 +6,8 @@
 export const RUN_STORAGE_KEY = "singularity:run";
 /** Sent on the document each time the indicator redraws. */
 export const RUN_EVENT = "singularity:run";
+/** Sent on the document when a run is started on this page: the generations list shows it. */
+export const GENERATION_STARTED_EVENT = "singularity:generation-started";
 /** The last run whose end cue was played in this tab: `<id>:<phase>`. */
 const CUED_KEY = "singularity:run-cued";
 
@@ -21,6 +23,15 @@ export interface RunRecord {
   step?: string;
   /** When the run last changed phase (`Date.now()`). */
   stageAt?: number;
+  /** Where the status route said the run is: the stage, how many there are, and its name. */
+  stage?: number;
+  stages?: number;
+  label?: string;
+  /** When it was started, and the usual length of each of its stages (the status route's estimates). */
+  t0?: number;
+  estimates?: (number | null)[];
+  /** The request that started it, kept for Try again: an episode's `request`, or a Regenerate's `replace`. */
+  retry?: { body: Record<string, unknown> };
 }
 
 /**
