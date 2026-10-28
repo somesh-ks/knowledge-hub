@@ -58,7 +58,7 @@ def check_em_dashes(files: list[str]) -> list[str]:
     issues = []
     for file_path in files:
         p = Path(file_path)
-        if not p.is_file() or p.suffix not in (".md", ".ts", ".astro", ".css", ".js"):
+        if not p.is_file() or p.suffix not in (".md", ".ts", ".tsx", ".js", ".jsx", ".astro", ".css"):
             continue
         try:
             content = p.read_text(encoding="utf-8", errors="ignore")
@@ -78,7 +78,7 @@ def check_raw_hex(files: list[str]) -> list[str]:
     hex_pattern = re.compile(r"#[0-9a-fA-F]{3,8}\b")
     for file_path in files:
         p = Path(file_path)
-        if not p.is_file() or p.suffix not in (".astro", ".css"):
+        if not p.is_file() or p.suffix not in (".astro", ".css", ".tsx", ".jsx", ".ts", ".js"):
             continue
         try:
             content = p.read_text(encoding="utf-8", errors="ignore")
@@ -115,6 +115,9 @@ def main():
         print(f"[STATUS] {len(files)} modified or untracked file(s) found.")
     else:
         print("[STATUS] Working tree clean.")
+
+    if args.status:
+        sys.exit(0)
 
     failed = False
     if files:
