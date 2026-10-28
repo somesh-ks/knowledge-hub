@@ -635,7 +635,8 @@ test.describe("a topic's page", () => {
 
       // Another device adds Glaze Monthly; this one reads it once, then loses the store (Neon
       // asleep, or offline). The page shows what it last read (D172), not the build, which never
-      // had Glaze Monthly, and the local edits still lie over it.
+      // had Glaze Monthly, and the local edits still lie over it. A page shows its copy at once
+      // (D205), so a reload reads the store's news and the next one shows it.
       user.added.push({
         ...user.added[0],
         id: "glaze-monthly",
@@ -645,6 +646,16 @@ test.describe("a topic's page", () => {
         topic_ids: ["design_engineering_craft"],
       });
       stored = { "config/sources.user.json": JSON.stringify(user) };
+      const answered = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/config") && response.request().method() === "GET",
+      );
+      await page.reload();
+      await answered;
+      // The answer is read and kept within a couple of frames.
+      await page.evaluate(
+        () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+      );
       await page.reload();
       await expect(source(page, "Glaze Monthly")).toBeVisible();
       stored = null;
