@@ -1,12 +1,12 @@
 # Engine
 
-Fetch, judge, write, validate, sizing and spares, sources and scores, cost limits. What it does now. Reasons: D42, D55, D66, D69, D70, D80, D103, D104, D108, D118, D119, D120, D203; history: docs/history/.
+Fetch, judge, write, validate, sizing and spares, sources and scores, cost limits. What it does now. Reasons: D42, D55, D66, D69, D70, D80, D103, D104, D108, D118, D119, D120, D204; history: docs/history/.
 
 ## Requirements
 
 ### Pipeline
 - The engine runs on live services: fetch (Exa, Firecrawl, feeds), judge (TypeSafe Jev), write (Claude, Gemini fallback), validate, commit as the owner. Digest, state and config commits go through the write guard.
-- One Jev request per item (D42). Scores are the filter and the ranking. Thresholds 0.4 (qualify) and 0.5 (grounding) are uncalibrated. The grounding check asks one yes or no per summary sentence against a 160-word excerpt headed by the title and outlet, and cuts an unsupported sentence; the story goes only when none is left (D203).
+- One Jev request per item (D42). Scores are the filter and the ranking. Thresholds 0.4 (qualify) and 0.5 (grounding) are uncalibrated. The grounding check asks one yes or no per summary sentence against a 160-word excerpt headed by the title and outlet, and cuts an unsupported sentence; the story goes only when none is left (D204).
 - Jev 1.14.0 is pinned (D118). From ten votes and opens, Jev asks of the top 60 candidates whether the owner would want each; the answer moves the score at most 15%, in place of the source-vote nudge. Votes nudge ranking from 3 votes over 30 days; both numbers are first guesses.
 - Models: `config/models.json` routes each step to a chain of families: judge, taste, format jev, flash-lite; emoji jev (2.5 s), flash-lite (1.5 s, any one RGI emoji, fallback id, site request); grounding jev, flash; facts flash-lite, flash; writer and script sonnet, flash (D181); transcription flash-lite, flash. `llm/modelResolver.ts` takes the newest listed id per family at run start, else `fallback_id`; `pin` overrides. `llm/modelRouter.ts` `callModel` moves on after an error, timeout, refusal or bad reply, warns and counts `model_fallback`; the ledger names the serving model. Claude gets `output_config` effort and format; no model gets temperature. Topic fit has no fallback.
 - Writer: opens on the news, says at most two numbers, varies endings, puts a catch before the last line, sees the episode's other headlines, and writes a `chapter` label per story. One telling per story (`score/sameStory.ts`) (D119).

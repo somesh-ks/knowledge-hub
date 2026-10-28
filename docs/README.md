@@ -16,8 +16,8 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
 | [engineering/engagement-and-share-plan.md](engineering/engagement-and-share-plan.md) | Share links and the listen page on top of Simple Analytics (D154), in stages (D153) | Before building engagement or sharing |
 | [engineering/metrics.md](engineering/metrics.md) | The generation health metrics, their targets, where each is measured and the 2026-10-27 baseline | Before changing generation, and when `singularity metrics` or `health` flags a trend |
-| [engineering/generation-resilience.md](engineering/generation-resilience.md) | The guards that keep a Regenerate or Catch up from failing or shipping short (D203) | Before changing validation, the writer or the push |
-| [engineering/pnpm-migration.md](engineering/pnpm-migration.md) | A pnpm spike: what worked, the five changes it needs, and what only CI and Vercel can check (D205) | Before moving to pnpm |
+| [engineering/generation-resilience.md](engineering/generation-resilience.md) | The guards that keep a Regenerate or Catch up from failing or shipping short (D204) | Before changing validation, the writer or the push |
+| [engineering/pnpm-migration.md](engineering/pnpm-migration.md) | A pnpm spike: what worked, the five changes it needs, and what only CI and Vercel can check (D206) | Before moving to pnpm |
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
 | [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |

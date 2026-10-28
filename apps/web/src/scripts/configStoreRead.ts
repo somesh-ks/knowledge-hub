@@ -27,7 +27,7 @@ const REUSE_MS = 1000;
  * How long a page waits for the store before it shows the device's copy instead, when it has one.
  * None: the copy is the store's last answer (D172), so showing it at once is the page the store would
  * most likely give, and waiting 300 ms for a store that takes longer (a function and Neon, nearly
- * always) put that wait in front of every settings page (D204). A store that then answers with
+ * always) put that wait in front of every settings page (D205). A store that then answers with
  * something else is offered as a reload.
  */
 export const CACHE_GRACE_MS = 0;

@@ -1,6 +1,6 @@
 # Generation resilience
 
-What keeps a Regenerate or a Catch up from ending in "Stopped while publishing" or shipping short, and where each guard lives (D203). Health numbers: [metrics](metrics.md).
+What keeps a Regenerate or a Catch up from ending in "Stopped while publishing" or shipping short, and where each guard lives (D204). Health numbers: [metrics](metrics.md).
 
 ## The 2026-10-27 failures
 

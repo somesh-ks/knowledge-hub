@@ -210,11 +210,11 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
 | D202 | A deploy loads itself | amends D146 |
-| D203 | Guards for a short or lost run, health metrics, one run card | active |
-| D204 | Settings paint the kept copy at once | amends D172 |
-| D205 | Stay on npm; pnpm spiked | active |
-| D206 | A Regenerate asks for its own length | amends D203 |
-| D207 | A list of generations, with Cancel | amends D203 |
+| D204 | Guards for a short or lost run, health metrics, one run card | active |
+| D205 | Settings paint the kept copy at once | amends D172 |
+| D206 | Stay on npm; pnpm spiked | active |
+| D207 | A Regenerate asks for its own length | amends D204 |
+| D208 | A list of generations, with Cancel | amends D204 |
 
 ---
 
@@ -2123,7 +2123,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Amends: D146 (the offer becomes an automatic reload).
 - Revisit if: a reload ever loses a reader's work (add its guard to `canReloadNow` with a test), or a page keeps a state the guards cannot see.
 
-## D203: a short or lost run is guarded against, measured, and followed in one run card
+## D204: a short or lost run is guarded against, measured, and followed in one run card
 
 - Date: 2026-10-27 (branch `ccr-d90138a8-9n397m`).
 - Decision: (1) a push that conflicts on the cost ledger, timings, usage counter or run metrics merges them by id (`git/stateMerge.ts`) instead of failing; (2) grounding cuts an unsupported sentence before it drops a story, a section over its allowance gives up its lowest stories, and a writer batch that fails is written again in halves; (3) every briefing and episode records its funnel, length share and stage times (`state/run-metrics.json`, `podcast-timings.json`), `singularity metrics` reads them against targets (`metrics/summary.ts`) and `health` warns; (4) a Regenerate is followed in the same run card as a Catch up (strip above the bottom bar on a phone, card in the side column from 64rem), and a failed run says why in a sentence; (5) a Catch up selects half again as many stories as it airs and fills its slots after the structure's caps; (6) the length options stay 3, 5, 10 and 15 minutes.
@@ -2131,7 +2131,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: choosing one side of a conflicting state file (loses records); editing `config/` in Git to raise the daily length (the store owns it, D149, D185; the owner raises it in Preferences); a Length control in the Regenerate sheet (needs `run.yml`, the engine and the server contract to change together).
 - Revisit if: `singularity metrics` shows `length_share` under 0.9 or `failure_rate` over 0.1 across ten runs, or a longer option is wanted.
 
-## D204: Settings paint the kept store copy at once, and the theme before first paint
+## D205: Settings paint the kept store copy at once, and the theme before first paint
 
 - Date: 2026-10-28 (the owner: Settings takes a second to show Daily, Weekly, podcast and theme).
 - Decision: a page with a kept copy of the store's answer (D172) shows it without waiting (`CACHE_GRACE_MS` 0); a store that then answers with something else is offered as a reload, as before. The Theme select takes this device's theme from an inline script before the first paint (`settingsInit.js`, its hash in the policy). A page with no valid copy still waits for the store, up to 2.5 s.
@@ -2140,23 +2140,23 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Revisit if: cross-device reload toasts become common, or a first visit after a config change is reported slow; then keep the copy as full values, not a diff.
 - Amends: D172.
 
-## D205: stay on npm for now; pnpm was spiked and works locally
+## D206: stay on npm for now; pnpm was spiked and works locally
 
 - Date: 2026-10-28 (the owner: "welcome to upgrade to pnpm as a final task").
 - Decision: no migration yet. A scratch worktree ran install, typecheck, 4,960 unit tests and the static build under pnpm 10.28; [pnpm-migration](engineering/pnpm-migration.md) lists the five changes it needs.
 - Why: the install is about 6 s against about 15 s (unlike cache states, so only an indication), against a daily run of 2 to 3 minutes. The change touches ten workflow files (a manual merge each), Vercel's install and a new pinned action, and none of that can be tried here; a mistake stops the daily briefing, which is the thing this branch exists to make reliable (AGENTS.md: pipeline discipline). One task per branch.
 - Revisit if: install time or disk use in CI or on the owner's machines becomes a cost, or Dependabot or Vercel drop npm; then do it on its own branch with a CI run before the merge.
 
-## D206: a Regenerate can ask for its own length
+## D207: a Regenerate can ask for its own length
 
 - Date: 2026-10-28 (the owner's goal: the generation length needs fixing; length may need to go up).
 - Decision: the Regenerate sheet has a Length (Usual, 3, 5, 10 or 15 min). The choice travels as `length_minutes` through `/api/generate` (one of the four, else 400), a `run.yml` input, `--length` on the gate step and `length_minutes` in the plan, which sizes the fetch and write steps in place of the schedule's length (`lengthMinutesFor`). Usual sends nothing, so a run without it is sized as before; Try again sends it again.
 - Why: the schedule's length is the owner's standing choice (the store owns it, D149), and a short briefing could only be answered by changing it. A single run can now be made longer or shorter without touching the schedule. The four lengths are the schedule's; longer than 15 still needs chunked narration.
 - Rejected: editing the schedule from the sheet (it would change every later run); a free number of minutes (the sizing, the pool and the narration limit are tuned for the four).
 - Revisit if: a run at 10 or 15 minutes airs under 90% of it (`length_share`), or the narration request grows past 15 minutes.
-- Amends: D203, which left a Length control out.
+- Amends: D204, which left a Length control out.
 
-## D207: every generation under way in one list, each with a Cancel
+## D208: every generation under way in one list, each with a Cancel
 
 - Date: 2026-10-28 (the owner: "a simpler way to track the queue of generation on mobile and desktop", an icon "not for downloads, but for generations", a list with a thumbnail, a bar, a time left and Cancel, "just like how a file download UI would look").
 - Decision: `GET /api/generations` lists the Catch up and briefing runs that are queued or running (at most 6, each with the status route's stage, `progressOf`), and `POST /api/cancel` cancels one of ours (`cancelRun`; GitHub's 409 means it had finished). From 64rem an icon at the top of the side column opens a popover with a row per generation: cover, title, stage and time left, a bar, Cancel, and Listen now once a live episode can be heard. Its ring fills with the run's progress. With nothing under way it says "Nothing in the works" and offers a Catch up. Below 64rem the strip above the bottom bar gains "All generations", which opens the same list as a bottom sheet. A cancelled run ends as "Cancelled": no Try again, no failure. A briefing's time left comes from the medians of the last ten runs' `stage_ms` in `state/run-metrics.json` (three runs at least).
@@ -2164,4 +2164,4 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 - Rejected: an icon in the phone's app bar (nothing needed often sits at the top of a phone, ledger section 1; the strip is already in the thumb's reach); one polling loop for the whole site (the list polls every 4 s only while open, and the strip's own poll keeps the ring); Pause (GitHub cannot).
 - Known gap (CodeRabbit, 2026-10-28): the narration job runs inside `podcast.yml` (step "Recording voices"), so Cancel there stops it before the usage ledger's final commit. The episode is already committed; only that run's usage charge for segments already made is lost, so the monthly counter can read low by up to one episode's narration. A crash or timeout has the same window; Cancel makes it reachable on purpose.
 - Revisit if: the token turns out to lack Actions write (Cancel then says it could not), the usage counter is seen reading low after a cancel (then refuse Cancel from the voices stage, or commit usage per segment), or owners ask for the list on a phone's top bar.
-- Amends: D203 (one run card).
+- Amends: D204 (one run card).
