@@ -16,7 +16,7 @@ Updated 2026-10-27. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 
 ## Tests
 
-Unit (CI): 302 files, 4,936 tests (10-27), 85 s. Site e2e: 396 runs (10-27), 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 308 files, 4,960 tests (10-28), 96 s. Site e2e: 403 runs (10-28), 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
