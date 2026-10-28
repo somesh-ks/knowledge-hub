@@ -213,7 +213,9 @@ function briefingRows(input: HealthInput, now: Date): HealthRow[] {
       ? row("catch_up", "Never", "No episode made yet", "none")
       : catchUp.outcome === "failed"
         ? row("catch_up", ago(catchUp.at, now), "The last one failed", "bad")
-        : row("catch_up", ago(catchUp.at, now), stories(catchUp.items), "good"),
+        : catchUp.outcome === "nothing"
+          ? row("catch_up", ago(catchUp.at, now), "Nothing new to make", "good")
+          : row("catch_up", ago(catchUp.at, now), stories(catchUp.items), "good"),
   );
 
   // The newest briefing's narration against the length its kind is set to (`episode_short`).
@@ -250,7 +252,9 @@ function briefingRows(input: HealthInput, now: Date): HealthRow[] {
     }
   }
 
-  const fallbacks = lastRun?.spend?.requests.model_fallback;
+  // The engine writes `model_fallback` only when a fallback happened: a run's spend without it is none.
+  const spend = lastRun?.spend;
+  const fallbacks = spend ? (spend.requests.model_fallback ?? 0) : undefined;
   rows.push(
     fallbacks === undefined
       ? row("fallbacks", "No data", "No run spend recorded", "none")

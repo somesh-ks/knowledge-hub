@@ -126,4 +126,28 @@ describe("healthBody", () => {
     expect(rowOf(body, "content")).toMatchObject({ value: "Saved copy", tone: "warn" });
     expect(body.parts.content).toBe("saved");
   });
+
+  // Production, 2026-10-28: a run's spend with no fallback has no `model_fallback` key (the engine
+  // writes only what happened), and the row read "No data"; a Catch up that found nothing read "0
+  // stories".
+  it("reads a spend without fallbacks as none, and a Catch up that found nothing as such", () => {
+    const at = "2026-10-27T08:42:07.787Z";
+    const body = healthBody(
+      input({
+        lastRun: {
+          version: 1,
+          on_demand: { at, outcome: "nothing", items: 0 },
+          spend: {
+            at,
+            requests: { anthropic: 23 },
+            firecrawl_rate_limited: 0,
+            firecrawl_skipped: [],
+          },
+        },
+      }),
+      NOW,
+    );
+    expect(rowOf(body, "fallbacks")).toMatchObject({ value: "0", tone: "good" });
+    expect(rowOf(body, "catch_up")?.detail).toBe("Nothing new to make");
+  });
 });
