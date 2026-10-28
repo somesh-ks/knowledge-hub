@@ -10,13 +10,13 @@ const SHARED_RULES = [
     pattern: /^(?:tokens\/|apps\/web\/tokens\.json)/,
     risk: "HIGH",
     surface: "Design Tokens (all pages: color, typography, spacing, elevation)",
-    checks: ["npm run design-check", "npx playwright test apps/web/e2e/designSystem.spec.ts"],
+    checks: ["npm run design-check", "npm run e2e -w @singularity/web -- e2e/designSystem.spec.ts"],
   },
   {
     pattern: /^apps\/web\/src\/styles\/(?:tokens|primitives|buttons|shell|foundations)\.css$/,
     risk: "HIGH",
     surface: "Shared CSS Primitives (buttons, chips, navigation, sheets across all pages)",
-    checks: ["npm run design-check", "npx playwright test apps/web/e2e/designSystem.spec.ts"],
+    checks: ["npm run design-check", "npm run e2e -w @singularity/web -- e2e/designSystem.spec.ts"],
   },
   {
     pattern: /^apps\/web\/src\/layouts\//,
@@ -42,7 +42,7 @@ const SHARED_RULES = [
     surface: "Creation & Drawer Sheets (New episode, prompt adjustments, topics panel)",
     checks: [
       "npm run check -w @singularity/web",
-      "npx playwright test apps/web/e2e/create.spec.ts",
+      "npm run e2e -w @singularity/web -- e2e/create.spec.ts",
     ],
   },
   {
@@ -51,7 +51,7 @@ const SHARED_RULES = [
     surface: "Settings & Preferences (podcast structure, categories, voice, sound)",
     checks: [
       "npx vitest run apps/web/src/lib/structureView.test.ts",
-      "npx playwright test apps/web/e2e/settings.spec.ts",
+      "npm run e2e -w @singularity/web -- e2e/settings.spec.ts",
     ],
   },
   {
@@ -89,13 +89,22 @@ function getChangedFiles() {
 
   if (baseRef) {
     // Compare current branch against merge base with baseRef (three dots), excluding upstream-only commits
-    const diffMain = run(`git diff --name-only ${baseRef}...HEAD`);
-    if (diffMain) {
-      diffMain.split("\n").forEach((f) => {
-        if (f) {
-          files.add(f.replace(/\\/g, "/"));
-        }
-      });
+    try {
+      const diffMain = execSync(`git diff --name-only ${baseRef}...HEAD`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (diffMain) {
+        diffMain.split("\n").forEach((f) => {
+          if (f) {
+            files.add(f.replace(/\\/g, "/"));
+          }
+        });
+      }
+    } catch {
+      console.warn(
+        `Blast Radius: Warning: Comparison against ${baseRef}...HEAD failed (missing merge base or shallow history). Run 'git fetch --unshallow' or 'git fetch origin ${baseRef.replace("origin/", "")}'.`,
+      );
     }
   } else {
     console.warn(
