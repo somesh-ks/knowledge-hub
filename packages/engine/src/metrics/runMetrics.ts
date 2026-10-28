@@ -57,6 +57,8 @@ export const RunMetric = z.object({
     share: z.number().nonnegative().nullable(),
   }),
   verified: z.boolean(),
+  /** False when no grounder ran, so no story was checked; absent otherwise (older entries too). */
+  grounded: z.literal(false).optional(),
   /** A model that failed and was replaced by the next in its chain, over the run. */
   model_fallbacks: count,
   /** Set for a failed run: the stage that stopped it and why, in a sentence. */

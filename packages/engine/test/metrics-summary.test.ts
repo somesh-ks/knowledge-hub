@@ -160,6 +160,18 @@ describe("grounding_survival counts a pass that published nothing", () => {
   });
 });
 
+// With no grounder every story is kept unverified and none is dropped, so a digest nothing checked read
+// as perfect survival (CodeRabbit, PR 391, fourth round); verified_share says it was not checked.
+describe("grounding_survival leaves out a pass nothing checked", () => {
+  it("is unmeasured when no grounder ran", () => {
+    const unchecked = (n: number) => run(n, { grounded: false, verified: false });
+    const summary = summarize({ runs: [unchecked(1), unchecked(2), unchecked(3)], timings: [] });
+    const reading = summary.briefings.readings.find((r) => r.metric === "grounding_survival");
+    expect(reading?.value).toBeNull();
+    expect(reading?.verdict).toBe("unmeasured");
+  });
+});
+
 // The 2026-10-27 regenerate aired 2,117 of 5,330 characters and nothing said so beyond one log line.
 describe("summarize", () => {
   it("judges nothing before three runs say the same", () => {

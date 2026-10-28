@@ -9,6 +9,7 @@ const count = z.number().int().nonnegative();
 /** The fields of `validate-report.json` the metrics read; older reports lack the newer ones. */
 const ValidateReport = z
   .object({
+    grounder: z.boolean().optional(),
     verified: z.boolean().optional(),
     written: count.optional(),
     kept: count.optional(),
@@ -89,6 +90,7 @@ export async function collectRunMetrics(input: {
             : null,
       },
       verified: entry.verified,
+      ...(report.grounder === false ? { grounded: false as const } : {}),
       model_fallbacks: input.modelFallbacks,
     });
   }

@@ -56,8 +56,8 @@ export const STAGE_IDS: Record<string, string> = {
 
 /**
  * What a failed briefing says about the step it stopped in (the status route's `step`): the
- * sentence for the card. A briefing is published only by its last step, so every failure leaves
- * the earlier briefing as it was.
+ * sentence for the card. A briefing is published only by its last step, so a failure before it
+ * leaves the earlier briefing as it was; one in it may or may not have landed.
  */
 const BRIEFING_FAILED: Record<GenerateStep, string> = {
   waiting: "The briefing couldn't start.",
@@ -71,7 +71,11 @@ const BRIEFING_FAILED: Record<GenerateStep, string> = {
 export function briefingFailureLine(step: unknown): string | null {
   const sentence =
     typeof step === "string" ? (BRIEFING_FAILED as Record<string, string>)[step] : undefined;
-  return sentence ? `${sentence} Nothing was changed.` : null;
+  if (!sentence) return null;
+  // The job's recovery step pushes again after a failed publish, so that briefing may have landed.
+  return step === "publishing"
+    ? `${sentence} It may still have landed; check Latest.`
+    : `${sentence} Nothing was changed.`;
 }
 
 /** What each stage leaves behind when it finishes, by `kept` id, in the words of a sentence. */

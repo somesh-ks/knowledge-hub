@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { briefingFailureLine } from "../lib/runStages";
 
 const prewarmEpisode = vi.fn(async (_id: string) => undefined);
 vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
@@ -264,6 +265,15 @@ describe("what the card says for a run", () => {
     expect(statusLine(run({ what: "briefing", phase: "done", outcome: "gated" }), words)).toMatch(
       /held this run back/,
     );
+  });
+
+  // A failed publish is retried by the job's recovery step, which can push the digest after all; the
+  // card must not say nothing was changed then (CodeRabbit, PR 391, fourth round).
+  it("does not claim nothing changed when the briefing failed while publishing", () => {
+    const line = briefingFailureLine("publishing");
+    expect(line).toMatch(/published/);
+    expect(line).not.toMatch(/nothing was changed/i);
+    expect(briefingFailureLine("writing")).toMatch(/nothing was changed/i);
   });
 
   it("says which step a failed briefing stopped in, and that nothing was changed", () => {

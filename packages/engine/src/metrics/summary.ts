@@ -100,11 +100,14 @@ export function summarize(input: {
   const published = runs.filter((run) => run.outcome === "published");
   const sized = published.flatMap((run) => (run.length.share === null ? [] : [run.length.share]));
   // Grounding checks what the writer wrote and what the refill wrote after it, so both count. A
-  // pass that published nothing counts too: grounding dropping its stories is what emptied it.
-  const survival = finished.flatMap((run) => {
-    const checked = run.funnel.written + run.funnel.refill_written;
-    return checked > 0 ? [Math.max(0, 1 - run.funnel.grounding_dropped / checked)] : [];
-  });
+  // pass that published nothing counts too: grounding dropping its stories is what emptied it. A pass
+  // no grounder ran on checked nothing, so it says nothing of survival.
+  const survival = finished
+    .filter((run) => run.grounded !== false)
+    .flatMap((run) => {
+      const checked = run.funnel.written + run.funnel.refill_written;
+      return checked > 0 ? [Math.max(0, 1 - run.funnel.grounding_dropped / checked)] : [];
+    });
   const enough = ids.length >= MIN_RUNS;
   // A run's fallbacks, total time and stage clock are copied into each of its passes: one entry a
   // run, or a regular and a weekly briefing would weigh it twice.
