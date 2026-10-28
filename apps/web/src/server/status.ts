@@ -1,4 +1,5 @@
 import {
+  BRIEFING_STAGES,
   briefingStage,
   EPISODE_STEP,
   episodeStage,
@@ -218,6 +219,77 @@ async function readTimings(github: ReturnType<typeof createGitHubClient>): Promi
   return runs;
 }
 
+/** Forgets the kept timings, so a test reads the file it set up and not an earlier test's. */
+export function resetTimingsCaches(): void {
+  timingsCache = null;
+  briefingTimingsCache = null;
+}
+
+/** The workflow stage the run clock names for each of BRIEFING_STAGES, in order; the last waits on the site. */
+const BRIEFING_CLOCK = ["gate", "fetch", "judge", "write", "validate", "commit"] as const;
+const BRIEFING_TIMED_RUNS = 10;
+let briefingTimingsCache: { at: number; runs: Record<string, number>[] } | null = null;
+
+/**
+ * The stage times of the newest finished briefing runs in state/run-metrics.json on main (kept per
+ * instance for a minute, as the episodes' are). A run has an entry for each pass, all with the run's
+ * one stage clock, so the entries of a run count once. None before the metrics have run.
+ */
+async function readBriefingTimings(
+  github: ReturnType<typeof createGitHubClient>,
+): Promise<Record<string, number>[]> {
+  if (briefingTimingsCache && Date.now() - briefingTimingsCache.at < TIMINGS_TTL_MS) {
+    return briefingTimingsCache.runs;
+  }
+  let runs: Record<string, number>[] = [];
+  try {
+    const file = JSON.parse((await github.readFile("state/run-metrics.json", "main")) ?? "null");
+    if (Array.isArray(file?.runs)) {
+      const seen = new Set<string>();
+      runs = file.runs
+        .filter(
+          (entry: unknown): entry is { run_id: string; outcome: string; stage_ms: unknown } =>
+            typeof entry === "object" &&
+            entry !== null &&
+            typeof (entry as { run_id?: unknown }).run_id === "string" &&
+            (entry as { outcome?: unknown }).outcome !== "failed" &&
+            typeof (entry as { stage_ms?: unknown }).stage_ms === "object" &&
+            (entry as { stage_ms?: unknown }).stage_ms !== null,
+        )
+        .filter((entry: { run_id: string }) => !seen.has(entry.run_id) && seen.add(entry.run_id))
+        .map((entry: { stage_ms: Record<string, number> }) => entry.stage_ms)
+        .slice(-BRIEFING_TIMED_RUNS);
+    }
+  } catch {
+    // No file yet, or a bad one: no estimate.
+  }
+  briefingTimingsCache = { at: Date.now(), runs };
+  return runs;
+}
+
+/**
+ * The usual length of each of BRIEFING_STAGES, in milliseconds: the median over the recent runs
+ * (three at least), null for a stage nothing timed and for the wait on the site.
+ */
+export async function briefingEstimates(
+  github: ReturnType<typeof createGitHubClient>,
+): Promise<(number | null)[] | null> {
+  const runs = await readBriefingTimings(github);
+  if (runs.length < 3) return null;
+  const of = (clock: string): number | null => {
+    const values = runs
+      .map((stages) => stages[clock])
+      .filter((value): value is number => typeof value === "number" && value > 0)
+      .sort((a, b) => a - b);
+    if (values.length === 0) return null;
+    const mid = values.length >> 1;
+    return values.length % 2
+      ? (values[mid] as number)
+      : ((values[mid - 1] as number) + (values[mid] as number)) / 2;
+  };
+  return [...BRIEFING_CLOCK.map(of), null].slice(0, BRIEFING_STAGES.length);
+}
+
 /** What the engine saved when a stage failed: podcast-runs/<run id>/failure.json in Blob. */
 async function readFailure(deps: StatusDeps, runId: number) {
   const base = readPublicBlobBase(deps.env);
@@ -237,6 +309,50 @@ async function readFailure(deps: StatusDeps, runId: number) {
   } catch {
     return {};
   }
+}
+
+/**
+ * Where a run that has not finished stands: its stage and, when the engine has timed such runs, the
+ * usual length of each stage. An episode's estimates are for its format and length, so they need
+ * both; a briefing's are the recent runs' medians. The status route and the list of generations
+ * share this, so a run reads the same in both.
+ */
+export async function progressOf(
+  run: WorkflowRun,
+  github: ReturnType<typeof createGitHubClient>,
+  about?: { format?: string | null; length?: string | null },
+): Promise<{
+  state: StatusResponse["state"];
+  step: GenerateStep | null;
+  stage: number;
+  stages: number;
+  label: string;
+  stage_estimates_ms?: (number | null)[];
+}> {
+  const state = stateOf(run);
+  if (isPodcastRun(run)) {
+    const steps = state === "queued" ? [] : await github.listSteps(run.id);
+    const length = Number(about?.length);
+    const estimates =
+      hasNamedSteps(steps) && about?.format && Number.isFinite(length)
+        ? medianEstimates(await readTimings(github), about.format, length)
+        : null;
+    return {
+      state,
+      step: null,
+      ...stageFields(episodeStage(steps)),
+      ...(estimates ? { stage_estimates_ms: estimates } : {}),
+    };
+  }
+  const steps = await github.listSteps(run.id);
+  const step = currentStep(steps);
+  const estimates = await briefingEstimates(github);
+  return {
+    state,
+    step,
+    ...stageFields(briefingStage(step)),
+    ...(estimates ? { stage_estimates_ms: estimates } : {}),
+  };
 }
 
 export function runUrlFor(config: ServerConfig, runId: number): string {
@@ -267,13 +383,16 @@ export async function handleStatus(
     // ready, making the episode) and leaves no record in state/last-run.json. The page adds the
     // last stage, the wait for the new page.
     if (isPodcastRun(run)) {
-      const steps = state === "queued" ? [] : await github.listSteps(runId);
       if (state !== "completed") {
-        const length = Number(about?.length);
-        const estimates =
-          hasNamedSteps(steps) && about?.format && Number.isFinite(length)
-            ? medianEstimates(await readTimings(github), about.format, length)
-            : null;
+        return {
+          status: 200,
+          headers,
+          body: { run_id: runId, ...(await progressOf(run, github, about)) },
+        };
+      }
+      const steps = await github.listSteps(runId);
+      // A cancelled run is neither made nor failed: the page says so plainly and offers no error.
+      if (run.conclusion === "cancelled") {
         return {
           status: 200,
           headers,
@@ -281,8 +400,8 @@ export async function handleStatus(
             run_id: runId,
             state,
             step: null,
-            ...stageFields(episodeStage(steps)),
-            ...(estimates ? { stage_estimates_ms: estimates } : {}),
+            ...stageFields(episodeStage([])),
+            outcome: "cancelled",
           },
         };
       }
@@ -310,18 +429,29 @@ export async function handleStatus(
       };
     }
 
-    const steps = await github.listSteps(runId);
-
     if (state !== "completed") {
-      const step = currentStep(steps);
       return {
         status: 200,
         headers,
-        body: { run_id: runId, state, step, ...stageFields(briefingStage(step)) },
+        body: { run_id: runId, ...(await progressOf(run, github, about)) },
       };
     }
 
+    const steps = await github.listSteps(runId);
     const runUrl = runUrlFor(config, runId);
+    if (run.conclusion === "cancelled") {
+      return {
+        status: 200,
+        headers,
+        body: {
+          run_id: runId,
+          state,
+          step: null,
+          ...stageFields(briefingStage(null)),
+          outcome: "cancelled",
+        },
+      };
+    }
     if (run.conclusion !== "success" && !isAudioOnlyFailure(steps)) {
       return {
         status: 200,

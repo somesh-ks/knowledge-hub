@@ -156,7 +156,7 @@ export interface StatusResponse {
   /** A failed episode run: why, in one sentence for the listener, from the engine's failure record. */
   reason?: string;
   /** Present once state is "completed". Read from state/last-run.json. */
-  outcome?: "published" | "nothing" | "gated" | "failed";
+  outcome?: "published" | "nothing" | "gated" | "failed" | "cancelled";
   digest_id?: string;
   run_url?: string;
 }

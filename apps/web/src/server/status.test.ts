@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson, stepJson } from "../testing/fakeGitHub";
 import { readServerConfig } from "./config";
 import {
@@ -9,6 +9,7 @@ import {
   isPodcastRun,
   parseOnDemandRecord,
   parseRunId,
+  resetTimingsCaches,
   runUrlFor,
   STATUS_CACHE_CONTROL,
 } from "./status";
@@ -20,6 +21,8 @@ const env = {
 };
 const config = readServerConfig(env);
 if (!config) throw new Error("test config");
+
+beforeEach(resetTimingsCaches);
 
 function setup(runOverrides: Record<string, unknown> = {}, steps: unknown[] = []) {
   const github = createFakeGitHub();
@@ -446,12 +449,51 @@ describe("handleStatus", () => {
   it("builds the run link itself instead of trusting GitHub's field", async () => {
     const github = setup({
       status: "completed",
-      conclusion: "cancelled",
+      conclusion: "failure",
       html_url: "https://evil.example/phish",
     });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
     expect(JSON.stringify(result.body)).not.toContain("evil.example");
     expect(result.body).toMatchObject({ run_url: `https://github.com/${REPO}/actions/runs/4242` });
+  });
+
+  // A run the person stopped is neither made nor failed: it read "failed" with a log link, which
+  // the page showed as an error with Try again (Cancel on the generations list).
+  it("reports a cancelled briefing and a cancelled episode as cancelled, not failed", async () => {
+    const briefing = setup({ status: "completed", conclusion: "cancelled" });
+    const asked = await handleStatus("4242", { env, fetch: briefing.fetch });
+    expect(asked.body).toMatchObject({ state: "completed", outcome: "cancelled" });
+    expect(asked.body).not.toHaveProperty("run_url");
+
+    const episode = setup({
+      path: ".github/workflows/podcast.yml",
+      status: "completed",
+      conclusion: "cancelled",
+    });
+    const answered = await handleStatus("4242", { env, fetch: episode.fetch });
+    expect(answered.body).toMatchObject({ state: "completed", outcome: "cancelled" });
+    expect(answered.body).not.toHaveProperty("run_url");
+  });
+
+  it("gives a running briefing the usual length of each stage once the metrics have three runs", async () => {
+    const github = setup({ status: "in_progress" }, [stepJson("Fetch", 2, "in_progress")]);
+    const entry = (n: number, fetch: number) => ({
+      run_id: `run-${n}`,
+      outcome: "published",
+      stage_ms: { gate: 2000, fetch, judge: 5000, write: 70000, validate: 120000, commit: 9000 },
+    });
+    github.on("GET /contents/state/run-metrics.json", {
+      text: JSON.stringify({
+        version: 1,
+        runs: [entry(1, 15000), entry(2, 17000), entry(3, 19000)],
+      }),
+    });
+    const result = await handleStatus("4242", { env, fetch: github.fetch });
+    expect(result.body).toMatchObject({
+      state: "running",
+      stage: 1,
+      stage_estimates_ms: [2000, 17000, 5000, 70000, 120000, 9000, null],
+    });
   });
 
   it("answers 503 with a generic body when GitHub fails", async () => {

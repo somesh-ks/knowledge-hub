@@ -88,6 +88,16 @@ export interface GitHubClient {
    * workflow file name.
    */
   dispatchWorkflowFile(file: string, inputs: Record<string, string>): Promise<number | null>;
+  /**
+   * The workflow_dispatch runs of run.yml and podcast.yml on main that have not finished (queued,
+   * waiting or running), oldest first.
+   */
+  listActiveRuns(): Promise<WorkflowRun[]>;
+  /**
+   * Asks GitHub to cancel a run. "cancelled" when it accepted (the run stops within moments),
+   * "finished" when the run had already ended and there is nothing to cancel.
+   */
+  cancelRun(runId: number): Promise<"cancelled" | "finished">;
   getRun(runId: number): Promise<WorkflowRun | null>;
   listSteps(runId: number): Promise<WorkflowStep[]>;
   /** The text of a file at `ref`, or null when it does not exist. */
@@ -146,6 +156,24 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
   }
 
   return {
+    async listActiveRuns() {
+      const [briefings, episodes] = await Promise.all([
+        listRuns(WORKFLOW_FILE),
+        listRuns(PODCAST_WORKFLOW_FILE),
+      ]);
+      return [...briefings, ...episodes]
+        .filter((run) => run.status !== "completed")
+        .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    },
+
+    async cancelRun(runId) {
+      const response = await request(`/actions/runs/${runId}/cancel`, { method: "POST" });
+      // 409: the run is not in a state that can be cancelled, which is to say it has ended.
+      if (response.status === 409) return "finished";
+      if (!response.ok) throw new GitHubError(response.status);
+      return "cancelled";
+    },
+
     listDispatchRuns: () => listRuns(WORKFLOW_FILE),
     dispatch: (inputs) => dispatchFile(WORKFLOW_FILE, inputs),
     listWorkflowFileRuns: listRuns,
