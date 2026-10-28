@@ -128,8 +128,9 @@ interface ValidateDrop {
  * are then rendered as a digest and run through `validateDigest`: any item with an error drops,
  * and the floor of three is checked again, so the commit stage only ever sees a publishable
  * selection. Sections over their allowance lose their lowest-scored stories. A sized pass may
- * refill once from its reserve; refill errors keep the previously validated selection. Other
- * digest-wide validation errors throw StageFailure; artifact and initial grounding errors propagate.
+ * refill once from its reserve; an error in the refill is recorded as `refill_error` and keeps the
+ * previously validated selection. Other digest-wide validation errors from the first fit throw
+ * StageFailure; artifact and initial grounding errors propagate.
  */
 export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageReport> {
   const runtime = await deps.runtime();
