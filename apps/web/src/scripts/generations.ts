@@ -49,12 +49,12 @@ const find = <T extends HTMLElement>(selector: string): T | null =>
 function wordsOf(element: HTMLElement): GenerationWords {
   const { dataset } = element;
   return {
-    waiting: dataset.waiting ?? "",
-    left: dataset.left ?? "",
-    slow: dataset.slow ?? "",
-    episode: dataset.episode ?? "",
-    briefing: dataset.briefing ?? "",
-    regenerate: dataset.regenerate ?? "",
+    waiting: dataset.wordWaiting ?? "",
+    left: dataset.wordLeft ?? "",
+    slow: dataset.wordSlow ?? "",
+    episode: dataset.wordEpisode ?? "",
+    briefing: dataset.wordBriefing ?? "",
+    regenerate: dataset.wordRegenerate ?? "",
   };
 }
 
@@ -134,10 +134,10 @@ function paintRow(item: HTMLElement, view: GenerationView, words: HTMLElement["d
     bar.style.setProperty("--gen-to", progress.toFixed(3));
     bar.style.setProperty("--gen-span", `${OPEN_POLL_MS / 1000}s`);
     bar.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
-    bar.setAttribute("aria-label", (words.progressLabel ?? "").replace("{title}", view.title));
+    bar.setAttribute("aria-label", (words.wordProgressLabel ?? "").replace("{title}", view.title));
   }
   const cancel = item.querySelector<HTMLButtonElement>("[data-gen-cancel]");
-  cancel?.setAttribute("aria-label", (words.cancelLabel ?? "").replace("{title}", view.title));
+  cancel?.setAttribute("aria-label", (words.wordCancelLabel ?? "").replace("{title}", view.title));
 
   const thumb = item.querySelector<HTMLElement>(".gen-thumb");
   if (thumb) {
@@ -201,7 +201,7 @@ async function render(): Promise<void> {
   if (empty) empty.hidden = !(loaded && none && !failed);
   if (note) {
     note.hidden = !(failed && none);
-    note.textContent = failed && none ? (panel.dataset.unavailable ?? "") : "";
+    note.textContent = failed && none ? (panel.dataset.wordUnavailable ?? "") : "";
   }
 
   const announce = find<HTMLElement>("[data-gen-announce]");
@@ -210,7 +210,7 @@ async function render(): Promise<void> {
     announce.textContent =
       views.length === 0
         ? ""
-        : (panel.dataset.labelBusy ?? "").replace("{n}", String(views.length));
+        : (panel.dataset.wordLabelBusy ?? "").replace("{n}", String(views.length));
   }
   await syncRing(views);
 }
@@ -225,13 +225,13 @@ async function syncRing(views?: GenerationView[]): Promise<void> {
     shown = own ? [describeGeneration(own, await context())] : [];
   }
   const lead = shown[0];
-  const label = panel.dataset.label ?? "";
+  const label = panel.dataset.wordLabel ?? "";
   trigger.toggleAttribute("data-active", Boolean(lead));
   trigger.style.setProperty("--gen-p", String(Math.round((lead?.progress ?? 0) * 100)));
   trigger.setAttribute(
     "aria-label",
     shown.length > 0
-      ? (panel.dataset.labelBusy ?? label).replace("{n}", String(shown.length))
+      ? (panel.dataset.wordLabelBusy ?? label).replace("{n}", String(shown.length))
       : label,
   );
 }
@@ -286,12 +286,12 @@ async function stop(button: HTMLButtonElement): Promise<void> {
   const before = meta?.textContent ?? "";
   item.setAttribute("data-cancelling", "");
   button.disabled = true;
-  if (meta) meta.textContent = panel.dataset.cancelling ?? "";
+  if (meta) meta.textContent = panel.dataset.wordCancelling ?? "";
   const result = await cancelRun(id);
   if (result === "failed") {
     item.removeAttribute("data-cancelling");
     button.disabled = false;
-    if (meta) meta.textContent = panel.dataset.cancelFailed ?? before;
+    if (meta) meta.textContent = panel.dataset.wordCancelFailed ?? before;
     return;
   }
   stopped.set(id, Date.now());

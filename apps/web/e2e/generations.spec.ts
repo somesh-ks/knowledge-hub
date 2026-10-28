@@ -130,6 +130,41 @@ test.describe("the generations list", () => {
     expect(cancelled[0]).toEqual({ run_id: 41 });
   });
 
+  test("a row keeps its height while its stage and its time left change @both", async ({
+    page,
+  }) => {
+    let list = [row(41, { stage_estimates_ms: [10_000, 240_000, null] })];
+    await mock(page, () => list);
+    await page.goto("/library");
+    await hydrated(page);
+    const toggle = (open: boolean) =>
+      page.evaluate((show) => {
+        const panel = document.getElementById("generations");
+        if (show) panel?.showPopover();
+        else panel?.hidePopover();
+      }, open);
+    // The layout height, which a sheet sliding in does not change.
+    const height = () =>
+      rows(page)
+        .first()
+        .evaluate((node) => (node as HTMLElement).offsetHeight);
+
+    await toggle(true);
+    await expect(rows(page)).toHaveCount(1);
+    const before = await height();
+    await toggle(false);
+    list = [
+      row(41, {
+        stage: 0,
+        label: "Gathering stories from your sources",
+        stage_estimates_ms: [600_000, 240_000, null],
+      }),
+    ];
+    await toggle(true);
+    await expect(rows(page).first().locator("[data-gen-meta]")).toContainText("Gathering stories");
+    expect(await height()).toBe(before);
+  });
+
   test("a run that was cancelled ends as Cancelled, with nothing to try again", async ({
     page,
   }) => {

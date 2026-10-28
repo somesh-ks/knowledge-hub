@@ -76,8 +76,8 @@ describe("a row of the generations list", () => {
         words,
         followed: { id: 7, stageAt: NOW - elapsedMs },
       }).meta;
-    expect(at(60_000)).toBe("Making the episode · About 3 min left");
-    expect(at(400_000)).toBe("Making the episode · Taking longer than usual");
+    expect(at(60_000)).toBe("About 3 min left · Making the episode");
+    expect(at(400_000)).toBe("Taking longer than usual · Making the episode");
     expect(describeGeneration(row(), { now: NOW, words }).meta).toBe("Making the episode");
     expect(describeGeneration(row({ state: "queued", stage: 0 }), { now: NOW, words }).meta).toBe(
       "Waiting to start",

@@ -1,24 +1,26 @@
 ---
+import EmptyArt from "./EmptyArt.astro";
 import Icon from "./Icon.astro";
 import SheetHeader from "./SheetHeader.astro";
 
-// Every line the list shows. scripts/generations.ts reads them from the panel's data attributes, so
-// the script carries no copy ({n} is a number, {title} a generation's name).
+// Every line the list shows. scripts/generations.ts reads them from the panel's data-word-* attributes,
+// so the script carries no copy ({n} is a number, {title} a generation's name). The prefix matters: a
+// bare data-briefing or data-episode is what the Regenerate form reads off the page (episodeActions.ts).
 const words = {
-  "data-waiting": "Waiting to start",
-  "data-left": "About {n} min left",
-  "data-slow": "Taking longer than usual",
-  "data-episode": "Catch up",
-  "data-briefing": "Briefing",
-  "data-regenerate": "Regenerate",
-  "data-cancelling": "Cancelling…",
-  "data-cancel-failed": "Couldn't cancel. Try again.",
-  "data-cancel-label": "Cancel {title}",
-  "data-progress-label": "{title}, progress",
-  "data-listen": "Listen now",
-  "data-label": "Generations",
-  "data-label-busy": "Generations, {n} in progress",
-  "data-unavailable": "Couldn't check what is being made. Try again in a moment.",
+  "data-word-waiting": "Waiting to start",
+  "data-word-left": "About {n} min left",
+  "data-word-slow": "Taking longer than usual",
+  "data-word-episode": "Catch up",
+  "data-word-briefing": "Briefing",
+  "data-word-regenerate": "Regenerate",
+  "data-word-cancelling": "Cancelling…",
+  "data-word-cancel-failed": "Couldn't cancel. Try again.",
+  "data-word-cancel-label": "Cancel {title}",
+  "data-word-progress-label": "{title}, progress",
+  "data-word-listen": "Listen now",
+  "data-word-label": "Generations",
+  "data-word-label-busy": "Generations, {n} in progress",
+  "data-word-unavailable": "Couldn't check what is being made. Try again in a moment.",
 };
 ---
 
@@ -35,7 +37,7 @@ const words = {
     type="button"
     popovertarget="generations"
     aria-haspopup="dialog"
-    aria-label={words["data-label"]}
+    aria-label={words["data-word-label"]}
     data-gen-trigger
   >
     <svg class="gen-ring" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
@@ -61,15 +63,15 @@ const words = {
       <ul class="gen-list" role="list" data-gen-list></ul>
       <p class="gen-note" data-gen-note hidden></p>
       <p class="gen-checking" data-gen-checking>Checking…</p>
-      <div class="gen-empty" data-gen-empty hidden>
-        <span class="gen-empty-art" aria-hidden="true"><Icon name="waveform" class="icon-lg" /></span>
-        <p class="gen-empty-title">Nothing in the works</p>
-        <p class="gen-empty-body">Start a Catch up and you can follow it here.</p>
-        <a class="btn-action-tonal gen-empty-action" href="/create" data-create-open data-sound="open">
-          <Icon name="plus" class="icon-lg" />
-          <span>Catch up</span>
-        </a>
+      {/* The compact empty state the Settings lists use (empty.css), with the action it offers. */}
+    <div class="gen-empty empty" data-compact data-gen-empty hidden>
+      <EmptyArt art="library" size="compact" />
+      <p class="empty-title">Nothing in the works</p>
+      <p class="empty-body">Start a Catch up and you can follow it here.</p>
+      <div class="empty-actions">
+        <a class="btn-primary" href="/create" data-create-open data-sound="open">Catch up</a>
       </div>
+    </div>
     </div>
     <template data-gen-row>
       <li class="gen-row" data-gen>
@@ -83,11 +85,11 @@ const words = {
           <span class="gen-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-gen-bar>
             <span class="gen-fill"></span>
           </span>
-          <button class="btn gen-listen" type="button" data-gen-listen hidden>Listen now</button>
         </div>
         <button class="icon-btn gen-cancel press" type="button" data-gen-cancel>
           <Icon name="close" class="icon-lg" />
         </button>
+        <button class="btn gen-listen" type="button" data-gen-listen hidden>Listen now</button>
       </li>
     </template>
   </div>

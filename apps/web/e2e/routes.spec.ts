@@ -21,7 +21,7 @@ test.describe("routes and headers", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
     await expect(page.getByRole("link", { name: "Go to Latest" })).toHaveAttribute("href", "/");
     // One way on: the navigation already carries the rest. The body does not repeat the button.
-    await expect(page.locator(".empty-actions a")).toHaveCount(1);
+    await expect(page.locator("main .empty-actions a")).toHaveCount(1);
     // From 80rem the empty state centres in the pane, not in the reading track beside an empty aside.
     const size = page.viewportSize();
     if (size && size.width >= 1280) {

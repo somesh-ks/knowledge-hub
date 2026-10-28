@@ -28,7 +28,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
   }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 16; step += 1) {
+    for (let step = 0; step < 17; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }
@@ -40,6 +40,8 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "a: Latest",
       "a: Library",
       "a: Settings",
+      // The generations list's icon ends the side column (a phone has it behind the run strip).
+      "button: Generations",
       "button: More actions",
       "button: Play the briefing, 1 min",
       "button: Share",

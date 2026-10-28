@@ -104,7 +104,7 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     if (left.kind === "slow") eta = words.slow;
     else if (left.kind === "left") eta = words.left.replace("{n}", String(left.minutes));
   }
-  const meta = !running ? words.waiting : eta ? `${row.label} · ${eta}` : row.label;
+  const meta = !running ? words.waiting : eta ? `${eta} · ${row.label}` : row.label;
 
   // The last stage of a run's list is the wait for the site, which the workflow cannot see and the
   // list never holds, so the bar spans the stages before it.
