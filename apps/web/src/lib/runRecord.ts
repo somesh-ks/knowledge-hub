@@ -13,6 +13,12 @@ export interface RunRecord {
   id?: number;
   phase?: string;
   what?: string;
+  /** A finished briefing's page, `/d/<id>`. */
+  href?: string;
+  /** A finished run that published nothing: why. */
+  outcome?: string;
+  /** The workflow step a failed briefing stopped in. */
+  step?: string;
 }
 
 export function readRunRecord(storage: Pick<Storage, "getItem">): RunRecord | null {

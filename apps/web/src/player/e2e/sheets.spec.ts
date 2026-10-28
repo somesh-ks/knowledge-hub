@@ -5,7 +5,11 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-test("Regenerate: the run request, the six steps while it goes, then the new briefing", async ({
+// The Regenerate sheet used to carry a stepper of its own; the run now rides in the indicator above
+// the navigation, where the player's bar is also standing (2026-10-27). Its journeys (the request,
+// the stages, the new briefing) are in e2e/briefingRun.spec.ts; what only the player can break is
+// that the indicator and the bar do not sit on each other.
+test("Regenerate while a briefing plays: the run line stands clear above the bar and opens the new briefing", async ({
   player,
   page,
 }) => {
@@ -15,9 +19,8 @@ test("Regenerate: the run request, the six steps while it goes, then the new bri
     return reply(route, 202, { run_id: 77, started_at: "2026-10-07T07:13:00Z" });
   });
   const bodies = [
-    { run_id: 77, state: "queued", step: null },
-    { run_id: 77, state: "running", step: "reading" },
-    { run_id: 77, state: "running", step: "writing" },
+    { run_id: 77, state: "running", step: "reading", stage: 1, stages: 7, label: "Gathering" },
+    { run_id: 77, state: "running", step: "writing", stage: 3, stages: 7, label: "Writing" },
     {
       run_id: 77,
       state: "completed",
@@ -33,27 +36,23 @@ test("Regenerate: the run request, the six steps while it goes, then the new bri
     return reply(route, 200, body);
   });
   await player.open();
-  // The sheet polls on the page clock, so the run's minutes pass in a moment.
+  await player.play();
+  // The indicator polls on the page clock, so the run's minutes pass in a moment.
   await page.clock.install();
   const dialog = await player.openGenerate();
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
-  const steps = dialog.getByRole("list", { name: "Progress" }).getByRole("listitem");
-  await expect(steps).toHaveCount(6);
-  await expect(steps.nth(0)).toContainText("In progress");
-  await expect(dialog.getByRole("button", { name: "Generating" })).toHaveAttribute(
-    "aria-disabled",
-    "true",
-  );
+  await expect(dialog).toBeHidden();
   // Regenerate replaces the briefing on the page over its own window (D104).
   expect(sent).toEqual({ replace: SITE.path.replace("/d/", "") });
-  await page.clock.runFor(3_100);
-  await expect(steps.nth(1)).toContainText("In progress");
-  await expect(steps.nth(0)).toContainText("Done");
-  await page.clock.runFor(3_100);
-  await expect(steps.nth(3)).toContainText("In progress");
-  await page.clock.runFor(3_100);
-  await expect(dialog.getByText("Briefing ready")).toBeVisible();
-  for (let index = 0; index < 6; index += 1) await expect(steps.nth(index)).toContainText("Done");
-  await player.finger.press(dialog.getByRole("button", { name: "Open the new briefing" }));
+  const card = page.locator("[data-run-card]");
+  await expect(card).toBeVisible();
+  const bar = await player.dockSettled();
+  const strip = await player.boxOf(card);
+  expect(strip.y + strip.height).toBeLessThanOrEqual(bar.y + 1);
+  await page.clock.runFor(4_100);
+  await page.clock.runFor(4_100);
+  const open = page.locator("[data-run-library]");
+  await expect(open).toBeVisible();
+  await player.finger.press(open);
   await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}$`));
 });

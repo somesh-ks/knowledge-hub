@@ -6,6 +6,7 @@ import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate, cueForSheet } from "../player/sound/soundMap";
 import { takeEarlySheet } from "../scripts/islandWake";
+import { toastForEndedRun } from "./runEndToast";
 import { isSheetName, OPEN_SHEET_EVENT, type SheetName } from "./sheetEvents";
 import Toaster from "./Toaster";
 
@@ -75,8 +76,11 @@ export default function SheetsRoot() {
   // for each outcome, so a Regenerate still ends with the cue it always had.
   useEffect(() => {
     const onRun = (): void => {
-      const cue = claimEndCue(readRunRecord(localStorage), sessionStorage);
-      if (cue) playUiCue(cueForGenerate(cue));
+      const run = readRunRecord(localStorage);
+      const cue = claimEndCue(run, sessionStorage);
+      if (!run || !cue) return;
+      playUiCue(cueForGenerate(cue));
+      toastForEndedRun(run, cue);
     };
     document.addEventListener(RUN_EVENT, onRun);
     return () => document.removeEventListener(RUN_EVENT, onRun);
