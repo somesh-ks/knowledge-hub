@@ -18,8 +18,8 @@
       "prompt": "Check feature branch readiness and run preflight verification for the completed playback speed popover.",
       "expectations": [
         "Executes python .claude/skills/feature/scripts/verify_feature.py --status as a lightweight early check",
-        "Validates zero token drift, no raw hex colors, and no em dashes",
-        "Checks bundle size impact against checkBundle",
+        "Checks the changed files for em dashes and runs npm run design-check, which holds the colour-token rules",
+        "Relies on the gate's postbuild checkBundle for the 130 KB first-load budget instead of a separate bundle command",
         "Halts early if no pending edits or flags failure before full suite run"
       ]
     }
