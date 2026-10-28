@@ -103,21 +103,30 @@ function getChangedFiles() {
     );
   }
 
-  // Always include uncommitted staged and unstaged files
-  const status = run("git status --porcelain");
-  if (status) {
-    status.split("\n").forEach((line) => {
-      if (line.trim().length > 0) {
-        const file = line
-          .trimStart()
-          .replace(/^[A-Z?]{1,2}\s+/, "")
-          .trim()
-          .replace(/\\/g, "/");
-        if (file) {
-          files.add(file);
+  // Always include uncommitted staged and unstaged files (-z handles renames as NUL-delimited dest and orig)
+  let status = "";
+  try {
+    status = execSync("git status --porcelain -z", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    status = "";
+  }
+  const entries = status.split("\0");
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (entry && entry.length >= 4) {
+      const code = entry.slice(0, 2);
+      files.add(entry.slice(3).replace(/\\/g, "/"));
+      if (code.includes("R") || code.includes("C")) {
+        i += 1;
+        const origin = entries[i];
+        if (origin) {
+          files.add(origin.replace(/\\/g, "/"));
         }
       }
-    });
+    }
   }
 
   return [...files].sort();
