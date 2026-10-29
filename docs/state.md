@@ -21,7 +21,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 ## Not working or unverified
 
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the first daily aired after the merge ends "That's the podcast.".
-- Two Catch ups a day that came out (D213). closed when: a third inside a day answers "That's today's limit" live and a regenerate or delete uses none up.
+- Two Catch ups in 24 hours, made or under way (D213). closed when: a third answers "That's today's limit" live, even while one is still being made, and a regenerate or delete uses none up.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
 - Short briefings and lost runs (D204): the 2026-10-27 Regenerate aired 2 of 5 minutes and its Catch up lost its episode to a push conflict; the fixes ran against fakes only. closed when: `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
