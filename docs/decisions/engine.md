@@ -382,12 +382,12 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Why: the 100 is our cap, not the plan's. Four real runs (24 to 27 Oct) spent all of it, so the dailies of 28 and 29 Oct fetched no listing, relayed no YouTube feed and scraped no article, and 3 of 16 selected stories had no readable text. A daily asks for about 40 requests, a week about 150; 300 requests are about 0.25 USD at the ledger's price, and the Firecrawl account holds hundreds of thousands of credits (read 2026-10-29).
 - Revisit if: a week's ledger passes 300, or the plan's credits run low.
 
-## D223: Firecrawl's week alerts at 150 before the stop at 300
+## D223: Firecrawl's week alerts at 210 before the stop at 300
 
 - Date: 2026-10-29 (builds on D222's 300 a week; the owner, 2026-10-28: "a high safety ceiling that alerts, not a hard cap"; made for him while the plan's Step 1 ran).
-- Decision: a normal week stays 100 requests (D166) and the stop stays D222's 300 (`FIRECRAWL_WEEKLY_BUDGET`). Health warns (`firecrawl_week_high`) once the ledger's last 7 days pass 150, and faults (`firecrawl_week_stopped`) at 300, where runs stop listing through Firecrawl.
+- Decision: the stop stays D222's 300 (`FIRECRAWL_WEEKLY_BUDGET`). Health warns (`firecrawl_week_high`) once the ledger's last 7 days pass 210 (first 150, moved the same day: D222 measured a normal week at about 150, so 150 would warn every week and be ignored), and faults (`firecrawl_week_stopped`) at 300, where runs stop listing through Firecrawl.
 - Why: dry runs and regenerations spend the same week as the schedule, so a hard 100 was gone by Tuesday and left 15 listing sources skipped and 7 YouTube feeds failing for the rest of the week. A stop at three times normal still bounds a runaway; the alert says so before anything is skipped.
 - Rejected: no stop at all (a loop or a mistaken monitor could spend the account); counting dry runs apart (they pay real credits).
-- Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
+- Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 210 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
 - Limit: the week is read from the ledger, and a failed dry run records nothing (`recordFailed.ts`), so its Firecrawl requests are not counted.
 - Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).

@@ -239,6 +239,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
-| D223 | Firecrawl warns at 150 | amends D222 |
+| D223 | Firecrawl warns at 210 | amends D222 |
 
 ---

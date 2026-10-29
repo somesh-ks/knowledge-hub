@@ -1,20 +1,19 @@
 import type { Source } from "@singularity/core";
 
 /**
- * A normal week of Firecrawl requests, listing pages and article scrapes (the owner's 100, D166).
+ * Firecrawl requests all runs together may make in any 7 days before the runs stop listing: a
+ * safety stop, not the working budget. D166's hard 100 was spent in four runs and left every later
+ * daily without listings or scrapes; 300 is about 0.25 USD (D222). Read from the cost ledger at
+ * each stage (`run/spend.ts`).
  */
-export const FIRECRAWL_NORMAL_WEEK = 100;
+export const FIRECRAWL_WEEKLY_BUDGET = 300;
 
 /**
- * Firecrawl requests all runs together may make in any 7 days before the runs stop listing: a
- * safety stop at three times a normal week, not the working budget. D166's hard 100 was spent in
- * four runs and left every later daily without listings or scrapes; 300 is about 0.25 USD (D222).
- * Read from the cost ledger at each stage (`run/spend.ts`).
+ * Health warns once the week passes this: time to look, not to stop. A normal week is about 150
+ * (a daily asks for about 40, D222), so the warning sits three dailies above it; at 150 it would
+ * fire every week and be ignored (D223).
  */
-export const FIRECRAWL_WEEKLY_BUDGET = 3 * FIRECRAWL_NORMAL_WEEK;
-
-/** Health warns once the week passes this, one and a half normal weeks: time to look, not to stop. */
-export const FIRECRAWL_WEEKLY_ALERT = 1.5 * FIRECRAWL_NORMAL_WEEK;
+export const FIRECRAWL_WEEKLY_ALERT = 210;
 
 /**
  * The most Firecrawl requests one run may make, listing pages and article scrapes together: a
