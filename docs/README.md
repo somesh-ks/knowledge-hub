@@ -27,7 +27,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources | When asked for references |
 | [history/](history/README.md) | One note per session: why something was done | Only for the why behind a change |
 | [prototype/](prototype/) | Generated prototype pages and the sound lab (built by `scripts/`) | Rarely |
-| [design/command-center.md](design/command-center.md) | The admin dashboard as its own app: decisions, phases, risks (D223) | Before touching `apps/admin` or an admin page |
+| [design/command-center.md](design/command-center.md) | The admin dashboard as its own app: decisions, phases, risks (D224) | Before touching `apps/admin` or an admin page |
 | [design/data-off-the-deploy-path.md](design/data-off-the-deploy-path.md) | Content in Blob rendered on demand, builds for code only (D173) | Before touching the content store, a page that shows content, or `ignoreCommand` |
 
 The first build's plan, vision and UI spec (`plan/build-plan.md`, `plan/vision.md`, `design/design-spec.md`) were retired on 2026-10-19; later decisions had overridden most of them. Read them with `git show 91bc533:docs/<path>`.
