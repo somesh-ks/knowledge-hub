@@ -523,7 +523,7 @@ function bindSwipe(panel: HTMLElement): void {
   );
 }
 
-export function mountQueue(): void {
+export function mountQueue(startedHere = false): void {
   const found = document.querySelector<HTMLElement>("[data-queue]");
   if (!found) return;
   root = found;
@@ -577,7 +577,7 @@ export function mountQueue(): void {
   });
   // A run was started here. On a wide screen the popover opens to show it, once the sheet that
   // started it has gone, as a browser shows a download it has begun.
-  document.addEventListener(GENERATION_STARTED_EVENT, () => {
+  const openForNewRun = (): void => {
     if (!matchMedia(WIDE).matches) return;
     window.setTimeout(() => {
       const target = popover();
@@ -585,7 +585,10 @@ export function mountQueue(): void {
         target.showPopover?.();
       }
     }, OPEN_AFTER_START_MS);
-  });
+  };
+  document.addEventListener(GENERATION_STARTED_EVENT, openForNewRun);
+  // The first run of a page's life began before this script was loaded to hear it.
+  if (startedHere) openForNewRun();
 
   render();
 }

@@ -8,7 +8,7 @@ Updated 2026-10-29. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 - Reader: Latest, Library, Catch up, Settings, `/design`: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus with an MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in one run card; a failed run says why (D204). Every generation under way is listed with Cancel, in a popover from the side column's icon and a sheet on a phone (D208).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue (a dock on a phone, a popover from the side column), each with Cancel; a failed run says why (D204, D216).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): generated ahead, published at 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).

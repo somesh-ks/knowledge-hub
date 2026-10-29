@@ -11,7 +11,8 @@ let installed = false;
 export function installQueueEntry(): void {
   if (installed) return;
   installed = true;
-  const load = () => import("./queue").then((module) => module.mountQueue()).catch(() => undefined);
+  const load = (startedHere = false) =>
+    import("./queue").then((module) => module.mountQueue(startedHere)).catch(() => undefined);
 
   // beforetoggle does not bubble but does capture; the popover is opened before the script is here.
   document.addEventListener(
@@ -22,10 +23,13 @@ export function installQueueEntry(): void {
     },
     true,
   );
-  document.addEventListener(GENERATION_STARTED_EVENT, () => void load());
+  // The event was sent before this script was here, so the queue is told it was started here.
+  document.addEventListener(GENERATION_STARTED_EVENT, () => void load(true));
   document.addEventListener("astro:page-load", () => {
     try {
-      if (localStorage.getItem(RUN_STORAGE_KEY)) void load();
+      // An older tab still holds its run in sessionStorage until the page moves it.
+      if (localStorage.getItem(RUN_STORAGE_KEY) || sessionStorage.getItem(RUN_STORAGE_KEY))
+        void load();
     } catch {
       // Storage can be blocked: no run is remembered, and the queue waits to be opened.
     }
