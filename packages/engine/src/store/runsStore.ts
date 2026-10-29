@@ -79,7 +79,7 @@ export interface RunRecord {
 const RUN_SQL = `insert into pipeline_runs (run_id, workflow, kind, mode, replaces, dry_run, outcome,
   podcasts, started_at, finished_at, work_ms, total_ms, usd, failure_stage, failure_reason, github_run_id)
 values ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9::timestamptz, $10::timestamptz, $11, $12, $13, $14, $15, $16)
-on conflict (run_id) do update set kind = excluded.kind, mode = excluded.mode,
+on conflict (run_id) do update set started_at = least(pipeline_runs.started_at, excluded.started_at), kind = excluded.kind, mode = excluded.mode,
   replaces = excluded.replaces, dry_run = excluded.dry_run, outcome = excluded.outcome,
   podcasts = excluded.podcasts, finished_at = excluded.finished_at, work_ms = excluded.work_ms,
   total_ms = excluded.total_ms, usd = excluded.usd, failure_stage = excluded.failure_stage,
