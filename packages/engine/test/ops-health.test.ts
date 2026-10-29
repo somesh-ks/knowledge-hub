@@ -149,7 +149,10 @@ describe("singularity health", () => {
     const read = async (credits: number[]) => {
       await writeFile(
         join(root, "state/costs-2026-10.json"),
-        JSON.stringify({ version: 1, records: credits.map((each, n) => spent(each, undefined, n)) }),
+        JSON.stringify({
+          version: 1,
+          records: credits.map((each, n) => spent(each, undefined, n)),
+        }),
       );
       return collectHealth({ root, now: NOW, monthlyChars: 500_000, ceilingUsd: 5, site: null });
     };
