@@ -83,6 +83,10 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".create-more-text", "title onto its subtitle inside one row"],
   [".episode-highlight-actions", "the chips' hit-area overhang under the highlight"],
   [".hero-text", "title onto its subtitle inside one block"],
+  [
+    ".hero-actions",
+    "room for the row's focus rings inside its scroller, taken back by its margins",
+  ],
   [".library-filters", "room for the chips' focus ring inside the scroller"],
   [".filter-chips-scroll", "room for the chips' focus ring inside the scroller"],
   ['[data-view="list"] .card-link::after', "the row's press layer, inset as a hit area"],
@@ -172,6 +176,7 @@ const SHARED_CONTROLS = [
   "btn-primary",
   "btn-secondary",
   "icon-btn",
+  "icon-btn-tonal",
   "chip",
   "filter-chip",
   "tab",
