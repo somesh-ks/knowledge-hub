@@ -1,5 +1,6 @@
 import { MAX_REGENERATIONS } from "@singularity/core";
 import type { GenerateResponse } from "../types/contracts";
+import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
@@ -266,7 +267,12 @@ export async function handleGenerate(
 
     return {
       status: 202,
-      body: { status: 202, run_id: runId, started_at: new Date(startedAt).toISOString() },
+      body: {
+        status: 202,
+        run_id: runId,
+        started_at: new Date(startedAt).toISOString(),
+        cancel_token: cancelTokenFor(config.token, runId),
+      },
     };
   } catch (error) {
     log(`generate failed: ${describeError(error, secretsOf(config))}`);

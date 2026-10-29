@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
+import { cancelTokenFor } from "./cancelToken";
 import {
   type GenerateDeps,
   handleGenerate,
@@ -105,7 +106,12 @@ describe("handleGenerate", () => {
     const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toEqual({
       status: 202,
-      body: { status: 202, run_id: 4242, started_at: "2026-10-07T12:00:00.000Z" },
+      body: {
+        status: 202,
+        run_id: 4242,
+        started_at: "2026-10-07T12:00:00.000Z",
+        cancel_token: cancelTokenFor(TOKEN, 4242),
+      },
     });
     const dispatch = github.requests.find((request) => request.method === "POST");
     expect(dispatch?.body).toMatchObject({ ref: "main", inputs: { mode: "on-demand" } });

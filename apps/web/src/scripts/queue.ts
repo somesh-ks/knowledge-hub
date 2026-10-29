@@ -14,6 +14,7 @@
  * carries no copy.
  */
 import { cancelRun } from "../lib/cancelRun";
+import { cancelTokenOf } from "../lib/cancelTokens";
 import {
   describeGeneration,
   type FollowedRun,
@@ -327,7 +328,8 @@ function paintRow(
 
   const cancel = li.querySelector<HTMLButtonElement>("[data-queue-cancel]");
   if (cancel) {
-    cancel.hidden = !(going && view.cancellable);
+    // Only a run this browser started has a token (D242); another device's or the schedule's cannot be stopped from here.
+    cancel.hidden = !(going && view.cancellable && cancelTokenOf(row.run_id) !== null);
     cancel.setAttribute("aria-label", fillTemplate(data.wordCancelLabel ?? "", { title: name }));
   }
   const listen = li.querySelector<HTMLElement>("[data-queue-listen]");

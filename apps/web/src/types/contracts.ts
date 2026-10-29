@@ -105,7 +105,7 @@ export interface GenerateRequest {
 
 /** POST /api/generate responses. */
 export type GenerateResponse =
-  | { status: 202; run_id: number; started_at: string }
+  | { status: 202; run_id: number; started_at: string; cancel_token: string }
   | { status: 400; error: "invalid_request" }
   // The podcast was already regenerated three times (D212).
   | { status: 409; error: "regeneration_limit" }
@@ -545,7 +545,7 @@ export type PodcastActionRequest =
 
 /** POST /api/podcast responses. */
 export type PodcastCreateResponse =
-  | { status: 202; run_id: number; started_at: string }
+  | { status: 202; run_id: number; started_at: string; cancel_token: string }
   | { status: 400; error: "invalid_request" }
   // The episode was already regenerated three times (D212).
   | { status: 409; error: "regeneration_limit" }

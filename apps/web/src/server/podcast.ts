@@ -1,4 +1,5 @@
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
+import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
 import {
   type GenerateDeps,
@@ -320,7 +321,12 @@ export async function handlePodcast(
     }
     return {
       status: 202,
-      body: { status: 202, run_id: runId, started_at: new Date(startedAt).toISOString() },
+      body: {
+        status: 202,
+        run_id: runId,
+        started_at: new Date(startedAt).toISOString(),
+        cancel_token: cancelTokenFor(config.token, runId),
+      },
     };
   } catch (error) {
     log(`podcast failed: ${describeError(error, secretsOf(config))}`);
