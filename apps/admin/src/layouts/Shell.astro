@@ -1,0 +1,70 @@
+---
+import BrandMark from "../../../web/src/components/BrandMark.astro";
+import Icon from "../../../web/src/components/Icon.astro";
+import themeInit from "../../../web/src/scripts/themeInit.js?raw";
+import AdminNav from "../components/AdminNav.astro";
+import { href, READER_HREF } from "../lib/sections";
+import "../../../web/src/styles/tokens.css";
+import "../../../web/src/styles/foundations.css";
+import "../../../web/src/styles/fonts.css";
+import "../../../web/src/styles/shell.css";
+import "../../../web/src/styles/buttons.css";
+import "../../../web/src/styles/primitives.css";
+import "../../../web/src/styles/settings.css";
+import "../../../web/src/styles/manage.css";
+import "../../../web/src/styles/health.css";
+import "../../../web/src/styles/costs.css";
+import "../../../web/src/styles/utilities.css";
+import "../styles/admin.css";
+
+interface Props {
+  title: string;
+  /** The section's path under the base; "" for the overview. */
+  current: string;
+  /** The login page: no navigation, since every address it links to is behind the gate. */
+  bare?: boolean;
+}
+
+const { title, current, bare = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-view="settings" data-layout="single" data-player="closed" data-mini="hidden">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{title} · Singularity admin</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {/* The reader's own script: a theme chosen there (stored in this browser) shows here too. */}
+    <script is:inline set:html={themeInit.trim()} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+    <header class="app-bar">
+      <div class="app-bar-inner page">
+        {/* The bar shows below 64rem, where the nav's foot link is hidden; the reader's Back button, to the reader. */}
+        {
+          !bare && (
+            <a class="icon-btn app-bar-back" href={READER_HREF} aria-label="Back to the app">
+              <Icon name="arrowBack" />
+            </a>
+          )
+        }
+        <a class="wordmark" href={href("")} aria-label="Singularity admin">
+          <BrandMark />
+          <span>Singularity</span>
+          <span class="admin-tag">Admin</span>
+        </a>
+      </div>
+    </header>
+    {!bare && <AdminNav current={current} />}
+    <div class="shell page">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

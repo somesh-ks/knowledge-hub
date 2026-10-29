@@ -1,0 +1,28 @@
+---
+import AdminHead from "../components/AdminHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { SECTIONS } from "../lib/sections";
+
+export function getStaticPaths() {
+  return SECTIONS.filter((section) => section.path !== "").map((section) => ({
+    params: { section: section.path.slice(1) },
+    props: { section },
+  }));
+}
+
+const { section } = Astro.props;
+---
+
+<Shell title={section.label} current={section.path}>
+  <div class="settings-view" data-settings>
+    <AdminHead title={section.label} note={section.question} />
+    <section>
+      <div class="rows card-group">
+        <div class="settings-row">
+          <span class="settings-label">Status</span>
+          <span class="settings-hint">{section.status}</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</Shell>
