@@ -20,9 +20,9 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 
 ## Not working or unverified
 
-- Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily ends "That's the podcast.".
-- More menu (D214); Catch up album, circle Share, section cards (D219). closed when: signed off.
-- Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused and a delete uses none up.
+- Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily ends "the podcast".
+- More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
+- Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
 - Short podcasts (D204, D216, D218): the 2026-10-29 daily aired about 3.8 of 5 minutes: no section for ticked general topics (D216), no spares past block counts (D218). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - Run names (D217). closed when: a daily is named `daily <date>` and absent from the queue.

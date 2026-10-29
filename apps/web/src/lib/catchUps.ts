@@ -1,9 +1,10 @@
 /**
- * A day's Catch ups as one album (D219): the two a day D213 allows share one page family, and a
- * select before Play moves between them. The album is every episode with the same Stockholm date,
- * the date the server counts the cap in. Each option is named for the hour it was started in the
- * viewer's own time zone ("Catch up at 14"), which the page script sets for that visit only
- * (scripts/catchUpAlbum.ts); the server draws Stockholm's hour, so the page is whole without script.
+ * A day's Catch ups as one album (D219): the Catch ups of one day share one page family, and a
+ * select before Play moves between them. The album is every episode with the same Stockholm date
+ * (`episode.date`); D213's cap of two counts a rolling 24 hours, a separate rule. Each option is
+ * named for the hour it was started in the viewer's own time zone ("Catch up at 14"), which the page
+ * script sets for that visit only (scripts/catchUpAlbum.ts); the server draws Stockholm's hour, so
+ * the page is whole without script.
  *
  * Nothing here may import build-time code: this file ships to the browser with the page script.
  */
