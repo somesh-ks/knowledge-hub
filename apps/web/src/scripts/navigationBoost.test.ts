@@ -32,7 +32,7 @@ class FakeLink {
     this.attributes.delete(name);
   }
   closest(selector: string): FakeLink | null {
-    if (selector === ".app-nav-item") return this.kind === "item" ? this : null;
+    if (selector === "a.app-nav-item") return this.kind === "item" ? this : null;
     if (selector === ".app-nav-brand") return this.kind === "brand" ? this : null;
     return null;
   }

@@ -1,0 +1,573 @@
+/*
+ * The podcast queue (components/Queue.astro, scripts/queue.ts): what is being made, and what was made
+ * today, as a browser lists its downloads. Below 64rem a dock sits directly above the bottom bar,
+ * never a modal or a sheet: no scrim, nothing inert, the bar and the app bar stay usable. Folded it is
+ * one row (a small ring, "Podcast queue", the percent); opened it lists the rows. From 64rem a row at
+ * the foot of the side column (shell.css, .app-nav-queue) opens the same rows in a popover beside it.
+ *
+ * Usage: a row is .queue-row: .queue-lead (the small .queue-ring with the time left under it while the
+ * run goes; .queue-play, a link to the podcast, once it is made; .queue-end-icon for how any other run
+ * ended), .queue-main (.queue-name; .queue-status, one line: the stage while it goes, or when it ended
+ * and how; .queue-actions with the shared .btn buttons) and .queue-cancel, the X at the row's end while
+ * the run goes. Nothing in a row moves when the stage, the time left or the percent changes: the time is
+ * tabular, the X keeps its cell when Cancel goes (the voices stage), and the status is one line.
+ *
+ * The title in the folded row and in the side column shimmers while a run goes (.queue-word): the
+ * text, never a background. The head's icon crossfades between the ring, a check and an alert
+ * (.queue-stage-icon). Both hold still under reduced motion.
+ *
+ * Contract with the shell (shell.css): the dock rests on --bottom-nav-height and --dock-room, and
+ * scripts/queue.ts publishes its height as --run-room so the floating button, the toasts and the
+ * page's foot clear it (create-sheet.css). html[data-run] marks it while it shows.
+ */
+
+/* ------------------------------------------------------------------ the dock (below 64rem) */
+
+.queue-dock {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: calc(var(--bottom-nav-height) + var(--dock-room));
+  z-index: var(--z-header);
+  /* The bottom bar's own tone, so the dock reads as part of the bar it sits on; a hairline between
+     them says where one ends (D231, 2026-10-29). */
+  background: var(--color-surface-container);
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+}
+
+@media (width >= 64rem) {
+  .queue-dock {
+    display: none;
+  }
+}
+
+html[data-player="open"] .queue-dock {
+  visibility: hidden;
+}
+
+/* An open dialog moves the window's edge out by the scrollbar's width (foundations.css): the dock
+   keeps that room, so its percent and chevron hold still. */
+@media (width < 64rem) {
+  html[data-dialog-open] .queue-dock {
+    padding-inline-end: var(--gutter, 0px);
+  }
+}
+
+/* The folded row (.queue-fold): the whole row is the button, 48px tall and full width, so a tap
+   anywhere on it opens the dock. */
+.queue-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  height: var(--run-height);
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
+  border: 0;
+  background: none;
+  color: var(--color-on-surface);
+  font: inherit;
+  font-weight: var(--font-weight-regular);
+  text-align: start;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.queue-fold-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Four characters wide, whatever the number: the word never shifts as 9% becomes 10%. */
+.queue-fold-percent {
+  flex: none;
+  min-width: 4ch;
+  color: var(--color-on-surface-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/* Folded it points up (open me), opened it points down (fold me). */
+.queue-chevron {
+  flex: none;
+  transform: rotate(180deg);
+  transition: transform var(--duration-state) var(--ease-out);
+}
+
+.queue-dock[data-expanded] .queue-chevron {
+  transform: none;
+}
+
+.queue-dock:not([data-expanded]) .queue-body {
+  display: none;
+}
+
+/* The rows scroll past about four of them, so a crowded queue never covers the page. */
+.queue-dock .queue-list {
+  max-height: min(calc(var(--queue-row-height) * 4), 50dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Opened, the dock's list starts a little below the head, so the first row is not tight against it; and
+   while runs go the ring gives way to the percent alone (a finished or failed run keeps its check or
+   alert). */
+.queue-dock .queue-list {
+  padding-block: var(--space-2);
+}
+
+.queue-dock[data-expanded] .queue-ring-head:not([data-ended]) {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ the rows */
+
+.queue {
+  /* A row: the name, the status, the actions line, and the row's padding. Sizes the dock's scroll. */
+  --queue-row-height: 7.5rem;
+  /* How long the word's light takes to cross it. */
+  --queue-sheen: 2400ms;
+}
+
+.queue-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queue-list:empty {
+  display: none;
+}
+
+/* The ring (with the time under it) or Start listening on the left, the name and the status beside it,
+   the X at the end while the run goes. The actions hang under the status. 16px above and below. */
+.queue-row {
+  display: grid;
+  grid-template-columns: var(--size-touch) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-4);
+  padding-block: var(--space-4);
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+}
+
+.queue-row:is([data-state="queued"], [data-state="running"]) {
+  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
+}
+
+.queue-lead {
+  display: grid;
+  place-items: center;
+  width: var(--size-touch);
+  min-height: var(--size-touch);
+}
+
+.queue-main {
+  display: grid;
+  min-width: 0;
+}
+
+.queue-name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One line, always: a long sentence is cut, and Details has the whole of it. */
+.queue-status {
+  margin: 0;
+  min-height: calc(1em * var(--font-leading-label));
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-when:not(:empty)::after {
+  content: " · ";
+}
+
+.queue-row[data-state="failed"] .queue-status {
+  color: var(--color-danger);
+}
+
+/* The small ring with the time left under it, whole minutes, seconds to ten or hours, no word of
+   "left" (2026-10-29). Together they are no taller than the name and the status beside them, so the
+   row's height is its 44px touch targets and everything in it sits on one centre line. Tabular so the
+   digits never shift. */
+.queue-going {
+  display: grid;
+  justify-items: center;
+}
+
+.queue-going[hidden] {
+  display: none;
+}
+
+.queue-time {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Cancel is an X, on the same centre line as the ring. While the run goes it keeps its cell when it is hidden (the
+   voices stage), so the words never shift; a row that ended has no cell for it. */
+.queue-row:is([data-state="queued"], [data-state="running"]) .queue-cancel[hidden] {
+  display: inline-flex;
+  visibility: hidden;
+}
+
+.queue-row:not([data-state="queued"], [data-state="running"]) .queue-cancel {
+  display: none;
+}
+
+/* The actions line is only there while it holds a button: Try again, Details, Check again, Listen now. */
+.queue-actions {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: var(--space-2);
+  min-height: var(--size-touch);
+}
+
+.queue-actions:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
+/* A text button's label lines up with the words above it; its padding stays as the touch target. */
+.queue-actions :is(.queue-retry, .queue-check, .queue-details) {
+  margin-inline-start: calc(var(--space-4) * -1);
+}
+
+.queue-actions [hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ the lead: ring, play, end icon */
+
+/* A drawn arc: 100 units round, the fill a share of them. scripts/queue.ts sets --queue-p (0 to 100)
+   and --queue-span, the seconds the move takes, so it glides between two answers and never goes back.
+   What sits inside is the slot: nothing while it goes, a check or an alert in the head once it is over. */
+.queue-ring {
+  --queue-ring-size: var(--size-touch);
+  --queue-ring-stroke: 3;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--queue-ring-size);
+  height: var(--queue-ring-size);
+}
+
+/* A row's ring: 24px, nothing inside (the time is under it). */
+.queue-ring-row {
+  --queue-ring-size: var(--size-icon-lg);
+  --queue-ring-stroke: 5;
+}
+
+/* The head's ring, in the dock's folded row and the side column's: 24px, nothing inside while it goes. */
+.queue-ring-head {
+  --queue-ring-size: var(--size-icon-lg);
+  --queue-ring-stroke: 5;
+}
+
+.queue-ring > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.queue-ring circle {
+  fill: none;
+  stroke-width: var(--queue-ring-stroke);
+}
+
+.queue-ring-track {
+  stroke: var(--rail-track);
+}
+
+.queue-ring-fill {
+  stroke: var(--color-accent);
+  stroke-linecap: round;
+  stroke-dasharray: var(--queue-p, 0) 100;
+  transition: stroke-dasharray var(--queue-span, var(--duration-state)) var(--ease-linear);
+}
+
+/* Everything made, or something failed: the ring gives way to a check or an alert, in the ring's own place and size. */
+.queue-ring[data-ended] > svg {
+  display: none;
+}
+
+.queue-ring[data-ended="done"] {
+  color: var(--color-success);
+}
+
+.queue-ring[data-ended="failed"] {
+  color: var(--color-danger);
+}
+
+.queue-ring[data-ended] .queue-stage-icon .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.queue-play[hidden],
+.queue-end-icon[hidden] {
+  display: none;
+}
+
+/* Start listening: the ring has become a play button, filled, in the ring's own place. A link to the
+   podcast, so it needs no script to work. */
+.queue-play {
+  background: var(--color-accent-action);
+  color: var(--color-on-accent-action);
+}
+
+.queue-end-icon {
+  display: grid;
+  place-items: center;
+  color: var(--color-on-surface-muted);
+}
+
+.queue-end-icon .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.queue-row[data-state="failed"] .queue-end-icon {
+  color: var(--color-danger);
+}
+
+/* A row being cancelled waits where it is, and says so. */
+.queue-row[data-cancelling] .queue-lead {
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ the icons that morph */
+
+/* The slot holds one icon at a time. A new icon turns in as the old one turns out; both stack in the
+   same cell, so nothing around them moves. */
+.queue-stage-icon {
+  display: grid;
+  place-items: center;
+}
+
+.queue-stage-icon > .icon {
+  grid-area: 1 / 1;
+  animation: queue-icon-in var(--duration-enter) var(--ease-out) both;
+}
+
+.queue-stage-icon > .icon[data-leaving] {
+  animation: queue-icon-out var(--duration-exit) var(--ease-out) both;
+}
+
+@keyframes queue-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-45deg);
+  }
+}
+
+@keyframes queue-icon-out {
+  to {
+    opacity: 0;
+    transform: scale(0.5) rotate(45deg);
+  }
+}
+
+/* ------------------------------------------------------------------ the word's shimmer */
+
+/* A light band crosses the title. The text is clipped to a gradient, so nothing but the letters
+   shimmer. Still, and plainly coloured, under reduced motion and forced colours. */
+.queue-word[data-live] {
+  background:
+    linear-gradient(
+      90deg,
+      var(--color-on-surface-muted) 40%,
+      var(--color-on-surface) 50%,
+      var(--color-on-surface-muted) 60%
+    )
+    0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: queue-sheen var(--queue-sheen) var(--ease-linear) infinite;
+}
+
+@keyframes queue-sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* ------------------------------------------------------------------ the popover (from 64rem) */
+
+/* Beside the side column, level with its foot: it covers the page and never the navigation. The extra
+   class beats the menu's own rules (hero.css). */
+.hero-menu-list.queue-pop {
+  inset: auto auto calc(var(--dock-room) + var(--space-4))
+    calc(var(--side-nav-width) + var(--space-2));
+  flex-direction: column;
+  width: 26rem;
+  max-height: min(36rem, 70dvh);
+  padding: 0;
+  transform-origin: bottom left;
+}
+
+.hero-menu-list.queue-pop:popover-open {
+  display: flex;
+}
+
+@media (width < 64rem) {
+  .hero-menu-list.queue-pop,
+  .hero-menu-list.queue-pop:popover-open {
+    display: none;
+  }
+}
+
+/* The title is 20px and regular: headings are never bold (D125), so the weight of the hierarchy is the
+   size and the room around it (2026-10-29). 24px above it and 24px below the last row, in every state. */
+.queue-pop-head {
+  padding: var(--space-6) var(--space-6) var(--space-2);
+}
+
+.queue-pop-title {
+  margin: 0;
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--text-heading-weight);
+  line-height: var(--font-leading-title);
+}
+
+.queue-pop .queue-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block-end: var(--space-4);
+}
+
+/* 24px at the edges. */
+.queue-pop .queue-row {
+  padding-inline: var(--space-6);
+}
+
+/* ------------------------------------------------------------------ Details of a failed run */
+
+/* The share dialog's own shape (create-sheet.css) with the run's facts as a snippet: on the tonal
+   ground the share dialog's link field has, wrapped, never wider than the dialog. */
+.queue-snippet {
+  display: block;
+  margin: 0 var(--space-4);
+  padding: var(--space-4);
+  max-height: 40dvh;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.queue-snippet:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.queue-details-actions {
+  gap: var(--space-2);
+}
+
+.queue-details-actions .btn {
+  white-space: nowrap;
+}
+
+/* The filled button is full width by default; here it hugs its words. */
+.queue-details-actions .btn-primary {
+  flex: none;
+  width: auto;
+}
+
+/* ------------------------------------------------------------------ the foot of the side column */
+
+/* The row under "Updated {date}": the navigation's own row shape, shown once something has been made
+   today. The ring takes the icon's place and size. */
+.app-nav-queue[hidden] {
+  display: none;
+}
+
+.app-nav-queue {
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.app-nav-queue-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-player="open"] .app-nav-queue {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ motion and forced colours */
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-ring-fill,
+  .queue-chevron {
+    transition: none;
+  }
+
+  .queue-stage-icon > .icon,
+  .queue-stage-icon > .icon[data-leaving] {
+    animation: none;
+  }
+
+  .queue-word[data-live] {
+    background: none;
+    animation: none;
+    color: var(--color-on-surface);
+  }
+}
+
+@media (forced-colors: active) {
+  .queue-ring-track {
+    stroke: CanvasText;
+  }
+
+  .queue-ring-fill {
+    stroke: Highlight;
+  }
+
+  .queue-word[data-live] {
+    background: none;
+    color: CanvasText;
+  }
+}

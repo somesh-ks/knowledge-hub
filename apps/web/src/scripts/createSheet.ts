@@ -1,6 +1,5 @@
 import { installCreate } from "./createPage";
 import { sheetGestures } from "./pullDismiss";
-import { morphFrom } from "./runStatus";
 
 /**
  * The Create sheet: a native dialog cloned from the layout's template on first open (the markup is
@@ -22,11 +21,8 @@ function build(): HTMLDialogElement | null {
   // A started run closes the sheet; the form is then spent, so the next press builds a fresh one.
   if (root) {
     installCreate(root, () => {
-      // The run indicator takes the sheet's place: it arrives from where the sheet was.
-      const from = clone.getBoundingClientRect();
       clone.dataset.started = "";
       clone.close();
-      morphFrom(from);
     });
   }
   clone.querySelector("[data-create-close]")?.addEventListener("click", () => clone.close());
