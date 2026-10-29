@@ -184,22 +184,53 @@ function regenerationsIn(text: string): number {
   return Number(/^regenerations:\s*(\d+)/m.exec(front)?.[1] ?? 0);
 }
 
-/** How many times a briefing was regenerated, from its front matter (D212); 0 when never or unknown. */
+/**
+ * A regeneration count, or null when it cannot be checked (D212): the store is down, or a file it
+ * listed will not read. The route then answers "try again" instead of taking the count as 0. With
+ * no store at all (a local run), the build's own copy is the truth.
+ */
+async function readCount(
+  read: (files: NonNullable<Awaited<ReturnType<typeof loadStoreFiles>>>) => Promise<string | null>,
+  bundled: () => string | null | Promise<string | null>,
+  deps: ContentRepoDeps,
+): Promise<number | null> {
+  try {
+    const files = await loadStoreFiles(deps);
+    const text = files ? await read(files) : await bundled();
+    return text === null ? null : regenerationsIn(text);
+  } catch (error) {
+    console.error(
+      `[content] regeneration count unreadable: ${error instanceof Error ? error.message : "unknown"}`,
+    );
+    return null;
+  }
+}
+
+/** How many times a briefing was regenerated, from its front matter (D212); null when unknown. */
 export async function contentDigestRegenerations(
   id: string,
   deps: () => ContentRepoDeps = runtime,
-): Promise<number> {
-  const text = await contentDigests(deps).readDigest(id);
-  return text ? regenerationsIn(text) : 0;
+): Promise<number | null> {
+  return readCount(
+    (files) => files.read(digestRelPath(id)),
+    () => bundledDigests.readDigest(id),
+    deps(),
+  );
 }
 
-/** How many times an episode was regenerated, from its front matter (D212); 0 when never or unknown. */
+/** How many times an episode was regenerated, from its front matter (D212); null when unknown. */
 export async function contentEpisodeRegenerations(
   id: string,
   deps: () => ContentRepoDeps = runtime,
-): Promise<number> {
-  const text = await contentEpisodes(deps).readEpisode(id);
-  return text ? regenerationsIn(text) : 0;
+): Promise<number | null> {
+  return readCount(
+    async (files) => {
+      const path = (await files.list("Podcasts")).find((each) => each.endsWith(`/${id}.md`));
+      return path ? files.read(path) : null;
+    },
+    () => bundledEpisodes.readEpisode(id),
+    deps(),
+  );
 }
 
 /** The engine's cost ledger, every month of it. */

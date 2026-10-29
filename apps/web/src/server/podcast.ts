@@ -5,8 +5,8 @@ import {
   type GenerateInput,
   isSameOrigin,
   MAX_BODY_CHARS,
+  regenerationAllowance,
   regenerationLimit,
-  regenerationsSpent,
 } from "./generate";
 import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
@@ -213,12 +213,13 @@ export async function handlePodcast(
   if (body === null) return invalid;
   if ("action" in body && !((await deps.episodeIds?.()) ?? []).includes(body.id)) return invalid;
   // An episode takes three regenerations (D212); the fourth is refused before it costs a run.
-  if (
-    "action" in body &&
-    body.action === "regenerate" &&
-    (await regenerationsSpent(deps, body.id))
-  ) {
-    return regenerationLimit;
+  if ("action" in body && body.action === "regenerate") {
+    const allowance = await regenerationAllowance(deps, body.id);
+    if (allowance === "spent") return regenerationLimit;
+    if (allowance === "unknown") {
+      log(`podcast unavailable: the regeneration count of ${body.id} could not be read`);
+      return unavailable;
+    }
   }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.

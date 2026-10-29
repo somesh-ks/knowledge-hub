@@ -214,6 +214,13 @@ describe("handleGenerate", () => {
     const spent = await send({ replace: "2026-10-06" });
     expect(spent).toMatchObject({ status: 409, body: { error: "regeneration_limit" } });
     expect(dispatches()).toHaveLength(1);
+    // A count that cannot be read is "try again", never 0.
+    const blind = setup({ digestIds: () => ["2026-10-07"], regenerations: async () => null });
+    blind.github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
+    expect(
+      (await handleGenerate(input(JSON.stringify({ replace: "2026-10-07" })), blind.deps)).status,
+    ).toBe(503);
+    expect(blind.github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
     // A delete is not a regeneration, so a spent podcast can still go.
     expect((await send({ action: "delete", id: "2026-10-06" })).status).toBe(202);
     // A new briefing keeps the cooldown.

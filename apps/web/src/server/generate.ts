@@ -31,7 +31,7 @@ export interface GenerateDeps {
   /** A digest's kind ("regular", "weekly", "on-demand"); Delete refuses the scheduled ones. */
   digestKind?: (id: string) => Promise<string | null>;
   /** How many times a podcast (a digest or an episode id) was regenerated; Regenerate stops at three. */
-  regenerations?: (id: string) => Promise<number>;
+  regenerations?: (id: string) => Promise<number | null>;
   log?: (message: string) => void;
 }
 
@@ -56,12 +56,18 @@ export const regenerationLimit = {
   body: { status: 409, error: "regeneration_limit" },
 } as const;
 
-/** Whether the podcast `id` has no regeneration left, by the count its own file carries. */
-export async function regenerationsSpent(
+/**
+ * Whether the podcast `id` may be regenerated, by the count its own file carries: "ok", "spent" at
+ * three, or "unknown" when the count cannot be read (the route then asks to try again).
+ */
+export async function regenerationAllowance(
   deps: Pick<GenerateDeps, "regenerations">,
   id: string,
-): Promise<boolean> {
-  return ((await deps.regenerations?.(id)) ?? 0) >= MAX_REGENERATIONS;
+): Promise<"ok" | "spent" | "unknown"> {
+  // No reader (a test, a local run) counts nothing; a reader that answers null could not check.
+  const used = deps.regenerations ? await deps.regenerations(id) : 0;
+  if (used === null) return "unknown";
+  return used >= MAX_REGENERATIONS ? "spent" : "ok";
 }
 
 /**
@@ -191,7 +197,14 @@ export async function handleGenerate(
   }
 
   // A podcast takes three regenerations (D212); the fourth is refused before it costs a run.
-  if (!deleting && id !== null && (await regenerationsSpent(deps, id))) return regenerationLimit;
+  if (!deleting && id !== null) {
+    const allowance = await regenerationAllowance(deps, id);
+    if (allowance === "spent") return regenerationLimit;
+    if (allowance === "unknown") {
+      log(`generate unavailable: the regeneration count of ${id} could not be read`);
+      return unavailable;
+    }
+  }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

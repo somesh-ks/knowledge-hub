@@ -347,6 +347,11 @@ describe("handlePodcast for an episode action", () => {
       body: { error: "regeneration_limit" },
     });
     expect(github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
+    // A count that cannot be read is "try again", never 0.
+    const blind = setup({ regenerations: async () => null });
+    blind.github.on(RUNS, { json: { workflow_runs: [] } });
+    expect((await handlePodcast(input(regen()), blind.deps)).status).toBe(503);
+    expect(blind.github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
     // Delete is not a regeneration.
     expect((await handlePodcast(input(del()), deps)).status).toBe(202);
   });

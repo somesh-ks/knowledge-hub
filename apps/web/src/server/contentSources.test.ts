@@ -69,6 +69,14 @@ it("counts regenerations from the front matter only, so a body line cannot spend
   expect(await contentEpisodeRegenerations("2031-01-30-ep-abc", deps())).toBe(0);
 });
 
+it("cannot check a count it cannot read, rather than taking it as 0 (D212)", async () => {
+  // Listed in the manifest but the file will not read: unknown, so the route says try again.
+  store.delete(`content/${NEW_DIGEST}`);
+  store.delete(`content/${NEW_EPISODE}`);
+  expect(await contentDigestRegenerations("2031-01-02", deps())).toBeNull();
+  expect(await contentEpisodeRegenerations("2031-01-30-ep-abc", deps())).toBeNull();
+});
+
 it("answers a briefing the store no longer holds as gone, not from the build", async () => {
   const [built] = bundledDigestIds();
   if (built) expect(await contentDigests(deps()).readDigest(built)).toBeNull();
