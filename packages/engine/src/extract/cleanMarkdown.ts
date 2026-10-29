@@ -62,23 +62,53 @@ function isBoilerplate(line: string): boolean {
   );
 }
 
+const BLOCK_TAGS = ["script", "style", "noscript", "svg"];
+
 /**
- * Tags a scraper left in the Markdown. A script or style block goes with its contents. Removal
- * repeats until the text stops changing: taking out one tag can join the halves of another
- * (`<scr<b>ipt>`).
+ * Tags, comments and script or style blocks a scraper left in the Markdown, in one scan: what is
+ * cut is not rescanned, and a `<` that opens a tag with no closing `>` is dropped.
  */
+function dropMarkupOnce(markdown: string): string {
+  const lower = markdown.toLowerCase();
+  let out = "";
+  let at = 0;
+  while (at < markdown.length) {
+    const open = markdown.indexOf("<", at);
+    if (open === -1) break;
+    out += markdown.slice(at, open);
+    const next = markdown[open + 1] ?? "";
+    if (lower.startsWith("<!--", open)) {
+      const end = markdown.indexOf("-->", open + 4);
+      at = end === -1 ? markdown.length : end + 3;
+    } else if (
+      /[a-z/]/i.test(next) &&
+      /[a-z]/i.test(markdown[open + (next === "/" ? 2 : 1)] ?? "")
+    ) {
+      const name = /^<\/?([a-z][a-z0-9]*)/i.exec(markdown.slice(open, open + 20))?.[1] ?? "";
+      const closing = next === "/";
+      const blockEnd =
+        !closing && BLOCK_TAGS.includes(name.toLowerCase())
+          ? lower.indexOf(`</${name.toLowerCase()}`, open)
+          : -1;
+      const from = blockEnd === -1 ? open : blockEnd;
+      const end = markdown.indexOf(">", from);
+      at = end === -1 ? markdown.length : end + 1;
+    } else {
+      out += "<";
+      at = open + 1;
+    }
+  }
+  return out + markdown.slice(at);
+}
+
+/** Repeats the scan until stable: cutting a tag can join the halves of another (`<!<!-- x -->-- y -->`). */
 function dropMarkup(markdown: string): string {
   let text = markdown;
-  let previous: string;
-  do {
+  for (let previous = ""; text !== previous; ) {
     previous = text;
-    text = text
-      .replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1\s*>/gi, "")
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/<\/?[a-z][^>]*>/gi, "");
-  } while (text !== previous);
-  // Whatever still opens a tag (an unclosed `<scr` at the end of a page) loses its bracket.
-  return text.replace(/<(?=[a-z!/])/gi, "");
+    text = dropMarkupOnce(text);
+  }
+  return text;
 }
 
 /**
