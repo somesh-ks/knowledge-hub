@@ -48,7 +48,7 @@ Unit (CI): 324 files, 5,132 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit from the site.
 - Config store (D149, D185), on since 10-24. closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
-- A 15 minute episode falls short; the app does not say what a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
+- A 15-minute episode falls short; the app does not say what a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` prices are unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Admin (D224) unreachable. closed when: /admin is live and a private window sees sign-in.
 - Catch up: 2 of 7 `podcast.yml` runs failed by 10-28, the last too. closed when: the cause is named.
