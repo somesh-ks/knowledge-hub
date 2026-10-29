@@ -37,6 +37,24 @@ describe("design-system gate", () => {
     expect(checkDesignSystemPr({ files, labels: ["design-system", "review"] })).toEqual([]);
   });
 
+  it("holds a labelled pull request to app files that name the system, and to its own records", () => {
+    const names = new Set(["apps/web/src/components/Banner.astro"]);
+    const files = [
+      "apps/web/src/components/Banner.astro",
+      "apps/web/src/server/health.ts",
+      "docs/specs/engine.md",
+      "docs/decisions/design-system.md",
+    ];
+    const problems = checkDesignSystemPr({
+      files,
+      labels: ["design-system"],
+      namesSystem: (file) => names.has(file),
+    });
+    expect(problems).toHaveLength(2);
+    expect(problems.join("\n")).toContain("apps/web/src/server/health.ts");
+    expect(problems.join("\n")).toContain("docs/specs/engine.md");
+  });
+
   it("names each file a labelled pull request carries that is not design-system work", () => {
     const files = [
       "apps/web/src/design-system/Button.astro",

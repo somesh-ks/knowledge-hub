@@ -1,6 +1,6 @@
 // The design system is a product with one owner: its changes travel in pull requests of their own.
 // A pull request that touches the system carries the `design-system` label, and one that carries the
-// label holds nothing but the system, the app code that calls it, the guide and the record.
+// label holds nothing but the system, the app files that draw it, the guide and the record.
 // Usage in CI: LABELS='["design-system"]' BASE=<sha> node scripts/designSystemGate.mjs
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
@@ -21,23 +21,40 @@ export const SYSTEM_PATHS = [
   ".claude/skills/feature/references/controls-guide.md",
 ];
 
-/** Where a design-system pull request may change files: the system itself and what moves with it. */
+/**
+ * What a design-system pull request may change besides the system itself (owner, 2026-10-29: "have it
+ * stricter"). Records and tooling by exact path; app code only where it draws or restyles the system.
+ */
 const MAY_CHANGE = [
   ...SYSTEM_PATHS,
-  "apps/web/",
-  "docs/",
+  "docs/decisions/",
+  "docs/history/",
+  "docs/design-engineering-ledger.md",
+  "docs/specs/look-and-sound.md",
+  "docs/state.md",
+  "docs/learnings.md",
   "scripts/designSystemGate",
   ".github/workflows/design-system.yml",
-  ".claude/",
+  ".claude/skills/feature/",
   "AGENTS.md",
   "package.json",
   "package-lock.json",
 ];
 
+/** App code a labelled pull request may touch, but only a file that names the system (see below). */
+const CALL_SITES = ["apps/web/src/", "apps/web/e2e/"];
+
+/**
+ * The names that make a file a call site: the components, their helpers and the classes they
+ * replaced. A family's pull request adds the names it retires here, so its own call sites count.
+ */
+export const SYSTEM_NAMES =
+  /\bButton\b|buttonClass|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete/;
+
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 
 /** The problems with a pull request, given its changed files and labels. Empty means it may go on. */
-export function checkDesignSystemPr({ files, labels }) {
+export function checkDesignSystemPr({ files, labels, namesSystem = () => true }) {
   const labelled = labels.includes(LABEL);
   const touched = files.filter((file) => startsWithAny(file, SYSTEM_PATHS));
   const problems = [];
@@ -49,10 +66,11 @@ export function checkDesignSystemPr({ files, labels }) {
     );
   }
   if (labelled) {
-    const strays = files.filter((file) => !startsWithAny(file, MAY_CHANGE));
-    for (const file of strays) {
+    for (const file of files) {
+      if (startsWithAny(file, MAY_CHANGE)) continue;
+      if (startsWithAny(file, CALL_SITES) && namesSystem(file)) continue;
       problems.push(
-        `${file} is not design-system work. A "${LABEL}" pull request holds the system, the app code that calls it, the guide and the docs; this file goes in its own pull request.`,
+        `${file} is not design-system work. A "${LABEL}" pull request holds the system, the app files that draw or restyle it, the guide and its records; this file goes in its own pull request.`,
       );
     }
   }
@@ -74,7 +92,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const files = git("diff", "--name-only", merged ? "HEAD^1" : `${base}...HEAD`, "HEAD")
     .split("\n")
     .filter(Boolean);
-  const problems = checkDesignSystemPr({ files, labels });
+  // A call site is a file that names the system before or after the change (a deleted one, before).
+  const before = merged ? "HEAD^1" : base;
+  const show = (rev, file) => {
+    try {
+      return git("show", `${rev}:${file}`);
+    } catch {
+      return "";
+    }
+  };
+  const namesSystem = (file) =>
+    SYSTEM_NAMES.test(show("HEAD", file)) || SYSTEM_NAMES.test(show(before, file));
+  const problems = checkDesignSystemPr({ files, labels, namesSystem });
   for (const problem of problems) console.log(`::error::${problem}`);
   console.log(
     problems.length
