@@ -1,6 +1,5 @@
 ---
 import PageHead from "../components/PageHead.astro";
-import ThemeChoice from "../components/ThemeChoice.astro";
 import Shell from "../layouts/Shell.astro";
 import { COLOUR_GROUPS, COLOUR_PAIRS, colourToken, primitive } from "../lib/guide";
 import { SECTIONS } from "../lib/sections";
@@ -15,12 +14,12 @@ const ramps = ["grey", "blue", "green", "amber", "red"].map((hue) => ({
 <Shell title="Colour" current="/colour">
   <div class="settings-view guide-page" data-settings data-ready data-colour>
     <PageHead title="Colour" note={section?.note ?? ""} />
-    <ThemeChoice />
+    
 
     {
       COLOUR_GROUPS.map((group) => (
-        <section aria-labelledby={`g-${group.title}`}>
-          <h2 class="section-head" id={`g-${group.title}`}>{group.title}</h2>
+        <section aria-labelledby={`g-${group.title.toLowerCase().replaceAll(" ", "-")}`}>
+          <h2 class="section-head" id={`g-${group.title.toLowerCase().replaceAll(" ", "-")}`}>{group.title}</h2>
           <p class="guide-note">{group.note}</p>
           <ul class="guide-swatches" role="list">
             {group.names.map((name) => {

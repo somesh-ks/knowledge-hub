@@ -2,7 +2,7 @@ import type { IconName } from "../../../web/src/lib/icons";
 
 /** The style guide's pages, in nav order. */
 export interface Section {
-  /** The path under the base: "" for the component index. */
+  /** The path under the base: "" for the overview. */
   path: string;
   label: string;
   icon: IconName;
@@ -13,9 +13,9 @@ export interface Section {
 export const SECTIONS: readonly Section[] = [
   {
     path: "",
-    label: "Components",
+    label: "Overview",
     icon: "viewGrid",
-    note: "Every shared part of the app, from the smallest to the largest, with its states to try.",
+    note: "What this site holds, and what is not in it yet.",
   },
   {
     path: "/colour",
@@ -46,6 +46,3 @@ export const SECTIONS: readonly Section[] = [
 /** An address under the base ("/design"), which Astro writes with or without a closing slash. */
 export const href = (path: string): string =>
   `${import.meta.env.BASE_URL.replace(/\/$/, "")}${path}` || "/";
-
-/** The reader. On the shared domain it is "/"; the dev server of this app is another port, so it asks the reader's (4321). */
-export const READER_HREF: string = import.meta.env.DEV ? "http://localhost:4321/" : "/";

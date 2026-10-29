@@ -235,6 +235,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
 | D218 | Admin and the style guide become their own apps | active; amends D189 |
-| D220 | The style guide is drawn from specs | active; amends D189 |
+| D222 | The style guide shows only components the app imports | active; amends D189 |
 
 ---

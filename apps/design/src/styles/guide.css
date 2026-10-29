@@ -29,12 +29,6 @@
   line-height: var(--font-leading-body);
 }
 
-.guide-meta {
-  margin: 0 0 var(--space-6);
-  color: var(--color-on-surface-subtle);
-  font-size: var(--font-size-meta);
-}
-
 .guide-prose {
   max-width: var(--layout-measure);
   margin: 0 0 var(--space-4);
@@ -63,272 +57,6 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-regular);
-}
-
-/* ------------------------------------------------------------------ the index */
-
-.guide-toolbar {
-  display: grid;
-  gap: var(--space-4);
-  margin-block-end: var(--space-6);
-}
-
-.guide-toolbar .segmented-choice {
-  justify-self: start;
-}
-
-.guide-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: var(--space-4);
-}
-
-/* A card: the drawing over its name. Nothing moves on hover; the drawing inside steps through its
-   states (thumbs.ts) and the name takes the accent, as a card's title does in the app (D101). */
-.guide-card {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--card-radius);
-  color: var(--color-on-surface);
-  text-decoration: none;
-}
-
-.guide-card[hidden] {
-  display: none;
-}
-
-.guide-card:has(.guide-card-title:focus-visible) {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-.guide-card-thumb {
-  display: grid;
-  place-content: center;
-  place-items: center;
-  block-size: calc(var(--space-16) * 2.5);
-  overflow: hidden;
-  background: var(--color-surface-container);
-}
-
-/* The part at its real size, in a frame as wide as it has in the app. thumbs.ts sets --thumb-scale
-   so the whole part fits the tile; until it runs, a part draws at about two thirds. */
-.guide-card-art {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  inline-size: max-content;
-  max-inline-size: var(--layout-dialog);
-  scale: var(--thumb-scale, 0.7);
-}
-
-.guide-card-art:is([data-frame="stack"], [data-frame="narrow"], [data-frame="wide"]) {
-  display: grid;
-  justify-content: stretch;
-}
-
-.guide-card-art[data-frame="stack"] {
-  inline-size: calc(var(--layout-dialog) - var(--space-4));
-}
-
-.guide-card-art[data-frame="narrow"] {
-  inline-size: calc(var(--layout-column) / 2);
-}
-
-.guide-card-art[data-frame="wide"] {
-  inline-size: var(--layout-dialog);
-}
-
-.guide-card-body {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-4);
-}
-
-/* The title is the card's link; its box is stretched over the whole card, which holds live parts
-   (links and buttons among them) that must not nest inside an anchor. */
-.guide-card-title {
-  color: inherit;
-  text-decoration: none;
-  font-size: var(--text-title-size);
-  line-height: var(--text-title-leading);
-  transition: color var(--duration-hover) var(--ease-hover);
-}
-
-.guide-card-title::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-}
-
-.guide-card-title:focus-visible {
-  outline: none;
-}
-
-@media (hover: hover) {
-  .guide-card:hover .guide-card-title {
-    color: var(--color-accent);
-  }
-}
-
-.guide-card-meta {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-}
-
-/* ------------------------------------------------------------------ a component page */
-
-.guide-stage {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  min-block-size: calc(var(--space-16) * 3);
-  padding: var(--space-8) var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--card-radius);
-  background: var(--color-surface);
-}
-
-.guide-stage:is([data-frame="stack"], [data-frame="narrow"], [data-frame="wide"]),
-.guide-cell-frame:is([data-frame="stack"], [data-frame="narrow"], [data-frame="wide"]) {
-  display: grid;
-  align-content: center;
-  justify-content: stretch;
-}
-
-/* The width a part has where the app puts it: a card's column, or a dialog. */
-:is(.guide-stage, .guide-cell-frame)[data-frame="narrow"] {
-  grid-template-columns: min(100%, 20rem);
-  justify-content: center;
-}
-
-:is(.guide-stage, .guide-cell-frame)[data-frame="wide"] {
-  grid-template-columns: min(100%, 28rem);
-  justify-content: center;
-}
-
-.guide-controls {
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-  gap: var(--space-6) var(--space-8);
-  margin-block-start: var(--space-6);
-}
-
-.guide-control-group {
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.guide-toggle-row {
-  padding-inline: 0;
-}
-
-.guide-gallery + .guide-gallery {
-  margin-block-start: var(--space-6);
-}
-
-.guide-cells {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
-  gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* A part that fills its container (a row, a tile strip) needs a cell as wide as that container. */
-.guide-cells:not([data-frame="row"]) {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-}
-
-.guide-cell,
-.guide-cell-frame {
-  min-width: 0;
-}
-
-.guide-cell {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: var(--space-2);
-}
-
-.guide-cell-frame {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-block-size: calc(var(--space-16) * 2);
-  padding: var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--card-radius);
-}
-
-.guide-cell-label {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  text-align: center;
-}
-
-.guide-code-wrap {
-  position: relative;
-}
-
-.guide-code {
-  margin: 0;
-  padding: var(--space-4);
-  overflow: auto;
-  border-radius: var(--card-radius);
-  background: var(--color-surface-container);
-  color: var(--color-on-surface-reading);
-  font-size: var(--font-size-meta);
-  line-height: var(--font-leading-body);
-  tab-size: 2;
-  white-space: pre;
-}
-
-.guide-code:focus-visible {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-.guide-copy {
-  position: absolute;
-  inline-size: auto;
-  inset-block-start: var(--space-2);
-  inset-inline-end: var(--space-2);
-}
-
-.guide-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.guide-tags code {
-  display: block;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-round);
-  background: var(--color-surface-container);
-  color: var(--color-on-surface);
-  font-family: inherit;
-  font-size: var(--font-size-meta);
 }
 
 /* ------------------------------------------------------------------ colour */
@@ -552,18 +280,6 @@
   translate: calc(100cqw - var(--space-8)) 0;
 }
 
-.guide-motion-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.guide-motion-name {
-  font-size: var(--font-size-meta);
-}
-
 .guide-icons {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));
@@ -625,10 +341,6 @@
   inline-size: 50%;
 }
 
-.guide-toolbar .search-field {
-  margin: 0;
-}
-
 .guide-jump + .search-field {
   margin-block-end: var(--space-6);
 }
@@ -638,4 +350,73 @@
    counts as off screen and leaves blank. */
 .guide-page .library-grid > .card {
   content-visibility: visible;
+}
+/* The wordmark's tagline: what this app is, beside the name it shares with the reader. */
+.guide-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: var(--space-2);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+}
+
+/* The foot of the side column: the day it was built, then the one setting. Below 64rem the column
+   is not drawn, and the Overview page carries the theme choice instead. */
+.guide-nav-foot {
+  display: none;
+}
+
+.guide-phone-only {
+  display: block;
+}
+
+@media (width >= 64rem) {
+  /* The side column is narrower than the name and the chip side by side: the chip sits under the name. */
+  .app-nav-brand {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: var(--space-2);
+    justify-items: start;
+    align-items: center;
+  }
+
+  .app-nav-brand .guide-chip {
+    grid-column: 2;
+    margin: 0;
+    margin-block-start: calc(var(--space-2) * -1);
+  }
+
+  .guide-nav-foot .segmented-choice {
+    grid-auto-columns: auto;
+    flex: none;
+  }
+
+  .guide-nav-foot {
+    display: grid;
+    gap: var(--space-2);
+    margin-block: auto var(--space-4);
+    padding-inline: var(--space-4);
+  }
+
+  .guide-phone-only {
+    display: none;
+  }
+}
+
+.guide-updated {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  white-space: nowrap;
+}
+
+/* The search field is followed by the first section; the shell's section rhythm starts after it. */
+.guide-page > .search-field + section {
+  margin-block-start: var(--space-6);
 }

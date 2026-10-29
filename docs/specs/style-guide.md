@@ -1,29 +1,26 @@
 # Style guide
 
-The reader's design system as its own site: `news.someshks.work/design`, the app `apps/design`. What it does now. Reasons: D220, D189; plan: [command-center.md](../design/command-center.md).
+The reader's design system as its own site, "Singularity design": `news.someshks.work/design`, the app `apps/design`. What it does now. Reasons: D222, D189; plan: [command-center.md](../design/command-center.md).
 
 ## Requirements
 
-- A static Astro app (`base: "/design"`, own Vercel project, reached by the reader's rewrite) drawn with the reader's own stylesheets, shell and navigation classes. A theme saved in the reader shows here (same origin). It is open and not indexed.
-- Pages: Components, one page per component, Colour, Type, Tokens, Principles. Every address carries the base.
-- **Specs.** Each shared part has a `*.design.ts` beside its component or stylesheet in `apps/web/src`, default-exporting `defineSpec(...)` (`lib/designSpec.ts`): id, title, level (atom, molecule, organism), category, the shared classes it draws, controls (choice, toggle, text), `render(state)` returning markup, optional `demo`, `frame`, `usage` and `guidance`. `lib/designSpecs.ts` collects them with `import.meta.glob`. The markup copies the shipped component; a change to the component changes its spec in the same PR.
-- **Components page.** Cards in atomic order (Atoms, Molecules, Organisms), each the part drawn at its real size, scaled to fit its tile. Hovering or focusing a card steps the part through its states (the first choice's options, or a toggle flipped), editing nodes in place so the part's own transitions run; with reduced motion it shows its first step. The search matches components, classes, colours and tokens (`/search-index.json`, read on first use); level and category filter the cards; `/` focuses the search; the query is kept in `?q=`.
-- **A component page.** The part live, a form of its controls (a toggle for each state, a choice for each variant, a text field for its words), every option of every control drawn at a glance, the usage comment read from over its class in the stylesheet, guidance, the markup (it follows the controls, with a copy button) and its classes. Tabs select and pressed buttons toggle in the stage; links go nowhere.
+- A static Astro app (`base: "/design"`, own Vercel project, reached by the reader's rewrite) drawn with the reader's own stylesheets, shell and navigation classes. A theme saved in the reader shows here (same origin). It is open and not indexed. The wordmark reads "Singularity" with a small "Design" chip; there is no link back to the reader.
+- Pages: Overview, Colour, Type, Tokens, Principles. Every address carries the base.
+- **Components are not here yet.** A component appears in the guide only when it is the one the app imports, so nothing shown can differ from the app (D222). The Overview says so. Until the app has a component per part, the guide lists none.
+- **Overview.** The pages as rows, and a search over colour, type and token names (`/search-index.json`, read on first use; `/` focuses it; the query is kept in `?q=`).
 - **Colour.** Every semantic role in its group, with the value it resolves to in the current theme (read through a canvas, so oklch shows as hex), the WCAG ratio of thirteen pairs the app uses against the ratio each needs, and the primitive ramps.
 - **Type.** The nine roles with the size, weight and leading they resolve to at this window, a sample field that retypes them, the size scale and the leading.
-- **Tokens.** Space, radius and stroke, shadow, motion (a press runs a duration or a curve), layers, layout, component tokens and every icon; one filter hides what does not match.
-- **Theme.** System, Light or Dark for this tab only (`sessionStorage`); the reader's saved preferences are never written.
-- **Tests.** `lib/designSpecs.test.ts` fails when a spec id repeats, a spec claims a class it never draws or no stylesheet defines, or a class in `buttons.css`, `primitives.css`, `banner.css` or the shared list in the test has no spec. `npm run gate` type checks and builds the app.
+- **Tokens.** Space, radius and stroke, shadow, motion (a press runs a duration or a curve, and the dot returns), layers, layout, component tokens and every icon; one filter hides what does not match.
+- **Side column foot.** The day the guide was built, as the reader shows it, and the theme choice: System (follows the operating system), Light or Dark for this tab only (`sessionStorage`); the reader's saved preferences are never written. Below 64rem the Overview carries the theme choice.
+- **Tests.** `npm run gate -- --build` type checks and builds the app.
 
 ## Code
 
 - `apps/design/src` (pages, `scripts/`, `lib/`, `styles/guide.css`), `apps/design/vercel.json`
-- `apps/web/src/lib/designSpec.ts`, `designSpecs.ts`, `designSpecs.test.ts`, `designCatalogue.ts` (tokens and usage comments)
-- `apps/web/src/**/*.design.ts`
+- `apps/web/src/lib/designCatalogue.ts` (tokens and usage comments)
 
 ## Gotchas
 
-- A card holds live parts, so it cannot be an anchor (an anchor in an anchor splits the card): its title is the link, stretched over the card, and the drawing is `inert`.
-- The Library's `content-visibility: auto` leaves a scaled, clipped card blank; the guide turns it off for the cards it draws. A Settings view hides its switches until `data-ready`, so every guide page sets it.
-- The top-layer parts (menu, toast, confirm, play-fab) carry an inline `style` to sit in place; it shows in the markup view.
+- A Settings view hides its switches until `data-ready`, so every guide page sets it.
 - `--layout-column` stays 40rem: sheets and pickers are as wide as it makes them. Only the page's own column widens (`.shell.page`).
+- The first build had a spec per shared part (44 files of hand-copied markup, with cards that stepped through states). The owner required the guide to show the real components, so it was removed from the pull request; see the [history note](../history/2026-10-29-style-guide.md).

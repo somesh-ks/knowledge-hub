@@ -15,6 +15,7 @@ const shadows = pick(semantic.get("shadow"));
 const durations = pick(primitive.get("duration"));
 const eases = pick(primitive.get("ease"));
 const interaction = [
+  ...pick(primitive.get("spring")),
   ...pick(primitive.get("scale")),
   ...pick(primitive.get("distance")),
   ...pick(primitive.get("state")),

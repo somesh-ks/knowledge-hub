@@ -1,30 +1,27 @@
 /**
- * The page's theme for this tab: System leaves the reader's saved choice alone, Light and Dark set
- * data-theme on the page and remember it in this tab only (sessionStorage), so the other pages open
- * the same way. Nothing is written to the reader's preferences.
+ * The page's theme for this tab: Light and Dark set data-theme on the page and are remembered in
+ * this tab only (sessionStorage), so the other pages open the same way; System removes it, so the
+ * page follows the operating system. With no choice made in this tab the page opens in the reader's
+ * saved theme (themeInit.js) and the choice shows that. Nothing is written to the reader's preferences.
  */
+export {};
+
 const KEY = "design:theme";
 
+/** What the page is drawn in now: this tab's choice, else the reader's saved theme, else the system's. */
 const read = (): string => {
   try {
-    return sessionStorage.getItem(KEY) ?? "system";
-  } catch {
-    return "system";
-  }
+    const chosen = sessionStorage.getItem(KEY);
+    if (chosen === "light" || chosen === "dark" || chosen === "system") return chosen;
+  } catch {}
+  const theme = document.documentElement.dataset.theme;
+  return theme === "light" || theme === "dark" ? theme : "system";
 };
 
 function apply(theme: string): void {
   const root = document.documentElement;
   if (theme === "light" || theme === "dark") root.dataset.theme = theme;
-  else if (theme === "system") {
-    // Back to the reader's saved theme, which themeInit.js applied on load.
-    delete root.dataset.theme;
-    try {
-      const raw = localStorage.getItem("singularity:preferences");
-      const saved = raw ? JSON.parse(raw).theme : null;
-      if (saved === "light" || saved === "dark") root.dataset.theme = saved;
-    } catch {}
-  }
+  else delete root.dataset.theme;
   document.dispatchEvent(new CustomEvent("design:theme", { detail: theme }));
 }
 

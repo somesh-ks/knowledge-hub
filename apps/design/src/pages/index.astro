@@ -1,68 +1,54 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
-import { DESIGN_CATEGORIES, DESIGN_LEVELS } from "../../../web/src/lib/designSpec";
 import PageHead from "../components/PageHead.astro";
-import SpecCard from "../components/SpecCard.astro";
+import ThemeChoice from "../components/ThemeChoice.astro";
 import Shell from "../layouts/Shell.astro";
-import { designSpecs, LEVEL_NOTES, LEVEL_TITLES } from "../lib/guide";
 import { href, SECTIONS } from "../lib/sections";
 
 const section = SECTIONS[0];
-const groups = DESIGN_LEVELS.map((level) => ({
-  level,
-  specs: designSpecs.filter((spec) => spec.level === level),
-})).filter((group) => group.specs.length > 0);
-const categories = DESIGN_CATEGORIES.filter((category) =>
-  designSpecs.some((spec) => spec.category === category),
-);
+const pages = SECTIONS.slice(1);
 ---
 
-<Shell title="Components" current="">
+<Shell title="Overview" current="">
   <div class="settings-view guide-page" data-settings data-ready data-index-url={href("/search-index.json")}>
-    <PageHead title="Components" note={section?.note ?? ""} />
+    <PageHead title="Singularity design" note={section?.note ?? ""} />
 
-    <div class="guide-toolbar">
-      <label class="search-field">
-        <Icon name="search" />
-        <span class="sr-only">Search components, colours and tokens</span>
-        <input type="search" name="q" placeholder="Search components, colours and tokens" autocomplete="off" data-guide-search />
-      </label>
-      <fieldset class="segmented-choice" role="radiogroup" aria-label="Level" data-level-choice>
-        <label class="segmented-choice-item"><input type="radio" name="level" value="" checked /><span>All</span></label>
+    <label class="search-field">
+      <Icon name="search" />
+      <span class="sr-only">Search colours, type and tokens</span>
+      <input type="search" name="q" placeholder="Search colours, type and tokens" autocomplete="off" data-guide-search />
+    </label>
+
+    <section aria-labelledby="pages" data-pages>
+      <h2 class="section-head" id="pages">What is here</h2>
+      <div class="rows card-group">
         {
-          DESIGN_LEVELS.map((level) => (
-            <label class="segmented-choice-item"><input type="radio" name="level" value={level} /><span>{LEVEL_TITLES[level]}</span></label>
+          pages.map((page) => (
+            <a class="row-action" href={href(page.path)}>
+              <span class="settings-text"><span class="settings-label">{page.label}</span><span class="settings-hint">{page.note}</span></span>
+              <Icon name="chevronRight" />
+            </a>
           ))
         }
-      </fieldset>
-      <fieldset class="filter-chips filter-chips-scroll" aria-label="Category" data-category-filter>
-        {
-          categories.map((category) => (
-            <label class="filter-chip"><input type="checkbox" name="category" value={category} /><Icon name="check" class="filter-chip-check" /><span>{category}</span></label>
-          ))
-        }
-      </fieldset>
-      <p class="settings-hint" data-count aria-live="polite">{designSpecs.length} components</p>
-    </div>
+      </div>
+    </section>
 
-    {
-      groups.map((group) => (
-        <section aria-labelledby={`level-${group.level}`} data-group={group.level}>
-          <h2 class="section-head" id={`level-${group.level}`}>{LEVEL_TITLES[group.level]}</h2>
-          <p class="guide-note">{LEVEL_NOTES[group.level]}</p>
-          <div class="guide-grid">
-            {group.specs.map((spec) => <SpecCard spec={spec} />)}
-          </div>
-        </section>
-      ))
-    }
+    <section aria-labelledby="components" data-pages>
+      <h2 class="section-head" id="components">Components</h2>
+      <p class="guide-note">Not here yet. A component appears in this guide only when it is the one the app itself imports, so nothing shown can differ from the app. They arrive family by family: buttons, links, chips, then the rest.</p>
+    </section>
 
-    <section hidden data-token-results aria-labelledby="also-found">
-      <h2 class="section-head" id="also-found">Also found</h2>
+    <section hidden data-token-results aria-labelledby="found">
+      <h2 class="section-head" id="found">Found</h2>
       <div class="rows card-group" data-token-list></div>
     </section>
 
-    <p class="guide-note" hidden data-empty>Nothing matches. Try a class name such as <code>btn</code>, or a token such as <code>duration</code>.</p>
+    <p class="guide-note" hidden data-empty>Nothing matches. Try a role such as <code>surface</code>, or a token such as <code>duration</code>.</p>
+
+    <section class="guide-phone-only" aria-labelledby="theme">
+      <h2 class="section-head" id="theme">Theme</h2>
+      <ThemeChoice />
+    </section>
   </div>
 </Shell>
 <script>

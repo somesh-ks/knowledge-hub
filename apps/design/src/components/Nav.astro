@@ -1,10 +1,12 @@
 ---
 import BrandMark from "../../../web/src/components/BrandMark.astro";
 import Icon from "../../../web/src/components/Icon.astro";
-import { href, READER_HREF, SECTIONS } from "../lib/sections";
+import { buildDay } from "../../../web/src/lib/buildDay";
+import { href, SECTIONS } from "../lib/sections";
+import ThemeChoice from "./ThemeChoice.astro";
 
 interface Props {
-  /** The section's path under the base; "" for the component index. */
+  /** The section's path under the base; "" for the overview. */
   current: string;
 }
 
@@ -12,11 +14,13 @@ const { current } = Astro.props;
 ---
 
 {/* The reader's navigation, drawn by its own classes (shell.css): a bottom bar below 64rem and a side
-     column from it. */}
-<nav class="app-nav" aria-label="Style guide" data-bottom-nav>
-  <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity style guide">
+     column from it. The side column's foot holds what the reader's holds, the day it was built, and the
+     theme choice, which is the guide's only setting. */}
+<nav class="app-nav" aria-label="Singularity design" data-bottom-nav>
+  <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity design">
     <BrandMark />
-    <span>Style guide</span>
+    <span>Singularity</span>
+    <span class="guide-chip">Design</span>
   </a>
   <ul class="app-nav-list" role="list">
     {
@@ -33,5 +37,8 @@ const { current } = Astro.props;
       ))
     }
   </ul>
-  <p class="app-nav-updated"><a class="text-link" href={READER_HREF}>Back to the app</a></p>
+  <div class="guide-nav-foot">
+    <p class="guide-updated">Updated {buildDay()}</p>
+    <ThemeChoice />
+  </div>
 </nav>

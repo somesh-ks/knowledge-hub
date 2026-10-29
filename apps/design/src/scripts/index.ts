@@ -1,18 +1,16 @@
 /**
- * The component index: search, the level choice and the category chips filter the cards together,
- * and a query also looks through the colour and token names (search-index.json, fetched on first use).
- * The query lives in the address (?q=) so a search can be shared; "/" focuses the field.
+ * The overview's search: colour, type and token names, matched as you type (search-index.json,
+ * fetched on first use). The query lives in the address (?q=) so a search can be shared; "/" focuses
+ * the field.
  */
-import "./thumbs";
+export {};
 
 const page = document.querySelector<HTMLElement>("[data-index-url]");
 const input = document.querySelector<HTMLInputElement>("[data-guide-search]");
-const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-card]"));
-const groups = Array.from(document.querySelectorAll<HTMLElement>("[data-group]"));
-const count = document.querySelector<HTMLElement>("[data-count]");
+const pages = Array.from(document.querySelectorAll<HTMLElement>("[data-pages]"));
 const empty = document.querySelector<HTMLElement>("[data-empty]");
-const tokenSection = document.querySelector<HTMLElement>("[data-token-results]");
-const tokenList = document.querySelector<HTMLElement>("[data-token-list]");
+const results = document.querySelector<HTMLElement>("[data-token-results]");
+const list = document.querySelector<HTMLElement>("[data-token-list]");
 
 interface Entry {
   kind: string;
@@ -29,65 +27,45 @@ const load = (): Promise<Entry[]> => {
   return entries;
 };
 
-const level = (): string =>
-  document.querySelector<HTMLInputElement>('input[name="level"]:checked')?.value ?? "";
-const categories = (): string[] =>
-  Array.from(document.querySelectorAll<HTMLInputElement>('input[name="category"]:checked')).map(
-    (box) => box.value,
-  );
+/** The newest apply(); an older one that wakes from the index fetch finds itself stale and stops. */
+let latest = 0;
 
 async function apply(): Promise<void> {
+  const run = ++latest;
   const query = (input?.value ?? "").trim().toLowerCase();
   const terms = query.split(/\s+/).filter(Boolean);
-  const chosenLevel = level();
-  const chosen = categories();
-  let shown = 0;
-  for (const card of cards) {
-    const haystack = card.dataset.haystack ?? "";
-    const match =
-      terms.every((term) => haystack.includes(term)) &&
-      (!chosenLevel || card.dataset.level === chosenLevel) &&
-      (chosen.length === 0 || chosen.includes(card.dataset.category ?? ""));
-    card.hidden = !match;
-    if (match) shown++;
+  let found: Entry[] = [];
+  if (terms.length > 0) {
+    const all = await load();
+    if (run !== latest) return;
+    found = all
+      .filter((entry) =>
+        terms.every((term) => `${entry.title} ${entry.tags}`.toLowerCase().includes(term)),
+      )
+      .slice(0, 12);
   }
-  for (const group of groups) group.hidden = !group.querySelector("[data-card]:not([hidden])");
-
-  let others = 0;
-  if (tokenSection && tokenList) {
-    if (terms.length > 0 && !chosenLevel && chosen.length === 0) {
-      const all = await load();
-      const found = all
-        .filter(
-          (entry) =>
-            entry.kind !== "component" &&
-            terms.every((term) => `${entry.title} ${entry.tags}`.toLowerCase().includes(term)),
-        )
-        .slice(0, 12);
-      tokenList.replaceChildren(
-        ...found.map((entry) => {
-          const row = document.createElement("a");
-          row.className = "row-action";
-          row.href = entry.href;
-          const text = document.createElement("span");
-          text.className = "settings-text";
-          const label = document.createElement("span");
-          label.className = "settings-label";
-          label.textContent = entry.title;
-          const hint = document.createElement("span");
-          hint.className = "settings-hint";
-          hint.textContent = entry.detail;
-          text.append(label, hint);
-          row.append(text);
-          return row;
-        }),
-      );
-      others = found.length;
-    } else tokenList.replaceChildren();
-    tokenSection.hidden = others === 0;
-  }
-  if (empty) empty.hidden = shown + others > 0;
-  if (count) count.textContent = `${shown} ${shown === 1 ? "component" : "components"}`;
+  list?.replaceChildren(
+    ...found.map((entry) => {
+      const row = document.createElement("a");
+      row.className = "row-action";
+      row.href = entry.href;
+      const text = document.createElement("span");
+      text.className = "settings-text";
+      const label = document.createElement("span");
+      label.className = "settings-label";
+      label.textContent = entry.title;
+      const hint = document.createElement("span");
+      hint.className = "settings-hint";
+      hint.textContent = entry.detail;
+      text.append(label, hint);
+      row.append(text);
+      return row;
+    }),
+  );
+  // While a search has results the page's own sections step aside.
+  for (const section of pages) section.hidden = terms.length > 0;
+  if (results) results.hidden = found.length === 0;
+  if (empty) empty.hidden = terms.length === 0 || found.length > 0;
   const url = new URL(location.href);
   if (query) url.searchParams.set("q", query);
   else url.searchParams.delete("q");
@@ -97,9 +75,6 @@ async function apply(): Promise<void> {
 const initial = new URL(location.href).searchParams.get("q");
 if (input && initial) input.value = initial;
 input?.addEventListener("input", apply);
-document.addEventListener("change", (event) => {
-  if ((event.target as HTMLElement).matches('input[name="level"], input[name="category"]')) apply();
-});
 addEventListener("keydown", (event) => {
   const active = document.activeElement;
   if (
@@ -110,4 +85,4 @@ addEventListener("keydown", (event) => {
     input?.focus();
   }
 });
-if (initial) apply();
+apply();

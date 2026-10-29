@@ -1,17 +1,6 @@
-/**
- * What the style guide's pages read at build time: the specs in apps/web, the tokens grouped as the
- * tiers group them, and the usage comments written over the classes in the stylesheets.
- */
-import {
-  type CatalogueToken,
-  tokenGroups,
-  usageComment,
-} from "../../../web/src/lib/designCatalogue";
-import type { DesignSpec } from "../../../web/src/lib/designSpec";
-import { designSpecs } from "../../../web/src/lib/designSpecs";
+/** What the style guide's pages read at build time: the tokens, grouped as the tiers group them. */
+import { type CatalogueToken, tokenGroups } from "../../../web/src/lib/designCatalogue";
 import { href } from "./sections";
-
-export { designSpecs };
 
 export const semantic = tokenGroups("semantic");
 export const primitive = tokenGroups("primitive");
@@ -116,31 +105,9 @@ export function colourToken(name: string): CatalogueToken | undefined {
   return semantic.get("color")?.find((token) => token.path === `color.${name}`);
 }
 
-/** The usage comments over the spec's classes, one paragraph each. */
-export function usageOf(spec: DesignSpec): string[] {
-  const sources = spec.usage ? [spec.usage].flat() : [];
-  return sources
-    .map((source) => usageComment(source.sheet, source.selector))
-    .filter((text) => text !== "");
-}
-
-export const componentHref = (spec: DesignSpec): string => href(`/components/${spec.id}`);
-
-export const LEVEL_TITLES = {
-  atom: "Atoms",
-  molecule: "Molecules",
-  organism: "Organisms",
-} as const;
-
-export const LEVEL_NOTES = {
-  atom: "The smallest parts: they do one job and hold nothing else.",
-  molecule: "Atoms working as one: a field with its label, a row with its action.",
-  organism: "Whole regions made of molecules: a menu, a list, a header.",
-} as const;
-
-/** One searchable thing: a page, a component, a token. */
+/** One searchable thing: a colour, a text role, a token. */
 export interface SearchEntry {
-  kind: "component" | "colour" | "type" | "token" | "page";
+  kind: "colour" | "type" | "token";
   title: string;
   /** What else the search matches: classes, categories, values, notes. */
   tags: string;
@@ -148,16 +115,25 @@ export interface SearchEntry {
   detail: string;
 }
 
+/** Where each token group is drawn, when it is not on a Tokens section of its own name. */
+const TOKEN_GROUP_HREF: Record<string, string> = {
+  stroke: "/tokens#radius",
+  font: "/type",
+  duration: "/tokens#motion",
+  ease: "/tokens#motion",
+  spring: "/tokens#motion",
+  scale: "/tokens#motion",
+  distance: "/tokens#motion",
+  state: "/tokens#motion",
+  opacity: "/tokens#motion",
+  blur: "/tokens#motion",
+  z: "/tokens#layers",
+  breakpoint: "/tokens#layout",
+  size: "/tokens#layout",
+};
+
 export function searchIndex(): SearchEntry[] {
   const entries: SearchEntry[] = [];
-  for (const spec of designSpecs)
-    entries.push({
-      kind: "component",
-      title: spec.title,
-      tags: [spec.id, spec.category, spec.level, spec.summary, ...spec.classes].join(" "),
-      href: componentHref(spec),
-      detail: `${spec.level} · ${spec.category}`,
-    });
   for (const token of semantic.get("color") ?? [])
     entries.push({
       kind: "colour",
@@ -181,7 +157,7 @@ export function searchIndex(): SearchEntry[] {
         kind: "token",
         title: token.name,
         tags: `${token.value} ${token.description ?? ""}`,
-        href: href(`/tokens#${group}`),
+        href: href(TOKEN_GROUP_HREF[group] ?? `/tokens#${group}`),
         detail: token.value.length > 28 ? group : `${group} · ${token.value}`,
       });
   }
