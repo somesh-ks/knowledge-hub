@@ -1236,6 +1236,23 @@
       },
       "usd": 0.07,
       "estimated": true
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-29T23:26:33.460Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 12727,
+        "output_tokens": 6100
+      },
+      "usd": 0.129681
     }
   ]
 }
