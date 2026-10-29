@@ -67,7 +67,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 1. Free the lane in the hold ([D209](decisions/engine.md)).
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token pasted in chat; delete the empty store `store_JmrDq8MB5Kwn3ejW`; the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table (21 sources gave about 1 story per 4,460 credits a month) for the owner to prune; changelog providers (Claude, OpenAI) once the pilot holds.
-4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the resumed bar; the 19 KiB unused; the 1.4 s chain (share, overlays, Create tools on interaction). Re-run after CSS changes.
+4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the resumed bar; the 19 KiB unused; the 1.4 s chain (share, overlays, Create tools on touch). Re-run after CSS changes.
 5. `topic` to `category` end to end (plan 14): an inventory the owner reviews, dual-name readers, a store-synced migration, the rename, workflow outputs, then the old names go; only with no other PR open ([starting points](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
 6. Design-system sweep (plan 17): `/settings/*`, category pages, player, create; light and dark at 390 and 1280; one PR per component family.
 7. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first turn (D141, D178).
