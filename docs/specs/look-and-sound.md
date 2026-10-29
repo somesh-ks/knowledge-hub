@@ -18,6 +18,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Covers have richer saturation in both themes (paper chroma 0.045, spot and tint 25% richer, under 0.12 cap); card progress scrim covers bottom quarter only (D122).
 - Ambient light (D48): soft cover-colored light behind Latest and episode headers, drawn by WebGL canvas on GPU and CSS layer fallback (D122).
 - Covers ship as lossless WebP (about 1/3 PNG bytes), encoded with sharp at build time; PNG retained for lock screen media controls.
+- Toast variant: `oneLine` keeps its words on one line, cut by an ellipsis (the time zone offer, D239); below 40rem its close is `.sr-only`, as a sheet's is (D144), and a swipe dismisses.
 - Safari workarounds: sheets, Delete confirm, hero menu, and toasts stack for exit; speed panel closes immediately; heights do not animate to auto.
 - Scenario: WHEN theme changes THEN covers decode before crossfade and bars fade with page.
 - Topic artwork generated from name and id (`packages/cover/src/topicArt.ts`).

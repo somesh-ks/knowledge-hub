@@ -246,5 +246,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
 | D232 | One cleaner turns scraped Markdown into prose | active |
+| D239 | A travelling device is offered the new zone | active; amends D100 |
 
 ---
