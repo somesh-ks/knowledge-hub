@@ -4,7 +4,7 @@
  * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
-import { BUTTON, BUTTON_CLASSES } from "./button";
+import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import type { Guidance } from "./guidance";
 
 export interface DesignSystemComponent extends Guidance {
@@ -14,6 +14,8 @@ export interface DesignSystemComponent extends Guidance {
   /** Every class the component draws starts with this. */
   prefix: string;
   classes: string[];
+  /** Classes it replaced, which no app may write again. */
+  retired: string[];
   /** Its variants and tones, each with its own guidance. */
   parts: Record<string, Guidance>;
 }
@@ -24,6 +26,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     sheet: "buttons.css",
     prefix: "button-",
     classes: BUTTON_CLASSES,
+    retired: BUTTON_RETIRED,
     summary: BUTTON.summary,
     useWhen: BUTTON.useWhen,
     dontUseWhen: BUTTON.dontUseWhen,

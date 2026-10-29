@@ -96,6 +96,9 @@ export const BUTTON_CLASSES: string[] = [
   ...Object.keys(BUTTON.tones).map((tone) => `button-${tone}`),
 ];
 
+/** Classes the Button replaced; none may be written again, in any app that draws the system. */
+export const BUTTON_RETIRED: string[] = ["btn", "btn-primary", "btn-secondary", "confirm-delete"];
+
 /** The classes that draw a button of this variant (and tone). */
 export const buttonClass = (variant: ButtonVariant, tone?: ButtonTone): string =>
   tone ? `button-${variant} button-${tone}` : `button-${variant}`;

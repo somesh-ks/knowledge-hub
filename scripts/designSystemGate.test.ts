@@ -34,7 +34,13 @@ describe("design-system gate", () => {
       "docs/decisions/design-system.md",
       "AGENTS.md",
     ];
-    expect(checkDesignSystemPr({ files, labels: ["design-system", "review"] })).toEqual([]);
+    expect(
+      checkDesignSystemPr({
+        files,
+        labels: ["design-system", "review"],
+        namesSystem: () => true,
+      }),
+    ).toEqual([]);
   });
 
   it("holds a labelled pull request to app files that name the system, and to its own records", () => {

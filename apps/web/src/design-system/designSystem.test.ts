@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { COMPONENTS } from "./registry";
@@ -12,6 +12,10 @@ import { COMPONENTS } from "./registry";
 
 const SRC = join(import.meta.dirname, "..");
 const STYLES = join(SRC, "styles");
+/** Every app that draws the system: the admin app borrows the reader's stylesheets and components. */
+const APPS = ["web", "admin", "design"]
+  .map((app) => join(SRC, "..", "..", app, "src"))
+  .filter((dir) => existsSync(dir));
 
 /** Source files that draw markup: the app's pages, components, scripts and islands, not tests. */
 function markupFiles(dir: string): string[] {
@@ -34,7 +38,8 @@ describe("design-system components", () => {
     "$name: every class it draws has rules, and every rule belongs to it",
     (c) => {
       const css = sheet(c.sheet);
-      const defined = [...css.matchAll(/\.([a-z][\w-]*)/g)].map((m) => m[1] ?? "");
+      const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
+      const defined = [...rules.matchAll(/\.([a-z][\w-]*)/g)].map((m) => m[1] ?? "");
       for (const name of c.classes) expect(defined, `${name} has no rule`).toContain(name);
       const orphans = [...new Set(defined.filter((n) => n.startsWith(c.prefix)))].filter(
         (n) => !c.classes.includes(n),
@@ -67,15 +72,23 @@ describe("design-system components", () => {
     },
   );
 
-  it.each(COMPONENTS)("$name: no page writes its classes by hand", (c) => {
-    const offenders = markupFiles(SRC).flatMap((file) => {
-      const text = readFileSync(file, "utf8");
-      return c.classes
-        .filter((name) => wholeClass(name).test(text))
-        .map((name) => `${relative(SRC, file)}: ${name}`);
-    });
-    expect(offenders, `draw it with ${c.name} (design-system/), never with its class`).toEqual([]);
-  });
+  it.each(COMPONENTS)(
+    "$name: no page in any app writes its classes, or the ones it replaced, by hand",
+    (c) => {
+      const written = [...c.classes, ...c.retired];
+      const offenders = APPS.flatMap((root) =>
+        markupFiles(root).flatMap((file) => {
+          const text = readFileSync(file, "utf8");
+          return written
+            .filter((name) => wholeClass(name).test(text))
+            .map((name) => `${relative(join(SRC, "..", "..", ".."), file)}: ${name}`);
+        }),
+      );
+      expect(offenders, `draw it with ${c.name} (design-system/), never with its class`).toEqual(
+        [],
+      );
+    },
+  );
 });
 
 /**

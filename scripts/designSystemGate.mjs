@@ -42,7 +42,7 @@ const MAY_CHANGE = [
 ];
 
 /** App code a labelled pull request may touch, but only a file that names the system (see below). */
-const CALL_SITES = ["apps/web/src/", "apps/web/e2e/"];
+const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
 
 /**
  * The names that make a file a call site: the components, their helpers and the classes they
@@ -54,7 +54,7 @@ export const SYSTEM_NAMES =
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 
 /** The problems with a pull request, given its changed files and labels. Empty means it may go on. */
-export function checkDesignSystemPr({ files, labels, namesSystem = () => true }) {
+export function checkDesignSystemPr({ files, labels, namesSystem = () => false }) {
   const labelled = labels.includes(LABEL);
   const touched = files.filter((file) => startsWithAny(file, SYSTEM_PATHS));
   const problems = [];
@@ -86,9 +86,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   // CI checks out the pull request merged into the base as it is now, which can be newer than the
   // base commit the event names; the merge's first parent is that newer base, so diffing against it
-  // lists only what the pull request changes. Without a merge commit (a local run) fall back to BASE.
+  // lists only what the pull request changes. A local run (a feature branch that merged main has two
+  // parents too, but its first is its own previous commit) compares against BASE instead.
   const git = (...args) => execFileSync("git", args, { encoding: "utf8" });
-  const merged = git("rev-list", "--parents", "-n", "1", "HEAD").trim().split(" ").length === 3;
+  const merged =
+    process.env.GITHUB_ACTIONS === "true" &&
+    git("rev-list", "--parents", "-n", "1", "HEAD").trim().split(" ").length === 3;
   const files = git("diff", "--name-only", ...(merged ? ["HEAD^1", "HEAD"] : [`${base}...HEAD`]))
     .split("\n")
     .filter(Boolean);
