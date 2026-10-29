@@ -412,3 +412,11 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Rejected: counting the run log's `pipeline_stages` instead (Neon, not the ledger the budget reads; a second source for one number).
 - Limit: the ledger commit still refuses when the tree holds any other change (for example config copied from the store that git does not yet have), and a ledger write that fails is swallowed by design ("a ledger failure never fails a run"); either leaves that run's spend uncounted, and both only warn.
 - Amends: D223 (removes its Limit; the alert is D227's now and the stop of 300 stands). A dry run's ledger commit, finished or failed, uses its own `costs` allowlist (`state/costs-*.json` only), not `publish`.
+
+## D232: One cleaner turns scraped Markdown into prose
+
+- Date: 2026-10-29 (Step 2 of the pipeline plan; the owner asked for "cleaner output to avoid unwanted html/scripts/etc.").
+- Decision: `extract/cleanMarkdown.ts` is the one place scraped Markdown becomes text. It drops lines that are only links (menus, breadcrumbs, share rows), short boilerplate lines (skip link, cookie banner, newsletter prompt, footer legal, previous/next), script and style blocks, tags, images and bare URLs, and keeps every other line with its links reduced to their text. `markdownToText` (article extraction by Firecrawl) and the whole-page fallback in `fetch/firecrawl.ts` both use it.
+- Why: the fallback used to turn the whole page, navigation and addresses included, into a story's summary, and `markdownToText` kept bare URLs and menus; the judge scores the first 1,200 characters and the writer reads the rest.
+- Rejected: asking Firecrawl for `excludeTags` (no evidence `onlyMainContent` fails on a page we use, and a request option changes what the credits buy); a model pass to clean text (a paid call per page for a rule that fits in 60 lines).
+- Revisit if: a published story's text shows menu or banner words the rules miss (add the line to the fixture), or a real body line is dropped (the rules only drop short all-link lines and short boilerplate matches).

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
+import { cleanMarkdown } from "../src/extract/cleanMarkdown.js";
 import {
   extractFullText,
   MIN_ACCEPT_CHARS,
@@ -391,5 +392,40 @@ describe("createFirecrawlScrape", () => {
     expect(await scrape("http://localhost/x")).toBeNull();
     expect(await scrape("file:///etc/passwd")).toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("cleanMarkdown", () => {
+  // The bug it prevents: a scraped page's menu, cookie banner, share row, footer, bare URLs and
+  // script text reaching the judge and the writer as the story's words (plan, "cleaner scraping").
+  it("keeps the article's sentences and drops the page furniture around them", () => {
+    const text = cleanMarkdown(read("extract-noisy-page.md"));
+    expect(text).toContain("Anchor positioning ships in every browser");
+    expect(text).toContain("a tooltip can follow its trigger without a line of measurement code");
+    expect(text).toContain("We deleted 1,200 lines of JavaScript");
+    expect(text).toContain("which had been our top support complaint");
+    for (const noise of [
+      "Skip to content",
+      "Pricing",
+      "cookies",
+      "dataLayer",
+      "https://",
+      "Previous post",
+      "Share on X",
+      "newsletter",
+      "All rights reserved",
+      "Careers",
+      "diagram",
+    ]) {
+      expect(text.toLowerCase()).not.toContain(noise.toLowerCase());
+    }
+  });
+
+  it("keeps a body sentence that is one link or that mentions cookies", () => {
+    const md =
+      "[OpenAI announced a new model for developers on Tuesday.](https://x.dev/a)\n\nBrowsers now block third-party cookies by default, and that changes how analytics vendors attribute visits.";
+    expect(cleanMarkdown(md)).toBe(
+      "OpenAI announced a new model for developers on Tuesday.\n\nBrowsers now block third-party cookies by default, and that changes how analytics vendors attribute visits.",
+    );
   });
 });

@@ -466,7 +466,9 @@ describe("fetchFirecrawl", () => {
 
   it("returns the page itself as one item when nothing could be extracted", async () => {
     const fake = fakeFetch({
-      "https://api.firecrawl.dev/v2/scrape": scrape("Welcome to our studio. We make interfaces."),
+      "https://api.firecrawl.dev/v2/scrape": scrape(
+        "[Home](/) | [Work](/work) | [Contact](/contact)\n\nWe use cookies. Accept all\n\nWelcome to our studio. We make interfaces. See https://example.com/work for more.",
+      ),
     });
     const items = await fetchFirecrawl(
       source,
@@ -477,6 +479,8 @@ describe("fetchFirecrawl", () => {
     expect(items[0]?.canonical_url).toBe("https://example.com/blog");
     expect(items[0]?.title).toBe("Engineering blog");
     expect(items[0]?.snippet).toContain("Welcome to our studio");
+    // The menu, the cookie banner and the bare address are not the page's words.
+    expect(items[0]?.snippet).not.toMatch(/Contact|cookies|https:/);
   });
 
   it("succeeds with nothing new when every dated entry is older than the window", async () => {

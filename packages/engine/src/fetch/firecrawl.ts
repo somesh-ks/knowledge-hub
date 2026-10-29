@@ -1,5 +1,6 @@
 import type { Item } from "@singularity/core";
 import { z } from "zod";
+import { cleanMarkdown } from "../extract/cleanMarkdown.js";
 import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { fetchAlexandriaAnthropic, VIA_ALEXANDRIA_ANTHROPIC } from "./alexandriaSource.js";
@@ -180,7 +181,7 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   const whole: RawItem = {
     url: pageUrl,
     title: page.title ?? source.name,
-    summary: page.markdown.replace(/[#*_`>[\]()]/g, " "),
+    summary: cleanMarkdown(page.markdown),
   };
   return buildItems([whole], { source, window, fetchedAt, undated: "keep" });
 };
