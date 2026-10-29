@@ -17,6 +17,8 @@ export interface FeedEntry {
   content: string | undefined;
   /** media:description, used by YouTube feeds. */
   mediaDescription: string | undefined;
+  /** media:statistics views, in YouTube feeds. */
+  views: number | undefined;
 }
 
 export interface ParsedFeed {
@@ -139,6 +141,22 @@ function mediaDescriptionOf(entry: Node): string | undefined {
   return textOf(entry["media:description"]);
 }
 
+/** A non-negative whole number from a feed attribute, or undefined when it is missing or not one. */
+function countOf(value: unknown): number | undefined {
+  const text = textOf(value);
+  if (text === undefined || !/^\d+$/.test(text.trim())) return undefined;
+  const count = Number(text);
+  return Number.isSafeInteger(count) ? count : undefined;
+}
+
+/** The views in a YouTube entry's media:community block. */
+function viewsOf(entry: Node): number | undefined {
+  const group = entry["media:group"];
+  const community = isNode(group) ? group["media:community"] : entry["media:community"];
+  const statistics = isNode(community) ? community["media:statistics"] : undefined;
+  return isNode(statistics) ? countOf(statistics["@_views"]) : undefined;
+}
+
 function toEntry(entry: Node, baseUrl: string | undefined): FeedEntry {
   const guid = guidOf(entry);
   let link = pickLink(entry.link, baseUrl);
@@ -159,6 +177,7 @@ function toEntry(entry: Node, baseUrl: string | undefined): FeedEntry {
     summary: textOf(entry.summary) ?? textOf(entry.description),
     content: textOf(entry["content:encoded"]) ?? textOf(entry.content),
     mediaDescription: mediaDescriptionOf(entry),
+    views: viewsOf(entry),
   };
 }
 
