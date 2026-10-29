@@ -311,7 +311,7 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: keeping the stored fields as dormant data (a value nobody can see or clear would still narrow a run); a real two-host weekly (a larger build, not asked for).
 - Supersedes: D184. Amends: D91, D100, D133 (the Weekly Format back and forth ends).
 
-## D216: the podcast queue replaces the generations list and the run strip
+## D217: the podcast queue replaces the generations list and the run strip
 
 - Date: 2026-10-29 (the owner's queue plan, and his answers on the table).
 - Decision: what is being made shows in one queue, drawn from one script and one list of rows. It lists a Catch up and a regeneration while they are made, never a Daily, a Weekly or a delete, and it exists only while there is something to show. Below 64rem a dock sits directly above the bottom bar (never a modal): one row folded ("Generating podcast 45%"), the rows when opened. From 64rem a row under "Updated {date}" in the side column opens the rows in a popover. A row is a thumbnail, a name (`Catch up · 7 Oct`, `Weekly podcast · W24`), the time left, the stage, Cancel, and a ring with the percent. Cancel goes once the voices are recorded. A run that ends well leaves, and a toast with Open says so; a failed, lost or cancelled one stays with its action until dismissed. The percent is a share of expected time weighed by stage length, and a ring never goes back. The old top-of-column icon, the side card and the strip's expanded card are gone.

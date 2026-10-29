@@ -236,3 +236,12 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Why: the owner wants spend bounded by what was made, not by what was tried; the old 12 a day counted failures, regenerations and deletes alike.
 - Rejected: counting episode files from the store (a delete would free a slot and a delete-and-remake loop would get round the cap); a counter in the settings store (a second place to drift).
 - Revisit if: two a day turns out too tight for the owner, or the run list (30 runs) stops covering a day.
+
+## D216: a ticked general topic gets a section under any profile, sized to the episode's length
+
+- Date: 2026-10-29 (decided for the owner while away, from his #147 rule that the settings length is the only size limit and his repeated complaints of short podcasts).
+- Decision: `loadSectionPlan` adds a brief section for each general topic the podcast ticks and the stored structure leaves out (D191 presets list none), before the sign-off, with `max_stories` 5 at the 10-minute reference, scaled by the episode's length (3 at 5 minutes). The same plan feeds selection and the validator, so the larger allowance holds through both.
+- Why: the 2026-10-29 dry run showed 36 of 53 qualifying stories dropped `not_in_structure`, so the daily aired about 3.8 of 5 minutes. With the sections back it still selected 11 of 52 (30 `over_section_cap`) because a general section held a flat 2.
+- Rejected: a flat higher allowance (ignores the length); skipping the allowance when under length (the validator would trim it back).
+- Revisit if: the next two dailies still miss their length by more than 10%, or general topics crowd out the owner's own topics.
+- Amends: D170, D191.

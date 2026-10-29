@@ -127,7 +127,7 @@ function currentItems(): Item[] {
   const run = record();
   // run.yml names every dispatched run "run", so a briefing run from another device cannot be told from
   // the schedule's Daily or Weekly, which are never listed. Only this browser's own is drawn until
-  // run.yml names a regeneration "regenerate <id>" (D216).
+  // run.yml names a regeneration "regenerate <id>" (D217).
   const items: Item[] = rows
     .filter((row) => !stopped.has(row.run_id))
     .filter((row) => row.what !== "briefing" || row.target !== null || row.run_id === run?.id)
