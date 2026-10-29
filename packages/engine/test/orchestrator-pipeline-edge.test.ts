@@ -345,6 +345,44 @@ describe("a run that died before the commit stage", () => {
     expect(await firecrawlUsedSince(repo.root, ...week, "the next run")).toBe(3);
   });
 
+  // A dry run that failed after its scrapes recorded nothing (D223 Limit), so Firecrawl's week
+  // undercounted it; the 2026-10-29 run log showed the gap.
+  it("puts what a failed dry run spent in the ledger and changes nothing else", LONG, async () => {
+    await seed(repo.root, {
+      "config/prices.json": json({
+        version: 1,
+        as_of: "2026-10-21",
+        prices: [
+          {
+            provider: "firecrawl",
+            product: "*",
+            units: { credits: { usd: 0.001, per: 1 } },
+            as_of: "2026-10-21",
+            confirmed: false,
+          },
+        ],
+      }),
+    });
+    const world = makeWorld(repo.root, { now: WED });
+    world.deps = { ...world.deps, spend: new SpendTracker() };
+    expect((await runStage(world, { stage: "gate", dryRun: true })).code).toBe(0);
+    const run = (await readPlan(repo.root))?.created_at as string;
+    const stage = new SpendTracker();
+    await stage.begin(repo.root, run);
+    for (let i = 0; i < 4; i++) stage.guard.takeScrape();
+    await stage.save(repo.root);
+    expect((await runStage(world, { recordFailed: true })).code).toBe(0);
+    expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
+      "chore(costs): dry run 2026-10-07 failed",
+    );
+    expect(git(repo.remote, "show", "--name-only", "--format=", "main").trim()).toBe(
+      "state/costs-2026-10.json",
+    );
+    const day = 24 * 60 * 60 * 1000;
+    const week = [new Date(WED.getTime() - day), new Date(WED.getTime() + day)] as const;
+    expect(await firecrawlUsedSince(repo.root, ...week, "the next run")).toBe(4);
+  });
+
   // A dry run made the paid calls of a real one and recorded none: 45 Claude calls on 2026-10-24
   // never reached the Costs page.
   it(

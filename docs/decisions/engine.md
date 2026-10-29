@@ -391,3 +391,11 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
 - Limit: the week is read from the ledger, and a failed dry run records nothing (`recordFailed.ts`), so its Firecrawl requests are not counted.
 - Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).
+
+## D224: A failed dry run records its spend
+
+- Date: 2026-10-29 (decided for the owner, who wants accurate cost data; D223's Limit).
+- Decision: when a dry run fails, `run.yml`'s Record failure step runs with `--dry-run` and `recordFailedRun` puts the run's spend in the cost ledger in a commit of the ledger alone (`chore(costs): dry run <date> failed`), as a finished dry run does. The cadence, the metrics and the digests stay as they were.
+- Why: a failed dry run pays for the calls it made before it stopped, and Firecrawl's week (D222, D223) is read from the ledger, so the count was short by exactly the runs that were being fixed.
+- Rejected: counting the run log's `pipeline_stages` instead (Neon, not the ledger the budget reads; a second source for one number).
+- Amends: D223 (removes its Limit).

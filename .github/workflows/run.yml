@@ -265,20 +265,23 @@ jobs:
       # run before it. This records `failed` for what the run was due to make, through the write
       # guard, so the next health check reports run_failed and heals once. The engine records
       # nothing for an on-demand run, a run that was not due or one Commit already committed. A
-      # timeout is a cancel, which skips this step (health warns run_cancelled).
+      # failed dry run records its spend in the ledger and nothing else (D224). A timeout is a
+      # cancel, which skips this step (health warns run_cancelled).
       - name: Record failure
-        if: failure() && inputs.delete == '' && inputs.replace == '' && inputs.dry_run != true
+        if: failure() && inputs.delete == '' && inputs.replace == ''
         shell: bash
         env:
           INSTALLED: ${{ steps.install.outcome }}
           MODE: ${{ inputs.mode || 'scheduled' }}
           FORCE: ${{ inputs.force }}
+          DRY: ${{ inputs.dry_run }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
         run: |
           [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
+          [ "$DRY" = "true" ] && args+=(--dry-run)
           npm run --silent singularity -- run --record-failed "${args[@]}"
 
       # Writes this run to Neon with the time and cost of each stage, whatever its end (D221): a dry
