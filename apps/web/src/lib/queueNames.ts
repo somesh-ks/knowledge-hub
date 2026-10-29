@@ -94,3 +94,8 @@ export function queueNames(rows: readonly Named[], words: QueueWords, zone?: str
     return started ? `${name} · ${started.clock}` : name;
   });
 }
+
+/** The time of day an instant falls on in `zone` (the browser's when absent), `14:05`: when a finished row says it ended. */
+export function clockTime(instant: number, zone?: string): string {
+  return inZone(new Date(instant).toISOString(), zone)?.clock ?? "";
+}

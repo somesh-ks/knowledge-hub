@@ -94,17 +94,16 @@ test.describe("paths that used to leave the player stuck", () => {
     await expect(page).toHaveURL(new RegExp(`${SITE.path}$`));
   });
 
-  test("after the toast's Open action with the player open, a tap on the bar opens it again", async ({
+  test("after Start listening in the queue, a tap on the bar opens the player again", async ({
     player,
     page,
     finger,
   }) => {
     await finishRunBehindThePlayer(page, player);
-    await player.openPlayer();
     await page.clock.runFor(16_000);
-    const toast = page.locator(".toast");
-    await expect(toast).toBeVisible();
-    await finger.press(toast.getByRole("button", { name: "Open" }));
+    const dock = page.locator("[data-queue-dock]");
+    await finger.press(dock.locator("[data-queue-toggle]"));
+    await finger.press(dock.getByRole("link", { name: /^Start listening/ }));
     await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}`));
     await player.collapsed();
     await player.dockSettled();

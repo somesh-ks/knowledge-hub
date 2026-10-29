@@ -1,5 +1,12 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
+import {
+  expect,
+  expectNoViolationsInEitherScheme,
+  hydrated,
+  queueDock,
+  queueStatus,
+  test,
+} from "./fixtures";
 
 const ID = "ep-20261007-1930";
 
@@ -22,7 +29,6 @@ async function choose(page: Page, item: "Regenerate" | "Delete"): Promise<void> 
 const panel = (page: Page) => page.locator("dialog.regen-sheet");
 const confirm = (page: Page) => page.locator("dialog.confirm-dialog");
 const card = (page: Page) => page.locator(`[data-card] a[href="/e/${ID}"]`);
-const indicator = (page: Page) => page.locator("[data-run-text]");
 
 async function open(page: Page): Promise<void> {
   await page.goto(`/e/${ID}`);
@@ -122,8 +128,8 @@ test.describe("regenerate and delete an episode", () => {
       feedback: "Shorter intro, more on design",
     });
     await expect(panel(page)).toBeHidden();
-    await expect(indicator(page)).toHaveText(/Rewrite queued|Rewriting your episode/);
-    await expect(indicator(page)).toHaveText("Rewriting your episode", { timeout: 10_000 });
+    await expect(queueStatus(page)).toHaveText(/Waiting to start|Rewriting your episode/);
+    await expect(queueStatus(page)).toHaveText("Rewriting your episode", { timeout: 10_000 });
     // Both actions wait for the run, and say why.
     await expect(regenerate(page)).toHaveAttribute("aria-disabled", "true");
     await expect(remove(page)).toHaveAttribute("aria-disabled", "true");
@@ -132,7 +138,7 @@ test.describe("regenerate and delete an episode", () => {
       menu(page).getByRole("menuitem", { name: "Regenerate" }),
     ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
     await page.keyboard.press("Escape");
-    await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
+    await expect(queueStatus(page)).toHaveText("Rewritten. Live in about a minute.", {
       timeout: 15_000,
     });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
@@ -225,7 +231,7 @@ test.describe("regenerate and delete an episode", () => {
     expect(bodies[0]).toEqual({ action: "delete", id: ID });
     await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
     // No progress to watch, and the card is gone while the site still has it.
-    await expect(indicator(page)).toBeHidden();
+    await expect(queueDock(page)).toBeHidden();
     await expect(page.locator(".library-grid")).toBeVisible();
     await expect(card(page)).toHaveCount(0);
     await expect(page.locator("[data-card]").first()).toBeVisible();
@@ -306,31 +312,6 @@ test.describe("regenerate and delete an episode", () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/library\?show=custom$/, { timeout: 5_000 });
     await expect(card(page)).toHaveCount(0);
-  });
-
-  test("a rewrite's line goes when the episode is deleted, and does not read out afterwards", async ({
-    page,
-  }) => {
-    await mock(page, [
-      { run_id: 77, state: "running", step: null },
-      { run_id: 77, state: "completed", step: null, outcome: "published" },
-    ]);
-    await open(page);
-    await choose(page, "Regenerate");
-    await panel(page).getByLabel("Comments (optional)").fill("Shorter intro");
-    await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-    await expect(indicator(page)).toHaveText("Rewritten. Live in about a minute.", {
-      timeout: 15_000,
-    });
-    await expect(page.locator("[data-run-announce]")).toHaveText(
-      "Rewritten. Live in about a minute.",
-    );
-    await choose(page, "Delete");
-    await confirm(page).getByRole("button", { name: "Delete", exact: true }).click();
-    await expect(page).toHaveURL(/\/library$/, { timeout: 5_000 });
-    // The episode is gone, so is what the line said about it, to the eye and to a screen reader.
-    await expect(page.locator("[data-run-card]")).toBeHidden();
-    await expect(page.locator("[data-run-announce]")).toHaveText("");
   });
 
   test.describe("a refusal", () => {
