@@ -176,6 +176,7 @@ const SHARED_CONTROLS = [
   "btn-primary",
   "btn-secondary",
   "icon-btn",
+  "icon-btn-tonal",
   "chip",
   "filter-chip",
   "tab",

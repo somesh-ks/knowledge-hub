@@ -99,9 +99,22 @@
 }
 
 /*
- * Share (D153, an icon button since 2026-10-29): the shared .icon-btn after Play, as the More button
- * is. The page's main action stays the one filled control; Share needs no words beside it.
+ * Share (D153): the secondary icon button (.icon-btn-tonal, buttons.css) after Play, a circle on the
+ * select's fill (owner, 2026-10-29). It is as tall as the chip and the select beside it, and its
+ * 44px target reaches past the circle as the chip's does.
  */
+.hero-share {
+  --chip-height: calc(var(--size-touch) - var(--space-1));
+  position: relative;
+  min-width: var(--chip-height);
+  min-height: var(--chip-height);
+}
+
+.hero-share::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
 
 /*
  * The hero's chip is the page's primary button: filled with the accent, a size up from a story's
