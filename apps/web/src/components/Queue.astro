@@ -1,0 +1,159 @@
+---
+import { UPDATING_LABEL } from "../lib/runStages";
+import Icon from "./Icon.astro";
+
+// Every line the queue shows. scripts/runStatus.ts and scripts/queue.ts read them from the element's
+// data attributes, so the scripts carry no copy. A bare data-<state> is a state of the run the page
+// follows; data-word-* is the queue's own list. The prefix matters: a bare data-briefing or
+// data-episode is what the Regenerate form reads off the page (episodeActions.ts).
+const lines = {
+  "data-queued": "Episode queued",
+  "data-running": "Writing your episode",
+  "data-done": "Episode ready",
+  // Polling ran out: the page cannot tell where the run is. Check again asks once more.
+  "data-started": "Lost track of this run",
+  "data-failed": "Couldn't make the episode",
+  // A run the person stopped from the queue: not an error, so it only says so.
+  "data-cancelled": "Cancelled",
+  // On the queue's Cancel: while the request is out, and after a refusal.
+  "data-cancelling": "Cancelling…",
+  "data-cancel-failed": "Couldn't cancel. Try again.",
+  // The stage names come from the status route (lib/runStages.ts); these are the sentences around them.
+  "data-failed-stage": "Stopped while {label}",
+  "data-updating": UPDATING_LABEL,
+  "data-open": "Open episode",
+  // A rewrite or a removal of an episode that exists: data-<kind>-<state>.
+  "data-regenerate-queued": "Rewrite queued",
+  "data-regenerate-running": "Rewriting your episode",
+  "data-regenerate-done": "Rewritten. Live in about a minute.",
+  "data-regenerate-started": "Lost track of this rewrite",
+  "data-regenerate-failed": "Couldn't rewrite the episode",
+  "data-delete-queued": "Removal queued",
+  "data-delete-running": "Removing the episode",
+  "data-delete-done": "Episode removed",
+  "data-delete-started": "Lost track of this removal",
+  "data-delete-failed": "Couldn't remove the episode",
+  // Try again: on the button while the request is out, and what a refusal of it says instead of the
+  // failure ({wait} is the server's own wait).
+  "data-starting": "Starting…",
+  "data-retry-cooldown": "You can make another episode in {wait}.",
+  "data-retry-briefing-cooldown": "You can make another podcast in {wait}.",
+  "data-retry-429": "Too many requests just now. Try again in {wait}.",
+  "data-retry-daily_cap": "That's today's limit. Try again in {wait}.",
+  // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
+  "data-retry-503": "The server ran into a problem, so nothing was started.",
+  "data-retry-crashed":
+    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
+  "data-retry-400": "The server turned that request down. Reload the page and try again.",
+  "data-retry-network": "Couldn't reach the site. Check your connection, then try again.",
+  // A briefing (Regenerate) rides the same queue: data-briefing-<state>, and its stage names come
+  // from the status route like an episode's (lib/runStages.ts). A nothing or a gated run is a done
+  // one with its own sentence; a failed one names its step (briefingFailureLine).
+  "data-briefing-queued": "Waiting for a slot",
+  "data-briefing-running": "Making your podcast",
+  "data-briefing-done": "Podcast ready",
+  "data-briefing-nothing": "Nothing cleared the bar, so the podcast stays as it was.",
+  "data-briefing-gated": "The schedule held this run back.",
+  "data-briefing-failed": "Couldn't make the podcast",
+  "data-open-briefing": "Open podcast",
+  // The Create form and the New episode buttons say this while a run is still going (createPage.ts).
+  "data-busy-create": "An episode is still being made. You can start another when it's ready.",
+  "data-busy-briefing": "A podcast is still being made. You can start another when it's ready.",
+};
+
+// The queue's own words. {n} is a number, {title} a row's name, {pct} a percent.
+const words = {
+  "data-word-waiting": "Waiting to start",
+  "data-word-left": "{n} min left",
+  "data-word-slow": "Taking longer than usual",
+  "data-word-daily": "Daily podcast",
+  "data-word-weekly": "Weekly podcast",
+  "data-word-podcast": "Podcast",
+  "data-word-catch-up": "Catch up",
+  "data-word-head-one": "Generating podcast",
+  "data-word-head-many": "Generating {n} podcasts",
+  "data-word-head-failed": "Couldn't make the podcast",
+  "data-word-head-ended": "Podcast queue",
+  "data-word-nav-one": "Generating",
+  "data-word-nav-many": "Generating {n}",
+  "data-word-nav-failed": "Couldn't finish",
+  "data-word-expand": "Show the podcast queue",
+  "data-word-collapse": "Hide the podcast queue",
+  "data-word-progress-label": "{title}, {pct} percent",
+  "data-word-regenerating": "Regenerating",
+  "data-word-cancel-label": "Cancel {title}",
+  "data-word-dismiss-label": "Dismiss {title}",
+};
+---
+
+{/* The podcast queue (D216): what is being made, as a browser lists its downloads. Below 64rem a dock
+     sits directly above the bottom bar, never a modal: one row when folded ("Generating podcast 45%"),
+     the rows when opened, and the bar and the app bar stay usable either way. From 64rem a row at the
+     foot of the side column (AppNav.astro) opens the same rows in a popover. One markup holds the
+     words, the status region and both surfaces; scripts/queue.ts fills them. Persisted across
+     navigations, so what the script put in it is still there on the next page. */}
+<div class="queue" data-run-status data-queue transition:persist="queue" {...lines} {...words}>
+  <span class="sr-only" role="status" data-run-announce></span>
+
+  <section class="queue-dock" data-queue-dock aria-label="Podcast queue" hidden>
+    <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
+      <span class="queue-fold-text" data-queue-title></span>
+      <span class="queue-fold-percent" data-queue-percent></span>
+      <Icon name="chevronDown" class="queue-chevron icon-lg" />
+    </button>
+    <div class="queue-body" data-queue-body>
+      <ul class="queue-list" role="list" data-queue-list></ul>
+    </div>
+  </section>
+
+  {/* The popover is the More menu's own surface (hero.css) with its own place and size (queue.css).
+       It opens only from the side column's row, which shows only while something is being made. */}
+  <div
+    class="hero-menu-list queue-pop"
+    id="queue-pop"
+    popover
+    role="dialog"
+    aria-labelledby="queue-pop-title"
+    data-picker
+    data-queue-pop
+  >
+    <h2 class="queue-pop-title" id="queue-pop-title">Podcast queue</h2>
+    <div class="queue-body">
+      <ul class="queue-list" role="list" data-queue-list></ul>
+    </div>
+  </div>
+
+  <template data-queue-row>
+    <li class="queue-row" data-queue-row-item>
+      <span class="queue-thumb" aria-hidden="true">
+        <Icon name="waveform" class="queue-thumb-glyph" />
+        <img class="queue-thumb-img" alt="" width="44" height="44" decoding="async" hidden />
+        <span class="queue-badge" data-queue-badge hidden><Icon name="refresh" /></span>
+      </span>
+      <div class="queue-main">
+        <p class="queue-line">
+          <span class="queue-name" data-queue-name></span>
+          <span class="queue-eta" data-queue-eta></span>
+        </p>
+        <p class="queue-status" data-queue-status></p>
+        <div class="queue-actions">
+          <button class="btn queue-cancel" type="button" data-queue-cancel>Cancel</button>
+          <button class="btn-primary queue-listen" type="button" data-queue-listen hidden>Listen now</button>
+          <button class="btn queue-retry" type="button" data-queue-retry hidden>Try again</button>
+          <button class="btn queue-check" type="button" data-queue-check hidden>Check again</button>
+          <a class="text-link queue-details" href="#" target="_blank" rel="noopener noreferrer" data-queue-details hidden>Details</a>
+        </div>
+      </div>
+      <span class="queue-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-queue-ring>
+        <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+          <circle class="queue-ring-track" cx="22" cy="22" r="19" pathLength="100"></circle>
+          <circle class="queue-ring-fill" cx="22" cy="22" r="19" pathLength="100"></circle>
+        </svg>
+        <span class="queue-ring-text" data-queue-ring-text></span>
+      </span>
+      <button class="icon-btn queue-dismiss press" type="button" data-queue-dismiss hidden>
+        <Icon name="close" class="icon-lg" />
+      </button>
+    </li>
+  </template>
+</div>

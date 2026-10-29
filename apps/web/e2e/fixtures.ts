@@ -33,6 +33,11 @@ export const test = base.extend<Options & { problems: Problems }>({
           json: costsReport(new URL(route.request().url()).searchParams.get("by") ?? "provider"),
         }),
       );
+      // The podcast queue asks which runs are going while this browser has one on record: none, unless a
+      // test says otherwise (a later route answers first).
+      await page.route("**/api/generations", (route) =>
+        route.fulfill({ status: 200, json: { generations: [] } }),
+      );
       // The Health page draws from /api/health: a frozen answer with a reading of every tone.
       await page.route("**/api/health", (route) => route.fulfill({ json: healthReport() }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
@@ -87,6 +92,18 @@ export const test = base.extend<Options & { problems: Problems }>({
 });
 
 export { expect };
+
+/** The podcast queue's dock on a phone: shown only while a run is going or has not been dismissed. */
+export const queueDock = (page: Page): Locator => page.locator("[data-queue-dock]");
+
+/** What the queue's newest row says, whether the dock is folded or open. */
+export const queueStatus = (page: Page): Locator =>
+  page.locator("[data-queue-dock] [data-queue-status]").first();
+
+/** The toast that says a run ended (sheets/runEndToast.ts): its words, and Open when it offers one. */
+export const toastText = (page: Page): Locator => page.locator(".toast .toast-text");
+export const toastOpen = (page: Page): Locator =>
+  page.locator(".toast").getByRole("button", { name: "Open" });
 
 export const ROUTES = [
   { name: "home", path: "/" },

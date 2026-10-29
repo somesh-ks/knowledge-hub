@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import "../styles/player.css";
 import "../styles/sheets.css";
-import { claimEndCue, endedRecently, RUN_EVENT, readRunRecord } from "../lib/runRecord";
+import { claimEnd, endedRecently, RUN_EVENT, readRunRecord } from "../lib/runRecord";
 import { startThemeSync } from "../player/core/themeRuntime";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate, cueForSheet } from "../player/sound/soundMap";
@@ -72,15 +72,15 @@ export default function SheetsRoot() {
     return () => window.removeEventListener(OPEN_SHEET_EVENT, onRequest);
   }, [openSheet]);
 
-  // A briefing run finishes in the run indicator, not in this island. Its sound is played here, once
-  // for each outcome, so a Regenerate still ends with the cue it always had.
+  // A run finishes in the run script, not in this island, and the queue lets go of it. Its end is
+  // told here, once for each outcome: a toast for every run, and the sound a Regenerate always had.
   useEffect(() => {
     const onRun = (): void => {
       const run = readRunRecord(() => localStorage);
-      const cue = claimEndCue(run, () => sessionStorage);
-      if (!run || !cue) return;
-      playUiCue(cueForGenerate(cue));
-      toastForEndedRun(run, cue);
+      const end = claimEnd(run, () => sessionStorage);
+      if (!run || !end) return;
+      if (end.sound) playUiCue(cueForGenerate(end.ended));
+      toastForEndedRun(run, end.ended);
     };
     document.addEventListener(RUN_EVENT, onRun);
     // A run that ended while this island was loading sent its event to nobody.

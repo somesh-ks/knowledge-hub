@@ -83,6 +83,17 @@ const destinations: Array<{
       })
     }
   </ul>
-  {/* The build's day, at the foot of the side column; a phone shows it on Settings instead. */}
-  <p class="app-nav-updated">Updated {buildDay()}</p>
+  {/* The foot of the side column; a phone shows the build's day on Settings instead, and the queue as
+       a dock above the bar (Queue.astro). The row shows only while something is being made, and
+       opens the podcast queue beside the column. */}
+  <div class="app-nav-foot">
+    <p class="app-nav-updated">Updated {buildDay()}</p>
+    <button class="app-nav-item app-nav-queue" type="button" popovertarget="queue-pop" aria-haspopup="dialog" data-queue-trigger hidden>
+      <span class="app-nav-indicator">
+        <Icon name="waveform" class="icon-lg" />
+      </span>
+      <span class="app-nav-queue-title" data-queue-trigger-title></span>
+      <span class="app-nav-queue-percent" data-queue-trigger-percent></span>
+    </button>
+  </div>
 </nav>

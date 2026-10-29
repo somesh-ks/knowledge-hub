@@ -24,18 +24,20 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - The writer is told the length in words and a script is held to what its stories can carry. Since D80 the writer is asked for 95% of what the stories can carry and a script within 5% of the floor is kept, so most episodes are written once; a script attempt stops after 8 minutes. `singularity podcast --dry-run` measures one request without writing.
 - Real dry runs put 5 and 10 minute episodes at 83 to 90% of the length asked for.
 
-### Run indicator
+### Podcast queue
 - Making something shows live stages: seven for a briefing (one per workflow step, then "Updating the site"), three for an episode ("Getting ready", "Making the episode", "Adding it to your Library"; `podcast.yml` makes the whole episode in one step).
-- A Regenerate shows in the same card as a Catch up (D204): the Regenerate sheet only starts it, and its words come from the briefing's stages. The card is a strip above the bottom bar on a phone and sits at the foot of the side column from 64rem; it reserves its room (`--run-room`) so the floating button rides above it.
-- Scenario: WHEN a briefing run ends while the player's page is open (it covers the card) THEN a toast says so: "Briefing ready" with Open, or the run's failure line.
-- Scenario: WHEN a run fails THEN its request is kept and Try again is offered; the next run's bar starts from empty. A failed card says what failed, why in a sentence (an episode's `reason`), and that nothing was changed. A refusal names its own wait; a request that cannot go from the line reopens the form filled in.
-- Every generation under way, a Catch up's or a briefing's, is listed in one place (D208): an icon at the top of the side column from 64rem (its ring fills with progress), and "All generations" on the strip's expanded card below it, which opens the same list as a bottom sheet. A row has the cover (a plain glyph until it exists), the title, one line with the time left and the stage, a bar, Cancel, and Listen now for a live episode. Nothing under way: "Nothing in the works" and a Catch up button.
+- The queue (D216) lists a Catch up and a regeneration while it is being made, and nothing else: a Daily or Weekly made on the schedule is never listed, nor is a delete. Below 64rem it is a dock directly above the bottom bar (never a modal): folded it is one row, "Generating podcast 45%" (or "Generating 2 podcasts"); a tap on the row, the chevron or a swipe up opens the rows, and a swipe down or the chevron folds it. From 64rem a row at the foot of the side column, under "Updated {date}", opens the same rows in a popover. The row is hidden when nothing is being made.
+- A row has a thumbnail (the episode's colour, a regeneration's own cover, a regenerate badge on a regeneration), the name with the time left at its end, the stage under it, Cancel, Listen now for a live episode, and a ring with the percent inside. Nothing in a row moves when the stage, the time left or the percent changes. Cancel goes once the voices are being recorded (the spend would go unrecorded) and in the wait for the site.
+- A run that ends well leaves the queue and a toast says so ("Episode ready" or "Podcast ready" with Open, which stays until used). A failed or lost run stays with its reason and Try again, Details and a dismiss; a cancelled one stays as "Cancelled" until dismissed.
+- The queue knows of a run in two ways: this browser's record (`singularity:run`) and, while anything shows, `/api/generations` for the runs of other devices. A device with nothing on record does not ask, so a run started on another device shows only once this one has something to show.
+- Scenario: WHEN a briefing run ends while the player's page is open THEN a toast says so, with Open or the run's failure line.
+- Scenario: WHEN a run fails THEN its request is kept and Try again is offered; the next run starts from empty. A failed row says what failed, why in a sentence (an episode's `reason`), and that nothing was changed. A refusal names its own wait; a request that cannot go from the row reopens the form filled in.
 - Each generation in that list carries what it is: `kind` is `catch_up` or `regenerate` (a Daily or Weekly made on the schedule is never listed, nor is a delete) and `target` is the digest or episode id a regeneration replaces, when its run title says (`regenerate <id>`; run.yml's title does not yet, so a briefing's target is unknown). A row is named for that, never for the episode's own title: `Catch up · 7 Oct`, `Daily podcast · 7 Oct`, `Weekly podcast · W24` (ISO week), `Podcast · 7 Oct` (`lib/queueNames.ts`); two rows that would read the same get their start time added. The percent is a share of the time the run is expected to take, weighed by each stage's usual length and never 0 once running or 100 before it is done (`lib/queuePercent.ts`).
-- Scenario: WHEN Cancel is pressed THEN the run stops, its row leaves, and the run card ends as "Cancelled" without Try again; WHEN GitHub refuses THEN the row stays and says it could not cancel.
-- Opening the new episode, or having it on screen, clears "Episode ready".
+- Scenario: WHEN Cancel is pressed THEN the run stops and its row ends as "Cancelled" without Try again (another device's run is simply gone); WHEN GitHub refuses THEN the row stays and says it could not cancel.
+- Opening the new episode, or having it on screen, forgets the finished run.
 - Scenario: WHEN an episode is still being made THEN Catch up says so instead of sending a second request.
-- After a publish the indicator reads `/latest.json` every 2.5 s and, when an episode goes live, pre-narrates its first two turns (D82).
-- A new episode can be heard from a live copy in Blob while it is written (Listen now on the run card, about 35 to 45 s) (D105). Until its cover is deployed, the player's cover box takes the cover's colour from that copy.
+- After a publish the page reads `/latest.json` every 2.5 s and, when an episode goes live, pre-narrates its first two turns (D82).
+- A new episode can be heard from a live copy in Blob while it is written (Listen now on the queue's row, about 35 to 45 s) (D105). Until its cover is deployed, the player's cover box takes the cover's colour from that copy.
 - Toasts share one quiet style with an icon for success and failure.
 
 ## Code
@@ -43,7 +45,8 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - `apps/web/src/lib/createForm.ts`
 - `apps/web/src/sheets`
 - `apps/web/src/scripts/runStatus.ts`
-- `apps/web/src/scripts/generations.ts`, `apps/web/src/components/GenerationsMenu.astro`, `apps/web/src/lib/generations.ts`
+- `apps/web/src/scripts/queue.ts`, `apps/web/src/scripts/queueEntry.ts`, `apps/web/src/components/Queue.astro`, `apps/web/src/styles/queue.css`
+- `apps/web/src/lib/generations.ts`, `apps/web/src/lib/queueNames.ts`, `apps/web/src/lib/queuePercent.ts`
 - `apps/web/src/server/generations.ts` (`/api/generations`, `/api/cancel`)
 - `apps/web/src/server/podcast.ts`
 - `packages/engine/src/podcast`

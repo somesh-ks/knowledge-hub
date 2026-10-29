@@ -324,8 +324,9 @@ html[data-mini="visible"] main {
   display: none;
 }
 
-/* Only the side column has room for it (from 64rem, below). */
-.app-nav-updated {
+/* Only the side column has room for the foot: the build's day and, while something is being made,
+   the queue's row (from 64rem, below). A phone shows the queue as a dock (queue.css). */
+.app-nav-foot {
   display: none;
 }
 
@@ -523,9 +524,16 @@ html[data-mini="visible"] main {
   }
 
   /* The foot of the column, level with the navigation's icons, clear of the player bar under it. */
-  .app-nav-updated {
-    display: block;
+  .app-nav-foot {
+    display: grid;
+    /* The column's own width, never the date's: a wide row would run out under the page. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
     margin-block: auto var(--dock-room);
+  }
+
+  .app-nav-updated {
+    margin: 0;
     padding-inline: var(--space-4);
     /* One line: the date wrapped under "Last updated" (2026-10-21). */
     white-space: nowrap;

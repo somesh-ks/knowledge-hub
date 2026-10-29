@@ -1,5 +1,12 @@
 import type { Page } from "@playwright/test";
-import { expect, expectNoViolationsInEitherScheme, hydrated, test } from "./fixtures";
+import {
+  expect,
+  expectNoViolationsInEitherScheme,
+  hydrated,
+  queueDock,
+  test,
+  toastText,
+} from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
 const sheet = (page: Page) => page.locator("dialog.create-sheet");
@@ -149,25 +156,19 @@ test.describe("Create as the primary action", () => {
       },
     });
     await expect(sheet(page)).toBeHidden();
-    // The status region holds the line alone, not the card's link and buttons.
+    // The status region holds the line alone, not the row's buttons.
     const status = page.locator("[data-run-status]").getByRole("status");
-    await expect(status).toContainText(/Episode queued|Writing your episode/);
+    await expect(status).toContainText(/Waiting to start|Writing your episode/);
 
     // A client-side navigation keeps it, and a reload picks the run up again.
     await page.locator(".app-nav-item", { hasText: "Latest" }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator("[data-run-card]")).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
     await page.reload();
-    await expect(page.locator("[data-run-card]")).toBeVisible();
-    await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 15_000 });
-    // From Today the line offers a link to the Library; on the Library, the page on screen, none.
-    await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
-      "href",
-      "/library",
-    );
-    await page.locator(".app-nav-item", { hasText: "Library" }).click();
-    await expect(page).toHaveURL(/\/library$/);
-    await expect(page.locator("[data-run-library]")).toBeHidden();
+    await expect(queueDock(page)).toBeVisible();
+    // Finished, it leaves the queue and a toast says so.
+    await expect(toastText(page)).toHaveText("Episode ready", { timeout: 15_000 });
+    await expect(queueDock(page)).toBeHidden();
   });
 
   test("axe finds nothing with the sheet open", async ({ page }) => {

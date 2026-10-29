@@ -55,7 +55,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await expectAccessible(page, "the ended player");
   });
 
-  test("the Generate sheet idle and refused, then the run line going and failed", async ({
+  test("the Generate sheet idle and refused, then the queue going and failed", async ({
     player,
     page,
   }) => {
@@ -94,14 +94,14 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await player.finger.press(start);
     // The sheet is only the form: the run is followed in the line above the navigation.
     await expect(dialog).toBeHidden();
-    const card = page.locator("[data-run-card]");
+    const card = page.locator("[data-queue-dock]");
     await expect(card).toBeVisible();
-    await expectAccessible(page, "the run line going");
+    await expectAccessible(page, "the queue going");
     await page.clock.runFor(4_100);
     // The step that failed is named, with a way to the run and a way to try again.
-    await expect(page.locator("[data-run-text]")).toContainText("couldn't be written");
+    await expect(card.locator("[data-queue-status]").first()).toContainText("couldn't be written");
     await expect(card.getByRole("link", { name: "Details" })).toHaveAttribute("href", /runs\/79/);
-    await expectAccessible(page, "the run line failed");
+    await expectAccessible(page, "the queue failed");
     await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });
