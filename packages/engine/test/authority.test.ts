@@ -7,6 +7,7 @@ import {
   withAuthority,
 } from "../src/authority/authority.js";
 import { replayAuthority } from "../src/authority/replay.js";
+import { judgmentKey } from "../src/judge/cache.js";
 import { prefilter } from "../src/prefilter/prefilter.js";
 import { scoreItem } from "../src/score/scoreItem.js";
 import { DEFAULT_SCORE_THRESHOLD, eligibility } from "../src/score/selectItems.js";
@@ -121,10 +122,17 @@ describe("authority replay", () => {
   it("reports the new passers and flags a domain whose items mostly pass", () => {
     const urls = Array.from({ length: 6 }, (_, i) => `https://openai.com/index/post-${i}`);
     const items = urls.map((url) => makeScoredItem({ url, canonical_url: url, source_id: "lab" }));
+    // The cache is keyed item:questions_hash:model; an older judgment of the same item must not win.
+    const judged = items.map((item) =>
+      makeEntry(item, { category: "frontier_model_releases", p: 0.95, depth: 0, hype: 0.6 }),
+    );
+    const stale = items.map((item) =>
+      makeEntry(item, { category: "none", model: "jev-old", judgedAt: "2026-10-01T06:00:00Z" }),
+    );
     const entries = Object.fromEntries(
-      items.map((item) => [
-        item.id,
-        makeEntry(item, { category: "frontier_model_releases", p: 0.95, depth: 0, hype: 0.6 }),
+      [...stale, ...judged].map((entry) => [
+        judgmentKey(entry.item_id, entry.questions_hash, entry.model),
+        entry,
       ]),
     );
     const report = replayAuthority({

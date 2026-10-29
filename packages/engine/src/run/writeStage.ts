@@ -289,7 +289,7 @@ async function writePass(
     base.push(
       withSourceAdjustment(
         applyFormatMix(
-          applyTopics(withAuthority(built, context.authority), layer),
+          withAuthority(applyTopics(built, layer), context.authority),
           preferences.format_mix,
           context.sourceFacts,
         ),

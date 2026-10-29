@@ -1,4 +1,6 @@
-import type { Item, JudgmentsFile, Preferences } from "@singularity/core";
+import type { Item, JudgmentEntry, JudgmentsFile, Preferences } from "@singularity/core";
+import { DEFAULT_JEV_MODEL } from "../judge/jev.js";
+import { QUESTIONS_HASH } from "../judge/questions.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { eligibility } from "../score/selectItems.js";
 import { type AuthorityFile, authorityMatcher, isAuthority, withAuthority } from "./authority.js";
@@ -44,6 +46,28 @@ export interface AuthorityReplay {
   over_guard: string[];
 }
 
+/**
+ * The cache is keyed `item:questions_hash:model` and may hold one item several times (a pinned
+ * model and an alias, an older question set). The entry a run would use now wins; else the most
+ * recently judged one, ties broken by key so the choice never depends on file order.
+ */
+export function entryByItem(judgments: JudgmentsFile): Map<string, JudgmentEntry> {
+  const best = new Map<string, JudgmentEntry>();
+  const current = (entry: JudgmentEntry): boolean =>
+    entry.questions_hash === QUESTIONS_HASH && entry.model === DEFAULT_JEV_MODEL;
+  const newer = (a: JudgmentEntry, b: JudgmentEntry): boolean =>
+    current(a) !== current(b)
+      ? current(a)
+      : a.judged_at !== b.judged_at
+        ? a.judged_at > b.judged_at
+        : `${a.questions_hash}:${a.model}` > `${b.questions_hash}:${b.model}`;
+  for (const entry of Object.values(judgments.entries)) {
+    const held = best.get(entry.item_id);
+    if (!held || newer(entry, held)) best.set(entry.item_id, entry);
+  }
+  return best;
+}
+
 function hostOf(url: string): string {
   try {
     return new URL(url).hostname.toLowerCase();
@@ -67,6 +91,7 @@ export function replayAuthority(input: {
 }): AuthorityReplay {
   const matcher = authorityMatcher({ ...input.authority, enabled: true });
   const byId = new Map(input.pools.map((item) => [item.id, item]));
+  const entries = entryByItem(input.judgments);
   const rows: {
     item: Item;
     category: string;
@@ -77,7 +102,7 @@ export function replayAuthority(input: {
     listed: boolean;
   }[] = [];
   for (const item of byId.values()) {
-    const entry = input.judgments.entries[item.id];
+    const entry = entries.get(item.id);
     if (!entry) continue;
     const base = scoreItem(entry, input.preferences, item);
     const lifted = withAuthority(base, matcher);
@@ -130,7 +155,10 @@ export function replayAuthority(input: {
       })),
     domains,
     over_guard: Object.entries(domains)
-      .filter(([, d]) => d.judged >= AUTHORITY_GUARD_MIN && d.share_after > AUTHORITY_PASS_GUARD)
+      .filter(
+        ([, d]) =>
+          d.judged >= AUTHORITY_GUARD_MIN && d.passed_after / d.judged > AUTHORITY_PASS_GUARD,
+      )
       .map(([domain]) => domain),
   };
 }
