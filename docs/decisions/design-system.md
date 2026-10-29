@@ -289,6 +289,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Supersedes: the route half of D189 (`/design` inside the site); its no-separate-repository and no-Storybook rulings stand.
 - Context changed: D189 said a second app consuming the styles would lift them into a package. D224 adds that second app and defers the package: the apps import the reader's files by relative path until that hurts.
 
+## D229: the reading column sits on the pane's middle, and a label is 12px from its field
+
+- Date: 2026-10-29 (the owner: "on the left side it is less, and on the right side it is more on the page. I have this everywhere throughout the app"; labels "so close" to their fields)
+- Decision: from 80rem the shell has three tracks, `1fr` the column `1fr`, so the column is centred in the pane on every page, and a contents list takes the right margin's room (at most 14rem, a step off the column). A page that wants more width (Library, Create) is `--column-wide` (shell.css), centred. A label is `--field-label-gap` (12px) above its field, and the fields of a form or sheet are 24px apart, so a label belongs to the field below it (Create's group headings keep their own 16px rhythm: they also name chips and segmented choices). A field's resting outline stays `--field-border` (grey); the accent shows on focus only.
+- Why: the shell reserved the contents list's 14rem track on every page, so the column sat left of the pane's middle (96px on the left and 384px on the right at 1280) whether or not the page had a list; 8px between a label and its field left it on the outline. The blue ring on the admin sign-in is the focus ring of an autofocused field, not a resting colour.
+- Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
+- Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).
+
 ## D237: a control is a component with its real name, one family at a time
 
 - Date: 2026-10-29 (the owner: "I want this documentation to reflect the actual component library ... we need 100% parity or coupling between the design system and the app ... components named not by how they are used in the app, rather by their actual names ... all the buttons must be collected in one section").
@@ -296,4 +304,3 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the guide's hand-written specs copied the app's markup and could drift; 25 classes drew 7 controls under names taken from where each first appeared (`btn-primary`, `source-link`).
 - Rejected: renaming the guide's pages only (parity would stay a promise); one PR for every family (a taste change in one hides in the rest); a new required status check (it would block every PR that does not touch the system).
 - Next: Icon button, FAB (with `btn-action-tonal`, the Catch up colour), Chip, Link (`source-link`, `run-link`, `text-link`).
-

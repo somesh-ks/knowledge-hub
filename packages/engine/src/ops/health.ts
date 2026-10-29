@@ -13,11 +13,7 @@ import {
 import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
-import {
-  FIRECRAWL_NORMAL_WEEK,
-  FIRECRAWL_WEEKLY_ALERT,
-  FIRECRAWL_WEEKLY_BUDGET,
-} from "../fetch/firecrawlBudget.js";
+import { FIRECRAWL_WEEKLY_ALERT, FIRECRAWL_WEEKLY_BUDGET } from "../fetch/firecrawlBudget.js";
 import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
 import { DEPLOY_AUDIO_WINDOW_DAYS, digestsLackingAudio } from "../run/pendingAudio.js";
@@ -343,8 +339,8 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   } else {
     passed.push(`$${spent.toFixed(2)} spent in the last 24 hours`);
   }
-  // Firecrawl is a soft ceiling (D223): an alert past one and a half normal weeks, a fault when the
-  // runs have stopped listing at three.
+  // Firecrawl is a soft ceiling (D223): an alert once the week passes 210 (a normal week is about 150),
+  // a fault when the runs have stopped listing at 300.
   const weekAgo = now.getTime() - 7 * DAY_MS;
   const firecrawlWeek = records
     .filter(
@@ -364,7 +360,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     warn(
       "firecrawl_week_high",
       "cost",
-      `Firecrawl used ${firecrawlWeek} requests in 7 days (a normal week is ${FIRECRAWL_NORMAL_WEEK}; runs stop at ${FIRECRAWL_WEEKLY_BUDGET}).`,
+      `Firecrawl used ${firecrawlWeek} requests in 7 days (a normal week is about 150; runs stop at ${FIRECRAWL_WEEKLY_BUDGET}).`,
     );
   } else {
     passed.push(`Firecrawl used ${firecrawlWeek} requests in 7 days`);
