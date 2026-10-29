@@ -30,9 +30,11 @@ export const PODCAST_POLICY: LimitPolicy = {
 
 /**
  * Regenerating a podcast (D212): its own count of three decides (MAX_REGENERATIONS), with no limit per
- * day. What is left here is a guard against a double tap and a ceiling against a runaway script.
+ * day of its own. What is left here is a guard against a double tap and a ceiling against a runaway
+ * script. The ceiling counts the runs of the route's own workflow in 24 hours, from a list GitHub cuts
+ * at 30 runs, so it stays below 30 to be reachable at all.
  */
-export const REGENERATE_POLICY: LimitPolicy = { cooldownMs: 30 * 1000, dailyCap: 50 };
+export const REGENERATE_POLICY: LimitPolicy = { cooldownMs: 30 * 1000, dailyCap: 25 };
 
 /** Deleting an episode: a short cooldown against double taps, and twenty a day. */
 export const DELETE_POLICY: LimitPolicy = { cooldownMs: 10 * 1000, dailyCap: 20 };

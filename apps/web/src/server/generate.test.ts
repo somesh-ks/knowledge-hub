@@ -227,6 +227,21 @@ describe("handleGenerate", () => {
     expect((await send({})).status).toBe(429);
   });
 
+  it("stops a runaway regenerate within the 30 runs GitHub lists, so the ceiling can be reached", async () => {
+    const { deps, github } = setup({
+      digestIds: () => ["2026-10-07"],
+      regenerations: async () => 0,
+    });
+    // As many runs as the list can hold, a minute apart: a ceiling above 30 would never see its count.
+    const runs = Array.from({ length: 30 }, (_, index) =>
+      runJson({ id: index + 1, created_at: new Date(NOW - (index + 1) * 60_000).toISOString() }),
+    );
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: runs } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
+    const result = await handleGenerate(input(JSON.stringify({ replace: "2026-10-07" })), deps);
+    expect(result).toMatchObject({ status: 429, body: { error: "daily_cap" } });
+  });
+
   it("refuses to delete a Daily or Weekly briefing, so only on-demand ones can go", async () => {
     const kinds: Record<string, string> = {
       "2026-10-07": "regular",
