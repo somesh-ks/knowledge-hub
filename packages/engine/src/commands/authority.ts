@@ -82,11 +82,30 @@ export const run: CommandRun = async (argv, ctx) => {
   const since = ctx.now().getTime() - days * DAY_MS;
   const items: Item[] = [];
   let pools = 0;
-  for (const path of await findPools(dir)) {
-    const pool = PoolFile.parse(JSON.parse(await readFile(path, "utf8")));
-    if (Date.parse(pool.generated_at) < since) continue;
+  let paths: string[];
+  try {
+    paths = await findPools(dir);
+  } catch {
+    ctx.log.error(`${dir} cannot be read. ${USAGE}`);
+    return 2;
+  }
+  for (const path of paths) {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await readFile(path, "utf8"));
+    } catch {
+      ctx.log.warn(`skipped ${path}: not readable as JSON`);
+      continue;
+    }
+    // An older run's pool may have another shape; one such file must not discard the report.
+    const parsed = PoolFile.safeParse(raw);
+    if (!parsed.success) {
+      ctx.log.warn(`skipped ${path}: not a valid pool`);
+      continue;
+    }
+    if (Date.parse(parsed.data.generated_at) < since) continue;
     pools += 1;
-    items.push(...pool.items);
+    items.push(...parsed.data.items);
   }
   const [authority, preferences, judgments] = await Promise.all([
     loadAuthority(ctx.root),
