@@ -339,6 +339,8 @@ describe("handleGenerate", () => {
     github.on("POST /actions/workflows/run.yml/dispatches", { status: 204 });
     const result = await handleGenerate(input(EMPTY_BODY), deps);
     expect(result).toMatchObject({ status: 202, body: { run_id: 777 } });
+    // A run picked from the list by its time may be another request's: no token, so no Cancel (D242).
+    expect(result.body).not.toHaveProperty("cancel_token");
     expect(delays.length).toBeGreaterThan(0);
   });
 

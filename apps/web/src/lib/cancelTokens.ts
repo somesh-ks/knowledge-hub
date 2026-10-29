@@ -18,13 +18,10 @@ function read(storage: Storage): Record<string, string> {
   }
 }
 
-export function rememberCancelToken(
-  runId: number,
-  token: unknown,
-  storage: Storage = localStorage,
-): void {
+export function rememberCancelToken(runId: number, token: unknown, storage?: Storage): void {
   if (typeof token !== "string" || !token) return;
   try {
+    storage ??= localStorage;
     const kept = Object.entries(read(storage)).filter(([id]) => id !== String(runId));
     storage.setItem(
       KEY,
@@ -35,9 +32,9 @@ export function rememberCancelToken(
   }
 }
 
-export function cancelTokenOf(runId: number, storage: Storage = localStorage): string | null {
+export function cancelTokenOf(runId: number, storage?: Storage): string | null {
   try {
-    return read(storage)[String(runId)] ?? null;
+    return read(storage ?? localStorage)[String(runId)] ?? null;
   } catch {
     return null;
   }

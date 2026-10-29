@@ -298,6 +298,9 @@ export async function handlePodcast(
         : body;
     const inputs = { request: JSON.stringify(command) };
     let runId = await github.dispatchWorkflowFile(PODCAST_WORKFLOW_FILE, inputs);
+    // Only an id GitHub named for this dispatch gets a token (D242): one picked from the list by
+    // its creation time could be another request's run, and its token would stop that one.
+    const named = runId !== null;
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest run created since the request is it.
       await deps.delay(RUN_LOOKUP_DELAY_MS);
@@ -325,7 +328,7 @@ export async function handlePodcast(
         status: 202,
         run_id: runId,
         started_at: new Date(startedAt).toISOString(),
-        cancel_token: cancelTokenFor(config.token, runId),
+        ...(named ? { cancel_token: cancelTokenFor(config.token, runId) } : {}),
       },
     };
   } catch (error) {
