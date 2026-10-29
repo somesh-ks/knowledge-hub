@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 
 interface Target {
   name: string;
-  where: "github-secret" | "github-variable" | "vercel";
+  where: "github-secret" | "github-variable" | "vercel" | "vercel-admin";
 }
 
 /** Secrets used by the GitHub Actions workflows. */
@@ -52,6 +52,13 @@ const VERCEL_ENV = [
   "DATABASE_URL",
 ];
 
+/**
+ * The command center's sign-in (D224). They go to the separate singularity-admin Vercel project, not
+ * the reader's, so they need `apps/admin` linked to it; without that link nothing is sent, because
+ * the reader's own link would take them.
+ */
+const VERCEL_ADMIN_ENV = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET"];
+
 /** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */
 const SENSITIVE_PLACEHOLDER = "[SENSITIVE]";
 
@@ -59,6 +66,7 @@ const TARGETS: Target[] = [
   ...GITHUB_SECRETS.map((name): Target => ({ name, where: "github-secret" })),
   ...GITHUB_VARIABLES.map((name): Target => ({ name, where: "github-variable" })),
   ...VERCEL_ENV.map((name): Target => ({ name, where: "vercel" })),
+  ...VERCEL_ADMIN_ENV.map((name): Target => ({ name, where: "vercel-admin" })),
 ];
 
 function parseDotenv(text: string): Record<string, string> {
@@ -144,11 +152,11 @@ function run(
   execSync(parts.join(" "), options);
 }
 
-/** The directory `vercel link` was run in: the repository root or apps/web. */
-function linkedVercelDir(): string | undefined {
-  return [resolve("."), resolve("apps/web")].find((dir) =>
-    existsSync(join(dir, ".vercel", "project.json")),
-  );
+/** The first of these directories where `vercel link` was run. */
+function linkedVercelDir(candidates: string[]): string | undefined {
+  return candidates
+    .map((dir) => resolve(dir))
+    .find((dir) => existsSync(join(dir, ".vercel", "project.json")));
 }
 
 function main(): void {
@@ -171,7 +179,9 @@ function main(): void {
   // Settings" once that token was rotated or revoked, while the login still worked.
   delete childEnv.VERCEL_TOKEN;
 
-  const vercelDir = linkedVercelDir();
+  // The reader's project: the repository root or apps/web. The admin project: apps/admin only.
+  const vercelDir = linkedVercelDir([".", "apps/web"]);
+  const adminDir = linkedVercelDir(["apps/admin"]);
   if (!vercelDir && only !== "github" && !dryRun) {
     console.error(
       "The Vercel project is not linked. Run `vercel link` first, or use --only github.",
@@ -185,7 +195,7 @@ function main(): void {
 
   for (const target of TARGETS) {
     const value = values[target.name];
-    const scope = target.where === "vercel" ? "vercel" : "github";
+    const scope = target.where.startsWith("vercel") ? "vercel" : "github";
     if (only && only !== scope) continue;
     if (!value || value === SENSITIVE_PLACEHOLDER) {
       // A name can have two destinations now (GitHub and Vercel); report it once.
@@ -211,6 +221,18 @@ function main(): void {
             value,
             childEnv,
             vercelDir,
+          );
+          break;
+        case "vercel-admin":
+          if (!adminDir) {
+            throw new Error("apps/admin is not linked to singularity-admin: run vercel link there");
+          }
+          run(
+            "npx",
+            ["vercel", "env", "add", target.name, "production", "--force"],
+            value,
+            childEnv,
+            adminDir,
           );
           break;
         default: {

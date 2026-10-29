@@ -43,6 +43,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
+| `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project only |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
 ### 1.3 Pick the writer model
@@ -68,7 +69,7 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 
 ### 1.4a Create the admin project (D224)
 
-The command center is a second Vercel project, `singularity-admin`, from the same repo: Root Directory `apps/admin`, "Include source files outside of the Root Directory" on, Production Deployment Protection off (the app gates itself; Vercel protection cannot guard a project reached through a rewrite). The reader's `apps/web/vercel.json` rewrites `/admin` to its `singularity-admin-psi.vercel.app` address. In the project's Environment Variables (Production) set `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` (32 or more random characters). Until both exist the app answers 503 to everyone.
+The command center is a second Vercel project, `singularity-admin`, from the same repo: Root Directory `apps/admin`, "Include source files outside of the Root Directory" on, Production Deployment Protection off (the app gates itself; Vercel protection cannot guard a project reached through a rewrite). The reader's `apps/web/vercel.json` rewrites `/admin` to its `singularity-admin-psi.vercel.app` address. Set `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` (32 or more random characters) in `.env`; `npm run secrets:push` sends them to this project once `apps/admin` is linked (`cd apps/admin && npx vercel link`), or add them by hand under the project's Environment Variables (Production). Until both exist the app answers 503 to everyone.
 
 ### 1.5 Create the Blob store
 
