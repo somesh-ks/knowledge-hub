@@ -113,7 +113,7 @@
   "rewrites": [
     {
       "source": "/admin/:path*",
-      "destination": "https://singularity-admin-psi.vercel.app/admin/:path*"
+      "destination": "https://singularity-admin-psi.vercel.app/:path*"
     },
     {
       "source": "/covers/:path*",
