@@ -15,6 +15,7 @@
     "./health-limits": "./src/ops/healthLimits.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts",
+    "./runs-store": "./src/store/runsStore.ts",
     "./vitals-store": "./src/store/vitalsStore.ts",
     "./share-store": "./src/store/shareStore.ts",
     "./faults-store": "./src/store/faultsStore.ts"

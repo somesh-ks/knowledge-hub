@@ -34,6 +34,40 @@ const SpendFile = z.object({
   }),
 });
 
+/** What a run has spent so far, as the run log prices it (D221). */
+export interface SpendSnapshot {
+  requests: Record<string, number>;
+  units: Record<string, number>;
+}
+
+/** What `after` spent beyond `before`: one stage's share, as a spend that can be priced. */
+export function spendDelta(before: SpendSnapshot, after: SpendSnapshot): SpendSnapshot {
+  const minus = (a: Record<string, number>, b: Record<string, number>): Record<string, number> =>
+    Object.fromEntries(
+      Object.entries(a)
+        .map(([key, n]) => [key, n - (b[key] ?? 0)] as const)
+        .filter(([, n]) => n > 0),
+    );
+  return {
+    requests: minus(after.requests, before.requests),
+    units: minus(after.units, before.units),
+  };
+}
+
+/**
+ * The spend `.cache/run/spend.json` holds for `run`, or null when there is none or it is another
+ * run's: the whole run, read by the run log after its stages (separate processes) have saved.
+ */
+export async function readRunSpend(root: string, run: string): Promise<SpendSnapshot | null> {
+  const raw = await readJsonIfExists(spendPath(root), "spend.json").catch(() => null);
+  const parsed = raw === null ? null : SpendFile.safeParse(raw);
+  if (!parsed?.success || parsed.data.run !== run) return null;
+  const requests: Record<string, number> = { ...parsed.data.requests };
+  requests.firecrawl_listing = parsed.data.firecrawl.listing;
+  requests.firecrawl_scrape = parsed.data.firecrawl.scrape;
+  return { requests, units: { ...parsed.data.units } };
+}
+
 export function spendPath(root: string): string {
   return join(runCacheDir(root), "spend.json");
 }
@@ -111,6 +145,11 @@ export class SpendTracker {
       firecrawl_rate_limited: firecrawl.rate_limited,
       firecrawl_skipped: firecrawl.skipped,
     };
+  }
+
+  /** The run so far as a snapshot, to price a stage by the difference of two. */
+  snapshot(): SpendSnapshot {
+    return { requests: this.totals().requests, units: this.unitTotals() };
   }
 
   /** Reported units of the whole run so far, by `provider|product|unit`. */

@@ -1,6 +1,6 @@
 # Command center and style guide: plan
 
-Agreed with Somesh on 2026-10-29 (D221). Two apps in this repo, each its own Vercel project, reached on the reader's domain by rewrites.
+Agreed with Somesh on 2026-10-29 (D223). Two apps in this repo, each its own Vercel project, reached on the reader's domain by rewrites.
 
 | App | Address | What it is | Access |
 |---|---|---|---|
