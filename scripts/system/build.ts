@@ -96,7 +96,7 @@ export function classTokens(text: string): Set<string> {
   return found;
 }
 
-function sourceFiles(): { path: string; text: string; tokens: Set<string> }[] {
+export function sourceFiles(): { path: string; text: string; tokens: Set<string> }[] {
   return filesUnder(
     SRC,
     [".astro", ".tsx", ".ts", ".js"],

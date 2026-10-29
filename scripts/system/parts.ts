@@ -37,14 +37,21 @@ export const PARTS: PartSource[] = [
     summary: "A tonal button on the accent container: quieter than the filled one, still a button.",
     classes: ["btn-secondary"],
     when: [
-      "a companion to a primary action, such as Share beside Play",
+      "a second action beside the main one, such as Share beside Play",
       "an add control inside a settings section",
     ],
     not: [
       { when: "Cancel or Dismiss in a sheet or dialog", use: "btn" },
       { when: "the one committing action", use: "btn-primary" },
     ],
-    keywords: ["secondary", "companion", "outlined", "tonal"],
+    keywords: [
+      "secondary",
+      "companion",
+      "second action",
+      "beside the primary",
+      "outlined",
+      "tonal",
+    ],
     markup: '<button class="btn-secondary" type="button">Share</button>',
     rules: ["Matches the primary's height.", "No outline."],
   },
@@ -146,7 +153,7 @@ export const PARTS: PartSource[] = [
     name: "Filter chip",
     kind: "selection",
     summary: "A checkbox drawn as a pill; ticked it takes the accent container.",
-    classes: ["filter-chip", "filter-chips", "filter-chips-scroll"],
+    classes: ["filter-chip", "filter-chips"],
     when: [
       "tick several topics or categories to include",
       "filter a list by one or more kinds",

@@ -19,6 +19,7 @@ import {
   renderLlms,
   renderSystemJson,
   SYSTEM_PATH,
+  sourceFiles,
 } from "./build.js";
 import { findParts, findTokens } from "./query.js";
 
@@ -57,6 +58,19 @@ describe("the design system file", () => {
   // Prevents a dead part: an agent steered to a class the app no longer uses.
   it("lists only parts the app uses", () => {
     expect(system.parts.filter((part) => part.usedIn === 0).map((part) => part.id)).toEqual([]);
+  });
+
+  // Prevents a part keeping a class no markup writes: `usedIn` counts a part used when any one of its
+  // classes is, so a dead class (filter-chips-scroll had a rule and no user) hid behind a live one.
+  it("lists only classes the app writes", () => {
+    const written = new Set(sourceFiles().flatMap((file) => [...file.tokens]));
+    const owners = new Map<string, string[]>();
+    for (const part of system.parts)
+      for (const name of part.classes) owners.set(name, [...(owners.get(name) ?? []), part.id]);
+    const dead = [...owners]
+      .filter(([name, parts]) => parts.length === 1 && !written.has(name))
+      .map(([name, parts]) => `${parts[0]}: .${name} is written by no markup`);
+    expect(dead).toEqual([]);
   });
 
   // Prevents a "not this, use that" pointing at a part that does not exist.
@@ -148,6 +162,8 @@ describe("the lookup", () => {
     ["let the user tick several topics to include", "filter-chip"],
     ["a new bottom sheet needs a title and a close control in its header", "sheet"],
     ["a new form sheet needs one main Save button and a Cancel beside it", "btn-primary"],
+    // A phrase a part lists under "not when" must not rank that part first.
+    ["a second action beside the main one", "btn-secondary"],
     ["a new page has nothing to list yet and must say so", "empty-state"],
     ["tell the user, persistently at the top of a page, that a download failed", "banner"],
     ["after the user deletes an episode, show a brief message with an Undo action", "toast"],

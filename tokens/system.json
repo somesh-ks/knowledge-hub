@@ -68,7 +68,7 @@
         "btn-secondary"
       ],
       "when": [
-        "a companion to a primary action, such as Share beside Play",
+        "a second action beside the main one, such as Share beside Play",
         "an add control inside a settings section"
       ],
       "not": [
@@ -84,6 +84,8 @@
       "keywords": [
         "secondary",
         "companion",
+        "second action",
+        "beside the primary",
         "outlined",
         "tonal"
       ],
@@ -358,8 +360,7 @@
       "summary": "A checkbox drawn as a pill; ticked it takes the accent container.",
       "classes": [
         "filter-chip",
-        "filter-chips",
-        "filter-chips-scroll"
+        "filter-chips"
       ],
       "when": [
         "tick several topics or categories to include",

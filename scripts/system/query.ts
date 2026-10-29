@@ -74,8 +74,8 @@ export function findParts(system: System, need: string, limit = 3): PartHit[] {
       score += weigh(query, (part.keywords ?? []).join(" "), 3);
       for (const when of part.when) score += weigh(query, when, 2);
       score += weigh(query, part.summary, 1.5);
-      // What a part is not for counts a little: it names the neighbors a reader may be confusing it with.
-      for (const item of part.not ?? []) score += weigh(query, item.when, 0.25);
+      // A need that reads like what a part is not for counts against it; the neighbor named there wins.
+      for (const item of part.not ?? []) score -= weigh(query, item.when, 1);
       return { part, score };
     })
     .filter((hit) => hit.score > 0)
