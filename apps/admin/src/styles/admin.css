@@ -23,3 +23,303 @@
 .settings-view section > .card-group + .card-group {
   margin-block-start: var(--space-4);
 }
+
+/* ------------------------------------------------------------------ the name */
+
+/* "Singularity" with a quiet "Admin" tag beside it: the product is one product, this is its back
+   room (2026-10-29, the owner). The tag is the overlay tone at the meta step, a pill. */
+.app-nav-brand {
+  padding-inline-end: 0;
+}
+
+/* The side column is 16rem here, so the name and its tag fit on one line (the reader's is 13rem). */
+:root {
+  --nav-side-width: 16rem;
+}
+
+.admin-tag {
+  margin-inline-start: calc(var(--space-1) * -1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-overlay);
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--space-6);
+}
+
+/* ------------------------------------------------------------------ the overview */
+
+/* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with
+   words only where a mark cannot say it (2026-10-29, the owner: too much text, no visuals). */
+.ov-card {
+  display: grid;
+  gap: var(--space-6);
+  margin-block-start: 0;
+  padding: var(--card-padding);
+}
+
+.ov-data {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+[data-loading] .ov-data {
+  opacity: 0.6;
+}
+
+.ov-answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ov-figure {
+  margin: 0;
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-sub {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--space-6);
+}
+
+/* The verdict as a glyph in a tinted disc: tone is never the colour alone, the glyph differs too. */
+.ov-badge,
+.ov-tile-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--ov-tone, var(--color-on-surface-muted));
+}
+
+.ov-badge {
+  inline-size: var(--space-12);
+  block-size: var(--space-12);
+  border-radius: var(--radius-round);
+  background: var(--ov-tone-subtle, var(--color-surface-overlay));
+}
+
+.ov-badge .icon {
+  inline-size: var(--size-icon-lg);
+  block-size: var(--size-icon-lg);
+}
+
+[data-tone="good"] {
+  --ov-tone: var(--color-success);
+  --ov-tone-subtle: var(--color-success-subtle);
+}
+
+[data-tone="warn"] {
+  --ov-tone: var(--color-warning);
+  --ov-tone-subtle: var(--color-warning-subtle);
+}
+
+[data-tone="bad"] {
+  --ov-tone: var(--color-danger);
+  --ov-tone-subtle: var(--color-danger-subtle);
+}
+
+/* Health: what needs a look is a tinted tile, worst first; what is fine is one dot per check in a
+   strip per group, so a full page of good news is four short lines. */
+.ov-groups {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ov-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (width >= 40rem) {
+  .ov-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ov-strips {
+  display: grid;
+}
+
+.ov-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: var(--size-touch);
+  color: var(--color-on-surface);
+  text-decoration: none;
+}
+
+.ov-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.ov-cell {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.ov-tile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "value icon"
+    "label label"
+    "detail detail";
+  align-content: start;
+  gap: 0 var(--space-2);
+  min-inline-size: 0;
+  padding: var(--space-4);
+  border-radius: var(--card-content-radius);
+  background: var(--color-surface-overlay);
+  color: var(--color-on-surface);
+  text-decoration: none;
+}
+
+.ov-tile:is([data-tone="warn"], [data-tone="bad"]) {
+  background: var(--ov-tone-subtle);
+}
+
+.ov-tile-icon {
+  grid-area: icon;
+}
+
+.ov-tile-icon .icon {
+  inline-size: var(--size-icon-lg);
+  block-size: var(--size-icon-lg);
+}
+
+.ov-tile-value {
+  grid-area: value;
+  overflow: hidden;
+  font-family: var(--text-title-family);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--space-6);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-tile-label,
+.ov-tile-detail {
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--space-6);
+}
+
+.ov-tile-detail {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ov-tile-label {
+  grid-area: label;
+}
+
+.ov-tile-detail {
+  grid-area: detail;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ov-tile:hover {
+    outline: var(--stroke-hairline) solid var(--color-border-hairline);
+  }
+}
+
+/* Spend: the chart is the reader's (costs.css); its plot is positioned for the hover readout, and a
+   hovered day lifts out of the others. */
+.ov-plot {
+  position: relative;
+}
+
+.ov-tip {
+  position: absolute;
+  inset-block-start: 0;
+  translate: -50% 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-on-surface);
+  color: var(--color-surface);
+  font-size: var(--text-meta-size);
+  line-height: var(--space-4);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: pre;
+}
+
+.costs-columns[data-hover] .costs-mark:not([data-on]) {
+  opacity: 0.4;
+}
+
+/* The split by service: one bar, one hue, darkest for the largest, a gap between segments. */
+.ov-share {
+  display: flex;
+  gap: var(--space-1);
+  block-size: var(--space-2);
+  border-radius: var(--radius-round);
+  overflow: hidden;
+}
+
+.ov-share-seg,
+.ov-swatch {
+  background: color-mix(in oklab, var(--color-accent) var(--tint), var(--color-surface-overlay));
+}
+
+.ov-share-seg {
+  min-inline-size: var(--space-1);
+}
+
+.ov-legend {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ov-legend-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  line-height: var(--space-6);
+}
+
+.ov-swatch {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: var(--radius-round);
+}
+
+.ov-legend-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-legend-share {
+  min-inline-size: 3ch;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}

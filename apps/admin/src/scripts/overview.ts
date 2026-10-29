@@ -5,6 +5,8 @@
  * own pages do it (scripts/costsPage.ts, healthPage.ts).
  */
 
+import { href } from "../lib/sections";
+
 type Tone = "good" | "warn" | "bad" | "none";
 interface HealthBody {
   attention: { count: number; tone: Tone };
@@ -55,29 +57,11 @@ const element = (tag: string, className: string, text?: string): HTMLElement => 
   if (text !== undefined) el.textContent = text;
   return el;
 };
-const tile = (value: string, label: string): HTMLElement => {
-  const item = element("li", "stat-tile");
-  item.append(
-    element("strong", "stat-tile-value", value),
-    " ",
-    element("span", "stat-tile-label", label),
-  );
-  return item;
-};
-const row = (label: string, hint: string, value: string, tone?: Tone): HTMLElement => {
-  const item = element("div", "settings-row health-row");
-  const text = element("span", "settings-text");
-  text.append(element("span", "settings-label", label), element("span", "settings-hint", hint));
-  const reading = element("span", "health-value");
-  if (tone && tone !== "none") {
-    const dot = element("span", "status-dot");
-    dot.dataset.tone = tone;
-    reading.append(dot);
-  }
-  reading.append(value);
-  item.append(text, reading);
-  return item;
-};
+/** A copy of a status glyph from the page's template (index.astro), so no markup is drawn here. */
+const glyph = (tone: Tone): Node | null =>
+  pick<HTMLTemplateElement>("template[data-glyphs]")
+    ?.content.querySelector(`[data-glyph="${tone}"] > svg`)
+    ?.cloneNode(true) ?? null;
 
 const shift = (date: string, days: number): string => {
   const at = new Date(`${date}T00:00:00Z`);
@@ -103,21 +87,43 @@ const dayLabel = (date: string): string =>
 
 // ---- health ----------------------------------------------------------------------------------
 
-function renderHealth(body: HealthBody, labels: Record<string, string>): void {
+interface Group {
+  id: string;
+  title: string;
+  rows: Array<{ id: string; label: string }>;
+}
+
+const WEIGHT: Record<Tone, number> = { bad: 0, warn: 1, good: 2, none: 3 };
+
+function healthTile(label: string, r: HealthBody["rows"][number]): HTMLElement {
+  const item = element("a", "ov-tile");
+  item.setAttribute("href", href("/health"));
+  item.dataset.tone = r.tone;
+  const icon = element("span", "ov-tile-icon");
+  const mark = glyph(r.tone);
+  if (mark) icon.append(mark);
+  item.append(
+    icon,
+    element("span", "ov-tile-value", r.value),
+    element("span", "ov-tile-label", label),
+  );
+  if (r.tone === "warn" || r.tone === "bad")
+    item.append(element("span", "ov-tile-detail", r.detail));
+  return item;
+}
+
+function renderHealth(body: HealthBody, groups: Group[]): void {
   const root = pick<HTMLElement>("[data-overview-health]");
   if (!root) return;
   const { count, tone } = body.attention;
+  const level: Tone = count === 0 ? "good" : tone;
   const words = pick<HTMLElement>("[data-attention]");
-  if (words)
-    words.textContent =
-      count === 0
-        ? "All good"
-        : count === 1
-          ? "One thing needs attention"
-          : `${count} things need attention`;
-  pick<HTMLElement>("[data-attention-dot]")?.setAttribute("data-tone", count === 0 ? "good" : tone);
-  for (const el of root.querySelectorAll<HTMLElement>("[data-health-tile]")) {
-    el.textContent = body.tiles[el.dataset.healthTile ?? ""] ?? "No data";
+  if (words) words.textContent = count === 0 ? "All running" : `${count} to check`;
+  const badge = pick<HTMLElement>("[data-badge]");
+  if (badge) {
+    badge.dataset.tone = level;
+    const mark = glyph(level);
+    badge.replaceChildren(...(mark ? [mark] : []));
   }
   const missing = [
     body.parts?.content === "fallback" && "the content store answered from this build's copy",
@@ -131,9 +137,51 @@ function renderHealth(body: HealthBody, labels: Record<string, string>): void {
     note.textContent = missing.length ? `Partial: ${missing.join("; ")}.` : "";
     note.hidden = missing.length === 0;
   }
-  const rows = body.rows.filter((r) => r.tone === "warn" || r.tone === "bad");
-  const list = pick<HTMLElement>("[data-attention-rows]");
-  list?.prepend(...rows.map((r) => row(labels[r.id] ?? r.id, r.detail, r.value, r.tone)));
+  const byId = new Map(body.rows.map((r) => [r.id, r]));
+  const judged = groups.map((group) => ({
+    title: group.title,
+    items: group.rows
+      .map((g) => ({ label: g.label, row: byId.get(g.id) }))
+      .filter(
+        (x): x is { label: string; row: HealthBody["rows"][number] } =>
+          !!x.row && x.row.tone !== "none",
+      ),
+  }));
+  // What needs a look is drawn in full, worst first; everything that is fine is a dot in its group's strip.
+  const attention = judged
+    .flatMap((g) => g.items.map((i) => ({ ...i, label: `${g.title} · ${i.label}` })))
+    .filter((i) => i.row.tone === "warn" || i.row.tone === "bad")
+    .sort((a, b) => WEIGHT[a.row.tone] - WEIGHT[b.row.tone]);
+  const tiles = element("ul", "ov-tiles");
+  tiles.setAttribute("role", "list");
+  for (const { label, row } of attention) {
+    const li = element("li", "ov-cell");
+    li.append(healthTile(label, row));
+    tiles.append(li);
+  }
+  const strips = element("div", "ov-strips");
+  for (const group of judged) {
+    if (!group.items.length) continue;
+    const fine = group.items.filter((i) => i.row.tone === "good").length;
+    const line = element("a", "ov-strip");
+    line.setAttribute("href", href("/health"));
+    line.setAttribute("aria-label", `${group.title}: ${fine} of ${group.items.length} fine`);
+    const dots = element("span", "ov-dots");
+    for (const { label, row } of group.items.sort(
+      (a, b) => WEIGHT[a.row.tone] - WEIGHT[b.row.tone],
+    )) {
+      const dot = element("span", "status-dot");
+      dot.dataset.tone = row.tone;
+      dot.title = `${label}: ${row.value}`;
+      dots.append(dot);
+    }
+    line.append(element("span", "ov-strip-name", group.title), dots);
+    strips.append(line);
+  }
+  pick<HTMLElement>("[data-health-groups]")?.replaceChildren(
+    ...(attention.length ? [tiles] : []),
+    strips,
+  );
   root.removeAttribute("data-loading");
 }
 
@@ -165,7 +213,7 @@ function drawChart(body: CostBody): void {
     "aria-hidden": "true",
   });
   const grid = svgEl("g", { class: "costs-grid" });
-  for (const share of [0, 0.5, 1]) {
+  for (const share of [0, 1]) {
     const y = PAD.top + inner.h * (1 - share);
     grid.append(svgEl("line", { x1: PAD.left, x2: width, y1: y, y2: y }));
     const label = svgEl("text", { x: PAD.left - 8, y: y + 4, "text-anchor": "end" });
@@ -186,6 +234,7 @@ function drawChart(body: CostBody): void {
         width: Math.max(1, band - GAP),
         height: h,
         rx: 2,
+        "data-i": i,
       });
       columns.append(mark);
     }
@@ -200,7 +249,31 @@ function drawChart(body: CostBody): void {
     }
   });
   svg.append(columns);
-  plot.replaceChildren(svg);
+  const tip = element("div", "ov-tip");
+  tip.hidden = true;
+  plot.replaceChildren(svg, tip);
+  const marks = new Map<number, SVGElement>();
+  for (const m of columns.querySelectorAll<SVGElement>(".costs-mark"))
+    marks.set(Number(m.dataset.i), m);
+  svg.addEventListener("pointermove", (event) => {
+    const box = svg.getBoundingClientRect();
+    const i = Math.floor((event.clientX - box.left - PAD.left) / band);
+    if (i < 0 || i >= DAYS) return leave();
+    const day = days[i] as string;
+    const amount = byDay.get(day)?.total.usd ?? 0;
+    for (const [at, m] of marks) m.toggleAttribute("data-on", at === i);
+    columns.toggleAttribute("data-hover", true);
+    tip.textContent = `${dayLabel(day)}  ${usd(amount)}`;
+    tip.hidden = false;
+    const x = PAD.left + i * band + band / 2;
+    tip.style.insetInlineStart = `${Math.min(Math.max(x, 48), width - 48)}px`;
+  });
+  const leave = (): void => {
+    columns.removeAttribute("data-hover");
+    for (const m of marks.values()) m.removeAttribute("data-on");
+    tip.hidden = true;
+  };
+  svg.addEventListener("pointerleave", leave);
   const peak = days.reduce(
     (a, d) => ((byDay.get(d)?.total.usd ?? 0) > (byDay.get(a)?.total.usd ?? 0) ? d : a),
     days[0] ?? end,
@@ -221,27 +294,45 @@ function renderSpend(body: CostBody): void {
   const inWindow = report.buckets.filter((b) => b.bucket >= start && b.bucket <= end);
   const total = inWindow.reduce((sum, b) => sum + b.total.usd, 0);
   const runs = inWindow.reduce((sum, b) => sum + b.total.runs, 0);
-  const active = inWindow.filter((b) => b.total.usd > 0);
   const totalEl = pick<HTMLElement>("[data-spend-total]");
   if (totalEl) totalEl.textContent = usd(total);
-  pick<HTMLElement>("[data-spend-stats]")?.replaceChildren(
-    ...(runs > 0
-      ? [
-          tile(String(runs), runs === 1 ? "run" : "runs"),
-          tile(usd(total / runs), "a run"),
-          tile(usd(Math.max(0, ...active.map((b) => b.total.usd))), "busiest day"),
-          tile(usd(total / Math.max(1, active.length)), "active day"),
-        ]
-      : []),
-  );
+  const sub = pick<HTMLElement>("[data-spend-sub]");
+  if (sub)
+    sub.textContent =
+      runs > 0 ? `Last ${DAYS} days, ${runs} ${runs === 1 ? "run" : "runs"}` : `Last ${DAYS} days`;
   const sums = new Map<string, number>();
   for (const b of inWindow)
     for (const [key, g] of Object.entries(b.groups)) sums.set(key, (sums.get(key) ?? 0) + g.usd);
   const parts = [...sums].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
-  pick<HTMLElement>("[data-spend-rows]")?.prepend(
-    ...parts.map(([key, value]) =>
-      row(nameOf(key), `${Math.round((value / total) * 100)}% of the spend`, usd(value)),
-    ),
+  // One hue, darkest for the largest: the split is a magnitude, and the design system has one accent.
+  const tint = (rank: number): string => `${Math.max(18, 100 - rank * 22)}%`;
+  const share = pick<HTMLElement>("[data-spend-share]");
+  share?.setAttribute(
+    "aria-label",
+    `Spend by service: ${parts.map(([k, v]) => `${nameOf(k)} ${usd(v)}`).join(", ")}`,
+  );
+  share?.replaceChildren(
+    ...parts.map(([key, value], rank) => {
+      const seg = element("span", "ov-share-seg");
+      seg.style.flexGrow = String(value);
+      seg.style.setProperty("--tint", tint(rank));
+      seg.title = `${nameOf(key)} ${usd(value)}`;
+      return seg;
+    }),
+  );
+  pick<HTMLElement>("[data-spend-legend]")?.replaceChildren(
+    ...parts.map(([key, value], rank) => {
+      const item = element("li", "ov-legend-item");
+      const swatch = element("span", "ov-swatch");
+      swatch.style.setProperty("--tint", tint(rank));
+      item.append(
+        swatch,
+        element("span", "ov-legend-name", nameOf(key)),
+        element("span", "ov-legend-value", usd(value)),
+        element("span", "ov-legend-share", `${Math.round((value / total) * 100)}%`),
+      );
+      return item;
+    }),
   );
   const unread = [
     body.site === "unavailable" && "the site's own spend",
@@ -283,13 +374,10 @@ function failed(selector: string, words: string): void {
   root?.querySelector(".card-group")?.append(note);
 }
 
-const labels = JSON.parse(pick<HTMLElement>("[data-overview]")?.dataset.labels ?? "{}") as Record<
-  string,
-  string
->;
+const groups = JSON.parse(pick<HTMLElement>("[data-overview]")?.dataset.groups ?? "[]") as Group[];
 void ask<HealthBody>("/api/health").then((body) =>
   body
-    ? renderHealth(body, labels)
+    ? renderHealth(body, groups)
     : failed("[data-overview-health]", "The health checks did not answer."),
 );
 void ask<CostBody>(`/api/costs?period=day&by=provider&days=${DAYS}`).then((body) =>
