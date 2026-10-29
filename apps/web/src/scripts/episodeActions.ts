@@ -137,11 +137,13 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
           ? copy("network")
           : res.status === 429
             ? `${copy(reply.error)} ${wait(reply.retry_after_s)}.`
-            : res.status === 400
-              ? copy("400")
-              : isSiteAnswer(reply)
-                ? withErrorRef(copy("503"), reply)
-                : copy("crashed"),
+            : res.status === 409
+              ? copy("regeneration_limit")
+              : res.status === 400
+                ? copy("400")
+                : isSiteAnswer(reply)
+                  ? withErrorRef(copy("503"), reply)
+                  : copy("crashed"),
       );
       return;
     }

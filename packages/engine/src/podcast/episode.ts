@@ -101,6 +101,8 @@ export interface BuildEpisodeInput {
   turns: readonly ScriptTurn[];
   /** Set when the episode replaces an earlier one. */
   replaces?: string;
+  /** The replaced episode's regenerations plus one (D212). */
+  regenerations?: number;
   feedback?: string;
   /** Chosen by the cover stage; absent, it is chosen here. */
   cover?: Episode["cover"];
@@ -128,6 +130,7 @@ export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
     title: episodeTitle(input.request),
     request: input.request,
     ...(input.replaces ? { replaces: input.replaces } : {}),
+    ...(input.regenerations ? { regenerations: input.regenerations } : {}),
     ...(input.feedback ? { feedback: input.feedback } : {}),
     generated_at: input.now.toISOString(),
     listen_minutes: Math.max(1, Math.round(charCount / PODCAST_CHARS_PER_MINUTE)),

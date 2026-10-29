@@ -3,8 +3,10 @@ import { resetContentRepo } from "./contentRepo";
 import {
   contentCostRecords,
   contentDigestIds,
+  contentDigestRegenerations,
   contentDigests,
   contentEpisodeIds,
+  contentEpisodeRegenerations,
   contentEpisodes,
   resetStoredSchedule,
 } from "./contentSources";
@@ -53,6 +55,26 @@ it("reads briefings and episodes the build does not have from the store", async 
   expect(await contentDigestIds(deps())).toEqual(["2031-01-02"]);
   expect(await contentEpisodes(deps()).readEpisode("2031-01-30-ep-abc")).toBe("episode text");
   expect(await contentEpisodeIds(deps())).toEqual(["2031-01-30-ep-abc"]);
+});
+
+it("counts regenerations from the front matter only, so a body line cannot spend a podcast (D212)", async () => {
+  const set = (path: string, text: string) => {
+    store.set(`content/${path}`, text);
+    const files = Object.fromEntries([NEW_DIGEST, NEW_EPISODE].map((each) => [each, "h"]));
+    store.set("content/manifest.json", JSON.stringify({ version: 1, updated_at: "z", files }));
+  };
+  set(NEW_DIGEST, "---\nkind: on-demand\nregenerations: 2\n---\n\nbody");
+  set(NEW_EPISODE, "---\nid: x\n---\n\nregenerations: 3\nthe host says so");
+  expect(await contentDigestRegenerations("2031-01-02", deps())).toBe(2);
+  expect(await contentEpisodeRegenerations("2031-01-30-ep-abc", deps())).toBe(0);
+});
+
+it("cannot check a count it cannot read, rather than taking it as 0 (D212)", async () => {
+  // Listed in the manifest but the file will not read: unknown, so the route says try again.
+  store.delete(`content/${NEW_DIGEST}`);
+  store.delete(`content/${NEW_EPISODE}`);
+  expect(await contentDigestRegenerations("2031-01-02", deps())).toBeNull();
+  expect(await contentEpisodeRegenerations("2031-01-30-ep-abc", deps())).toBeNull();
 });
 
 it("answers a briefing the store no longer holds as gone, not from the build", async () => {

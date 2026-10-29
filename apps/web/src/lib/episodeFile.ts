@@ -3,6 +3,7 @@ import {
   episodeFieldText,
   HOST_NAME_PATTERN,
   isFieldRecord,
+  MAX_REGENERATIONS,
   readEpisodeFrontmatter,
   readEpisodeTurns,
   readEpisodeVoice,
@@ -53,6 +54,8 @@ export interface Episode {
   char_count: number;
   /** Null when the file names none; the build then picks one. */
   cover: EpisodeCover | null;
+  /** Regenerations in this episode's line (D212); absent when it was never regenerated. */
+  regenerations?: number;
 }
 
 const LENGTHS = [3, 5, 10, 15] as const;
@@ -176,5 +179,8 @@ export function parseEpisodeFile(fileText: string): Episode {
     turns,
     char_count: charCount,
     cover: readCover(raw.cover),
+    ...(typeof raw.regenerations === "number" && Number.isInteger(raw.regenerations)
+      ? { regenerations: Math.max(0, Math.min(raw.regenerations, MAX_REGENERATIONS)) }
+      : {}),
   };
 }

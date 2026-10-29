@@ -45,6 +45,8 @@ export interface GenerateInput {
   dryRun?: boolean;
   /** Regeneration: the episode being replaced and what the listener wants changed. */
   replaces?: string;
+  /** The replaced episode's regenerations plus one (D212). */
+  regenerations?: number;
   feedback?: string;
   /** Where each finished stage is saved and looked for first; absent, every stage runs in memory. */
   store?: ArtifactStore | null;
@@ -434,6 +436,7 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
         turns: scripted.turns,
         cover,
         ...(input.replaces ? { replaces: input.replaces } : {}),
+        ...(input.regenerations ? { regenerations: input.regenerations } : {}),
         ...(input.feedback ? { feedback: input.feedback } : {}),
       });
       const relPath = input.dryRun

@@ -191,7 +191,7 @@ Every `run.yml` run ends in one outcome:
 
 Pick one. Each starts `run.yml` with `mode=on-demand`, which skips the gate.
 
-1. **Site button.** Open the Generate sheet and watch the progress steps. Limits: one on-demand run per 6 hours and three per 24 hours. The count includes runs started any other way.
+1. **Site button.** Open the Generate sheet and watch the progress steps. Limits: one new on-demand run per 6 hours and three per 24 hours, counting runs started any other way. A regeneration of an existing podcast has no daily limit of its own, only a ceiling of 25 runs a day of the workflow: each podcast takes three (D212).
 2. **GitHub CLI.**
 
 ```bash

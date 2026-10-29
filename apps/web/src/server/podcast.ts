@@ -1,9 +1,16 @@
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
-import { type GenerateDeps, type GenerateInput, isSameOrigin, MAX_BODY_CHARS } from "./generate";
+import {
+  type GenerateDeps,
+  type GenerateInput,
+  isSameOrigin,
+  MAX_BODY_CHARS,
+  regenerationAllowance,
+  regenerationLimit,
+} from "./generate";
 import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
 import type { ApiResult } from "./http";
-import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY } from "./limits";
+import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY, REGENERATE_POLICY } from "./limits";
 import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 import { resolveHostNames } from "./voices";
@@ -205,6 +212,15 @@ export async function handlePodcast(
   const body = parsePodcastBody(input.bodyText);
   if (body === null) return invalid;
   if ("action" in body && !((await deps.episodeIds?.()) ?? []).includes(body.id)) return invalid;
+  // An episode takes three regenerations (D212); the fourth is refused before it costs a run.
+  if ("action" in body && body.action === "regenerate") {
+    const allowance = await regenerationAllowance(deps, body.id);
+    if (allowance === "spent") return regenerationLimit;
+    if (allowance === "unknown") {
+      log(`podcast unavailable: the regeneration count of ${body.id} could not be read`);
+      return unavailable;
+    }
+  }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;
@@ -225,7 +241,11 @@ export async function handlePodcast(
     const decision = evaluateLimits(
       started,
       deps.now(),
-      "action" in body && body.action === "delete" ? DELETE_POLICY : PODCAST_POLICY,
+      "action" in body
+        ? body.action === "delete"
+          ? DELETE_POLICY
+          : REGENERATE_POLICY
+        : PODCAST_POLICY,
     );
     if (!decision.allowed) {
       return {

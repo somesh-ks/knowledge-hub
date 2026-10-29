@@ -196,6 +196,52 @@ describe("handleGenerate", () => {
     expect(dispatches().at(-1)?.body).not.toHaveProperty("inputs.feedback");
   });
 
+  it("regenerates a podcast three times with no day limit, then refuses the fourth before it costs a run", async () => {
+    const counts: Record<string, number> = { "2026-10-07": 2, "2026-10-06": 3 };
+    const { deps, github } = setup({
+      digestIds: () => Object.keys(counts),
+      regenerations: async (id) => counts[id] ?? 0,
+    });
+    // Two runs in the last hour: the 6-hour cooldown of a new briefing would refuse a third.
+    const recent = [1, 2].map((hours) => runJson({ created_at: hoursAgo(hours / 4) }));
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: recent } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
+    const send = (body: Record<string, unknown>) =>
+      handleGenerate(input(JSON.stringify(body)), deps);
+    const dispatches = () => github.requests.filter((request) => request.method === "POST");
+
+    expect((await send({ replace: "2026-10-07" })).status).toBe(202);
+    const spent = await send({ replace: "2026-10-06" });
+    expect(spent).toMatchObject({ status: 409, body: { error: "regeneration_limit" } });
+    expect(dispatches()).toHaveLength(1);
+    // A count that cannot be read is "try again", never 0.
+    const blind = setup({ digestIds: () => ["2026-10-07"], regenerations: async () => null });
+    blind.github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [] } });
+    expect(
+      (await handleGenerate(input(JSON.stringify({ replace: "2026-10-07" })), blind.deps)).status,
+    ).toBe(503);
+    expect(blind.github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
+    // A delete is not a regeneration, so a spent podcast can still go.
+    expect((await send({ action: "delete", id: "2026-10-06" })).status).toBe(202);
+    // A new briefing keeps the cooldown.
+    expect((await send({})).status).toBe(429);
+  });
+
+  it("stops a runaway regenerate within the 30 runs GitHub lists, so the ceiling can be reached", async () => {
+    const { deps, github } = setup({
+      digestIds: () => ["2026-10-07"],
+      regenerations: async () => 0,
+    });
+    // As many runs as the list can hold, a minute apart: a ceiling above 30 would never see its count.
+    const runs = Array.from({ length: 30 }, (_, index) =>
+      runJson({ id: index + 1, created_at: new Date(NOW - (index + 1) * 60_000).toISOString() }),
+    );
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: runs } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
+    const result = await handleGenerate(input(JSON.stringify({ replace: "2026-10-07" })), deps);
+    expect(result).toMatchObject({ status: 429, body: { error: "daily_cap" } });
+  });
+
   it("refuses to delete a Daily or Weekly briefing, so only on-demand ones can go", async () => {
     const kinds: Record<string, string> = {
       "2026-10-07": "regular",

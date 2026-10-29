@@ -182,6 +182,8 @@ describe("singularity podcast delete and regenerate", () => {
     const episode = parseEpisodeFile(await readFile(join(root, NEW_PATH), "utf8"));
     expect(episode.replaces).toBe(OLD_ID);
     expect(episode.feedback).toBe("Less jargon, more on the planner");
+    // The count the site stops at (D212) starts here.
+    expect(episode.regenerations).toBe(1);
     expect(episode.request).toEqual(REQUEST);
     expect(git(root, "status", "--porcelain")).toBe("");
   });

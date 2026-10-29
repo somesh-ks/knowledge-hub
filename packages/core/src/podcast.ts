@@ -1,6 +1,6 @@
 import { parse, stringify } from "yaml";
 import { z } from "zod";
-import { CoverSpec } from "./digest.js";
+import { CoverSpec, MAX_REGENERATIONS } from "./digest.js";
 
 const isoDateTime = z.string().datetime({ offset: true });
 
@@ -147,6 +147,8 @@ export const Episode = z.object({
   format: PodcastFormat,
   /** The episode this one replaced, when the listener asked for a regeneration. */
   replaces: EpisodeId.optional(),
+  /** Regenerations in this episode's line: the replaced episode's count plus one (D212). */
+  regenerations: z.number().int().min(1).max(MAX_REGENERATIONS).optional(),
   /** What the listener asked to change in the episode it replaced. */
   feedback: z.string().min(1).max(PODCAST_FEEDBACK_MAX).optional(),
   sources: z.array(EpisodeSource),

@@ -2,7 +2,12 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { type Episode, loadModelRouting, type PodcastRequest } from "@singularity/core";
+import {
+  type Episode,
+  loadModelRouting,
+  MAX_REGENERATIONS,
+  type PodcastRequest,
+} from "@singularity/core";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { recordRunCosts } from "../cost/ledger.js";
 import { emit } from "../curate/output.js";
@@ -335,7 +340,12 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         onStage: (stage) => {
           current = stage;
         },
-        ...(replaced ? { replaces: replaced.episode.id } : {}),
+        ...(replaced
+          ? {
+              replaces: replaced.episode.id,
+              regenerations: Math.min((replaced.episode.regenerations ?? 0) + 1, MAX_REGENERATIONS),
+            }
+          : {}),
         ...(feedback ? { feedback } : {}),
       });
       // The writer's tokens are the episode's cost: it belongs to whoever asked for it. Recorded by

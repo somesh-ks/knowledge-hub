@@ -50,6 +50,7 @@ describe("replace a briefing", () => {
       const first = await readDigest(repo.root, PATH);
       await seed(repo.root, { [TIMELINE]: json({ digest: ID }) }, "chore: audio");
       const lastRun = await readJson<LastRunFile>(repo.root, "state/last-run.json");
+      expect(first.regenerations).toBeUndefined();
 
       // Two hours later the cadence says nothing is due; a replacement runs anyway.
       world.setNow(new Date(WED.getTime() + 2 * 3_600_000));
@@ -67,6 +68,8 @@ describe("replace a briefing", () => {
       // Same id (no -2), the old narration timeline is gone, one commit says so.
       const second = await readDigest(repo.root, PATH);
       expect(second.generated_at).not.toBe(first.generated_at);
+      // The count the site stops at (D212) is carried by the file, so a second one makes two.
+      expect(second.regenerations).toBe(1);
       expect(await exists(repo.root, `Digests/2026/10/${ID}-2.md`)).toBe(false);
       expect(await exists(repo.root, TIMELINE)).toBe(false);
       expect(git(repo.root, "log", "-1", "--format=%s")).toBe(`chore(digest): replace ${ID}`);
@@ -76,6 +79,10 @@ describe("replace a briefing", () => {
       expect(after.on_demand).toMatchObject({ outcome: "published", digest_id: ID });
       expect(after.regular).toEqual(lastRun.regular);
       expect(after.last_fetch_at).toBe(lastRun.last_fetch_at);
+
+      world.setNow(new Date(WED.getTime() + 4 * 3_600_000));
+      await runStaged(world, { replace: ID });
+      expect((await readDigest(repo.root, PATH)).regenerations).toBe(2);
     },
   );
 

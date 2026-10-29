@@ -26,6 +26,8 @@ export interface DigestFromSelectionInput {
   topics?: TopicsFile | null | undefined;
   /** The kind's structure (D170), so the digest reads its sections in the owner's order. */
   plan?: SectionPlan;
+  /** The regenerations this digest carries when it replaces another (D212). */
+  regenerations?: number;
 }
 
 /**
@@ -60,5 +62,6 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
     ...(input.linkSources ? { linkSources: input.linkSources } : {}),
     ...(input.topics ? { sectionTitles: topicSectionTitles(input.topics) } : {}),
     ...(input.plan ? { plan: input.plan } : {}),
+    ...(input.regenerations ? { regenerations: input.regenerations } : {}),
   });
 }
