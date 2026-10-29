@@ -9,7 +9,7 @@ The owner's vetted publishers, by category, and what the engine does for them. R
 - Prefilter: a vetted domain's page counts as high signal, so an announcement that names none of the owner's keywords is not dropped.
 - Exa: one query per vetted category, worded from its topic's name and description, restricted to that category's domains (`include_domains`). Open queries are unchanged. A category whose topic is off asks nothing.
 - Shadow: with the list off and entries present, the write stage logs the stories it would add (`authority list is off; with it on these would pass the bar`).
-- `singularity authority replay <pools-dir> [--days 14]` scores unpacked run pools from `state/judgments.json` with and without the list: new passers with their rank, each domain's pass share, and a flag over 30% (the line to reassess at). Offline, no model call.
+- `singularity authority replay <pools-dir> [--days 14]` scores unpacked run pools from `state/judgments.json` with and without the list: new passers with their rank, each domain's pass share, and a flag over 30% (the line to reassess at). Built-in categories only (custom topics are not replayed); offline, no model call.
 - A topic judged by fit may carry a `rubric` (at most 600 characters, in `config/topics.json`): "What counts: ..." follows its description in the question. Only that topic is asked again; a topic without one is asked as before.
 
 Scenario: a lab's launch post (category frontier_model_releases, depth 0, hype 0.6) scores 0.38 and drops. With the list on it scores about 0.52 and airs below a worked example.

@@ -281,15 +281,16 @@ async function writePass(
       drop(item.id, "select", "written for an earlier digest of this run");
       continue;
     }
-    const built = scoreItem(entry, preferences, item);
-    const shadowed = withAuthority(built, context.authorityShadow);
-    if (shadowed !== built && eligibility(shadowed).eligible && !eligibility(built).eligible) {
-      shadowHits.push(`${item.source_id}: ${item.title} (${built.score} to ${shadowed.score})`);
+    // Topics score first and the list lifts only what no custom topic won, live and in the shadow.
+    const topical = applyTopics(scoreItem(entry, preferences, item), layer);
+    const shadowed = withAuthority(topical, context.authorityShadow);
+    if (shadowed !== topical && eligibility(shadowed).eligible && !eligibility(topical).eligible) {
+      shadowHits.push(`${item.source_id}: ${item.title} (${topical.score} to ${shadowed.score})`);
     }
     base.push(
       withSourceAdjustment(
         applyFormatMix(
-          withAuthority(applyTopics(built, layer), context.authority),
+          withAuthority(topical, context.authority),
           preferences.format_mix,
           context.sourceFacts,
         ),
