@@ -314,11 +314,17 @@ new MutationObserver(() => {
 
 /**
  * The More menu's Download and Add to queue (HeroMenu.astro) are the Library row's, wired by
- * libraryMenu.ts; its code loads at idle, not with the page.
+ * libraryMenu.ts; its code loads at idle, not with the page. Offline the idle load is skipped and
+ * an early press can beat it, so the first touch of the menu loads it too (it installs once).
  */
 function wirePageMenu(): void {
-  if (!document.querySelector("[data-page-menu]")) return;
-  warmWhenIdle(() => import("./libraryMenu").then((menu) => menu.installLibraryMenu()));
+  const menu = document.querySelector("[data-page-menu]");
+  if (!menu) return;
+  const install = (): Promise<void> =>
+    import("./libraryMenu").then((module) => module.installLibraryMenu());
+  warmWhenIdle(install);
+  for (const type of ["pointerdown", "focusin"])
+    menu.addEventListener(type, () => void install().catch(() => undefined), { once: true });
 }
 
 document.addEventListener("astro:page-load", watchPage);
