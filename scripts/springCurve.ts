@@ -19,8 +19,11 @@ export interface SpringParams {
 
 /** Fraction of the way to the target at `seconds` after a step input. */
 export function stepResponse({ stiffness, damping }: SpringParams, seconds: number): number {
+  // An overdamped spring has its own response; no token needs one, so a ratio above 1 is refused
+  // rather than drawn as the critical curve.
+  if (damping > 1) throw new Error(`Damping ratio ${damping} is overdamped; use 1 or less`);
   const omega = Math.sqrt(stiffness);
-  if (damping >= 1) return 1 - Math.exp(-omega * seconds) * (1 + omega * seconds);
+  if (damping === 1) return 1 - Math.exp(-omega * seconds) * (1 + omega * seconds);
   const decay = damping * omega;
   const damped = omega * Math.sqrt(1 - damping * damping);
   return (
