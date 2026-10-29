@@ -22,4 +22,4 @@ A hero moment (Play morph, wavy progress, morphing loader) or any change to a sh
 
 ## Outside the repo
 
-The generic animation skills (`animate`, `emil-design-eng`) explain craft in general. Where they disagree with the spec or the tokens, the spec wins: durations at most 300 ms except the drawer, no plain ease-in, reduced motion is fewer and gentler, never none.
+The generic animation skills (`animate`, `emil-design-eng`) explain craft in general. Where they disagree with the spec or the tokens, the spec wins: durations at most 300 ms except the drawer and the spring tokens, no plain ease-in, reduced motion is fewer and gentler, never none.

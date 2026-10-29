@@ -11,7 +11,7 @@ Nothing moves that the reader did not move, or that does not tell the reader som
 Ask in this order and stop at the first yes.
 
 1. **Does a fade, a colour or an opacity change?** Use an effects token, never a spring that passes its target.
-2. **Does something travel, resize or change shape because of a finger?** Use a spatial spring. It may overshoot a little because a finger put energy in.
+2. **Does something travel, resize or change shape?** Use a spatial spring; it may overshoot a little. Use the fast one only when a finger is on the thing.
 3. **Does it leave or enter the page?** Use `--duration-enter` or `--duration-exit` with `--ease-out`.
 4. **Is it a press or hover?** Use `--duration-press-in` (100 ms), `--duration-press-out` (160 ms) and `--duration-hover` (150 ms). In is faster than out.
 5. **Nothing above fits?** The motion is probably not needed. Ask before adding a token.
@@ -19,7 +19,7 @@ Ask in this order and stop at the first yes.
 | Job | Duration | Easing |
 | :--- | :--- | :--- |
 | Press, hover | `--duration-press-in`, `-press-out`, `-hover` | `--ease-out`, `--ease-hover` |
-| Fade or recolour | `--duration-state` (200), `-enter`, `-exit`, or `--duration-spring-effects-*` | `--ease-out`, `--ease-spring-effects-fast|default|slow` |
+| Fade or recolour | `--duration-state` (200), `-enter`, `-exit`, or `--duration-spring-effects-*` | `--ease-out`, `--ease-spring-effects-{fast,default,slow}` |
 | Small move or reshape | `--duration-spring-spatial-fast` (350) | `--ease-spring-spatial-fast` |
 | Larger move | `--duration-spring-spatial-default` (420), `-slow` (570) | `--ease-spring-spatial-default`, `-slow` |
 | Sheet in, out | `--duration-sheet-in` (300), `-sheet-out` (220) | `--ease-drawer` |
@@ -31,7 +31,7 @@ A spring's duration is when it has settled to within 0.2%, not how long it feels
 
 Material 3 Expressive splits springs in two, and so does this app. A **spatial** spring moves things (position, size, shape) and may pass its target: 9.5% for fast (damping 0.6), 1.5% for default and slow (damping 0.8). An **effects** spring changes opacity or colour and never passes its target (damping 1), because a colour that overshoots flickers. A test fails an effects token that peaks above 1.
 
-Stiffness, damping and unit mass are recorded in each token's `singularity.spring` extension. `scripts/springCurve.ts` draws the `linear()` curve from them; `buildTokens.test.ts` re-derives every curve from its recorded values. The reader's JS integrator (`player/core/spring.ts`) takes a duration and bounce for finger-driven motion; the mapping is duration = 2π/√stiffness and bounce = 1 − damping.
+The model uses unit mass; each token records stiffness and damping in its `singularity.spring` extension. `scripts/springCurve.ts` draws the `linear()` curve from them; `buildTokens.test.ts` re-derives every curve from its recorded values. The reader's JS integrator (`player/core/spring.ts`) takes a duration and bounce for finger-driven motion; the mapping is duration = 2π/√stiffness and bounce = 1 − damping.
 
 ## Reduced motion
 
@@ -52,7 +52,7 @@ Shown on the design site's Motion page beside what the app does today. Each land
 ## Never
 
 - A spring on a fade, or an overshoot on a colour.
-- A duration over 300 ms except the drawer, or a plain ease-in (tests fail both).
+- A duration over 300 ms, or a plain ease-in (tests fail both). The drawer (500 ms) and the springs, which are held to 500 ms of felt time (`singularity.perceptualMs`) rather than their settle time, are the exceptions.
 - `transition: all`, a literal duration, a private easing, a raw length (`styles.test.ts`).
 - Animating `width`, `height`, `max-width` or `margin` when `transform`, `opacity` or `clip-path` does the job.
 - A control that grows, shakes or shifts its neighbours when its state changes.
