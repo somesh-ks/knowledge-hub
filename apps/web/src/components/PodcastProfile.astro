@@ -1,7 +1,7 @@
 ---
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@singularity/core";
-import { FORMATS, LENGTHS } from "../lib/createForm";
-import { CADENCES, hourLabel, LOOKBACKS, WEEKDAYS } from "../lib/schedule";
+import { LENGTHS } from "../lib/createForm";
+import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import Icon from "./Icon.astro";
 import "../styles/picker.css";
 
@@ -19,11 +19,7 @@ interface Props {
     cadenceDays?: number;
     /** Topic ids the episode leaves out. */
     skipTopics: readonly string[];
-    /** Weekly only: the daily podcast has no type to set. */
-    format?: string;
     lengthMinutes: number;
-    /** Hours the podcast looks back; null is Auto, since the last episode. */
-    lookbackHours: number | null;
   };
   /**
    * Every topic. A person can put Design, AI and Technology, and their own, in or out of this
@@ -84,41 +80,6 @@ const inScope = (ids: readonly string[]): boolean =>
           <select class="manage-input" id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
             {LENGTHS.map((entry) => (
               <option value={String(entry.value)} selected={entry.value === values.lengthMinutes}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevronDown" />
-        </span>
-      </div>
-      {/* Format is a select, drawn as the page's other selects. A stored Headlines schedule is
-           listed as itself, so it shows and is kept until another is picked. */}
-      {
-        values.format !== undefined && (
-          <div class="settings-row">
-            <label class="settings-label" for={`${id}-format`}>Format</label>
-            <span class="manage-select value-select">
-              <select class="manage-input" id={`${id}-format`} data-f={`${id}.format`} autocomplete="off">
-                {FORMATS.map((entry) => (
-                  <option value={entry.value} selected={entry.value === values.format}>{entry.label}</option>
-                ))}
-                {!FORMATS.some((entry) => entry.value === values.format) && (
-                  <option value={values.format} selected>Headlines</option>
-                )}
-              </select>
-              <Icon name="chevronDown" />
-            </span>
-          </div>
-        )
-      }
-      {/* How far back the stories may go, one setting per podcast (the owner, 2026-10-24: set here,
-           not on each block of the Structure view). Auto takes everything since the last episode. */}
-      <div class="settings-row">
-        <label class="settings-label" for={`${id}-lookback`}>Look back</label>
-        <span class="manage-select value-select">
-          <select class="manage-input" id={`${id}-lookback`} data-f={`${id}.lookback`} autocomplete="off">
-            {LOOKBACKS.map((entry) => (
-              <option value={entry.value} selected={entry.value === (values.lookbackHours === null ? "" : String(values.lookbackHours))}>
                 {entry.label}
               </option>
             ))}

@@ -145,8 +145,8 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#daily-timezone-native")).toHaveValue("Europe/Stockholm");
     await expect(page.locator("#daily-cadence")).toHaveValue("2");
     await expect(page.locator("#daily-length")).toHaveValue("10");
-    // The daily podcast has no type to set; Weekly keeps its Format.
-    await expect(page.locator("#daily-format")).toHaveCount(0);
+    // Daily has no type and no Look back to set: it covers everything since its last episode.
+    await expect(page.locator("#daily-format, #daily-lookback")).toHaveCount(0);
     // The voices are one pair for every podcast, on the Podcast voice page.
     await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
   });
@@ -156,6 +156,8 @@ test.describe("the profile pages", () => {
     await expect(page.getByRole("switch", { name: "Weekly podcast" })).toBeChecked();
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
+    // Weekly has no Format (nothing read it) and no Look back (D215), like Daily.
+    await expect(page.locator("#weekly-format, #weekly-lookback")).toHaveCount(0);
   });
 
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {

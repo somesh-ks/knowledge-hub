@@ -302,3 +302,11 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: rendering settings from the store on the server (D172's rejection stands); the same inline script for the sounds, autoplay and volume controls (it would copy the reduced-motion default of `getSoundsEnabled`); keeping a copy across config changes (its ops are a diff from that build's files).
 - Revisit if: cross-device reload toasts become common, or a first visit after a config change is reported slow; then keep the copy as full values, not a diff.
 - Amends: D172.
+
+## D215: Daily and Weekly have no Look back and no Format
+
+- Date: 2026-10-29 (the owner: "Weekly Format removed. Look back removed for Daily and Weekly because the window is automatic; Catch up keeps its own").
+- Decision: the Look back row (D184) and the Weekly Format row are gone from the Daily and Weekly pages. A podcast covers everything since its last episode, within the fetch window (at most 7 days). `lookback_hours` (top level and `weekly`) and `weekly.format` leave the schedule schema, the edit op and the engine; selection no longer has a `too_old` drop. A stored value is read past and dropped on the next write, and a page open from before sends them in vain. The Create panel keeps its Format and its own Look back.
+- Why: nothing read Weekly Format for a briefing (it only chose hosts in Create), and a fixed lookback shorter than the cadence silently skips stories: 24 hours on a two-day cadence never airs stories 24 to 48 hours old.
+- Rejected: keeping the stored fields as dormant data (a value nobody can see or clear would still narrow a run); a real two-host weekly (a larger build, not asked for).
+- Supersedes: D184. Amends: D91, D100, D133 (the Weekly Format back and forth ends).

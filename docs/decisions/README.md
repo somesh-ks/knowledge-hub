@@ -109,7 +109,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
 | D88 | On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only | active; amends D77 |
-| D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; Settings summaries follow what was saved | active; amends D71 and D79; the time zone selector returned in D100 |
+| D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; summaries follow what was saved | active; amends D71 and D79; the time zone selector returned in D100 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; a story is a story everywhere; Back goes back | active; amends D85 |
 | D91 | Daily and Weekly offer only what a briefing uses; an edit made inside the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
 | D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, and a glyph says what its button does | active; amends D85 and D90 |
@@ -119,13 +119,13 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D96 | An empty screen is one simple illustration, a title, one line and one filled action | active |
 | D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | active; amends D92, D93 and D94 |
 | D98 | A lost held change is told to the page that is open, a failure notice takes the story line's place, and an empty scene draws an object, not a control | active; amends D94, D96 and D97 |
-| D99 | The test suite protects what fails silently, in one layer, once; the dev lab is retired; a refused model choice, lost held change and failed press are told | active; amends D91, D97 and D98 |
-| D100 | The time zone selector returns and the schedule counts in the chosen zone; Daily and Weekly offer Format and a second voice; voice rows keep their play button | active; amends D71, D89 and D91 |
+| D99 | The test suite protects what fails silently, in one layer, once; the dev lab is retired; refused, lost and failed actions are told | active; amends D91, D97 and D98 |
+| D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep their play button | active; amends D71, D89 and D91; Format ended in D215 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, titles are bigger, and the gate runs in parallel | active; amends D69, D87, D89, D90, D101 |
 | D103 | Source scores out of 5 as stars; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; first-load budget 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | active; amends D88, D103 |
-| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click and play through the silent switch; the spoken word lights at once | active; amends D82, D101 |
+| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | active; amends D82, D101 |
 | D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber; a played chip offers Play again | active; amends D46, D58, D101 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
@@ -151,7 +151,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one type mix, Theme select, no breadcrumbs | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
-| D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` and a rendered sweep | active; amends D73 |
+| D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
 | D133 | The second owner round: Up next as a player tab, Settings cards, one search and chip style, Jev emoji, no Daily type | active; amends D126, D127, D129, D132 |
 | D134 | The weekly writer model check is removed; the model list stays live from Nebius and the five are refreshed by hand | active; amends D130 |
@@ -198,7 +198,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
 | D183 | Costs read the bill | active |
-| D184 | Podcast lookback | active |
+| D184 | Podcast lookback | superseded by D215 |
 | D179 | Every name says Singularity; saved state moves once | active |
 | D182 | Block prompts | active |
 | D185 | Repo config to store | amends D149 |
@@ -231,5 +231,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D212 | Three regenerations per podcast, no daily limit | active |
 | D213 | Two Catch ups a day that came out; failures do not count | active |
 | D214 | A page's More menu offers Download and Add to queue like its Library row | active |
+| D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
 
 ---

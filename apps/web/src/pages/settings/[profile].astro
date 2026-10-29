@@ -45,7 +45,6 @@ const PAGES = {
       cadenceDays: schedule.cadenceDays,
       skipTopics: schedule.skipTopics,
       lengthMinutes: schedule.lengthMinutes,
-      lookbackHours: schedule.lookbackHours,
     },
   },
   weekly: {
@@ -56,9 +55,7 @@ const PAGES = {
       hour: schedule.weekly.hour,
       day: schedule.weekly.day,
       skipTopics: schedule.weekly.skip_topics,
-      format: schedule.weekly.format,
       lengthMinutes: schedule.weekly.length_minutes,
-      lookbackHours: schedule.weekly.lookback_hours ?? null,
     },
   },
 } as const;

@@ -29,7 +29,6 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
   const names: Record<string, string> = {
     cadence: "cadence_days",
     length: "length_minutes",
-    lookback: "lookback_hours",
   };
   for (const [key, value] of Object.entries(now)) {
     if (was[key] === value) continue;
@@ -41,18 +40,13 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
     }
     const name = names[field] ?? field;
     const number = ["hour", "day", "cadence", "length"].includes(field);
-    // The lookback's Auto is the empty choice, stored as null.
     const parsed = number
       ? Number(value)
-      : field === "lookback"
-        ? value === ""
-          ? null
-          : Number(value)
-        : field === "enabled"
-          ? value === "true"
-          : field.startsWith("voice")
-            ? nullable(value)
-            : value;
+      : field === "enabled"
+        ? value === "true"
+        : field.startsWith("voice")
+          ? nullable(value)
+          : value;
     const voice = field === "voice" ? "voice_id" : field === "voice_b" ? "voice_id_b" : name;
     (nested[profile] ?? top)[voice] = parsed;
   }

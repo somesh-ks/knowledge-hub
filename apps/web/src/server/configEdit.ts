@@ -4,7 +4,6 @@ import {
   FETCH_VIA,
   type FetchVia,
   isSupportedTimeZone,
-  LOOKBACK_STOPS,
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
@@ -168,21 +167,8 @@ function lengthOf(value: unknown): PodcastLength | null {
   return SCHEDULE_LENGTHS.find((minutes) => minutes === value) ?? null;
 }
 
-type Lookback = (typeof LOOKBACK_STOPS)[number];
-
-/** A lookback: one of the stops, null for Auto, undefined when absent, false when invalid. */
-function lookbackOf(value: unknown): Lookback | null | undefined | false {
-  if (value === undefined || value === null) return value;
-  return LOOKBACK_STOPS.find((hours) => hours === value) ?? false;
-}
-
-/** The part `weekly` and `custom` share: type, length and the two voices. False when one is invalid. */
+/** The part `weekly` and `custom` share: length and the two voices. False when one is invalid. */
 function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp): boolean {
-  if (value.format !== undefined) {
-    const format = NEW_FORMATS.find((entry) => entry === value.format);
-    if (format === undefined) return false;
-    into.format = format;
-  }
   if (value.length_minutes !== undefined) {
     const length = lengthOf(value.length_minutes);
     if (length === null) return false;
@@ -243,9 +229,6 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (checked === false) return null;
     if (checked !== undefined) op[key] = checked;
   }
-  const lookback = lookbackOf(value.lookback_hours);
-  if (lookback === false) return null;
-  if (lookback !== undefined) op.lookback_hours = lookback;
   if (value.weekly !== undefined) {
     if (!isRecord(value.weekly)) return null;
     const weekly: WeeklyOp = {};
@@ -266,10 +249,8 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     const weeklySkip = skipOf(value.weekly.skip_topics);
     if (weeklySkip === false) return null;
     if (weeklySkip !== undefined) weekly.skip_topics = weeklySkip;
+    // A page open from before the Weekly Format and Look back rows went still sends them: read past.
     if (!podcastParts(value.weekly, weekly)) return null;
-    const weeklyLookback = lookbackOf(value.weekly.lookback_hours);
-    if (weeklyLookback === false) return null;
-    if (weeklyLookback !== undefined) weekly.lookback_hours = weeklyLookback;
     op.weekly = weekly;
   }
   if (value.custom !== undefined) {
@@ -278,6 +259,12 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     const customSkip = skipOf(value.custom.skip_topics);
     if (customSkip === false) return null;
     if (customSkip !== undefined) custom.skip_topics = customSkip;
+    const customFormat = value.custom.format;
+    if (customFormat !== undefined) {
+      const format = NEW_FORMATS.find((entry) => entry === customFormat);
+      if (format === undefined) return null;
+      custom.format = format;
+    }
     if (!podcastParts(value.custom, custom)) return null;
     op.custom = custom;
   }

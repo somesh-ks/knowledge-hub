@@ -73,7 +73,6 @@ import { markStage, type Plan, type PlanPass, passFile, requireStage } from "./p
 import {
   charsForMinutes,
   lengthMinutesFor,
-  lookbackHoursFor,
   overNarrationLimit,
   storiesForMinutes,
   WRITE_MAX,
@@ -338,9 +337,6 @@ async function writePass(
     // Regenerate with chosen topics: a candidate stays only when its category is one of them.
     ...(onlyTopics ? { onlyTopics: [...onlyTopics] } : {}),
     plan: sectionPlan,
-    // The owner's lookback for this podcast (Daily or Weekly settings); Auto has none.
-    lookbackHours: lookbackHoursFor(context.schedule, pass.kind, context.mode),
-    now: deps.now(),
   };
   const chosen = selectItems({
     ...selectArgs,

@@ -337,7 +337,6 @@ describe("schedule.set", () => {
         day: 0,
         hour: 7,
         skip_topics: [],
-        format: "readout",
         length_minutes: 10,
         voice_id: null,
         voice_id_b: null,
@@ -356,7 +355,7 @@ describe("schedule.set", () => {
     const { code, report } = await apply({
       op: "schedule.set",
       voice_id: "ada_1",
-      weekly: { enabled: false, day: 5, hour: 18, format: "discussion", voice_id_b: "leo_1" },
+      weekly: { enabled: false, day: 5, hour: 18, voice_id_b: "leo_1" },
       custom: { length_minutes: 15 },
     });
     expect(code).toBe(0);
@@ -365,7 +364,7 @@ describe("schedule.set", () => {
       hour: 7,
       cadence_days: 2,
       voice_id: "ada_1",
-      weekly: { enabled: false, day: 5, hour: 18, format: "discussion", voice_id_b: "leo_1" },
+      weekly: { enabled: false, day: 5, hour: 18, voice_id_b: "leo_1" },
       custom: { length_minutes: 15, format: "readout" },
     });
     await apply({ op: "schedule.set", weekly: { day: 2 } });

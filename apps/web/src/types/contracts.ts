@@ -395,8 +395,6 @@ export type ConfigOp =
       /** Speechify voice ids of the daily podcast; null means the engine's default. */
       voice_id?: string | null;
       voice_id_b?: string | null;
-      /** Hours the daily podcast looks back (core's LOOKBACK_STOPS); null is Auto. */
-      lookback_hours?: 12 | 24 | 48 | 72 | 168 | null;
       /** The weekly podcast. Fields left out keep what the file holds. */
       weekly?: {
         enabled?: boolean;
@@ -405,11 +403,9 @@ export type ConfigOp =
         hour?: number;
         /** Topic ids the weekly podcast leaves out. */
         skip_topics?: string[];
-        format?: "readout" | "discussion";
         length_minutes?: PodcastRequest["length_minutes"];
         voice_id?: string | null;
         voice_id_b?: string | null;
-        lookback_hours?: 12 | 24 | 48 | 72 | 168 | null;
       };
       /** What the Create panel starts from. */
       custom?: {
