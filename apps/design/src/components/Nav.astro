@@ -2,11 +2,11 @@
 import BrandMark from "../../../web/src/components/BrandMark.astro";
 import Icon from "../../../web/src/components/Icon.astro";
 import { buildDay } from "../../../web/src/lib/buildDay";
-import { href, SECTIONS } from "../lib/sections";
-import ThemeChoice from "./ThemeChoice.astro";
+import { href, NAV } from "../lib/sections";
+import ThemeToggle from "./ThemeToggle.astro";
 
 interface Props {
-  /** The section's path under the base; "" for the overview. */
+  /** The page's path under the base; "" for the overview. */
   current: string;
 }
 
@@ -14,31 +14,69 @@ const { current } = Astro.props;
 ---
 
 {/* The reader's navigation, drawn by its own classes (shell.css): a bottom bar below 64rem and a side
-     column from it. The side column's foot holds what the reader's holds, the day it was built, and the
-     theme choice, which is the guide's only setting. */}
+     column from it. The side column opens Foundations into its pages (an accordion, because it is the
+     one place with pages under it); the bottom bar has room for the four top-level pages only, so
+     Foundations there opens its own page, which lists them. The foot holds what the reader's holds,
+     the day it was built, and the one setting. */}
 <nav class="app-nav" aria-label="Singularity design" data-bottom-nav>
   <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity design">
     <BrandMark />
     <span>Singularity</span>
-    <span class="guide-chip">Design</span>
+    <span class="guide-tag">Design</span>
   </a>
   <ul class="app-nav-list" role="list">
     {
-      SECTIONS.map((section) => (
-        <li>
-          <a class="app-nav-item" href={href(section.path)} aria-current={section.path === current ? "page" : undefined}>
-            <span class="app-nav-indicator">
-              <Icon name={section.icon} class="icon-lg app-nav-icon-rest" />
-              <Icon name={section.icon} class="icon-lg app-nav-icon-current" />
-            </span>
-            <span>{section.label}</span>
-          </a>
-        </li>
-      ))
+      NAV.map(({ page, children }) => {
+        const inside = children?.some((child) => child.path === current) ?? false;
+        const open = inside || page.path === current;
+        return (
+          <li class="guide-nav-entry">
+            <a
+              class="app-nav-item"
+              href={href(page.path)}
+              aria-current={page.path === current || inside ? "page" : undefined}
+              data-group-current={inside ? "" : undefined}
+            >
+              <span class="app-nav-indicator">
+                <Icon name={page.icon} class="icon-lg app-nav-icon-rest" />
+                <Icon name={page.iconCurrent} class="icon-lg app-nav-icon-current" />
+              </span>
+              <span>{page.label}</span>
+            </a>
+            {children && (
+              <>
+                <button
+                  class="icon-btn guide-nav-toggle"
+                  type="button"
+                  aria-expanded={open ? "true" : "false"}
+                  aria-controls="nav-sub"
+                  aria-label={`${page.label} pages`}
+                  data-nav-toggle
+                >
+                  <Icon name="chevronDown" />
+                </button>
+                <ul class="guide-nav-sub" id="nav-sub" role="list" hidden={!open}>
+                  {children.map((child) => (
+                    <li>
+                      <a class="guide-nav-subitem" href={href(child.path)} aria-current={child.path === current ? "page" : undefined}>
+                        <Icon name={child.path === current ? child.iconCurrent : child.icon} />
+                        <span>{child.label}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </li>
+        );
+      })
     }
   </ul>
   <div class="guide-nav-foot">
     <p class="guide-updated">Updated {buildDay()}</p>
-    <ThemeChoice />
+    <ThemeToggle />
   </div>
 </nav>
+<script>
+  import "../scripts/nav";
+</script>

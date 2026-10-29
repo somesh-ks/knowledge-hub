@@ -1,56 +1,31 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
-import PageHead from "../components/PageHead.astro";
-import ThemeChoice from "../components/ThemeChoice.astro";
+import GuideTile from "../components/GuideTile.astro";
 import Shell from "../layouts/Shell.astro";
-import { href, SECTIONS } from "../lib/sections";
-
-const section = SECTIONS[0];
-const pages = SECTIONS.slice(1);
+import { COMPONENTS, FOUNDATIONS, OVERVIEW, PRINCIPLES } from "../lib/sections";
 ---
 
 <Shell title="Overview" current="">
-  <div class="settings-view guide-page" data-settings data-ready data-index-url={href("/search-index.json")}>
-    <PageHead title="Singularity design" note={section?.note ?? ""} />
-
-    <label class="search-field">
-      <Icon name="search" />
-      <span class="sr-only">Search colours, type and tokens</span>
-      <input type="search" name="q" placeholder="Search colours, type and tokens" autocomplete="off" data-guide-search />
-    </label>
-
-    <section aria-labelledby="pages" data-pages>
-      <h2 class="section-head" id="pages">What is here</h2>
-      <div class="rows card-group">
-        {
-          pages.map((page) => (
-            <a class="row-action" href={href(page.path)}>
-              <span class="settings-text"><span class="settings-label">{page.label}</span><span class="settings-hint">{page.note}</span></span>
-              <Icon name="chevronRight" />
-            </a>
-          ))
-        }
+  <div class="settings-view guide-page" data-settings data-ready>
+    <header class="guide-hero">
+      <div class="guide-hero-text">
+        <h1 class="guide-hero-title" id="page-title" tabindex="-1">Singularity design</h1>
+        <p class="guide-hero-lead">{OVERVIEW.note}</p>
       </div>
-    </section>
+      <div class="guide-hero-art" aria-hidden="true">
+        <span class="guide-shape guide-shape-aa">Aa</span>
+        <span class="guide-shape guide-shape-play"><Icon name="play" class="icon-lg" /></span>
+        <span class="guide-shape guide-shape-bars"><i /><i /><i /><i /></span>
+        <span class="guide-shape guide-shape-dots"><i /><i /><i /><i /><i /><i /></span>
+        <span class="guide-shape guide-shape-track"><i /></span>
+        <span class="guide-shape guide-shape-round" />
+      </div>
+    </header>
 
-    <section aria-labelledby="components" data-pages>
-      <h2 class="section-head" id="components">Components</h2>
-      <p class="guide-note">Not here yet. A component appears in this guide only when it is the one the app itself imports, so nothing shown can differ from the app. They arrive family by family: buttons, links, chips, then the rest.</p>
-    </section>
-
-    <section hidden data-token-results aria-labelledby="found">
-      <h2 class="section-head" id="found">Found</h2>
-      <div class="rows card-group" data-token-list></div>
-    </section>
-
-    <p class="guide-note" hidden data-empty>Nothing matches. Try a role such as <code>surface</code>, or a token such as <code>duration</code>.</p>
-
-    <section class="guide-phone-only" aria-labelledby="theme">
-      <h2 class="section-head" id="theme">Theme</h2>
-      <ThemeChoice />
+    <section aria-label="Pages" class="guide-tiles">
+      <GuideTile page={PRINCIPLES} art="principles" />
+      <GuideTile page={FOUNDATIONS} art="foundations" />
+      <GuideTile page={COMPONENTS} art="components" />
     </section>
   </div>
 </Shell>
-<script>
-  import "../scripts/index";
-</script>

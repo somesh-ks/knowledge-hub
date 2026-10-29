@@ -1,0 +1,107 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { primitive } from "../lib/guide";
+import { SECTIONS } from "../lib/sections";
+
+const section = SECTIONS.find((item) => item.path === "/motion");
+const pick = (tokens: ReturnType<typeof primitive.get>) => tokens ?? [];
+const durations = pick(primitive.get("duration"));
+const eases = pick(primitive.get("ease"));
+const interaction = [
+  ...pick(primitive.get("spring")),
+  ...pick(primitive.get("scale")),
+  ...pick(primitive.get("distance")),
+  ...pick(primitive.get("state")),
+  ...pick(primitive.get("opacity")),
+  ...pick(primitive.get("blur")),
+];
+---
+
+<Shell title="Motion" current="/motion">
+  <div class="settings-view guide-page" data-settings data-ready data-motion>
+    <PageHead title="Motion" note={section?.note ?? ""} />
+
+    <label class="search-field">
+      <Icon name="search" />
+      <span class="sr-only">Filter motion tokens</span>
+      <input type="search" placeholder="Filter motion tokens" autocomplete="off" data-filter />
+    </label>
+
+    <section aria-labelledby="motion">
+      <p class="guide-note">Press a play button to run a token. Durations run on the out curve; curves run on the longest ordinary duration. Nothing in the app moves that the reader did not move.</p>
+
+      <h3 class="guide-group-name">Durations</h3>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <tbody>
+            {
+              durations.map((token) => (
+                <tr data-filter-item data-name={token.name}>
+                  <td><code>{token.name}</code></td>
+                  <td>{token.value}</td>
+                  <td class="guide-motion-cell">
+                    <div class="guide-motion">
+                      <div class="guide-motion-track" data-run="false" style={`--run-duration: var(${token.name}); --run-ease: var(--ease-out)`}>
+                        <span class="guide-motion-dot" />
+                      </div>
+                    </div>
+                  </td>
+                  <td><button class="icon-btn press" type="button" aria-label={`Run ${token.name}`} data-run-motion><Icon name="play" /></button></td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="guide-group-name">Curves</h3>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <tbody>
+            {
+              eases.map((token) => (
+                <tr data-filter-item data-name={token.name}>
+                  <td><code>{token.name}</code></td>
+                  <td class="guide-motion-cell">
+                    <div class="guide-motion">
+                      <div class="guide-motion-track" data-run="false" style={`--run-duration: var(--duration-drawer-full); --run-ease: var(${token.name})`}>
+                        <span class="guide-motion-dot" />
+                      </div>
+                    </div>
+                  </td>
+                  <td><button class="icon-btn press" type="button" aria-label={`Run ${token.name}`} data-run-motion><Icon name="play" /></button></td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="guide-group-name">Press, hover and enter</h3>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <tbody>
+            {
+              interaction.map((token) => (
+                <tr data-filter-item data-name={token.name}>
+                  <td><code>{token.name}</code></td>
+                  <td>{token.value}</td>
+                  <td>{token.description ?? ""}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <p class="guide-note" hidden data-filter-empty>Nothing matches. Try <code>duration</code>, <code>ease</code> or <code>spring</code>.</p>
+  </div>
+</Shell>
+<script>
+  import "../scripts/filter";
+  import "../scripts/motion";
+</script>

@@ -12,16 +12,6 @@ const space = pick(primitive.get("space"));
 const radius = pick(primitive.get("radius"));
 const stroke = pick(primitive.get("stroke"));
 const shadows = pick(semantic.get("shadow"));
-const durations = pick(primitive.get("duration"));
-const eases = pick(primitive.get("ease"));
-const interaction = [
-  ...pick(primitive.get("spring")),
-  ...pick(primitive.get("scale")),
-  ...pick(primitive.get("distance")),
-  ...pick(primitive.get("state")),
-  ...pick(primitive.get("opacity")),
-  ...pick(primitive.get("blur")),
-];
 const layers = pick(primitive.get("z"));
 const layout = [
   ...pick(semantic.get("layout")),
@@ -35,7 +25,6 @@ const jumps = [
   ["space", "Space"],
   ["radius", "Radius"],
   ["shadow", "Shadow"],
-  ["motion", "Motion"],
   ["layers", "Layers"],
   ["layout", "Layout"],
   ["components", "Components"],
@@ -57,7 +46,7 @@ const jumps = [
     <label class="search-field">
       <Icon name="search" />
       <span class="sr-only">Filter tokens and icons</span>
-      <input type="search" placeholder="Filter tokens and icons" autocomplete="off" data-token-filter />
+      <input type="search" placeholder="Filter tokens and icons" autocomplete="off" data-filter />
     </label>
 
     <section aria-labelledby="space">
@@ -68,7 +57,7 @@ const jumps = [
           <tbody>
             {
               space.map((token) => (
-                <tr data-token-row data-name={token.name}>
+                <tr data-filter-item data-name={token.name}>
                   <td><code>{token.name}</code></td>
                   <td>{token.value}</td>
                   <td><span class="guide-bar" style={`--sample: var(${token.name})`} aria-hidden="true" /></td>
@@ -88,7 +77,7 @@ const jumps = [
           <tbody>
             {
               radius.map((token) => (
-                <tr data-token-row data-name={token.name}>
+                <tr data-filter-item data-name={token.name}>
                   <td><code>{token.name}</code></td>
                   <td>{token.value}</td>
                   <td><span class="guide-corner" style={`--sample: var(${token.name})`} aria-hidden="true" /></td>
@@ -97,7 +86,7 @@ const jumps = [
             }
             {
               stroke.map((token) => (
-                <tr data-token-row data-name={token.name}>
+                <tr data-filter-item data-name={token.name}>
                   <td><code>{token.name}</code></td>
                   <td>{token.value}</td>
                   <td>{token.description ?? ""}</td>
@@ -117,78 +106,9 @@ const jumps = [
           <tbody>
             {
               shadows.map((token) => (
-                <tr data-token-row data-name={token.name}>
+                <tr data-filter-item data-name={token.name}>
                   <td><code>{token.name}</code></td>
                   <td><span class="guide-shadow" style={`--sample: var(${token.name})`} aria-hidden="true" /></td>
-                  <td>{token.description ?? ""}</td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section aria-labelledby="motion">
-      <h2 class="section-head" id="motion">Motion</h2>
-      <p class="guide-note">Press a play button to run a token. Durations run on the out curve; curves run on the longest ordinary duration. Nothing in the app moves that the reader did not move.</p>
-
-      <h3 class="guide-group-name">Durations</h3>
-      <div class="guide-table-wrap">
-        <table class="guide-table">
-          <tbody>
-            {
-              durations.map((token) => (
-                <tr data-token-row data-name={token.name}>
-                  <td><code>{token.name}</code></td>
-                  <td>{token.value}</td>
-                  <td class="guide-motion-cell">
-                    <div class="guide-motion">
-                      <div class="guide-motion-track" data-run="false" style={`--run-duration: var(${token.name}); --run-ease: var(--ease-out)`}>
-                        <span class="guide-motion-dot" />
-                      </div>
-                    </div>
-                  </td>
-                  <td><button class="icon-btn press" type="button" aria-label={`Run ${token.name}`} data-run-motion><Icon name="play" /></button></td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <h3 class="guide-group-name">Curves</h3>
-      <div class="guide-table-wrap">
-        <table class="guide-table">
-          <tbody>
-            {
-              eases.map((token) => (
-                <tr data-token-row data-name={token.name}>
-                  <td><code>{token.name}</code></td>
-                  <td class="guide-motion-cell">
-                    <div class="guide-motion">
-                      <div class="guide-motion-track" data-run="false" style={`--run-duration: var(--duration-drawer-full); --run-ease: var(${token.name})`}>
-                        <span class="guide-motion-dot" />
-                      </div>
-                    </div>
-                  </td>
-                  <td><button class="icon-btn press" type="button" aria-label={`Run ${token.name}`} data-run-motion><Icon name="play" /></button></td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <h3 class="guide-group-name">Press, hover and enter</h3>
-      <div class="guide-table-wrap">
-        <table class="guide-table">
-          <tbody>
-            {
-              interaction.map((token) => (
-                <tr data-token-row data-name={token.name}>
-                  <td><code>{token.name}</code></td>
-                  <td>{token.value}</td>
                   <td>{token.description ?? ""}</td>
                 </tr>
               ))
@@ -203,7 +123,7 @@ const jumps = [
       <div class="guide-table-wrap">
         <table class="guide-table">
           <tbody>
-            {layers.map((token) => <tr data-token-row data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td><td>{token.description ?? ""}</td></tr>)}
+            {layers.map((token) => <tr data-filter-item data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td><td>{token.description ?? ""}</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -214,7 +134,7 @@ const jumps = [
       <div class="guide-table-wrap">
         <table class="guide-table">
           <tbody>
-            {layout.map((token) => <tr data-token-row data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td><td>{token.description ?? ""}</td></tr>)}
+            {layout.map((token) => <tr data-filter-item data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td><td>{token.description ?? ""}</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -230,7 +150,7 @@ const jumps = [
             <div class="guide-table-wrap">
               <table class="guide-table">
                 <tbody>
-                  {tokens.map((token) => <tr data-token-row data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td><td>{token.description ?? ""}</td></tr>)}
+                  {tokens.map((token) => <tr data-filter-item data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td><td>{token.description ?? ""}</td></tr>)}
                 </tbody>
               </table>
             </div>
@@ -243,11 +163,13 @@ const jumps = [
       <h2 class="section-head" id="icons">Icons</h2>
       <p class="guide-note">One set, Phosphor, drawn by the Icon component. Each glyph carries its name in <code>data-icon</code> for the ink margins (D187).</p>
       <ul class="guide-icons" role="list">
-        {icons.map((name) => <li class="guide-icon" data-token-row data-name={name}><Icon name={name} class="icon-lg" /><span>{name}</span></li>)}
+        {icons.map((name) => <li class="guide-icon" data-filter-item data-name={name}><Icon name={name} class="icon-lg" /><span>{name}</span></li>)}
       </ul>
     </section>
+
+    <p class="guide-note" hidden data-filter-empty>Nothing matches. Try <code>space</code>, <code>radius</code> or an icon name.</p>
   </div>
 </Shell>
 <script>
-  import "../scripts/tokens";
+  import "../scripts/filter";
 </script>

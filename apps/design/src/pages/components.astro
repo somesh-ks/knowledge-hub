@@ -1,0 +1,16 @@
+---
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { COMPONENTS } from "../lib/sections";
+---
+
+<Shell title="Components" current="/components">
+  <div class="settings-view guide-page" data-settings data-ready>
+    <PageHead title="Components" note={COMPONENTS.note} />
+    <section aria-labelledby="empty">
+      <h2 class="section-head" id="empty">Not here yet</h2>
+      <p class="guide-prose">A component appears in this guide only when it is the one the app itself imports, so nothing shown here can differ from the app. They arrive one family at a time: buttons, links, chips, then the rest.</p>
+      <p class="guide-prose">Each page will say when to use the component and when not to, in plain decision points, so a person or an agent building a screen can choose the right part without guessing.</p>
+    </section>
+  </div>
+</Shell>

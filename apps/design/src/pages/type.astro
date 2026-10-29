@@ -1,4 +1,5 @@
 ---
+import Icon from "../../../web/src/components/Icon.astro";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { primitive, semantic } from "../lib/guide";
@@ -23,15 +24,24 @@ const NOTES: Record<string, string> = {
 };
 ---
 
-<Shell title="Type" current="/type">
+<Shell title="Typography" current="/type">
   <div class="settings-view guide-page" data-settings data-ready data-type>
-    <PageHead title="Type" note={section?.note ?? ""} />
+    <PageHead title="Typography" note={section?.note ?? ""} />
+
+    <label class="search-field">
+      <Icon name="search" />
+      <span class="sr-only">Filter text roles and sizes</span>
+      <input type="search" placeholder="Filter roles and sizes" autocomplete="off" data-filter />
+    </label>
 
     <section aria-labelledby="specimen">
       <h2 class="section-head" id="specimen">Typeface</h2>
-      <p class="guide-note">One family, Google Sans Flex, latin only, with a metric-matched fallback. Two weights, regular and medium; a test bans a third (D90).</p>
-      <p class="guide-type-sample" style="--sample-size: var(--font-size-section)">Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz 0123456789</p>
-      <p class="guide-type-sample" style="--sample-weight: var(--font-weight-medium); --sample-size: var(--font-size-section)">Medium weight: the quick brown fox jumps over the lazy dog</p>
+      <p class="guide-note">Google Sans Flex, latin only, with a metric-matched fallback. Two weights, regular and medium; a test bans a third (D90).</p>
+      <div class="guide-specimen">
+        <span class="guide-specimen-aa" aria-hidden="true">Aa</span>
+        <p class="guide-type-sample guide-specimen-set" style="--sample-size: var(--font-size-section)">ABCDEFGHIJKLM NOPQRSTUVWXYZ abcdefghijklm nopqrstuvwxyz 0123456789</p>
+        <p class="guide-type-sample guide-specimen-set" style="--sample-weight: var(--font-weight-medium); --sample-size: var(--font-size-section)">Medium weight, for labels and emphasis</p>
+      </div>
     </section>
 
     <section aria-labelledby="roles">
@@ -46,7 +56,7 @@ const NOTES: Record<string, string> = {
           roles.map((token) => {
             const role = token.path.split(".").at(-1) ?? "";
             return (
-              <li class="guide-type-row" id={`text-${role}`}>
+              <li class="guide-type-row" id={`text-${role}`} data-filter-item data-name={`${token.name} ${role}`}>
                 <p class="guide-type-sample" data-sample style={`--sample-family: var(${token.name}-family); --sample-size: var(${token.name}-size); --sample-weight: var(${token.name}-weight); --sample-tracking: var(${token.name}-tracking); --sample-leading: var(${token.name}-leading)`}>The quick brown fox jumps over the lazy dog</p>
                 <span class="guide-type-spec" data-role-spec>
                   <span>{token.name}</span>
@@ -71,7 +81,7 @@ const NOTES: Record<string, string> = {
           <tbody>
             {
               sizes.map((token) => (
-                <tr>
+                <tr data-filter-item data-name={token.name}>
                   <td><code>{token.name}</code></td>
                   <td>{token.type === "dimension" ? token.value : "fluid"}</td>
                   <td><span class="guide-type-sample" style={`--sample-size: var(${token.name})`}>Singularity</span></td>
@@ -89,13 +99,16 @@ const NOTES: Record<string, string> = {
         <table class="guide-table">
           <thead><tr><th>Token</th><th>Value</th></tr></thead>
           <tbody>
-            {leading.map((token) => <tr><td><code>{token.name}</code></td><td>{token.value}</td></tr>)}
+            {leading.map((token) => <tr data-filter-item data-name={token.name}><td><code>{token.name}</code></td><td>{token.value}</td></tr>)}
           </tbody>
         </table>
       </div>
     </section>
+
+    <p class="guide-note" hidden data-filter-empty>Nothing matches. Try a role such as <code>title</code>, or a size.</p>
   </div>
 </Shell>
 <script>
+  import "../scripts/filter";
   import "../scripts/type";
 </script>

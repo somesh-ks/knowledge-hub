@@ -1,6 +1,5 @@
 /** What the style guide's pages read at build time: the tokens, grouped as the tiers group them. */
 import { type CatalogueToken, tokenGroups } from "../../../web/src/lib/designCatalogue";
-import { href } from "./sections";
 
 export const semantic = tokenGroups("semantic");
 export const primitive = tokenGroups("primitive");
@@ -105,61 +104,32 @@ export function colourToken(name: string): CatalogueToken | undefined {
   return semantic.get("color")?.find((token) => token.path === `color.${name}`);
 }
 
-/** One searchable thing: a colour, a text role, a token. */
-export interface SearchEntry {
-  kind: "colour" | "type" | "token";
-  title: string;
-  /** What else the search matches: classes, categories, values, notes. */
-  tags: string;
-  href: string;
-  detail: string;
+/** How a colour role is drawn on the Colour page: its fill, the ink laid on it, and the pair measured. */
+export interface SwatchSpec {
+  fill: string;
+  ink?: string;
+  fg: string;
+  bg: string;
 }
 
-/** Where each token group is drawn, when it is not on a Tokens section of its own name. */
-const TOKEN_GROUP_HREF: Record<string, string> = {
-  stroke: "/tokens#radius",
-  font: "/type",
-  duration: "/tokens#motion",
-  ease: "/tokens#motion",
-  spring: "/tokens#motion",
-  scale: "/tokens#motion",
-  distance: "/tokens#motion",
-  state: "/tokens#motion",
-  opacity: "/tokens#motion",
-  blur: "/tokens#motion",
-  z: "/tokens#layers",
-  breakpoint: "/tokens#layout",
-  size: "/tokens#layout",
-};
-
-export function searchIndex(): SearchEntry[] {
-  const entries: SearchEntry[] = [];
-  for (const token of semantic.get("color") ?? [])
-    entries.push({
-      kind: "colour",
-      title: token.name,
-      tags: `${token.value} ${token.description ?? ""}`,
-      href: href(`/colour#${token.path.slice("color.".length)}`),
-      detail: "Colour",
-    });
-  for (const token of semantic.get("text") ?? [])
-    entries.push({
-      kind: "type",
-      title: token.name,
-      tags: "type text role font",
-      href: href(`/type#${token.path.replace(".", "-")}`),
-      detail: "Type",
-    });
-  for (const [group, tokens] of [...primitive.entries(), ...semantic.entries()]) {
-    if (group === "color" || group === "text") continue;
-    for (const token of tokens)
-      entries.push({
-        kind: "token",
-        title: token.name,
-        tags: `${token.value} ${token.description ?? ""}`,
-        href: href(TOKEN_GROUP_HREF[group] ?? `/tokens#${group}`),
-        detail: token.value.length > 28 ? group : `${group} · ${token.value}`,
-      });
+/**
+ * A role is shown as it is used. A text colour sits on the surface it is set on; a surface carries
+ * the text set on it; a fill that has its own "on-" role carries that; a status tint carries its
+ * status; anything else (a line, a status, a ring) is measured on the page.
+ */
+export function swatchSpec(name: string): SwatchSpec {
+  const has = (role: string): boolean => colourToken(role) !== undefined;
+  if (name.startsWith("on-")) {
+    const base = name.slice(3);
+    const fill = has(base) ? base : "surface";
+    return { fill, ink: name, fg: name, bg: fill };
   }
-  return entries;
+  if (name.startsWith("surface")) {
+    const ink = name === "surface-inverse" ? "on-surface-inverse" : "on-surface";
+    return { fill: name, ink, fg: ink, bg: name };
+  }
+  if (has(`on-${name}`)) return { fill: name, ink: `on-${name}`, fg: `on-${name}`, bg: name };
+  const base = name.replace(/-subtle$/, "");
+  if (base !== name && has(base)) return { fill: name, ink: base, fg: base, bg: name };
+  return { fill: name, fg: name, bg: "surface" };
 }

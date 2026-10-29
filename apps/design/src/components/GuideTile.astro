@@ -1,0 +1,40 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+import { href, type Section } from "../lib/sections";
+
+/**
+ * A page of the guide as a card: a picture made of the page's own tokens, its name and its line.
+ * The picture only ever uses tokens, so it follows the theme; it moves on hover or focus and never
+ * by itself.
+ */
+interface Props {
+  page: Section;
+  art: "principles" | "foundations" | "colour" | "type" | "motion" | "tokens" | "components";
+}
+
+const { page, art } = Astro.props;
+---
+
+<a class="guide-tile" href={href(page.path)}>
+  <span class={`guide-tile-art guide-art-${art}`} aria-hidden="true">
+    {art === "principles" && <span class="guide-art-disc"><Icon name="compass" class="icon-lg" /></span>}
+    {
+      art === "foundations" && (
+        <>
+          <span class="guide-art-dots"><i /><i /><i /><i /></span>
+          <span class="guide-art-aa">Aa</span>
+        </>
+      )
+    }
+    {art === "colour" && <span class="guide-art-chips"><i /><i /><i /><i /><i /></span>}
+    {art === "type" && <span class="guide-art-specimen"><b>Aa</b><span>Aa</span></span>}
+    {art === "motion" && <span class="guide-art-track"><i /></span>}
+    {art === "tokens" && <span class="guide-art-scale"><i /><i /><i /><i /></span>}
+    {art === "components" && <span class="guide-art-forms"><i /><i /><i /></span>}
+  </span>
+  <span class="guide-tile-text">
+    <span class="guide-tile-title">{page.label}</span>
+    <span class="guide-tile-note">{page.note}</span>
+  </span>
+  <Icon name="chevronRight" class="guide-tile-go" />
+</a>
