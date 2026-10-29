@@ -421,6 +421,17 @@ describe("cleanMarkdown", () => {
     }
   });
 
+  // The bug it prevents: removing one tag joining the halves of another, so `<script>` survives
+  // the single pass (CodeQL "incomplete multi-character sanitization").
+  it("leaves no tag behind when removing one joins the halves of another", () => {
+    const text = cleanMarkdown(
+      "Body line.\n\n<scr<b>ipt>alert(1)</scr</b>ipt>\n\n<!<!-- x -->-- y -->Last line.",
+    );
+    expect(text).not.toMatch(/<\/?script|<!--/i);
+    expect(text).toContain("Body line.");
+    expect(text).toContain("Last line.");
+  });
+
   it("keeps a body sentence that is one link or that mentions cookies", () => {
     const md =
       "[OpenAI announced a new model for developers on Tuesday.](https://x.dev/a)\n\nBrowsers now block third-party cookies by default, and that changes how analytics vendors attribute visits.";

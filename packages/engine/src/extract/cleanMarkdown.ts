@@ -46,11 +46,22 @@ function isBoilerplate(line: string): boolean {
 }
 
 /** Tags a scraper left in the Markdown. A script or style block goes with its contents. */
-function dropMarkup(markdown: string): string {
+function dropMarkupOnce(markdown: string): string {
   return markdown
     .replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<\/?[a-z][^>]*>/gi, "");
+}
+
+/** Repeats until stable: removing a tag can join the halves of another (`<scr<b>ipt>`). */
+function dropMarkup(markdown: string): string {
+  let text = markdown;
+  for (let pass = 0; pass < 5; pass++) {
+    const next = dropMarkupOnce(text);
+    if (next === text) break;
+    text = next;
+  }
+  return text;
 }
 
 /**
