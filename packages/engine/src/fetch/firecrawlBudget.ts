@@ -11,7 +11,7 @@ export const FIRECRAWL_WEEKLY_BUDGET = 300;
 /**
  * Health warns once the week passes this: time to look, not to stop. A normal week is about 150
  * (a daily asks for about 40, D222), so the warning sits three dailies above it; at 150 it would
- * fire every week and be ignored (D226).
+ * fire every week and be ignored (D227).
  */
 export const FIRECRAWL_WEEKLY_ALERT = 210;
 
