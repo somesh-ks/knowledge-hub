@@ -7,9 +7,9 @@ export const FIRECRAWL_NORMAL_WEEK = 100;
 
 /**
  * Firecrawl requests all runs together may make in any 7 days before the runs stop listing: a
- * safety stop at three times a normal week, not the working budget (D222, which replaced D166's hard
- * 100 that dry runs and regenerations spent by Tuesday, leaving 15 listing sources skipped). Read
- * from the cost ledger at each stage (`run/spend.ts`).
+ * safety stop at three times a normal week, not the working budget. D166's hard 100 was spent in
+ * four runs and left every later daily without listings or scrapes; 300 is about 0.25 USD (D222).
+ * Read from the cost ledger at each stage (`run/spend.ts`).
  */
 export const FIRECRAWL_WEEKLY_BUDGET = 3 * FIRECRAWL_NORMAL_WEEK;
 
@@ -17,11 +17,12 @@ export const FIRECRAWL_WEEKLY_BUDGET = 3 * FIRECRAWL_NORMAL_WEEK;
 export const FIRECRAWL_WEEKLY_ALERT = 1.5 * FIRECRAWL_NORMAL_WEEK;
 
 /**
- * The most Firecrawl requests one run may make, listing pages and article scrapes together: half
- * the week, so one run can never spend it all. Metered by request, so the run holds itself to a
- * fixed number however many sources are configured.
+ * The most Firecrawl requests one run may make, listing pages and article scrapes together: a
+ * fifth of the week, so a few runs can never spend it all. Metered by request, so the run holds
+ * itself to a fixed number however many sources are configured. The 17 listing sources, the
+ * YouTube feeds and the article scrapes of a daily come to about 40.
  */
-export const FIRECRAWL_RUN_CEILING = 50;
+export const FIRECRAWL_RUN_CEILING = 60;
 
 /** Share of the ceiling that listing pages (sources of type firecrawl) may use; scraping gets the rest. */
 export const FIRECRAWL_LISTING_SHARE = 0.55;

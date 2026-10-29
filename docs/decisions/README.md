@@ -183,7 +183,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D160 | No passphrase | active |
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | Captions via Firecrawl | amends D138 |
-| D166 | Firecrawl 100 a week | amends D42 |
+| D166 | Firecrawl 100 a week | amends D42; limits superseded by D222 |
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126 |
@@ -238,6 +238,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D219 | A day's Catch ups are one album, chosen by a select before Play | active |
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
-| D222 | Firecrawl's week alerts, stops at 300 | amends D166 |
+| D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
+| D223 | Firecrawl warns at 150 | amends D222 |
 
 ---

@@ -343,7 +343,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   } else {
     passed.push(`$${spent.toFixed(2)} spent in the last 24 hours`);
   }
-  // Firecrawl is a soft ceiling (D222): an alert past one and a half normal weeks, a fault when the
+  // Firecrawl is a soft ceiling (D223): an alert past one and a half normal weeks, a fault when the
   // runs have stopped listing at three.
   const weekAgo = now.getTime() - 7 * DAY_MS;
   const firecrawlWeek = records

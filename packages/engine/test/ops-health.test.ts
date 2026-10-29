@@ -130,7 +130,7 @@ describe("singularity health", () => {
   });
 
   // Firecrawl's 100 a week stopped 15 listing sources by Tuesday, because dry runs and regenerations
-  // spend it too; it is now a soft ceiling (D222) that says so before it stops anything.
+  // spend it too; it is now a soft ceiling (D223) that says so before it stops anything.
   it("warns when a week of Firecrawl passes one and a half normal weeks and faults at the stop", async () => {
     const spent = (credits: number, at = "2026-10-20T06:00:00Z", n = 0) => ({
       id: `fc-${at}-${n}`,

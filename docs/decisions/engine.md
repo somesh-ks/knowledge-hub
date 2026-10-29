@@ -374,11 +374,19 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Supersedes: D135 once step 3 ships (its revisit condition, an earlier start, is met, and the hold gives the batch its wait). Amends: D197 (the strict publish time stays; the hold no longer holds the lane).
 - Revisit if: a held publish job is replaced while pending (GitHub keeps one pending run per group), or a batch misses 15 minutes before publish on more than one run in ten.
 
-## D222: Firecrawl's week is a soft ceiling that alerts
+## D222: Firecrawl gets 300 requests a week, at most 60 a run
 
-- Date: 2026-10-29 (the owner, 2026-10-28: "a high safety ceiling that alerts, not a hard cap"; made for him while the plan's Step 1 ran).
-- Decision: a normal week stays 100 requests (D166). Health warns (`firecrawl_week_high`) once the ledger's last 7 days pass 150, and faults (`firecrawl_week_stopped`) at 300, which is where runs stop listing through Firecrawl (`FIRECRAWL_WEEKLY_BUDGET`, was 100). The 50 a run (`FIRECRAWL_RUN_CEILING`) stays.
+- Date: 2026-10-29 (decided for the owner by the coordinator while the owner is away; amends D166)
+- Context changed: D166's 100 a week was spent by four runs in three days, which left every later daily with no Firecrawl room.
+- Decision: `FIRECRAWL_WEEKLY_BUDGET` 100 to 300 and `FIRECRAWL_RUN_CEILING` 50 to 60; the listing share stays 55% (33 listings, more than the 17 listing sources).
+- Why: the 100 is our cap, not the plan's. Four real runs (24 to 27 Oct) spent all of it, so the dailies of 28 and 29 Oct fetched no listing, relayed no YouTube feed and scraped no article, and 3 of 16 selected stories had no readable text. A daily asks for about 40 requests, a week about 150; 300 requests are about 0.25 USD at the ledger's price, and the Firecrawl account holds hundreds of thousands of credits (read 2026-10-29).
+- Revisit if: a week's ledger passes 300, or the plan's credits run low.
+
+## D223: Firecrawl's week alerts at 150 before the stop at 300
+
+- Date: 2026-10-29 (builds on D222's 300 a week; the owner, 2026-10-28: "a high safety ceiling that alerts, not a hard cap"; made for him while the plan's Step 1 ran).
+- Decision: a normal week stays 100 requests (D166) and the stop stays D222's 300 (`FIRECRAWL_WEEKLY_BUDGET`). Health warns (`firecrawl_week_high`) once the ledger's last 7 days pass 150, and faults (`firecrawl_week_stopped`) at 300, where runs stop listing through Firecrawl.
 - Why: dry runs and regenerations spend the same week as the schedule, so a hard 100 was gone by Tuesday and left 15 listing sources skipped and 7 YouTube feeds failing for the rest of the week. A stop at three times normal still bounds a runaway; the alert says so before anything is skipped.
 - Rejected: no stop at all (a loop or a mistaken monitor could spend the account); counting dry runs apart (they pay real credits).
 - Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
-- Amends: D166.
+- Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).
