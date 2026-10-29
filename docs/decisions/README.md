@@ -241,6 +241,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
 | D223 | Firecrawl warns at 150 | amends D222 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
-| D225 | The guide shows only components the app imports | amends D224 |
+| D226 | The guide shows only components the app imports | amends D224 |
 
 ---

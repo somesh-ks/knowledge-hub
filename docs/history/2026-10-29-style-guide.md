@@ -1,6 +1,6 @@
 # 2026-10-29: the style guide as its own app
 
-The owner opened `/design`, found it missing on production, and asked for the admin pages and the design catalogue to leave the reader: a command center at `/admin`, a style guide at `/design`, both in the app's own language (the first attempt looked like another product). This note is the style guide's half (D225); the command center is its own thread (PR #421).
+The owner opened `/design`, found it missing on production, and asked for the admin pages and the design catalogue to leave the reader: a command center at `/admin`, a style guide at `/design`, both in the app's own language (the first attempt looked like another product). This note is the style guide's half (D226); the command center is its own thread (PR #421).
 
 ## What was built, and what was cut
 

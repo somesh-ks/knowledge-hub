@@ -19,7 +19,7 @@ Vercel's deployment protection cannot guard a project that is reached through an
 
 1. Separate apps, not routes in the reader (own bundle, keys and look; separate repo stays ruled out by D189).
 2. The command center reads the reader's `/api/costs` and `/api/health` first; new sources get routes of its own; costs and health move into a shared package later, which lets the reader's public routes go.
-3. The style guide shows only components the app itself imports (D225), not hand-written specs; each component family is a design-system-only PR that adds its Astro component and its guide page.
+3. The style guide shows only components the app itself imports (D226), not hand-written specs; each component family is a design-system-only PR that adds its Astro component and its guide page.
 4. First milestone: the command center shell, then everything that exists moves in.
 
 ## Phases
