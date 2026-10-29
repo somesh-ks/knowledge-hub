@@ -8,9 +8,9 @@ Standardized control reference for Singularity. When adding or modifying interac
 
 | Archetype | Class / Element | Primary Purpose | When to Use |
 | :--- | :--- | :--- | :--- |
-| **Primary Button** | `.btn-primary` | High-emphasis trigger | Single primary action per card or surface (Hero Play, Sheet Submit). |
-| **Secondary Button** | `.btn-secondary` | Medium-emphasis companion | Paired alongside a primary button (Share, Cancel, Dismiss). |
-| **Tonal Button** | `.btn` | Low-emphasis neutral trigger | Standard surface actions (Settings head links, Library filters). |
+| **Filled Button** | `<Button variant="filled">` | High-emphasis trigger | Single committing action per card or surface (Hero Play, Sheet Submit). |
+| **Tonal Button** | `<Button variant="tonal">` | Medium-emphasis companion | Paired alongside a filled button (Add source, Reorder). |
+| **Text Button** | `<Button variant="text">` | Low-emphasis trigger | Cancel, Clear, Try again, Install; the quiet action beside a filled one. |
 | **Icon Button** | `.icon-btn.press` | Single glyph action | Compact controls (More options, Close, Edit, Reorder grip). |
 | **Action Chip** | `.chip` | Status + action pill | Episode duration, playback status pill. Uses fixed-width sizers. |
 | **Filter Chip** | `.filter-chip` | Multi-select toggle | Category and format filtering (Daily, Weekly, Episodes). Wraps input. |
@@ -24,20 +24,18 @@ Standardized control reference for Singularity. When adding or modifying interac
 
 ## 2. Markup & Usage Contracts
 
-### Primary Action (`.btn-primary`)
-High-emphasis filled tonal pill.
-```html
-<button class="btn-primary" type="button">Play</button>
-<button class="btn-primary" type="button" disabled>Play</button>
+### Button (`design-system/Button.astro`, D237)
+One component, three variants; a page never types the `button-*` classes (`designSystem.test.ts` fails it).
+```astro
+<Button variant="filled" type="submit">Save</Button>
+<Button variant="tonal" class="topic-add-source" data-add-source>Add source</Button>
+<Button variant="text" href="/library">See all</Button>
 ```
-* **Rules**: At most one per surface. Minimum 44px touch target. Never bold label text.
-
-### Secondary Action (`.btn-secondary`)
-Medium-emphasis tonal surface paired with primary.
-```html
-<button class="btn-secondary" type="button">Share</button>
-```
-* **Rules**: Always matches primary button height. Tonal background, no harsh border outlines.
+A script or island that draws one takes the class from `design-system/button.ts`: `class="${buttonClass("filled")}"`. `class` on the component is for placing it (a margin, a grid area), never for its look; `href` draws a link.
+* **Filled**: at most one per surface. Minimum 44px touch target. Never bold label text.
+* **Tonal**: always matches the filled button's height. Tonal background, no border outline.
+* **Text**: an accent label with no container until hovered or pressed.
+* **Changing a Button** is a design-system change: its own `design-system` PR, merged by the owner.
 
 ### Icon Action Button (`.icon-btn.press`)
 Single icon button for toolbars and sheet headers.

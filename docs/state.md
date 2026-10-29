@@ -11,8 +11,7 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). The list of generations under way has Cancel (D208).
 - Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): made ahead, aired 07:00.
-- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
-- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)).
+- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148).
 
 ## Tests
 
@@ -69,5 +68,5 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 3. Firecrawl: a per-source yield table (21 scraped sources gave about 1 published story per 4,460 credits a month) for the owner to prune; changelog providers (Claude, OpenAI release notes) once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the resumed bar; the 19 KiB unused; the 1.4 s chain (share, overlays and Create tools on interaction). Re-run after any CSS change.
 5. `topic` to `category` end to end (plan 14): an inventory the owner reviews, dual-name readers, a store-synced migration, the rename, workflow outputs, then the old names go; only with no other PR open ([starting points](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
-6. Design-system sweep (plan 17): `/settings/*`, category pages, player, create; light and dark at 390 and 1280; one PR per component family.
+6. Controls as components (D237): Button done; next Icon button, FAB, Chip, Link, one PR each, then the sweep (plan 17). closed when: `designSystem.test.ts` lists no class.
 7. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first turn (D141, D178).

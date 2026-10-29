@@ -7,6 +7,7 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import SourceFilter from "../../components/SourceFilter.astro";
 import SourceRow from "../../components/SourceRow.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
+import Button from "../../design-system/Button.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
@@ -96,17 +97,17 @@ const choices = topicChoicesOf(layout);
         {/* Search alone (2026-10-20): no count and no filters. Add is the floating button below
              64rem (AddFab.astro) and a button beside the search from 64rem; one shows at a time. */}
         <SourceFilter sources={libraryRows.map((row) => row.source)}>
-          <button
+          <Button
+            variant="tonal"
             slot="action"
-            class="btn-secondary topic-add-source topics-add"
-            type="button"
+            class="topic-add-source topics-add"
             aria-label="Add a category or a source"
             data-add-topic
             data-needs-js
           >
             <Icon name="plus" />
             <span>Add</span>
-          </button>
+          </Button>
         </SourceFilter>
 
         <ul class="topic-sources topics-added" role="list" data-sources data-added aria-label="Sources being added"></ul>

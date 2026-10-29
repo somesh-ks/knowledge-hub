@@ -1,5 +1,6 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { buttonClass } from "../design-system/button";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
@@ -222,7 +223,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
         ) : null}
         <div className="sheet-actions">
           <button
-            className="btn-primary"
+            className={buttonClass("filled")}
             type="submit"
             aria-disabled={busy || undefined}
             data-busy={busy ? "true" : undefined}

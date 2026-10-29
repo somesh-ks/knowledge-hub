@@ -637,7 +637,7 @@ html[data-library-page="empty"] {
   line-height: var(--text-heading-leading);
 }
 
-.shelf-head > .btn {
+.shelf-head > .button-text {
   margin-inline-end: calc(var(--space-4) * -1);
 }
 

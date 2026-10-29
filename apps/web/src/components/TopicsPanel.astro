@@ -2,6 +2,7 @@
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 // The unsaved-changes dialog (sheetGuard.ts) is a confirm-dialog: its styles come with the sheet.
 import "../styles/episode-actions.css";
+import Button from "../design-system/Button.astro";
 import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
 import SheetHeader from "./SheetHeader.astro";
@@ -268,8 +269,8 @@ const { topics } = Astro.props;
       </div>
     </div>
     <div class="source-sheet-foot topics-panel-foot">
-      <button class="btn confirm-delete" type="button" data-panel-delete hidden>Delete source</button>
-      <button class="btn-primary" type="button" data-panel-go>Add category</button>
+      <Button variant="text" tone="danger" data-panel-delete hidden>Delete source</Button>
+      <Button variant="filled" data-panel-go>Add category</Button>
     </div>
   </dialog>
 </template>
@@ -280,8 +281,8 @@ const { topics } = Astro.props;
   <div class="confirm-form">
     <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
     <div class="confirm-actions">
-      <button class="btn" type="button" data-source-cancel autofocus>Cancel</button>
-      <button class="btn confirm-delete" type="button" data-source-delete>Delete</button>
+      <Button variant="text" data-source-cancel autofocus>Cancel</Button>
+      <Button variant="text" tone="danger" data-source-delete>Delete</Button>
     </div>
   </div>
 </dialog>

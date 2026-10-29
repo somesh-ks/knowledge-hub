@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import type { DigestEntry } from "../lib/digests";
 import BriefingCard from "./BriefingCard.astro";
 
@@ -16,9 +17,9 @@ const { entries } = Astro.props;
     <section class="earlier" aria-labelledby="earlier-title">
       <div class="shelf-head">
         <h2 id="earlier-title">Earlier podcasts</h2>
-        <a class="btn" href="/library" data-astro-prefetch="hover">
+        <Button variant="text" href="/library" data-astro-prefetch="hover">
           See all
-        </a>
+        </Button>
       </div>
       <ul class="shelf scroll-fade-inline" role="list">
         {entries.map((entry) => <BriefingCard entry={entry} />)}

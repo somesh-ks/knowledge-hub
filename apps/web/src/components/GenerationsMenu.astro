@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import EmptyArt from "./EmptyArt.astro";
 import Icon from "./Icon.astro";
 import SheetHeader from "./SheetHeader.astro";
@@ -69,7 +70,7 @@ const words = {
       <p class="empty-title">Nothing in the works</p>
       <p class="empty-body">Start a Catch up and you can follow it here.</p>
       <div class="empty-actions">
-        <a class="btn-primary" href="/create" data-create-open data-sound="open">Catch up</a>
+        <Button variant="filled" href="/create" data-create-open data-sound="open">Catch up</Button>
       </div>
     </div>
     </div>
@@ -89,7 +90,7 @@ const words = {
         <button class="icon-btn gen-cancel press" type="button" data-gen-cancel>
           <Icon name="close" class="icon-lg" />
         </button>
-        <button class="btn gen-listen" type="button" data-gen-listen hidden>Listen now</button>
+        <Button variant="text" class="gen-listen" data-gen-listen hidden>Listen now</Button>
       </li>
     </template>
   </div>

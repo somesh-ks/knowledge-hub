@@ -4,6 +4,7 @@ import EmptyArt from "../components/EmptyArt.astro";
 import EpisodeActions from "../components/EpisodeActions.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
 import Icon from "../components/Icon.astro";
+import Button from "../design-system/Button.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
 import { libraryItems } from "../lib/libraryCard";
@@ -45,9 +46,9 @@ const items = libraryItems(entries, episodes);
             <h2 class="empty-title">Nothing here yet</h2>
             <p class="empty-body">Podcasts arrive on your schedule. Episodes you make are kept here too.</p>
             <div class="empty-actions">
-              <a class="btn-primary" href="/create" data-create-open data-sound="open">
+              <Button variant="filled" href="/create" data-create-open data-sound="open">
                 Catch up
-              </a>
+              </Button>
             </div>
           </div>
         </section>
@@ -130,9 +131,9 @@ const items = libraryItems(entries, episodes);
             <p class="empty-body library-empty-search">Try different words, or show the whole library.</p>
             <p class="empty-body library-empty-filter">Show all to see the rest of your library.</p>
             <div class="empty-actions">
-              <button class="btn-primary" type="button" data-library-clear>
+              <Button variant="filled" data-library-clear>
                 Clear search
-              </button>
+              </Button>
             </div>
           </div>
         </div>

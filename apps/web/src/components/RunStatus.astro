@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import { UPDATING_LABEL } from "../lib/runStages";
 import Icon from "./Icon.astro";
 
@@ -86,13 +87,13 @@ const lines = {
     </button>
     <a class="run-link" href="/library" data-run-library hidden>Open Library</a>
     <a class="text-link run-details" href="#" data-run-log target="_blank" rel="noopener noreferrer" hidden>Details</a>
-    <button class="btn run-retry" type="button" data-run-retry hidden>Try again</button>
-    <button class="btn run-check" type="button" data-run-check hidden>Check again</button>
+    <Button variant="text" class="run-retry" data-run-retry hidden>Try again</Button>
+    <Button variant="text" class="run-check" data-run-check hidden>Check again</Button>
     {/* A run that is going can be stopped here, and the strip opens the whole list when more than one is
          going (scripts/generations.ts shows them). */}
-    <button class="btn run-cancel" type="button" data-run-cancel hidden>Cancel</button>
-    <button class="btn run-queue" type="button" popovertarget="generations" data-run-queue hidden>All generations</button>
-    <button class="btn-primary run-play" type="button" data-run-play hidden>Listen now</button>
+    <Button variant="text" class="run-cancel" data-run-cancel hidden>Cancel</Button>
+    <Button variant="text" class="run-queue" popovertarget="generations" data-run-queue hidden>All generations</Button>
+    <Button variant="filled" class="run-play" data-run-play hidden>Listen now</Button>
     <button class="icon-btn run-dismiss press" type="button" data-run-dismiss aria-label="Dismiss" hidden>
       <Icon name="close" class="icon-lg" />
     </button>

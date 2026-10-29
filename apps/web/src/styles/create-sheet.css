@@ -535,7 +535,7 @@ dialog.create-sheet[data-more] .create-submit::before {
   opacity: 1;
 }
 
-dialog.create-sheet .create-submit > .btn-primary {
+dialog.create-sheet .create-submit > .button-filled {
   width: 100%;
   min-width: 0;
   justify-self: stretch;
@@ -711,7 +711,7 @@ dialog.create-sheet .create-submit > .btn-primary {
 
 /* Two components in two slots (2026-10-25 owner report: Listen now read as a link). Open Library and
    Details are text links: Details is the shared .text-link, .run-details only places and colours it.
-   Listen now is the shared .btn-primary, .run-play only sizes it to the card; neither carries the
+   Listen now is the shared .button-filled, .run-play only sizes it to the card; neither carries the
    other's classes. */
 .run-link,
 .run-details {

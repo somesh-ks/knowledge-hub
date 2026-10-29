@@ -54,8 +54,8 @@ main > .empty {
   margin-block-start: var(--space-6);
 }
 
-.empty-actions > .btn-primary,
-.empty-actions > .btn-secondary {
+.empty-actions > .button-filled,
+.empty-actions > .button-tonal {
   width: auto;
 }
 
