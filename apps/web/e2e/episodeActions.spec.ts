@@ -6,7 +6,6 @@ import {
   queueDock,
   queueStatus,
   test,
-  toastText,
 } from "./fixtures";
 
 const ID = "ep-20261007-1930";
@@ -139,7 +138,7 @@ test.describe("regenerate and delete an episode", () => {
       menu(page).getByRole("menuitem", { name: "Regenerate" }),
     ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
     await page.keyboard.press("Escape");
-    await expect(toastText(page)).toHaveText("Rewritten. Live in about a minute.", {
+    await expect(queueStatus(page)).toHaveText("Rewritten. Live in about a minute.", {
       timeout: 15_000,
     });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");

@@ -4,8 +4,8 @@ import {
   expectNoViolationsInEitherScheme,
   hydrated,
   queueDock,
+  queueTitle,
   test,
-  toastText,
 } from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
@@ -166,9 +166,9 @@ test.describe("Create as the primary action", () => {
     await expect(queueDock(page)).toBeVisible();
     await page.reload();
     await expect(queueDock(page)).toBeVisible();
-    // Finished, it leaves the queue and a toast says so.
-    await expect(toastText(page)).toHaveText("Episode ready", { timeout: 15_000 });
-    await expect(queueDock(page)).toBeHidden();
+    // Finished, it stays in the queue for the day, and the folded row says so.
+    await expect(queueTitle(page)).toHaveText("Complete", { timeout: 15_000 });
+    await expect(queueDock(page)).toBeVisible();
   });
 
   test("axe finds nothing with the sheet open", async ({ page }) => {

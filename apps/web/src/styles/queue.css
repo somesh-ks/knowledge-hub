@@ -1,15 +1,22 @@
 /*
- * The podcast queue (components/Queue.astro, scripts/queue.ts): what is being made, as a browser
- * lists its downloads. Below 64rem a dock sits directly above the bottom bar, never a modal or a
- * sheet: no scrim, nothing inert, the bar and the app bar stay usable. Folded it is one row,
- * "Generating podcast 45%", opened it lists the rows. From 64rem a row at the foot of the side column
- * (shell.css, .app-nav-queue) opens the same rows in a popover beside the column.
+ * The podcast queue (components/Queue.astro, scripts/queue.ts): what is being made, and what was made
+ * today, as a browser lists its downloads. Below 64rem a dock sits directly above the bottom bar,
+ * never a modal or a sheet: no scrim, nothing inert, the bar and the app bar stay usable. Folded it is
+ * one row (a ring, a word that changes with the stage, the percent); opened it lists the rows. From
+ * 64rem a row at the foot of the side column (shell.css, .app-nav-queue) opens the same rows in a
+ * popover beside the column.
  *
- * Usage: a row is .queue-row: .queue-thumb (with .queue-badge on a regeneration), .queue-main
- * (.queue-line holding .queue-name and .queue-eta, .queue-status, .queue-actions with the shared
- * .btn buttons) and .queue-ring (the percent inside a drawn arc) or .queue-dismiss for a run that
- * ended. Nothing in a row moves when the stage, the time left or the percent changes: the eta has a
- * width of its own, the percent is tabular, and the actions line is always there.
+ * Usage: a row is .queue-row: .queue-lead (the .queue-ring with its percent while the run goes;
+ * .queue-play, a link to the podcast, once it is made; .queue-end-icon for how any other run ended),
+ * .queue-main (.queue-name, .queue-status with its icon, .queue-actions with the shared .btn buttons)
+ * and .queue-eta (the time left; the time it ended once it has). Nothing in a row moves when the
+ * stage, the time left or the percent changes: the eta has a width of its own, the percent is
+ * tabular, the status icon has a box of its own, and the actions line is always there.
+ *
+ * The word in the folded row and in the side column is the only thing that shimmers (.queue-word):
+ * the text, never a background. Stage icons morph by cross-fading and turning (.queue-stage-icon);
+ * the regeneration's refresh icon turns once each time the queue opens. Both hold still under
+ * reduced motion.
  *
  * Contract with the shell (shell.css): the dock rests on --bottom-nav-height and --dock-room, and
  * scripts/queue.ts publishes its height as --run-room so the floating button, the toasts and the
@@ -23,8 +30,10 @@
   inset-inline: 0;
   inset-block-end: calc(var(--bottom-nav-height) + var(--dock-room));
   z-index: var(--z-header);
-  /* The bottom bar's own tone, so the dock reads as part of the bar it sits on, with no rule between. */
+  /* The bottom bar's own tone, so the dock reads as part of the bar it sits on; a hairline between
+     them says where one ends (D219, 2026-10-29). */
   background: var(--color-surface-container);
+  border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
 }
@@ -47,7 +56,8 @@ html[data-player="open"] .queue-dock {
   }
 }
 
-/* The folded row (.queue-fold): the whole row is the button, so a tap anywhere on it opens the dock. */
+/* The folded row (.queue-fold): the whole row is the button, 48px tall and full width, so a tap
+   anywhere on it opens the dock. */
 .queue-fold {
   display: flex;
   align-items: center;
@@ -59,7 +69,7 @@ html[data-player="open"] .queue-dock {
   background: none;
   color: var(--color-on-surface);
   font: inherit;
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   text-align: start;
   -webkit-tap-highlight-color: transparent;
 }
@@ -68,11 +78,12 @@ html[data-player="open"] .queue-dock {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
+  font-size: var(--font-size-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Four characters wide, whatever the number: the title never shifts as 9% becomes 10%. */
+/* Four characters wide, whatever the number: the word never shifts as 9% becomes 10%. */
 .queue-fold-percent {
   flex: none;
   min-width: 4ch;
@@ -103,11 +114,33 @@ html[data-player="open"] .queue-dock {
   overscroll-behavior: contain;
 }
 
+/* ------------------------------------------------------------------ the head: Clear queue */
+
+/* Clear queue sits at the top right of the panel once every run has ended. The line is only there
+   while the button is, so a dock with runs under way is not taller for it. */
+.queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+}
+
+.queue-head:not(.queue-pop-head):has(.queue-clear[hidden]) {
+  display: none;
+}
+
+.queue-clear[hidden] {
+  display: none;
+}
+
 /* ------------------------------------------------------------------ the rows */
 
 .queue {
-  /* A row: the two text lines, the actions line, and the row's padding. Sizes the list's scroll. */
-  --queue-row-height: 7rem;
+  /* A row: the name, the status, the actions line, and the row's padding. Sizes the dock's scroll. */
+  --queue-row-height: 8.5rem;
+  /* How long the icon takes to breathe once and the word's light to cross it. */
+  --queue-breath: 2400ms;
+  --queue-sheen: 2400ms;
 }
 
 .queue-list {
@@ -121,76 +154,22 @@ html[data-player="open"] .queue-dock {
   display: none;
 }
 
+/* The ring (or Start listening) on the left, the name and the status beside it, the time at the far
+   end. The actions hang under the status. */
 .queue-row {
   display: grid;
-  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
+  grid-template-columns: var(--size-touch) minmax(0, 1fr) auto;
   align-items: start;
   column-gap: var(--space-4);
   padding-block: var(--space-2);
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
+  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
 }
 
-/* The thumbnail: the episode's colour until it has art, the podcast's own cover for a regeneration of
-   one, and the waveform when it has neither. A touch-sized square. */
-.queue-thumb {
-  position: relative;
+.queue-lead {
   display: grid;
   place-items: center;
   width: var(--size-touch);
   height: var(--size-touch);
-  border-radius: var(--radius-sm);
-  background: var(
-    --queue-tint,
-    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent)
-  );
-  color: var(--color-on-surface-muted);
-}
-
-.queue-thumb[data-tinted] {
-  color: color-mix(in oklch, var(--queue-tint), var(--color-blue-975) 70%);
-}
-
-.queue-thumb-glyph {
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
-}
-
-.queue-thumb-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  object-fit: cover;
-}
-
-.queue-thumb-img[hidden] {
-  display: none;
-}
-
-/* A regeneration's mark: a small disc on the thumbnail's bottom-right corner. */
-.queue-badge {
-  position: absolute;
-  inset-block-end: 0;
-  inset-inline-end: 0;
-  /* Half over the corner, half outside it. */
-  transform: translate(25%, 25%);
-  display: grid;
-  place-items: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-round);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
-.queue-badge[hidden] {
-  display: none;
-}
-
-.queue-badge .icon {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
 }
 
 .queue-main {
@@ -198,15 +177,9 @@ html[data-player="open"] .queue-dock {
   min-width: 0;
 }
 
-.queue-line {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin: 0;
-}
-
+/* The name and the status sit on the 44px lead's centre line: the name's line is the lead's top half. */
 .queue-name {
+  margin: 0;
   min-width: 0;
   overflow: hidden;
   font-size: var(--font-size-body);
@@ -215,29 +188,61 @@ html[data-player="open"] .queue-dock {
   white-space: nowrap;
 }
 
-/* The time left sits at the line's end in a width of its own, so the name is never re-cut as the
-   minutes tick down. */
-.queue-eta {
-  flex: none;
-  min-width: 6rem;
+.queue-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  min-width: 0;
   color: var(--color-on-surface-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-  white-space: nowrap;
+  font-size: var(--font-size-label);
 }
 
-.queue-status {
-  margin: 0;
+.queue-status-text {
+  min-width: 0;
   overflow: hidden;
-  color: var(--color-on-surface-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* The status icon has a box of 16px whether or not it holds one, so the words never shift when the
+   icon arrives or morphs. */
+.queue-status-icon {
+  flex: none;
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.queue-status-icon .icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.queue-status-icon:empty {
+  display: none;
+}
+
 /* A failed run's sentence is the point of the row: it wraps and is the danger colour. */
 .queue-row[data-state="failed"] .queue-status {
+  align-items: start;
   color: var(--color-danger);
+}
+
+.queue-row[data-state="failed"] .queue-status-text {
+  overflow: visible;
   white-space: normal;
+}
+
+/* The time sits at the far end in a width of its own, so the name is never re-cut as the minutes
+   tick down. */
+.queue-eta {
+  min-width: 5rem;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--font-leading-label);
+  text-align: end;
+  white-space: nowrap;
 }
 
 /* The actions line is always there, so Cancel leaving (the voices stage) or Listen now arriving
@@ -265,17 +270,32 @@ html[data-player="open"] .queue-dock {
   min-height: var(--size-touch);
 }
 
-/* ------------------------------------------------------------------ the ring */
+/* ------------------------------------------------------------------ the lead: ring, play, end icon */
 
-/* The percent inside a drawn arc: 100 units round, the fill a share of them. scripts/queue.ts sets
-   --queue-p (0 to 100) and --queue-span, the seconds the move takes, so it glides between two
-   answers and never goes back. */
+/* A drawn arc: 100 units round, the fill a share of them. scripts/queue.ts sets --queue-p (0 to 100)
+   and --queue-span, the seconds the move takes, so it glides between two answers and never goes back.
+   What sits inside is the slot: the percent in a row, a stage icon in the folded row. */
 .queue-ring {
+  --queue-ring-size: var(--size-touch);
+  --queue-ring-stroke: 3;
   position: relative;
   display: grid;
+  flex: none;
   place-items: center;
-  width: var(--size-touch);
-  height: var(--size-touch);
+  width: var(--queue-ring-size);
+  height: var(--queue-ring-size);
+}
+
+/* The dock's folded row: a 32px ring holding the stage's icon. */
+.queue-ring-fold {
+  --queue-ring-size: var(--space-8);
+  --queue-ring-stroke: 4;
+}
+
+/* The side column's row: a 24px ring, nothing inside, in the place of the icon it replaced. */
+.queue-ring-nav {
+  --queue-ring-size: var(--size-icon-lg);
+  --queue-ring-stroke: 5;
 }
 
 .queue-ring svg {
@@ -288,7 +308,7 @@ html[data-player="open"] .queue-dock {
 
 .queue-ring circle {
   fill: none;
-  stroke-width: 3;
+  stroke-width: var(--queue-ring-stroke);
 }
 
 .queue-ring-track {
@@ -308,14 +328,146 @@ html[data-player="open"] .queue-dock {
   line-height: 1;
 }
 
-.queue-ring[hidden],
-.queue-dismiss[hidden] {
+/* Everything made: the ring gives way to a check, in the ring's own place and size. */
+.queue-ring[data-ended] svg {
   display: none;
 }
 
+.queue-ring[data-ended="done"] {
+  color: var(--color-success);
+}
+
+.queue-ring[data-ended="failed"] {
+  color: var(--color-danger);
+}
+
+.queue-ring[data-ended] .queue-stage-icon .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.queue-ring-fold .queue-stage-icon .icon {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.queue-ring[hidden],
+.queue-play[hidden],
+.queue-end-icon[hidden] {
+  display: none;
+}
+
+/* Start listening: the ring has become a play button, filled, in the ring's own place. A link to the
+   podcast, so it needs no script to work. */
+.queue-play {
+  background: var(--color-accent-action);
+  color: var(--color-on-accent-action);
+}
+
+.queue-end-icon {
+  display: grid;
+  place-items: center;
+  color: var(--color-on-surface-muted);
+}
+
+.queue-end-icon .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.queue-row[data-state="failed"] .queue-end-icon {
+  color: var(--color-danger);
+}
+
 /* A row being cancelled waits where it is, and says so. */
-.queue-row[data-cancelling] :is(.queue-thumb, .queue-ring) {
+.queue-row[data-cancelling] .queue-lead {
   opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ the icons that morph */
+
+/* The slot holds one icon at a time. A new stage's icon turns in as the old one turns out; both stack
+   in the same cell, so nothing around them moves. */
+.queue-stage-icon {
+  display: grid;
+  place-items: center;
+}
+
+.queue-stage-icon > .icon {
+  grid-area: 1 / 1;
+  animation: queue-icon-in var(--duration-enter) var(--ease-out) both;
+}
+
+.queue-stage-icon > .icon[data-leaving] {
+  animation: queue-icon-out var(--duration-exit) var(--ease-out) both;
+}
+
+@keyframes queue-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-45deg);
+  }
+}
+
+@keyframes queue-icon-out {
+  to {
+    opacity: 0;
+    transform: scale(0.5) rotate(45deg);
+  }
+}
+
+/* A run under way breathes, very slightly, so the icon reads as alive. On the slot, so it never
+   fights the icon's own morph. */
+.queue-stage-icon[data-live] {
+  animation: queue-breathe var(--queue-breath) var(--ease-in-out) infinite;
+}
+
+@keyframes queue-breathe {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+/* The regeneration's icon turns once each time the queue opens: the dock's rows are shown, or the
+   popover is. Hidden surfaces do not render, so each open starts the turn again. */
+@media (prefers-reduced-motion: no-preference) {
+  .queue-dock[data-expanded] .queue-status-icon[data-turns] .icon,
+  .queue-pop:popover-open .queue-status-icon[data-turns] .icon {
+    animation: queue-turn var(--duration-spring-settle) var(--ease-out) 1 both;
+  }
+}
+
+@keyframes queue-turn {
+  from {
+    transform: rotate(-360deg);
+  }
+}
+
+/* ------------------------------------------------------------------ the word's shimmer */
+
+/* A light band crosses the word. The text is clipped to a gradient, so nothing but the letters
+   shimmer. Still, and plainly coloured, under reduced motion and forced colours. */
+.queue-word[data-live] {
+  background: linear-gradient(
+      90deg,
+      var(--color-on-surface-muted) 40%,
+      var(--color-on-surface) 50%,
+      var(--color-on-surface-muted) 60%
+    )
+    0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: queue-sheen var(--queue-sheen) var(--ease-linear) infinite;
+}
+
+@keyframes queue-sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }
 
 /* ------------------------------------------------------------------ the popover (from 64rem) */
@@ -326,8 +478,8 @@ html[data-player="open"] .queue-dock {
   inset: auto auto calc(var(--dock-room) + var(--space-4))
     calc(var(--side-nav-width) + var(--space-2));
   flex-direction: column;
-  width: 26rem;
-  max-height: min(32rem, 70dvh);
+  width: 28rem;
+  max-height: min(36rem, 70dvh);
   padding: 0;
   transform-origin: bottom left;
 }
@@ -343,11 +495,18 @@ html[data-player="open"] .queue-dock {
   }
 }
 
+/* The title is 20px and regular: headings are never bold (D125), so the weight of the hierarchy is the
+   size and the room around it (2026-10-29). */
+.queue-pop-head {
+  justify-content: space-between;
+  padding: var(--space-6) var(--space-6) var(--space-2);
+}
+
 .queue-pop-title {
   margin: 0;
-  padding: var(--space-4) var(--space-4) var(--space-2);
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-label);
+  font-size: var(--font-size-label-lg);
+  font-weight: var(--text-heading-weight);
+  line-height: var(--font-leading-title);
 }
 
 .queue-pop .queue-body {
@@ -357,14 +516,16 @@ html[data-player="open"] .queue-dock {
   overscroll-behavior: contain;
 }
 
+/* More air than the dock: 24px at the edges and 16px above and below each row. */
 .queue-pop .queue-row {
-  padding-inline: var(--space-4);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-6);
 }
 
 /* ------------------------------------------------------------------ the foot of the side column */
 
-/* The row under "Updated {date}": the navigation's own row shape, shown only while something is being
-   made. The percent keeps its width, so the words never shift. */
+/* The row under "Updated {date}": the navigation's own row shape, shown once something has been made
+   today. The ring takes the icon's place and size. */
 .app-nav-queue[hidden] {
   display: none;
 }
@@ -386,24 +547,6 @@ html[data-player="open"] .queue-dock {
   white-space: nowrap;
 }
 
-.app-nav-queue-percent {
-  flex: none;
-  min-width: 4ch;
-  color: var(--color-on-surface-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-}
-
-.app-nav-queue-percent:empty {
-  display: none;
-}
-
-/* The side column's row is narrower than the dock's: the icon, the words and the percent share it with a
-   gap of two. */
-.app-nav-queue {
-  gap: var(--space-2);
-}
-
 html[data-player="open"] .app-nav-queue {
   visibility: hidden;
 }
@@ -415,6 +558,18 @@ html[data-player="open"] .app-nav-queue {
   .queue-chevron {
     transition: none;
   }
+
+  .queue-stage-icon[data-live],
+  .queue-stage-icon > .icon,
+  .queue-stage-icon > .icon[data-leaving] {
+    animation: none;
+  }
+
+  .queue-word[data-live] {
+    background: none;
+    animation: none;
+    color: var(--color-on-surface);
+  }
 }
 
 @media (forced-colors: active) {
@@ -424,5 +579,10 @@ html[data-player="open"] .app-nav-queue {
 
   .queue-ring-fill {
     stroke: Highlight;
+  }
+
+  .queue-word[data-live] {
+    background: none;
+    color: CanvasText;
   }
 }

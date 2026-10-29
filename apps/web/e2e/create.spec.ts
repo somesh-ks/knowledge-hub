@@ -7,10 +7,10 @@ import {
   expectNoViolationsInEitherScheme,
   queueDock,
   queueStatus,
+  queueTitle,
   seedStorage,
+  startListening,
   test,
-  toastOpen,
-  toastText,
 } from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
@@ -278,9 +278,9 @@ test.describe("the Create page", () => {
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Writing your episode");
     await page.clock.runFor(4000);
-    // Finished, it leaves the queue and a toast says so.
-    await expect(toastText(page)).toHaveText("Episode ready");
-    await expect(queueDock(page)).toBeHidden();
+    // Finished, it stays in the queue for the day, and the folded row says so.
+    await expect(queueTitle(page)).toHaveText("Complete");
+    await expect(queueDock(page)).toBeVisible();
     expect(asked).toEqual(["4242", "4242", "4242"]);
   });
 
@@ -344,10 +344,10 @@ test.describe("the Create page", () => {
     live = true;
     await expect(async () => {
       await page.clock.runFor(10_000);
-      await expect(toastText(page)).toHaveText("Episode ready", { timeout: 500 });
+      await expect(queueTitle(page)).toHaveText("Complete", { timeout: 500 });
     }).toPass();
-    // The toast offers the new episode, which is not the page on screen.
-    await expect(toastOpen(page)).toBeVisible();
+    // The new episode is offered in its row, which is not the page on screen.
+    await expect(await startListening(page)).toBeVisible();
   });
 
   // A failed run's line: the stage it stopped in when the status names one, and a plain failure
@@ -448,7 +448,8 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create-open]").first()).toHaveAccessibleDescription(busy);
   });
 
-  test("Episode ready is a toast, and opening the episode forgets the run and gives the room back", async ({
+  // The 2026-10-29 owner ask: a finished run stays for the day, with Start listening, until Clear queue.
+  test("a finished episode stays in the queue with Start listening, and Clear queue gives the room back", async ({
     page,
   }) => {
     await page.clock.install();
@@ -483,30 +484,36 @@ test.describe("the Create page", () => {
     await page.clock.runFor(4000);
     await expect(async () => {
       await page.clock.runFor(3000);
-      await expect(toastText(page)).toHaveText("Episode ready", { timeout: 500 });
+      await expect(queueTitle(page)).toHaveText("Complete", { timeout: 500 });
     }).toPass();
-    // A finished run has left the queue: its room is given back at once.
-    await expect(queueDock(page)).toBeHidden();
-    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
-    await toastOpen(page).click();
+    // The run is over but its row stays, and so does the room for the dock.
+    await expect(queueDock(page)).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-run", /.*/);
+    await (await startListening(page)).click();
     await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
+    // The episode is on screen: the record is forgotten, the day's row is not.
+    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
+    await expect(queueTitle(page)).toHaveText("Complete");
+    await page.locator("[data-queue-toggle]").click();
+    await page.getByRole("button", { name: "Clear queue" }).click();
     await expect(queueDock(page)).toBeHidden();
     await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
-    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
   });
 
-  test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {
+  test("a finished run whose episode is on screen is forgotten as the record, and its row stays for the day", async ({
+    page,
+  }) => {
     await seedStorage(page, {
       session: {
         "singularity:run": JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href: EPISODE }),
       },
     });
     await page.goto("/library");
-    // A run that ended before this page opened is not in the queue, and is not announced again.
-    await expect(queueDock(page)).toBeHidden();
+    // A run that ended earlier today is in the day's queue, and is not announced again.
+    await expect(queueTitle(page)).toHaveText("Complete");
     await page.goto(EPISODE);
-    await expect(queueDock(page)).toBeHidden();
-    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
+    await expect(queueTitle(page)).toHaveText("Complete");
+    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
     expect(await page.evaluate(() => sessionStorage.getItem("singularity:run"))).toBeNull();
   });
 });

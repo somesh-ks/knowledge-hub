@@ -4,6 +4,7 @@ import type { IconName } from "../lib/icons";
 import { getSite } from "../lib/site";
 import BrandMark from "./BrandMark.astro";
 import Icon from "./Icon.astro";
+import QueueRing from "./QueueRing.astro";
 
 export type Destination = "today" | "library" | "settings";
 
@@ -84,16 +85,17 @@ const destinations: Array<{
     }
   </ul>
   {/* The foot of the side column; a phone shows the build's day on Settings instead, and the queue as
-       a dock above the bar (Queue.astro). The row shows only while something is being made, and
-       opens the podcast queue beside the column. */}
+       a dock above the bar (Queue.astro). The row shows once something has been made today, and
+       opens the podcast queue beside the column: a ring while it goes, a check once it is done. */}
   <div class="app-nav-foot">
     <p class="app-nav-updated">Updated {buildDay()}</p>
     <button class="app-nav-item app-nav-queue" type="button" popovertarget="queue-pop" aria-haspopup="dialog" data-queue-trigger hidden>
       <span class="app-nav-indicator">
-        <Icon name="waveform" class="icon-lg" />
+        <QueueRing class="queue-ring-nav" data-queue-trigger-ring>
+          <span class="queue-stage-icon" data-queue-stage-icon="nav"></span>
+        </QueueRing>
       </span>
-      <span class="app-nav-queue-title" data-queue-trigger-title></span>
-      <span class="app-nav-queue-percent" data-queue-trigger-percent></span>
+      <span class="app-nav-queue-title queue-word" data-queue-trigger-title></span>
     </button>
   </div>
 </nav>

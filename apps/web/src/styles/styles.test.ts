@@ -150,8 +150,8 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
   ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
   [
-    "components/Queue.astro",
-    "the progress ring in a queue row: a drawn arc, coloured by classes, not a glyph",
+    "components/QueueRing.astro",
+    "the progress ring of the podcast queue: a drawn arc, coloured by classes, not a glyph",
   ],
   [
     "sheets/GenerateSheet.tsx",

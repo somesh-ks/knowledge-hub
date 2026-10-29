@@ -198,7 +198,7 @@ test.describe("the podcast queue", () => {
     expect(await height()).toBe(before);
   });
 
-  test("a run that was cancelled stays as Cancelled, with nothing to try again, until dismissed", async ({
+  test("a run that was cancelled stays as Cancelled, with nothing to try again, until the queue is cleared", async ({
     page,
   }) => {
     await mock(page, () => []);
@@ -211,10 +211,50 @@ test.describe("the podcast queue", () => {
     });
     await expect(rows(page).first().getByRole("button", { name: "Try again" })).toBeHidden();
 
-    await rows(page)
-      .first()
-      .getByRole("button", { name: /^Dismiss/ })
-      .click();
+    await page.getByRole("button", { name: "Clear queue" }).and(page.locator(":visible")).click();
     await expect(rows(page)).toHaveCount(0);
+  });
+
+  // The 2026-10-29 owner ask: what was made today stays in the queue, the folded row says Complete,
+  // the ring has become Start listening, and Clear queue (shown once nothing is going) empties it.
+  test("a podcast made today stays across a reload, opens from Start listening, and goes with Clear queue", async ({
+    page,
+  }) => {
+    await mock(page, () => []);
+    const now = Date.now();
+    await seedStorage(page, {
+      local: {
+        "singularity:run": JSON.stringify({
+          id: 41,
+          phase: "done",
+          what: "briefing",
+          kind: "regenerate",
+          episode: "2026-10-07",
+          href: "/d/2026-10-07",
+          t0: now - 120_000,
+          stageAt: now - 60_000,
+        }),
+      },
+    });
+    await page.goto("/library");
+    await hydrated(page);
+    const wide = (page.viewportSize()?.width ?? 0) >= 1024;
+    const folded = page.locator(wide ? "[data-queue-trigger-title]" : "[data-queue-title]");
+    await expect(folded).toHaveText("Complete");
+    await page.reload();
+    await hydrated(page);
+    await expect(folded).toHaveText("Complete");
+
+    await openQueue(page);
+    const listen = page
+      .getByRole("link", { name: /^Start listening/ })
+      .and(page.locator(":visible"));
+    await expect(listen).toHaveAttribute("href", "/d/2026-10-07");
+    await page.getByRole("button", { name: "Clear queue" }).and(page.locator(":visible")).click();
+    await expect(rows(page)).toHaveCount(0);
+    await page.reload();
+    await hydrated(page);
+    await expect(page.locator("[data-queue-dock]")).toBeHidden();
+    await expect(page.locator("[data-queue-trigger]")).toBeHidden();
   });
 });

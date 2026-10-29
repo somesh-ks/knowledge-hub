@@ -1,6 +1,8 @@
 ---
+import type { IconName } from "../lib/icons";
 import { UPDATING_LABEL } from "../lib/runStages";
 import Icon from "./Icon.astro";
+import QueueRing from "./QueueRing.astro";
 
 // Every line the queue shows. scripts/runStatus.ts and scripts/queue.ts read them from the element's
 // data attributes, so the scripts carry no copy. A bare data-<state> is a state of the run the page
@@ -70,44 +72,78 @@ const words = {
   "data-word-weekly": "Weekly podcast",
   "data-word-podcast": "Podcast",
   "data-word-catch-up": "Catch up",
-  "data-word-head-one": "Generating podcast",
-  "data-word-head-many": "Generating {n} podcasts",
+  // The head's word while something is being made: one pool for each kind of stage
+  // (lib/queueStage.ts), walked in order every few seconds, `|` between the words.
+  "data-word-pool-wait": "Warming up|Lining up|Stretching",
+  "data-word-pool-gather": "Gathering|Rounding up|Skimming|Foraging",
+  "data-word-pool-choose": "Choosing|Weighing|Sifting|Curating",
+  "data-word-pool-write": "Scribbling|Writing|Drafting|Composing",
+  "data-word-pool-art": "Sketching|Painting|Doodling",
+  "data-word-pool-check": "Fact-checking|Double-checking|Verifying",
+  "data-word-pool-publish": "Polishing|Wrapping up|Tidying",
+  "data-word-pool-voices": "Recording|Musifying|Rehearsing|Humming",
+  "data-word-pool-finish": "Polishing|Shipping|Almost there",
   "data-word-head-failed": "Couldn't make the podcast",
+  "data-word-head-complete": "Complete",
   "data-word-head-ended": "Podcast queue",
-  "data-word-nav-one": "Generating",
-  "data-word-nav-many": "Generating {n}",
   "data-word-nav-failed": "Couldn't finish",
   "data-word-expand": "Show the podcast queue",
   "data-word-collapse": "Hide the podcast queue",
   "data-word-progress-label": "{title}, {pct} percent",
-  "data-word-regenerating": "Regenerating",
   "data-word-cancel-label": "Cancel {title}",
-  "data-word-dismiss-label": "Dismiss {title}",
+  "data-word-listen-label": "Start listening to {title}",
+  "data-word-clear": "Clear queue",
+};
+
+// The icons the queue draws, one for each kind of stage and for how a row ended. Rendered here, once,
+// so the script (scripts/queue.ts) clones them and carries no paths of its own.
+const icons: Record<string, IconName> = {
+  wait: "clock",
+  gather: "search",
+  choose: "sliders",
+  write: "pencilSimple",
+  art: "viewGrid",
+  check: "check",
+  publish: "share",
+  voices: "waveform",
+  finish: "library",
+  done: "checkCircle",
+  failed: "alert",
+  started: "info",
+  cancelled: "close",
+  refresh: "refresh",
 };
 ---
 
-{/* The podcast queue (D219): what is being made, as a browser lists its downloads. Below 64rem a dock
-     sits directly above the bottom bar, never a modal: one row when folded ("Generating podcast 45%"),
-     the rows when opened, and the bar and the app bar stay usable either way. From 64rem a row at the
-     foot of the side column (AppNav.astro) opens the same rows in a popover. One markup holds the
-     words, the status region and both surfaces; scripts/queue.ts fills them. Persisted across
-     navigations, so what the script put in it is still there on the next page. */}
+{/* The podcast queue (D219): what is being made, as a browser lists its downloads, and what was made
+     today. Below 64rem a dock sits directly above the bottom bar, never a modal: one row when folded
+     (a ring, a word that changes with the stage, the percent), the rows when opened, and the bar and
+     the app bar stay usable either way. From 64rem a row at the foot of the side column (AppNav.astro)
+     opens the same rows in a popover. One markup holds the words, the icons, the status region and
+     both surfaces; scripts/queue.ts fills them. Persisted across navigations, so what the script put
+     in it is still there on the next page. */}
 <div class="queue" data-run-status data-queue transition:persist="queue" {...lines} {...words}>
   <span class="sr-only" role="status" data-run-announce></span>
 
   <section class="queue-dock" data-queue-dock aria-label="Podcast queue" hidden>
     <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
-      <span class="queue-fold-text" data-queue-title></span>
+      <QueueRing class="queue-ring-fold" data-queue-fold-ring>
+        <span class="queue-stage-icon" data-queue-stage-icon="fold"></span>
+      </QueueRing>
+      <span class="queue-fold-text queue-word" data-queue-title></span>
       <span class="queue-fold-percent" data-queue-percent></span>
       <Icon name="chevronDown" class="queue-chevron icon-lg" />
     </button>
     <div class="queue-body" data-queue-body>
+      <div class="queue-head">
+        <button class="btn queue-clear" type="button" data-queue-clear hidden>Clear queue</button>
+      </div>
       <ul class="queue-list" role="list" data-queue-list></ul>
     </div>
   </section>
 
   {/* The popover is the More menu's own surface (hero.css) with its own place and size (queue.css).
-       It opens only from the side column's row, which shows only while something is being made. */}
+       It opens only from the side column's row, which shows once something has been made today. */}
   <div
     class="hero-menu-list queue-pop"
     id="queue-pop"
@@ -117,25 +153,45 @@ const words = {
     data-picker
     data-queue-pop
   >
-    <h2 class="queue-pop-title" id="queue-pop-title">Podcast queue</h2>
+    <div class="queue-head queue-pop-head">
+      <h2 class="queue-pop-title" id="queue-pop-title">Podcast queue</h2>
+      <button class="btn queue-clear" type="button" data-queue-clear hidden>Clear queue</button>
+    </div>
     <div class="queue-body">
       <ul class="queue-list" role="list" data-queue-list></ul>
     </div>
   </div>
 
+  {/* The icons the script clones: the stage's, and how a row ended. */}
+  <template data-queue-icons>
+    {
+      Object.entries(icons).map(([kind, name]) => (
+        <span data-queue-icon={kind}>
+          <Icon name={name} />
+        </span>
+      ))
+    }
+  </template>
+
   <template data-queue-row>
     <li class="queue-row" data-queue-row-item>
-      <span class="queue-thumb" aria-hidden="true">
-        <Icon name="waveform" class="queue-thumb-glyph" />
-        <img class="queue-thumb-img" alt="" width="44" height="44" decoding="async" hidden />
-        <span class="queue-badge" data-queue-badge hidden><Icon name="refresh" /></span>
-      </span>
+      {/* The lead: the ring while the run goes (the percent inside it); once it ended, Start listening
+           when there is something to open, else the icon that says how it ended. */}
+      <div class="queue-lead">
+        <QueueRing data-queue-ring role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <span class="queue-ring-text" data-queue-ring-text></span>
+        </QueueRing>
+        <a class="icon-btn press queue-play" href="#" data-queue-play hidden>
+          <Icon name="play" class="icon-lg" />
+        </a>
+        <span class="queue-end-icon" data-queue-end-icon hidden></span>
+      </div>
       <div class="queue-main">
-        <p class="queue-line">
-          <span class="queue-name" data-queue-name></span>
-          <span class="queue-eta" data-queue-eta></span>
+        <p class="queue-name" data-queue-name></p>
+        <p class="queue-status">
+          <span class="queue-status-icon queue-stage-icon" data-queue-status-icon></span>
+          <span class="queue-status-text" data-queue-status></span>
         </p>
-        <p class="queue-status" data-queue-status></p>
         <div class="queue-actions">
           <button class="btn queue-cancel" type="button" data-queue-cancel>Cancel</button>
           <button class="btn-primary queue-listen" type="button" data-queue-listen hidden>Listen now</button>
@@ -144,16 +200,8 @@ const words = {
           <a class="text-link queue-details" href="#" target="_blank" rel="noopener noreferrer" data-queue-details hidden>Details</a>
         </div>
       </div>
-      <span class="queue-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-queue-ring>
-        <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false">
-          <circle class="queue-ring-track" cx="22" cy="22" r="19" pathLength="100"></circle>
-          <circle class="queue-ring-fill" cx="22" cy="22" r="19" pathLength="100"></circle>
-        </svg>
-        <span class="queue-ring-text" data-queue-ring-text></span>
-      </span>
-      <button class="icon-btn queue-dismiss press" type="button" data-queue-dismiss hidden>
-        <Icon name="close" class="icon-lg" />
-      </button>
+      {/* The time left while it goes, the time it ended once it has. */}
+      <span class="queue-eta" data-queue-eta></span>
     </li>
   </template>
 </div>

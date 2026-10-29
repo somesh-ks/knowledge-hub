@@ -61,15 +61,15 @@ export function readRunRecord(storage: StorageSource<Pick<Storage, "getItem">>):
   }
 }
 
-/** A run that is still going: the sheets island is woken early to say how it ends (a toast, and a cue for a podcast). */
+/** A run that is still going: the sheets island is woken early to say how it ends (a cue for a podcast, a toast for a failure under the player). */
 export const isRunGoing = (run: RunRecord | null): boolean =>
   run !== null &&
   run.kind !== "delete" &&
   (run.phase === "queued" || run.phase === "running" || run.phase === "updating");
 
 /**
- * How a run's end is told, once: a toast for every run (the queue lets go of a run that finished, so
- * the toast is how it is found), and a sound for a podcast. The indicator redraws many times after a
+ * How a run's end is told, once: a toast for a failure the open player covers, and a sound for a
+ * podcast (the queue keeps the run itself). The indicator redraws many times after a
  * run ends (a tap on a row, another page), and the island is mounted anew on each page, so the answer
  * is kept for the tab: the last claimed `<id>:<phase>` is suppressed on later calls. Other runs or
  * phases replace that claim. If storage is unavailable, the end is returned and may repeat.
@@ -85,7 +85,7 @@ export function claimEnd(
     if (storage.getItem(CUED_KEY) === key) return null;
     storage.setItem(CUED_KEY, key);
   } catch {
-    // Without storage the end may be told twice; it is a toast and a sound, not a record.
+    // Without storage the end may be told twice; it is a sound and a toast, not a record.
   }
   return { ended: run.phase === "done" ? "finished" : "failed", sound: run.what === "briefing" };
 }

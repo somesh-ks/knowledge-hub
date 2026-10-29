@@ -10,10 +10,12 @@
  * prewarm is loaded only once a new episode is live.
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
- * out again and the new run is followed. A finished run is announced by a toast (sheets/runEndToast.ts).
+ * out again and the new run is followed. A run that ended is kept for the day in the podcast queue
+ * (lib/queueDay.ts) until it is cleared; the sheets island plays the cue for a podcast.
  */
 
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { clearDay, forget, remember } from "../lib/queueDay";
 import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { briefingFailureLine, failureLine } from "../lib/runStages";
 
@@ -183,10 +185,18 @@ function clearTitle(): void {
 // Looking at the tab again takes the badge off its title.
 if (typeof document !== "undefined") document.addEventListener("visibilitychange", clearTitle);
 
-/** Forget the run on record (the queue's dismiss on a run that ended), and give focus a home. */
-export function dismiss(): void {
-  following = 0;
-  write(null);
+/** Clear queue: the day's ended runs go, and so does the run on record when it ended. Focus is given a home. */
+export function clearQueue(): void {
+  try {
+    clearDay(localStorage);
+  } catch {
+    // Without storage there is no day to clear.
+  }
+  const run = read();
+  if (run && FINISHED.includes(run.phase)) {
+    following = 0;
+    write(null);
+  }
   show(null);
   focusCreate();
 }
@@ -255,12 +265,20 @@ export function statusLine(run: Stored, words: Record<string, string | undefined
 /**
  * Draws the run: the queue (scripts/queue.ts) paints it from the record and is told by an event, so
  * this keeps the page's own state in step: the Create buttons say why they cannot start another run
- * while one goes, and a finished episode already on screen is forgotten. A run that is no longer
- * going has nothing to show in the queue; the toast says it ended (sheets/runEndToast.ts).
+ * while one goes, and a finished episode already on screen is forgotten as the record (not as a row of
+ * the queue). A run that ended is kept for the day first (lib/queueDay.ts): the queue draws it from there.
  */
 function show(run: Stored | null): void {
   const root = document.querySelector<HTMLElement>("[data-run-status]");
   if (!root) return;
+  if (run && run.kind !== "delete") {
+    try {
+      if (FINISHED.includes(run.phase)) remember(localStorage, run, run.stageAt ?? Date.now());
+      else forget(localStorage, run.id);
+    } catch {
+      // The queue then shows only the run on record.
+    }
+  }
   // The new episode is the page on screen: it has been found, so there is nothing to open.
   if (run?.phase === "done" && run.href && !run.what && samePage(run.href)) {
     write(null);
@@ -599,6 +617,12 @@ export async function retry(): Promise<void> {
     button.textContent = words;
   }
   if (res?.status === 202 && reply.run_id) {
+    // The new run replaces the failed one in the queue.
+    try {
+      forget(localStorage, run.id);
+    } catch {
+      // Nothing kept to forget.
+    }
     const about = run.what
       ? { what: run.what }
       : run.kind && run.episode

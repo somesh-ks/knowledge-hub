@@ -93,17 +93,23 @@ export const test = base.extend<Options & { problems: Problems }>({
 
 export { expect };
 
-/** The podcast queue's dock on a phone: shown only while a run is going or has not been dismissed. */
+/** The podcast queue's dock on a phone: shown while a run is going and for the day after one ended, until Clear queue. */
 export const queueDock = (page: Page): Locator => page.locator("[data-queue-dock]");
 
 /** What the queue's newest row says, whether the dock is folded or open. */
 export const queueStatus = (page: Page): Locator =>
   page.locator("[data-queue-dock] [data-queue-status]").first();
 
-/** The toast that says a run ended (sheets/runEndToast.ts): its words, and Open when it offers one. */
-export const toastText = (page: Page): Locator => page.locator(".toast .toast-text");
-export const toastOpen = (page: Page): Locator =>
-  page.locator(".toast").getByRole("button", { name: "Open" });
+/** The dock's folded word: the stage while a run goes, "Complete" once every run of the day is over. */
+export const queueTitle = (page: Page): Locator =>
+  page.locator("[data-queue-dock] [data-queue-title]");
+
+/** Opens the dock if it is folded, and gives its Start listening link: a finished run stays in the queue with it. */
+export async function startListening(page: Page): Promise<Locator> {
+  const toggle = page.locator("[data-queue-toggle]");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  return page.locator("[data-queue-dock]").getByRole("link", { name: /^Start listening/ });
+}
 
 export const ROUTES = [
   { name: "home", path: "/" },

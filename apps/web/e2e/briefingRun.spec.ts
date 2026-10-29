@@ -1,5 +1,13 @@
 import type { Page } from "@playwright/test";
-import { expect, hydrated, queueDock, queueStatus, test, toastOpen, toastText } from "./fixtures";
+import {
+  expect,
+  hydrated,
+  queueDock,
+  queueStatus,
+  queueTitle,
+  startListening,
+  test,
+} from "./fixtures";
 
 const ID = "2026-10-07";
 const text = queueStatus;
@@ -74,10 +82,9 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     await expect(queueDock(page)).toBeVisible();
     await expect(text(page)).toHaveText(/Waiting to start|Gathering stories/);
     await expect(text(page)).toHaveText("Writing the podcast", { timeout: 15_000 });
-    // Finished, it leaves the queue. The page on screen is the old briefing: the toast offers the new one.
-    await expect(toastText(page)).toHaveText("Podcast ready", { timeout: 15_000 });
-    await expect(queueDock(page)).toBeHidden();
-    await toastOpen(page).click();
+    // Finished, it stays in the queue for the day: the folded row says Complete, and Start listening opens the new podcast.
+    await expect(queueTitle(page)).toHaveText("Complete", { timeout: 15_000 });
+    await (await startListening(page)).click();
     await expect(page).toHaveURL(new RegExp(`/d/${ID}$`));
   });
 
@@ -111,26 +118,24 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     // A failed run opens the dock, so its whole sentence and its three actions are in view.
     await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(card.getByRole("link", { name: "Details" })).toBeVisible();
-    await expect(card.getByRole("button", { name: /^Dismiss/ })).toBeVisible();
-    // Try again and Details sit on one row under the sentence; the dismiss is in the ring's place, on
-    // screen.
-    const box = async (name: string, role: "button" | "link") =>
-      (await card
-        .getByRole(role, { name: name === "Dismiss" ? /^Dismiss/ : name })
-        .boundingBox()) as {
+    await expect(card.getByRole("button", { name: "Clear queue" })).toBeVisible();
+    // Try again and Details sit on one row under the sentence; Clear queue is at the panel's top right,
+    // on screen.
+    const box = async (role: "button" | "link", name: string) =>
+      (await card.getByRole(role, { name }).boundingBox()) as {
         x: number;
         y: number;
         width: number;
         height: number;
       };
-    const [again, details, dismiss] = [
-      await box("Try again", "button"),
-      await box("Details", "link"),
-      await box("Dismiss", "button"),
+    const [again, details, clear] = [
+      await box("button", "Try again"),
+      await box("link", "Details"),
+      await box("button", "Clear queue"),
     ];
     expect(Math.abs(again.y - details.y)).toBeLessThan(4);
     const viewport = page.viewportSize()?.width ?? 0;
-    expect(dismiss.x + dismiss.width).toBeLessThanOrEqual(viewport);
+    expect(clear.x + clear.width).toBeLessThanOrEqual(viewport);
 
     await card.getByRole("button", { name: "Try again" }).click();
     await expect.poll(() => bodies.length).toBe(2);

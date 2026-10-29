@@ -72,8 +72,9 @@ export default function SheetsRoot() {
     return () => window.removeEventListener(OPEN_SHEET_EVENT, onRequest);
   }, [openSheet]);
 
-  // A run finishes in the run script, not in this island, and the queue lets go of it. Its end is
-  // told here, once for each outcome: a toast for every run, and the sound a Regenerate always had.
+  // A run finishes in the run script, not in this island. Its end is told here, once for each outcome:
+  // the sound a Regenerate always had, and a toast for a failure the open player covers. The queue
+  // keeps every run that ended, so there is no "ready" toast.
   useEffect(() => {
     const onRun = (): void => {
       const run = readRunRecord(() => localStorage);
