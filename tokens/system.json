@@ -256,7 +256,7 @@
         "--size-icon-lg",
         "--size-touch"
       ],
-      "usedIn": 24
+      "usedIn": 23
     },
     {
       "id": "icon-btn-tonal",
@@ -979,7 +979,7 @@
       "tokens": [
         "--color-on-surface"
       ],
-      "usedIn": 6
+      "usedIn": 5
     },
     {
       "id": "sheet",
@@ -1090,7 +1090,7 @@
         "--size-icon",
         "--size-touch"
       ],
-      "usedIn": 9
+      "usedIn": 8
     },
     {
       "id": "multiselect",
@@ -1241,7 +1241,7 @@
       "tokens": [
         "--size-touch"
       ],
-      "usedIn": 4
+      "usedIn": 3
     },
     {
       "id": "status-dot",
@@ -1542,6 +1542,14 @@
     {
       "class": "player-fallback-action",
       "reason": "a text action in the player's fallback card"
+    },
+    {
+      "class": "queue-fold",
+      "reason": "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face"
+    },
+    {
+      "class": "app-nav-queue",
+      "reason": "the side column's queue row: the navigation row's own look (app-nav-item) on a button"
     },
     {
       "class": "player-queue-row",
