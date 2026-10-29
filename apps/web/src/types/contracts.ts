@@ -168,6 +168,16 @@ export interface GenerationRow {
   run_id: number;
   /** A briefing's run (a Regenerate, a Generate or the schedule's) or an episode's (a Catch up). */
   what: "briefing" | "episode";
+  /**
+   * What the person asked for. Only these two are listed: a Daily or Weekly made on the schedule is
+   * never one of them, and nor is a delete.
+   */
+  kind: "catch_up" | "regenerate";
+  /**
+   * The podcast a regeneration replaces (a digest id or an episode id), when the run's title says;
+   * null for a Catch up, and for a podcast's regeneration whose title does not name it.
+   */
+  target: string | null;
   state: "queued" | "running";
   /** When GitHub created the run: ISO 8601. */
   started_at: string;

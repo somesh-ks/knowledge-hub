@@ -82,9 +82,13 @@ function rowFromRecord(): GenerationRow | null {
   const run = readRunRecord(() => localStorage);
   if (!run || typeof run.id !== "number") return null;
   if (run.phase !== "queued" && run.phase !== "running") return null;
+  const replaced = run.retry?.body.replace;
+  const target = run.episode ?? (typeof replaced === "string" ? replaced : null);
   return {
     run_id: run.id,
     what: run.what === "briefing" ? "briefing" : "episode",
+    kind: run.what === "briefing" || run.kind === "regenerate" ? "regenerate" : "catch_up",
+    target,
     state: run.phase === "queued" ? "queued" : "running",
     started_at: new Date(run.t0 ?? Date.now()).toISOString(),
     stage: run.stage ?? 0,

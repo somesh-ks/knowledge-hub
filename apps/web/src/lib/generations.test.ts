@@ -14,6 +14,8 @@ const words: GenerationWords = {
 const row = (over: Partial<GenerationRow> = {}): GenerationRow => ({
   run_id: 7,
   what: "episode",
+  kind: "catch_up",
+  target: null,
   state: "running",
   started_at: "2026-10-28T09:00:00Z",
   stage: 1,

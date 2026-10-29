@@ -66,6 +66,57 @@ describe("the list of generations", () => {
     expect(result.body).toEqual({ generations: [] });
   });
 
+  // The queue names a row for what it is (lib/queueNames.ts) and shows only what a person asked for.
+  it("tells a Catch up from a regeneration, and names the podcast a regeneration replaces", async () => {
+    const episodes = [
+      runJson({
+        id: 41,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "episode",
+        created_at: "2026-10-28T05:00:00Z",
+      }),
+      runJson({
+        id: 42,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "regenerate ep-20261027-1405",
+        created_at: "2026-10-28T05:10:00Z",
+      }),
+      runJson({
+        id: 43,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "regenerate not an id",
+        created_at: "2026-10-28T05:20:00Z",
+      }),
+      runJson({
+        id: 44,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "delete ep-20261027-1405",
+        created_at: "2026-10-28T05:30:00Z",
+      }),
+    ];
+    const github = setup(
+      [runJson({ id: 45, status: "in_progress", display_title: "run" })],
+      episodes,
+    );
+    for (const id of [41, 42, 43, 45]) {
+      github.on(`GET /actions/runs/${id}/jobs`, { json: { jobs: [{ steps: [] }] } });
+    }
+    const result = await handleGenerations({ env, fetch: github.fetch });
+    const rows = (
+      result.body as { generations: { run_id: number; kind: string; target: string | null }[] }
+    ).generations;
+    expect(rows.map(({ run_id, kind, target }) => [run_id, kind, target])).toEqual([
+      [45, "regenerate", null],
+      [41, "catch_up", null],
+      [42, "regenerate", "ep-20261027-1405"],
+      [43, "regenerate", null],
+    ]);
+  });
+
   it("leaves out a run that is not ours, and answers 503 without leaking when GitHub fails", async () => {
     const foreign = setup([
       runJson({ id: 31, status: "in_progress", repository: { full_name: "evil/repo" } }),
