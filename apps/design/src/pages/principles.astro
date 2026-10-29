@@ -1,93 +1,106 @@
 ---
 import PageHead from "../components/PageHead.astro";
+import Icon from "../../../web/src/components/Icon.astro";
+import type { IconName } from "../../../web/src/lib/icons";
 import Shell from "../layouts/Shell.astro";
 
 // Written from the product brief (apps/web/PRODUCT.md), the design-engineering ledger and the
 // decisions it cites. The D-numbers are the repo's decisions; a principle changes there first.
-const principles: { title: string; body: string[]; ref: string }[] = [
+// One line each: the reasoning lives in the decision the number points to.
+const principles: { title: string; line: string; ref: string; icon: IconName; tone: string }[] = [
   {
-    title: "A real app, not a generated page",
-    body: [
-      "The visual direction is a podcast app. Google Podcasts sets the language, YouTube Music sets how the player behaves, and Material 3 sets the tonal surfaces. A new screen starts from how the reference product does it, not from what would look nice.",
-      "Surfaces are flat. A control sits on the page as a tonal fill with no outline; the only outline is on a text field, where the boundary has to be seen.",
-    ],
+    title: "A real app",
+    line: "A podcast app first: tonal, flat, no outlines.",
     ref: "D31, D72",
+    icon: "play",
+    tone: "accent",
   },
   {
-    title: "Nothing moves that the reader did not move",
-    body: [
-      "A chip does not grow when its check appears. A panel does not shake when a menu opens. A page does not scroll itself. Controls hold one box across hover, press, checked and played; where a state changes the content, a hidden copy holds the room.",
-      "Reduced motion means fewer and gentler animations, never none.",
-    ],
+    title: "Nothing moves unasked",
+    line: "Controls hold one box through every state.",
     ref: "D94, D95",
+    icon: "pin",
+    tone: "success",
   },
   {
     title: "Quiet and live",
-    body: [
-      "No waiting copy and no chatter about saving: the saved control is the confirmation. The interface speaks only when the reader can act on what it says, and a failure is told once, in one place.",
-    ],
+    line: "It speaks only when the reader can act.",
     ref: "D94, D115",
+    icon: "wifi",
+    tone: "info",
   },
   {
-    title: "Show what a control does by how it looks",
-    body: [
-      "A control that explains itself is a control that is wrong. A glyph says what a press does; a field that opens a list looks like a select; a disabled control stays on its row, dimmed and named, never hidden. A decoration must never look pressable.",
-    ],
+    title: "Looks like what it does",
+    line: "A glyph says the press; a disabled control stays, dimmed.",
     ref: "D92, D98",
+    icon: "thumbsUp",
+    tone: "warning",
   },
   {
-    title: "Minimal, with high brevity",
-    body: [
-      "Fewer controls, fewer words, one way to say each thing. One noun for one thing. Labels are plain: Format, Custom, AI model. A status line is three or four words.",
-      "One filled action per screen. Color is information, not decoration: it says what is current, chosen or wrong.",
-    ],
+    title: "Less is more",
+    line: "Fewer controls, fewer words, one filled action per screen.",
     ref: "D77, D84, D96",
+    icon: "shapes",
+    tone: "danger",
   },
   {
-    title: "Hierarchy by size and space, never by crowding",
-    body: [
-      "A secondary line goes under its title with a full spacing step, never above it. Two sizes that are nearly the same read as a mistake, so the scale keeps its steps wide. Headings are regular weight; nothing is bold.",
-      "Spacing is the 8pt grid, with the 4px step only where the rules name it.",
-    ],
+    title: "Space makes the hierarchy",
+    line: "Wide steps, the 8pt grid, regular weight, nothing bold.",
     ref: "D31, D73, D125, D131",
+    icon: "viewList",
+    tone: "accent",
   },
   {
     title: "Every control is complete",
-    body: [
-      "A touch target of at least 44px, a sound, a press state that never shrinks the words, and a focus ring that survives forced colors. A control missing any of the four is unfinished, however it looks.",
-    ],
+    line: "A 44px target, a sound, a press state, a focus ring.",
     ref: "D72, D101",
+    icon: "checkCircle",
+    tone: "success",
   },
   {
-    title: "Accessible to the standard, not the checklist",
-    body: [
-      "WCAG 2.2 AA. Text is 4.5 to 1 on every surface it can sit on and a control's edge is 3 to 1; the Color page measures both live. Color is never the only signal: a word or a glyph says it too.",
-    ],
+    title: "Accessible to the standard",
+    line: "WCAG 2.2 AA; color is never the only signal.",
     ref: "D54",
+    icon: "info",
+    tone: "info",
   },
   {
-    title: "Tokens are the only source of values",
-    body: [
-      "No color literal, no raw length, no private easing. A component reads a component token, which reads a semantic token, which reads a primitive. A change to a part is made in its shared class, component or token, never on one page only.",
-    ],
+    title: "Tokens are the only values",
+    line: "Primitive, semantic, component; no literals.",
     ref: "D131",
+    icon: "palette",
+    tone: "warning",
   },
   {
-    title: "Fixes with a reason are not undone",
-    body: [
-      "Markup or a rule with a comment giving its date and decision is load-bearing: extend it or ask, do not rewrite it to make another task work. Look up the history of a shared rule before changing it.",
-    ],
+    title: "Fixes with a reason stay",
+    line: "A dated rule is load-bearing: extend it or ask.",
     ref: "",
+    icon: "pencilSimple",
+    tone: "danger",
   },
 ];
 
 const bans = [
-  "Boxed outlines and cards inside cards.",
-  "Cream backgrounds, gradient washes, grey shadows, terracotta.",
-  "Italic accent words, monospace eyebrows, all-caps labels, numbered labels.",
-  "A chevron on the bar, a grabber on phone sheets, a drag handle on the player.",
-  "A meta line above a headline, a vendor prefix or model id in a label.",
-  "Em dashes.",
+  "Outlined boxes and cards in cards",
+  "Gradient washes, grey shadows, cream, terracotta",
+  "Italic accents, monospace eyebrows, all caps",
+  "A chevron on the bar, a grabber, a drag handle",
+  "A meta line above a headline",
+  "Em dashes",
+];
+
+const kept: { title: string; line: string; icon: IconName }[] = [
+  {
+    title: "On each edit",
+    line: "A static check for literals and off-grid space.",
+    icon: "pencilSimple",
+  },
+  { title: "On every page", line: "A browser suite measures the rendered grid.", icon: "viewGrid" },
+  {
+    title: "Before a merge",
+    line: "A design audit, light and dark, phone and desktop.",
+    icon: "search",
+  },
 ];
 ---
 
@@ -95,20 +108,18 @@ const bans = [
   <div class="settings-view guide-page" data-settings data-ready>
     <PageHead title="Principles" />
 
-    <section aria-labelledby="brief">
-      <h2 class="section-head" id="brief">What it is for</h2>
-      <p class="guide-prose">Singularity is a private briefing for one design engineer: the two days of tech and design-engineering news that matter, three minutes to read or eight to hear, usually on a phone with one hand. It is a curator's cut, not an aggregator's feed. The interface follows from that: quick, plain and out of the way.</p>
-    </section>
+    <p class="guide-lead">A private briefing for one design engineer, read with one hand. Quick, plain, out of the way.</p>
 
     <section aria-labelledby="rules">
-      <h2 class="section-head" id="rules">Principles</h2>
-      <ol class="guide-principles" role="list">
+      <h2 class="section-head" id="rules">What it follows</h2>
+      <ol class="guide-cards" role="list">
         {
-          principles.map((principle) => (
-            <li class="guide-principle">
+          principles.map((principle, index) => (
+            <li class="guide-card" data-tone={principle.tone} style={`--n: ${index}`}>
+              <span class="guide-card-icon" aria-hidden="true"><Icon name={principle.icon} class="icon-lg" /></span>
               <h3>{principle.title}</h3>
-              {principle.body.map((paragraph) => <p>{paragraph}</p>)}
-              {principle.ref && <p class="guide-note">{principle.ref}</p>}
+              <p>{principle.line}</p>
+              {principle.ref && <span class="guide-card-ref">{principle.ref}</span>}
             </li>
           ))
         }
@@ -117,15 +128,24 @@ const bans = [
 
     <section aria-labelledby="bans">
       <h2 class="section-head" id="bans">Not here</h2>
-      <p class="guide-note">Each was tried or refused, and the owner said no.</p>
-      <ul class="guide-list">
-        {bans.map((ban) => <li>{ban}</li>)}
+      <ul class="guide-bans" role="list">
+        {bans.map((ban) => <li><Icon name="close" class="icon-lg" />{ban}</li>)}
       </ul>
     </section>
 
     <section aria-labelledby="kept">
       <h2 class="section-head" id="kept">How it is kept</h2>
-      <p class="guide-prose">Three layers catch drift. A static check reads every stylesheet for literals, off-grid spacing and undefined tokens, and runs on each edit. A browser suite measures the rendered grid on every page. A design audit screenshots each page, light and dark, phone and desktop, before a change merges. This guide is the fourth: each component page here is drawn by a spec that lives beside the component, and a test fails when a shared class has no spec.</p>
+      <ol class="guide-cards" role="list">
+        {
+          kept.map((step, index) => (
+            <li class="guide-card" data-tone="accent" style={`--n: ${index}`}>
+              <span class="guide-card-icon" aria-hidden="true"><Icon name={step.icon} class="icon-lg" /></span>
+              <h3>{step.title}</h3>
+              <p>{step.line}</p>
+            </li>
+          ))
+        }
+      </ol>
     </section>
   </div>
 </Shell>
