@@ -305,13 +305,6 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Not counted: Alexandria credits (their own cap of 30 a run, D138); dry runs, failed replacements and on-demand runs, which commit nothing; a cancelled or timed-out run, which skips its failure record. A ledger that does not read fails open (a warning, the run's own 50): a briefing without Firecrawl loses its YouTube feeds and scrapes.
 - Revisit if: the owner's Firecrawl plan changes, or a week's ledger passes 100.
 
-## D221: Firecrawl gets 300 requests a week, at most 60 a run
-
-- Date: 2026-10-29 (decided for the owner by the coordinator while the owner is away; amends D166)
-- Decision: `FIRECRAWL_WEEKLY_BUDGET` 100 to 300 and `FIRECRAWL_RUN_CEILING` 50 to 60; the listing share stays 55% (33 listings, more than the 17 listing sources).
-- Why: the 100 is our cap, not the plan's. Four real runs (24 to 27 Oct) spent all of it, so the dailies of 28 and 29 Oct fetched no listing, relayed no YouTube feed and scraped no article, and 3 of 16 selected stories had no readable text. A daily asks for about 40 requests, a week about 150; 300 requests are about 0.25 USD at the ledger's price, and the Firecrawl account holds hundreds of thousands of credits (read 2026-10-29).
-- Revisit if: a week's ledger passes 300, or the plan's credits run low.
-
 ## D180: the episode eval runs only when asked, and on a pull request judges only the branch's rewrites
 
 - Date: 2026-10-24 (the owner: "generating a podcast script shouldnt be this expensive as today", "especially anthropic api costs")
@@ -380,3 +373,11 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Open before step 4: the reply ceiling is not what costs money. `THINKING_HEADROOM` (8,000) already sits on top of it, a tight ceiling once cut the writer's JSON off mid-object, and `TokenBudget.check` counts the ceiling in its estimate, so raising it alone trips the 400,000-token run budget sooner (the 2026-10-25 weekly wrote 403,000). `story_writer` sets no `effort`, so its thinking is billed as output. Measure stories written against stories aired, and the writer at lower effort on `loop/`'s replay, before the batch.
 - Supersedes: D135 once step 3 ships (its revisit condition, an earlier start, is met, and the hold gives the batch its wait). Amends: D197 (the strict publish time stays; the hold no longer holds the lane).
 - Revisit if: a held publish job is replaced while pending (GitHub keeps one pending run per group), or a batch misses 15 minutes before publish on more than one run in ten.
+
+## D221: Firecrawl gets 300 requests a week, at most 60 a run
+
+- Date: 2026-10-29 (decided for the owner by the coordinator while the owner is away; amends D166)
+- Context changed: D166's 100 a week was spent by four runs in three days, which left every later daily with no Firecrawl room.
+- Decision: `FIRECRAWL_WEEKLY_BUDGET` 100 to 300 and `FIRECRAWL_RUN_CEILING` 50 to 60; the listing share stays 55% (33 listings, more than the 17 listing sources).
+- Why: the 100 is our cap, not the plan's. Four real runs (24 to 27 Oct) spent all of it, so the dailies of 28 and 29 Oct fetched no listing, relayed no YouTube feed and scraped no article, and 3 of 16 selected stories had no readable text. A daily asks for about 40 requests, a week about 150; 300 requests are about 0.25 USD at the ledger's price, and the Firecrawl account holds hundreds of thousands of credits (read 2026-10-29).
+- Revisit if: a week's ledger passes 300, or the plan's credits run low.

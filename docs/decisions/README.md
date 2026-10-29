@@ -183,7 +183,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D160 | No passphrase | active |
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | Captions via Firecrawl | amends D138 |
-| D166 | Firecrawl 100 a week | amends D42 |
+| D166 | Firecrawl 100 a week | amends D42; limits superseded by D221 |
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126 |
