@@ -2,7 +2,7 @@ import { routeConfigServer } from "./configServer";
 import { expect, test } from "./fixtures";
 
 /**
- * The time zone prompt (scripts/zonePrompt.ts, D216): a device in another zone than the schedule's
+ * The time zone prompt (scripts/zonePrompt.ts, D239): a device in another zone than the schedule's
  * is asked, never switched. The suite's device is in Stockholm (playwright.config.ts), the zone the
  * fixture build's schedule counts in, so no other test sees the prompt. /api/config is the site's
  * own handler (configServer.ts), so the switch is judged by the edit it produces.
@@ -44,7 +44,9 @@ test.describe("time zone prompt", () => {
     baseURL,
   }) => {
     await page.goto("/");
-    await page.locator(TOAST).getByRole("button", { name: "Dismiss" }).click();
+    // Closed from the keyboard: on a phone the close button is hidden from the eye, not the page.
+    await page.locator(TOAST).getByRole("button", { name: "Dismiss" }).focus();
+    await page.keyboard.press("Enter");
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute(CHECKED, "dismissed");
     await expect(page.locator(`${TOAST}:popover-open`)).toHaveCount(0);

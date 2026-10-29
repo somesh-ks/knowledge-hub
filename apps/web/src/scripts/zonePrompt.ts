@@ -1,5 +1,5 @@
 /**
- * Offers to move the schedule to the zone the device is in (D216). The schedule counts its days and
+ * Offers to move the schedule to the zone the device is in (D239). The schedule counts its days and
  * its 07:00 in one saved zone for everyone (D100), so a trip moves nothing until the zone is changed;
  * this notices the trip and asks, in the app's toast, and never switches on its own. A dismissal is
  * kept for that device zone and ends once the device and the schedule agree again, so a second trip

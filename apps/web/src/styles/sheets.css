@@ -552,9 +552,17 @@ textarea.sheet-input {
   }
 
   /* A one-line toast gives its close button's room to its words on a phone, where a swipe takes it
-     away (Toaster.tsx), so "You're in Johannesburg" and its action fit without an ellipsis. */
+     away (Toaster.tsx), so "You're in Johannesburg" and its action fit without an ellipsis. The
+     button stays for a keyboard and a screen reader, as a sheet's Close does (D144, above). */
   .toast[data-one-line] .toast-dismiss {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
