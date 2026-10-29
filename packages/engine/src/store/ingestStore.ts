@@ -98,7 +98,8 @@ from unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::timestamptz[], $
   $7::text[], $8::text[], $9::int[], $10::boolean[], $11::text[])
   as n(id, url, source, title, published, seen, status, method, chars, truncated, key)
 on conflict (item_id) do update set
-  last_seen_at = excluded.last_seen_at, status = excluded.status, method = excluded.method,
+  last_seen_at = excluded.last_seen_at, source_id = excluded.source_id, title = excluded.title,
+  published_at = excluded.published_at, status = excluded.status, method = excluded.method,
   chars = excluded.chars, truncated = excluded.truncated, archive_key = excluded.archive_key,
   attempts = ingest_items.attempts + 1
 where ingest_items.status <> 'archived'`;

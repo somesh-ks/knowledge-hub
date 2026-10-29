@@ -39,7 +39,9 @@ function fakeBlob(options: { failFor?: (body: string) => boolean } = {}) {
       store.set(pathname, text);
       return { url: `https://blob.example/${pathname}`, pathname };
     },
-    async del() {},
+    async del(pathnames) {
+      for (const pathname of pathnames) store.delete(pathname);
+    },
     async list() {
       return { blobs: [], hasMore: false };
     },
@@ -179,5 +181,36 @@ describe("ingest", () => {
     expect(result.run.fetched).toBe(2);
     expect(blob.store.size).toBe(0);
     await expect(db.sql.query("select 1 from ingest_items")).rejects.toThrow();
+  });
+
+  it("takes this run's texts out of Blob when the rows cannot be written", async () => {
+    const { db, blob, run } = setup();
+    const refusing: SqlClient = {
+      query: async (text, params) => {
+        if (text.includes("insert into ingest_items")) throw new Error("database down");
+        return db.sql.query(text, params);
+      },
+    };
+
+    await expect(run({ sql: refusing })).rejects.toThrow("database down");
+    expect(blob.store.size).toBe(0);
+  });
+
+  it("reads the copy of a story that carries its own text when two sources return it", async () => {
+    const thin = makeItem({ url: "https://example.com/one", title: "One", source_id: "a" });
+    const full = { ...thin, source_id: "b", content: "The whole article, in the feed." };
+    const seen: string[] = [];
+    const { run } = setup({
+      sources: [makeSource({ id: "a" }), makeSource({ id: "b", type: "github" })],
+    });
+    await run({
+      fetchers: { rss: feed([full]), github: feed([thin]) },
+      extract: async (item) => {
+        seen.push(item.content ?? "");
+        return text("Body");
+      },
+    });
+
+    expect(seen).toEqual(["The whole article, in the feed."]);
   });
 });

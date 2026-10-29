@@ -100,7 +100,14 @@ export async function runIngest(input: IngestInput): Promise<IngestReport> {
     ...(input.fetchers ? { fetchers: input.fetchers } : {}),
   });
 
-  const unique = [...new Map(fetched.map((item) => [item.id, item])).values()];
+  // Two sources can carry the same story; the copy with the most text of its own is the one to read.
+  const textOf = (item: Item): number => (item.content ?? "").length + item.snippet.length;
+  const best = new Map<string, Item>();
+  for (const item of fetched) {
+    const held = best.get(item.id);
+    if (!held || textOf(item) > textOf(held)) best.set(item.id, item);
+  }
+  const unique = [...best.values()];
   const known: KnownItems = sql
     ? await readKnownItems(
         sql,
@@ -195,7 +202,17 @@ export async function runIngest(input: IngestInput): Promise<IngestReport> {
     github_run_id: input.githubRunId ?? null,
   };
   if (!input.dryRun && sql) {
-    await recordIngestItems(sql, rows);
+    try {
+      await recordIngestItems(sql, rows);
+    } catch (error) {
+      // The texts saved this run have no row to find them by, and the next run would save them
+      // again under new keys: take them back out, as far as Blob allows.
+      const orphans = outcomes.flatMap((outcome) =>
+        outcome.kind === "archived" ? [outcome.key] : [],
+      );
+      if (blob && orphans.length > 0) await blob.del(orphans).catch(() => {});
+      throw error;
+    }
     await touchIngestItems(
       sql,
       seenAgain.map((item) => item.id),
