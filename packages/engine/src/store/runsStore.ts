@@ -84,7 +84,7 @@ on conflict (run_id) do update set
   kind = excluded.kind, mode = excluded.mode, replaces = excluded.replaces,
   dry_run = excluded.dry_run, outcome = excluded.outcome, podcasts = excluded.podcasts,
   finished_at = excluded.finished_at, work_ms = excluded.work_ms,
-  total_ms = greatest(excluded.total_ms, (extract(epoch from excluded.finished_at
+  total_ms = greatest(excluded.total_ms, least(2147483647, extract(epoch from excluded.finished_at
     - least(pipeline_runs.started_at, excluded.started_at)) * 1000)::int),
   usd = excluded.usd, failure_stage = excluded.failure_stage,
   failure_reason = excluded.failure_reason, github_run_id = excluded.github_run_id`;
