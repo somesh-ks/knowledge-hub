@@ -20,6 +20,7 @@ import {
 } from "../lib/generations";
 import { type QueueWords, queueNames } from "../lib/queueNames";
 import { GENERATION_STARTED_EVENT, RUN_EVENT } from "../lib/runRecord";
+import { BRIEFING_STAGES, EPISODE_STAGES } from "../lib/runStages";
 import type { GenerationRow, GenerationsResponse } from "../types/contracts";
 import {
   checkAgain,
@@ -114,7 +115,7 @@ function recordRow(run: Stored): GenerationRow | null {
     state: run.phase === "queued" ? "queued" : "running",
     started_at: new Date(run.t0 ?? Date.now()).toISOString(),
     stage: run.stage ?? 0,
-    stages: run.stages ?? (briefing ? 7 : 3),
+    stages: run.stages ?? (briefing ? BRIEFING_STAGES.length : EPISODE_STAGES.length),
     label: run.label ?? "",
     ...(run.estimates ? { stage_estimates_ms: run.estimates } : {}),
   };
@@ -492,6 +493,8 @@ async function stop(button: HTMLButtonElement): Promise<void> {
   // This browser's own run says so itself on its next poll and stays as Cancelled; another device's
   // is simply gone.
   if (record()?.id !== id) stopped.set(id, Date.now());
+  // A run that had already ended is not in the queue any more, whoever's it was.
+  if (result === "finished") rows = rows.filter((row) => row.run_id !== id);
   furthest.delete(id);
   render();
 }

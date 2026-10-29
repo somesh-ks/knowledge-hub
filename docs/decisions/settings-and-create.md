@@ -318,5 +318,6 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Why: the owner wanted a queue that reads as downloads do, and the strip, the card and the list each told the same run differently. A run that finished lingered in all three.
 - Rejected: a modal or sheet for the dock (it blocked the bar); album art in the rows (the owner: not needed); polling `/api/generations` on every page to find another device's run (a GitHub call a page; the queue asks only while this device has something to show); a login gate on Cancel (owner: keep it open).
 - Revisit if: another device's run must show here without a run of this device's own (one cheap check a tab session); `run.yml` now names a regeneration `regenerate <id>` (D217), so only a briefing under the old name `run` or made by hand is still hidden for other devices.
+- Context changed: the owner asked for a queue that reads as downloads do, and the list, the card and the strip each told the same run differently.
 - Supersedes: D208's list and card; amends D204's strip.
 
