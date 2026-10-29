@@ -166,9 +166,10 @@ export function checkZone(): void {
       actionLabel: "Switch timezone",
       oneLine: true,
       onAction: () => {
-        // The device moved on while the offer stood: ask again for the zone it is in now.
         if (deviceZone() === device) void switchTo(suggestion);
-        else checkZone();
+        // The device moved on while the offer stood: ask again for the zone it is in now, once the
+        // tapped toast has left (a check while it is still up would be dropped as a second offer).
+        else setTimeout(checkZone, 400);
       },
       onDismiss: () => keep([...new Set([...dismissed(), device])]),
     },
