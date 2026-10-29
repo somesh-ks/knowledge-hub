@@ -21,12 +21,12 @@ Unit (CI): 324 files, 5,132 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily ends "the podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
-- Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
-- Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, `failure_rate` 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Three regenerations per podcast, counted in its own file (D212). The file counts (`regenerations: 1` after the 10-29 live Regenerate). closed when: the page shows "2 of 3 regenerations left" for it.
+- Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, and `failure_rate` 0.1 or less. A Regenerate and a Catch up started 2 s apart both published on 10-29.
 - Ingest in shadow (D233). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
-- Authority list (D234), community lift (D240) and Reddit sources, shipped off. closed when: Somesh signs off both files and they are on, a runner reads a Reddit source, and a daily airs a lab story and a community-voted one, no source over 30% of its judged items (the shadow logs).
-- Run names (D217), Neon run log (D221). closed when: a daily is named `daily <date>`, is off the queue, with `pipeline_runs` rows.
-- `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
+- Authority list (D234), community lift (D240) and Reddit sources, shipped off. closed when: Somesh signs off both files and they are on, a runner reads a Reddit source, and a daily airs a lab story and a community-voted one, no source over 30% passing.
+- Run names (D217), Neon run log (D221). `pipeline_runs` holds the 10-29 Regenerate and Catch up. closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
+- `podcast.yml` no longer installs ffmpeg (merged). The first stage starts 9 s after the job starts on 10-29 (29 s before); checkout, Node and install take about 7 s of it. closed when: Somesh accepts 9 s or sets a new target.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml`'s `length_minutes` input must merge with the site code. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Podcast queue (D231): fakes only; Cancel needs the token's Actions write (unchecked). closed when: the owner runs a Catch up and a regeneration, cancels one, opens the other, and reads a failed run's Details.
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: a run's dedupe report keeps the outlet's entry over a discovery copy.
@@ -35,7 +35,7 @@ Unit (CI): 324 files, 5,132 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Owner's eye: the bar's centring (over 1px), the centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is checked.
 - Settings paint the kept store copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
-- Sources design (D124) live: production asks Jev for a source's format only after `secrets:push`; no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
+- Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push`; no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl's transcripts answered live (10-24), Gemini 10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners (since 10-14); #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows perf and `field` lines, a Monday opens or closes `health-warnings`.
@@ -51,7 +51,6 @@ Unit (CI): 324 files, 5,132 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - A 15-minute episode falls short; the app does not say what a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` prices are unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Admin (D224) unreachable. closed when: /admin is live and a private window sees sign-in.
-- Catch up: 2 of 7 `podcast.yml` runs failed by 10-28, the last too. closed when: the cause is named.
 - 35 older items parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
 
 ## Known risks
