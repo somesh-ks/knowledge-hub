@@ -7,6 +7,7 @@ import { DELETE_POLICY, evaluateLimits, REGENERATE_POLICY } from "./limits";
 import { cleanFeedback } from "./podcast";
 import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
+import { isScheduledRun } from "./status";
 
 /**
  * POST /api/generate: check the request, check the rate limits against GitHub, singularity run.yml.
@@ -216,6 +217,8 @@ export async function handleGenerate(
     // A delete is a run of run.yml too, but it must not use up the cooldown of a Regenerate.
     const started = runs
       .filter((run) => deleting || !run.title.startsWith("delete "))
+      // The schedule's own runs and dry runs are not a person pressing Regenerate (D217).
+      .filter((run) => !isScheduledRun(run) && !run.title.startsWith("dry run"))
       .map((run) => Date.parse(run.createdAt))
       .filter(Number.isFinite);
     // A regeneration has no daily limit of its own (D212): its count of three is the limit.

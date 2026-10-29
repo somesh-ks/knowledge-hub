@@ -236,3 +236,11 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Why: the owner wants spend bounded by what was made, not by what was tried; the old 12 a day counted failures, regenerations and deletes alike.
 - Rejected: counting episode files from the store (a delete would free a slot and a delete-and-remake loop would get round the cap); a counter in the settings store (a second place to drift).
 - Revisit if: two a day turns out too tight for the owner, or the run list (30 runs) stops covering a day.
+
+## D217: run.yml names every run for what it is
+
+- Date: 2026-10-29 (the owner: unique run names per type for analytics and debugging; the queue shows only Catch ups and regenerations).
+- Decision: `run.yml`'s `run-name` is `delete <id>`, `dry run <mode>`, `regenerate <digest id>`, the scheduler's `label` input (`daily <date>`, `weekly <date>`, `daily and weekly <date>`; the cron route sets it from the gate's decision), `on-demand`, or `scheduled` for GitHub's late fallback. The old name `run` is read as a briefing run. The generations list leaves out the schedule's own runs and any dry run, and a regeneration names its target; the Regenerate cooldown and health's `run_died` and `run_cancelled` read the prefixes. `podcast.yml` keeps `episode`, `regenerate <id>` and `delete <id>` (D213).
+- Why: every briefing run was titled `run`, so a regeneration had no target, the schedule's run was counted as a Regenerate press (D61's noted cost) and nothing could be grouped by type.
+- Rejected: a date in the Catch up name (the dispatch cannot know the episode id; the queue names it from its start time); a run-name per run number (unique but groups nothing).
+- Amends: D61, D213.

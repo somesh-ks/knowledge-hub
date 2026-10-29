@@ -102,6 +102,17 @@ function failureFields(steps: readonly WorkflowStep[]) {
   return { failed_stage: id, kept };
 }
 
+/**
+ * Whether a run is the schedule's own Daily or Weekly (D217): run.yml's "daily <date>" and "weekly
+ * <date>" from the cron route, or "scheduled" from GitHub's late fallback.
+ */
+export function isScheduledRun(run: WorkflowRun): boolean {
+  return (
+    !isPodcastRun(run) &&
+    (run.title === "scheduled" || run.title.startsWith("daily ") || run.title.startsWith("weekly "))
+  );
+}
+
 /** Whether a run is an episode run: podcast.yml, which has no named steps and no last-run record. */
 export function isPodcastRun(run: WorkflowRun): boolean {
   return workflowPath(run) === `.github/workflows/${PODCAST_WORKFLOW_FILE}`;

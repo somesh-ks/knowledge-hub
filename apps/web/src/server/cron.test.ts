@@ -195,7 +195,11 @@ describe("GET /api/cron/run", () => {
       },
     });
     expect(dispatches(github).map((request) => request.body)).toEqual([
-      { ref: "main", inputs: { mode: "scheduled" }, return_run_details: true },
+      {
+        ref: "main",
+        inputs: { mode: "scheduled", label: "daily 2026-10-10" },
+        return_run_details: true,
+      },
     ]);
     expect(logs.join("\n")).not.toContain(TOKEN);
   });
@@ -269,6 +273,9 @@ describe("GET /api/cron/run", () => {
     const result = await run(new Date("2026-10-11T16:10:00Z"));
     expect(result.body).toMatchObject({ dispatched: true, run_id: 99 });
     expect(dispatches(github)).toHaveLength(1);
+    expect(dispatches(github)[0]?.body).toMatchObject({
+      inputs: { mode: "scheduled", label: "weekly 2026-10-11" },
+    });
   });
 
   it("starts nothing once the weekly pass has run that day", async () => {

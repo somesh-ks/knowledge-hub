@@ -167,10 +167,15 @@ describe("handleGenerate", () => {
     expect((await send(4)).status).toBe(400);
   });
 
-  it("replaces or deletes only a briefing this build lists, and a delete never uses up a Regenerate's cooldown", async () => {
+  it("replaces or deletes only a briefing this build lists, and a delete, a dry run or the schedule's run never uses up a Regenerate's cooldown", async () => {
     const { deps, github } = setup({ digestIds: () => ["2026-10-07", "2026-10-07-weekly"] });
     const recentDelete = runJson({ display_title: "delete 2026-10-05", created_at: hoursAgo(1) });
-    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: [recentDelete] } });
+    // Nor do the schedule's own run or a dry run (D217): neither is a person pressing Regenerate.
+    const recentDaily = runJson({ display_title: "daily 2026-10-07", created_at: hoursAgo(1) });
+    const recentDry = runJson({ display_title: "dry run scheduled", created_at: hoursAgo(1) });
+    github.on("GET /actions/workflows/run.yml/runs", {
+      json: { workflow_runs: [recentDelete, recentDaily, recentDry] },
+    });
     github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
     const send = (extra: Record<string, unknown>) =>
       handleGenerate(input(JSON.stringify({ ...extra })), deps);

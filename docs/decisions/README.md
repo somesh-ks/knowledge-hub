@@ -232,5 +232,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D213 | Two Catch ups a day that came out; failures do not count | active |
 | D214 | A page's More menu offers Download and Add to queue like its Library row | active |
 | D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
+| D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
 
 ---
