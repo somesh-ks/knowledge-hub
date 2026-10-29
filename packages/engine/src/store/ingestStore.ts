@@ -185,6 +185,35 @@ export async function readReferencedKeys(
   }
 }
 
+/** What the store has read since `from`: when it first ran, and how many stories ended in each status. */
+export interface IngestTally {
+  first_run_at: string | null;
+  archived: number;
+  unreadable: number;
+}
+
+/** Counts stories first read at or after `from`. No table yet reads as nothing ingested. */
+export async function readIngestTally(sql: SqlClient, from: string): Promise<IngestTally> {
+  try {
+    const [first] = await sql.query("select min(started_at) as at from ingest_runs");
+    const counts = await sql.query(
+      `select status, count(*)::int as n from ingest_items
+where first_seen_at >= $1::timestamptz group by status`,
+      [from],
+    );
+    const count = (status: string): number =>
+      Number(counts.find((row) => row.status === status)?.n ?? 0);
+    return {
+      first_run_at: first?.at ? new Date(String(first.at)).toISOString() : null,
+      archived: count("archived"),
+      unreadable: count("unreadable"),
+    };
+  } catch (error) {
+    if (missingTable(error)) return { first_run_at: null, archived: 0, unreadable: 0 };
+    throw error;
+  }
+}
+
 const RUN_SQL = `insert into ingest_runs (run_id, started_at, finished_at, window_from, window_to,
   sources_ok, sources_failed, fetched, known, archived, unreadable, errors, deferred, chars, ms,
   github_run_id)
