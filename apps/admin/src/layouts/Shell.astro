@@ -1,5 +1,6 @@
 ---
 import BrandMark from "../../../web/src/components/BrandMark.astro";
+import Icon from "../../../web/src/components/Icon.astro";
 import themeInit from "../../../web/src/scripts/themeInit.js?raw";
 import AdminNav from "../components/AdminNav.astro";
 import { href } from "../lib/sections";
@@ -38,6 +39,10 @@ const { title, current } = Astro.props;
     <a class="skip-link" href="#main">Skip to the content</a>
     <header class="app-bar">
       <div class="app-bar-inner page">
+        {/* The bar shows below 64rem, where the nav's foot link is hidden; the reader's Back button, to the reader. */}
+        <a class="icon-btn app-bar-back" href="/" aria-label="Back to the app">
+          <Icon name="arrowBack" />
+        </a>
         <a class="wordmark" href={href("")} aria-label="Singularity admin">
           <BrandMark />
           <span>Admin</span>
