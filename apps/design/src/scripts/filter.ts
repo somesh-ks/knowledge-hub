@@ -24,6 +24,11 @@ function apply(): void {
       own.length > 0 &&
       !section.querySelector("[data-filter-item]:not([hidden])");
   }
+  // A jump link to a section that stepped aside would lead nowhere: it steps aside too.
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
+    const target = document.getElementById(link.hash.slice(1))?.closest("section");
+    if (target) link.hidden = target.hidden;
+  }
   if (empty) empty.hidden = terms.length === 0 || shown > 0;
 }
 

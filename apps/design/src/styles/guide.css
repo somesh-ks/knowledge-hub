@@ -352,6 +352,10 @@
   margin-block-end: var(--space-6);
 }
 
+.guide-jump .tab[hidden] {
+  display: none;
+}
+
 .guide-principles {
   display: grid;
   gap: var(--space-8);
