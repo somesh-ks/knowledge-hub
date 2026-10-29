@@ -1,10 +1,10 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "lichen",
-    "template": "contour"
+    "palette": "oxblood",
+    "template": "spring"
   },
-  "last_fetch_at": "2026-10-27T04:20:39.611Z",
+  "last_fetch_at": "2026-10-29T04:20:37.380Z",
   "on_demand": {
     "at": "2026-10-28T08:42:07.787Z",
     "generated_at": "2026-10-28T08:42:07.787Z",
@@ -12,14 +12,14 @@
     "outcome": "nothing"
   },
   "regular": {
-    "at": "2026-10-27T05:57:00.089Z",
-    "digest_id": "2026-10-27",
-    "generated_at": "2026-10-27T04:23:31.433Z",
-    "items": 3,
+    "at": "2026-10-29T05:57:00.316Z",
+    "digest_id": "2026-10-29",
+    "generated_at": "2026-10-29T04:23:23.394Z",
+    "items": 9,
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-10-28T08:42:07.787Z",
+    "at": "2026-10-29T05:57:00.316Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [
       "jhey-tompkins",
@@ -39,11 +39,11 @@
       "emil-kowalski"
     ],
     "requests": {
-      "anthropic": 23,
+      "anthropic": 13,
       "exa": 14,
       "firecrawl_listing": 0,
       "firecrawl_scrape": 0,
-      "jev": 601
+      "jev": 515
     }
   },
   "weekly": {

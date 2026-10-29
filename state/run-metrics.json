@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "run_id": "2026-10-29T04:20:37.380Z",
+      "at": "2026-10-29T05:57:00.316Z",
+      "digest_id": "2026-10-29",
+      "kind": "regular",
+      "mode": "scheduled",
+      "replace": false,
+      "outcome": "published",
+      "stage_ms": {
+        "fetch": 53684,
+        "judge": 6434,
+        "write": 53575,
+        "validate": 46239
+      },
+      "total_ms": 166014,
+      "funnel": {
+        "pool": 492,
+        "written": 4,
+        "grounding_dropped": 0,
+        "grounding_pruned": 6,
+        "validate_dropped": 3,
+        "refill_written": 8,
+        "refill_kept": 5,
+        "aired": 9
+      },
+      "length": {
+        "asked_chars": 5330,
+        "aired_chars": 4178,
+        "share": 0.78
+      },
+      "verified": true,
+      "model_fallbacks": 0
+    }
+  ]
+}
