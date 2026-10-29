@@ -74,7 +74,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields; selects, segmented controls and chips are tonal since D72 |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields (ink: D238); selects, segmented controls and chips are tonal since D72 |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; amended by D64 and D69 |
@@ -249,6 +249,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D232 | One cleaner turns scraped Markdown into prose | active |
 | D233 | Ingest in shadow: free sources, Blob text | active |
 | D234 | Vetted publishers pass the bar; topic rubric | active |
+| D238 | Ten-step OKLCH ramps | active |
 | D239 | A travelling device is offered the new zone | active; amends D100 |
 | D240 | Community votes outrank publisher status | active; amends D234 |
 | D241 | No Weekly-only blocks | amends D170 |
