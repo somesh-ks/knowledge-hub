@@ -1,0 +1,141 @@
+import { JudgmentsFile } from "@singularity/core";
+import { describe, expect, it } from "vitest";
+import {
+  type AuthorityFile,
+  authorityMatcher,
+  authorityQueries,
+  withAuthority,
+} from "../src/authority/authority.js";
+import { replayAuthority } from "../src/authority/replay.js";
+import { prefilter } from "../src/prefilter/prefilter.js";
+import { scoreItem } from "../src/score/scoreItem.js";
+import { DEFAULT_SCORE_THRESHOLD, eligibility } from "../src/score/selectItems.js";
+import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
+import { makeEntry, makeItem as makeScoredItem, plainPreferences } from "./score-factories.js";
+
+const list: AuthorityFile = {
+  version: 1,
+  enabled: true,
+  entries: [{ domain: "openai.com", categories: ["frontier_model_releases"] }],
+};
+const prefs = plainPreferences();
+
+/** A lab's launch post as Jev scores it: right category, no technique, and flagged as promotion. */
+function announcement(
+  url: string,
+  category: "frontier_model_releases" | "none" = "frontier_model_releases",
+) {
+  const item = makeScoredItem({ url, canonical_url: url, source_id: "lab" });
+  const entry = makeEntry(item, { category, p: 0.95, depth: 0, hype: 0.6, sponsored: 0.3 });
+  return { item, scored: scoreItem(entry, prefs, item) };
+}
+
+describe("authority lift", () => {
+  it("lets a vetted lab's announcement past the bar that depth and the hype flag sank it under", () => {
+    const { scored } = announcement("https://openai.com/index/introducing-a-model");
+    expect(eligibility(scored).eligible).toBe(false);
+    const lifted = withAuthority(scored, authorityMatcher(list));
+    expect(lifted.score).toBeGreaterThanOrEqual(DEFAULT_SCORE_THRESHOLD);
+    expect(eligibility(lifted).eligible).toBe(true);
+  });
+
+  it("changes nothing while the list is off, for another host, or for a category it was not vetted for", () => {
+    const off = authorityMatcher({ ...list, enabled: false });
+    const on = authorityMatcher(list);
+    const lab = announcement("https://openai.com/index/x").scored;
+    expect(withAuthority(lab, off)).toBe(lab);
+    const other = announcement("https://example.com/news/x").scored;
+    expect(withAuthority(other, on)).toBe(other);
+    // The same publisher's off-topic page: Jev placed it nowhere.
+    const customer = announcement("https://openai.com/index/customer-story", "none").scored;
+    expect(withAuthority(customer, on)).toBe(customer);
+  });
+
+  it("matches a host and its subdomains, never a lookalike", () => {
+    const on = authorityMatcher(list);
+    const hit = (url: string) => on({ url }).length > 0;
+    expect(hit("https://openai.com/a")).toBe(true);
+    expect(hit("https://www.openai.com/a")).toBe(true);
+    expect(hit("https://notopenai.com/a")).toBe(false);
+    expect(hit("https://openai.com.example.net/a")).toBe(false);
+  });
+});
+
+describe("authority queries", () => {
+  const topics = [
+    {
+      id: "frontier_model_releases",
+      name: "Model releases",
+      description: "Model cards, benchmarks",
+      enabled: true,
+    },
+    { id: "ui_component_primitives", name: "Components", description: "Dialogs", enabled: false },
+  ];
+
+  it("asks one query per vetted topic, restricted to its domains", () => {
+    const file: AuthorityFile = {
+      ...list,
+      entries: [
+        ...list.entries,
+        { domain: "anthropic.com", categories: ["frontier_model_releases"] },
+      ],
+    };
+    expect(authorityQueries(file, topics)).toEqual([
+      {
+        id: "authority-frontier-model-releases",
+        query: "Model releases: Model cards, benchmarks",
+        include_domains: ["openai.com", "anthropic.com"],
+        category_hint: "frontier_model_releases",
+      },
+    ]);
+  });
+
+  it("asks nothing while the list is off or for a topic that is switched off", () => {
+    expect(authorityQueries({ ...list, enabled: false }, topics)).toEqual([]);
+    const off: AuthorityFile = {
+      ...list,
+      entries: [{ domain: "radix-ui.com", categories: ["ui_component_primitives"] }],
+    };
+    expect(authorityQueries(off, topics)).toEqual([]);
+  });
+});
+
+describe("prefilter with the list", () => {
+  it("keeps a vetted page that names none of the owner's keywords", () => {
+    const sources = [makeSource({ id: "exa", type: "exa" })];
+    const item = makeItem({
+      source_id: "exa",
+      source_type: "exa",
+      url: "https://openai.com/index/introducing",
+      title: "Introducing our newest model",
+      snippet: "Today we are releasing.",
+    });
+    const run = (authority?: ReturnType<typeof authorityMatcher>) =>
+      prefilter({ items: [item], preferences: prefs, sources, now: NOW, authority }).items;
+    expect(run()).toHaveLength(0);
+    expect(run(authorityMatcher(list))).toHaveLength(1);
+  });
+});
+
+describe("authority replay", () => {
+  it("reports the new passers and flags a domain whose items mostly pass", () => {
+    const urls = Array.from({ length: 6 }, (_, i) => `https://openai.com/index/post-${i}`);
+    const items = urls.map((url) => makeScoredItem({ url, canonical_url: url, source_id: "lab" }));
+    const entries = Object.fromEntries(
+      items.map((item) => [
+        item.id,
+        makeEntry(item, { category: "frontier_model_releases", p: 0.95, depth: 0, hype: 0.6 }),
+      ]),
+    );
+    const report = replayAuthority({
+      pools: items,
+      judgments: JudgmentsFile.parse({ version: 1, entries }),
+      preferences: prefs,
+      authority: list,
+    });
+    expect(report.passed_before).toBe(0);
+    expect(report.passed_after).toBe(6);
+    expect(report.newly_passing).toHaveLength(6);
+    expect(report.over_guard).toEqual(["openai.com"]);
+  });
+});

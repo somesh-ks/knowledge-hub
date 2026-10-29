@@ -1,4 +1,4 @@
-import { EMPTY_TOPIC_JUDGMENTS, type Topic } from "@singularity/core";
+import { EMPTY_TOPIC_JUDGMENTS, type Topic, TopicsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_JEV_MODEL, type JevClientLike } from "../src/judge/jev.js";
 import { LLM_QUESTIONS_HASH, QUESTIONS_HASH } from "../src/judge/questions.js";
@@ -18,6 +18,7 @@ import {
   topicQuestion,
 } from "../src/judge/topicQuestions.js";
 import type { JudgeFailure } from "../src/judge/types.js";
+import { serializeTopics } from "../src/topics/store.js";
 import { makeItem } from "./score-factories.js";
 import { NO_WAIT } from "./write-fakes.js";
 
@@ -122,6 +123,23 @@ describe("the question", () => {
     expect(topicHash(tuned)).toBe(topicHash(base));
     expect(topicHash({ ...base, name: "Renamed" })).not.toBe(topicHash(base));
     expect(topicHash({ ...base, description: "Changed." })).not.toBe(topicHash(base));
+  });
+
+  it("tells Jev a topic's rubric, re-asks only that topic when it changes and keeps it through a save", () => {
+    const base = topic("a");
+    const ruled: Topic = { ...base, rubric: "Primary sources only." };
+    expect(JSON.stringify(topicQuestion(ruled))).toContain("What counts: Primary sources only.");
+    expect(JSON.stringify(topicQuestion(base))).not.toContain("What counts");
+    expect(topicHash(ruled)).not.toBe(topicHash(base));
+    // A save must not lose it: the file is written field by field.
+    const file = TopicsFile.parse({
+      version: 1,
+      sections: [{ id: "a", title: "A", order: 0 }],
+      topics: [ruled],
+    });
+    expect(TopicsFile.parse(JSON.parse(serializeTopics(file))).topics[0]?.rubric).toBe(
+      "Primary sources only.",
+    );
   });
 
   it("leaves the category questions and their hashes as they were", () => {

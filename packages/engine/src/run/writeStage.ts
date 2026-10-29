@@ -13,6 +13,13 @@ import {
 } from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
+import {
+  type AuthorityMatcher,
+  authorityMatcher,
+  authorityShadowMatcher,
+  loadAuthority,
+  withAuthority,
+} from "../authority/authority.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
   loadPool,
@@ -46,7 +53,13 @@ import {
   type TopicLayer,
 } from "../score/scoreTopics.js";
 import { loadSectionPlan } from "../score/sectionPlan.js";
-import { assignSections, capFor, compareCandidates, selectItems } from "../score/selectItems.js";
+import {
+  assignSections,
+  capFor,
+  compareCandidates,
+  eligibility,
+  selectItems,
+} from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
@@ -92,6 +105,10 @@ interface PassContext {
   sourceNames: Record<string, string>;
   /** Each source's format and lean, for the type mix and perspective. */
   sourceFacts: Record<string, SourceFacts>;
+  /** The owner's vetted publishers (D234): finds nothing while the list is off. */
+  authority: AuthorityMatcher;
+  /** The list read as if on while it is off, to log what it would add; finds nothing otherwise. */
+  authorityShadow: AuthorityMatcher;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -149,6 +166,7 @@ export async function writeStage(
   const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
   const schedule = plan.mode === "scheduled" ? fullSchedule : null;
+  const authorityFile = await loadAuthority(deps.root);
   const context: PassContext = {
     deps,
     runtime,
@@ -156,6 +174,8 @@ export async function writeStage(
     preferences,
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
+    authority: authorityMatcher(authorityFile),
+    authorityShadow: authorityShadowMatcher(authorityFile),
     customTopics: activeFitTopics(topics),
     offCategories: offCategories(topics),
     skipTopics: schedule?.skip_topics ?? [],
@@ -253,6 +273,7 @@ async function writePass(
     sources: context.sourceFacts,
   };
   const base: ScoredItem[] = [];
+  const shadowHits: string[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (!item) continue;
@@ -260,10 +281,15 @@ async function writePass(
       drop(item.id, "select", "written for an earlier digest of this run");
       continue;
     }
+    const built = scoreItem(entry, preferences, item);
+    const shadowed = withAuthority(built, context.authorityShadow);
+    if (shadowed !== built && eligibility(shadowed).eligible && !eligibility(built).eligible) {
+      shadowHits.push(`${item.source_id}: ${item.title} (${built.score} to ${shadowed.score})`);
+    }
     base.push(
       withSourceAdjustment(
         applyFormatMix(
-          applyTopics(scoreItem(entry, preferences, item), layer),
+          applyTopics(withAuthority(built, context.authority), layer),
           preferences.format_mix,
           context.sourceFacts,
         ),
@@ -271,6 +297,13 @@ async function writePass(
         sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now())),
       ),
     );
+  }
+  if (shadowHits.length > 0) {
+    deps.log.info("authority list is off; with it on these would pass the bar", {
+      pass: pass.id,
+      count: shadowHits.length,
+      stories: shadowHits.slice(0, 10),
+    });
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
   const tasteFits =
@@ -374,6 +407,7 @@ async function writePass(
         judged: sampleFiles.judged,
         preferences,
         offCategories: off,
+        authority: context.authority,
       })
     : {};
   await writeJson(file("source-counts.json"), {

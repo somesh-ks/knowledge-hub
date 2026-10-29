@@ -95,6 +95,16 @@ whether the shadow exit is met. Needs DATABASE_URL.`,
     load: async () => (await import("./commands/ingest.js")).run,
   },
   {
+    name: "authority",
+    summary: "Replay the owner's authority list over past pools (D234)",
+    help: `Usage: singularity authority replay <pools-dir> [--days <n>]
+
+Scores the pools in <pools-dir> (the run artifacts, unpacked; the newest 14 days by default) from the
+cached judgments, with and without config/authority.json, and prints what would newly pass the bar,
+each domain's pass share and any domain over 30%. The list is read as if on. Offline and free.`,
+    load: async () => (await import("./commands/authority.js")).run,
+  },
+  {
     name: "curate",
     summary: "Judge, select, write and ground a pool (api) or validate a selection (agent)",
     help: `Usage: singularity curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>]
