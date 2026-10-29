@@ -307,6 +307,37 @@ describe("a block's count is a proportion, not a ceiling, when the length wants 
     expect(taken("ai")).toBe(1);
   });
 
+  it("reserves a section with its own allowance its count before the main sections take spares", () => {
+    const own = [
+      ...Array.from({ length: 8 }, (_, n) =>
+        scoredIn("design_engineering_craft", 0.9 - n * 0.01, n + 1),
+      ),
+      ...Array.from({ length: 5 }, (_, n) =>
+        scoredIn("consumer_tech_releases", 0.6 - n * 0.01, n + 80),
+      ),
+    ];
+    const counted = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "section", id: home, max_stories: 2 },
+        { type: "section", id: "tech", max_stories: 4 },
+        { type: "sign_off" },
+      ]),
+    );
+    const result = selectItems({
+      scored: own,
+      kind: "regular",
+      floor: 1,
+      cap: 20,
+      total: 6,
+      plan: counted,
+    });
+    const taken = (section: string) =>
+      result.selected.filter((item) => item.section === section).length;
+    expect(taken("tech")).toBe(4);
+    expect(taken(home)).toBe(2);
+  });
+
   it("keeps to the count when the length asks for no more", () => {
     const narrow = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 2, plan });
     expect(narrow.selected).toHaveLength(2);

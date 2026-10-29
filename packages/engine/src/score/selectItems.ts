@@ -459,11 +459,20 @@ export function selectItems(input: SelectInput): SelectResult {
     dropped.push({ id: candidate.item.id, reason: "not_in_structure", score: candidate.score });
     return false;
   });
-  // The main sections leave room for one story from each section with an allowance of its own.
-  const ownSections = new Set(own.map((candidate) => candidate.home)).size;
+  // The main sections leave room for one story from each section with an allowance of its own, or
+  // for the count the structure gives it, so their spares cannot crowd that count out (D217).
+  const ownReserved = [...new Set(own.map((candidate) => candidate.home))].reduce(
+    (sum, section) =>
+      sum +
+      Math.min(
+        own.filter((candidate) => candidate.home === section).length,
+        plan.limit(section) ?? 1,
+      ),
+    0,
+  );
   // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
   const kindCap = input.total === undefined ? capFor(input.kind) : total;
-  const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownSections));
+  const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownReserved));
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();
