@@ -177,13 +177,20 @@ export async function contentDigestKind(
   return text ? (/^kind:\s*(\S+)/m.exec(text)?.[1] ?? null) : null;
 }
 
+/** The `regenerations` a file's front matter names: its body is never read, whatever it says. */
+function regenerationsIn(text: string): number {
+  const end = text.indexOf("\n---", 4);
+  const front = text.startsWith("---\n") && end > 0 ? text.slice(0, end) : "";
+  return Number(/^regenerations:\s*(\d+)/m.exec(front)?.[1] ?? 0);
+}
+
 /** How many times a briefing was regenerated, from its front matter (D212); 0 when never or unknown. */
 export async function contentDigestRegenerations(
   id: string,
   deps: () => ContentRepoDeps = runtime,
 ): Promise<number> {
   const text = await contentDigests(deps).readDigest(id);
-  return text ? Number(/^regenerations:\s*(\d+)/m.exec(text)?.[1] ?? 0) : 0;
+  return text ? regenerationsIn(text) : 0;
 }
 
 /** How many times an episode was regenerated, from its front matter (D212); 0 when never or unknown. */
@@ -192,7 +199,7 @@ export async function contentEpisodeRegenerations(
   deps: () => ContentRepoDeps = runtime,
 ): Promise<number> {
   const text = await contentEpisodes(deps).readEpisode(id);
-  return text ? Number(/^regenerations:\s*(\d+)/m.exec(text)?.[1] ?? 0) : 0;
+  return text ? regenerationsIn(text) : 0;
 }
 
 /** The engine's cost ledger, every month of it. */

@@ -228,6 +228,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing for now | active |
-| D212 | Three regenerations per podcast, no day limit | active |
+| D212 | Three regenerations per podcast, no daily limit of its own | active |
 
 ---
