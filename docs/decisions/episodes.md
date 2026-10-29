@@ -267,7 +267,7 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 
 - Date: 2026-10-29 (decided for the owner while away; the coordinator: trim deterministically before paying for another model call).
 - Decision: before the voice rewrite, a summary over four sentences loses its trailing sentences and a headline over twelve words its trailing clause (cut at a comma, colon, semicolon or dash, keeping at least six words). The cut text is kept only if it lints clean. A rewrite that still runs over gets the same cut.
-- Why: in the 2026-10-29 dry run after D218, 4 of the 15 written stories were lost to a fifth summary sentence or a headline two words over, each after a rewrite that missed the limit again; with the three extract failures that left 10 items of about 15.
+- Why: in the 2026-10-29 dry run after D218, of 15 selected stories 3 failed extraction and 4 were lost to a fifth summary sentence or a headline two words over, each after a rewrite that missed the limit again; 8 were written, the refill kept 2 more, and 10 items aired of about 15 wanted.
 - Rejected: a second rewrite (another model call that can miss again); cutting any other rule's violation (a banned word or a missing beat needs the writer).
 - Revisit if: a cut headline reads wrong in a published episode, or the summary's last sentence turns out to carry the story's point.
 - Amends: none.

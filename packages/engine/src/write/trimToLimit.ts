@@ -4,7 +4,7 @@ import { countWords, splitSentences } from "../voice/sentences.js";
 
 /** A headline cut at a clause break keeps at least this many words, or it no longer says the story. */
 const HEADLINE_MIN_WORDS = 6;
-const CLAUSE_BREAK = /[,;:]\s|[\u2013\u2014]|\s-\s/g;
+const CLAUSE_BREAK = /[,;:]\s|[\u2013\u2014]|\s(?:--|-)\s/g;
 
 /** A headline cut where a clause ends, the longest cut inside the word limit. */
 function headlinePrefix(text: string): string | null {
