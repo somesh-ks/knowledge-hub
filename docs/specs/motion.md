@@ -52,7 +52,7 @@ Shown on the design site's Motion page beside what the app does today. Each land
 ## Never
 
 - A spring on a fade, or an overshoot on a colour.
-- A duration over 300 ms, or a plain ease-in (tests fail both). The drawer (500 ms) and the springs, which are held to 500 ms of felt time (`singularity.perceptualMs`) rather than their settle time, are the exceptions.
+- A duration over 300 ms, or a plain ease-in (tests fail both). The drawer (500 ms) is the one exception. A spring token's settle time may pass 300 ms; the ceiling measures its own `singularity.perceptualMs` (80 to 240 ms for the six expressive springs).
 - `transition: all`, a literal duration, a private easing, a raw length (`styles.test.ts`).
 - Animating `width`, `height`, `max-width` or `margin` when `transform`, `opacity` or `clip-path` does the job.
 - A control that grows, shakes or shifts its neighbours when its state changes.
