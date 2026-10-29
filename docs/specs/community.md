@@ -9,10 +9,10 @@ What practitioners vote up and argue over lifts a story; where the engine reads 
 - Shipped `enabled: false`: nothing above changes a score. With it off, the write stage logs the pool stories the lift would add (after the type mix and source adjustment, muted categories applied). A page only a new source would fetch is not in the pool.
 - Prefilter: a Reddit score over 200 keeps a story with no keyword match, as HN points over 100 do; Reddit's score joins the vote term that ranks the pool.
 - Hacker News sources: `hn-show` reads Show HN. `hn-ai` and `hn-design` set `options.query`: Algolia returns stories above `min_points` that match any of the words (`optionalWords`), so the topic's discussions reach the pool.
-- Reddit: a `reddit` source reads `options.subreddit`'s top of the day above `options.min_score`, skipping stickied and adult posts; a text post links to its thread. Reddit refuses many datacenter addresses, so a failing fetch shows in source health like any source. The six shipped subreddits are off until a run shows one gets through.
+- Reddit: a `reddit` source reads `options.subreddit`'s top of the day at `options.min_score` or higher, skipping stickied and adult posts; a text post links to its thread. Reddit refuses many datacenter addresses, so a failing fetch shows in source health like any source. The six shipped subreddits are off until a run shows one gets through.
 - `high_signal` is held by the sources the owner names favorites. The GitHub release feeds and the shadcn changelog do not carry it: releases are low signal.
 
-Scenario: a lab's launch post (frontier_model_releases, depth 0) with 400 HN points and 180 comments has 580 votes, strength about 0.6, and scores about 0.48: over the 0.4 bar, under a technique piece at 0.7. The same post with 20 points stays at 0.38 and drops.
+Scenario: a lab's launch post (frontier_model_releases, depth 0) with 400 HN points and 180 comments has 580 votes, strength about 0.6, and scores about 0.48: over the 0.4 bar, under a technique piece at 0.7. The same post with 20 points and no comments has 20 votes, stays at 0.38 and drops.
 
 ## Code
 

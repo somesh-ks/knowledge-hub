@@ -25,7 +25,7 @@ const Listing = z.object({
 });
 
 /**
- * A subreddit's best posts of the day (`options.subreddit`), above a score floor
+ * A subreddit's best posts of the day (`options.subreddit`), at or above a score floor
  * (`options.min_score`). The score and comment count become the story's community votes (D240).
  * Reddit refuses many datacenter addresses (403 or 429): the fetch then fails like any source and
  * the health record shows it, so the source ships off until a run shows it gets through.
