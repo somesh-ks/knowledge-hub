@@ -89,7 +89,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   // lists only what the pull request changes. Without a merge commit (a local run) fall back to BASE.
   const git = (...args) => execFileSync("git", args, { encoding: "utf8" });
   const merged = git("rev-list", "--parents", "-n", "1", "HEAD").trim().split(" ").length === 3;
-  const files = git("diff", "--name-only", merged ? "HEAD^1" : `${base}...HEAD`, "HEAD")
+  const files = git("diff", "--name-only", ...(merged ? ["HEAD^1", "HEAD"] : [`${base}...HEAD`]))
     .split("\n")
     .filter(Boolean);
   // A call site is a file that names the system before or after the change (a deleted one, before).
