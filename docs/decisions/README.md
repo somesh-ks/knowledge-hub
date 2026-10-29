@@ -48,7 +48,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D25 | The Vercel GitHub integration deploys the site | active |
 | D26 | Audio uploads use Vercel Blob OIDC credentials | active |
 | D27 | Owner and Dependabot pull requests merge automatically | active |
-| D28 | The audio job runs the Vercel CLI outside the checkout; its failure is not a failed run | active |
+| D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
 | D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
 | D31 | The visual language follows Google Podcasts and YouTube Music | active; the play chip is tonal since D72 |
@@ -229,19 +229,19 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
 | D212 | Three regenerations per podcast, no daily limit | active |
-| D213 | Two Catch ups a day; failures do not count | active |
-| D214 | A page's More menu offers Download and Add to queue | active |
-| D215 | Daily and Weekly: no Look back, no Format | active; supersedes D184 |
-| D216 | Ticked general topics get a sized section | active; amends D170, D191 |
+| D213 | Two Catch ups a day that came out; failures do not count | active |
+| D214 | A page's More menu offers Download and Add to queue like its Library row | active |
+| D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
+| D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
-| D218 | A block's count is a proportion; length is the limit | active; amends D170 |
-| D219 | A day's Catch ups are one album, chosen by a select | active |
+| D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
+| D219 | A day's Catch ups are one album, chosen by a select before Play | active |
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
 | D223 | Firecrawl warns at 150 | amends D222 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
 | D225 | A Haiku call shortens an over-limit headline | active |
-| D229 | Column centred; label 12px off its field | active |
+| D229 | Column centred; 12px label gap | active |
 
 ---
