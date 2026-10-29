@@ -54,9 +54,26 @@
    words only where a mark cannot say it (2026-10-29, the owner: too much text, no visuals). */
 .ov-card {
   display: grid;
-  gap: var(--space-6);
   margin-block-start: 0;
   padding: var(--card-padding);
+}
+
+/* A card is blocks a hairline apart (2026-10-29, the owner: dividers are welcome): the answer, then
+   what backs it. 16px either side of the line. */
+.ov-card > * + *,
+.ov-groups > * + * {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.ov-block {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ov-split {
+  gap: var(--space-6);
 }
 
 .ov-data {
@@ -121,7 +138,6 @@
    strip per group, so a page of good news is four short lines. */
 .ov-groups {
   display: grid;
-  gap: var(--space-4);
 }
 
 .ov-flags {
@@ -129,6 +145,12 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Rows in a list are a hairline apart too. */
+.ov-flag-item + .ov-flag-item,
+.ov-strip + .ov-strip {
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
 /* A flagged check is one line: glyph, name, reading. The fuller line is its tooltip and the Health
@@ -186,6 +208,7 @@
    hovered day lifts out of the others. */
 .ov-plot {
   position: relative;
+  margin-block-start: 0;
 }
 
 .ov-tip {

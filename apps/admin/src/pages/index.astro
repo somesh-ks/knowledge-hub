@@ -29,14 +29,16 @@ const groups = HEALTH_GROUPS.map((group) => ({
     <section data-overview-health data-loading>
       <h2 class="section-head">Health</h2>
       <div class="card-group ov-card">
-        <div class="ov-answer ov-data" aria-live="polite">
-          <span class="ov-badge" data-tone="none" data-badge></span>
-          <div>
-            <p class="ov-figure" data-attention>Checking</p>
-            <p class="ov-sub" data-health-sub></p>
+        <div class="ov-block ov-data" aria-live="polite">
+          <div class="ov-answer">
+            <span class="ov-badge" data-tone="none" data-badge></span>
+            <div>
+              <p class="ov-figure" data-attention>Checking</p>
+              <p class="ov-sub" data-health-sub></p>
+            </div>
           </div>
+          <p class="settings-note" data-health-note hidden></p>
         </div>
-        <p class="settings-note" data-health-note hidden></p>
         <div class="ov-groups ov-data" data-health-groups></div>
       </div>
     </section>
@@ -44,14 +46,20 @@ const groups = HEALTH_GROUPS.map((group) => ({
     <section data-overview-spend data-loading>
       <h2 class="section-head">Spend</h2>
       <div class="card-group ov-card">
-        <div class="ov-answer ov-data">
-          <p class="ov-figure"><span class="sr-only">Total spend </span><span data-spend-total>Loading</span></p>
-          <p class="ov-sub" data-spend-sub>Last 30 days</p>
+        <div class="ov-block ov-data">
+          <div class="ov-answer">
+            <p class="ov-figure"><span class="sr-only">Total spend </span><span data-spend-total>Loading</span></p>
+            <p class="ov-sub" data-spend-sub>Last 30 days</p>
+          </div>
+          <p class="settings-note" data-spend-note hidden></p>
         </div>
-        <p class="settings-note" data-spend-note hidden></p>
-        <div class="costs-plot ov-plot ov-data" data-spend-plot></div>
-        <div class="ov-share ov-data" role="img" data-spend-share></div>
-        <ul class="ov-legend ov-data" role="list" data-spend-legend></ul>
+        <div class="ov-block ov-data">
+          <div class="costs-plot ov-plot" data-spend-plot></div>
+        </div>
+        <div class="ov-block ov-split ov-data">
+          <div class="ov-share" role="img" data-spend-share></div>
+          <ul class="ov-legend" role="list" data-spend-legend></ul>
+        </div>
       </div>
     </section>
   </div>
