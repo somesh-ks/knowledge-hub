@@ -49,7 +49,7 @@ export interface RewriteRequest {
   focus?: readonly string[];
   /**
    * The only problem is that a headline runs over its word limit: a short, cheap model call
-   * shortens it instead of the full rewrite (D223).
+   * shortens it instead of the full rewrite (D224).
    */
   shorten?: boolean;
 }
