@@ -6,6 +6,7 @@ import {
   DEFAULT_SCHEDULE,
   defaultStructure,
   digestSections,
+  homeSection,
   parseDigestFile,
   type StructureBlockInput,
   StructureBlocks,
@@ -197,6 +198,44 @@ it("a structure of Top picks and release news alone still airs both, though it l
     "top",
     "launches",
   ]);
+});
+
+// 2026-10-29 dry run: the Designer profile's counts, scaled to 5 minutes, summed to 13, so selection
+// stopped at 13 with no spare for a story lost in writing and the daily aired 11 of about 15. The
+// owner's rule is that the settings length is the only size limit (#147, D216): counts are the
+// proportions between sections, and room left over after them goes to the best remaining stories.
+describe("a block's count is a proportion, not a ceiling, when the length wants more", () => {
+  const scoredIn = (category: Category, score: number, n: number): ScoredItem => {
+    const item = makeItem({
+      id: n.toString(16).padStart(12, "0"),
+      title: `Distinct story number ${n} ${category}`,
+    });
+    const entry = makeEntry(item, { category });
+    const breakdown = { taste: score, craftFactor: 1, penaltyFactor: 1, bonus: 0 };
+    return { item, entry, score, topCategory: category, breakdown };
+  };
+  const home = homeSection("design_engineering_craft") ?? "design";
+  const plan = sectionPlanFor(
+    blocks([
+      { type: "hello" },
+      { type: "section", id: home, max_stories: 2 },
+      { type: "sign_off" },
+    ]),
+  );
+  const scored = Array.from({ length: 6 }, (_, n) =>
+    scoredIn("design_engineering_craft", 0.9 - n * 0.01, n + 1),
+  );
+
+  it("takes more than the count when the length leaves room, and no more than the room", () => {
+    const wide = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 5, plan });
+    expect(wide.selected.length).toBeGreaterThan(2);
+    expect(wide.selected.length).toBeLessThanOrEqual(5);
+  });
+
+  it("keeps to the count when the length asks for no more", () => {
+    const narrow = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 2, plan });
+    expect(narrow.selected).toHaveLength(2);
+  });
 });
 
 // ep-20261027-2333: eight slots were filled by rank, the structure's scaled caps then cut the design

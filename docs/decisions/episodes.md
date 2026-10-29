@@ -245,3 +245,12 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Rejected: a flat higher allowance (ignores the length); skipping the allowance when under length (the validator would trim it back).
 - Revisit if: the next two dailies still miss their length by more than 10%, or general topics crowd out the owner's own topics.
 - Amends: D170, D191.
+
+## D217: a block's story count is a proportion, not a ceiling; the length is the limit
+
+- Date: 2026-10-29 (decided for the owner while away, from his #147 rule that the settings length is the only size limit and D119's spares).
+- Decision: selection takes each block's count first (so the sections keep their proportions), then fills the room the length leaves (the sized total with spares) with the best remaining stories, ignoring the counts. Validation already cuts the narration to the length, so the extras stand as spares for a story lost in writing. Release news keeps its tenth of the cap; a custom or general section with an allowance of its own keeps that allowance (D216).
+- Why: the 2026-10-29 dry run after D216 selected 13 of 51 stories, exactly the Designer profile's counts scaled to 5 minutes; two were lost in writing, the refill kept none, and 11 items aired against about 15 wanted. The counts had left no spares.
+- Rejected: raising the preset counts (changes what a profile means and still leaves no spares); a hard cap at the counts with validation trimming to them (the owner's length is the limit).
+- Revisit if: one section crowds out the rest of an episode, or writing the extra stories costs more than the length they buy.
+- Amends: D170, D176.

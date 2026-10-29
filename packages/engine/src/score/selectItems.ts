@@ -495,9 +495,14 @@ export function selectItems(input: SelectInput): SelectResult {
     if (chosen.has(candidate) || !fits(candidate)) continue;
     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
   }
+  // A block's count is the proportion between sections, not a ceiling (D217): the settings length is
+  // the only size limit (#147), so room left after the counts goes to the best stories that remain.
+  // Validation cuts the narration to the length, so these stand as spares for a story lost in writing.
+  const fitsRelease = (candidate: Candidate): boolean =>
+    !isReleaseStory(candidate) || releasesIn() < releaseRoom;
   for (const candidate of main) {
     if (chosen.size >= limit) break;
-    if (!chosen.has(candidate) && fits(candidate)) take(candidate);
+    if (!chosen.has(candidate) && fitsRelease(candidate)) take(candidate);
   }
 
   const ownTaken = takeOwnSections(own, total - chosen.size, plan);
@@ -505,11 +510,7 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
       const reason =
-        isReleaseStory(candidate) && releasesIn() >= releaseRoom
-          ? "release_note"
-          : roomIn(candidate)
-            ? "over_cap"
-            : "over_section_cap";
+        isReleaseStory(candidate) && releasesIn() >= releaseRoom ? "release_note" : "over_cap";
       dropped.push({ id: candidate.item.id, reason, score: candidate.score });
     }
   }
