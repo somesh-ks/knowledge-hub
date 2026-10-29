@@ -237,5 +237,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
 | D219 | A day's Catch ups are one album, chosen by a select before Play | active |
 | D220 | Over-limit summaries and headlines are cut | active |
+| D221 | Firecrawl: 300 a week, 60 a run | amends D166 |
 
 ---

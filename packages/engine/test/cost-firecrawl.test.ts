@@ -201,8 +201,9 @@ describe("the spend record", () => {
     const month = (name: string, records: unknown[]) =>
       writeFile(join(root, `state/costs-${name}.json`), JSON.stringify({ version: 1, records }));
     await mkdir(join(root, "state"));
-    const before = 30;
-    const after = 40;
+    // Together they leave less than one run's ceiling of the week.
+    const before = FIRECRAWL_WEEKLY_BUDGET - FIRECRAWL_RUN_CEILING;
+    const after = 20;
     await month("2026-10", [
       spent("2026-10-25T05:37:00.000Z", 50), // eight days back: outside the week
       spent("2026-10-29T05:37:00.000Z", before),
