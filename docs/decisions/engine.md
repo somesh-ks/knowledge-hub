@@ -401,3 +401,14 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Rejected: a same-day alert path (the 300 stop is the backstop; build it only if the stop is ever hit).
 - Revisit if: the alert fires in a week with no extra runs (normal has grown), or monitors replace listing scrapes (Step 2).
 - Supersedes: D223's threshold.
+
+
+## D228: A failed dry run records its spend
+
+- Date: 2026-10-29 (decided for the owner, who wants accurate cost data; D223's Limit).
+- Decision: when a dry run fails, `run.yml`'s Record failure step runs with `--dry-run` and `recordFailedRun` puts the run's spend in the cost ledger in a commit of the ledger alone (`chore(costs): dry run <date> failed`), as a finished dry run does. The cadence, the metrics and the digests stay as they were.
+- Context changed: a failed dry run pays for the calls it made before it stopped, so recording nothing left Firecrawl's week short.
+- Why: Firecrawl's week (D222, D223) is read from the ledger, so the count was short by exactly the runs that were being fixed.
+- Rejected: counting the run log's `pipeline_stages` instead (Neon, not the ledger the budget reads; a second source for one number).
+- Limit: the ledger commit still refuses when the tree holds any other change (for example config copied from the store that git does not yet have), and a ledger write that fails is swallowed by design ("a ledger failure never fails a run"); either leaves that run's spend uncounted, and both only warn.
+- Amends: D223 (removes its Limit; the alert is D227's now and the stop of 300 stands). A dry run's ledger commit, finished or failed, uses its own `costs` allowlist (`state/costs-*.json` only), not `publish`.

@@ -243,6 +243,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
 | D225 | A Haiku call shortens an over-limit headline | active |
 | D227 | Firecrawl warns at 210 | supersedes D223 |
+| D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
 
 ---
