@@ -1,6 +1,6 @@
 /**
  * Writes what each swatch resolves to in the current theme (OKLCH and hex), and measures the WCAG
- * contrast of its pair. The colours are oklch in the tokens; a canvas turns any CSS colour into the
+ * contrast of its pair. The colors are oklch in the tokens; a canvas turns any CSS color into the
  * sRGB bytes, and the OKLCH and the ratio are computed from those. It runs again when the theme
  * changes.
  */
@@ -73,10 +73,10 @@ function measure(): void {
     }
   }
   for (const swatch of document.querySelectorAll<HTMLElement>(".guide-swatch")) {
-    const fg = resolve(swatch.dataset.fg ?? "");
-    const bg = resolve(swatch.dataset.bg ?? "");
     const out = swatch.querySelector<HTMLElement>("[data-contrast]");
     if (!out) continue;
+    const fg = resolve(swatch.dataset.fg ?? "");
+    const bg = resolve(swatch.dataset.bg ?? "");
     // A translucent role (a scrim) has no contrast of its own: it depends on what is under it.
     if (!fg || !bg || fg[3] < 1 || bg[3] < 1) {
       out.textContent = "translucent";
@@ -96,7 +96,7 @@ function measure(): void {
     out.dataset.pass = String(ratio >= min);
   }
 }
-// After the theme's colour transition has finished, so a mid-fade value is not read.
+// After the theme's color transition has finished, so a mid-fade value is not read.
 const later = (): void => {
   setTimeout(measure, 300);
 };

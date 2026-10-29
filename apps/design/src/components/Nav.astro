@@ -18,8 +18,8 @@ const { current } = Astro.props;
      one place with pages under it); the bottom bar has room for the four top-level pages only, so
      Foundations there opens its own page, which lists them. The foot holds what the reader's holds,
      the day it was built, and the one setting. */}
-<nav class="app-nav" aria-label="Singularity design" data-bottom-nav>
-  <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity design">
+<nav class="app-nav" aria-label="Singularity design system" data-bottom-nav>
+  <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity design system">
     <BrandMark />
     <span>Singularity</span>
     <span class="guide-tag">Design</span>
@@ -59,7 +59,7 @@ const { current } = Astro.props;
                   {children.map((child) => (
                     <li>
                       <a class="guide-nav-subitem" href={href(child.path)} aria-current={child.path === current ? "page" : undefined}>
-                        <Icon name={child.path === current ? child.iconCurrent : child.icon} />
+                        <Icon name={child.path === current ? child.iconCurrent : child.icon} class="icon-lg" />
                         <span>{child.label}</span>
                       </a>
                     </li>
@@ -73,8 +73,8 @@ const { current } = Astro.props;
     }
   </ul>
   <div class="guide-nav-foot">
-    <p class="guide-updated">Updated {buildDay()}</p>
     <ThemeToggle />
+    <p class="guide-updated">Updated {buildDay()}</p>
   </div>
 </nav>
 <script>

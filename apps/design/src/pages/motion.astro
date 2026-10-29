@@ -3,9 +3,7 @@ import Icon from "../../../web/src/components/Icon.astro";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { primitive } from "../lib/guide";
-import { SECTIONS } from "../lib/sections";
 
-const section = SECTIONS.find((item) => item.path === "/motion");
 const pick = (tokens: ReturnType<typeof primitive.get>) => tokens ?? [];
 const durations = pick(primitive.get("duration"));
 const eases = pick(primitive.get("ease"));
@@ -21,13 +19,15 @@ const interaction = [
 
 <Shell title="Motion" current="/motion">
   <div class="settings-view guide-page" data-settings data-ready data-motion>
-    <PageHead title="Motion" note={section?.note ?? ""} />
+    <PageHead title="Motion" />
 
-    <label class="search-field">
-      <Icon name="search" />
-      <span class="sr-only">Filter motion tokens</span>
-      <input type="search" placeholder="Filter motion tokens" autocomplete="off" data-filter />
-    </label>
+    <div class="guide-toolbar">
+      <label class="search-field">
+        <Icon name="search" />
+      <span class="sr-only">Search motion</span>
+      <input type="search" placeholder="Search motion" autocomplete="off" data-filter />
+      </label>
+    </div>
 
     <section aria-label="Motion tokens">
       <p class="guide-note">Press a play button to run a token. Durations run on the out curve; curves run on the longest ordinary duration. Nothing in the app moves that the reader did not move.</p>

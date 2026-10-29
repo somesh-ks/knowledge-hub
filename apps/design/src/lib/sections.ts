@@ -25,7 +25,7 @@ export const PRINCIPLES: Section = {
   label: "Principles",
   icon: "compass",
   iconCurrent: "compassFill",
-  note: "What the app is trying to be, and the rules that keep it so.",
+  note: "What the app is for.",
 };
 
 export const FOUNDATIONS: Section = {
@@ -33,38 +33,38 @@ export const FOUNDATIONS: Section = {
   label: "Foundations",
   icon: "stack",
   iconCurrent: "stack",
-  note: "What every component is built from.",
+  note: "What everything is built from.",
 };
 
 /** The pages under Foundations, in order. */
 export const FOUNDATION_PAGES: readonly Section[] = [
   {
-    path: "/colour",
-    label: "Colour",
+    path: "/color",
+    label: "Color",
     icon: "palette",
     iconCurrent: "paletteFill",
-    note: "Roles, not colours: a component reads a role, and the role follows the theme.",
+    note: "Every role, in both themes.",
   },
   {
     path: "/type",
     label: "Typography",
     icon: "textAa",
     iconCurrent: "textAaFill",
-    note: "The text roles and the size scale, set live.",
+    note: "Roles and sizes.",
   },
   {
     path: "/motion",
     label: "Motion",
     icon: "waveSine",
     iconCurrent: "waveSineFill",
-    note: "How things move: durations, easing and springs, run live.",
+    note: "Durations, curves and springs.",
   },
   {
     path: "/tokens",
     label: "Tokens",
     icon: "sliders",
     iconCurrent: "slidersFill",
-    note: "Space, radius, shadow, motion, layers, layout and the icon set.",
+    note: "Space, radius, shadow and icons.",
   },
 ];
 
@@ -73,7 +73,7 @@ export const COMPONENTS: Section = {
   label: "Components",
   icon: "shapes",
   iconCurrent: "shapesFill",
-  note: "The parts the app itself imports, and when to use each.",
+  note: "The parts the app imports.",
 };
 
 /** Every page, for a page to find its own title and line by path. */

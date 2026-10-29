@@ -1,9 +1,6 @@
 ---
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
-import { SECTIONS } from "../lib/sections";
-
-const section = SECTIONS.find((item) => item.path === "/principles");
 
 // Written from the product brief (apps/web/PRODUCT.md), the design-engineering ledger and the
 // decisions it cites. The D-numbers are the repo's decisions; a principle changes there first.
@@ -42,7 +39,7 @@ const principles: { title: string; body: string[]; ref: string }[] = [
     title: "Minimal, with high brevity",
     body: [
       "Fewer controls, fewer words, one way to say each thing. One noun for one thing. Labels are plain: Format, Custom, AI model. A status line is three or four words.",
-      "One filled action per screen. Colour is information, not decoration: it says what is current, chosen or wrong.",
+      "One filled action per screen. Color is information, not decoration: it says what is current, chosen or wrong.",
     ],
     ref: "D77, D84, D96",
   },
@@ -57,21 +54,21 @@ const principles: { title: string; body: string[]; ref: string }[] = [
   {
     title: "Every control is complete",
     body: [
-      "A touch target of at least 44px, a sound, a press state that never shrinks the words, and a focus ring that survives forced colours. A control missing any of the four is unfinished, however it looks.",
+      "A touch target of at least 44px, a sound, a press state that never shrinks the words, and a focus ring that survives forced colors. A control missing any of the four is unfinished, however it looks.",
     ],
     ref: "D72, D101",
   },
   {
     title: "Accessible to the standard, not the checklist",
     body: [
-      "WCAG 2.2 AA. Text is 4.5 to 1 on every surface it can sit on and a control's edge is 3 to 1; the Colour page measures both live. Colour is never the only signal: a word or a glyph says it too.",
+      "WCAG 2.2 AA. Text is 4.5 to 1 on every surface it can sit on and a control's edge is 3 to 1; the Color page measures both live. Color is never the only signal: a word or a glyph says it too.",
     ],
     ref: "D54",
   },
   {
     title: "Tokens are the only source of values",
     body: [
-      "No colour literal, no raw length, no private easing. A component reads a component token, which reads a semantic token, which reads a primitive. A change to a part is made in its shared class, component or token, never on one page only.",
+      "No color literal, no raw length, no private easing. A component reads a component token, which reads a semantic token, which reads a primitive. A change to a part is made in its shared class, component or token, never on one page only.",
     ],
     ref: "D131",
   },
@@ -96,7 +93,7 @@ const bans = [
 
 <Shell title="Principles" current="/principles">
   <div class="settings-view guide-page" data-settings data-ready>
-    <PageHead title="Principles" note={section?.note ?? ""} />
+    <PageHead title="Principles" />
 
     <section aria-labelledby="brief">
       <h2 class="section-head" id="brief">What it is for</h2>

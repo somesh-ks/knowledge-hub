@@ -1,0 +1,26 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+
+/**
+ * The page's search and its tier filter in one row, which stays under the app bar as the page
+ * scrolls (guide.css). The filter is the reader's select chip.
+ */
+---
+
+<div class="guide-toolbar">
+  <label class="search-field">
+    <Icon name="search" />
+    <span class="sr-only">Search colors</span>
+    <input type="search" placeholder="Search colors" autocomplete="off" data-filter />
+  </label>
+  <label class="sort-field">
+    <span class="sr-only">Show</span>
+    <select data-filter-tier>
+      <option value="all">All</option>
+      <option value="semantic">Semantic</option>
+      <option value="primitive">Primitive</option>
+      <option value="component">Component</option>
+    </select>
+    <Icon name="chevronDown" />
+  </label>
+</div>

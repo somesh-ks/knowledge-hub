@@ -3,9 +3,7 @@ import Icon from "../../../web/src/components/Icon.astro";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { primitive, semantic } from "../lib/guide";
-import { SECTIONS } from "../lib/sections";
 
-const section = SECTIONS.find((item) => item.path === "/type");
 const roles = semantic.get("text") ?? [];
 const sizes = (primitive.get("font") ?? []).filter((token) => token.path.startsWith("font.size."));
 const leading = (primitive.get("font") ?? []).filter((token) =>
@@ -26,13 +24,15 @@ const NOTES: Record<string, string> = {
 
 <Shell title="Typography" current="/type">
   <div class="settings-view guide-page" data-settings data-ready data-type>
-    <PageHead title="Typography" note={section?.note ?? ""} />
+    <PageHead title="Typography" />
 
-    <label class="search-field">
-      <Icon name="search" />
+    <div class="guide-toolbar">
+      <label class="search-field">
+        <Icon name="search" />
       <span class="sr-only">Filter text roles and sizes</span>
-      <input type="search" placeholder="Filter roles and sizes" autocomplete="off" data-filter />
-    </label>
+      <input type="search" placeholder="Search roles and sizes" autocomplete="off" data-filter />
+      </label>
+    </div>
 
     <section aria-labelledby="specimen">
       <h2 class="section-head" id="specimen">Typeface</h2>

@@ -5,8 +5,8 @@ export const semantic = tokenGroups("semantic");
 export const primitive = tokenGroups("primitive");
 export const component = tokenGroups("component");
 
-/** The semantic colour roles, in the groups a reader looks for them by. */
-export const COLOUR_GROUPS: readonly { title: string; note: string; names: readonly string[] }[] = [
+/** The semantic color roles, in the groups a reader looks for them by. */
+export const COLOR_GROUPS: readonly { title: string; note: string; names: readonly string[] }[] = [
   {
     title: "Surfaces",
     note: "The page and what sits on it, from the sunken well to the raised sheet.",
@@ -58,7 +58,7 @@ export const COLOUR_GROUPS: readonly { title: string; note: string; names: reado
   },
   {
     title: "Status",
-    note: "Colour is information: it says what happened, and a word or a glyph always says it too.",
+    note: "Color is information: it says what happened, and a word or a glyph always says it too.",
     names: [
       "success",
       "success-subtle",
@@ -72,13 +72,13 @@ export const COLOUR_GROUPS: readonly { title: string; note: string; names: reado
   },
   {
     title: "Focus and cover",
-    note: "The ring that survives forced colours, and the scrim under a sheet.",
+    note: "The ring that survives forced colors, and the scrim under a sheet.",
     names: ["focus-ring", "focus-gap", "scrim"],
   },
 ];
 
 /** Foreground on background pairs the style guide measures live, with the contrast each must reach. */
-export const COLOUR_PAIRS: readonly { fg: string; bg: string; min: number; note: string }[] = [
+export const COLOR_PAIRS: readonly { fg: string; bg: string; min: number; note: string }[] = [
   { fg: "on-surface", bg: "surface", min: 7, note: "Headlines and labels on the page" },
   { fg: "on-surface-reading", bg: "surface", min: 7, note: "Summaries and running text" },
   { fg: "on-surface-muted", bg: "surface", min: 4.5, note: "Secondary text" },
@@ -99,12 +99,12 @@ export const COLOUR_PAIRS: readonly { fg: string; bg: string; min: number; note:
   { fg: "danger", bg: "surface", min: 4.5, note: "An error line" },
 ];
 
-/** A semantic colour token by its role name ("on-surface"). */
-export function colourToken(name: string): CatalogueToken | undefined {
+/** A semantic color token by its role name ("on-surface"). */
+export function colorToken(name: string): CatalogueToken | undefined {
   return semantic.get("color")?.find((token) => token.path === `color.${name}`);
 }
 
-/** How a colour role is drawn on the Colour page: its fill, the ink laid on it, and the pair measured. */
+/** How a color role is drawn on the Color page: its fill, the ink laid on it, and the pair measured. */
 export interface SwatchSpec {
   fill: string;
   ink?: string;
@@ -113,12 +113,12 @@ export interface SwatchSpec {
 }
 
 /**
- * A role is shown as it is used. A text colour sits on the surface it is set on; a surface carries
+ * A role is shown as it is used. A text color sits on the surface it is set on; a surface carries
  * the text set on it; a fill that has its own "on-" role carries that; a status tint carries its
  * status; anything else (a line, a status, a ring) is measured on the page.
  */
 export function swatchSpec(name: string): SwatchSpec {
-  const has = (role: string): boolean => colourToken(role) !== undefined;
+  const has = (role: string): boolean => colorToken(role) !== undefined;
   if (name.startsWith("on-")) {
     const base = name.slice(3);
     const fill = has(base) ? base : "surface";
@@ -132,4 +132,19 @@ export function swatchSpec(name: string): SwatchSpec {
   const base = name.replace(/-subtle$/, "");
   if (base !== name && has(base)) return { fill: name, ink: base, fg: base, bg: name };
   return { fill: name, fg: name, bg: "surface" };
+}
+
+/** The color-valued component tokens, each with the semantic role it points at. */
+export function componentColors(): { group: string; token: CatalogueToken; role: string }[] {
+  const found: { group: string; token: CatalogueToken; role: string }[] = [];
+  for (const [group, tokens] of component)
+    for (const token of tokens) {
+      if (token.type !== "color") continue;
+      found.push({
+        group,
+        token,
+        role: token.value.match(/\{semantic\.color\.([^}]+)\}/)?.[1] ?? token.value,
+      });
+    }
+  return found;
 }

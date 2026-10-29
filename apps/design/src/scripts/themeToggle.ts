@@ -2,7 +2,7 @@
  * The guide's theme: dark unless chosen otherwise, kept in this browser under "design:theme" (the
  * reader's own saved theme is neither read nor written, so a choice here never changes the app).
  * The page applies the stored choice before first paint (Shell.astro); this wires the buttons and
- * says so on document as "design:theme", for the colour page to measure again.
+ * says so on document as "design:theme", for the color page to measure again.
  */
 export {};
 

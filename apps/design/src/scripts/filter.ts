@@ -8,14 +8,13 @@ export {};
 const field = document.querySelector<HTMLInputElement>("[data-filter]");
 const items = Array.from(document.querySelectorAll<HTMLElement>("[data-filter-item]"));
 const empty = document.querySelector<HTMLElement>("[data-filter-empty]");
+const tier = document.querySelector<HTMLSelectElement>("[data-filter-tier]");
 
 function apply(): void {
   const terms = (field?.value ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
-  let shown = 0;
   for (const item of items) {
     const text = `${item.dataset.name ?? ""} ${item.textContent ?? ""}`.toLowerCase();
     item.hidden = !terms.every((term) => text.includes(term));
-    if (!item.hidden) shown++;
   }
   for (const section of document.querySelectorAll<HTMLElement>(".guide-page section")) {
     const own = section.querySelectorAll("[data-filter-item]");
@@ -29,10 +28,15 @@ function apply(): void {
     const target = document.getElementById(link.hash.slice(1))?.closest("section");
     if (target) link.hidden = target.hidden;
   }
-  if (empty) empty.hidden = terms.length === 0 || shown > 0;
+  tier?.closest(".sort-field")?.toggleAttribute("data-active", tier.value !== "all");
+  const anySection = Array.from(document.querySelectorAll<HTMLElement>(".guide-page section")).some(
+    (section) => !section.hidden,
+  );
+  if (empty) empty.hidden = anySection || (terms.length === 0 && tier?.value === "all");
 }
 
 field?.addEventListener("input", apply);
+tier?.addEventListener("change", apply);
 addEventListener("keydown", (event) => {
   const active = document.activeElement;
   if (

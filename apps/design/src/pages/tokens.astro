@@ -4,9 +4,7 @@ import { ICON_PATHS, type IconName } from "../../../web/src/lib/icons";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { component, primitive, semantic } from "../lib/guide";
-import { SECTIONS } from "../lib/sections";
 
-const section = SECTIONS.find((item) => item.path === "/tokens");
 const pick = (tokens: ReturnType<typeof primitive.get>) => tokens ?? [];
 const space = pick(primitive.get("space"));
 const radius = pick(primitive.get("radius"));
@@ -34,7 +32,7 @@ const jumps = [
 
 <Shell title="Tokens" current="/tokens">
   <div class="settings-view guide-page" data-settings data-ready data-tokens>
-    <PageHead title="Tokens" note={section?.note ?? ""} />
+    <PageHead title="Tokens" />
 
     <div class="guide-jump">
       <div class="tabs-bar">
@@ -43,11 +41,13 @@ const jumps = [
         </nav>
       </div>
     </div>
-    <label class="search-field">
-      <Icon name="search" />
-      <span class="sr-only">Filter tokens and icons</span>
-      <input type="search" placeholder="Filter tokens and icons" autocomplete="off" data-filter />
-    </label>
+    <div class="guide-toolbar">
+      <label class="search-field">
+        <Icon name="search" />
+      <span class="sr-only">Search tokens and icons</span>
+      <input type="search" placeholder="Search tokens and icons" autocomplete="off" data-filter />
+      </label>
+    </div>
 
     <section aria-labelledby="space">
       <h2 class="section-head" id="space">Space</h2>
