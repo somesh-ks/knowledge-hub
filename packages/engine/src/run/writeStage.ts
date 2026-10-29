@@ -440,6 +440,7 @@ async function writePass(
         selected: chosen.selected.length,
         written: entries.length,
         items: survivors.length,
+        select_dropped: selectLosses(chosen.dropped),
         ...writeLosses(chosen.selected, dropped),
       },
     };
@@ -679,6 +680,27 @@ export function writeLosses(
   if (Object.keys(lost).length === 0) return {};
   const top = [...reasons].sort((a, b) => b[1] - a[1]).slice(0, LOSS_REASONS);
   return { lost, lost_reasons: Object.fromEntries(top) };
+}
+
+/**
+ * Why selection left out the stories that cleared the bar, as reason counts for the stage JSON. The
+ * 2026-10-29 daily had 58 qualifying stories and selected 6 for a five-minute length that wants
+ * about 28, and the reasons were only in the run's artifact. Items that never qualified (below the
+ * bar, no category, never published) are not counted: they are the pool's shape, not selection's choice.
+ */
+export function selectLosses(dropped: readonly { reason: string }[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const d of dropped) {
+    if (
+      d.reason === "below_threshold" ||
+      d.reason === "no_category" ||
+      d.reason === "never_publish"
+    ) {
+      continue;
+    }
+    counts[d.reason] = (counts[d.reason] ?? 0) + 1;
+  }
+  return Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]));
 }
 
 /**
