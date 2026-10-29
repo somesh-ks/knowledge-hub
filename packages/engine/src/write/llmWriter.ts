@@ -11,6 +11,8 @@ import type { VoiceConfig } from "../voice/voice.js";
 import {
   rewriteSystemPrompt,
   rewriteUserMessage,
+  shortenSystemPrompt,
+  shortenUserMessage,
   writerSystemPrompt,
   writerUserMessage,
 } from "./prompt.js";
@@ -228,14 +230,22 @@ export class LlmWriter implements Writer {
       const { value } = await this.options.llm.completeJson({
         schema: RewriteOutput,
         schemaName: "singularity_rewrite",
-        messages: [
-          {
-            role: "system",
-            content: rewriteSystemPrompt(this.options.voice, request.material.prompt),
-          },
-          { role: "user", content: rewriteUserMessage(request, boundary) },
-        ],
-        step: "story_rewrite",
+        messages: request.shorten
+          ? [
+              { role: "system", content: shortenSystemPrompt() },
+              {
+                role: "user",
+                content: shortenUserMessage(request.current, VOICE_LIMITS.headlineWords, boundary),
+              },
+            ]
+          : [
+              {
+                role: "system",
+                content: rewriteSystemPrompt(this.options.voice, request.material.prompt),
+              },
+              { role: "user", content: rewriteUserMessage(request, boundary) },
+            ],
+        step: request.shorten ? "headline_shorten" : "story_rewrite",
         maxTokens: REWRITE_MAX_TOKENS,
         label: "rewrite",
       });

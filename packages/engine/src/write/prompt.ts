@@ -112,6 +112,29 @@ export function rewriteSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_P
   ].join("\n");
 }
 
+/** The cheap call that cuts a headline down to its word limit and changes nothing else. */
+export function shortenSystemPrompt(): string {
+  return [
+    "You shorten one headline of a Singularity item to a word limit.",
+    "Keep the subject, the main fact and every number it states. Drop adjectives, qualifiers and secondary clauses first. Add nothing: no new fact, no new word that changes the meaning.",
+    "Write plain words, no trailing period, no dash, no question, no exclamation mark.",
+    "",
+    "SOURCE HANDLING",
+    untrustedInstruction(),
+    "",
+    "OUTPUT",
+    'Reply with one JSON object: {"text":"..."} holding the shortened headline and nothing else.',
+  ].join("\n");
+}
+
+export function shortenUserMessage(current: string, limit: number, boundary: string): string {
+  return [
+    boundaryLine(boundary),
+    `Shorten this headline to at most ${limit - 1} words:`,
+    wrapUntrusted(current, boundary, "current"),
+  ].join("\n");
+}
+
 export function rewriteUserMessage(request: RewriteRequest, boundary: string): string {
   // The current text and the quoted passages were produced from untrusted material, so they are
   // delimited. The problem list is written by our code and never embeds quoted text.
