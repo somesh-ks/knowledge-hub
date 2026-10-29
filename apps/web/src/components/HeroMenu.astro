@@ -57,14 +57,14 @@ const regen = regenerationHint(regenerations);
   <MenuSheet id="hero-menu" title="More actions">
     {
       page?.audio && (
-        <button class="hero-menu-item" type="button" role="menuitem" data-menu="download">
+        <button class="hero-menu-item" type="button" role="menuitem" data-menu="download" aria-disabled="true">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
         </button>
       )
     }
     {
       page && (
-        <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue">
+        <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue" aria-disabled="true">
           <Icon name="queueAdd" />Add to queue
         </button>
       )

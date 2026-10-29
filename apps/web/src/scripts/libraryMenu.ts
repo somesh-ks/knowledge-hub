@@ -151,8 +151,12 @@ export function installLibraryMenu(): void {
   // The menus answer from here on (the browser suite waits for it).
   const ready = (): void => {
     document.querySelector("[data-library]")?.setAttribute("data-menus-ready", "");
-    for (const menu of document.querySelectorAll("[data-page-menu]"))
+    // Download and Add to queue are served dimmed (aria-disabled) until their handler exists.
+    for (const menu of document.querySelectorAll("[data-page-menu]")) {
       menu.setAttribute("data-menus-ready", "");
+      for (const item of menu.querySelectorAll('[data-menu][aria-disabled="true"]'))
+        item.removeAttribute("aria-disabled");
+    }
     syncStopSharing();
     void syncDownloads();
   };
